@@ -124,6 +124,85 @@ def make_valid_timestamp(timestamp: datetime) -> datetime:
     return timestamp
 
 
+def delta_to_str(delta: timedelta) -> str:
+    """Convert a timedelta to a string format which is reversable.
+    Takes a datetime.timedelta object and converts it into a string
+    that is parseable by parse_delta
+    """
+    # NOTE: Rounds up to nearest minute)
+    units = [('m', 60), ('h', 60), ('d', 24), ('w', 7)]
+
+    remaining = delta.total_seconds()
+
+    delta_str = ''
+
+    negative = remaining < 0
+
+    def add_negative():
+        return '-' + delta_str if negative else delta_str
+
+    # Only handle things in the future for simplicity in testing.
+    if negative:
+        remaining = -remaining
+
+    # Print 0 minutes as the base case.
+    if remaining == 0:
+        return '0m'
+
+    for i in range(0, len(units)):
+        _, count = units[i]
+
+        remainder = int(remaining % count)
+        remaining = int(remaining // count)
+
+        # Round up the first unit (seconds) into minutes.
+        if i == 0:
+            if remainder > 0:
+                remaining += 1
+        else:
+            assert i > 0
+            if remainder != 0:
+                delta_str = "{}{}{}".format(remainder, units[i - 1][0], delta_str)
+
+        # No need to go further / captured it all, so long as we've printed at
+        # least minutes.
+        if remaining == 0 and i > 0:
+            return add_negative()
+
+    # Print the last unit with all the remaining count.
+    delta_str = "{}{}{}".format(remaining, units[-1][0], delta_str)
+
+    return add_negative()
+
+
+def parse_delta(delta: str) -> timedelta:
+    """Parse a timedelta string format into a python timedelta object.
+    Takes a delta string like that constructed in delta_to_str and converts
+    it into a datetime.timedelta object
+    """
+    assert delta != 'never'
+    possible_args = ['weeks', 'days', 'hours', 'minutes']
+
+    # Find all the <count> <unit> patterns, expand the count + units to build a timedelta.
+    chunk_regex = r'(\d+)\s*(\D+)\s*'
+    kwargs = {}
+    for count, unit in re.findall(chunk_regex, delta, re.I):
+        unit = unit.strip()
+        int_count = int(count)
+        found_unit = False
+        # match so that units can be given as single letters instead of whole words
+        for arg in possible_args:
+            if arg.startswith(unit):
+                kwargs[arg] = int_count
+                found_unit = True
+                break
+
+        if not found_unit:
+            raise ValueError("Unknown unit '{}' when parsing '{}'".format(unit, delta))
+
+    return timedelta(**kwargs)
+
+
 def chunks(l: List, n: int) -> List:
     """Split a list of items into multiple lists of size n and yield each chunk
     """
