@@ -1,0 +1,31 @@
+default:
+    age: 2h
+
+tags:
+    - owner
+    - expiration
+
+classes:
+    - AWSEC2Instance
+    - AWSEC2Volume
+    - AWSVPC
+    - AWSCloudFormationStack
+    - AWSELB
+    - AWSALB
+    - AWSALBTargetGroup
+    - AWSEKSCluster
+    - AWSEKSNodegroup
+    - ExampleInstance
+    - ExampleNetwork
+
+accounts:
+    aws:
+        068564737731:
+            name: playground
+            age: 7d
+        575584959047:
+            name: eng-sre
+
+    example:
+        Example Account:
+            name: example_account
