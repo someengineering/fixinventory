@@ -1,4 +1,4 @@
-<p align="center"><img src="misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
+<p align="center"><img src="https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
 
 Housekeeping for Clouds
 
@@ -56,7 +56,7 @@ In the [TODO](#todo) section below you will find a list of the most immediate op
 
 
 ## Metrics
-![Cloudkeeper Metrics](misc/cloudkeeper_dash.png "Cloudkeeper Metrics")
+![Cloudkeeper Metrics](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_dash.png "Cloudkeeper Metrics")
 As a by-product of our resource collection we are able to export Prometheus metrics at the /metrics endpoint.  
 The default listening port (`--web-port`) is 8000.  
 Custom metric labels based on resource tags can be defined using the `--tag-as-metrics-label` arg.  
@@ -148,12 +148,12 @@ As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_vol
 
 
 ## Data Structure
-![Cloudkeeper Graph](misc/cloudkeeper_graph.png "Cloudkeeper Graph")
+![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
 Internally Cloudkeeper stores all resources inside a non-cyclic directed graph. Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
 During collection a new staging graph is created in parallel to the current live graph and its branches are being built up as collector plugins return their own local graphs. Once all collectors finish their work the old live graph is swapped with the staging graph making it the new live graph. This means that when querying metrics or performing CLI queries you're always working on a complete picture of all cloud resources.
 
 Using the endoints mentioned in [Distributed Instances](#distributed-instances) this also gives you the ability to export the graph in various formats (GraphML, GEXF, JSON, etc.) and take a look at and explore your "Cloud".
-![Cloudkeeper Cloud](misc/cloudkeeper_cloud.png "Cloudkeeper Cloud")
+![Cloudkeeper Cloud](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_cloud.png "Cloudkeeper Cloud")
 
 
 ## Plugins
