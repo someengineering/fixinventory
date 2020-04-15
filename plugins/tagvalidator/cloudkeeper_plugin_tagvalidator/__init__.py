@@ -21,7 +21,7 @@ class TagValidatorPlugin(BasePlugin):
         super().__init__()
         self.name = 'tagvalidator'
         self.exit = threading.Event()
-        self.currently_running = False
+        self.run_lock = threading.Lock()
         if ArgumentParser.args.tagvalidator_config:
             self.config = TagValidatorConfig(ArgumentParser.args.tagvalidator_config)
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -37,19 +37,18 @@ class TagValidatorPlugin(BasePlugin):
         self.exit.wait()
 
     def tag_validator(self, event: Event):
-        if self.currently_running:
+        if not self.run_lock.acquire(blocking=False):
             log.error(f'Tag Validator is already running')
             return
 
         graph = event.data
         log.info(f'Tag Validator called')
         try:
-            self.currently_running = True
             self.validate_tags(graph)
         except Exception:
             raise
         finally:
-            self.currently_running = False
+            self.run_lock.release()
 
     @metrics_validate_tags.time()
     def validate_tags(self, graph: Graph):
