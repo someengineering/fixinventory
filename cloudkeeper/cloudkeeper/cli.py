@@ -40,12 +40,16 @@ class Cli(threading.Thread):
                 log.error(f'Invalid CLI action {action}')
                 continue
             event, command = action.split(':', 1)
+            one_shot = False
             event = event.strip()
             command = command.strip()
+            if event.startswith('1'):
+                one_shot = True
+                event = event[1:]
             for e in EventType:
                 if event == e.value:
                     f = partial(self.cli_event_handler, command)
-                    add_event_listener(e, f, blocking=True)
+                    add_event_listener(e, f, blocking=True, one_shot=one_shot)
                     break
             else:
                 log.error(f'Invalid event type {event}')
