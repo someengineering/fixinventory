@@ -81,7 +81,7 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
             thread_name = f"{event.event_type.name.lower()}_event-{getattr(listener, '__name__', 'anonymous')}"
             t = Thread(target=listener, args=[event], name=thread_name)
             if blocking or listener_data['blocking']:
-                threads[listener] = t
+                threads[t] = listener
             t.start()
         except Exception:
             log.exception('Caught unhandled event callback exception')
@@ -92,7 +92,7 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
                 listener_data['lock'].release()
 
     start_time = time.time()
-    for listener, thread in threads.items():
+    for thread, listener in threads.items():
         timeout = start_time + listeners[listener]['timeout'] - time.time()
         if timeout < 1:
             timeout = 1
