@@ -60,7 +60,7 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event
     """
     waiting_str = '' if blocking else 'not '
-    log.debug(f'Dispatching event {event.event_type} and {waiting_str}waiting for listeners to return')
+    log.debug(f'Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return')
 
     if event.event_type not in _events.keys():
         return
@@ -111,7 +111,7 @@ def add_event_listener(event_type: EventType, listener: Callable, blocking: bool
     if timeout is None:
         timeout = ArgumentParser.args.event_timeout
 
-    log.debug(f'Registering {listener} with event {event_type} (blocking: {blocking}, one-shot: {one_shot})')
+    log.debug(f'Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})')
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
             _events[event_type][listener] = {'blocking': blocking, 'timeout': timeout, 'one-shot': one_shot, 'lock': Lock()}
@@ -124,7 +124,7 @@ def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
     """
     with _events_lock.write_access:
         if event_listener_registered(event_type, listener):
-            log.debug(f'Removing {listener} from event {event_type}')
+            log.debug(f'Removing {listener} from event {event_type.name}')
             del _events[event_type][listener]
             if len(_events[event_type]) == 0:
                 del _events[event_type]
