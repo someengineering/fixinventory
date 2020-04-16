@@ -2,6 +2,7 @@ import threading
 import logging
 import inspect
 import re
+import time
 from typing import Iterable, Tuple, Any
 from collections import deque
 from itertools import islice
@@ -544,6 +545,28 @@ class CliHandler:
         for item in items:
             item_attr = self.get_item_attr(item, attr)
             if (not negate_match and item_attr is not None) or (negate_match and item_attr is None):
+                yield item
+
+    def cmd_sleep(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | sleep [pipe] <seconds>
+
+        Sleep for the specified number of seconds.
+        If pipe is specified sleep will pipe through all input items.
+        '''
+        pipe = False
+        if args.startswith('pipe '):
+            pipe = True
+            args = args[5:]
+
+        seconds = args
+        if len(seconds) == 0 or bool(re.search('[^0-9.]', str(seconds))):
+            raise ValueError('invalid number of seconds')
+
+        seconds = float(seconds)
+        time.sleep(seconds)
+
+        if pipe:
+            for item in items:
                 yield item
 
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
