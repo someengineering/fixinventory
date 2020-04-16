@@ -111,7 +111,7 @@ def add_event_listener(event_type: EventType, listener: Callable, blocking: bool
     if timeout is None:
         timeout = ArgumentParser.args.event_timeout
 
-    log.debug(f'Registering {listener} with event {event_type}')
+    log.debug(f'Registering {listener} with event {event_type} (blocking: {blocking}, one-shot: {one_shot})')
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
             _events[event_type][listener] = {'blocking': blocking, 'timeout': timeout, 'one-shot': one_shot, 'lock': Lock()}
