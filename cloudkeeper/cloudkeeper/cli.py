@@ -36,23 +36,8 @@ class Cli(threading.Thread):
         self.__run = not ArgumentParser.args.no_cli
 
         for action in ArgumentParser.args.cli_actions:
-            if ':' not in action:
-                log.error(f'Invalid CLI action {action}')
-                continue
-            event, command = action.split(':', 1)
-            one_shot = False
-            event = event.strip()
-            command = command.strip()
-            if event.startswith('1'):
-                one_shot = True
-                event = event[1:]
-            for e in EventType:
-                if event == e.value:
-                    f = partial(self.cli_event_handler, command)
-                    add_event_listener(e, f, blocking=True, one_shot=one_shot)
-                    break
-            else:
-                log.error(f'Invalid event type {event}')
+            register_cli_action(action)
+
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def __del__(self):
@@ -82,18 +67,6 @@ class Cli(threading.Thread):
             except Exception:
                 log.exception('Caught unhandled exception while processing CLI command')
         self.exit.wait()
-
-    def cli_event_handler(self, cli_input: str, event: Event = None) -> None:
-        log.info(f'Received event {event.event_type}, running command: {cli_input}')
-        graph = event.data
-        try:
-            ch = CliHandler(graph)
-            for item in ch.evaluate_cli_input(cli_input):
-                log.info(item)
-        except (RuntimeError, ValueError) as e:
-            log.error(e)
-        except Exception:
-            log.exception('Caught unhandled exception while processing CLI command')
 
     def shutdown(self, event: Event) -> None:
         log.debug(f'Received signal to shut down cli thread {event.event_type}')
@@ -573,6 +546,20 @@ class CliHandler:
             for item in items:
                 yield item
 
+    def cmd_register(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: register <event>:<cli command>
+
+        Register a CLI command with an event.
+        '''
+        if len(args) == 0:
+            yield 'register takes an event and cli command as argument'
+        else:
+            yield 'Registering CLI action'
+            if register_cli_action(args):
+                yield 'success'
+            else:
+                yield 'failed'
+
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
@@ -601,3 +588,36 @@ def get_attr_key(attr: str) -> Tuple:
             attr_key = attr[open_bracket_pos + 1:close_bracket_pos]
             attr = attr[:open_bracket_pos]
     return (attr, attr_key, attr_attr)
+
+
+def register_cli_action(action: str) -> bool:
+    if ':' not in action:
+        log.error(f'Invalid CLI action {action}')
+        return False
+    event, command = action.split(':', 1)
+    one_shot = False
+    event = event.strip()
+    command = command.strip()
+    if event.startswith('1'):
+        one_shot = True
+        event = event[1:]
+    for e in EventType:
+        if event == e.value:
+            f = partial(cli_event_handler, command)
+            return add_event_listener(e, f, blocking=True, one_shot=one_shot)
+    else:
+        log.error(f'Invalid event type {event}')
+    return False
+
+
+def cli_event_handler(cli_input: str, event: Event = None) -> None:
+    log.info(f'Received event {event.event_type.name}, running command: {cli_input}')
+    graph = event.data
+    try:
+        ch = CliHandler(graph)
+        for item in ch.evaluate_cli_input(cli_input):
+            log.info(item)
+    except (RuntimeError, ValueError) as e:
+        log.error(e)
+    except Exception:
+        log.exception('Caught unhandled exception while processing CLI command')
