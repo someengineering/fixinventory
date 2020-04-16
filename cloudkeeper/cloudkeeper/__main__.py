@@ -103,7 +103,7 @@ def main() -> None:
     dispatch_event(Event(EventType.STARTUP))
 
     # We wait for the shutdown Event to be set() and then end the program
-    # While doing so we print the list of active threads once per minute
+    # While doing so we print the list of active threads once per 15 minutes
     while not shutdown_event.is_set():
         log_stats()
         shutdown_event.wait(900)
