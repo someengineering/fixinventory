@@ -359,22 +359,36 @@ class CliHandler:
 
         List a resource's predecessors in the graph.
         '''
-        for item in items:
-            if not isinstance(item, BaseResource):
-                raise RuntimeError(f'Item {item} is not a valid resource - tag update failed')
-            for node in item.predecessors(self.graph):
-                yield node
+        return self.relatives(items, 'predecessors')
 
     def cmd_successors(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | successors
 
         List a resource's successors in the graph.
         '''
-        for item in items:
-            if not isinstance(item, BaseResource):
-                raise RuntimeError(f'Item {item} is not a valid resource - tag update failed')
-            for node in item.successors(self.graph):
-                yield node
+        return self.relatives(items, 'successors')
+
+    def cmd_ancestors(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | ancestors
+
+        List a resource's ancestors in the graph.
+        '''
+        return self.relatives(items, 'ancestors')
+
+    def cmd_descendants(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | descendants
+
+        List a resource's descendants in the graph.
+        '''
+        return self.relatives(items, 'descendants')
+
+    def relatives(self, nodes: Iterable, group: str) -> Iterable:
+        '''Return a group of relatives for any given list of nodes
+        '''
+        for node in nodes:
+            if not isinstance(node, BaseResource):
+                raise RuntimeError(f'Node {node} is not a valid resource')
+            yield from getattr(node, group)(self.graph)
 
     def cmd_tee(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | tee [-a] <filename>
@@ -409,8 +423,7 @@ class CliHandler:
                 raise ValueError(f'Item {item} has no attribute {attr}')
             return attr_value
 
-        for item in sorted(list(items), key=getsortkey, reverse=reverse):
-            yield item
+        yield from sorted(list(items), key=getsortkey, reverse=reverse)
 
     def cmd_rsort(self, items: Iterable, args: str, reverse: bool = False) -> Iterable:
         '''Usage: | rsort [attribute]

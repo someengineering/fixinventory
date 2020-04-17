@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from hashlib import sha256
 import logging
 import uuid
+import networkx.algorithms.dag
 from typing import Dict, Iterator, List, Tuple
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
@@ -307,6 +308,16 @@ class BaseResource(ABC):
         """Returns an iterator of the node's child nodes
         """
         return graph.successors(self)
+
+    def ancestors(self, graph) -> Iterator:
+        """Returns an iterator of the node's ancestors
+        """
+        return networkx.algorithms.dag.ancestors(graph, self)
+
+    def descendants(self, graph) -> Iterator:
+        """Returns an iterator of the node's descendants
+        """
+        return networkx.algorithms.dag.descendants(graph, self)
 
     def __getstate__(self):
         ret = self.__dict__.copy()
