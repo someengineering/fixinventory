@@ -358,6 +358,8 @@ class CliHandler:
         '''Usage: | predecessors
 
         List a resource's predecessors in the graph.
+
+        Predecessors are a resource's parents.
         '''
         return self.relatives(items, 'predecessors')
 
@@ -365,6 +367,8 @@ class CliHandler:
         '''Usage: | successors
 
         List a resource's successors in the graph.
+
+        Successors are a resource's children.
         '''
         return self.relatives(items, 'successors')
 
@@ -372,6 +376,9 @@ class CliHandler:
         '''Usage: | ancestors
 
         List a resource's ancestors in the graph.
+
+        Ancestors are a resource's parents and their parents
+        and their parents and so on.
         '''
         return self.relatives(items, 'ancestors')
 
@@ -379,6 +386,9 @@ class CliHandler:
         '''Usage: | descendants
 
         List a resource's descendants in the graph.
+
+        Descendants are a resource's children and their children
+        and their children and so on.
         '''
         return self.relatives(items, 'descendants')
 
