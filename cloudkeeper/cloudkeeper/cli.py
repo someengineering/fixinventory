@@ -355,47 +355,55 @@ class CliHandler:
         return (doc,)
 
     def cmd_predecessors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | predecessors
+        '''Usage: | predecessors [--with-origin]
 
         List a resource's predecessors in the graph.
-
         Predecessors are a resource's parents.
+
+        If --with-origin is specified the origin resource(s) will also be output.
         '''
-        return self.relatives(items, 'predecessors')
+        return self.relatives(items, 'predecessors', args)
 
     def cmd_successors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | successors
+        '''Usage: | successors [--with-origin]
 
         List a resource's successors in the graph.
-
         Successors are a resource's children.
+
+        If --with-origin is specified the origin resource(s) will also be output.
         '''
-        return self.relatives(items, 'successors')
+        return self.relatives(items, 'successors', args)
 
     def cmd_ancestors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | ancestors
+        '''Usage: | ancestors [--with-origin]
 
         List a resource's ancestors in the graph.
-
         Ancestors are a resource's parents and their parents
         and their parents and so on.
+
+        If --with-origin is specified the origin resource(s) will also be output.
         '''
-        return self.relatives(items, 'ancestors')
+        return self.relatives(items, 'ancestors', args)
 
     def cmd_descendants(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | descendants
+        '''Usage: | descendants [--with-origin]
 
         List a resource's descendants in the graph.
-
         Descendants are a resource's children and their children
         and their children and so on.
-        '''
-        return self.relatives(items, 'descendants')
 
-    def relatives(self, nodes: Iterable, group: str) -> Iterable:
+        If --with-origin is specified the origin resource(s) will also be output.
+        '''
+        return self.relatives(items, 'descendants', args)
+
+    def relatives(self, nodes: Iterable, group: str, args: str) -> Iterable:
         '''Return a group of relatives for any given list of nodes
         '''
+        output_origin_node = True if args == '--with-origin' else False
+
         for node in nodes:
+            if output_origin_node:
+                yield node
             if not isinstance(node, BaseResource):
                 raise RuntimeError(f'Node {node} is not a valid resource')
             yield from getattr(node, group)(self.graph)
