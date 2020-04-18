@@ -21,9 +21,7 @@ class LogDumpPlugin(BasePlugin):
             return
 
         self.logdump_path = Path(ArgumentParser.args.logdump_path)
-
-        if not self.logdump_path.is_dir():
-            raise ValueError(f'Logdump path {ArgumentParser.args.logdump_path} is not a directory')
+        self.logdump_path.mkdir(parents=True, exist_ok=True)
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         add_event_listener(EventType.PROCESS_FINISH, self.dump_resource_event_logs, blocking=False)
