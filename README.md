@@ -147,6 +147,15 @@ $ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_begin:mat
 As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_volumes/) that does just that. It was written before cloudkeeper had its own CLI.
 
 
+## Warning
+Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup. **The default input to any CLI command is the list of all cloud resources.** Meaning when you run `match resource_type = aws_ec2_volume` it runs this match against all resources.
+This however also means if you run `delete --yes` without any `match` or other filter before it, cloudkeeper sequentially runs the delete against all cloud resources.  
+**It is the equivalent of `rm -rf /` for your cloud.**  
+An even more efficient destructive command is `clean; cleanup`. In this case cloudkeeper would first mark all resources for cleaning, create a cleanup plan and then delete them in a very efficient and parallelized manner.
+
+When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like `match clean = true | count` or `match clean = true | count resource_type` before issuing the `cleanup` command.
+
+
 ## Data Structure
 ![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
 Internally Cloudkeeper stores all resources inside a non-cyclic directed graph. Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
