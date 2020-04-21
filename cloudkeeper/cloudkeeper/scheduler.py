@@ -39,11 +39,14 @@ class Scheduler(threading.Thread):
 
     def read_config(self, config_file: str) -> None:
         log.debug(f'Reading scheduler configuration file {config_file}')
-        with open(config_file, 'r') as fp:
-            for line in fp:
-                line = line.strip()
-                if not line.startswith('#'):
-                    self.add_job(line)
+        try:
+            with open(config_file, 'r') as fp:
+                for line in fp:
+                    line = line.strip()
+                    if not line.startswith('#'):
+                        self.add_job(line)
+        except Exception:
+            log.exception(f'Failed to read scheduler configuration file {config_file}')
 
     def scheduled_command(self, command):
         log.debug(f'Running scheduled command {command}')
