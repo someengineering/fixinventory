@@ -2,7 +2,8 @@ from wsgiref.simple_server import make_server, WSGIServer, WSGIRequestHandler
 from socketserver import ThreadingMixIn
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener, dispatch_event
+import json
 import falcon
 import threading
 import logging
@@ -31,6 +32,7 @@ class WebServer(threading.Thread):
         api.add_route('/health', HealthCheck())
         api.add_route('/metrics', Metrics())
         api.add_route('/graph', Remote(gc))
+        api.add_route('/collect', Collect())
         api.add_route('/graph.gexf', GEXF(gc))
         api.add_route('/graph.graphml', GraphML(gc))
         api.add_route('/graph.json', JSON(gc))
@@ -53,6 +55,7 @@ class WebServer(threading.Thread):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument('--web-port', help='Web Port (default 8000)', default=8000, dest='web_port', type=int)
+        arg_parser.add_argument('--web-pki', help='Pre Shared Key for /collect requests', default=None, dest='web_pki', type=str)
 
 
 class HealthCheck:
@@ -126,3 +129,25 @@ class Pajek:
     def on_get(self, req, resp) -> None:
         resp.content_type = 'text/plain'
         resp.body = self.gc.pajek
+
+
+def validate_pki(req, resp, resource, params):
+    if ArgumentParser.args.web_pki:
+        try:
+            data = json.load(req.bounded_stream)
+        except json.decoder.JSONDecodeError:
+            raise falcon.HTTPUnauthorized('Authentication required')
+        else:
+            if data.get('pki') != ArgumentParser.args.web_pki:
+                raise falcon.HTTPUnauthorized('Invalid PKI')
+        return True
+
+
+class Collect:
+    """Start a Collect run"""
+    @falcon.before(validate_pki)
+    def on_post(self, req, resp) -> None:
+        dispatch_event(Event(EventType.START_COLLECT))
+        resp.content_type = 'application/json'
+        j = json.dumps({'status': 'ok'})
+        resp.body = f'{j}\r\n'
