@@ -28,8 +28,8 @@ class Scheduler(threading.Thread):
 
     def run(self):
         self._sched.start()
-        if ArgumentParser.args.scheduler_conf:
-            self.read_config(ArgumentParser.args.scheduler_conf)
+        if ArgumentParser.args.scheduler_config:
+            self.read_config(ArgumentParser.args.scheduler_config)
         self.exit.wait()
 
     def shutdown(self, event: Event):
@@ -38,13 +38,19 @@ class Scheduler(threading.Thread):
         self.exit.set()
 
     def read_config(self, config_file: str) -> None:
-        pass
+        log.debug(f'Reading scheduler configuration file {config_file}')
+        with open(config_file, 'r') as fp:
+            for line in fp:
+                line = line.strip()
+                if not line.startswith('#'):
+                    self.add_job(line)
 
     def scheduled_command(self, command):
         log.debug(f'Running scheduled command {command}')
         return cli_event_handler(command, graph=self.gc.graph)
 
     def add_job(self, args: str) -> Job:
+        args = args.strip()
         cron = re.split(r'\s+', args, 5)
         if len(cron) != 6:
             raise ValueError(f'Invalid job {args}')
@@ -79,4 +85,4 @@ class Scheduler(threading.Thread):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument('--scheduler-conf', help='Scheduler Config', default=None, dest='scheduler_conf', type=str)
+        arg_parser.add_argument('--scheduler-config', help='Scheduler config in crontab format', default=None, dest='scheduler_config', type=str)
