@@ -28,11 +28,12 @@ log = logging.getLogger(__name__)
 class Cli(threading.Thread):
     """The cloudkeeper CLI
     """
-    def __init__(self, gc: GraphContainer) -> None:
+    def __init__(self, gc: GraphContainer, scheduler) -> None:
         super().__init__()
         self.name = 'cli'
         self.exit = threading.Event()
         self.gc = gc
+        self.scheduler = scheduler
         self.__run = not ArgumentParser.args.no_cli
 
         for action in ArgumentParser.args.cli_actions:
@@ -54,7 +55,7 @@ class Cli(threading.Thread):
                 if cli_input == '':
                     continue
 
-                ch = CliHandler(self.gc.graph)
+                ch = CliHandler(self.gc.graph, self.scheduler)
                 for item in ch.evaluate_cli_input(cli_input):
                     print(item)
 
@@ -80,8 +81,9 @@ class Cli(threading.Thread):
 
 
 class CliHandler:
-    def __init__(self, graph: Graph) -> None:
+    def __init__(self, graph: Graph, scheduler=None) -> None:
         self.graph = graph
+        self.scheduler = scheduler
         self.valid_commands = sorted([f[4:] for f, _ in inspect.getmembers(self.__class__, predicate=inspect.isfunction) if f.startswith('cmd_')])
 
     def evaluate_cli_input(self, cli_input: str) -> Iterable:
@@ -574,8 +576,7 @@ class CliHandler:
         time.sleep(seconds)
 
         if pipe:
-            for item in items:
-                yield item
+            yield from items
 
     def cmd_register(self, items: Iterable, args: str) -> Iterable:
         '''Usage: register <event>:<cli command>
@@ -590,6 +591,37 @@ class CliHandler:
                 yield 'success'
             else:
                 yield 'failed'
+
+    def cmd_jobs(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: jobs
+
+        Return a list of scheduled jobs
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+        yield from self.scheduler.get_jobs()
+
+    def cmd_add_job(self, items: Iterable, args: str) -> Iterable:
+        '''Usage add_job <schedule> [event]:<cli command>
+
+        Add a scheduled job in cron format.
+            field          allowed values
+            -----          --------------
+            minute         0–59
+            hour           0–23
+            day of month   1–31
+            month          1–12
+            day of week    0–7
+
+        Example:
+            Count EC2 Instances every three hours
+            > add_job 0 */3 * * * match resource_type = aws_ec2_instance \\| count
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+        yield 'Adding job'
+        self.scheduler.add_job(args)
+        yield 'success'
 
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
         attr, attr_key, attr_attr = get_attr_key(attr)
@@ -621,19 +653,18 @@ def get_attr_key(attr: str) -> Tuple:
     return (attr, attr_key, attr_attr)
 
 
-def register_cli_action(action: str) -> bool:
+def register_cli_action(action: str, one_shot: bool = False) -> bool:
     if ':' not in action:
         log.error(f'Invalid CLI action {action}')
         return False
     event, command = action.split(':', 1)
-    one_shot = False
     event = event.strip()
     command = command.strip()
     if event.startswith('1'):
         one_shot = True
         event = event[1:]
     for e in EventType:
-        if event == e.value:
+        if event == e.name.lower():
             f = partial(cli_event_handler, command)
             return add_event_listener(e, f, blocking=True, one_shot=one_shot)
     else:
@@ -641,9 +672,10 @@ def register_cli_action(action: str) -> bool:
     return False
 
 
-def cli_event_handler(cli_input: str, event: Event = None) -> None:
-    log.info(f'Received event {event.event_type.name}, running command: {cli_input}')
-    graph = event.data
+def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) -> None:
+    if graph is None and event:
+        log.info(f'Received event {event.event_type.name}, running command: {cli_input}')
+        graph = event.data
     try:
         ch = CliHandler(graph)
         for item in ch.evaluate_cli_input(cli_input):

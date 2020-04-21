@@ -25,6 +25,7 @@ setup(
         'falcon',
         'requests',
         'prometheus_client',
+        'apscheduler',
         'defaultlist',
         'prompt_toolkit',
         'Pympler',
