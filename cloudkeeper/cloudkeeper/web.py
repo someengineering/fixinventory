@@ -138,7 +138,7 @@ def validate_pki(req, resp, resource, params):
         except json.decoder.JSONDecodeError:
             raise falcon.HTTPUnauthorized('Authentication required')
         else:
-            if data.get('pki') != ArgumentParser.args.web_pki:
+            if not isinstance(data, dict) or data.get('pki') != ArgumentParser.args.web_pki:
                 raise falcon.HTTPUnauthorized('Invalid PKI')
         return True
 
