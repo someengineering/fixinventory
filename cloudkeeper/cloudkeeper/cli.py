@@ -18,7 +18,7 @@ from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
 from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
@@ -628,6 +628,13 @@ and chain multipe commands using the semicolon (;).
         E.g. echo @TODAY@
         '''
         yield args
+
+    def cmd_listeners(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: listeners
+
+        List all registered event listeners.
+        '''
+        yield from list_event_listeners()
 
     def cmd_jobs(self, items: Iterable, args: str) -> Iterable:
         '''Usage: jobs

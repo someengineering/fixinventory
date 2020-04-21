@@ -2,7 +2,7 @@ from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable
+from typing import Callable, Iterable
 from enum import Enum
 import os
 import time
@@ -130,6 +130,13 @@ def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
                 del _events[event_type]
             return True
         return False
+
+
+def list_event_listeners() -> Iterable:
+    with _events_lock.read_access:
+        for event_type, listeners in _events.items():
+            for listener, listener_data in listeners.items():
+                yield f"{event_type.name}: {listener}, blocking: {listener_data['blocking']}, one-shot: {listener_data['one-shot']}"
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
