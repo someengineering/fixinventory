@@ -3,11 +3,13 @@ import logging
 import inspect
 import re
 import time
+import calendar
 from typing import Iterable, Tuple, Any
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
-from datetime import datetime, timedelta
+from tzlocal import get_localzone
+from datetime import datetime, timedelta, timezone, date
 from distutils.util import strtobool
 from collections import defaultdict
 from prompt_toolkit import PromptSession
@@ -60,9 +62,9 @@ class Cli(threading.Thread):
                     print(item)
 
             except KeyboardInterrupt:
-                CliHandler.quit('Keyboard Interrupt')
-            except EOFError:
                 pass
+            except EOFError:
+                CliHandler.quit('Keyboard Shutdown')
             except (RuntimeError, ValueError) as e:
                 log.error(e)
             except Exception:
@@ -87,6 +89,7 @@ class CliHandler:
         self.valid_commands = sorted([f[4:] for f, _ in inspect.getmembers(self.__class__, predicate=inspect.isfunction) if f.startswith('cmd_')])
 
     def evaluate_cli_input(self, cli_input: str) -> Iterable:
+        cli_input = replace_placeholder(cli_input)
         for cmd_chain in split_esc(cli_input, ';'):
             cmds = (cmd.strip() for cmd in split_esc(cmd_chain, '|'))
             with self.graph.lock.read_access:
@@ -336,15 +339,24 @@ class CliHandler:
         return islice(items, num)
 
     def cmd_help(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: help <cmd>
+        '''Usage: help <command>
 
         Show help text for a command.
         '''
         extra_doc = ''
         if args == '':
             args = 'help'
-            extra_doc = '\n\nValid commands are:\n\t' + "\n\t".join(self.valid_commands)
-            extra_doc += '\nNote that you can chain commands using pipe ( | ).\nMake sure to leave a space before and after the pipe character.'
+            valid_commands = "\n    ".join(self.valid_commands)
+            placeholder_help = inspect.getdoc(replace_placeholder)
+            extra_doc = f'''\n
+{placeholder_help}
+
+Valid commands are:
+    {valid_commands}
+
+Note that you can pipe commands using the pipe character (|)
+and chain multipe commands using the semicolon (;).
+            '''
         method = f'cmd_{args}'
         if hasattr(self, method):
             f = getattr(self, method)
@@ -592,6 +604,31 @@ class CliHandler:
             else:
                 yield 'failed'
 
+    def cmd_date(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: date
+
+        Show the current date and time in iso format.
+        '''
+        tz = get_localzone()
+        yield tz.localize(datetime.now()).isoformat()
+
+    def cmd_utcdate(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: utcdate
+
+        Show the current UTC date and time in iso format.
+        '''
+        yield datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+
+    def cmd_echo(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: echo [string]
+
+        Echo a string to the console.
+
+        Can be used for testing string substitution.
+        E.g. echo @TODAY@
+        '''
+        yield args
+
     def cmd_jobs(self, items: Iterable, args: str) -> Iterable:
         '''Usage: jobs
 
@@ -602,7 +639,7 @@ class CliHandler:
         yield from self.scheduler.get_jobs()
 
     def cmd_add_job(self, items: Iterable, args: str) -> Iterable:
-        '''Usage add_job <schedule> [event]:<cli command>
+        '''Usage: add_job <schedule> [event]:<cli command>
 
         Add a scheduled job in cron format.
             field          allowed values
@@ -619,9 +656,24 @@ class CliHandler:
         '''
         if self.scheduler is None:
             raise RuntimeError('No scheduler given')
-        yield 'Adding job'
-        self.scheduler.add_job(args)
-        yield 'success'
+        job = self.scheduler.add_job(args)
+        yield f'job id: {job.id}'
+
+    def cmd_remove_job(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: remove_job <job-id>
+
+        Remove a scheduled job.
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+
+        if len(args) == 0:
+            yield 'remove_job takes a job id as argument'
+        else:
+            if self.scheduler.remove_job(args):
+                yield 'success'
+            else:
+                yield 'failed'
 
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
         attr, attr_key, attr_attr = get_attr_key(attr)
@@ -684,3 +736,71 @@ def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) 
         log.error(e)
     except Exception:
         log.exception('Caught unhandled exception while processing CLI command')
+
+
+def replace_placeholder(cli_input: str) -> str:
+    '''
+    Valid placeholder strings in commands are:
+        @UTC@       -> '2020-04-21T11:30:22.331346+00:00'
+        @NOW@       -> '2020-04-21T13:48:25.420230+02:00'
+        @TODAY@     -> '2020-04-21'
+        @YEAR@      -> '2020'
+        @MONTH@     -> '04'
+        @DAY@       -> '21'
+        @TIME@      -> '11:47:55'
+        @HOUR@      -> '11'
+        @MINUTE@    -> '47'
+        @SECOND@    -> '55'
+        @TZ@        -> 'CEST'
+        @TZ_OFFSET@ -> '+0200'
+        @MONDAY@    -> '2020-04-27'
+        @TUESDAY@   -> '2020-04-21'
+        @WEDNESDAY@ -> '2020-04-22'
+        @THURSDAY@  -> '2020-04-23'
+        @FRIDAY@    -> '2020-04-24'
+        @SATURDAY@  -> '2020-04-25'
+        @SUNDAY@    -> '2020-04-26'
+    '''
+    t = date.today()
+    n = get_localzone().localize(datetime.now())
+    utc = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+    now = n.isoformat()
+    today = t.strftime('%Y-%m-%d')
+    year = t.strftime('%Y')
+    month = t.strftime('%m')
+    day = t.strftime('%d')
+    time = n.strftime("%H:%M:%S")
+    hour = n.strftime("%H")
+    minute = n.strftime("%M")
+    second = n.strftime("%S")
+    tz_offset = n.strftime("%z")
+    tz = n.strftime("%Z")
+    monday = (t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat()
+    tuesday = (t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat()
+    wednesday = (t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat()
+    thursday = (t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat()
+    friday = (t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat()
+    saturday = (t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat()
+    sunday = (t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat()
+
+    cli_input = cli_input.replace('@UTC@', utc)
+    cli_input = cli_input.replace('@NOW@', now)
+    cli_input = cli_input.replace('@TODAY@', today)
+    cli_input = cli_input.replace('@YEAR@', year)
+    cli_input = cli_input.replace('@MONTH@', month)
+    cli_input = cli_input.replace('@DAY@', day)
+    cli_input = cli_input.replace('@TIME@', time)
+    cli_input = cli_input.replace('@HOUR@', hour)
+    cli_input = cli_input.replace('@MINUTE@', minute)
+    cli_input = cli_input.replace('@SECOND@', second)
+    cli_input = cli_input.replace('@TZ_OFFSET@', tz_offset)
+    cli_input = cli_input.replace('@TZ@', tz)
+    cli_input = cli_input.replace('@MONDAY@', monday)
+    cli_input = cli_input.replace('@TUESDAY@', tuesday)
+    cli_input = cli_input.replace('@WEDNESDAY@', wednesday)
+    cli_input = cli_input.replace('@THURSDAY@', thursday)
+    cli_input = cli_input.replace('@FRIDAY@', friday)
+    cli_input = cli_input.replace('@SATURDAY@', saturday)
+    cli_input = cli_input.replace('@SUNDAY@', sunday)
+
+    return cli_input

@@ -29,6 +29,7 @@ setup(
         'defaultlist',
         'prompt_toolkit',
         'Pympler',
+        'tzlocal',
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
