@@ -655,7 +655,7 @@ and chain multipe commands using the semicolon (;).
             hour           0–23
             day of month   1–31
             month          1–12
-            day of week    0–7
+            day of week    0-6 or mon,tue,wed,thu,fri,sat,sun
 
         Example:
             Count EC2 Instances every three hours
