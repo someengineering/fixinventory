@@ -7,32 +7,25 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper",
-    version="0.0.3",
-    description="Housekeeping for Clouds",
+    name="cloudkeeper-plugin-remote_event_callback",
+    version="0.0.2",
+    description="Cloudkeeper Remote Event Callback Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read('README.md'),
     entry_points={
-        'console_scripts': [
-            'cloudkeeper = cloudkeeper.__main__:main'
-        ],
+        'cloudkeeper.plugins': [
+            'remote_event_callback = cloudkeeper_plugin_remote_event_callback:RemoteEventCallbackPlugin',
+        ]
     },
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'networkx',
-        'falcon',
+        'cloudkeeper',
         'requests',
-        'prometheus_client',
-        'apscheduler',
-        'defaultlist',
-        'prompt_toolkit',
-        'Pympler',
-        'tzlocal',
     ],
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest"],
     classifiers=[
         # Current project status
         'Development Status :: 4 - Beta',

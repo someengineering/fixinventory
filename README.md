@@ -147,6 +147,15 @@ $ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_begin:mat
 As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_volumes/) that does just that. It was written before cloudkeeper had its own CLI.
 
 
+## Warning
+Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup. **The default input to any CLI command is the list of all cloud resources.** Meaning when you run `match resource_type = aws_ec2_volume` it runs this match against all resources.
+This however also means if you run `delete --yes` without any `match` or other filter before it, cloudkeeper sequentially runs the delete against all cloud resources.  
+**It is the equivalent of `rm -rf /` for your cloud.**  
+An even more efficient destructive command is `clean; cleanup`. In this case cloudkeeper would first mark all resources for cleaning, create a cleanup plan and then delete them in a very efficient and parallelized manner.
+
+When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like `match clean = true | count` or `match clean = true | count resource_type` before issuing the `cleanup` command.
+
+
 ## Data Structure
 ![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
 Internally Cloudkeeper stores all resources inside a non-cyclic directed graph. Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
@@ -202,16 +211,17 @@ A plugin can dispatch `START_COLLECT` if it wants Cloudkeeper to start its colle
 ## Distributed Instances
 Cloudkeeper comes with a built-in development webserver (defaults to Port 8000). It is meant for few internal requests (i.e. do not expose it publicly) and provides a number of endpoints:
 ```
-  /health           # returns a static 200 ok
-  /metrics          # returns Prometheus Metrics
-  /graph            # Returns a pickled representation of the live Graph
-  /graph.gexf       # Returns a GEXF representation of the live Graph
-  /graph.graphml    # Returns a GraphML representation of the live Graph
-  /graph.json       # Returns a JSON representation of the live Graph
-  /graph.txt        # Returns a Text representation of the live Graph
+  /health           # GET Returns a static 200 ok
+  /metrics          # GET Returns Prometheus Metrics
+  /collect          # POST Tells Cloudkeeper to do a collect run
+  /graph            # GET Returns a pickled representation of the live Graph
+  /graph.gexf       # GET Returns a GEXF representation of the live Graph
+  /graph.graphml    # GET Returns a GraphML representation of the live Graph
+  /graph.json       # GET Returns a JSON representation of the live Graph
+  /graph.txt        # GET Returns a Text representation of the live Graph
 ```
 The most useful of those will be `/metrics` and `/graph`. In our own setup we have an authentication and TLS proxy in front of our Cloudkeeper instances.
-Because a single collect run can take quite a while depending on the number of accounts that need to be scraped (in our case 40+ AWS accounts take about an hour to collect and clean) I have gotten to a development workflow where I download the live graph to my local system and then work on that local copy.
+Because a single collect run can take quite a while depending on the number of accounts that need to be scraped (in our case 40+ AWS accounts take about an hour to collect and clean) I have gotten to a development workflow where I download the live graph to my local system and then work on that local copy.  
 
 ```
 $ cloudkeeper --collector remote --remote-endpoint https://somelogin:somepassword@cloudkeeper.example.com/graph
@@ -227,6 +237,17 @@ Note that there is currently no HMAC signing or any form of authentication or da
 Also note that the remote graph never contains any authentication credentials. It is just the metadata describing the resources in your account. If you want to act on those resources in a cloudkeeper cleanup instance, this instance will require its own local credentials. Think of it as me emailing you a list of resources that I want you to clean up. You will still need your own credentials to actually clean them up.
 The only credential related thing that is stored within the graph is the name of the AWS role that was originally used to collect the resource - if a role was originally specified. By default Cloudkeeper would try and assume the same role again when cleaning up resources using the credentials you provide. This can be turned off and/or overridden by optionally providing your own `--aws-role` and using the `--aws-role-override` cli arg.
 
+The `/collect` endpoint can be used together with the [remote_event_callback](plugins/remote_event_callback/) plugin to let chained instances know when to collect an updated graph.
+
+Collector Instance
+```
+$ cloudkeeper -v --collector aws --remote-event-callback-endpoint process_finish:http://cleanup-instance.local:8000/collect --remote-event-callback-psk somepsk
+```
+
+Cleanup instance
+```
+$ cloudkeeper -v --collector remote --remote-endpoint http://collector-instance.local:8000/graph --web-psk somepsk --cleanup
+```
 
 ## Design Goals
 - Allow easy capability extension via plugins for developers.

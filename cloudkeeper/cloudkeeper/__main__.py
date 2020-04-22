@@ -8,6 +8,7 @@ from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
 from cloudkeeper.web import WebServer
+from cloudkeeper.scheduler import Scheduler
 from cloudkeeper.args import get_arg_parser, ArgumentParser
 from cloudkeeper.processor import Processor
 from cloudkeeper.cleaner import Cleaner
@@ -39,6 +40,7 @@ def main() -> None:
 
     Cli.add_args(arg_parser)
     WebServer.add_args(arg_parser)
+    Scheduler.add_args(arg_parser)
     Processor.add_args(arg_parser)
     Cleaner.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
@@ -75,8 +77,13 @@ def main() -> None:
     graph_collector = GraphCollector(graph_container)
     REGISTRY.register(graph_collector)
 
+    # Scheduler() starts an APScheduler instance
+    scheduler = Scheduler(graph_container)
+    scheduler.daemon = True
+    scheduler.start()
+
     # Cli() is the CLI Thread
-    cli = Cli(graph_container)
+    cli = Cli(graph_container, scheduler)
     cli.daemon = True
     cli.start()
 
@@ -103,7 +110,7 @@ def main() -> None:
     dispatch_event(Event(EventType.STARTUP))
 
     # We wait for the shutdown Event to be set() and then end the program
-    # While doing so we print the list of active threads once per minute
+    # While doing so we print the list of active threads once per 15 minutes
     while not shutdown_event.is_set():
         log_stats()
         shutdown_event.wait(900)

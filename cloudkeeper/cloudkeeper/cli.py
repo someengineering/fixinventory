@@ -2,11 +2,14 @@ import threading
 import logging
 import inspect
 import re
+import time
+import calendar
 from typing import Iterable, Tuple, Any
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
-from datetime import datetime, timedelta
+from tzlocal import get_localzone
+from datetime import datetime, timedelta, timezone, date
 from distutils.util import strtobool
 from collections import defaultdict
 from prompt_toolkit import PromptSession
@@ -15,7 +18,7 @@ from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
 from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
@@ -27,27 +30,17 @@ log = logging.getLogger(__name__)
 class Cli(threading.Thread):
     """The cloudkeeper CLI
     """
-    def __init__(self, gc: GraphContainer) -> None:
+    def __init__(self, gc: GraphContainer, scheduler) -> None:
         super().__init__()
         self.name = 'cli'
         self.exit = threading.Event()
         self.gc = gc
+        self.scheduler = scheduler
         self.__run = not ArgumentParser.args.no_cli
 
         for action in ArgumentParser.args.cli_actions:
-            if ':' not in action:
-                log.error(f'Invalid CLI action {action}')
-                continue
-            event, command = action.split(':', 1)
-            event = event.strip()
-            command = command.strip()
-            for e in EventType:
-                if event == e.value:
-                    f = partial(self.cli_event_handler, command)
-                    add_event_listener(e, f, blocking=True)
-                    break
-            else:
-                log.error(f'Invalid event type {event}')
+            register_cli_action(action)
+
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def __del__(self):
@@ -64,31 +57,19 @@ class Cli(threading.Thread):
                 if cli_input == '':
                     continue
 
-                ch = CliHandler(self.gc.graph)
+                ch = CliHandler(self.gc.graph, self.scheduler)
                 for item in ch.evaluate_cli_input(cli_input):
                     print(item)
 
             except KeyboardInterrupt:
-                CliHandler.quit('Keyboard Interrupt')
-            except EOFError:
                 pass
+            except EOFError:
+                CliHandler.quit('Keyboard Shutdown')
             except (RuntimeError, ValueError) as e:
                 log.error(e)
             except Exception:
                 log.exception('Caught unhandled exception while processing CLI command')
         self.exit.wait()
-
-    def cli_event_handler(self, cli_input: str, event: Event = None) -> None:
-        log.info(f'Received event {event.event_type}, running command: {cli_input}')
-        graph = event.data
-        try:
-            ch = CliHandler(graph)
-            for item in ch.evaluate_cli_input(cli_input):
-                log.info(item)
-        except (RuntimeError, ValueError) as e:
-            log.error(e)
-        except Exception:
-            log.exception('Caught unhandled exception while processing CLI command')
 
     def shutdown(self, event: Event) -> None:
         log.debug(f'Received signal to shut down cli thread {event.event_type}')
@@ -102,11 +83,13 @@ class Cli(threading.Thread):
 
 
 class CliHandler:
-    def __init__(self, graph: Graph) -> None:
+    def __init__(self, graph: Graph, scheduler=None) -> None:
         self.graph = graph
+        self.scheduler = scheduler
         self.valid_commands = sorted([f[4:] for f, _ in inspect.getmembers(self.__class__, predicate=inspect.isfunction) if f.startswith('cmd_')])
 
     def evaluate_cli_input(self, cli_input: str) -> Iterable:
+        cli_input = replace_placeholder(cli_input)
         for cmd_chain in split_esc(cli_input, ';'):
             cmds = (cmd.strip() for cmd in split_esc(cmd_chain, '|'))
             with self.graph.lock.read_access:
@@ -356,15 +339,24 @@ class CliHandler:
         return islice(items, num)
 
     def cmd_help(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: help <cmd>
+        '''Usage: help <command>
 
         Show help text for a command.
         '''
         extra_doc = ''
         if args == '':
             args = 'help'
-            extra_doc = '\n\nValid commands are:\n\t' + "\n\t".join(self.valid_commands)
-            extra_doc += '\nNote that you can chain commands using pipe ( | ).\nMake sure to leave a space before and after the pipe character.'
+            valid_commands = "\n    ".join(self.valid_commands)
+            placeholder_help = inspect.getdoc(replace_placeholder)
+            extra_doc = f'''\n
+{placeholder_help}
+
+Valid commands are:
+    {valid_commands}
+
+Note that you can pipe commands using the pipe character (|)
+and chain multipe commands using the semicolon (;).
+            '''
         method = f'cmd_{args}'
         if hasattr(self, method):
             f = getattr(self, method)
@@ -377,26 +369,58 @@ class CliHandler:
         return (doc,)
 
     def cmd_predecessors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | predecessors
+        '''Usage: | predecessors [--with-origin]
 
         List a resource's predecessors in the graph.
+        Predecessors are a resource's parents.
+
+        If --with-origin is specified the origin resource(s) will also be output.
         '''
-        for item in items:
-            if not isinstance(item, BaseResource):
-                raise RuntimeError(f'Item {item} is not a valid resource - tag update failed')
-            for node in item.predecessors(self.graph):
-                yield node
+        return self.relatives(items, 'predecessors', args)
 
     def cmd_successors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | successors
+        '''Usage: | successors [--with-origin]
 
         List a resource's successors in the graph.
+        Successors are a resource's children.
+
+        If --with-origin is specified the origin resource(s) will also be output.
         '''
-        for item in items:
-            if not isinstance(item, BaseResource):
-                raise RuntimeError(f'Item {item} is not a valid resource - tag update failed')
-            for node in item.successors(self.graph):
+        return self.relatives(items, 'successors', args)
+
+    def cmd_ancestors(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | ancestors [--with-origin]
+
+        List a resource's ancestors in the graph.
+        Ancestors are a resource's parents and their parents
+        and their parents and so on.
+
+        If --with-origin is specified the origin resource(s) will also be output.
+        '''
+        return self.relatives(items, 'ancestors', args)
+
+    def cmd_descendants(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | descendants [--with-origin]
+
+        List a resource's descendants in the graph.
+        Descendants are a resource's children and their children
+        and their children and so on.
+
+        If --with-origin is specified the origin resource(s) will also be output.
+        '''
+        return self.relatives(items, 'descendants', args)
+
+    def relatives(self, nodes: Iterable, group: str, args: str) -> Iterable:
+        '''Return a group of relatives for any given list of nodes
+        '''
+        output_origin_node = True if args == '--with-origin' else False
+
+        for node in nodes:
+            if output_origin_node:
                 yield node
+            if not isinstance(node, BaseResource):
+                raise RuntimeError(f'Node {node} is not a valid resource')
+            yield from getattr(node, group)(self.graph)
 
     def cmd_tee(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | tee [-a] <filename>
@@ -431,8 +455,7 @@ class CliHandler:
                 raise ValueError(f'Item {item} has no attribute {attr}')
             return attr_value
 
-        for item in sorted(list(items), key=getsortkey, reverse=reverse):
-            yield item
+        yield from sorted(list(items), key=getsortkey, reverse=reverse)
 
     def cmd_rsort(self, items: Iterable, args: str, reverse: bool = False) -> Iterable:
         '''Usage: | rsort [attribute]
@@ -546,6 +569,119 @@ class CliHandler:
             if (not negate_match and item_attr is not None) or (negate_match and item_attr is None):
                 yield item
 
+    def cmd_sleep(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | sleep [pipe] <seconds>
+
+        Sleep for the specified number of seconds.
+        If pipe is specified sleep will pipe through all input items.
+        '''
+        pipe = False
+        if args.startswith('pipe '):
+            pipe = True
+            args = args[5:]
+
+        seconds = args
+        if len(seconds) == 0 or bool(re.search('[^0-9.]', str(seconds))):
+            raise ValueError('invalid number of seconds')
+
+        seconds = float(seconds)
+        time.sleep(seconds)
+
+        if pipe:
+            yield from items
+
+    def cmd_register(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: register <event>:<cli command>
+
+        Register a CLI command with an event.
+        '''
+        if len(args) == 0:
+            yield 'register takes an event and cli command as argument'
+        else:
+            yield 'Registering CLI action'
+            if register_cli_action(args):
+                yield 'success'
+            else:
+                yield 'failed'
+
+    def cmd_date(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: date
+
+        Show the current date and time in iso format.
+        '''
+        tz = get_localzone()
+        yield tz.localize(datetime.now()).isoformat()
+
+    def cmd_utcdate(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: utcdate
+
+        Show the current UTC date and time in iso format.
+        '''
+        yield datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+
+    def cmd_echo(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: echo [string]
+
+        Echo a string to the console.
+
+        Can be used for testing string substitution.
+        E.g. echo @TODAY@
+        '''
+        yield args
+
+    def cmd_listeners(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: listeners
+
+        List all registered event listeners.
+        '''
+        yield from list_event_listeners()
+
+    def cmd_jobs(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: jobs
+
+        Return a list of scheduled jobs
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+        yield from self.scheduler.get_jobs()
+
+    def cmd_add_job(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: add_job <schedule> [event]:<cli command>
+
+        Add a scheduled job in cron format.
+            field          allowed values
+            -----          --------------
+            minute         0–59
+            hour           0–23
+            day of month   1–31
+            month          1–12
+            day of week    0-6 or mon,tue,wed,thu,fri,sat,sun
+
+        Example:
+            Count EC2 Instances every three hours
+            > add_job 0 */3 * * * match resource_type = aws_ec2_instance \\| count
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+        job = self.scheduler.add_job(args)
+        yield f'job id: {job.id}'
+
+    def cmd_remove_job(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: remove_job <job-id>
+
+        Remove a scheduled job.
+        '''
+        if self.scheduler is None:
+            raise RuntimeError('No scheduler given')
+
+        if len(args) == 0:
+            yield 'remove_job takes a job id as argument'
+        else:
+            if self.scheduler.remove_job(args):
+                yield 'success'
+            else:
+                yield 'failed'
+
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
@@ -574,3 +710,104 @@ def get_attr_key(attr: str) -> Tuple:
             attr_key = attr[open_bracket_pos + 1:close_bracket_pos]
             attr = attr[:open_bracket_pos]
     return (attr, attr_key, attr_attr)
+
+
+def register_cli_action(action: str, one_shot: bool = False) -> bool:
+    if ':' not in action:
+        log.error(f'Invalid CLI action {action}')
+        return False
+    event, command = action.split(':', 1)
+    event = event.strip()
+    command = command.strip()
+    if event.startswith('1'):
+        one_shot = True
+        event = event[1:]
+    for e in EventType:
+        if event == e.name.lower():
+            f = partial(cli_event_handler, command)
+            return add_event_listener(e, f, blocking=True, one_shot=one_shot)
+    else:
+        log.error(f'Invalid event type {event}')
+    return False
+
+
+def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) -> None:
+    if graph is None and event:
+        log.info(f'Received event {event.event_type.name}, running command: {cli_input}')
+        graph = event.data
+    try:
+        ch = CliHandler(graph)
+        for item in ch.evaluate_cli_input(cli_input):
+            log.info(item)
+    except (RuntimeError, ValueError) as e:
+        log.error(e)
+    except Exception:
+        log.exception('Caught unhandled exception while processing CLI command')
+
+
+def replace_placeholder(cli_input: str) -> str:
+    '''
+    Valid placeholder strings in commands are:
+        @UTC@       -> '2020-04-21T11:30:22.331346+00:00'
+        @NOW@       -> '2020-04-21T13:48:25.420230+02:00'
+        @TODAY@     -> '2020-04-21'
+        @YEAR@      -> '2020'
+        @MONTH@     -> '04'
+        @DAY@       -> '21'
+        @TIME@      -> '11:47:55'
+        @HOUR@      -> '11'
+        @MINUTE@    -> '47'
+        @SECOND@    -> '55'
+        @TZ@        -> 'CEST'
+        @TZ_OFFSET@ -> '+0200'
+        @MONDAY@    -> '2020-04-27'
+        @TUESDAY@   -> '2020-04-21'
+        @WEDNESDAY@ -> '2020-04-22'
+        @THURSDAY@  -> '2020-04-23'
+        @FRIDAY@    -> '2020-04-24'
+        @SATURDAY@  -> '2020-04-25'
+        @SUNDAY@    -> '2020-04-26'
+    '''
+    t = date.today()
+    n = get_localzone().localize(datetime.now())
+    utc = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+    now = n.isoformat()
+    today = t.strftime('%Y-%m-%d')
+    year = t.strftime('%Y')
+    month = t.strftime('%m')
+    day = t.strftime('%d')
+    time = n.strftime("%H:%M:%S")
+    hour = n.strftime("%H")
+    minute = n.strftime("%M")
+    second = n.strftime("%S")
+    tz_offset = n.strftime("%z")
+    tz = n.strftime("%Z")
+    monday = (t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat()
+    tuesday = (t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat()
+    wednesday = (t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat()
+    thursday = (t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat()
+    friday = (t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat()
+    saturday = (t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat()
+    sunday = (t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat()
+
+    cli_input = cli_input.replace('@UTC@', utc)
+    cli_input = cli_input.replace('@NOW@', now)
+    cli_input = cli_input.replace('@TODAY@', today)
+    cli_input = cli_input.replace('@YEAR@', year)
+    cli_input = cli_input.replace('@MONTH@', month)
+    cli_input = cli_input.replace('@DAY@', day)
+    cli_input = cli_input.replace('@TIME@', time)
+    cli_input = cli_input.replace('@HOUR@', hour)
+    cli_input = cli_input.replace('@MINUTE@', minute)
+    cli_input = cli_input.replace('@SECOND@', second)
+    cli_input = cli_input.replace('@TZ_OFFSET@', tz_offset)
+    cli_input = cli_input.replace('@TZ@', tz)
+    cli_input = cli_input.replace('@MONDAY@', monday)
+    cli_input = cli_input.replace('@TUESDAY@', tuesday)
+    cli_input = cli_input.replace('@WEDNESDAY@', wednesday)
+    cli_input = cli_input.replace('@THURSDAY@', thursday)
+    cli_input = cli_input.replace('@FRIDAY@', friday)
+    cli_input = cli_input.replace('@SATURDAY@', saturday)
+    cli_input = cli_input.replace('@SUNDAY@', sunday)
+
+    return cli_input
