@@ -42,7 +42,7 @@ class Processor(threading.Thread):
         add_event_listener(EventType.START_COLLECT, self.start_collect)
 
     def __del__(self):
-        remove_event_listener(EventType.START_COLLECT, self.shutdown)
+        remove_event_listener(EventType.START_COLLECT, self.start_collect)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def run(self) -> None:
