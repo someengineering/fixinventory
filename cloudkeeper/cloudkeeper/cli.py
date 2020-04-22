@@ -413,7 +413,7 @@ and chain multipe commands using the semicolon (;).
     def relatives(self, nodes: Iterable, group: str, args: str) -> Iterable:
         '''Return a group of relatives for any given list of nodes
         '''
-        output_origin_node = True if args == '--with-origin' else False
+        output_origin_node = args == '--with-origin'
 
         for node in nodes:
             if output_origin_node:
