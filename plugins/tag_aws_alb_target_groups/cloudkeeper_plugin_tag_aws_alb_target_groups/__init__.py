@@ -7,8 +7,12 @@ from cloudkeeper.baseresources import BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper_plugin_aws.resources import AWSALBTargetGroup
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from prometheus_client import Summary, Counter
 
 log = logging.getLogger('cloudkeeper.' + __name__)
+
+metrics_ctime_tags = Counter('cloudkeeper_plugin_tag_aws_alb_target_groups_ctime_tags_total', 'Tag AWS ALB Target Groups Plugin Number of ctime tags applied', ['cloud', 'account', 'region'])
+metrics_tag_target_groups = Summary('cloudkeeper_plugin_tag_aws_alb_target_groups_tag_target_groups_seconds', 'Tag AWS ALB Target Groups Plugin Time it took the tag_target_groups() method')
 
 
 class TagAWSAlbTargetGroupsPlugin(BasePlugin):
@@ -45,6 +49,7 @@ class TagAWSAlbTargetGroupsPlugin(BasePlugin):
         finally:
             self.run_lock.release()
 
+    @metrics_tag_target_groups.time()
     def tag_target_groups(self, graph: Graph):
         now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         with graph.lock.read_access:
@@ -60,6 +65,7 @@ class TagAWSAlbTargetGroupsPlugin(BasePlugin):
                         log.debug((f'AWS ALB Target Group {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
                                    f' has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API'))
                         node.tags['cloudkeeper:ctime'] = now
+                        metrics_ctime_tags.labels(cloud=cloud.name, account=account.name, region=region.name).inc()
                     else:
                         log.error(f'AWS ALB Target Group {node.id} has no valid cloud, account or region associated with it')
 
