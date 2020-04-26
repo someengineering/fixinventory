@@ -158,7 +158,7 @@ When doing a resource cleanup selection for the first time it is good practice t
 
 ## Data Structure
 ![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
-Internally Cloudkeeper stores all resources inside a non-cyclic directed graph. Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
+Internally Cloudkeeper stores all resources inside a directed acyclic graph (DAG). Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
 During collection a new staging graph is created in parallel to the current live graph and its branches are being built up as collector plugins return their own local graphs. Once all collectors finish their work the old live graph is swapped with the staging graph making it the new live graph. This means that when querying metrics or performing CLI queries you're always working on a complete picture of all cloud resources.
 
 Using the endoints mentioned in [Distributed Instances](#distributed-instances) this also gives you the ability to export the graph in various formats (GraphML, GEXF, JSON, etc.) and take a look at and explore your "Cloud".
