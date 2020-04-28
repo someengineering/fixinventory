@@ -1,4 +1,5 @@
 import time
+import logging
 from datetime import date
 from enum import Enum, auto
 from cloudkeeper.baseresources import *
@@ -7,6 +8,7 @@ from .utils import aws_session
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))    # AWS public launch date
+log = logging.getLogger('cloudkeeper.' + __name__)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
@@ -44,6 +46,9 @@ class AWSEC2Instance(AWSResource, BaseInstance):
     resource_type = "aws_ec2_instance"
 
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        if self.instance_status == 'terminated':
+            log.error(f'AWS EC2 Instance {self.id} in account {account.name} region {region.name} is already terminated')
+            return False
         ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
         instance = ec2.Instance(self.id)
         instance.terminate()

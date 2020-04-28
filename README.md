@@ -158,7 +158,7 @@ When doing a resource cleanup selection for the first time it is good practice t
 
 ## Data Structure
 ![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
-Internally Cloudkeeper stores all resources inside a non-cyclic directed graph. Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
+Internally Cloudkeeper stores all resources inside a directed acyclic graph (DAG). Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
 During collection a new staging graph is created in parallel to the current live graph and its branches are being built up as collector plugins return their own local graphs. Once all collectors finish their work the old live graph is swapped with the staging graph making it the new live graph. This means that when querying metrics or performing CLI queries you're always working on a complete picture of all cloud resources.
 
 Using the endoints mentioned in [Distributed Instances](#distributed-instances) this also gives you the ability to export the graph in various formats (GraphML, GEXF, JSON, etc.) and take a look at and explore your "Cloud".
@@ -206,6 +206,20 @@ A plugin can dispatch `START_COLLECT` if it wants Cloudkeeper to start its colle
 `GENERATE_METRICS` is a signal for plugins that allows them to modify existing or add new metrics to the resources in the staging graph.  
 `CLEANUP_BEGIN` is the point that persistent cleanup plugins would usually be called. Here they can look at the tags and age of all resources and decide which ones to clean.  
 `SHUTDOWN` is being dispatched when the user enters `quit` or Ctrl+c in the CLI or a signal (INT/TERM) to shutdown is received. Plugins can also cause a shutdown although this function should be used sparingly. Right now there is only a single plugin [plugins/snowflake_protection/](plugins/snowflake_protection/) that makes use of this event. It is responsible for snowflake protection (protecting very special resources from deletion) and if it can not parse its config it will dispath an emergency SHUTDOWN event. This makes Cloudkeeper instantly kill the Python interpreter to ensure that no protected resources accidentally get deleted.
+
+
+## Scheduling
+Cloudkeeper supports scheduling of CLI commands either using the `jobs`, `add_job` and `remove_job` CLI commands or in a crontab style config file supplied to the `--scheduler-config` arg. A scheduled CLI command can be prefixed with an event name in lowercase letters followed by a colon which will make Cloudkeeper associate the command at the specified point in time to run once when the event is next triggered.
+
+Example scheduler config file:
+```
+0 5 * * sat cleanup_begin:match account.id = 119548413362 | match resource_type ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
+0 0 * * * count resource_type | tee /var/log/cloudkeeper/resource_count-@TODAY@.txt
+```
+* First line: every Saturday at 5am schedule a command to run the next time a CLEANUP_BEGIN event is dispatched. This particular command would wipe all EC2 instances and load balancers in an account with ID 119548413362 that were created before 5am that day.
+* Second line: every day at midnight count the number of resources by resource type, log the output and also write it to a file with today's date in the filename.
+
+When a command is not prefixed with an event name it is executed at the specified point in time immediately.
 
 
 ## Distributed Instances
