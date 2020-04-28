@@ -208,6 +208,20 @@ A plugin can dispatch `START_COLLECT` if it wants Cloudkeeper to start its colle
 `SHUTDOWN` is being dispatched when the user enters `quit` or Ctrl+c in the CLI or a signal (INT/TERM) to shutdown is received. Plugins can also cause a shutdown although this function should be used sparingly. Right now there is only a single plugin [plugins/snowflake_protection/](plugins/snowflake_protection/) that makes use of this event. It is responsible for snowflake protection (protecting very special resources from deletion) and if it can not parse its config it will dispath an emergency SHUTDOWN event. This makes Cloudkeeper instantly kill the Python interpreter to ensure that no protected resources accidentally get deleted.
 
 
+## Scheduling
+Cloudkeeper supports scheduling of CLI commands either using the `jobs`, `add_job` and `remove_job` CLI commands or in a crontab style config file supplied to the `--scheduler-config` arg. A scheduled CLI command can be prefixed with an event name in lowercase letters followed by a colon which will make Cloudkeeper associate the command at the specified point in time to run once when the event is next triggered.
+
+Example scheduler config file:
+```
+0 5 * * sat cleanup_begin:match account.id = 119548413362 | match resource_type ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
+0 0 * * * count resource_type | tee /var/log/cloudkeeper/resource_count-@TODAY@.txt
+```
+* First line: every Saturday at 5am schedule a command to run the next time a CLEANUP_BEGIN event is dispatched. This particular command would wipe all EC2 instances and load balancers in an account with ID 119548413362 that were created before 5am that day.
+* Second line: every day at midnight count the number of resources by resource type, log the output and also write it to a file with today's date in the filename.
+
+When a command is not prefixed with an event name it is executed at the specified point in time immediately.
+
+
 ## Distributed Instances
 Cloudkeeper comes with a built-in development webserver (defaults to Port 8000). It is meant for few internal requests (i.e. do not expose it publicly) and provides a number of endpoints:
 ```
