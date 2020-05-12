@@ -149,7 +149,8 @@ class AWSS3Bucket(AWSResource, BaseBucket):
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
         s3 = aws_session(account.id, account.role).resource('s3', region_name=region.id)
         bucket = s3.Bucket(self.name)
-        bucket.delete()  # bucket must be empty before delete() will succeed
+        bucket.objects.delete()
+        bucket.delete()
         return True
 
 
