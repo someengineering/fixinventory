@@ -568,6 +568,23 @@ class BaseBucket(BaseResource):
         return self._metrics
 
 
+class BaseKeyPair(BaseResource):
+    metrics_description = {
+        'keypairs_total': {'help': 'Number of Key Pairs', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_keypairs_total': {'help': 'Cleaned number of Key Pairs', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fingerprint = ''
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['keypairs_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_keypairs_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
 class BaseBucketQuota(BaseQuota):
     metrics_description = {
         'buckets_quotas_total': {'help': 'Quotas of Storage Buckets', 'labels': ['cloud', 'account', 'region']},

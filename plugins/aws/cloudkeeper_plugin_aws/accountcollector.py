@@ -100,6 +100,7 @@ metrics_collect_route_tables = Summary('cloudkeeper_plugin_aws_collect_route_tab
 metrics_collect_security_groups = Summary('cloudkeeper_plugin_aws_collect_security_groups_seconds', 'Time it took the collect_security_groups() method')
 metrics_collect_internet_gateways = Summary('cloudkeeper_plugin_aws_collect_internet_gateways_seconds', 'Time it took the collect_internet_gateways() method')
 metrics_collect_instances = Summary('cloudkeeper_plugin_aws_collect_instances_seconds', 'Time it took the collect_instances() method')
+metrics_collect_keypairs = Summary('cloudkeeper_plugin_aws_collect_keypairs_seconds', 'Time it took the collect_keypairs() method')
 metrics_collect_autoscaling_groups = Summary('cloudkeeper_plugin_aws_collect_autoscaling_groups_seconds', 'Time it took the collect_autoscaling_groups() method')
 metrics_collect_reserved_instances = Summary('cloudkeeper_plugin_aws_collect_reserved_instances_seconds', 'Time it took the collect_reserved_instances() method')
 metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_seconds', 'Time it took the collect_volumes() method')
@@ -167,6 +168,7 @@ class AWSAccountCollector:
             'Routing Tables': self.collect_route_tables,
             'Security Groups': self.collect_security_groups,
             'Internet Gateways': self.collect_internet_gateways,
+            'EC2 Key Pairs': self.collect_keypairs,
             'EC2 Instances': self.collect_instances,
             'EBS Volumes': self.collect_volumes,
             'ELBs': self.collect_elbs,
@@ -752,6 +754,10 @@ class AWSAccountCollector:
                     except TypeError:
                         log.exception(f'Unable to determine number of CPU cores for instance type {i.instance_type}')
                 graph.add_resource(region, i)
+                kp = graph.search_first_all({'name': instance.key_name, 'resource_type': 'aws_ec2_keypair'})
+                if kp:
+                    log.debug(f'Adding edge from Key Pair {kp.name} to instance {i.id}')
+                    graph.add_edge(kp, i)
 
             except botocore.exceptions.ClientError:
                 log.exception(f'Some boto3 call failed on resource {instance} - skipping')
@@ -774,6 +780,21 @@ class AWSAccountCollector:
                 if i:
                     log.debug(f'Adding edge from instance {i.id} to Autoscaling Group {asg.id}')
                     graph.add_edge(i, asg)
+
+    @metrics_collect_keypairs.time()
+    def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS EC2 Key Pairs in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        response = client.describe_key_pairs()
+        for keypair in response.get('KeyPairs', []):
+            keypair_name = keypair['KeyName']
+            keypair_id = keypair['KeyPairId']
+            tags = self.tags_as_dict(keypair.get('Tags', []))
+            log.debug(f"Found AWS EC2 Key Pair {keypair_name}")
+            kp = AWSEC2KeyPair(keypair_id, tags, account=self.account, region=region, name=keypair_name)
+            kp.fingerprint = keypair.get('KeyFingerprint')
+            graph.add_resource(region, kp)
 
     @metrics_collect_rds_instances.time()
     def collect_rds_instances(self, region: AWSRegion, graph: Graph) -> None:
