@@ -65,12 +65,12 @@ class TagAWSCtimePlugin(BasePlugin):
                     account = node.account(graph)
                     region = node.region(graph)
                     if isinstance(cloud, BaseCloud) and isinstance(account, BaseAccount) and isinstance(region, BaseRegion):
-                        log.debug((f'Resource {node.resource_type} {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
+                        log.debug((f'Resource {node.resource_type} {node.id} ({node.name}) in cloud {cloud.name} account {account.name} region {region.name}'
                                    f' has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API'))
                         node.tags['cloudkeeper:ctime'] = now
                         metrics_ctime_tags.labels(cloud=cloud.name, account=account.name, region=region.name).inc()
                     else:
-                        log.error(f'Resource {node.resource_type} {node.id} has no valid cloud, account or region associated with it')
+                        log.error(f'Resource {node.resource_type} {node.id} ({node.name}) has no valid cloud, account or region associated with it')
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

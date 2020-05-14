@@ -15,7 +15,7 @@ setup(
     long_description=read('README.md'),
     entry_points={
         'cloudkeeper.plugins': [
-            'tag_aws_ctime = cloudkeeper_plugin_tag_ctime:TagAWSCtimePlugin',
+            'tag_aws_ctime = cloudkeeper_plugin_tag_aws_ctime:TagAWSCtimePlugin',
         ]
     },
     include_package_data=True,
