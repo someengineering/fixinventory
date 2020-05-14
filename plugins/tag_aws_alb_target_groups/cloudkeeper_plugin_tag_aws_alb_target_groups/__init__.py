@@ -22,7 +22,7 @@ class TagAWSAlbTargetGroupsPlugin(BasePlugin):
         self.exit = threading.Event()
         self.run_lock = threading.Lock()
         if ArgumentParser.args.tag_aws_alb_target_groups:
-            log.debug(f'AWS ALB Target Group ctime Tagger plugin initializing')
+            log.debug('AWS ALB Target Group ctime Tagger plugin initializing')
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
             add_event_listener(EventType.COLLECT_FINISH, self.aws_alb_target_group_tagger, blocking=False, timeout=30)
         else:
@@ -37,11 +37,11 @@ class TagAWSAlbTargetGroupsPlugin(BasePlugin):
 
     def aws_alb_target_group_tagger(self, event: Event):
         if not self.run_lock.acquire(blocking=False):
-            log.error(f'AWS ALB Target Group ctime Tagger is already running')
+            log.error('AWS ALB Target Group ctime Tagger is already running')
             return
 
         graph = event.data
-        log.info(f'AWS ALB Target Group ctime Tagger called')
+        log.info('AWS ALB Target Group ctime Tagger called')
         try:
             self.tag_target_groups(graph)
         except Exception:

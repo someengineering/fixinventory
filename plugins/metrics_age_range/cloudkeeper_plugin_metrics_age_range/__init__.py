@@ -44,7 +44,7 @@ class MetricsAgeRangePlugin(BasePlugin):
     @staticmethod
     def generate_age_range_metrics(event: Event):
         graph = event.data
-        log.info(f'Generating Age Range Metrics')
+        log.info('Generating Age Range Metrics')
         with graph.lock.read_access:
             for node in graph.nodes():
                 node_age = getattr(node, 'age', None)

@@ -20,7 +20,7 @@ def unless_protected(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         if not isinstance(self, BaseResource):
-            raise ValueError(f'unless_protected() only supports BaseResource type objects')
+            raise ValueError('unless_protected() only supports BaseResource type objects')
         if self.protected:
             log.error(f'Resource {self.name} ({self.resource_type}) is protected - refusing modification')
             self.log('Modification was requested even though resource is protected - refusing')
@@ -219,18 +219,18 @@ class BaseResource(ABC):
             log.error(f'Could not determine account or region for cleanup of {self.resource_type} {self.id}')
             return False
 
-        self.log(f'Trying to clean up')
+        self.log('Trying to clean up')
         log.debug(f'Trying to clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
         try:
             if not self.delete(account, region):
-                self.log(f'Failed to clean up')
+                self.log('Failed to clean up')
                 log.error(f'Failed to clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
                 return False
             self._cleaned = True
-            self.log(f'Successfully cleaned up')
+            self.log('Successfully cleaned up')
             log.info(f'Successfully cleaned up {self.resource_type} {self.id} in account {account.name} region {region.name}')
         except Exception as e:
-            self.log(f'An error occurred during clean up', exception=e)
+            self.log('An error occurred during clean up', exception=e)
             log.exception(f'An error occurred during clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
             cloud = self.cloud(graph)
             if not isinstance(cloud, BaseCloud):

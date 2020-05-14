@@ -92,7 +92,7 @@ class CleanupUntaggedConfig(dict):
 
     def read(self) -> bool:
         if not self.config_file:
-            log.error(f'Attribute config_file is not set on CleanupUntaggedConfig() instance')
+            log.error('Attribute config_file is not set on CleanupUntaggedConfig() instance')
             return False
 
         with open(self.config_file) as config_file:

@@ -38,11 +38,11 @@ class TagValidatorPlugin(BasePlugin):
 
     def tag_validator(self, event: Event):
         if not self.run_lock.acquire(blocking=False):
-            log.error(f'Tag Validator is already running')
+            log.error('Tag Validator is already running')
             return
 
         graph = event.data
-        log.info(f'Tag Validator called')
+        log.info('Tag Validator called')
         try:
             self.validate_tags(graph)
         except Exception:

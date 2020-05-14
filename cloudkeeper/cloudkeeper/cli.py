@@ -271,7 +271,7 @@ class CliHandler:
         '''
         cmd = str(args).split(' ', 2)
         if len(cmd) < 2:
-            raise RuntimeError(f'Invalid number of arguments for tag command')
+            raise RuntimeError('Invalid number of arguments for tag command')
         action = cmd[0]
         key = cmd[1]
         value = None
