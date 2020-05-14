@@ -1149,6 +1149,19 @@ class AWSAccountCollector:
             try:
                 n = AWSEC2NetworkInterface(ni.id, self.tags_as_dict(ni.tag_set), account=self.account, region=region)
                 n.network_interface_status = ni.status
+                n.network_interface_type = ni.interface_type
+                n.mac = ni.mac_address
+                n.description = ni.description
+                for address in ni.private_ip_addresses:
+                    private_ip = address.get('PrivateIpAddress')
+                    if 'Association' in address and 'PublicIp' in address['Association']:
+                        public_ip = address['Association']['PublicIp']
+                    else:
+                        public_ip = ''
+                    n.private_ips.append(private_ip)
+                    n.public_ips.append(public_ip)
+                for address in ni.ipv6_addresses:
+                    n.v6_ips.append(address['Ipv6Address'])
                 log.debug(f'Found Network Interface {n.id} with status {n.network_interface_status}')
                 graph.add_resource(region, n)
                 if ni.vpc_id:
@@ -1170,6 +1183,15 @@ class AWSAccountCollector:
                     if i:
                         log.debug(f'Adding edge from network interface {n.id} to instance {i.id}')
                         graph.add_edge(n, i)
+                for group in ni.groups:
+                    group_id = group.get('GroupId')
+                    if group_id:
+                        log.debug(f'Network Interface {n.id} is assigned to security group {group_id}')
+                        sg = graph.search_first('id', group_id)
+                        if sg:
+                            log.debug(f'Adding edge from security group {sg.id} to network interface {n.id}')
+                            graph.add_edge(sg, n)
+
             except botocore.exceptions.ClientError:
                 log.exception(f'Some boto3 call failed on resource {ni} - skipping')
 

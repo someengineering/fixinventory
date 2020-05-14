@@ -746,6 +746,12 @@ class BaseNetworkInterface(BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.network_interface_status = ''
+        self.network_interface_type = ''
+        self.mac = ''
+        self.private_ips = []
+        self.public_ips = []
+        self.v6_ips = []
+        self.description = ''
 
     def metrics(self, graph) -> Dict:
         self._metrics['network_interfaces_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name, self.network_interface_status)] = 1

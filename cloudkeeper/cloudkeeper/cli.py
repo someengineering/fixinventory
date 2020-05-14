@@ -115,7 +115,8 @@ class CliHandler:
         '>': lambda x, y: x > y,
         '<': lambda x, y: x < y,
         '=': lambda x, y: x == y,
-        '~': lambda x, y: bool(re.search(str(y), str(x)))
+        '~': lambda x, y: bool(re.search(str(y), str(x))),
+        'has': lambda x, y: y in x
     }
 
     def cmd_match(self, items: Iterable, args: str) -> Iterable:
@@ -128,6 +129,7 @@ class CliHandler:
           < less than
           = equal to
           ~ regex match
+          has value is contained in attribute
         '''
         attr, action, value = None, None, None
         negate_match = False
