@@ -18,6 +18,7 @@ from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
+from pprint import pformat
 
 
 log = logging.getLogger('cloudkeeper.' + __name__)
@@ -1373,6 +1374,9 @@ class AWSAccountCollector:
                         'tenancy': {}
                     }
                 price_info[instance_type]['tenancy'][ec2_tenancy] = price
+            if instance_type not in price_info:
+                log.error(f"Error in pricing API call, instance type {instance_type} was not found in price list: {pformat(price_list)}")
+                return None
             node = AWSEC2InstanceType(instance_type, {}, account=self.account, region=region)
             node.instance_cores = price_info[instance_type]['cores']
             node.instance_memory = price_info[instance_type]['memory']
