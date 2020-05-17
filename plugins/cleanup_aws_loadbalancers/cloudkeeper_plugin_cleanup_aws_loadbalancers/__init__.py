@@ -51,14 +51,16 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                 region = node.region(graph)
 
                 if isinstance(node, AWSELB) \
-                        and len([i for i in node.predecessors(graph) if isinstance(i, AWSEC2Instance) and i.instance_status != 'terminated']) == 0:
+                        and len([i for i in node.predecessors(graph) if isinstance(i, AWSEC2Instance) and i.instance_status != 'terminated']) == 0 \
+                        and len(node.backends) == 0:
                     log.debug((
                         f'Found orphaned AWS ELB {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
                         f' with age {node.age} and no EC2 instances attached to it.')
                     )
                     node.clean = True
                 elif isinstance(node, AWSALB) \
-                        and len([n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]) == 0:
+                        and len([n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]) == 0 \
+                        and len(node.backends) == 0:
                     log.debug((
                         f'Found orphaned AWS ALB {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
                         f' with age {node.age} and no Target Groups attached to it.')
@@ -73,6 +75,9 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                 elif isinstance(node, AWSALB):
                     cleanup_alb = True
                     target_groups = [n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]
+
+                    if len(node.backends) > 0:
+                        cleanup_alb = False
 
                     for tg in target_groups:
                         if (
