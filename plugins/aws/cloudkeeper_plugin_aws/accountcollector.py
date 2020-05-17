@@ -18,6 +18,7 @@ from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
+from pprint import pformat
 
 
 log = logging.getLogger('cloudkeeper.' + __name__)
@@ -888,23 +889,27 @@ class AWSAccountCollector:
                 log.debug(f'Adding edge from VPC {v.id} to ALB Target Group {tg.id}')
                 graph.add_edge(v, tg)
 
-            load_balancer_arns = target_group.get('LoadBalancerArns', [])
-            for load_balancer_arn in load_balancer_arns:
-                alb = graph.search_first('arn', load_balancer_arn)
-                if alb:
-                    log.debug(f'Adding edge from ALB Target Group {tg.id} to ALB {alb.id}')
-                    graph.add_edge(tg, alb)
-
+            backends = []
             if tg.target_type == 'instance':
                 response = client.describe_target_health(TargetGroupArn=tg.arn)
                 thds = response.get('TargetHealthDescriptions', [])
                 for thd in thds:
                     target = thd['Target']
                     instance_id = target['Id']
+                    backends.append(instance_id)
                     i = graph.search_first('id', instance_id)
                     if i:
                         log.debug(f'Adding edge from instance {i.id} to ALB Target Group {tg.id}')
                         graph.add_edge(i, tg)
+
+            load_balancer_arns = target_group.get('LoadBalancerArns', [])
+            for load_balancer_arn in load_balancer_arns:
+                alb = graph.search_first('arn', load_balancer_arn)
+                if alb:
+                    alb.backends.extend(backends)
+                    log.debug(f'Adding edge from ALB Target Group {tg.id} to ALB {alb.id}')
+                    graph.add_edge(tg, alb)
+
 
     @metrics_collect_albs.time()
     def collect_albs(self, region: AWSRegion, graph: Graph) -> None:
@@ -995,6 +1000,8 @@ class AWSAccountCollector:
                 e = AWSELB(elb['DNSName'], tags, account=self.account, region=region, ctime=elb.get('CreatedTime'))
                 e.name = elb['LoadBalancerName']
                 e.lb_type = 'elb'
+                instances = [i['InstanceId'] for i in elb.get('Instances', [])]
+                e.backends.extend(instances)
                 graph.add_resource(region, e)
                 graph.add_edge(eq, e)
 
@@ -1004,7 +1011,6 @@ class AWSAccountCollector:
                     log.debug(f'Adding edge from VPC {v.id} to ELB {e.id}')
                     graph.add_edge(v, e)
 
-                instances = [i['InstanceId'] for i in elb.get('Instances', [])]
                 for instance_id in instances:
                     i = graph.search_first('id', instance_id)
                     if i:
@@ -1373,6 +1379,9 @@ class AWSAccountCollector:
                         'tenancy': {}
                     }
                 price_info[instance_type]['tenancy'][ec2_tenancy] = price
+            if instance_type not in price_info:
+                log.error(f"Error in pricing API call, instance type {instance_type} was not found in price list: {pformat(price_list)}")
+                return None
             node = AWSEC2InstanceType(instance_type, {}, account=self.account, region=region)
             node.instance_cores = price_info[instance_type]['cores']
             node.instance_memory = price_info[instance_type]['memory']

@@ -655,6 +655,7 @@ class BaseLoadBalancer(BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.lb_type = ''
+        self.backends = []
 
     def metrics(self, graph) -> Dict:
         self._metrics['load_balancers_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name, self.lb_type)] = 1
