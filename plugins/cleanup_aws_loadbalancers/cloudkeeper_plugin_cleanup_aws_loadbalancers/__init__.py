@@ -43,6 +43,9 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                 if node.age < self.age:
                     continue
 
+                if node.tags.get('expiration') == 'never':
+                    continue
+
                 cloud = node.cloud(graph)
                 account = node.account(graph)
                 region = node.region(graph)
