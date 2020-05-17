@@ -58,7 +58,7 @@ class ProtectSnowflakesPlugin(BasePlugin):
                 ):
                     continue
 
-                log_msg = f"Snowflake protection configured for this Node - burning protection fuse"
+                log_msg = "Snowflake protection configured for this Node - burning protection fuse"
                 log.info(f"Protecting {node.resource_type} {node.id} ({node.name}) in cloud {cloud.name} account {account.name} region {region.name}: {log_msg}")
                 node.log(log_msg)
                 node.protected = True
@@ -80,7 +80,7 @@ class ProtectSnowflakesConfig(dict):
     def read(self) -> bool:
         try:
             if not self.config_file:
-                raise ValueError(f'Attribute config_file is not set on ProtectSnowflakesConfig() instance')
+                raise ValueError('Attribute config_file is not set on ProtectSnowflakesConfig() instance')
 
             with open(self.config_file) as config_file:
                 config = yaml.load(config_file, Loader=yaml.FullLoader)
@@ -97,7 +97,7 @@ class ProtectSnowflakesConfig(dict):
     @staticmethod
     def validate(config) -> bool:
         if not isinstance(config, dict):
-            raise ValueError(f'Config is no dict')
+            raise ValueError('Config is no dict')
 
         for cloud_id, account_data in config.items():
             if not isinstance(cloud_id, str):

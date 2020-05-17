@@ -100,6 +100,7 @@ metrics_collect_route_tables = Summary('cloudkeeper_plugin_aws_collect_route_tab
 metrics_collect_security_groups = Summary('cloudkeeper_plugin_aws_collect_security_groups_seconds', 'Time it took the collect_security_groups() method')
 metrics_collect_internet_gateways = Summary('cloudkeeper_plugin_aws_collect_internet_gateways_seconds', 'Time it took the collect_internet_gateways() method')
 metrics_collect_instances = Summary('cloudkeeper_plugin_aws_collect_instances_seconds', 'Time it took the collect_instances() method')
+metrics_collect_keypairs = Summary('cloudkeeper_plugin_aws_collect_keypairs_seconds', 'Time it took the collect_keypairs() method')
 metrics_collect_autoscaling_groups = Summary('cloudkeeper_plugin_aws_collect_autoscaling_groups_seconds', 'Time it took the collect_autoscaling_groups() method')
 metrics_collect_reserved_instances = Summary('cloudkeeper_plugin_aws_collect_reserved_instances_seconds', 'Time it took the collect_reserved_instances() method')
 metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_seconds', 'Time it took the collect_volumes() method')
@@ -167,6 +168,7 @@ class AWSAccountCollector:
             'Routing Tables': self.collect_route_tables,
             'Security Groups': self.collect_security_groups,
             'Internet Gateways': self.collect_internet_gateways,
+            'EC2 Key Pairs': self.collect_keypairs,
             'EC2 Instances': self.collect_instances,
             'EBS Volumes': self.collect_volumes,
             'ELBs': self.collect_elbs,
@@ -752,6 +754,10 @@ class AWSAccountCollector:
                     except TypeError:
                         log.exception(f'Unable to determine number of CPU cores for instance type {i.instance_type}')
                 graph.add_resource(region, i)
+                kp = graph.search_first_all({'name': instance.key_name, 'resource_type': 'aws_ec2_keypair'})
+                if kp:
+                    log.debug(f'Adding edge from Key Pair {kp.name} to instance {i.id}')
+                    graph.add_edge(kp, i)
 
             except botocore.exceptions.ClientError:
                 log.exception(f'Some boto3 call failed on resource {instance} - skipping')
@@ -774,6 +780,21 @@ class AWSAccountCollector:
                 if i:
                     log.debug(f'Adding edge from instance {i.id} to Autoscaling Group {asg.id}')
                     graph.add_edge(i, asg)
+
+    @metrics_collect_keypairs.time()
+    def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS EC2 Key Pairs in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        response = client.describe_key_pairs()
+        for keypair in response.get('KeyPairs', []):
+            keypair_name = keypair['KeyName']
+            keypair_id = keypair['KeyPairId']
+            tags = self.tags_as_dict(keypair.get('Tags', []))
+            log.debug(f"Found AWS EC2 Key Pair {keypair_name}")
+            kp = AWSEC2KeyPair(keypair_id, tags, account=self.account, region=region, name=keypair_name)
+            kp.fingerprint = keypair.get('KeyFingerprint')
+            graph.add_resource(region, kp)
 
     @metrics_collect_rds_instances.time()
     def collect_rds_instances(self, region: AWSRegion, graph: Graph) -> None:
@@ -1128,6 +1149,19 @@ class AWSAccountCollector:
             try:
                 n = AWSEC2NetworkInterface(ni.id, self.tags_as_dict(ni.tag_set), account=self.account, region=region)
                 n.network_interface_status = ni.status
+                n.network_interface_type = ni.interface_type
+                n.mac = ni.mac_address
+                n.description = ni.description
+                for address in ni.private_ip_addresses:
+                    private_ip = address.get('PrivateIpAddress')
+                    if 'Association' in address and 'PublicIp' in address['Association']:
+                        public_ip = address['Association']['PublicIp']
+                    else:
+                        public_ip = ''
+                    n.private_ips.append(private_ip)
+                    n.public_ips.append(public_ip)
+                for address in ni.ipv6_addresses:
+                    n.v6_ips.append(address['Ipv6Address'])
                 log.debug(f'Found Network Interface {n.id} with status {n.network_interface_status}')
                 graph.add_resource(region, n)
                 if ni.vpc_id:
@@ -1149,6 +1183,15 @@ class AWSAccountCollector:
                     if i:
                         log.debug(f'Adding edge from network interface {n.id} to instance {i.id}')
                         graph.add_edge(n, i)
+                for group in ni.groups:
+                    group_id = group.get('GroupId')
+                    if group_id:
+                        log.debug(f'Network Interface {n.id} is assigned to security group {group_id}')
+                        sg = graph.search_first('id', group_id)
+                        if sg:
+                            log.debug(f'Adding edge from security group {sg.id} to network interface {n.id}')
+                            graph.add_edge(sg, n)
+
             except botocore.exceptions.ClientError:
                 log.exception(f'Some boto3 call failed on resource {ni} - skipping')
 

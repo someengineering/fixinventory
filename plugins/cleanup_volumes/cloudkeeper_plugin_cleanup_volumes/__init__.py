@@ -34,7 +34,7 @@ class CleanupVolumesPlugin(BasePlugin):
 
     def volumes_cleanup(self, event: Event):
         graph = event.data
-        log.info(f'Volume Cleanup called')
+        log.info('Volume Cleanup called')
         with graph.lock.read_access:
             for node in graph.nodes:
                 if (

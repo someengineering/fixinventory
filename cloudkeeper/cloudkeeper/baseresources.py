@@ -20,7 +20,7 @@ def unless_protected(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         if not isinstance(self, BaseResource):
-            raise ValueError(f'unless_protected() only supports BaseResource type objects')
+            raise ValueError('unless_protected() only supports BaseResource type objects')
         if self.protected:
             log.error(f'Resource {self.name} ({self.resource_type}) is protected - refusing modification')
             self.log('Modification was requested even though resource is protected - refusing')
@@ -219,18 +219,18 @@ class BaseResource(ABC):
             log.error(f'Could not determine account or region for cleanup of {self.resource_type} {self.id}')
             return False
 
-        self.log(f'Trying to clean up')
+        self.log('Trying to clean up')
         log.debug(f'Trying to clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
         try:
             if not self.delete(account, region):
-                self.log(f'Failed to clean up')
+                self.log('Failed to clean up')
                 log.error(f'Failed to clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
                 return False
             self._cleaned = True
-            self.log(f'Successfully cleaned up')
+            self.log('Successfully cleaned up')
             log.info(f'Successfully cleaned up {self.resource_type} {self.id} in account {account.name} region {region.name}')
         except Exception as e:
-            self.log(f'An error occurred during clean up', exception=e)
+            self.log('An error occurred during clean up', exception=e)
             log.exception(f'An error occurred during clean up {self.resource_type} {self.id} in account {account.name} region {region.name}')
             cloud = self.cloud(graph)
             if not isinstance(cloud, BaseCloud):
@@ -568,6 +568,23 @@ class BaseBucket(BaseResource):
         return self._metrics
 
 
+class BaseKeyPair(BaseResource):
+    metrics_description = {
+        'keypairs_total': {'help': 'Number of Key Pairs', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_keypairs_total': {'help': 'Cleaned number of Key Pairs', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fingerprint = ''
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['keypairs_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_keypairs_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
 class BaseBucketQuota(BaseQuota):
     metrics_description = {
         'buckets_quotas_total': {'help': 'Quotas of Storage Buckets', 'labels': ['cloud', 'account', 'region']},
@@ -729,6 +746,12 @@ class BaseNetworkInterface(BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.network_interface_status = ''
+        self.network_interface_type = ''
+        self.mac = ''
+        self.private_ips = []
+        self.public_ips = []
+        self.v6_ips = []
+        self.description = ''
 
     def metrics(self, graph) -> Dict:
         self._metrics['network_interfaces_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name, self.network_interface_status)] = 1

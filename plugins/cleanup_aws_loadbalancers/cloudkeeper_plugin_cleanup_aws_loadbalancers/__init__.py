@@ -34,7 +34,7 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
 
     def loadbalancer_cleanup(self, event: Event):
         graph = event.data
-        log.info(f'AWS Loadbalancers Cleanup called')
+        log.info('AWS Loadbalancers Cleanup called')
         with graph.lock.read_access:
             for node in graph.nodes:
                 if not isinstance(node, AWSELB) and not isinstance(node, AWSALB) and not isinstance(node, AWSALBTargetGroup):

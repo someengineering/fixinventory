@@ -26,7 +26,7 @@ class ExamplePersistentPlugin(BasePlugin):
     def example_event_handler(event: Event):
         if ArgumentParser.args.example_arg:
             graph = event.data
-            log.info(f'Example Persistent Plugin Event Handler called')
+            log.info('Example Persistent Plugin Event Handler called')
             for node in graph.search('resource_type', 'example_account'):
                 log.debug(f'Found node {node.id} of resource type {node.resource_type} created {node.ctime}')
 

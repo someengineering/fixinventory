@@ -41,7 +41,7 @@ class RemotePlugin(BaseCollectorPlugin):
             # todo: implement better (or any) security and authentication of the remote endpoint
             remote_graph = pickle.loads(pickled_graph)
             if not isinstance(remote_graph, Graph):
-                log.error(f'Downloaded remote graph is not of type Graph() - skipping')
+                log.error('Downloaded remote graph is not of type Graph() - skipping')
                 continue
 
             remote_graph_root = None

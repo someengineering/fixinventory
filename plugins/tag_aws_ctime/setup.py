@@ -7,15 +7,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-tag_aws_alb_target_groups",
+    name="cloudkeeper-plugin-tag_aws_ctime",
     version="0.0.2",
-    description="AWS Loadbalancers Cleaner Plugin",
+    description="AWS ctime Tagging Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read('README.md'),
     entry_points={
         'cloudkeeper.plugins': [
-            'tag_aws_alb_target_groups = cloudkeeper_plugin_tag_aws_alb_target_groups:TagAWSAlbTargetGroupsPlugin',
+            'tag_aws_ctime = cloudkeeper_plugin_tag_aws_ctime:TagAWSCtimePlugin',
         ]
     },
     include_package_data=True,

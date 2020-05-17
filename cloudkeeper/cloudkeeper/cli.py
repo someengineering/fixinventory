@@ -115,7 +115,8 @@ class CliHandler:
         '>': lambda x, y: x > y,
         '<': lambda x, y: x < y,
         '=': lambda x, y: x == y,
-        '~': lambda x, y: bool(re.search(str(y), str(x)))
+        '~': lambda x, y: bool(re.search(str(y), str(x))),
+        'has': lambda x, y: y in x
     }
 
     def cmd_match(self, items: Iterable, args: str) -> Iterable:
@@ -128,6 +129,7 @@ class CliHandler:
           < less than
           = equal to
           ~ regex match
+          has value is contained in attribute
         '''
         attr, action, value = None, None, None
         negate_match = False
@@ -271,7 +273,7 @@ class CliHandler:
         '''
         cmd = str(args).split(' ', 2)
         if len(cmd) < 2:
-            raise RuntimeError(f'Invalid number of arguments for tag command')
+            raise RuntimeError('Invalid number of arguments for tag command')
         action = cmd[0]
         key = cmd[1]
         value = None

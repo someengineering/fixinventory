@@ -203,11 +203,11 @@ def parse_delta(delta: str) -> timedelta:
     return timedelta(**kwargs)
 
 
-def chunks(l: List, n: int) -> List:
+def chunks(items: List, n: int) -> List:
     """Split a list of items into multiple lists of size n and yield each chunk
     """
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
+    for i in range(0, len(items), n):
+        yield items[i:i + n]
 
 
 def split_esc(s, delim):

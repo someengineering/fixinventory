@@ -67,6 +67,28 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         return True
 
 
+class AWSEC2KeyPair(AWSResource, BaseKeyPair):
+    resource_type = "aws_ec2_keypair"
+
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_key_pair(KeyName=self.name)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
+
 class AWSEC2VolumeType(AWSResource, BaseVolumeType):
     resource_type = "aws_ec2_volume_type"
 
@@ -149,7 +171,8 @@ class AWSS3Bucket(AWSResource, BaseBucket):
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
         s3 = aws_session(account.id, account.role).resource('s3', region_name=region.id)
         bucket = s3.Bucket(self.name)
-        bucket.delete()  # bucket must be empty before delete() will succeed
+        bucket.objects.delete()
+        bucket.delete()
         return True
 
 
