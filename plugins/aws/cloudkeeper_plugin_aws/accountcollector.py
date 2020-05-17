@@ -910,7 +910,6 @@ class AWSAccountCollector:
                     log.debug(f'Adding edge from ALB Target Group {tg.id} to ALB {alb.id}')
                     graph.add_edge(tg, alb)
 
-
     @metrics_collect_albs.time()
     def collect_albs(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f'Collecting AWS ALBs in account {self.account.id} region {region.id}')
