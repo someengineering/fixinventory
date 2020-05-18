@@ -74,7 +74,7 @@ class BaseCollectorPlugin(BasePlugin):
         self.root = BasePluginRoot(self.cloud, {})
         self.graph = Graph()
         resource_attributes = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.id, resource_type=self.root.resource_type, **resource_attributes)
+        self.graph.add_node(self.root, label=self.root.id, **resource_attributes)
 
     @abstractmethod
     def collect(self) -> None:

@@ -139,7 +139,7 @@ class AWSAccountCollector:
         self.root = self.account
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.name, resource_type=self.root.resource_type, **resource_attr)
+        self.graph.add_node(self.root, label=self.root.name, **resource_attr)
 
         # The pricing info is being used to cache the results of pricing information. This way we don't ask
         # the API 10 times what the price of an e.g. m5.xlarge instance is. The lock is being used to ensure
@@ -208,7 +208,7 @@ class AWSAccountCollector:
         log.info(f'Collecting resources in AWS account {self.account.id}')
         graph = Graph()
         resource_attr = get_resource_attributes(region)
-        graph.add_node(region, label=region.name, resource_type=region.resource_type, **resource_attr)
+        graph.add_node(region, label=region.name, **resource_attr)
         for collector_name, collector in collectors.items():
             try:
                 log.debug(f'Running {collector_name} collector in account {self.account.name} region {region.name}')

@@ -37,6 +37,7 @@ resource_attributes_blacklist = ['metrics_description']
 def get_resource_attributes(resource) -> Dict:
     attributes = dict(resource.__dict__)
     attributes['tags'] = dict(attributes.pop('_tags'))  # Turn ResourceTagsDict() back into dict() for *ML marshalling
+    attributes['resource_type'] = resource.resource_type
     attributes['ctime'] = resource.ctime
     attributes['mtime'] = resource.mtime
     attributes['atime'] = resource.atime
@@ -99,8 +100,7 @@ class Graph(networkx.DiGraph):
         """
         resource_attr = get_resource_attributes(node_for_adding)
 
-        super().add_node(node_for_adding, label=node_for_adding.name, resource_type=node_for_adding.resource_type,
-                         **resource_attr, **attr)
+        super().add_node(node_for_adding, label=node_for_adding.name, **resource_attr, **attr)
         super().add_edge(parent, node_for_adding)
 
     def add_node(self, *args, **kwargs):
@@ -220,7 +220,7 @@ class GraphContainer:
         self.__lock = threading.Lock()
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.GRAPH_ROOT)
-        self.graph.add_node(self.GRAPH_ROOT, label=self.GRAPH_ROOT.id, resource_type=self.GRAPH_ROOT.resource_type, **resource_attr)
+        self.graph.add_node(self.GRAPH_ROOT, label=self.GRAPH_ROOT.id, **resource_attr)
         if cache_graph:
             self.cache = GraphCache()
             self.cache.update_cache(Event(EventType.STARTUP, self.graph))
