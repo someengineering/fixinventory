@@ -108,6 +108,7 @@ metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_second
 metrics_collect_volume_metrics = Summary('cloudkeeper_plugin_aws_collect_volume_metrics_seconds', 'Time it took the collect_volume_metrics() method')
 metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_network_interfaces_seconds', 'Time it took the collect_network_interfaces() method')
 metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
+metrics_collect_nat_gateways = Summary('cloudkeeper_plugin_aws_collect_nat_gateways_seconds', 'Time it took the collect_nat_gateways() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
@@ -179,6 +180,7 @@ class AWSAccountCollector:
             'Autoscaling Groups': self.collect_autoscaling_groups,
             'EC2 Network ACLs': self.collect_network_acls,
             'EC2 Network Interfaces': self.collect_network_interfaces,
+            'NAT Gateways': self.collect_nat_gateways,
             'RDS Instances': self.collect_rds_instances,
             'Cloudformation Stacks': self.collect_cloudformation_stacks,
             'EKS Clusters': self.collect_eks_clusters,
@@ -808,9 +810,40 @@ class AWSAccountCollector:
                 if subnet_id:
                     s = graph.search_first('id', subnet_id)
                     if s:
-                        log.debug(f'Adding edge from Subnet {s.id} to network acl {acl.id}')
-                        graph.add_edge(s, acl)
+                        log.debug(f'Adding edge from network acl {acl.id} to Subnet {s.id}')
+                        graph.add_edge(acl, s)
 
+    @metrics_collect_nat_gateways.time()
+    def collect_nat_gateways(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS NAT gateways in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for nat_gw in paginate(client.describe_nat_gateways):
+            ngw_id = nat_gw['NatGatewayId']
+            vpc_id = nat_gw.get('VpcId')
+            subnet_id = nat_gw.get('SubnetId')
+            tags = self.tags_as_dict(nat_gw.get('Tags', []))
+            ngw_name = tags.get('Name', ngw_id)
+            ngw = AWSEC2NATGateway(ngw_id, tags, name=ngw_name, account=self.account, region=region)
+            log.debug(f"Found NAT gateway {ngw.name}")
+            graph.add_resource(region, ngw)
+            if vpc_id:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to NAT gateway {ngw.id}')
+                    graph.add_edge(v, ngw)
+            if subnet_id:
+                s = graph.search_first('id', subnet_id)
+                if s:
+                    log.debug(f'Adding edge from Subnet {s.id} to NAT gateway {ngw.id}')
+                    graph.add_edge(s, ngw)
+            for gateway_address in nat_gw.get('NatGatewayAddresses', []):
+                network_interface_id = gateway_address.get('NetworkInterfaceId')
+                if network_interface_id:
+                    n = graph.search_first('id', network_interface_id)
+                    if n:
+                        log.debug(f'Adding edge from Network Interface {n.id} to NAT gateway {ngw.id}')
+                        graph.add_edge(n, ngw)
 
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:
@@ -1097,10 +1130,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for subnet in ec2.subnets.all():
             try:
-                s = AWSEC2Subnet(subnet.id, self.tags_as_dict(subnet.tags), account=self.account, region=region)
-                subnet_name = s.tags.get('Name')
-                if subnet_name:
-                    s.name = subnet_name
+                tags = self.tags_as_dict(subnet.tags)
+                subnet_name = tags.get('Name', subnet.id)
+                s = AWSEC2Subnet(subnet.id, tags, name=subnet_name, account=self.account, region=region)
                 log.debug(f'Found subnet {s.id}')
                 graph.add_resource(region, s)
                 if subnet.vpc_id:
@@ -1122,7 +1154,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for igw in ec2.internet_gateways.all():
             try:
-                i = AWSEC2InternetGateway(igw.id, self.tags_as_dict(igw.tags), account=self.account, region=region)
+                tags = self.tags_as_dict(igw.tags)
+                igw_name = tags.get('Name', igw.id)
+                i = AWSEC2InternetGateway(igw.id, tags, name=igw_name, account=self.account, region=region)
                 log.debug(f'Found Internet Gateway {i.id}')
                 graph.add_resource(region, i)
                 graph.add_edge(igwq, i)
@@ -1165,7 +1199,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for rt in ec2.route_tables.all():
             try:
-                r = AWSEC2RouteTable(rt.id, self.tags_as_dict(rt.tags), account=self.account, region=region)
+                tags = self.tags_as_dict(rt.tags)
+                rt_name = tags.get('Name', rt.id)
+                r = AWSEC2RouteTable(rt.id, tags, name=rt_name, account=self.account, region=region)
                 log.debug(f'Found Route Table {r.id}')
                 graph.add_resource(region, r)
                 if rt.vpc_id:

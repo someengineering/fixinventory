@@ -126,6 +126,19 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
         subnet.delete()
         return True
 
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
 
 class AWSVPC(AWSResource, BaseNetwork):
     resource_type = "aws_vpc"
@@ -290,6 +303,41 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
         internet_gateway.delete()
         return True
 
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
+
+class AWSEC2NATGateway(AWSResource, BaseGateway):
+    resource_type = "aws_ec2_nat_gateway"
+
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_nat_gateway(NatGatewayId=self.id)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
 
 class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
     resource_type = "aws_ec2_internet_gateway_quota"
@@ -304,10 +352,40 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
         security_group.delete()
         return True
 
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
 
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_route_table(RouteTableId=self.id)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
 
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     resource_type = "aws_ec2_network_acl"
@@ -342,6 +420,19 @@ class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
         ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
         network_interface = ec2.NetworkInterface(self.id)
         network_interface.delete()
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
         return True
 
 
