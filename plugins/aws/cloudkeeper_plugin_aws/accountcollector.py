@@ -107,6 +107,7 @@ metrics_collect_reserved_instances = Summary('cloudkeeper_plugin_aws_collect_res
 metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_seconds', 'Time it took the collect_volumes() method')
 metrics_collect_volume_metrics = Summary('cloudkeeper_plugin_aws_collect_volume_metrics_seconds', 'Time it took the collect_volume_metrics() method')
 metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_network_interfaces_seconds', 'Time it took the collect_network_interfaces() method')
+metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
@@ -176,6 +177,7 @@ class AWSAccountCollector:
             'ALBs': self.collect_albs,
             'ALB Target Groups': self.collect_alb_target_groups,
             'Autoscaling Groups': self.collect_autoscaling_groups,
+            'EC2 Network ACLs': self.collect_network_acls,
             'EC2 Network Interfaces': self.collect_network_interfaces,
             'RDS Instances': self.collect_rds_instances,
             'Cloudformation Stacks': self.collect_cloudformation_stacks,
@@ -781,6 +783,34 @@ class AWSAccountCollector:
                 if i:
                     log.debug(f'Adding edge from instance {i.id} to Autoscaling Group {asg.id}')
                     graph.add_edge(i, asg)
+
+    @metrics_collect_network_acls.time()
+    def collect_network_acls(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS Network ACLs in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for network_acl in paginate(client.describe_network_acls):
+            acl_id = network_acl['NetworkAclId']
+            vpc_id = network_acl.get('VpcId')
+            tags = self.tags_as_dict(network_acl.get('Tags', []))
+            acl_name = tags.get('Name', acl_id)
+            acl = AWSEC2NetworkAcl(acl_id, tags, name=acl_name, account=self.account, region=region)
+            acl.is_default = network_acl.get('IsDefault', False)
+            log.debug(f"Found Network ACL {acl.name}")
+            graph.add_resource(region, acl)
+            if vpc_id:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to network acl {acl.id}')
+                    graph.add_edge(v, acl)
+            for association in network_acl.get('Associations', []):
+                subnet_id = association.get('SubnetId')
+                if subnet_id:
+                    s = graph.search_first('id', subnet_id)
+                    if s:
+                        log.debug(f'Adding edge from Subnet {s.id} to network acl {acl.id}')
+                        graph.add_edge(s, acl)
+
 
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:

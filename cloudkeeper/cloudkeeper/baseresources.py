@@ -738,6 +738,19 @@ class BaseRoutingTable(BaseResource):
         return self._metrics
 
 
+class BaseNetworkAcl(BaseResource):
+    metrics_description = {
+        'network_acls_total': {'help': 'Number of Network ACLs', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_network_acls_total': {'help': 'Cleaned number of Network ACLs', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['network_acls_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_network_acls_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
 class BaseNetworkInterface(BaseResource):
     metrics_description = {
         'network_interfaces_total': {'help': 'Number of Network Interfaces', 'labels': ['cloud', 'account', 'region', 'status']},

@@ -309,6 +309,32 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
 
+class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
+    resource_type = "aws_ec2_network_acl"
+
+    def __init__(self, *args, is_default: bool = False, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.is_default = is_default
+
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_network_acl(NetworkAclId=self.id)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
+
 class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     resource_type = "aws_ec2_network_interface"
 
