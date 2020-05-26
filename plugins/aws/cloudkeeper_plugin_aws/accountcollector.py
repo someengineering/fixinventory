@@ -109,6 +109,7 @@ metrics_collect_volume_metrics = Summary('cloudkeeper_plugin_aws_collect_volume_
 metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_network_interfaces_seconds', 'Time it took the collect_network_interfaces() method')
 metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
 metrics_collect_nat_gateways = Summary('cloudkeeper_plugin_aws_collect_nat_gateways_seconds', 'Time it took the collect_nat_gateways() method')
+metrics_collect_vpc_peering_connections = Summary('cloudkeeper_plugin_aws_collect_vpc_peering_connections_seconds', 'Time it took the collect_vpc_peering_connections() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
@@ -184,6 +185,7 @@ class AWSAccountCollector:
             'RDS Instances': self.collect_rds_instances,
             'Cloudformation Stacks': self.collect_cloudformation_stacks,
             'EKS Clusters': self.collect_eks_clusters,
+            'VPC Peering Connections': self.collect_vpc_peering_connections,
         }
 
         # Collect global resources like IAM and S3 first
@@ -824,7 +826,8 @@ class AWSAccountCollector:
             subnet_id = nat_gw.get('SubnetId')
             tags = self.tags_as_dict(nat_gw.get('Tags', []))
             ngw_name = tags.get('Name', ngw_id)
-            ngw = AWSEC2NATGateway(ngw_id, tags, name=ngw_name, account=self.account, region=region)
+            ngw = AWSEC2NATGateway(ngw_id, tags, name=ngw_name, account=self.account, region=region, ctime=nat_gw.get('CreateTime'))
+            ngw.nat_gateway_status = nat_gw.get('State')
             log.debug(f"Found NAT gateway {ngw.name}")
             graph.add_resource(region, ngw)
             if vpc_id:
@@ -844,6 +847,34 @@ class AWSAccountCollector:
                     if n:
                         log.debug(f'Adding edge from Network Interface {n.id} to NAT gateway {ngw.id}')
                         graph.add_edge(n, ngw)
+
+    @metrics_collect_vpc_peering_connections.time()
+    def collect_vpc_peering_connections(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS VPC Peering Connections in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for peering_connection in paginate(client.describe_vpc_peering_connections):
+            pc_id = peering_connection['VpcPeeringConnectionId']
+            tags = self.tags_as_dict(peering_connection.get('Tags', []))
+            pc_name = tags.get('Name', pc_id)
+            pc = AWSVPCPeeringConnection(pc_id, tags, name=pc_name, account=self.account, region=region)
+            pc.vpc_peering_connection_status = peering_connection.get('Status', {}).get('Code')
+            log.debug(f"Found AWS VPC Peering Connection {pc.name}")
+            graph.add_resource(region, pc)
+            accepter_vpc_id = peering_connection.get('AccepterVpcInfo', {}).get('VpcId')
+            accepter_vpc_region = peering_connection.get('AccepterVpcInfo', {}).get('Region')
+            requester_vpc_id = peering_connection.get('RequesterVpcInfo', {}).get('VpcId')
+            requester_vpc_region = peering_connection.get('RequesterVpcInfo', {}).get('Region')
+            vpc_ids = []
+            if accepter_vpc_region == region.name:
+                vpc_ids.append(accepter_vpc_id)
+            if requester_vpc_region == region.name:
+                vpc_ids.append(requester_vpc_id)
+            for vpc_id in vpc_ids:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to VPC Peering Connection {pc.id}')
+                    graph.add_edge(v, pc)
 
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:

@@ -320,6 +320,10 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
 class AWSEC2NATGateway(AWSResource, BaseGateway):
     resource_type = "aws_ec2_nat_gateway"
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.nat_gateway_status = ''
+
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
         ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
         ec2.delete_nat_gateway(NatGatewayId=self.id)
@@ -386,6 +390,33 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
             Tags=[{'Key': key}]
         )
         return True
+
+
+class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
+    resource_type = "aws_vpc_peering_connection"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.vpc_peering_connection_status = ''
+
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_route_table(RouteTableId=self.id)
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
 
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     resource_type = "aws_ec2_network_acl"

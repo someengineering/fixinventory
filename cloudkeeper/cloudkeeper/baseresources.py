@@ -751,6 +751,19 @@ class BaseNetworkAcl(BaseResource):
         return self._metrics
 
 
+class BasePeeringConnection(BaseResource):
+    metrics_description = {
+        'peering_connections_total': {'help': 'Number of Peering Connections', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_peering_connections_total': {'help': 'Cleaned number of Peering Connections', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['peering_connections_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_peering_connections_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
 class BaseNetworkInterface(BaseResource):
     metrics_description = {
         'network_interfaces_total': {'help': 'Number of Network Interfaces', 'labels': ['cloud', 'account', 'region', 'status']},
