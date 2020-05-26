@@ -86,7 +86,7 @@ class BaseResource(ABC):
         return f"{self.__class__.__name__}('{self.id}', name='{self.name}', region='{self.region().name}', account='{self.account().name}', resource_type='{self.resource_type}', ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
 
     def _keys(self):
-        return (self.resource_type, self.account().id, self.region().id, self.id, self.ctime)
+        return (self.resource_type, self.account().id, self.region().id, self.id, self.name, self.ctime)
 
 #    def __hash__(self):
 #        return hash(self._keys())
