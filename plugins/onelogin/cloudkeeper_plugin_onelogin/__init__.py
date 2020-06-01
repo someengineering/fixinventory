@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User
@@ -97,9 +98,9 @@ class OneLoginPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument('--onelogin-region', help='OneLogin Region', dest='onelogin_region', type=str, default='us')
-        arg_parser.add_argument('--onelogin-client-id', help='OneLogin Client ID', dest='onelogin_client_id', type=str, default=None)
-        arg_parser.add_argument('--onelogin-client-secret', help='OneLogin Client Secret', dest='onelogin_client_secret', type=str, default=None)
+        arg_parser.add_argument('--onelogin-region', help='OneLogin Region', dest='onelogin_region', type=str, default=os.environ.get('ONELOGIN_REGION', 'us'))
+        arg_parser.add_argument('--onelogin-client-id', help='OneLogin Client ID', dest='onelogin_client_id', type=str, default=os.environ.get('ONELOGIN_CLIENT_ID'))
+        arg_parser.add_argument('--onelogin-client-secret', help='OneLogin Client Secret', dest='onelogin_client_secret', type=str, default=os.environ.get('ONELOGIN_CLIENT_SECRET'))
 
 
 def onelogin_client() -> OneLoginClient:

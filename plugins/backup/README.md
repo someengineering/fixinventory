@@ -1,7 +1,7 @@
 # cloudkeeper-plugin-backup
 A graph backup plugin for Cloudkeeper
 
-This Plugin creates a backup of the graph whenever a collection and cleanup run finishes.
+This plugin creates a backup of the graph whenever a collection and cleanup run finishes.
 
 ## Usage
 Specify a folder to backup the graph dumps to. E.g. `--backup-to /var/local/cloudkeeper/backups`
