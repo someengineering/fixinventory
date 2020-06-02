@@ -16,7 +16,6 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2RouteTable,
 )
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import parse_delta
 from cloudkeeper.event import (
     Event,
     EventType,
@@ -30,25 +29,13 @@ log = logging.getLogger("cloudkeeper." + __name__)
 class CleanupAWSVPCsPlugin(BasePlugin):
     def __init__(self):
         super().__init__()
-        self.name = "cleanup_aws_loadbalancers"
+        self.name = "cleanup_aws_vpcs"
         self.exit = threading.Event()
-        if ArgumentParser.args.cleanup_aws_loadbalancers:
-            try:
-                self.age = parse_delta(
-                    ArgumentParser.args.cleanup_aws_loadbalancers_age
-                )
-                log.debug(f"AWS Loadbalancer Cleanup Plugin Age {self.age}")
-                add_event_listener(EventType.SHUTDOWN, self.shutdown)
-                add_event_listener(
-                    EventType.CLEANUP_BEGIN,
-                    self.vpc_cleanup,
-                    blocking=True,
-                    timeout=3600,
-                )
-            except ValueError:
-                log.exception(
-                    f"Error while parsing AWS Loadbalancer Cleanup Age {ArgumentParser.args.cleanup_aws_loadbalancers_age}"
-                )
+        if ArgumentParser.args.cleanup_aws_vpcs:
+            add_event_listener(EventType.SHUTDOWN, self.shutdown)
+            add_event_listener(
+                EventType.CLEANUP_BEGIN, self.vpc_cleanup, blocking=True, timeout=3600,
+            )
         else:
             self.exit.set()
 
@@ -115,6 +102,6 @@ class CleanupAWSVPCsPlugin(BasePlugin):
 
     def shutdown(self, event: Event):
         log.debug(
-            f"Received event {event.event_type} - shutting down AWS VPCs Cleanup plugin"
+            f"Received event {event.event_type} - shutting down AWS VPC Cleanup plugin"
         )
         self.exit.set()
