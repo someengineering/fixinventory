@@ -110,6 +110,7 @@ metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_net
 metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
 metrics_collect_nat_gateways = Summary('cloudkeeper_plugin_aws_collect_nat_gateways_seconds', 'Time it took the collect_nat_gateways() method')
 metrics_collect_vpc_peering_connections = Summary('cloudkeeper_plugin_aws_collect_vpc_peering_connections_seconds', 'Time it took the collect_vpc_peering_connections() method')
+metrics_collect_vpc_endpoints = Summary('cloudkeeper_plugin_aws_collect_vpc_endpoints_seconds', 'Time it took the collect_vpc_endpoints() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
@@ -186,6 +187,7 @@ class AWSAccountCollector:
             'Cloudformation Stacks': self.collect_cloudformation_stacks,
             'EKS Clusters': self.collect_eks_clusters,
             'VPC Peering Connections': self.collect_vpc_peering_connections,
+            'VPC Endpoints': self.collect_vpc_endpoints,
         }
 
         # Collect global resources like IAM and S3 first
@@ -875,6 +877,47 @@ class AWSAccountCollector:
                 if v:
                     log.debug(f'Adding edge from VPC {v.id} to VPC Peering Connection {pc.id}')
                     graph.add_edge(v, pc)
+
+    @metrics_collect_vpc_endpoints.time()
+    def collect_vpc_endpoints(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS VPC Endpoints in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for endpoint in paginate(client.describe_vpc_endpoints):
+            ep_id = endpoint['VpcEndpointId']
+            tags = self.tags_as_dict(endpoint.get('Tags', []))
+            ep_name = tags.get('Name', ep_id)
+            ep = AWSVPCEndpoint(ep_id, tags, name=ep_name, account=self.account, region=region, ctime=endpoint.get('CreationTimestamp'))
+            ep.vpc_endpoint_status = endpoint.get('State', '')
+            ep.vpc_endpoint_type = endpoint.get('VpcEndpointType', '')
+            log.debug(f"Found AWS VPC Endpoint {ep.name}")
+            graph.add_resource(region, ep)
+            if endpoint.get('VpcId'):
+                v = graph.search_first('id', endpoint.get('VpcId'))
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(v, ep)
+            for rt_id in endpoint.get('RouteTableIds', []):
+                rt = graph.search_first('id', rt_id)
+                if rt:
+                    log.debug(f'Adding edge from Route Table {rt.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(rt, ep)
+            for sn_id in endpoint.get('SubnetIds', []):
+                sn = graph.search_first('id', sn_id)
+                if sn:
+                    log.debug(f'Adding edge from Subnet {sn.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(sn, ep)
+            for security_group in endpoint.get('Groups', []):
+                sg_id = security_group['GroupId']
+                sg = graph.search_first('id', sg_id)
+                if sg:
+                    log.debug(f'Adding edge from Security Group {sg.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(sg, ep)
+            for ni_id in endpoint.get('NetworkInterfaceIds', []):
+                ni = graph.search_first('id', ni_id)
+                if ni:
+                    log.debug(f'Adding edge from Network Interface {ni.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(ni, ep)
 
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:

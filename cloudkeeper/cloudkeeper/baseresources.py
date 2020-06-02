@@ -764,6 +764,19 @@ class BasePeeringConnection(BaseResource):
         return self._metrics
 
 
+class BaseEndpoint(BaseResource):
+    metrics_description = {
+        'endpoints_total': {'help': 'Number of Endpoints', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_endpoints_total': {'help': 'Cleaned number of Endpoints', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['endpoints_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_endpoints_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
 class BaseNetworkInterface(BaseResource):
     metrics_description = {
         'network_interfaces_total': {'help': 'Number of Network Interfaces', 'labels': ['cloud', 'account', 'region', 'status']},

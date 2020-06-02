@@ -418,6 +418,33 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
         return True
 
 
+class AWSVPCEndpoint(AWSResource, BaseEndpoint):
+    resource_type = "aws_vpc_endpoint"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.vpc_endpoint_type = ''
+        self.vpc_endpoint_status = ''
+
+    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+        ec2.delete_vpc_endpoints(VpcEndpointIds=[self.id])
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
+
 class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
     resource_type = "aws_ec2_network_acl"
 

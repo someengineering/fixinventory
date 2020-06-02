@@ -14,6 +14,7 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2InternetGateway,
     AWSEC2NATGateway,
     AWSEC2RouteTable,
+    AWSVPCEndpoint,
 )
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import (
@@ -82,6 +83,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                             AWSEC2InternetGateway,
                             AWSEC2NATGateway,
                             AWSEC2RouteTable,
+                            AWSVPCEndpoint,
                         ),
                     ):
                         descendant.clean = True
