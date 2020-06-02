@@ -1,5 +1,5 @@
 # cloudkeeper-plugin-remote
-Remote graph plugin for Cloudkeeper
+Remote graph collector plugin for Cloudkeeper
 
 This plugin fetches a graph from a remote Cloudkeeper instance and attaches it to the local graph, allowing for distributed Cloudkeeper setups.
 
