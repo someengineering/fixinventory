@@ -25,7 +25,7 @@ $ docker run -it mesosphere/cloudkeeper --verbose \
     --aws-access-key-id AKIAIO5FODNN7EXAMPLE \
     --aws-secret-access-key 'ABCDEF+c2L7yXeGvUyrPgYsDnWRRC1AYEXAMPLE' \
     --register-cli-action " \
-        cleanup_begin: \
+        cleanup_plan: \
           match resource_type = aws_ec2_volume \
         | match volume_status = available \
         | match age > 7d \
@@ -141,7 +141,7 @@ The `dump` command is useful for getting a list of a resource's attributes.
 Now the CLI is useful for exploring collected data but if you have a repeating cleanup query it would be tedious to manually run it periodically. To that end Cloudkeeper supports an argument `--register-cli-action` which takes a lowercased event name (see [Events](#events) below) followed by a colon : and the CLI command that should be executed when that event is dispatched.
 If we wanted to run our volume cleanup from earlier every time cloudkeeper has finished collecting resources, we could call it like so:
 ```
-$ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_begin:match resource_type = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean"
+$ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_plan:match resource_type = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean"
 ```
 
 As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_volumes/) that does just that. It was written before cloudkeeper had its own CLI.
@@ -195,6 +195,7 @@ EventType: Data
     COLLECT_BEGIN: cloudkeeper.graph.Graph
     GENERATE_METRICS: cloudkeeper.graph.Graph
     COLLECT_FINISH: cloudkeeper.graph.Graph
+    CLEANUP_PLAN: cloudkeeper.graph.Graph
     CLEANUP_BEGIN: cloudkeeper.graph.Graph
     CLEANUP_FINISH: cloudkeeper.graph.Graph
     PROCESS_FINISH: cloudkeeper.graph.Graph
@@ -204,7 +205,8 @@ EventType: Data
 A plugin can dispatch `START_COLLECT` if it wants Cloudkeeper to start its collect run without waiting for `--interval` seconds to pass.  
 `PROCESS_BEGIN` signals the start of a loop. Within that loop resource collection, metrics generation and resource cleanup are being performed.  
 `GENERATE_METRICS` is a signal for plugins that allows them to modify existing or add new metrics to the resources in the staging graph.  
-`CLEANUP_BEGIN` is the point that persistent cleanup plugins would usually be called. Here they can look at the tags and age of all resources and decide which ones to clean.  
+`CLEANUP_PLAN` is the point that persistent cleanup plugins would usually be called. Here they can look at the tags and age of all resources and decide which ones to clean.  
+`CLEANUP_BEGIN` signals the start of the cleanup process. This hook is useful for plugins that want to look at or modify the cleanup plan that was previously created.  
 `SHUTDOWN` is being dispatched when the user enters `quit` or Ctrl+c in the CLI or a signal (INT/TERM) to shutdown is received. Plugins can also cause a shutdown although this function should be used sparingly. Right now there is only a single plugin [plugins/snowflake_protection/](plugins/snowflake_protection/) that makes use of this event. It is responsible for snowflake protection (protecting very special resources from deletion) and if it can not parse its config it will dispath an emergency SHUTDOWN event. This makes Cloudkeeper instantly kill the Python interpreter to ensure that no protected resources accidentally get deleted.
 
 
@@ -213,10 +215,10 @@ Cloudkeeper supports scheduling of CLI commands either using the `jobs`, `add_jo
 
 Example scheduler config file:
 ```
-0 5 * * sat cleanup_begin:match account.id = 119548413362 | match resource_type ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
+0 5 * * sat cleanup_plan:match account.id = 119548413362 | match resource_type ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
 0 0 * * * count resource_type | tee /var/log/cloudkeeper/resource_count-@TODAY@.txt
 ```
-* First line: every Saturday at 5am schedule a command to run the next time a CLEANUP_BEGIN event is dispatched. This particular command would wipe all EC2 instances and load balancers in an account with ID 119548413362 that were created before 5am that day.
+* First line: every Saturday at 5am schedule a command to run the next time a CLEANUP_PLAN event is dispatched. This particular command would wipe all EC2 instances and load balancers in an account with ID 119548413362 that were created before 5am that day.
 * Second line: every day at midnight count the number of resources by resource type, log the output and also write it to a file with today's date in the filename.
 
 When a command is not prefixed with an event name it is executed at the specified point in time immediately.
