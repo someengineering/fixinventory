@@ -23,12 +23,12 @@ class CleanupUntaggedPlugin(BasePlugin):
             self.config = CleanupUntaggedConfig(config_file=ArgumentParser.args.cleanup_untagged_config)
             self.config.read()  # initial read to ensure config format is valid
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.CLEANUP_BEGIN, self.cleanup_untagged, blocking=True, timeout=900)
+            add_event_listener(EventType.CLEANUP_PLAN, self.cleanup_untagged, blocking=True, timeout=900)
         else:
             self.exit.set()
 
     def __del__(self):
-        remove_event_listener(EventType.CLEANUP_BEGIN, self.cleanup_untagged)
+        remove_event_listener(EventType.CLEANUP_PLAN, self.cleanup_untagged)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):

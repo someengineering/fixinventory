@@ -86,7 +86,7 @@ class BaseResource(ABC):
         return f"{self.__class__.__name__}('{self.id}', name='{self.name}', region='{self.region().name}', account='{self.account().name}', resource_type='{self.resource_type}', ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
 
     def _keys(self):
-        return (self.resource_type, self.account().id, self.region().id, self.id, self.ctime)
+        return (self.resource_type, self.account().id, self.region().id, self.id, self.name, self.ctime)
 
 #    def __hash__(self):
 #        return hash(self._keys())
@@ -735,6 +735,45 @@ class BaseRoutingTable(BaseResource):
         self._metrics['routing_tables_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
         if self._cleaned:
             self._metrics['cleaned_routing_tables_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
+class BaseNetworkAcl(BaseResource):
+    metrics_description = {
+        'network_acls_total': {'help': 'Number of Network ACLs', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_network_acls_total': {'help': 'Cleaned number of Network ACLs', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['network_acls_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_network_acls_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
+class BasePeeringConnection(BaseResource):
+    metrics_description = {
+        'peering_connections_total': {'help': 'Number of Peering Connections', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_peering_connections_total': {'help': 'Cleaned number of Peering Connections', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['peering_connections_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_peering_connections_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        return self._metrics
+
+
+class BaseEndpoint(BaseResource):
+    metrics_description = {
+        'endpoints_total': {'help': 'Number of Endpoints', 'labels': ['cloud', 'account', 'region']},
+        'cleaned_endpoints_total': {'help': 'Cleaned number of Endpoints', 'labels': ['cloud', 'account', 'region']},
+    }
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['endpoints_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        if self._cleaned:
+            self._metrics['cleaned_endpoints_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
         return self._metrics
 
 

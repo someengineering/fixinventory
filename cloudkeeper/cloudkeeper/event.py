@@ -20,6 +20,7 @@ class EventType(Enum):
     START_COLLECT: None
     COLLECT_BEGIN: cloudkeeper.graph.Graph
     COLLECT_FINISH: cloudkeeper.graph.Graph
+    CLEANUP_PLAN: cloudkeeper.graph.Graph
     CLEANUP_BEGIN: cloudkeeper.graph.Graph
     CLEANUP_FINISH: cloudkeeper.graph.Graph
     PROCESS_BEGIN: cloudkeeper.graph.Graph
@@ -31,6 +32,7 @@ class EventType(Enum):
     START_COLLECT = 'start_collect'
     COLLECT_BEGIN = 'collect_begin'
     COLLECT_FINISH = 'collect_finish'
+    CLEANUP_PLAN = 'cleanup_plan'
     CLEANUP_BEGIN = 'cleanup_begin'
     CLEANUP_FINISH = 'cleanup_finish'
     PROCESS_BEGIN = 'process_begin'

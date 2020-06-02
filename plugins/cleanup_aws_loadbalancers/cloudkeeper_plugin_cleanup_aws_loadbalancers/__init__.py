@@ -19,14 +19,14 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                 self.age = parse_delta(ArgumentParser.args.cleanup_aws_loadbalancers_age)
                 log.debug(f'AWS Loadbalancer Cleanup Plugin Age {self.age}')
                 add_event_listener(EventType.SHUTDOWN, self.shutdown)
-                add_event_listener(EventType.CLEANUP_BEGIN, self.loadbalancer_cleanup, blocking=True, timeout=3600)
+                add_event_listener(EventType.CLEANUP_PLAN, self.loadbalancer_cleanup, blocking=True, timeout=3600)
             except ValueError:
                 log.exception(f'Error while parsing AWS Loadbalancer Cleanup Age {ArgumentParser.args.cleanup_aws_loadbalancers_age}')
         else:
             self.exit.set()
 
     def __del__(self):
-        remove_event_listener(EventType.CLEANUP_BEGIN, self.loadbalancer_cleanup)
+        remove_event_listener(EventType.CLEANUP_PLAN, self.loadbalancer_cleanup)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):

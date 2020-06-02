@@ -19,14 +19,14 @@ class CleanupVolumesPlugin(BasePlugin):
                 self.age = parse_delta(ArgumentParser.args.cleanup_volumes_age)
                 log.debug(f'Volume Cleanup Plugin Age {self.age}')
                 add_event_listener(EventType.SHUTDOWN, self.shutdown)
-                add_event_listener(EventType.CLEANUP_BEGIN, self.volumes_cleanup, blocking=True)
+                add_event_listener(EventType.CLEANUP_PLAN, self.volumes_cleanup, blocking=True)
             except ValueError:
                 log.exception(f'Error while parsing Volume Cleanup Age {ArgumentParser.args.volclean_age}')
         else:
             self.exit.set()
 
     def __del__(self):
-        remove_event_listener(EventType.CLEANUP_BEGIN, self.volumes_cleanup)
+        remove_event_listener(EventType.CLEANUP_PLAN, self.volumes_cleanup)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):

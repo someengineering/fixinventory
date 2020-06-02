@@ -17,12 +17,12 @@ class CleanupExpiredPlugin(BasePlugin):
         self.exit = threading.Event()
         if ArgumentParser.args.cleanup_expired:
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.CLEANUP_BEGIN, self.expired_cleanup, blocking=True)
+            add_event_listener(EventType.CLEANUP_PLAN, self.expired_cleanup, blocking=True)
         else:
             self.exit.set()
 
     def __del__(self):
-        remove_event_listener(EventType.CLEANUP_BEGIN, self.expired_cleanup)
+        remove_event_listener(EventType.CLEANUP_PLAN, self.expired_cleanup)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):

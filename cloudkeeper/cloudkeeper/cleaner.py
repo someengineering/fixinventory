@@ -22,6 +22,8 @@ class Cleaner:
             log.error('Cleanup called but --cleanup flag not provided at startup - ignoring call')
             return
 
+        log.info('Notifying plugins to plan cleanup')
+        dispatch_event(Event(EventType.CLEANUP_PLAN, self.graph), blocking=True)
         log.info('Running cleanup')
         dispatch_event(Event(EventType.CLEANUP_BEGIN, self.graph), blocking=True)
         with self.graph.lock.read_access:

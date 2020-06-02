@@ -61,7 +61,6 @@ class ReportCleanupsPlugin(BasePlugin):
                         'cloud': cloud.name,
                         'account': account.name,
                         'region': region.name,
-                        'resource_type': node.resource_type,
                         **get_resource_attributes(node)
                     }
                     rows.append(row)

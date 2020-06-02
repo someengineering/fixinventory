@@ -107,6 +107,10 @@ metrics_collect_reserved_instances = Summary('cloudkeeper_plugin_aws_collect_res
 metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_seconds', 'Time it took the collect_volumes() method')
 metrics_collect_volume_metrics = Summary('cloudkeeper_plugin_aws_collect_volume_metrics_seconds', 'Time it took the collect_volume_metrics() method')
 metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_network_interfaces_seconds', 'Time it took the collect_network_interfaces() method')
+metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
+metrics_collect_nat_gateways = Summary('cloudkeeper_plugin_aws_collect_nat_gateways_seconds', 'Time it took the collect_nat_gateways() method')
+metrics_collect_vpc_peering_connections = Summary('cloudkeeper_plugin_aws_collect_vpc_peering_connections_seconds', 'Time it took the collect_vpc_peering_connections() method')
+metrics_collect_vpc_endpoints = Summary('cloudkeeper_plugin_aws_collect_vpc_endpoints_seconds', 'Time it took the collect_vpc_endpoints() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
@@ -139,7 +143,7 @@ class AWSAccountCollector:
         self.root = self.account
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.name, resource_type=self.root.resource_type, **resource_attr)
+        self.graph.add_node(self.root, label=self.root.name, **resource_attr)
 
         # The pricing info is being used to cache the results of pricing information. This way we don't ask
         # the API 10 times what the price of an e.g. m5.xlarge instance is. The lock is being used to ensure
@@ -176,10 +180,14 @@ class AWSAccountCollector:
             'ALBs': self.collect_albs,
             'ALB Target Groups': self.collect_alb_target_groups,
             'Autoscaling Groups': self.collect_autoscaling_groups,
+            'EC2 Network ACLs': self.collect_network_acls,
             'EC2 Network Interfaces': self.collect_network_interfaces,
+            'NAT Gateways': self.collect_nat_gateways,
             'RDS Instances': self.collect_rds_instances,
             'Cloudformation Stacks': self.collect_cloudformation_stacks,
             'EKS Clusters': self.collect_eks_clusters,
+            'VPC Peering Connections': self.collect_vpc_peering_connections,
+            'VPC Endpoints': self.collect_vpc_endpoints,
         }
 
         # Collect global resources like IAM and S3 first
@@ -208,7 +216,7 @@ class AWSAccountCollector:
         log.info(f'Collecting resources in AWS account {self.account.id}')
         graph = Graph()
         resource_attr = get_resource_attributes(region)
-        graph.add_node(region, label=region.name, resource_type=region.resource_type, **resource_attr)
+        graph.add_node(region, label=region.name, **resource_attr)
         for collector_name, collector in collectors.items():
             try:
                 log.debug(f'Running {collector_name} collector in account {self.account.name} region {region.name}')
@@ -782,6 +790,135 @@ class AWSAccountCollector:
                     log.debug(f'Adding edge from instance {i.id} to Autoscaling Group {asg.id}')
                     graph.add_edge(i, asg)
 
+    @metrics_collect_network_acls.time()
+    def collect_network_acls(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS Network ACLs in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for network_acl in paginate(client.describe_network_acls):
+            acl_id = network_acl['NetworkAclId']
+            vpc_id = network_acl.get('VpcId')
+            tags = self.tags_as_dict(network_acl.get('Tags', []))
+            acl_name = tags.get('Name', acl_id)
+            acl = AWSEC2NetworkAcl(acl_id, tags, name=acl_name, account=self.account, region=region)
+            acl.is_default = network_acl.get('IsDefault', False)
+            log.debug(f"Found Network ACL {acl.name}")
+            graph.add_resource(region, acl)
+            if vpc_id:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to network acl {acl.id}')
+                    graph.add_edge(v, acl)
+            for association in network_acl.get('Associations', []):
+                subnet_id = association.get('SubnetId')
+                if subnet_id:
+                    s = graph.search_first('id', subnet_id)
+                    if s:
+                        log.debug(f'Adding edge from network acl {acl.id} to Subnet {s.id}')
+                        graph.add_edge(acl, s)
+
+    @metrics_collect_nat_gateways.time()
+    def collect_nat_gateways(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS NAT gateways in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for nat_gw in paginate(client.describe_nat_gateways):
+            ngw_id = nat_gw['NatGatewayId']
+            vpc_id = nat_gw.get('VpcId')
+            subnet_id = nat_gw.get('SubnetId')
+            tags = self.tags_as_dict(nat_gw.get('Tags', []))
+            ngw_name = tags.get('Name', ngw_id)
+            ngw = AWSEC2NATGateway(ngw_id, tags, name=ngw_name, account=self.account, region=region, ctime=nat_gw.get('CreateTime'))
+            ngw.nat_gateway_status = nat_gw.get('State')
+            log.debug(f"Found NAT gateway {ngw.name}")
+            graph.add_resource(region, ngw)
+            if vpc_id:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to NAT gateway {ngw.id}')
+                    graph.add_edge(v, ngw)
+            if subnet_id:
+                s = graph.search_first('id', subnet_id)
+                if s:
+                    log.debug(f'Adding edge from Subnet {s.id} to NAT gateway {ngw.id}')
+                    graph.add_edge(s, ngw)
+            for gateway_address in nat_gw.get('NatGatewayAddresses', []):
+                network_interface_id = gateway_address.get('NetworkInterfaceId')
+                if network_interface_id:
+                    n = graph.search_first('id', network_interface_id)
+                    if n:
+                        log.debug(f'Adding edge from Network Interface {n.id} to NAT gateway {ngw.id}')
+                        graph.add_edge(n, ngw)
+
+    @metrics_collect_vpc_peering_connections.time()
+    def collect_vpc_peering_connections(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS VPC Peering Connections in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for peering_connection in paginate(client.describe_vpc_peering_connections):
+            pc_id = peering_connection['VpcPeeringConnectionId']
+            tags = self.tags_as_dict(peering_connection.get('Tags', []))
+            pc_name = tags.get('Name', pc_id)
+            pc = AWSVPCPeeringConnection(pc_id, tags, name=pc_name, account=self.account, region=region)
+            pc.vpc_peering_connection_status = peering_connection.get('Status', {}).get('Code')
+            log.debug(f"Found AWS VPC Peering Connection {pc.name}")
+            graph.add_resource(region, pc)
+            accepter_vpc_id = peering_connection.get('AccepterVpcInfo', {}).get('VpcId')
+            accepter_vpc_region = peering_connection.get('AccepterVpcInfo', {}).get('Region')
+            requester_vpc_id = peering_connection.get('RequesterVpcInfo', {}).get('VpcId')
+            requester_vpc_region = peering_connection.get('RequesterVpcInfo', {}).get('Region')
+            vpc_ids = []
+            if accepter_vpc_region == region.name:
+                vpc_ids.append(accepter_vpc_id)
+            if requester_vpc_region == region.name:
+                vpc_ids.append(requester_vpc_id)
+            for vpc_id in vpc_ids:
+                v = graph.search_first('id', vpc_id)
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to VPC Peering Connection {pc.id}')
+                    graph.add_edge(v, pc)
+
+    @metrics_collect_vpc_endpoints.time()
+    def collect_vpc_endpoints(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS VPC Endpoints in account {self.account.id}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for endpoint in paginate(client.describe_vpc_endpoints):
+            ep_id = endpoint['VpcEndpointId']
+            tags = self.tags_as_dict(endpoint.get('Tags', []))
+            ep_name = tags.get('Name', ep_id)
+            ep = AWSVPCEndpoint(ep_id, tags, name=ep_name, account=self.account, region=region, ctime=endpoint.get('CreationTimestamp'))
+            ep.vpc_endpoint_status = endpoint.get('State', '')
+            ep.vpc_endpoint_type = endpoint.get('VpcEndpointType', '')
+            log.debug(f"Found AWS VPC Endpoint {ep.name}")
+            graph.add_resource(region, ep)
+            if endpoint.get('VpcId'):
+                v = graph.search_first('id', endpoint.get('VpcId'))
+                if v:
+                    log.debug(f'Adding edge from VPC {v.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(v, ep)
+            for rt_id in endpoint.get('RouteTableIds', []):
+                rt = graph.search_first('id', rt_id)
+                if rt:
+                    log.debug(f'Adding edge from Route Table {rt.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(rt, ep)
+            for sn_id in endpoint.get('SubnetIds', []):
+                sn = graph.search_first('id', sn_id)
+                if sn:
+                    log.debug(f'Adding edge from Subnet {sn.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(sn, ep)
+            for security_group in endpoint.get('Groups', []):
+                sg_id = security_group['GroupId']
+                sg = graph.search_first('id', sg_id)
+                if sg:
+                    log.debug(f'Adding edge from Security Group {sg.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(sg, ep)
+            for ni_id in endpoint.get('NetworkInterfaceIds', []):
+                ni = graph.search_first('id', ni_id)
+                if ni:
+                    log.debug(f'Adding edge from Network Interface {ni.id} to VPC Endpoint {ep.id}')
+                    graph.add_edge(ni, ep)
+
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f'Collecting AWS EC2 Key Pairs in account {self.account.id}, region {region.id}')
@@ -1067,10 +1204,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for subnet in ec2.subnets.all():
             try:
-                s = AWSEC2Subnet(subnet.id, self.tags_as_dict(subnet.tags), account=self.account, region=region)
-                subnet_name = s.tags.get('Name')
-                if subnet_name:
-                    s.name = subnet_name
+                tags = self.tags_as_dict(subnet.tags)
+                subnet_name = tags.get('Name', subnet.id)
+                s = AWSEC2Subnet(subnet.id, tags, name=subnet_name, account=self.account, region=region)
                 log.debug(f'Found subnet {s.id}')
                 graph.add_resource(region, s)
                 if subnet.vpc_id:
@@ -1092,7 +1228,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for igw in ec2.internet_gateways.all():
             try:
-                i = AWSEC2InternetGateway(igw.id, self.tags_as_dict(igw.tags), account=self.account, region=region)
+                tags = self.tags_as_dict(igw.tags)
+                igw_name = tags.get('Name', igw.id)
+                i = AWSEC2InternetGateway(igw.id, tags, name=igw_name, account=self.account, region=region)
                 log.debug(f'Found Internet Gateway {i.id}')
                 graph.add_resource(region, i)
                 graph.add_edge(igwq, i)
@@ -1114,7 +1252,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for sg in ec2.security_groups.all():
             try:
-                s = AWSEC2SecurityGroup(sg.id, self.tags_as_dict(sg.tags), account=self.account, region=region)
+                s = AWSEC2SecurityGroup(sg.id, self.tags_as_dict(sg.tags), name=sg.group_name, account=self.account, region=region)
+                if s.name == 'default':
+                    s.protected = True
                 log.debug(f'Found Security Group {s.id}')
                 graph.add_resource(region, s)
                 if sg.vpc_id:
@@ -1133,7 +1273,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for rt in ec2.route_tables.all():
             try:
-                r = AWSEC2RouteTable(rt.id, self.tags_as_dict(rt.tags), account=self.account, region=region)
+                tags = self.tags_as_dict(rt.tags)
+                rt_name = tags.get('Name', rt.id)
+                r = AWSEC2RouteTable(rt.id, tags, name=rt_name, account=self.account, region=region)
                 log.debug(f'Found Route Table {r.id}')
                 graph.add_resource(region, r)
                 if rt.vpc_id:
