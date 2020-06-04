@@ -88,9 +88,14 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     ):
                         descendant.clean = True
                     else:
-                        log.error(
-                            f"Descendant {descendant.resource_type} {descendant.id} of VPC {node.id} not marked for cleaning - VPC cleanup will likely fail"
-                        )
+                        if descendant.clean:
+                            log.debug(
+                                f"Descendant {descendant.resource_type} {descendant.id} of VPC {node.id} is not targeted but already marked for cleaning"
+                            )
+                        else:
+                            log.error(
+                                f"Descendant {descendant.resource_type} {descendant.id} of VPC {node.id} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
+                            )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
