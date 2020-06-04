@@ -52,7 +52,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
         log.info("AWS VPC cleanup called")
         with graph.lock.read_access:
             for node in graph.nodes:
-                if not node.clean and not isinstance(node, AWSVPC) or node.protected:
+                if node.protected or not node.clean or not isinstance(node, AWSVPC):
                     continue
 
                 cloud = node.cloud(graph)
