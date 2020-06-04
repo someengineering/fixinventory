@@ -1253,8 +1253,6 @@ class AWSAccountCollector:
         for sg in ec2.security_groups.all():
             try:
                 s = AWSEC2SecurityGroup(sg.id, self.tags_as_dict(sg.tags), name=sg.group_name, account=self.account, region=region)
-                if s.name == 'default':
-                    s.protected = True
                 log.debug(f'Found Security Group {s.id}')
                 graph.add_resource(region, s)
                 if sg.vpc_id:
