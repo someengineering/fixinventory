@@ -12,7 +12,7 @@ from prometheus_client import Summary, Counter
 log = logging.getLogger('cloudkeeper.' + __name__)
 
 metrics_ctime_tags = Counter('cloudkeeper_plugin_tag_aws_ctime_tags_total', 'Tag AWS ctime Plugin Number of ctime tags applied', ['cloud', 'account', 'region'])
-metrics_tag_ctime = Summary('cloudkeeper_plugin_tag_aws_ctime_tag_ctime_seconds', 'Tag AWS ctime Plugin Time it took the tag_target_groups() method')
+metrics_tag_ctime = Summary('cloudkeeper_plugin_tag_aws_ctime_tag_ctime_seconds', 'Tag AWS ctime Plugin Time it took the tag_ctime() method')
 
 
 class TagAWSCtimePlugin(BasePlugin):
