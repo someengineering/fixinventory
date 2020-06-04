@@ -21,3 +21,4 @@ test/.vagrant/*
 venv*
 .vscode/
 /config/
+*.code-workspace
