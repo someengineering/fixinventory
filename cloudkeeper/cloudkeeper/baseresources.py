@@ -101,13 +101,10 @@ class BaseResource(ABC):
 #        return NotImplemented
 
     @property
-    def display_name(self):
+    def dname(self) -> str:
         if self.id == self.name:
             return self.id
-        else:
-            return f"{self.name} ({self.id})"
-
-    dname = display_name
+        return f"{self.name} ({self.id})"
 
     @property
     def tags(self) -> Dict:
