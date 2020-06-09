@@ -1188,7 +1188,9 @@ class AWSAccountCollector:
         ec2 = session.resource('ec2', region_name=region.id)
         for vpc in ec2.vpcs.all():
             try:
-                v = AWSVPC(vpc.id, self.tags_as_dict(vpc.tags), is_default=vpc.is_default, account=self.account, region=region)
+                vpc_tags = self.tags_as_dict(vpc.tags)
+                vpc_name = vpc_tags.get('Name', vpc.id)
+                v = AWSVPC(vpc.id, vpc_tags, name=vpc_name, is_default=vpc.is_default, account=self.account, region=region)
                 if v.is_default:
                     # Protect the default VPC from being cleaned
                     v.protected = True
