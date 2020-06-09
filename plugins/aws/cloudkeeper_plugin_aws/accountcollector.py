@@ -155,6 +155,7 @@ class AWSAccountCollector:
         account_alias = self.account_alias()
         if account_alias:
             self.account.name = f'{account_alias} ({self.account.id})'
+            self.account.account_alias = account_alias
         log.debug(f'Collecting account {self.account.name}')
 
         global_collectors = {

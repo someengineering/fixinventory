@@ -443,6 +443,10 @@ class BaseAccount(BaseResource):
         'accounts_total': {'help': 'Number of Accounts', 'labels': ['cloud']},
     }
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.account_alias = ''
+
     def account(self, graph=None):
         return self
 
