@@ -154,9 +154,8 @@ class AWSAccountCollector:
     def collect(self) -> None:
         account_alias = self.account_alias()
         if account_alias:
-            self.account.name = f'{account_alias} ({self.account.id})'
-            self.account.account_alias = account_alias
-        log.debug(f'Collecting account {self.account.name}')
+            self.account.name = self.account.account_alias = account_alias
+        log.debug(f'Collecting account {self.account.dname}')
 
         global_collectors = {
             'IAM Policies': self.collect_iam_policies,
@@ -206,7 +205,7 @@ class AWSAccountCollector:
                 try:
                     graph = future.result()
                 except Exception:
-                    log.exception(f'Unhandeled exception while collecting resources in account {self.account.name} region {region.name}')
+                    log.exception(f'Unhandeled exception while collecting resources in account {self.account.dname} region {region.name}')
                 else:
                     log.debug(f'Adding graph of region {region.name} to account graph')
                     self.graph = networkx.compose(self.graph, graph)
@@ -214,66 +213,66 @@ class AWSAccountCollector:
 
     @retry(stop_max_attempt_number=10, wait_exponential_multiplier=3000, wait_exponential_max=300000, retry_on_exception=retry_on_request_limit_exceeded)
     def collect_resources(self, collectors: Dict, region: AWSRegion) -> Graph:
-        log.info(f'Collecting resources in AWS account {self.account.id}')
+        log.info(f'Collecting resources in AWS account {self.account.dname}')
         graph = Graph()
         resource_attr = get_resource_attributes(region)
         graph.add_node(region, label=region.name, **resource_attr)
         for collector_name, collector in collectors.items():
             try:
-                log.debug(f'Running {collector_name} collector in account {self.account.name} region {region.name}')
+                log.debug(f'Running {collector_name} collector in account {self.account.dname} region {region.name}')
                 collector(region, graph)
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'UnauthorizedOperation':
-                    log.error(f'Not authorized to collect resources in account {self.account.id} region {region.id}')
+                    log.error(f'Not authorized to collect resources in account {self.account.dname} region {region.id}')
                     return graph
                 else:
-                    log.exception(f'An AWS API error occured during {collector_name} resource collection in account {self.account.name} region {region.name} - skipping resources')
-                    metrics_unhandled_collector_exceptions.labels(account=self.account.name, region=region.name, collector=collector_name).inc()
+                    log.exception(f'An AWS API error occured during {collector_name} resource collection in account {self.account.dname} region {region.name} - skipping resources')
+                    metrics_unhandled_collector_exceptions.labels(account=self.account.dname, region=region.name, collector=collector_name).inc()
             except Exception:
-                log.exception(f'Unhandeled collector exception while collecting {collector_name} resources in account {self.account.name} region {region.name}')
-                metrics_unhandled_collector_exceptions.labels(account=self.account.name, region=region.name, collector=collector_name).inc()
+                log.exception(f'Unhandeled collector exception while collecting {collector_name} resources in account {self.account.dname} region {region.name}')
+                metrics_unhandled_collector_exceptions.labels(account=self.account.dname, region=region.name, collector=collector_name).inc()
         return graph
 
     # todo: more targeted caching than four layers of lru_cache()
     @lru_cache()
     def get_s3_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS S3 Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS S3 Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 's3')
 
     @lru_cache()
     def get_elb_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS ELB Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS ELB Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 'elasticloadbalancing')
 
     @lru_cache()
     def get_vpc_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS VPC Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS VPC Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 'vpc')
 
     @lru_cache()
     def get_ec2_instance_type_quota(self, region: AWSRegion, instance_type: str) -> int:
         # TODO: support dedicated hosts
-        log.debug(f'Retrieving AWS EC2 Instance Type Quota in account {self.account.id} region {region.id} for instance type {instance_type}')
+        log.debug(f'Retrieving AWS EC2 Instance Type Quota in account {self.account.dname} region {region.id} for instance type {instance_type}')
         return self.get_ec2_service_quotas(region).get(instance_type, -1.0)
 
     @lru_cache()
     def get_ec2_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS EC2 Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS EC2 Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 'ec2')
 
     @lru_cache()
     def get_ebs_volume_type_quota(self, region: AWSRegion, volume_type: str) -> int:
-        log.debug(f'Retrieving AWS EBS Volume Type Quota in account {self.account.id} region {region.id} for instance type {volume_type}')
+        log.debug(f'Retrieving AWS EBS Volume Type Quota in account {self.account.dname} region {region.id} for instance type {volume_type}')
         return self.get_ebs_service_quotas(region).get(volume_type, -1.0)
 
     @lru_cache()
     def get_ebs_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS EBS Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS EBS Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 'ebs')
 
     @lru_cache()
     def get_iam_service_quotas(self, region: AWSRegion) -> Dict:
-        log.debug(f'Retrieving AWS IAM Service Quotas in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving AWS IAM Service Quotas in account {self.account.dname} region {region.id}')
         return self.get_service_quotas(region, 'iam')
 
     @lru_cache()
@@ -281,10 +280,10 @@ class AWSAccountCollector:
         try:
             service_quotas = self.get_raw_service_quotas(region, service)
         except botocore.exceptions.ClientError:
-            log.exception(f'Failed to retrieve raw service quotas in account {self.account.name} region {region.name}')
+            log.exception(f'Failed to retrieve raw service quotas in account {self.account.dname} region {region.name}')
             metrics_unhandled_collector_exceptions.labels(account=self.account.name, region=region.name, collector='Service Quota').inc()
             return {}
-        log.debug(f'Trying to parse raw AWS Service Quotas in account {self.account.id} region {region.id} for service {service}')
+        log.debug(f'Trying to parse raw AWS Service Quotas in account {self.account.dname} region {region.id} for service {service}')
         quotas = {}
         if service not in QUOTA_TO_SERVICE_MAP:
             log.error(f'Service {service} not in quota service map')
@@ -311,7 +310,7 @@ class AWSAccountCollector:
 
     @lru_cache()
     def get_raw_service_quotas(self, region: AWSRegion, service: str) -> List:
-        log.debug(f'Retrieving raw AWS Service Quotas in account {self.account.id} region {region.id} for service {service}')
+        log.debug(f'Retrieving raw AWS Service Quotas in account {self.account.dname} region {region.id} for service {service}')
         service_quotas = []
         try:
             session = aws_session(self.account.id, self.account.role)
@@ -327,7 +326,7 @@ class AWSAccountCollector:
         return service_quotas
 
     def get_quota_services(self, region: AWSRegion) -> List:
-        log.debug(f'Retrieving list of AWS ServiceQuota supported services in account {self.account.id} region {region.id}')
+        log.debug(f'Retrieving list of AWS ServiceQuota supported services in account {self.account.dname} region {region.id}')
         try:
             session = aws_session(self.account.id, self.account.role)
             client = session.client('service-quotas', region_name=region.id)
@@ -345,7 +344,7 @@ class AWSAccountCollector:
 
     @metrics_collect_volumes.time()
     def collect_volumes(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS EBS Volumes in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS EBS Volumes in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         volumes = []
@@ -377,12 +376,12 @@ class AWSAccountCollector:
     @metrics_collect_volume_metrics.time()
     def collect_volume_metrics(self, region: AWSRegion, volumes: List) -> None:
         available_volumes = [volume for volume in volumes if volume.volume_status == 'available']
-        log.info(f'Collecting AWS EBS Volume Metrics for {len(available_volumes)} volumes in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS EBS Volume Metrics for {len(available_volumes)} volumes in account {self.account.dname} region {region.id}')
         for available_volumes_chunk in chunks(available_volumes, 100):
             self.set_volume_metrics(region, available_volumes_chunk)
 
     def set_volume_metrics(self, region: AWSRegion, volumes: List) -> None:
-        log.debug(f'Setting AWS EBS Volume Metrics for {len(volumes)} Volumes in account {self.account.id} region {region.id}')
+        log.debug(f'Setting AWS EBS Volume Metrics for {len(volumes)} Volumes in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         cw = session.client('cloudwatch', region_name=region.id)
 
@@ -500,7 +499,7 @@ class AWSAccountCollector:
 
     @metrics_collect_iam_server_certificates.time()
     def collect_iam_server_certificates(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Server Certificates in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Server Certificates in account {self.account.dname} region {region.id}')
         cq = AWSIAMServerCertificateQuota('iam_server_certificates_quota', {}, account=self.account, region=region)
         cq.quota = self.get_iam_service_quotas(region).get('server_certificates', -1.0)
         graph.add_resource(region, cq)
@@ -519,13 +518,13 @@ class AWSAccountCollector:
             c.name = certificate.get('ServerCertificateName')
             c.arn = certificate.get('Arn')
             c.expires = certificate.get('Expiration')
-            log.debug(f'Found IAM Server Certificate {c.name} ({c.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM Server Certificate {c.dname} in account {self.account.dname} region {region.id}')
             graph.add_resource(region, c)
             graph.add_edge(cq, c)
 
     @metrics_collect_iam_policies.time()
     def collect_iam_policies(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Policies in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Policies in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('iam', region_name=region.id)
 
@@ -540,12 +539,12 @@ class AWSAccountCollector:
             p.name = policy.get('PolicyName')
             p.arn = policy.get('Arn')
             p.mtime = policy.get('UpdateDate')
-            log.debug(f'Found IAM Policy {p.name} ({p.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM Policy {p.name} ({p.id}) in account {self.account.dname} region {region.id}')
             graph.add_resource(region, p)
 
     @metrics_collect_iam_groups.time()
     def collect_iam_groups(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Groups in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Groups in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('iam', region_name=region.id)
 
@@ -559,7 +558,7 @@ class AWSAccountCollector:
             g = AWSIAMGroup(group['GroupId'], {}, account=self.account, region=region, ctime=group.get('CreateDate'))
             g.name = group.get('GroupName')
             g.arn = group.get('Arn')
-            log.debug(f'Found IAM Group {g.name} ({g.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM Group {g.name} ({g.id}) in account {self.account.dname} region {region.id}')
             graph.add_resource(region, g)
 
             group_session = aws_session(self.account.id, self.account.role)
@@ -578,14 +577,14 @@ class AWSAccountCollector:
                         graph.add_edge(p, g)
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'NoSuchEntity':
-                    log.exception(f'An error occurred when trying to retrieve group information for group {g.name} in account {self.account.name} region {region.name}')
+                    log.exception(f'An error occurred when trying to retrieve group information for group {g.name} in account {self.account.dname} region {region.name}')
                     continue
                 else:
                     raise
 
     @metrics_collect_iam_instance_profiles.time()
     def collect_iam_instance_profiles(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Instance Profiles in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Instance Profiles in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('iam', region_name=region.id)
 
@@ -599,12 +598,12 @@ class AWSAccountCollector:
             ip = AWSIAMInstanceProfile(instance_profile['InstanceProfileId'], {}, account=self.account, region=region, ctime=instance_profile.get('CreateDate'))
             ip.name = instance_profile.get('InstanceProfileName')
             ip.arn = instance_profile.get('Arn')
-            log.debug(f'Found IAM Instance Profile {ip.name} ({ip.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM Instance Profile {ip.name} ({ip.id}) in account {self.account.dname} region {region.id}')
             graph.add_resource(region, ip)
 
     @metrics_collect_iam_roles.time()
     def collect_iam_roles(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Roles in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Roles in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('iam', region_name=region.id)
 
@@ -618,7 +617,7 @@ class AWSAccountCollector:
             r = AWSIAMRole(role['RoleId'], self.tags_as_dict(role.get('Tags', [])), account=self.account, region=region, ctime=role.get('CreateDate'))
             r.name = role.get('RoleName')
             r.arn = role.get('Arn')
-            log.debug(f'Found IAM Role {r.name} ({r.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM Role {r.name} ({r.id}) in account {self.account.dname} region {region.id}')
             graph.add_resource(region, r)
 
             role_session = aws_session(self.account.id, self.account.role)
@@ -649,14 +648,14 @@ class AWSAccountCollector:
                         graph.add_edge(r, p)
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'NoSuchEntity':
-                    log.exception(f'An error occurred when trying to retrieve role information for role {r.name} in account {self.account.name} region {region.name}')
+                    log.exception(f'An error occurred when trying to retrieve role information for role {r.name} in account {self.account.dname} region {region.name}')
                     continue
                 else:
                     raise
 
     @metrics_collect_iam_users.time()
     def collect_iam_users(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS IAM Users in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS IAM Users in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('iam', region_name=region.id)
 
@@ -671,7 +670,7 @@ class AWSAccountCollector:
             u.name = user.get('UserName')
             u.arn = user.get('Arn')
             u.atime = user.get('PasswordLastUsed')
-            log.debug(f'Found IAM User {u.name} ({u.id}) in account {self.account.id} region {region.id}')
+            log.debug(f'Found IAM User {u.name} ({u.id}) in account {self.account.dname} region {region.id}')
             graph.add_resource(region, u)
 
             user_session = aws_session(self.account.id, self.account.role)
@@ -708,11 +707,11 @@ class AWSAccountCollector:
                 for access_key in access_keys:
                     ak = AWSIAMAccessKey(access_key['AccessKeyId'], {}, user_name=u.name, account=self.account, region=region, ctime=access_key.get('CreateDate'))
                     ak.access_key_status = access_key.get('Status')
-                    log.debug(f'Found IAM Access Key {ak.id} for user {u.name} in account {self.account.id} region {region.id}')
+                    log.debug(f'Found IAM Access Key {ak.id} for user {u.name} in account {self.account.dname} region {region.id}')
                     graph.add_resource(u, ak)
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'NoSuchEntity':
-                    log.exception(f'An error occurred when trying to retrieve user information for user {u.name} in account {self.account.name} region {region.name}')
+                    log.exception(f'An error occurred when trying to retrieve user information for user {u.name} in account {self.account.dname} region {region.name}')
                     continue
                 else:
                     raise
@@ -720,7 +719,7 @@ class AWSAccountCollector:
     # todo: this assumes all reservations within a region, not az
     @metrics_collect_reserved_instances.time()
     def collect_reserved_instances(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS EC2 Reserved Instances in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS EC2 Reserved Instances in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         response = client.describe_reserved_instances()
@@ -731,13 +730,13 @@ class AWSAccountCollector:
                 instance_type_info = self.get_instance_type_info(region, graph, ri['InstanceType'])
                 if instance_type_info and 'InstanceCount' in ri:
                     instance_type_info.reservations += ri['InstanceCount']
-                    log.debug(f"Reserved instance count for instance type {ri['InstanceType']} in account {self.account.name} region {region.name} is now {instance_type_info.reservations}")
+                    log.debug(f"Reserved instance count for instance type {ri['InstanceType']} in account {self.account.dname} region {region.name} is now {instance_type_info.reservations}")
                 if ri['Scope'] != 'Region':
                     log.error('Found currently unsupported reservation with scope outside region')
 
     @metrics_collect_instances.time()
     def collect_instances(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS EC2 Instances in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS EC2 Instances in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         for instance in ec2.instances.all():
@@ -774,7 +773,7 @@ class AWSAccountCollector:
 
     @metrics_collect_autoscaling_groups.time()
     def collect_autoscaling_groups(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Autoscaling Groups in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS Autoscaling Groups in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('autoscaling', region_name=region.id)
         for autoscaling_group in paginate(client.describe_auto_scaling_groups):
@@ -793,7 +792,7 @@ class AWSAccountCollector:
 
     @metrics_collect_network_acls.time()
     def collect_network_acls(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Network ACLs in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS Network ACLs in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         for network_acl in paginate(client.describe_network_acls):
@@ -820,7 +819,7 @@ class AWSAccountCollector:
 
     @metrics_collect_nat_gateways.time()
     def collect_nat_gateways(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS NAT gateways in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS NAT gateways in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         for nat_gw in paginate(client.describe_nat_gateways):
@@ -853,7 +852,7 @@ class AWSAccountCollector:
 
     @metrics_collect_vpc_peering_connections.time()
     def collect_vpc_peering_connections(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS VPC Peering Connections in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS VPC Peering Connections in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         for peering_connection in paginate(client.describe_vpc_peering_connections):
@@ -881,7 +880,7 @@ class AWSAccountCollector:
 
     @metrics_collect_vpc_endpoints.time()
     def collect_vpc_endpoints(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS VPC Endpoints in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS VPC Endpoints in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         for endpoint in paginate(client.describe_vpc_endpoints):
@@ -922,7 +921,7 @@ class AWSAccountCollector:
 
     @metrics_collect_keypairs.time()
     def collect_keypairs(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS EC2 Key Pairs in account {self.account.id}, region {region.id}')
+        log.info(f'Collecting AWS EC2 Key Pairs in account {self.account.dname}, region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('ec2', region_name=region.id)
         response = client.describe_key_pairs()
@@ -937,7 +936,7 @@ class AWSAccountCollector:
 
     @metrics_collect_rds_instances.time()
     def collect_rds_instances(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS RDS instances in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS RDS instances in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('rds', region_name=region.id)
 
@@ -983,7 +982,7 @@ class AWSAccountCollector:
 
     @metrics_collect_buckets.time()
     def collect_buckets(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS S3 Buckets in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS S3 Buckets in account {self.account.dname} region {region.id}')
         bq = AWSS3BucketQuota('s3_quota', {}, account=self.account, region=region)
         bq.quota = self.get_s3_service_quotas(region).get('s3', -1.0)
         graph.add_resource(region, bq)
@@ -1001,7 +1000,7 @@ class AWSAccountCollector:
 
     @metrics_collect_alb_target_groups.time()
     def collect_alb_target_groups(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS ALB Target Groups in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS ALB Target Groups in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         client = session.client('elbv2', region_name=region.id)
 
@@ -1050,7 +1049,7 @@ class AWSAccountCollector:
 
     @metrics_collect_albs.time()
     def collect_albs(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS ALBs in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS ALBs in account {self.account.dname} region {region.id}')
         aq = AWSALBQuota('alb_quota', {}, account=self.account, region=region)
         aq.quota = self.get_elb_service_quotas(region).get('alb', -1.0)
         graph.add_resource(region, aq)
@@ -1115,7 +1114,7 @@ class AWSAccountCollector:
 
     @metrics_collect_elbs.time()
     def collect_elbs(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS ELBs in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS ELBs in account {self.account.dname} region {region.id}')
         eq = AWSELBQuota('elb_quota', {}, account=self.account, region=region)
         eq.quota = self.get_elb_service_quotas(region).get('elb', -1.0)
         graph.add_resource(region, eq)
@@ -1180,7 +1179,7 @@ class AWSAccountCollector:
 
     @metrics_collect_vpcs.time()
     def collect_vpcs(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS VPCs in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS VPCs in account {self.account.dname} region {region.id}')
         vq = AWSVPCQuota('vpc_quota', {}, account=self.account, region=region)
         vq.quota = self.get_vpc_service_quotas(region).get('vpc', -1.0)
         graph.add_resource(region, vq)
@@ -1202,7 +1201,7 @@ class AWSAccountCollector:
 
     @metrics_collect_subnets.time()
     def collect_subnets(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Subnets in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Subnets in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         for subnet in ec2.subnets.all():
@@ -1223,7 +1222,7 @@ class AWSAccountCollector:
 
     @metrics_collect_internet_gateways.time()
     def collect_internet_gateways(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Internet Gateways in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Internet Gateways in account {self.account.dname} region {region.id}')
         igwq = AWSEC2InternetGatewayQuota('igw_quota', {}, account=self.account, region=region)
         igwq.quota = self.get_vpc_service_quotas(region).get('igw', -1.0)
         graph.add_resource(region, igwq)
@@ -1250,7 +1249,7 @@ class AWSAccountCollector:
 
     @metrics_collect_security_groups.time()
     def collect_security_groups(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Security Groups in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Security Groups in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         for sg in ec2.security_groups.all():
@@ -1269,7 +1268,7 @@ class AWSAccountCollector:
 
     @metrics_collect_route_tables.time()
     def collect_route_tables(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Route Tables in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Route Tables in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         for rt in ec2.route_tables.all():
@@ -1290,7 +1289,7 @@ class AWSAccountCollector:
 
     @metrics_collect_network_interfaces.time()
     def collect_network_interfaces(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Network Interfaces in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Network Interfaces in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource('ec2', region_name=region.id)
         for ni in ec2.network_interfaces.all():
@@ -1345,7 +1344,7 @@ class AWSAccountCollector:
 
     @metrics_collect_cloudformation_stacks.time()
     def collect_cloudformation_stacks(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS Cloudformation Stacks in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS Cloudformation Stacks in account {self.account.dname} region {region.id}')
 
         session = aws_session(self.account.id, self.account.role)
         client = session.client('cloudformation', region_name=region.id)
@@ -1368,7 +1367,7 @@ class AWSAccountCollector:
 
     @metrics_collect_eks_clusters.time()
     def collect_eks_clusters(self, region: AWSRegion, graph: Graph) -> None:
-        log.info(f'Collecting AWS EKS Clusters in account {self.account.id} region {region.id}')
+        log.info(f'Collecting AWS EKS Clusters in account {self.account.dname} region {region.id}')
 
         session = aws_session(self.account.id, self.account.role)
         client = session.client('eks', region_name=region.id)
@@ -1395,7 +1394,7 @@ class AWSAccountCollector:
 
     @metrics_get_eks_nodegroups.time()
     def get_eks_nodegroups(self, region: AWSRegion, graph: Graph, cluster: AWSEKSCluster) -> None:
-        log.info(f'Collecting AWS EKS Nodegroups in account {self.account.id} region {region.id} cluster {cluster.id}')
+        log.info(f'Collecting AWS EKS Nodegroups in account {self.account.dname} region {region.id} cluster {cluster.id}')
 
         session = aws_session(self.account.id, self.account.role)
         client = session.client('eks', region_name=region.id)
@@ -1427,10 +1426,10 @@ class AWSAccountCollector:
         client = session.client('iam')
         account_aliases = client.list_account_aliases().get('AccountAliases', [])
         if len(account_aliases) == 0:
-            log.debug(f'Found no account alias for account {self.account.id}')
+            log.debug(f'Found no account alias for account {self.account.dname}')
             return None
         first_alias = account_aliases[0]
-        log.debug(f'Found account alias {first_alias} for account {self.account.id}')
+        log.debug(f'Found account alias {first_alias} for account {self.account.dname}')
         return first_alias
 
     def get_price_info(self, service, search_filter):
@@ -1465,7 +1464,7 @@ class AWSAccountCollector:
                 {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': EC2_TO_PRICING_REGIONS[region.id]}
             ]
 
-            log.debug(f'Retrieving pricing information for instances of type {instance_type} in account {self.account.id} region {region.id}')
+            log.debug(f'Retrieving pricing information for instances of type {instance_type} in account {self.account.dname} region {region.id}')
             price_list = self.get_price_info(service, search_filter)
 
             # price_info['ec2'][instance_type] = {
@@ -1554,7 +1553,7 @@ class AWSAccountCollector:
             self._price_info['ec2'][region.id][instance_type] = node
             graph.add_resource(region, node)
             graph.add_edge(quota_node, node)
-            log.debug(f'Found instance type info for {node.id} in account {self.account.name} region {region.name}: Cores {node.instance_cores}, Memory {node.instance_memory}, OnDemand Cost {node.ondemand_cost}')
+            log.debug(f'Found instance type info for {node.dname} in account {self.account.dname} region {region.name}: Cores {node.instance_cores}, Memory {node.instance_memory}, OnDemand Cost {node.ondemand_cost}')
             return node
 
     def get_volume_type_info(self, region: AWSRegion, graph: Graph, volume_type: str) -> Optional[AWSEC2VolumeType]:
@@ -1574,7 +1573,7 @@ class AWSAccountCollector:
                 {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': EC2_TO_PRICING_REGIONS[region.id]}
             ]
 
-            log.debug(f'Retrieving pricing information for volumes of type {volume_type} in account {self.account.id} region {region.id}')
+            log.debug(f'Retrieving pricing information for volumes of type {volume_type} in account {self.account.dname} region {region.id}')
             price_list = self.get_price_info(service, search_filter)
 
             price_info = 0.0
@@ -1598,7 +1597,7 @@ class AWSAccountCollector:
             node.quota = self.get_ebs_volume_type_quota(region, volume_type)
             self._price_info['ebs'][region.id][volume_type] = node
             graph.add_resource(region, node)
-            log.debug(f'Found volume type info for {node.id} in account {self.account.id} region {region.id}: OnDemand Cost {node.ondemand_cost}')
+            log.debug(f'Found volume type info for {node.dname} in account {self.account.dname} region {region.id}: OnDemand Cost {node.ondemand_cost}')
             return node
 
     @staticmethod

@@ -89,13 +89,13 @@ class TagValidatorPlugin(BasePlugin):
                         elif '*' in tag_config:
                             desired_value = tag_config['*']
                         else:
-                            log.error(f'No tag config for node {node.id} class {node_class} in account {account.id} cloud {cloud.id}')
+                            log.error(f'No tag config for node {node.dname} class {node_class} in account {account.dname} cloud {cloud.id}')
                             continue
 
                         if tag in node.tags:
                             current_value = node.tags[tag]
-                            log.debug((f'Found {node.resource_type} {node.id} ({node.age}) in cloud {cloud.name}'
-                                       f' account {account.name} region {region.name} with tag {tag}: {current_value}'))
+                            log.debug((f'Found {node.resource_type} {node.dname} age {node.age} in cloud {cloud.name}'
+                                       f' account {account.dname} region {region.name} with tag {tag}: {current_value}'))
 
                             if desired_value == 'never':
                                 continue
@@ -125,8 +125,8 @@ class TagValidatorPlugin(BasePlugin):
                                 log.debug(log_msg)
                                 set_tag(node, tag, desired_value, log_msg, cloud, account, region)
                         else:
-                            log.debug((f'Found {node.resource_type} {node.id} ({node.age}) in cloud {cloud.name}'
-                                       f' account {account.name} region {region.name} with missing tag {tag}: {desired_value}'))
+                            log.debug((f'Found {node.resource_type} {node.dname} with age {node.age} in cloud {cloud.name}'
+                                       f' account {account.dname} region {region.name} with missing tag {tag}: {desired_value}'))
                             log_msg = f'Tag {tag} is not set - setting to desired value {desired_value}'
                             set_tag(node, tag, desired_value, log_msg, cloud, account, region)
 
@@ -142,11 +142,11 @@ class TagValidatorPlugin(BasePlugin):
 
 def set_tag(node, tag, value, log_msg, cloud=None, account=None, region=None):
     if node and cloud and account and region:
-        metrics_tag_violations.labels(cloud=cloud.name, account=account.name, region=region.name, resource_type=node.resource_type).inc()
+        metrics_tag_violations.labels(cloud=cloud.name, account=account.dname, region=region.name, resource_type=node.resource_type).inc()
     if ArgumentParser.args.tagvalidator_dry_run:
         log_msg = f'DRY RUN - ACTION NOT PERFORMED: {log_msg}'
         node.log(log_msg)
-        log.debug(f'Tag Validator Dry Run - not setting {tag}: {value} for node {node.id}')
+        log.debug(f'Tag Validator Dry Run - not setting {tag}: {value} for node {node.dname}')
     else:
         node.log(log_msg)
         node.tags[tag] = value

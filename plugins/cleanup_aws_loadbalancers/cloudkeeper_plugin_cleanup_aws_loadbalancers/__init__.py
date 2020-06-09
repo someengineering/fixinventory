@@ -54,7 +54,7 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                         and len([i for i in node.predecessors(graph) if isinstance(i, AWSEC2Instance) and i.instance_status != 'terminated']) == 0 \
                         and len(node.backends) == 0:
                     log.debug((
-                        f'Found orphaned AWS ELB {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
+                        f'Found orphaned AWS ELB {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
                         f' with age {node.age} and no EC2 instances attached to it.')
                     )
                     node.clean = True
@@ -62,14 +62,14 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                         and len([n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]) == 0 \
                         and len(node.backends) == 0:
                     log.debug((
-                        f'Found orphaned AWS ALB {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
+                        f'Found orphaned AWS ALB {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
                         f' with age {node.age} and no Target Groups attached to it.')
                     )
                     node.clean = True
                 elif isinstance(node, AWSALBTargetGroup) \
                         and len(list(node.successors(graph))) == 0:
                     log.debug(
-                        f'Found orphaned AWS ALB Target Group {node.id} in cloud {cloud.name} account {account.name} region {region.name} with age {node.age}'
+                        f'Found orphaned AWS ALB Target Group {node.dname} in cloud {cloud.name} account {account.dname} region {region.name} with age {node.age}'
                     )
                     node.clean = True
                 elif isinstance(node, AWSALB):
@@ -89,7 +89,7 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
 
                     if cleanup_alb:
                         log.debug((
-                            f'Found AWS ALB {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
+                            f'Found AWS ALB {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
                             f' with age {node.age} and no EC2 instances attached to its {len(target_groups)} target groups.')
                         )
                         for tg in target_groups:

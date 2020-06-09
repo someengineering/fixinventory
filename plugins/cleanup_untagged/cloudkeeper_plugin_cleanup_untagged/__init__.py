@@ -72,7 +72,7 @@ class CleanupUntaggedPlugin(BasePlugin):
 
                 metrics_cleanup_untagged.labels(cloud=cloud.name, account=account.name, region=region.name, resource_type=node.resource_type).inc()
                 log_msg = f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older than threshold of {self.config['accounts'][cloud.id][account.id]['age']}"
-                log.error(f"Cleaning resource {node.resource_type} {node.name} in cloud {cloud.name} account {account.name} region {region.name}: {log_msg}")
+                log.error(f"Cleaning resource {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}: {log_msg}")
                 node.log(log_msg)
                 node.clean = True
 

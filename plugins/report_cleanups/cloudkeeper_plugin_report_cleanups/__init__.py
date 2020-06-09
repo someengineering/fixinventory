@@ -53,7 +53,7 @@ class ReportCleanupsPlugin(BasePlugin):
                     region = node.region(graph)
 
                     if not isinstance(cloud, BaseCloud) or not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-                        log.error(f'Unable to determine cloud ({cloud}), account ({account}) or region ({region}) for node {node.id}')
+                        log.error(f'Unable to determine cloud ({cloud}), account ({account}) or region ({region}) for node {node.dname}')
                         continue
 
                     row = {
