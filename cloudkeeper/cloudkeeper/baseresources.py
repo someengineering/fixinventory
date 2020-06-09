@@ -83,7 +83,11 @@ class BaseResource(ABC):
             self._metrics[metric] = {}
 
     def __repr__(self):
-        return f"{self.__class__.__name__}('{self.id}', name='{self.name}', region='{self.region().name}', account='{self.account().dname}', resource_type='{self.resource_type}', ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
+        return (
+            f"{self.__class__.__name__}('{self.id}', name='{self.name}', region='{self.region().name}',"
+            f" account='{self.account().dname}', resource_type='{self.resource_type}',"
+            f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
+        )
 
     def _keys(self):
         return (self.resource_type, self.account().id, self.region().id, self.id, self.name, self.ctime)
