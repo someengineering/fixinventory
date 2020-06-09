@@ -48,13 +48,13 @@ class CleanupExpiredPlugin(BasePlugin):
                                 expires = make_valid_timestamp(node.ctime + parse_delta(expires_tag))
 
                         except ValueError:
-                            log.exception((f'Found {node.resource_type} {node.id} in cloud {cloud.name}'
-                                           f' account {account.name} region {region.name} age {node.age} with invalid expires tag {expires_tag}'))
+                            log.exception((f'Found {node.resource_type} {node.dname} in cloud {cloud.name}'
+                                           f' account {account.dname} region {region.name} age {node.age} with invalid expires tag {expires_tag}'))
                             continue
                         else:
                             if now > expires:
-                                log.debug((f'Found expired resource {node.resource_type} {node.id} in cloud {cloud.name}'
-                                           f' account {account.name} region {region.name} age {node.age} with expires tag {expires_tag}'
+                                log.debug((f'Found expired resource {node.resource_type} {node.dname} in cloud {cloud.name}'
+                                           f' account {account.dname} region {region.name} age {node.age} with expires tag {expires_tag}'
                                            f' - marking for cleanup'))
                                 node.clean = True
 

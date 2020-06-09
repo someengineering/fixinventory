@@ -45,7 +45,7 @@ class LogDumpPlugin(BasePlugin):
                     region = node.region(graph)
 
                     if not isinstance(cloud, BaseCloud) or not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-                        log.error(f'Unable to determine cloud ({cloud}), account ({account}) or region ({region}) for node {node.id}')
+                        log.error(f'Unable to determine cloud ({cloud}), account ({account}) or region ({region}) for node {node.dname}')
                         continue
 
                     out_dir = self.logdump_path / date_dir / cloud.name / account.name / region.name

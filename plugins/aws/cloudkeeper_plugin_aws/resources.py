@@ -47,7 +47,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
 
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
         if self.instance_status == 'terminated':
-            log.error(f'AWS EC2 Instance {self.id} in account {account.name} region {region.name} is already terminated')
+            log.error(f'AWS EC2 Instance {self.id} in account {account.dname} region {region.name} is already terminated')
             return False
         ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
         instance = ec2.Instance(self.id)
@@ -258,9 +258,9 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
         self.target_type = ''
 
     def metrics(self, graph) -> Dict:
-        self._metrics['aws_alb_target_groups_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        self._metrics['aws_alb_target_groups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         if self._cleaned:
-            self._metrics['cleaned_aws_alb_target_groups_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+            self._metrics['cleaned_aws_alb_target_groups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
@@ -624,7 +624,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
             Parameters=[{'ParameterKey': parameter, 'UsePreviousValue': True} for parameter in self.stack_parameters.keys()]
         )
         if response.get('ResponseMetadata', {}).get('HTTPStatusCode', 0) != 200:
-            raise RuntimeError(f'Error updating AWS Cloudformation Stack {self.name} for {mode.name} of tag {key}')
+            raise RuntimeError(f'Error updating AWS Cloudformation Stack {self.dname} for {mode.name} of tag {key}')
         if wait:
             self.wait_for_completion(stack, cf)
         self.tags = tags
@@ -654,9 +654,9 @@ class AWSEKSCluster(AWSResource, BaseResource):
         self.cluster_endpoint = ''
 
     def metrics(self, graph) -> Dict:
-        self._metrics['aws_eks_clusters_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        self._metrics['aws_eks_clusters_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         if self._cleaned:
-            self._metrics['cleaned_aws_eks_clusters_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+            self._metrics['cleaned_aws_eks_clusters_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
@@ -695,9 +695,9 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
         self.nodegroup_status = ''
 
     def metrics(self, graph) -> Dict:
-        self._metrics['aws_eks_nodegroups_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+        self._metrics['aws_eks_nodegroups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         if self._cleaned:
-            self._metrics['cleaned_aws_eks_nodegroups_total'][(self.cloud(graph).name, self.account(graph).name, self.region(graph).name)] = 1
+            self._metrics['cleaned_aws_eks_nodegroups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
     def delete(self, account: AWSAccount, region: AWSRegion) -> bool:

@@ -169,7 +169,7 @@ class SlackBotPlugin(BasePlugin):
                         owner = owner_tag[6:]
                         destination = self.emails2id.get(owner)
                     else:
-                        log.error(f'Unknown owner tag format {owner_tag} for node {node.name} in cloud {cloud.name} account {account.name} region {region.name}')
+                        log.error(f'Unknown owner tag format {owner_tag} for node {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}')
 
                     if not isinstance(destination, SlackUser):
                         log.error(f'Unable to determine Slack destination based on cloudkeeper:owner tag value {owner_tag}')
@@ -178,7 +178,7 @@ class SlackBotPlugin(BasePlugin):
                     event_log_text = ''
                     for event in node.event_log:
                         event_log_text += f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
-                    slack_message = (f"Hello {destination.first_name}, your cloud resource `{node.name}` in cloud `{cloud.name}` account `{account.name}` region `{region.name}`"
+                    slack_message = (f"Hello {destination.first_name}, your cloud resource `{node.dname}` in cloud `{cloud.name}` account `{account.dname}` region `{region.name}`"
                                      f" was modified during the current cloudkeeper run. Here is the event log:\n```\n{event_log_text}```")
                     self.send_slack_message(destination.id, slack_message)
 

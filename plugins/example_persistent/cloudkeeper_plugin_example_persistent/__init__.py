@@ -28,7 +28,7 @@ class ExamplePersistentPlugin(BasePlugin):
             graph = event.data
             log.info('Example Persistent Plugin Event Handler called')
             for node in graph.search('resource_type', 'example_account'):
-                log.debug(f'Found node {node.id} of resource type {node.resource_type} created {node.ctime}')
+                log.debug(f'Found node {node.dname} of resource type {node.resource_type} created {node.ctime}')
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

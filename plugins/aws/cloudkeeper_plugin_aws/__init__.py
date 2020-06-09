@@ -79,7 +79,7 @@ class AWSPlugin(BaseCollectorPlugin):
             executor.map(self.collect_aws_account, accounts)
 
     def collect_aws_account(self, account) -> None:
-        log.info(f'Collecting AWS account {account.name}')
+        log.info(f'Collecting AWS account {account.dname}')
 
         try:
             aac = AWSAccountCollector(self.regions, account)
@@ -87,15 +87,15 @@ class AWSPlugin(BaseCollectorPlugin):
             # here we're merging the plugin graph with the account graph, replacing the original plugin graph
             # since we're running multi threaded we're acquiring a lock for the merge and replace operation
             with self.__graph_lock:
-                log.debug(f'Merging graph of account {account.name} with {self.cloud} plugin graph')
+                log.debug(f'Merging graph of account {account.dname} with {self.cloud} plugin graph')
                 self.graph = networkx.compose(self.graph, aac.graph)
                 self.graph.add_edge(self.root, aac.root)
         except botocore.exceptions.ClientError as e:
-            log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.name}")
-            metrics_unhandled_account_exceptions.labels(account=account.name).inc()
+            log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
+            metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
         except Exception:
-            log.exception(f'An unhandled error occurred while collecting AWS account {account.name}')
-            metrics_unhandled_account_exceptions.labels(account=account.name).inc()
+            log.exception(f'An unhandled error occurred while collecting AWS account {account.dname}')
+            metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
 
     @property
     def regions(self) -> List:

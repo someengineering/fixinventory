@@ -198,7 +198,10 @@ def parse_delta(delta: str) -> timedelta:
                 break
 
         if not found_unit:
-            raise ValueError("Unknown unit '{}' when parsing '{}'".format(unit, delta))
+            raise ValueError(f"Unknown unit '{unit}' when parsing '{delta}'")
+
+    if len(kwargs) == 0:
+        raise ValueError(f"Unable to parse '{delta}'")
 
     return timedelta(**kwargs)
 

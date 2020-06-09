@@ -38,6 +38,7 @@ def get_resource_attributes(resource) -> Dict:
     attributes = dict(resource.__dict__)
     attributes['tags'] = dict(attributes.pop('_tags'))  # Turn ResourceTagsDict() back into dict() for *ML marshalling
     attributes['resource_type'] = resource.resource_type
+    attributes['display_name'] = resource.display_name
     attributes['ctime'] = resource.ctime
     attributes['mtime'] = resource.mtime
     attributes['atime'] = resource.atime

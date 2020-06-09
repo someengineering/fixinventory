@@ -57,18 +57,18 @@ class MetricsAgeRangePlugin(BasePlugin):
                     metric_name = 'instances_age_range'
                     metric_help = 'Age Range of Instances'
                     metric_labels = ['cloud', 'account', 'region', 'type', 'status', 'age']
-                    metric_label_values = (node.cloud(graph).name, node.account(graph).name, node.region(graph).name, node.instance_type, node.instance_status, node_age_range)
+                    metric_label_values = (node.cloud(graph).name, node.account(graph).dname, node.region(graph).name, node.instance_type, node.instance_status, node_age_range)
                     node.add_metric(metric_name, metric_value, metric_help, metric_labels, metric_label_values)
                 elif isinstance(node, BaseVolume):
                     metric_name = 'volumes_age_range'
                     metric_help = 'Age Range of Volumes'
                     metric_labels = ['cloud', 'account', 'region', 'type', 'status', 'age']
-                    metric_label_values = (node.cloud(graph).name, node.account(graph).name, node.region(graph).name, node.volume_type, node.volume_status, node_age_range)
+                    metric_label_values = (node.cloud(graph).name, node.account(graph).dname, node.region(graph).name, node.volume_type, node.volume_status, node_age_range)
                     node.add_metric(metric_name, metric_value, metric_help, metric_labels, metric_label_values)
                 else:
                     continue
 
-                log.debug(f'Adding metrics for node {node.id} of resource type {node.resource_type}, created {node.age} ago, age range {node_age_range}')
+                log.debug(f'Adding metrics for node {node.dname} of resource type {node.resource_type}, created {node.age} ago, age range {node_age_range}')
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

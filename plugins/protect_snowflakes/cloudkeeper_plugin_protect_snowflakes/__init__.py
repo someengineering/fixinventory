@@ -59,7 +59,7 @@ class ProtectSnowflakesPlugin(BasePlugin):
                     continue
 
                 log_msg = "Snowflake protection configured for this Node - burning protection fuse"
-                log.info(f"Protecting {node.resource_type} {node.id} ({node.name}) in cloud {cloud.name} account {account.name} region {region.name}: {log_msg}")
+                log.info(f"Protecting {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}: {log_msg}")
                 node.log(log_msg)
                 node.protected = True
 

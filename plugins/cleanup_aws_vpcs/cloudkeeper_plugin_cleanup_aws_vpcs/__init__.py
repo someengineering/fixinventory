@@ -61,13 +61,13 @@ class CleanupAWSVPCsPlugin(BasePlugin):
 
                 log.debug(
                     (
-                        f"Found AWS VPC {node.id} in cloud {cloud.name} account {account.name} region {region.name}"
+                        f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
                         f" marked for cleanup. Marking dependent resources for cleanup as well."
                     )
                 )
                 for descendant in node.descendants(graph):
                     log.debug(
-                        f"Found descendant {descendant.resource_type} {descendant.id} of VPC {node.id}"
+                        f"Found descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname}"
                     )
                     if isinstance(
                         descendant,
@@ -90,11 +90,11 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     else:
                         if descendant.clean:
                             log.debug(
-                                f"Descendant {descendant.resource_type} {descendant.id} of VPC {node.id} is not targeted but already marked for cleaning"
+                                f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted but already marked for cleaning"
                             )
                         else:
                             log.error(
-                                f"Descendant {descendant.resource_type} {descendant.id} of VPC {node.id} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
+                                f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
                             )
 
     @staticmethod

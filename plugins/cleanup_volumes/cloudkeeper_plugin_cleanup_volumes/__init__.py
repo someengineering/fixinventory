@@ -48,7 +48,7 @@ class CleanupVolumesPlugin(BasePlugin):
                     account = node.account(graph)
                     region = node.region(graph)
                     log.debug((
-                        f'Found available volume {node.id} in cloud {cloud.name} account {account.name} region {region.name}'
+                        f'Found available volume {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
                         f' with age {node.age}. Last update was {node.last_update} ago and last access {node.last_access}'
                         f' ago both of which is longer than {self.age} - setting to be cleaned')
                     )
