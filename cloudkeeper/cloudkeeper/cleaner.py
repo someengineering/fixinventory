@@ -42,14 +42,14 @@ class Cleaner:
 
     def clean(self, node: BaseResource) -> None:
         if not ArgumentParser.args.cleanup_dry_run:
-            log.debug(f'Node {node.id} is marked for removal, calling cleanup method')
+            log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, calling cleanup method')
             try:
                 node.cleanup(self.graph)
             except Exception:
-                log.exception(f'An exception occurred when running node cleanup on {node.id}')
+                log.exception(f'An exception occurred when running resource cleanup on {node.resource_type} {node.dname}')
         else:
             log.debug(
-                f'Node {node.id} is marked for removal, not calling cleanup method because of dry run flag')
+                f'Resource {node.resource_type} {node.dname} is marked for removal, not calling cleanup method because of dry run flag')
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
