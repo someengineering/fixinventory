@@ -634,7 +634,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         start_utime = time.time()
         while stack.stack_status.endswith('_IN_PROGRESS'):
             if time.time() > start_utime + timeout:
-                raise TimeoutError(f'Stack {stack.name} tag update timed out after {timeout} seconds with status {stack.stack_status}')
+                raise TimeoutError(f'AWS Cloudformation Stack {self.dname} tag update timed out after {timeout} seconds with status {stack.stack_status}')
             time.sleep(5)
             stack = cloudformation_resource.Stack(stack.name)
         return stack
