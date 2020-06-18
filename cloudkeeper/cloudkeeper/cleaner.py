@@ -31,7 +31,7 @@ class Cleaner:
             cleanup_plan = defaultlist(lambda: [])
 
             for node in cleanup_nodes:
-                log.debug(f'Adding node {node.name} to cleanup plan with priority {node.max_graph_depth}')
+                log.debug(f'Adding {node.resource_type} {node.dname} to cleanup plan with priority {node.max_graph_depth}')
                 cleanup_plan[node.max_graph_depth].append(node)
 
             for nodes in reversed(cleanup_plan):
