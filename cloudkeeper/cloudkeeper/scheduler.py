@@ -43,7 +43,7 @@ class Scheduler(threading.Thread):
             with open(config_file, 'r') as fp:
                 for line in fp:
                     line = line.strip()
-                    if not line.startswith('#'):
+                    if not line.startswith('#') and len(line) > 0:
                         self.add_job(line)
         except Exception:
             log.exception(f'Failed to read scheduler configuration file {config_file}')
