@@ -107,6 +107,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                             AWSVPCEndpoint,
                         ),
                     ):
+                        descendant.log(
+                            f"Marking for cleanup because resource is a descendant of VPC {node.dname} which is set to be cleaned"
+                        )
                         descendant.clean = True
                     else:
                         if descendant.clean:
