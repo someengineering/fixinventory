@@ -1,5 +1,6 @@
 import logging
 import threading
+import yaml
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper_plugin_aws.resources import (
     AWSVPC,
@@ -40,6 +41,13 @@ class CleanupAWSVPCsPlugin(BasePlugin):
         else:
             self.exit.set()
 
+        self.config = {}
+        if ArgumentParser.args.cleanup_aws_vpcs_config:
+            self.config = CleanupAWSVPCsConfig(
+                config_file=ArgumentParser.args.cleanup_aws_vpcs_config
+            )
+            self.config.read()  # initial read to ensure config format is valid
+
     def __del__(self):
         remove_event_listener(EventType.CLEANUP_BEGIN, self.vpc_cleanup)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -58,6 +66,19 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                 cloud = node.cloud(graph)
                 account = node.account(graph)
                 region = node.region(graph)
+
+                if len(self.config) > 0:
+                    if (
+                        cloud.id not in self.config
+                        or account.id not in self.config[cloud.id]
+                    ):
+                        log.debug(
+                            (
+                                f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
+                                f" marked for cleanup. Account not found in config - ignoring dependent resources."
+                            )
+                        )
+                        continue
 
                 log.debug(
                     (
@@ -106,9 +127,50 @@ class CleanupAWSVPCsPlugin(BasePlugin):
             action="store_true",
             default=False,
         )
+        arg_parser.add_argument(
+            "--cleanup-aws-vpcs-config",
+            help="Path to Cleanup AWS VPCs Plugin Config",
+            default=None,
+            dest="cleanup_aws_vpcs_config",
+        )
 
     def shutdown(self, event: Event):
         log.debug(
             f"Received event {event.event_type} - shutting down AWS VPC Cleanup plugin"
         )
         self.exit.set()
+
+
+class CleanupAWSVPCsConfig(dict):
+    def __init__(self, *args, config_file: str = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.config_file = config_file
+
+    def read(self) -> bool:
+        if not self.config_file:
+            raise ValueError(
+                "Attribute config_file is not set on CleanupAWSVPCsConfig() instance"
+            )
+
+        with open(self.config_file) as config_file:
+            config = yaml.load(config_file, Loader=yaml.FullLoader)
+        if self.validate(config):
+            self.update(config)
+            return True
+        return False
+
+    @staticmethod
+    def validate(config) -> bool:
+        if not isinstance(config, dict):
+            raise ValueError("Config is no dict")
+
+        for cloud_id, account_ids in config.items():
+            if not isinstance(cloud_id, str):
+                raise ValueError(f"Cloud ID {cloud_id} is no string")
+            if not isinstance(account_ids, list):
+                raise ValueError(f"Account IDs {account_ids} is no list")
+
+            for account_id in account_ids:
+                if not isinstance(account_id, str):
+                    raise ValueError(f"Account ID {account_id} is no string")
+        return True

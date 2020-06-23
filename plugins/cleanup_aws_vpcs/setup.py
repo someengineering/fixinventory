@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'cloudkeeper',
         'cloudkeeper-plugin-aws',
+        'pyyaml'
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],

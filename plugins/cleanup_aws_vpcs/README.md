@@ -22,6 +22,24 @@ Turn on general cleanup using the `--cleanup` argument and activate this plugin 
 $ cloudkeeper -v --cleanup --cleanup-aws-vpcs
 ```
 
+Instead of targeting all VPCs that have been marked for cleanup the plugin supports a config file syntax for whitelisting individual accounts.
+```
+$ cloudkeeper -v --cleanup --cleanup-aws-vpcs --cleanup-aws-vpcs-config cleanup_aws_vpcs.yaml
+```
+
+The config file is a dict with a cloud ID as key and a list of account IDs as value.
+```
+'aws':
+  - '337834004759'
+  - '999867407951'
+  - '327650738955'
+  - '068564737731'
+  - '711585860468'
+```
+
 ## List of arguments
 ```
+  --cleanup-aws-vpcs    Cleanup AWS VPCs (default: False)
+  --cleanup-aws-vpcs-config CLEANUP_AWS_VPCS_CONFIG
+                        Path to Cleanup AWS VPCs Plugin Config
 ```
