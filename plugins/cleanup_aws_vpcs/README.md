@@ -39,4 +39,7 @@ The config file is a dict with a cloud ID as key and a list of account IDs as va
 
 ## List of arguments
 ```
+  --cleanup-aws-vpcs    Cleanup AWS VPCs (default: False)
+  --cleanup-aws-vpcs-config CLEANUP_AWS_VPCS_CONFIG
+                        Path to Cleanup AWS VPCs Plugin Config
 ```
