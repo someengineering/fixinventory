@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from cloudkeeper.graph import Graph
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseCloud, BaseAccount, BaseRegion
-from cloudkeeper_plugin_aws.resources import AWSALBTargetGroup, AWSEC2KeyPair, AWSEC2NetworkAcl
+from cloudkeeper_plugin_aws.resources import AWSALBTargetGroup, AWSEC2KeyPair, AWSEC2NetworkAcl, AWSVPC
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 from prometheus_client import Summary, Counter
@@ -54,7 +54,7 @@ class TagAWSCtimePlugin(BasePlugin):
         now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         with graph.lock.read_access:
             for node in graph.nodes:
-                if not isinstance(node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair)):
+                if not isinstance(node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)):
                     continue
 
                 if 'cloudkeeper:ctime' not in node.tags:
