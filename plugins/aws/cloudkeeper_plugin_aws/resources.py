@@ -381,8 +381,15 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
-        ec2.delete_route_table(RouteTableId=self.id)
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        rt = ec2.RouteTable(self.id)
+        for rta in rt.associations:
+            if not rta.main:
+                log_msg = f'Deleting route table association {rta.id}'
+                self.log(log_msg)
+                log.debug(f'{log_msg} for cleanup of {self.resource_type} {self.dname}')
+                rta.delete()
+        rt.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
