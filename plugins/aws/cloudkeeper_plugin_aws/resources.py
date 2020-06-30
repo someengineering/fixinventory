@@ -3,6 +3,7 @@ import logging
 from datetime import date
 from enum import Enum, auto
 from cloudkeeper.baseresources import *
+from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
 from .utils import aws_session
 
@@ -45,11 +46,11 @@ class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
 class AWSEC2Instance(AWSResource, BaseInstance):
     resource_type = "aws_ec2_instance"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+    def delete(self, graph: Graph) -> bool:
         if self.instance_status == 'terminated':
-            log.error(f'AWS EC2 Instance {self.id} in account {account.dname} region {region.name} is already terminated')
+            log.error(f'AWS EC2 Instance {self.dname} in account {self.account(graph).dname} region {self.region(graph).name} is already terminated')
             return False
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         instance = ec2.Instance(self.id)
         instance.terminate()
         return True
@@ -70,8 +71,8 @@ class AWSEC2Instance(AWSResource, BaseInstance):
 class AWSEC2KeyPair(AWSResource, BaseKeyPair):
     resource_type = "aws_ec2_keypair"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_key_pair(KeyName=self.name)
         return True
 
@@ -96,8 +97,8 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         volume = ec2.Volume(self.id)
         volume.delete()
         return True
@@ -120,8 +121,8 @@ class AWSEC2Volume(AWSResource, BaseVolume):
 class AWSEC2Subnet(AWSResource, BaseSubnet):
     resource_type = "aws_ec2_subnet"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         subnet = ec2.Subnet(self.id)
         subnet.delete()
         return True
@@ -147,14 +148,14 @@ class AWSVPC(AWSResource, BaseNetwork):
         super().__init__(*args, **kwargs)
         self.is_default = is_default
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
+    def delete(self, graph: Graph) -> bool:
         if self.is_default:
             log_msg = f'Not removing the default VPC {self.id} - aborting delete request'
             log.debug(log_msg)
             self.log(log_msg)
             return False
 
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         vpc = ec2.Vpc(self.id)
         vpc.delete()
         return True
@@ -181,8 +182,8 @@ class AWSVPCQuota(AWSResource, BaseNetworkQuota):
 class AWSS3Bucket(AWSResource, BaseBucket):
     resource_type = "aws_s3_bucket"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        s3 = aws_session(account.id, account.role).resource('s3', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        s3 = aws_session(self.account(graph).id, self.account(graph).role).resource('s3', region_name=self.region(graph).id)
         bucket = s3.Bucket(self.name)
         bucket.objects.delete()
         bucket.delete()
@@ -196,8 +197,8 @@ class AWSS3BucketQuota(AWSResource, BaseBucketQuota):
 class AWSELB(AWSResource, BaseLoadBalancer):
     resource_type = "aws_elb"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        client = aws_session(account.id, account.role).client('elb', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        client = aws_session(self.account(graph).id, self.account(graph).role).client('elb', region_name=self.region(graph).id)
         _ = client.delete_load_balancer(LoadBalancerName=self.name)
         # todo: parse result
         return True
@@ -222,8 +223,8 @@ class AWSELB(AWSResource, BaseLoadBalancer):
 class AWSALB(AWSResource, BaseLoadBalancer):
     resource_type = "aws_alb"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        client = aws_session(account.id, account.role).client('elbv2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        client = aws_session(self.account(graph).id, self.account(graph).role).client('elbv2', region_name=self.region(graph).id)
         _ = client.delete_load_balancer(LoadBalancerArn=self.arn)
         # todo: block until loadbalancer is gone
         return True
@@ -263,8 +264,8 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
             self._metrics['cleaned_aws_alb_target_groups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        client = aws_session(account.id, account.role).client('elbv2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        client = aws_session(self.account(graph).id, self.account(graph).role).client('elbv2', region_name=self.region(graph).id)
         _ = client.delete_target_group(TargetGroupArn=self.arn)
         # todo: parse result
         return True
@@ -297,8 +298,8 @@ class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
 class AWSEC2InternetGateway(AWSResource, BaseGateway):
     resource_type = "aws_ec2_internet_gateway"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         internet_gateway = ec2.InternetGateway(self.id)
         internet_gateway.delete()
         return True
@@ -324,8 +325,8 @@ class AWSEC2NATGateway(AWSResource, BaseGateway):
         super().__init__(*args, **kwargs)
         self.nat_gateway_status = ''
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_nat_gateway(NatGatewayId=self.id)
         return True
 
@@ -350,8 +351,8 @@ class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
 class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     resource_type = "aws_ec2_security_group"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         security_group = ec2.SecurityGroup(self.id)
         security_group.delete()
         return True
@@ -373,8 +374,8 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_route_table(RouteTableId=self.id)
         return True
 
@@ -399,8 +400,8 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
         super().__init__(*args, **kwargs)
         self.vpc_peering_connection_status = ''
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_route_table(RouteTableId=self.id)
         return True
 
@@ -426,8 +427,8 @@ class AWSVPCEndpoint(AWSResource, BaseEndpoint):
         self.vpc_endpoint_type = ''
         self.vpc_endpoint_status = ''
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_vpc_endpoints(VpcEndpointIds=[self.id])
         return True
 
@@ -452,8 +453,8 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
         super().__init__(*args, **kwargs)
         self.is_default = is_default
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).client('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
         ec2.delete_network_acl(NetworkAclId=self.id)
         return True
 
@@ -474,8 +475,8 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
 class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     resource_type = "aws_ec2_network_interface"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        ec2 = aws_session(account.id, account.role).resource('ec2', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         network_interface = ec2.NetworkInterface(self.id)
         network_interface.delete()
         return True
@@ -501,8 +502,8 @@ class AWSRDSInstance(AWSResource, BaseDatabase):
 class AWSIAMUser(AWSResource, BaseUser):
     resource_type = "aws_iam_user"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         user = iam.User(self.name)
         user.delete()
         return True
@@ -511,8 +512,8 @@ class AWSIAMUser(AWSResource, BaseUser):
 class AWSIAMGroup(AWSResource, BaseGroup):
     resource_type = "aws_iam_group"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         group = iam.Group(self.name)
         group.delete()
         return True
@@ -521,8 +522,8 @@ class AWSIAMGroup(AWSResource, BaseGroup):
 class AWSIAMRole(AWSResource, BaseRole):
     resource_type = "aws_iam_role"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         role = iam.Role(self.name)
         role.delete()
         return True
@@ -531,8 +532,8 @@ class AWSIAMRole(AWSResource, BaseRole):
 class AWSIAMPolicy(AWSResource, BasePolicy):
     resource_type = "aws_iam_policy"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         policy = iam.Policy(self.arn)
         policy.delete()
         return True
@@ -541,8 +542,8 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
 class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     resource_type = "aws_iam_instance_profile"
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         instance_profile = iam.InstanceProfile(self.name)
         instance_profile.delete()
         return True
@@ -555,8 +556,8 @@ class AWSIAMAccessKey(AWSResource, BaseAccessKey):
         super().__init__(*args, **kwargs)
         self.user_name = user_name
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         access_key = iam.AccessKey(self.user_name, self.id)
         access_key.delete()
         return True
@@ -569,8 +570,8 @@ class AWSIAMServerCertificate(AWSResource, BaseCertificate):
         super().__init__(*args, **kwargs)
         self.path = path
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        iam = aws_session(account.id, account.role).resource('iam', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
         certificate = iam.ServerCertificate(self.name)
         certificate.delete()
         return True
@@ -659,8 +660,8 @@ class AWSEKSCluster(AWSResource, BaseResource):
             self._metrics['cleaned_aws_eks_clusters_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        eks = aws_session(account.id, account.role).client('eks', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        eks = aws_session(self.account(graph).id, self.account(graph).role).client('eks', region_name=self.region(graph).id)
         eks.delete_cluster(name=self.name)
         return True
 
@@ -700,8 +701,8 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
             self._metrics['cleaned_aws_eks_nodegroups_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)] = 1
         return self._metrics
 
-    def delete(self, account: AWSAccount, region: AWSRegion) -> bool:
-        eks = aws_session(account.id, account.role).client('eks', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        eks = aws_session(self.account(graph).id, self.account(graph).role).client('eks', region_name=self.region(graph).id)
         eks.delete_nodegroup(clusterName=self.cluster_name, nodegroupName=self.name)
         return True
 
@@ -725,8 +726,8 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
 class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
     resource_type = 'aws_autoscaling_group'
 
-    def delete(self, account: AWSAccount, region: AWSRegion, force_delete=True) -> bool:
-        client = aws_session(account.id, account.role).client('autoscaling', region_name=region.id)
+    def delete(self, graph: Graph, force_delete: bool = True) -> bool:
+        client = aws_session(self.account(graph).id, self.account(graph).role).client('autoscaling', region_name=self.region(graph).id)
         client.delete_auto_scaling_group(AutoScalingGroupName=self.name, ForceDelete=force_delete)
         return True
 
