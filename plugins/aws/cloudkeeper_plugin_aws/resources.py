@@ -301,6 +301,12 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
         internet_gateway = ec2.InternetGateway(self.id)
+        for predecessor in self.predecessors(graph):
+            if isinstance(predecessor, AWSVPC):
+                log_msg = f'Detaching {predecessor.resource_type} {predecessor.dname}'
+                self.log(log_msg)
+                log.debug(f'{log_msg} for deletion of {self.resource_type} {self.dname}')
+                internet_gateway.detach_from_vpc(VpcId=predecessor.id)
         internet_gateway.delete()
         return True
 
@@ -584,8 +590,8 @@ class AWSIAMServerCertificateQuota(AWSResource, BaseCertificateQuota):
 class AWSCloudFormationStack(AWSResource, BaseStack):
     resource_type = "aws_cloudformation_stack"
 
-    def delete(self, account, region) -> bool:
-        cf = aws_session(account.id, account.role).resource('cloudformation', region_name=region.id)
+    def delete(self, graph: Graph) -> bool:
+        cf = aws_session(self.account(graph).id, self.account(graph).role).resource('cloudformation', region_name=self.region(graph).id)
         stack = cf.Stack(self.name)
         stack.delete()
         return True
