@@ -415,7 +415,7 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
 
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
-        ec2.delete_route_table(RouteTableId=self.id)
+        ec2.delete_vpc_peering_connection(VpcPeeringConnectionId=self.id)
         return True
 
     def update_tag(self, key, value) -> bool:
