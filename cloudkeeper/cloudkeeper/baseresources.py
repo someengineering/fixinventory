@@ -232,7 +232,7 @@ class BaseResource(ABC):
         self.log('Trying to clean up')
         log.debug(f'Trying to clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
         try:
-            if not self.delete(account, region):
+            if not self.delete(graph):
                 self.log('Failed to clean up')
                 log.error(f'Failed to clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
                 return False
@@ -250,7 +250,7 @@ class BaseResource(ABC):
         return True
 
     @unless_protected
-    def delete(self, account, region) -> bool:
+    def delete(self, graph) -> bool:
         raise NotImplementedError
 
     def account(self, graph=None):
