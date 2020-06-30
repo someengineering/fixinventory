@@ -5,7 +5,7 @@ from enum import Enum, auto
 from cloudkeeper.baseresources import *
 from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
-from .utils import aws_session
+from .utils import aws_client, aws_resource
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))    # AWS public launch date
@@ -50,19 +50,19 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         if self.instance_status == 'terminated':
             log.error(f'AWS EC2 Instance {self.dname} in account {self.account(graph).dname} region {self.region(graph).name} is already terminated')
             return False
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         instance = ec2.Instance(self.id)
         instance.terminate()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).resource('ec2', region_name=self.region().id)
+        ec2 = aws_resource(self, 'ec2')
         instance = ec2.Instance(self.id)
         instance.create_tags(Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).resource('ec2', region_name=self.region().id)
+        ec2 = aws_resource(self, 'ec2')
         instance = ec2.Instance(self.id)
         instance.delete_tags(Tags=[{'Key': key}])
         return True
@@ -72,17 +72,17 @@ class AWSEC2KeyPair(AWSResource, BaseKeyPair):
     resource_type = "aws_ec2_keypair"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
+        ec2 = aws_client(self, 'ec2', graph)
         ec2.delete_key_pair(KeyName=self.name)
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -98,19 +98,19 @@ class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         volume = ec2.Volume(self.id)
         volume.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).resource('ec2', region_name=self.region().id)
+        ec2 = aws_resource(self, 'ec2')
         volume = ec2.Volume(self.id)
         volume.create_tags(Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -122,18 +122,18 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
     resource_type = "aws_ec2_subnet"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         subnet = ec2.Subnet(self.id)
         subnet.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -155,19 +155,19 @@ class AWSVPC(AWSResource, BaseNetwork):
             self.log(log_msg)
             return False
 
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         vpc = ec2.Vpc(self.id)
         vpc.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).resource('ec2', region_name=self.region().id)
+        ec2 = aws_resource(self, 'ec2')
         vpc = ec2.Vpc(self.id)
         vpc.create_tags(Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -183,7 +183,7 @@ class AWSS3Bucket(AWSResource, BaseBucket):
     resource_type = "aws_s3_bucket"
 
     def delete(self, graph: Graph) -> bool:
-        s3 = aws_session(self.account(graph).id, self.account(graph).role).resource('s3', region_name=self.region(graph).id)
+        s3 = aws_resource(self, 's3', graph)
         bucket = s3.Bucket(self.name)
         bucket.objects.delete()
         bucket.delete()
@@ -198,13 +198,13 @@ class AWSELB(AWSResource, BaseLoadBalancer):
     resource_type = "aws_elb"
 
     def delete(self, graph: Graph) -> bool:
-        client = aws_session(self.account(graph).id, self.account(graph).role).client('elb', region_name=self.region(graph).id)
+        client = aws_client(self, 'elb', graph)
         _ = client.delete_load_balancer(LoadBalancerName=self.name)
         # todo: parse result
         return True
 
     def update_tag(self, key, value) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elb', region_name=self.region().id)
+        client = aws_client(self, 'elb')
         client.add_tags(
             LoadBalancerNames=[self.name],
             Tags=[{'Key': key, 'Value': value}]
@@ -212,7 +212,7 @@ class AWSELB(AWSResource, BaseLoadBalancer):
         return True
 
     def delete_tag(self, key) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elb', region_name=self.region().id)
+        client = aws_client(self, 'elb')
         client.remove_tags(
             LoadBalancerNames=[self.name],
             Tags=[{'Key': key}]
@@ -224,13 +224,13 @@ class AWSALB(AWSResource, BaseLoadBalancer):
     resource_type = "aws_alb"
 
     def delete(self, graph: Graph) -> bool:
-        client = aws_session(self.account(graph).id, self.account(graph).role).client('elbv2', region_name=self.region(graph).id)
+        client = aws_client(self, 'elbv2', graph)
         _ = client.delete_load_balancer(LoadBalancerArn=self.arn)
         # todo: block until loadbalancer is gone
         return True
 
     def update_tag(self, key, value) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elbv2', region_name=self.region().id)
+        client = aws_client(self, 'elbv2')
         client.add_tags(
             ResourceArns=[self.arn],
             Tags=[{'Key': key, 'Value': value}]
@@ -238,7 +238,7 @@ class AWSALB(AWSResource, BaseLoadBalancer):
         return True
 
     def delete_tag(self, key) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elbv2', region_name=self.region().id)
+        client = aws_client(self, 'elbv2')
         client.remove_tags(
             ResourceArns=[self.arn],
             TagKeys=[key]
@@ -265,13 +265,13 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
         return self._metrics
 
     def delete(self, graph: Graph) -> bool:
-        client = aws_session(self.account(graph).id, self.account(graph).role).client('elbv2', region_name=self.region(graph).id)
+        client = aws_client(self, 'elbv2', graph)
         _ = client.delete_target_group(TargetGroupArn=self.arn)
         # todo: parse result
         return True
 
     def update_tag(self, key, value) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elbv2', region_name=self.region().id)
+        client = aws_client(self, 'elbv2')
         client.add_tags(
             ResourceArns=[self.arn],
             Tags=[{'Key': key, 'Value': value}]
@@ -279,7 +279,7 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
         return True
 
     def delete_tag(self, key) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('elbv2', region_name=self.region().id)
+        client = aws_client(self, 'elbv2')
         client.remove_tags(
             ResourceArns=[self.arn],
             TagKeys=[key]
@@ -299,7 +299,7 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
     resource_type = "aws_ec2_internet_gateway"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         internet_gateway = ec2.InternetGateway(self.id)
         for predecessor in self.predecessors(graph):
             if isinstance(predecessor, AWSVPC):
@@ -311,12 +311,12 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -332,17 +332,17 @@ class AWSEC2NATGateway(AWSResource, BaseGateway):
         self.nat_gateway_status = ''
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
+        ec2 = aws_client(self, 'ec2', graph)
         ec2.delete_nat_gateway(NatGatewayId=self.id)
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -358,18 +358,18 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     resource_type = "aws_ec2_security_group"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         security_group = ec2.SecurityGroup(self.id)
         security_group.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -381,7 +381,7 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         rt = ec2.RouteTable(self.id)
         for rta in rt.associations:
             if not rta.main:
@@ -393,12 +393,12 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -414,17 +414,17 @@ class AWSVPCPeeringConnection(AWSResource, BasePeeringConnection):
         self.vpc_peering_connection_status = ''
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
+        ec2 = aws_client(self, 'ec2', graph)
         ec2.delete_vpc_peering_connection(VpcPeeringConnectionId=self.id)
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -441,17 +441,17 @@ class AWSVPCEndpoint(AWSResource, BaseEndpoint):
         self.vpc_endpoint_status = ''
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
+        ec2 = aws_client(self, 'ec2', graph)
         ec2.delete_vpc_endpoints(VpcEndpointIds=[self.id])
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -467,17 +467,17 @@ class AWSEC2NetworkAcl(AWSResource, BaseNetworkAcl):
         self.is_default = is_default
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).client('ec2', region_name=self.region(graph).id)
+        ec2 = aws_client(self, 'ec2', graph)
         ec2.delete_network_acl(NetworkAclId=self.id)
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -489,18 +489,18 @@ class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
     resource_type = "aws_ec2_network_interface"
 
     def delete(self, graph: Graph) -> bool:
-        ec2 = aws_session(self.account(graph).id, self.account(graph).role).resource('ec2', region_name=self.region(graph).id)
+        ec2 = aws_resource(self, 'ec2', graph)
         network_interface = ec2.NetworkInterface(self.id)
         network_interface.delete()
         return True
 
     def update_tag(self, key, value) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
-        ec2 = aws_session(self.account().id, self.account().role).client('ec2', region_name=self.region().id)
+        ec2 = aws_client(self, 'ec2')
         ec2.delete_tags(
             Resources=[self.id],
             Tags=[{'Key': key}]
@@ -516,7 +516,7 @@ class AWSIAMUser(AWSResource, BaseUser):
     resource_type = "aws_iam_user"
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         user = iam.User(self.name)
         user.delete()
         return True
@@ -526,7 +526,7 @@ class AWSIAMGroup(AWSResource, BaseGroup):
     resource_type = "aws_iam_group"
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         group = iam.Group(self.name)
         group.delete()
         return True
@@ -536,7 +536,7 @@ class AWSIAMRole(AWSResource, BaseRole):
     resource_type = "aws_iam_role"
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         role = iam.Role(self.name)
         role.delete()
         return True
@@ -546,7 +546,7 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
     resource_type = "aws_iam_policy"
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         policy = iam.Policy(self.arn)
         policy.delete()
         return True
@@ -556,7 +556,7 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     resource_type = "aws_iam_instance_profile"
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         instance_profile = iam.InstanceProfile(self.name)
         instance_profile.delete()
         return True
@@ -570,7 +570,7 @@ class AWSIAMAccessKey(AWSResource, BaseAccessKey):
         self.user_name = user_name
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         access_key = iam.AccessKey(self.user_name, self.id)
         access_key.delete()
         return True
@@ -584,7 +584,7 @@ class AWSIAMServerCertificate(AWSResource, BaseCertificate):
         self.path = path
 
     def delete(self, graph: Graph) -> bool:
-        iam = aws_session(self.account(graph).id, self.account(graph).role).resource('iam', region_name=self.region(graph).id)
+        iam = aws_resource(self, 'iam', graph)
         certificate = iam.ServerCertificate(self.name)
         certificate.delete()
         return True
@@ -598,7 +598,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
     resource_type = "aws_cloudformation_stack"
 
     def delete(self, graph: Graph) -> bool:
-        cf = aws_session(self.account(graph).id, self.account(graph).role).resource('cloudformation', region_name=self.region(graph).id)
+        cf = aws_resource(self, 'cloudformation', graph)
         stack = cf.Stack(self.name)
         stack.delete()
         return True
@@ -628,7 +628,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         else:
             return False
 
-        cf = aws_session(self.account().id, self.account().role).resource('cloudformation', region_name=self.region().id)
+        cf = aws_resource(self, 'cloudformation')
         stack = cf.Stack(self.name)
         stack = self.wait_for_completion(stack, cf)
         response = stack.update(
@@ -674,12 +674,12 @@ class AWSEKSCluster(AWSResource, BaseResource):
         return self._metrics
 
     def delete(self, graph: Graph) -> bool:
-        eks = aws_session(self.account(graph).id, self.account(graph).role).client('eks', region_name=self.region(graph).id)
+        eks = aws_client(self, 'eks', graph)
         eks.delete_cluster(name=self.name)
         return True
 
     def update_tag(self, key, value) -> bool:
-        eks = aws_session(self.account().id, self.account().role).client('eks', region_name=self.region().id)
+        eks = aws_client(self, 'eks')
         eks.tag_resource(
             resourceArn=self.arn,
             tags={key: value}
@@ -687,7 +687,7 @@ class AWSEKSCluster(AWSResource, BaseResource):
         return True
 
     def delete_tag(self, key) -> bool:
-        eks = aws_session(self.account().id, self.account().role).client('eks', region_name=self.region().id)
+        eks = aws_client(self, 'eks')
         eks.untag_resource(
             resourceArn=self.arn,
             tagKeys=[key]
@@ -715,12 +715,12 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
         return self._metrics
 
     def delete(self, graph: Graph) -> bool:
-        eks = aws_session(self.account(graph).id, self.account(graph).role).client('eks', region_name=self.region(graph).id)
+        eks = aws_client(self, 'eks', graph)
         eks.delete_nodegroup(clusterName=self.cluster_name, nodegroupName=self.name)
         return True
 
     def update_tag(self, key, value) -> bool:
-        eks = aws_session(self.account().id, self.account().role).client('eks', region_name=self.region().id)
+        eks = aws_client(self, 'eks')
         eks.tag_resource(
             resourceArn=self.arn,
             tags={key: value}
@@ -728,7 +728,7 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
         return True
 
     def delete_tag(self, key) -> bool:
-        eks = aws_session(self.account().id, self.account().role).client('eks', region_name=self.region().id)
+        eks = aws_client(self, 'eks')
         eks.untag_resource(
             resourceArn=self.arn,
             tagKeys=[key]
@@ -740,12 +740,12 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
     resource_type = 'aws_autoscaling_group'
 
     def delete(self, graph: Graph, force_delete: bool = True) -> bool:
-        client = aws_session(self.account(graph).id, self.account(graph).role).client('autoscaling', region_name=self.region(graph).id)
+        client = aws_client(self, 'autoscaling', graph)
         client.delete_auto_scaling_group(AutoScalingGroupName=self.name, ForceDelete=force_delete)
         return True
 
     def update_tag(self, key, value) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('autoscaling', region_name=self.region().id)
+        client = aws_client(self, 'autoscaling')
         client.create_or_update_tags(
             Tags=[{
                 'ResourceId': self.name,
@@ -758,7 +758,7 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
         return True
 
     def delete_tag(self, key) -> bool:
-        client = aws_session(self.account().id, self.account().role).client('autoscaling', region_name=self.region().id)
+        client = aws_client(self, 'autoscaling')
         client.delete_tags(
             Tags=[{
                 'ResourceId': self.name,

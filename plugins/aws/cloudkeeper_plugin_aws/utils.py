@@ -3,6 +3,8 @@ import boto3.session
 import uuid
 from typing import Iterable
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.baseresources import BaseResource
+from cloudkeeper.graph import Graph
 
 
 def aws_session(aws_account=None, aws_role=None):
@@ -23,6 +25,14 @@ def aws_session(aws_account=None, aws_role=None):
     else:
         return boto3.session.Session(aws_access_key_id=ArgumentParser.args.aws_access_key_id,
                                      aws_secret_access_key=ArgumentParser.args.aws_secret_access_key)
+
+
+def aws_client(resource: BaseResource, service: str, graph: Graph = None):
+    return aws_session(resource.account(graph).id, resource.account(graph).role).client(service, region_name=resource.region(graph).id)
+
+
+def aws_resource(resource: BaseResource, service: str, graph: Graph = None):
+    return aws_session(resource.account(graph).id, resource.account(graph).role).resource(service, region_name=resource.region(graph).id)
 
 
 def paginate(method: callable, **kwargs) -> Iterable:
