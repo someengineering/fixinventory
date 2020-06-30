@@ -1,5 +1,6 @@
 import logging
 from cloudkeeper.baseplugin import BaseCollectorPlugin
+from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseResource, BaseInstance, BaseNetwork
 
@@ -45,8 +46,8 @@ class ExampleRegion(BaseRegion):
 
 
 class ExampleResource(BaseResource):
-    def delete(self, account: ExampleAccount, region: ExampleRegion) -> bool:
-        log.debug(f'Deleting resource {self.id} in account {account.id} region {region.id}')
+    def delete(self, graph: Graph) -> bool:
+        log.debug(f'Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}')
         return True
 
     def update_tag(self, key, value) -> bool:
