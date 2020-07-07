@@ -42,7 +42,7 @@ class TagAWSCtimePlugin(BasePlugin):
             log.debug("AWS ctime Tagger plugin initializing")
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
             add_event_listener(
-                EventType.COLLECT_FINISH, self.aws_ctime_tagger, blocking=False, timeout=30,
+                EventType.COLLECT_FINISH, self.aws_ctime_tagger, blocking=False, timeout=900,
             )
         else:
             self.exit.set()
