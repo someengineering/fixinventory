@@ -1,5 +1,6 @@
 import time
 import logging
+import copy
 from datetime import date
 from enum import Enum, auto
 from cloudkeeper.baseresources import *
@@ -298,7 +299,7 @@ class AWSALBQuota(AWSResource, BaseLoadBalancerQuota):
 class AWSEC2InternetGateway(AWSResource, BaseGateway):
     resource_type = "aws_ec2_internet_gateway"
 
-    def delete(self, graph: Graph) -> bool:
+    def pre_delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, 'ec2', graph)
         internet_gateway = ec2.InternetGateway(self.id)
         for predecessor in self.predecessors(graph):
@@ -307,6 +308,11 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
                 self.log(log_msg)
                 log.debug(f'{log_msg} for deletion of {self.resource_type} {self.dname}')
                 internet_gateway.detach_from_vpc(VpcId=predecessor.id)
+        return True
+
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_resource(self, 'ec2', graph)
+        internet_gateway = ec2.InternetGateway(self.id)
         internet_gateway.delete()
         return True
 
@@ -357,6 +363,32 @@ class AWSEC2InternetGatewayQuota(AWSResource, BaseGatewayQuota):
 class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
     resource_type = "aws_ec2_security_group"
 
+    def pre_delete(self, graph: Graph) -> bool:
+        ec2 = aws_resource(self, 'ec2', graph)
+        security_group = ec2.SecurityGroup(self.id)
+        remove_ingress = []
+        remove_egress = []
+
+        for permission in security_group.ip_permissions:
+            if 'UserIdGroupPairs' in permission and len(permission['UserIdGroupPairs']) > 0:
+                p = copy.deepcopy(permission)
+                remove_ingress.append(p)
+                log.debug(f'Adding incoming permission {p} of {self.resource_type} {self.dname} to removal list')
+
+        for permission in security_group.ip_permissions_egress:
+            if 'UserIdGroupPairs' in permission and len(permission['UserIdGroupPairs']) > 0:
+                p = copy.deepcopy(permission)
+                remove_egress.append(p)
+                log.debug(f'Adding outgoing permission {p} of {self.resource_type} {self.dname} to removal list')
+
+        if len(remove_ingress) > 0:
+            security_group.revoke_ingress(IpPermissions=remove_ingress)
+
+        if len(remove_egress) > 0:
+            security_group.revoke_egress(IpPermissions=remove_egress)
+
+        return True
+
     def delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, 'ec2', graph)
         security_group = ec2.SecurityGroup(self.id)
@@ -380,7 +412,7 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
 class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
     resource_type = "aws_ec2_route_table"
 
-    def delete(self, graph: Graph) -> bool:
+    def pre_delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, 'ec2', graph)
         rt = ec2.RouteTable(self.id)
         for rta in rt.associations:
@@ -389,6 +421,11 @@ class AWSEC2RouteTable(AWSResource, BaseRoutingTable):
                 self.log(log_msg)
                 log.debug(f'{log_msg} for cleanup of {self.resource_type} {self.dname}')
                 rta.delete()
+        return True
+
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_resource(self, 'ec2', graph)
+        rt = ec2.RouteTable(self.id)
         rt.delete()
         return True
 
