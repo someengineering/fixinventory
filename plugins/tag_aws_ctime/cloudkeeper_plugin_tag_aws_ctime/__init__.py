@@ -53,7 +53,7 @@ class TagAWSCtimePlugin(BasePlugin):
     @metrics_tag_ctime.time()
     def tag_ctime(self, graph: Graph):
         now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
-        pt = ParallelTagger()
+        pt = ParallelTagger(self.name)
         with graph.lock.read_access:
             for node in graph.nodes:
                 if not isinstance(node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)):

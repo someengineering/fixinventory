@@ -54,7 +54,7 @@ class TagValidatorPlugin(BasePlugin):
     @metrics_validate_tags.time()
     def validate_tags(self, graph: Graph):
         config = self.config.read_config()
-        pt = ParallelTagger()
+        pt = ParallelTagger(self.name)
         with graph.lock.read_access:
             for node in graph.nodes:
                 cloud = node.cloud(graph)

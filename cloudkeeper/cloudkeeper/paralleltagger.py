@@ -10,9 +10,10 @@ log = logging.getLogger(__name__)
 
 
 class ParallelTagger:
-    def __init__(self, max_workers: int = 50) -> None:
+    def __init__(self, thread_name_prefix: str = None, max_workers: int = 50) -> None:
         self.max_workers = max_workers
         self._tag_lists = defaultdict(list)
+        self.thread_name_prefix = f'{thread_name_prefix}-parallel_tagger'
 
     def add(self, resource: BaseResource, key, value, pt_key=None) -> None:
         if not isinstance(resource, BaseResource):
@@ -25,7 +26,7 @@ class ParallelTagger:
         self._tag_lists[pt_key].append({"resource": resource, "key": key, "value": value})
 
     def run(self):
-        with ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="parallel_tagger") as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix=self.thread_name_prefix) as executor:
             for tag_list in self._tag_lists.values():
                 executor.submit(self.tag, tag_list)
 
