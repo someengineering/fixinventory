@@ -27,12 +27,15 @@ class Cleaner:
         log.info('Running cleanup')
         dispatch_event(Event(EventType.CLEANUP_BEGIN, self.graph), blocking=True)
         with self.graph.lock.read_access:
-            cleanup_nodes = (node for node in self.graph.nodes() if node.clean)
+            cleanup_nodes = [node for node in self.graph.nodes() if node.clean]
             cleanup_plan = defaultlist(lambda: [])
 
             for node in cleanup_nodes:
                 log.debug(f'Adding {node.resource_type} {node.dname} to cleanup plan with priority {node.max_graph_depth}')
                 cleanup_plan[node.max_graph_depth].append(node)
+
+            with ThreadPoolExecutor(max_workers=ArgumentParser.args.cleanup_pool_size, thread_name_prefix='pre_cleaner') as executor:
+                executor.map(self.pre_clean, cleanup_nodes)
 
             for nodes in reversed(cleanup_plan):
                 with ThreadPoolExecutor(max_workers=ArgumentParser.args.cleanup_pool_size, thread_name_prefix='cleaner') as executor:
@@ -40,16 +43,30 @@ class Cleaner:
 
         dispatch_event(Event(EventType.CLEANUP_FINISH, self.graph))
 
+    def pre_clean(self, node: BaseResource) -> None:
+        if not hasattr(node, 'pre_delete'):
+            return
+
+        if ArgumentParser.args.cleanup_dry_run:
+            log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, not calling pre cleanup method because of dry run flag')
+            return
+
+        log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, calling pre cleanup method')
+        try:
+            node.pre_cleanup(self.graph)
+        except Exception:
+            log.exception(f'An exception occurred when running resource pre cleanup on {node.resource_type} {node.dname}')
+
     def clean(self, node: BaseResource) -> None:
-        if not ArgumentParser.args.cleanup_dry_run:
-            log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, calling cleanup method')
-            try:
-                node.cleanup(self.graph)
-            except Exception:
-                log.exception(f'An exception occurred when running resource cleanup on {node.resource_type} {node.dname}')
-        else:
-            log.debug(
-                f'Resource {node.resource_type} {node.dname} is marked for removal, not calling cleanup method because of dry run flag')
+        if ArgumentParser.args.cleanup_dry_run:
+            log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, not calling cleanup method because of dry run flag')
+            return
+
+        log.debug(f'Resource {node.resource_type} {node.dname} is marked for removal, calling cleanup method')
+        try:
+            node.cleanup(self.graph)
+        except Exception:
+            log.exception(f'An exception occurred when running resource cleanup on {node.resource_type} {node.dname}')
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

@@ -12,6 +12,7 @@ from prometheus_client import Counter, Summary
 
 log = logging.getLogger(__name__)
 
+metrics_resource_pre_cleanup_exceptions = Counter('resource_pre_cleanup_exceptions_total', 'Number of resource pre_cleanup() exceptions', ['cloud', 'account', 'region', 'resource_type'])
 metrics_resource_cleanup_exceptions = Counter('resource_cleanup_exceptions_total', 'Number of resource cleanup() exceptions', ['cloud', 'account', 'region', 'resource_type'])
 metrics_resource_cleanup = Summary('cloudkeeper_resource_cleanup_seconds', 'Time it took the resource cleanup() method')
 
@@ -232,7 +233,7 @@ class BaseResource(ABC):
         self.log('Trying to clean up')
         log.debug(f'Trying to clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
         try:
-            if not self.delete(account, region):
+            if not self.delete(graph):
                 self.log('Failed to clean up')
                 log.error(f'Failed to clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
                 return False
@@ -243,14 +244,44 @@ class BaseResource(ABC):
             self.log('An error occurred during clean up', exception=e)
             log.exception(f'An error occurred during clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
             cloud = self.cloud(graph)
-            if not isinstance(cloud, BaseCloud):
-                cloud = 'unknown'
             metrics_resource_cleanup_exceptions.labels(cloud=cloud.name, account=account.dname, region=region.name, resource_type=self.resource_type).inc()
             return False
         return True
 
     @unless_protected
-    def delete(self, account, region) -> bool:
+    def pre_cleanup(self, graph=None) -> bool:
+        if not hasattr(self, 'pre_delete'):
+            return True
+
+        if self.cleaned:
+            log.debug(f'Resource {self.resource_type} {self.dname} has already been cleaned up')
+            return True
+
+        account = self.account(graph)
+        region = self.region(graph)
+        if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
+            log.error(f'Could not determine account or region for pre cleanup of {self.resource_type} {self.dname}')
+            return False
+
+        self.log('Trying to run pre clean up')
+        log.debug(f'Trying to run pre clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
+        try:
+            if not getattr(self, 'pre_delete')(graph):
+                self.log('Failed to run pre clean up')
+                log.error(f'Failed to run pre clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
+                return False
+            self.log('Successfully ran pre clean up')
+            log.info(f'Successfully ran pre clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
+        except Exception as e:
+            self.log('An error occurred during pre clean up', exception=e)
+            log.exception(f'An error occurred during pre clean up {self.resource_type} {self.dname} in account {account.dname} region {region.name}')
+            cloud = self.cloud(graph)
+            metrics_resource_pre_cleanup_exceptions.labels(cloud=cloud.name, account=account.dname, region=region.name, resource_type=self.resource_type).inc()
+            return False
+        return True
+
+    @unless_protected
+    def delete(self, graph) -> bool:
         raise NotImplementedError
 
     def account(self, graph=None):
