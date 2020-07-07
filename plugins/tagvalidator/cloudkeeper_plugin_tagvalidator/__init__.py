@@ -8,6 +8,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.graph import Graph
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 from cloudkeeper.utils import parse_delta
+from cloudkeeper.paralleltagger import ParallelTagger
 from prometheus_client import Summary, Counter
 
 log = logging.getLogger('cloudkeeper.' + __name__)
@@ -53,6 +54,7 @@ class TagValidatorPlugin(BasePlugin):
     @metrics_validate_tags.time()
     def validate_tags(self, graph: Graph):
         config = self.config.read_config()
+        pt = ParallelTagger()
         with graph.lock.read_access:
             for node in graph.nodes:
                 cloud = node.cloud(graph)
@@ -103,7 +105,7 @@ class TagValidatorPlugin(BasePlugin):
                             if current_value == 'never' and desired_value != 'never':
                                 log_msg = f'Current value {current_value} is not allowed - setting tag {tag} to desired value {desired_value}'
                                 log.debug(log_msg)
-                                set_tag(node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
                                 continue
 
                             try:
@@ -111,7 +113,7 @@ class TagValidatorPlugin(BasePlugin):
                             except ValueError:
                                 log_msg = f"Can't parse current value {current_value} - setting tag {tag} to desired value {desired_value}"
                                 log.error(log_msg)
-                                set_tag(node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
                                 continue
 
                             try:
@@ -123,12 +125,13 @@ class TagValidatorPlugin(BasePlugin):
                             if desired_value_td < current_value_td:
                                 log_msg = f'Current value {current_value} is larger than desired value {desired_value} - setting tag {tag}'
                                 log.debug(log_msg)
-                                set_tag(node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
                         else:
                             log.debug((f'Found {node.resource_type} {node.dname} with age {node.age} in cloud {cloud.name}'
                                        f' account {account.dname} region {region.name} with missing tag {tag}: {desired_value}'))
                             log_msg = f'Tag {tag} is not set - setting to desired value {desired_value}'
-                            set_tag(node, tag, desired_value, log_msg, cloud, account, region)
+                            set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
+        pt.run()
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -140,13 +143,15 @@ class TagValidatorPlugin(BasePlugin):
         self.exit.set()
 
 
-def set_tag(node, tag, value, log_msg, cloud=None, account=None, region=None):
+def set_tag(pt: ParallelTagger, node: BaseResource, tag, value, log_msg: str, cloud: BaseCloud = None, account: BaseAccount = None, region: BaseRegion = None):
+    pt_key = None
     if node and cloud and account and region:
         metrics_tag_violations.labels(cloud=cloud.name, account=account.dname, region=region.name, resource_type=node.resource_type).inc()
+        pt_key = f'{cloud.id}-{account.id}-{region.id}'
     if ArgumentParser.args.tagvalidator_dry_run:
         log_msg = f'DRY RUN - ACTION NOT PERFORMED: {log_msg}'
         node.log(log_msg)
         log.debug(f'Tag Validator Dry Run - not setting {tag}: {value} for node {node.dname}')
     else:
         node.log(log_msg)
-        node.tags[tag] = value
+        pt.add(node, tag, value, pt_key)

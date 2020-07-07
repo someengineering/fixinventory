@@ -5,6 +5,7 @@ from cloudkeeper.graph import Graph
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper_plugin_aws.resources import AWSALBTargetGroup, AWSEC2KeyPair, AWSEC2NetworkAcl, AWSVPC
+from cloudkeeper.paralleltagger import ParallelTagger
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 from prometheus_client import Summary, Counter
@@ -52,6 +53,7 @@ class TagAWSCtimePlugin(BasePlugin):
     @metrics_tag_ctime.time()
     def tag_ctime(self, graph: Graph):
         now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+        pt = ParallelTagger()
         with graph.lock.read_access:
             for node in graph.nodes:
                 if not isinstance(node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)):
@@ -61,13 +63,16 @@ class TagAWSCtimePlugin(BasePlugin):
                     cloud = node.cloud(graph)
                     account = node.account(graph)
                     region = node.region(graph)
-                    if isinstance(cloud, BaseCloud) and isinstance(account, BaseAccount) and isinstance(region, BaseRegion):
-                        log.debug((f'Resource {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
-                                   f' has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API'))
-                        node.tags['cloudkeeper:ctime'] = now
-                        metrics_ctime_tags.labels(cloud=cloud.name, account=account.dname, region=region.name).inc()
-                    else:
+                    if not isinstance(cloud, BaseCloud) or not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
                         log.error(f'Resource {node.resource_type} {node.dname} has no valid cloud, account or region associated with it')
+                        continue
+
+                    log.debug((f'Resource {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}'
+                                f' has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API'))
+                    pt_key = f'{cloud.id}-{account.id}-{region.id}'
+                    pt.add(node, 'cloudkeeper:ctime', now, pt_key)
+                    metrics_ctime_tags.labels(cloud=cloud.name, account=account.dname, region=region.name).inc()
+        pt.run()
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

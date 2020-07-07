@@ -46,6 +46,8 @@ class ExampleRegion(BaseRegion):
 
 
 class ExampleResource(BaseResource):
+    resource_type = 'example_resource'
+
     def delete(self, graph: Graph) -> bool:
         log.debug(f'Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}')
         return True
