@@ -98,11 +98,11 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
 
-    def delete(self, graph: Graph, snapshot_before_delete: bool = False, snapshot_timeout = 3600) -> bool:
+    def delete(self, graph: Graph, snapshot_before_delete: bool = False, snapshot_timeout: int = 3600) -> bool:
         ec2 = aws_resource(self, 'ec2', graph)
         volume = ec2.Volume(self.id)
         if snapshot_before_delete or self.snapshot_before_delete:
-            log_msg = f"Creating snapshot before deletion"
+            log_msg = "Creating snapshot before deletion"
             self.log(log_msg)
             log.debug(f"{log_msg} of {self.resource_type} {self.dname}")
             snapshot = volume.create_snapshot(
@@ -117,7 +117,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
                             },
                             {
                                 'Key': 'owner',
-                                'Value': f'cloudkeeper'
+                                'Value': 'cloudkeeper'
                             },
                         ]
                     },
