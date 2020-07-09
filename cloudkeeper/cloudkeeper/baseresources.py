@@ -574,6 +574,7 @@ class BaseVolume(BaseResource):
         self.volume_size = 0
         self.volume_type = ''
         self.volume_status = ''
+        self.snapshot_before_delete = False
 
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)
@@ -589,6 +590,33 @@ class BaseVolume(BaseResource):
             self._metrics['volumes_monthly_cost_estimate'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.volume_type, self.volume_status)] = self.volume_size * volume_type_info.ondemand_cost
             if self._cleaned:
                 self._metrics['cleaned_volumes_monthly_cost_estimate'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.volume_type, self.volume_status)] = self.volume_size * volume_type_info.ondemand_cost
+        return self._metrics
+
+
+class BaseSnapshot(BaseResource):
+    metrics_description = {
+        'snapshots_total': {'help': 'Number of Snapshots', 'labels': ['cloud', 'account', 'region', 'status']},
+        'snapshots_volumes_bytes': {'help': 'Size of Snapshots Volumes in bytes', 'labels': ['cloud', 'account', 'region', 'status']},
+        'cleaned_snapshots_total': {'help': 'Cleaned number of Snapshots', 'labels': ['cloud', 'account', 'region', 'status']},
+        'cleaned_snapshots_volumes_bytes': {'help': 'Cleaned size of Snapshots Volumes in bytes', 'labels': ['cloud', 'account', 'region', 'status']},
+    }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.snapshot_status = ''
+        self.description = ''
+        self.volume_id = None
+        self.volume_size = 0
+        self.encrypted = False
+        self.owner_id = None
+        self.owner_alias = ''
+
+    def metrics(self, graph) -> Dict:
+        self._metrics['snapshots_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.snapshot_status)] = 1
+        self._metrics['snapshots_volumes_bytes'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.snapshot_status)] = self.volume_size * 1024 ** 3
+        if self._cleaned:
+            self._metrics['cleaned_snapshots_total'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.snapshot_status)] = 1
+            self._metrics['cleaned_snapshots_volumes_bytes'][(self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.snapshot_status)] = self.volume_size * 1024 ** 3
         return self._metrics
 
 

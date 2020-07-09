@@ -2,6 +2,7 @@ import threading
 import logging
 import inspect
 import re
+import ast
 import time
 import calendar
 from typing import Iterable, Tuple, Any
@@ -40,6 +41,8 @@ class Cli(threading.Thread):
 
         for action in ArgumentParser.args.cli_actions:
             register_cli_action(action)
+
+        read_cli_actions_config()
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
@@ -80,6 +83,7 @@ class Cli(threading.Thread):
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument('--no-cli', help="Don't run the CLI thread", dest='no_cli', action='store_true', default=False)
         arg_parser.add_argument('--register-cli-action', help='Register a CLI Action (Format: event:command)', dest='cli_actions', type=str, default=[], nargs='+')
+        arg_parser.add_argument('--cli-actions-config', help='Path to CLI Actions config', dest='cli_actions_config', type=str, default=None)
 
 
 class CliHandler:
@@ -491,6 +495,26 @@ and chain multipe commands using the semicolon (;).
             item.clean = True
             yield item
 
+    def cmd_set(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | set <attribute> <value>
+
+        Set an attribute to a value.
+        Only returns items whose attribute was successfully modified.
+        '''
+        attribute, value = args.split(' ', 1)
+        for item in items:
+            if not isinstance(item, BaseResource):
+                raise RuntimeError(f'Item {item} is not a valid resource - setting attribute failed')
+            if hasattr(item, attribute):
+                type_attr = type(getattr(item, attribute))
+                try:
+                    converted = type_attr(ast.literal_eval(value))
+                except ValueError:
+                    log.exception(f"An error occurred when trying to cast value '{value}' to {type_attr}")
+                else:
+                    setattr(item, attribute, converted)
+                    yield item
+
     def cmd_protect(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | protect
 
@@ -731,6 +755,23 @@ def register_cli_action(action: str, one_shot: bool = False) -> bool:
     else:
         log.error(f'Invalid event type {event}')
     return False
+
+
+def read_cli_actions_config(config_file: str = None) -> None:
+    if config_file is None:
+        if not ArgumentParser.args.cli_actions_config:
+            return
+        config_file = ArgumentParser.args.cli_actions_config
+
+    log.debug(f'Reading CLI actions configuration file {config_file}')
+    try:
+        with open(config_file, 'r') as fp:
+            for line in fp:
+                line = line.strip()
+                if not line.startswith('#') and len(line) > 0:
+                    register_cli_action(line)
+    except Exception:
+        log.exception(f'Failed to read scheduler configuration file {config_file}')
 
 
 def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) -> None:

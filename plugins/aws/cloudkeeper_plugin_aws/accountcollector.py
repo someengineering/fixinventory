@@ -105,6 +105,7 @@ metrics_collect_keypairs = Summary('cloudkeeper_plugin_aws_collect_keypairs_seco
 metrics_collect_autoscaling_groups = Summary('cloudkeeper_plugin_aws_collect_autoscaling_groups_seconds', 'Time it took the collect_autoscaling_groups() method')
 metrics_collect_reserved_instances = Summary('cloudkeeper_plugin_aws_collect_reserved_instances_seconds', 'Time it took the collect_reserved_instances() method')
 metrics_collect_volumes = Summary('cloudkeeper_plugin_aws_collect_volumes_seconds', 'Time it took the collect_volumes() method')
+metrics_collect_snapshots = Summary('cloudkeeper_plugin_aws_collect_snapshots_seconds', 'Time it took the collect_snapshots() method')
 metrics_collect_volume_metrics = Summary('cloudkeeper_plugin_aws_collect_volume_metrics_seconds', 'Time it took the collect_volume_metrics() method')
 metrics_collect_network_interfaces = Summary('cloudkeeper_plugin_aws_collect_network_interfaces_seconds', 'Time it took the collect_network_interfaces() method')
 metrics_collect_network_acls = Summary('cloudkeeper_plugin_aws_collect_network_acls_seconds', 'Time it took the collect_network_acls() method')
@@ -176,6 +177,7 @@ class AWSAccountCollector:
             'EC2 Key Pairs': self.collect_keypairs,
             'EC2 Instances': self.collect_instances,
             'EBS Volumes': self.collect_volumes,
+            'EBS Snapshots': self.collect_snapshots,
             'ELBs': self.collect_elbs,
             'ALBs': self.collect_albs,
             'ALB Target Groups': self.collect_alb_target_groups,
@@ -351,6 +353,7 @@ class AWSAccountCollector:
         for volume in ec2.volumes.all():
             try:
                 v = AWSEC2Volume(volume.id, self.tags_as_dict(volume.tags), account=self.account, region=region, ctime=volume.create_time)
+                v.name = v.tags.get('Name', v.id)
                 v.volume_size = volume.size
                 v.volume_type = volume.volume_type
                 v.volume_status = volume.state
@@ -849,6 +852,31 @@ class AWSAccountCollector:
                     if n:
                         log.debug(f'Adding edge from Network Interface {n.id} to NAT gateway {ngw.id}')
                         graph.add_edge(n, ngw)
+
+    @metrics_collect_snapshots.time()
+    def collect_snapshots(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(f'Collecting AWS EC2 snapshots in account {self.account.dname}, region {region.id}')
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client('ec2', region_name=region.id)
+        for snapshot in paginate(client.describe_snapshots, OwnerIds=['self']):
+            snap_id = snapshot['SnapshotId']
+            tags = self.tags_as_dict(snapshot.get('Tags', []))
+            snap_name = tags.get('Name', snap_id)
+            snap = AWSEC2Snapshot(snap_id, tags, name=snap_name, account=self.account, region=region, ctime=snapshot.get('StartTime'))
+            snap.snapshot_status = snapshot.get('State', '')
+            snap.description = snapshot.get('Description', '')
+            snap.volume_id = snapshot.get('VolumeId')
+            snap.volume_size = snapshot.get('VolumeSize', 0)
+            snap.owner_id = snapshot.get('OwnerId')
+            snap.owner_alias = snapshot.get('OwnerAlias', '')
+            snap.encrypted = snapshot.get('Encrypted', False)
+            log.debug(f"Found AWS EC2 snapshot {snap.dname}")
+            graph.add_resource(region, snap)
+#            if snap.volume_id:
+#                v = graph.search_first('id', snap.volume_id)
+#                if v:
+#                    log.debug(f'Adding edge from volume {v.id} to snapshot {snap.id}')
+#                    graph.add_edge(v, snap)
 
     @metrics_collect_vpc_peering_connections.time()
     def collect_vpc_peering_connections(self, region: AWSRegion, graph: Graph) -> None:
