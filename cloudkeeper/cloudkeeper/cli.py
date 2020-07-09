@@ -42,6 +42,8 @@ class Cli(threading.Thread):
         for action in ArgumentParser.args.cli_actions:
             register_cli_action(action)
 
+        read_cli_actions_config()
+
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def __del__(self):
@@ -81,6 +83,7 @@ class Cli(threading.Thread):
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument('--no-cli', help="Don't run the CLI thread", dest='no_cli', action='store_true', default=False)
         arg_parser.add_argument('--register-cli-action', help='Register a CLI Action (Format: event:command)', dest='cli_actions', type=str, default=[], nargs='+')
+        arg_parser.add_argument('--cli-actions-config', help='Path to CLI Actions config', dest='cli_actions_config', type=str, default=None)
 
 
 class CliHandler:
@@ -752,6 +755,23 @@ def register_cli_action(action: str, one_shot: bool = False) -> bool:
     else:
         log.error(f'Invalid event type {event}')
     return False
+
+
+def read_cli_actions_config(config_file: str = None) -> None:
+    if config_file is None:
+        if not ArgumentParser.args.cli_actions_config:
+            return
+        config_file = ArgumentParser.args.cli_actions_config
+
+    log.debug(f'Reading CLI actions configuration file {config_file}')
+    try:
+        with open(config_file, 'r') as fp:
+            for line in fp:
+                line = line.strip()
+                if not line.startswith('#') and len(line) > 0:
+                    register_cli_action(line)
+    except Exception:
+        log.exception(f'Failed to read scheduler configuration file {config_file}')
 
 
 def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) -> None:
