@@ -98,9 +98,43 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
 
-    def delete(self, graph: Graph) -> bool:
+    def delete(self, graph: Graph, snapshot_before_delete: bool = False, snapshot_timeout = 3600) -> bool:
         ec2 = aws_resource(self, 'ec2', graph)
         volume = ec2.Volume(self.id)
+        if snapshot_before_delete or self.snapshot_before_delete:
+            log_msg = f"Creating snapshot before deletion"
+            self.log(log_msg)
+            log.debug(f"{log_msg} of {self.resource_type} {self.dname}")
+            snapshot = volume.create_snapshot(
+                Description=f'Cloudkeeper created snapshot for volume {self.id}',
+                TagSpecifications=[
+                    {
+                        'ResourceType': 'snapshot',
+                        'Tags': [
+                            {
+                                'Key': 'Name',
+                                'Value': f'CK snap of {self.id}'
+                            },
+                            {
+                                'Key': 'owner',
+                                'Value': f'cloudkeeper'
+                            },
+                        ]
+                    },
+                ]
+            )
+            start_utime = time.time()
+            while snapshot.state == 'pending':
+                if time.time() > start_utime + snapshot_timeout:
+                    raise TimeoutError(f'AWS EC2 Volume Snapshot {self.dname} tag update timed out after {snapshot_timeout} seconds with status {snapshot.state} ({snapshot.state_message})')
+                time.sleep(10)
+                log.debug(f"Waiting for snapshot {snapshot.id} to finish before deletion of {self.resource_type} {self.dname} - progress {snapshot.progress}")
+                snapshot = ec2.Snapshot(snapshot.id)
+            if snapshot.state != 'completed':
+                log_msg = f'Failed to create snapshot - status {snapshot.state} ({snapshot.state_message})'
+                self.log(log_msg)
+                log.error(f'{log_msg} for {self.resource_type} {self.dname} in account {self.account(graph).dname} region {self.region(graph).name}')
+                return False
         volume.delete()
         return True
 
@@ -108,6 +142,29 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         ec2 = aws_resource(self, 'ec2')
         volume = ec2.Volume(self.id)
         volume.create_tags(Tags=[{'Key': key, 'Value': value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_client(self, 'ec2')
+        ec2.delete_tags(
+            Resources=[self.id],
+            Tags=[{'Key': key}]
+        )
+        return True
+
+
+class AWSEC2Snapshot(AWSResource, BaseSnapshot):
+    resource_type = "aws_ec2_snapshot"
+
+    def delete(self, graph: Graph) -> bool:
+        ec2 = aws_resource(self, 'ec2', graph)
+        snapshot = ec2.Snapshot(self.id)
+        snapshot.delete()
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_client(self, 'ec2')
+        ec2.create_tags(Resources=[self.id], Tags=[{'Key': key, 'Value': value}])
         return True
 
     def delete_tag(self, key) -> bool:
