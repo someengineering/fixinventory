@@ -2,6 +2,7 @@ import threading
 import logging
 import inspect
 import re
+import ast
 import time
 import calendar
 from typing import Iterable, Tuple, Any
@@ -490,6 +491,26 @@ and chain multipe commands using the semicolon (;).
                 raise RuntimeError(f'Item {item} is not a valid resource - cleanup flagging failed')
             item.clean = True
             yield item
+
+    def cmd_set(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | set <attribute> <value>
+
+        Set an attribute to a value.
+        Only returns items whose attribute was successfully modified.
+        '''
+        attribute, value = args.split(' ', 1)
+        for item in items:
+            if not isinstance(item, BaseResource):
+                raise RuntimeError(f'Item {item} is not a valid resource - setting attribute failed')
+            if hasattr(item, attribute):
+                type_attr = type(getattr(item, attribute))
+                try:
+                    converted = type_attr(ast.literal_eval(value))
+                except ValueError:
+                    log.exception(f"An error occurred when trying to cast value '{value}' to {type_attr}")
+                else:
+                    setattr(item, attribute, converted)
+                    yield item
 
     def cmd_protect(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | protect
