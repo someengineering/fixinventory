@@ -110,6 +110,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                         descendant.log(
                             f"Marking for cleanup because resource is a descendant of VPC {node.dname} which is set to be cleaned"
                         )
+                        node.log(
+                            f"Marking {descendant.resource_type} {descendant.dname} for cleanup because resource is a descendant"
+                        )
                         descendant.clean = True
                     else:
                         if descendant.clean:
@@ -119,6 +122,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                         else:
                             log.error(
                                 f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
+                            )
+                            node.log(
+                                f"Descendant {descendant.resource_type} {descendant.dname} is not targeted and not marked for cleaning - cleanup will likely fail"
                             )
 
     @staticmethod
