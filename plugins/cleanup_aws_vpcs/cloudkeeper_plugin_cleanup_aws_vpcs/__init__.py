@@ -88,7 +88,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     and i.instance_status != "terminated"
                 ]
                 if len(vpc_instances) > 0:
-                    log_msg = f"VPC contains active EC2 instances - not cleaning VPC."
+                    log_msg = "VPC contains active EC2 instances - not cleaning VPC."
                     log.debug(f"{log_prefix} {log_msg}")
                     node.log(log_msg)
                     node.clean = False
