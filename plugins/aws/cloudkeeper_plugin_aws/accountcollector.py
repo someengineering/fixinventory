@@ -113,6 +113,7 @@ metrics_collect_nat_gateways = Summary('cloudkeeper_plugin_aws_collect_nat_gatew
 metrics_collect_vpc_peering_connections = Summary('cloudkeeper_plugin_aws_collect_vpc_peering_connections_seconds', 'Time it took the collect_vpc_peering_connections() method')
 metrics_collect_vpc_endpoints = Summary('cloudkeeper_plugin_aws_collect_vpc_endpoints_seconds', 'Time it took the collect_vpc_endpoints() method')
 metrics_collect_buckets = Summary('cloudkeeper_plugin_aws_collect_buckets_seconds', 'Time it took the collect_buckets() method')
+metrics_collect_s3_buckets = Summary('cloudkeeper_plugin_aws_collect_s3_buckets_seconds', 'Time it took the collect_s3_buckets() method')
 metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'Time it took the collect_elbs() method')
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
 metrics_collect_albs = Summary('cloudkeeper_plugin_aws_collect_albs_seconds', 'Time it took the collect_albs() method')
@@ -159,38 +160,46 @@ class AWSAccountCollector:
         log.debug(f'Collecting account {self.account.dname}')
 
         global_collectors = {
-            'IAM Policies': self.collect_iam_policies,
-            'IAM Groups': self.collect_iam_groups,
-            'IAM Instance Profiles': self.collect_iam_instance_profiles,
-            'IAM Roles': self.collect_iam_roles,
-            'IAM Users': self.collect_iam_users,
-            'IAM Server Certificates': self.collect_iam_server_certificates,
-            'S3 Buckets': self.collect_buckets,
+            'iam_policies': self.collect_iam_policies,
+            'iam_groups': self.collect_iam_groups,
+            'iam_instance_profiles': self.collect_iam_instance_profiles,
+            'iam_roles': self.collect_iam_roles,
+            'iam_users': self.collect_iam_users,
+            'iam_server_certificates': self.collect_iam_server_certificates,
+            's3_buckets': self.collect_s3_buckets,
         }
         region_collectors = {
-            'Reserved Instances': self.collect_reserved_instances,
-            'VPCs': self.collect_vpcs,
-            'Subnets': self.collect_subnets,
-            'Routing Tables': self.collect_route_tables,
-            'Security Groups': self.collect_security_groups,
-            'Internet Gateways': self.collect_internet_gateways,
-            'EC2 Key Pairs': self.collect_keypairs,
-            'EC2 Instances': self.collect_instances,
-            'EBS Volumes': self.collect_volumes,
-            'EBS Snapshots': self.collect_snapshots,
-            'ELBs': self.collect_elbs,
-            'ALBs': self.collect_albs,
-            'ALB Target Groups': self.collect_alb_target_groups,
-            'Autoscaling Groups': self.collect_autoscaling_groups,
-            'EC2 Network ACLs': self.collect_network_acls,
-            'EC2 Network Interfaces': self.collect_network_interfaces,
-            'NAT Gateways': self.collect_nat_gateways,
-            'RDS Instances': self.collect_rds_instances,
-            'Cloudformation Stacks': self.collect_cloudformation_stacks,
-            'EKS Clusters': self.collect_eks_clusters,
-            'VPC Peering Connections': self.collect_vpc_peering_connections,
-            'VPC Endpoints': self.collect_vpc_endpoints,
+            'reserved_instances': self.collect_reserved_instances,
+            'vpcs': self.collect_vpcs,
+            'subnets': self.collect_subnets,
+            'route_tables': self.collect_route_tables,
+            'security_groups': self.collect_security_groups,
+            'internet_gateways': self.collect_internet_gateways,
+            'keypairs': self.collect_keypairs,
+            'instances': self.collect_instances,
+            'volumes': self.collect_volumes,
+            'snapshots': self.collect_snapshots,
+            'elbs': self.collect_elbs,
+            'albs': self.collect_albs,
+            'alb_target_groups': self.collect_alb_target_groups,
+            'autoscaling_groups': self.collect_autoscaling_groups,
+            'network_acls': self.collect_network_acls,
+            'network_interfaces': self.collect_network_interfaces,
+            'nat_gateways': self.collect_nat_gateways,
+            'rds_instances': self.collect_rds_instances,
+            'cloudformation_stacks': self.collect_cloudformation_stacks,
+            'eks_clusters': self.collect_eks_clusters,
+            'vpc_peering_connections': self.collect_vpc_peering_connections,
+            'vpc_endpoints': self.collect_vpc_endpoints,
         }
+
+        if len(ArgumentParser.args.aws_collect) > 0:
+            for collector in list(global_collectors.keys()):
+                if collector not in ArgumentParser.args.aws_collect:
+                    del global_collectors[collector]
+            for collector in list(region_collectors.keys()):
+                if collector not in ArgumentParser.args.aws_collect:
+                    del region_collectors[collector]
 
         # Collect global resources like IAM and S3 first
         global_region = AWSRegion('us-east-1', {}, name='global', account=self.account)
@@ -1008,8 +1017,8 @@ class AWSAccountCollector:
                     log.debug(f'Adding edge from Subnet {s.id} to RDS instance {d.id}')
                     graph.add_edge(s, d)
 
-    @metrics_collect_buckets.time()
-    def collect_buckets(self, region: AWSRegion, graph: Graph) -> None:
+    @metrics_collect_s3_buckets.time()
+    def collect_s3_buckets(self, region: AWSRegion, graph: Graph) -> None:
         log.info(f'Collecting AWS S3 Buckets in account {self.account.dname} region {region.id}')
         bq = AWSS3BucketQuota('s3_quota', {}, account=self.account, region=region)
         bq.quota = self.get_s3_service_quotas(region).get('s3', -1.0)
