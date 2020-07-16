@@ -192,10 +192,11 @@ class AWSAccountCollector:
         account_alias = self.account_alias()
         if account_alias:
             self.account.name = self.account.account_alias = account_alias
-        services = self.collector_set
+
+        collectors = self.collector_set
         if len(ArgumentParser.args.aws_collect) > 0:
-            services = set(ArgumentParser.args.aws_collect).intersection(self.collector_set)
-        log.debug(f"Running the following collectors in account {self.account.dname}: {', '.join(services)}")
+            collectors = set(ArgumentParser.args.aws_collect).intersection(self.collector_set)
+        log.debug(f"Running the following collectors in account {self.account.dname}: {', '.join(collectors)}")
 
         # Collect global resources like IAM and S3 first
         global_region = AWSRegion('us-east-1', {}, name='global', account=self.account)
