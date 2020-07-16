@@ -85,7 +85,8 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     i
                     for i in node.descendants(graph)
                     if isinstance(i, AWSEC2Instance)
-                    and i.instance_status != "terminated"
+                    and i.instance_status not in ("shutting-down", "terminated")
+                    and not i.clean
                 ]
                 if len(vpc_instances) > 0:
                     log_msg = "VPC contains active EC2 instances - not cleaning VPC."
