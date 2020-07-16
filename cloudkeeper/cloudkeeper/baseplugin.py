@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from cloudkeeper.graph import Graph, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import BasePluginRoot
+from cloudkeeper.baseresources import Cloud
 from threading import Thread
 from prometheus_client import Counter
 
@@ -71,7 +71,7 @@ class BaseCollectorPlugin(BasePlugin):
     def __init__(self) -> None:
         super().__init__()
         self.name = str(self.cloud)
-        self.root = BasePluginRoot(self.cloud, {})
+        self.root = Cloud(self.cloud, {})
         self.graph = Graph()
         resource_attributes = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.id, **resource_attributes)

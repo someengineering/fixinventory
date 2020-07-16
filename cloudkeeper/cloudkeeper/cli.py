@@ -5,6 +5,7 @@ import re
 import ast
 import time
 import calendar
+import json
 from typing import Iterable, Tuple, Any
 from collections import deque
 from itertools import islice
@@ -20,7 +21,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -256,17 +257,40 @@ class CliHandler:
             yield item
 
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | dump
+        '''Usage: | dump [--json]
 
         Dumps details about the resources.
+        Optionally dump them as one JSON object.
+        Beware that dumping large datasets as JSON requires
+        the entire dataset to be in memory.
         '''
+        dump_json = False
+        json_out = []
+        if args == '--json':
+            dump_json = True
+
         for item in items:
             if not isinstance(item, BaseResource):
                 raise RuntimeError(f'Item {item} is not a valid resource - dumping failed')
-            yield('Object Dump:')
-            yield(pformat(get_resource_attributes(item)))
-            yield('Object Log:')
-            yield(pformat(item.event_log))
+            out = get_resource_attributes(item)
+            cloud = item.cloud(self.graph)
+            account = item.account(self.graph)
+            region = item.region(self.graph)
+            out['cloud_id'] = cloud.id
+            out['account_id'] = account.id
+            out['region_id'] = region.id
+            out['cloud_name'] = cloud.name
+            out['account_name'] = account.name
+            out['region_name'] = region.name
+            out['event_log'] = item.event_log
+            out['predecessors'] = [i.sha256 for i in item.predecessors(self.graph)]
+            out['successors'] = [i.sha256 for i in item.successors(self.graph)]
+            if dump_json:
+                json_out.append(out)
+            else:
+                yield(pformat(out))
+        if dump_json:
+            yield(json.dumps(json_out, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True))
 
     def cmd_tag(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | tag <update|delete> key [value]
@@ -444,6 +468,28 @@ and chain multipe commands using the semicolon (;).
             for item in items:
                 outfile.write(f'{item}\n')
                 yield item
+
+    def cmd_write(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | write [-a] <filename>
+
+        Write input to file.
+        Optionally use -a to append to filename.
+        '''
+        i = 0
+        mode = 'w'
+        str_mode = 'Writing'
+        filename = args
+        if args.startswith('-a '):
+            mode = 'a'
+            str_mode = 'Appending'
+            _, filename = args.split(' ', 1)
+
+        with open(filename, mode) as outfile:
+            yield f"{str_mode} data to {filename}."
+            for item in items:
+                outfile.write(f'{item}\n')
+                i += 1
+        yield f"Write of {i} item{'' if i == 1 else 's'} complete."
 
     def cmd_sort(self, items: Iterable, args: str, reverse: bool = False) -> Iterable:
         '''Usage: | sort [attribute]

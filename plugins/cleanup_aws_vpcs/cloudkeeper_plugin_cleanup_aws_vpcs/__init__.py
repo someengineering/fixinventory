@@ -16,6 +16,7 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2NATGateway,
     AWSEC2RouteTable,
     AWSVPCEndpoint,
+    AWSEC2Instance,
 )
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import (
@@ -66,6 +67,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                 cloud = node.cloud(graph)
                 account = node.account(graph)
                 region = node.region(graph)
+                log_prefix = f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name} marked for cleanup."
 
                 if len(self.config) > 0:
                     if (
@@ -74,18 +76,29 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     ):
                         log.debug(
                             (
-                                f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
-                                f" marked for cleanup. Account not found in config - ignoring dependent resources."
+                                f"{log_prefix} Account not found in config - ignoring dependent resources."
                             )
                         )
                         continue
 
+                vpc_instances = [
+                    i
+                    for i in node.descendants(graph)
+                    if isinstance(i, AWSEC2Instance)
+                    and i.instance_status not in ("shutting-down", "terminated")
+                    and not i.clean
+                ]
+                if len(vpc_instances) > 0:
+                    log_msg = "VPC contains active EC2 instances - not cleaning VPC."
+                    log.debug(f"{log_prefix} {log_msg}")
+                    node.log(log_msg)
+                    node.clean = False
+                    continue
+
                 log.debug(
-                    (
-                        f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
-                        f" marked for cleanup. Marking dependent resources for cleanup as well."
-                    )
+                    f"{log_prefix} Marking dependent resources for cleanup as well."
                 )
+
                 for descendant in node.descendants(graph):
                     log.debug(
                         f"Found descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname}"
@@ -110,6 +123,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                         descendant.log(
                             f"Marking for cleanup because resource is a descendant of VPC {node.dname} which is set to be cleaned"
                         )
+                        node.log(
+                            f"Marking {descendant.resource_type} {descendant.dname} for cleanup because resource is a descendant"
+                        )
                         descendant.clean = True
                     else:
                         if descendant.clean:
@@ -119,6 +135,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                         else:
                             log.error(
                                 f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
+                            )
+                            node.log(
+                                f"Descendant {descendant.resource_type} {descendant.dname} is not targeted and not marked for cleaning - cleanup will likely fail"
                             )
 
     @staticmethod

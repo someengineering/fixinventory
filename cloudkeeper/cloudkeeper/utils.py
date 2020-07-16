@@ -3,6 +3,7 @@ import logging
 import re
 import gc as garbage_collector
 import resource
+from pprint import pformat
 from pympler import asizeof
 from typing import List
 from datetime import date, datetime, timezone, timedelta
@@ -259,3 +260,13 @@ def iec_size_format(byte_size: int) -> str:
             return f'{byte_size:.2f} {unit}'
         byte_size /= 1024.0
     return f'{byte_size:.2f} YiB'
+
+
+def json_default(o):
+    if hasattr(o, 'to_json'):
+        return o.to_json()
+    elif isinstance(o, (date, datetime)):
+        return o.isoformat()
+    elif isinstance(o, Exception):
+        return pformat(o)
+    raise TypeError(f'Object of type {o.__class__.__name__} is not JSON serializable')
