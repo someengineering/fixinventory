@@ -285,28 +285,34 @@ class BaseResource(ABC):
         raise NotImplementedError
 
     def account(self, graph=None):
+        account = None
         if self._account:
-            return self._account
+            account = self._account
         elif graph:
-            return graph.search_first_parent_class(self, BaseAccount)
-        else:
-            return BaseAccount('undefined', {})
+            account = graph.search_first_parent_class(self, BaseAccount)
+        if account is None:
+            account = BaseAccount('undefined', {})
+        return account
 
     def cloud(self, graph=None):
+        cloud = None
         if self._cloud:
-            return self._cloud
+            cloud = self._cloud
         elif graph:
-            return graph.search_first_parent_class(self, BaseCloud)
-        else:
-            return BaseCloud('undefined', {})
+            cloud = graph.search_first_parent_class(self, BaseCloud)
+        if cloud is None:
+            cloud = BaseCloud('undefined', {})
+        return cloud
 
     def region(self, graph=None):
+        region = None
         if self._region:
-            return self._region
+            region = self._region
         elif graph:
-            return graph.search_first_parent_class(self, BaseRegion)
-        else:
-            return BaseRegion('undefined', {})
+            region = graph.search_first_parent_class(self, BaseRegion)
+        if region is None:
+            region = BaseRegion('undefined', {})
+        return region
 
     def to_json(self):
         return self.__repr__()

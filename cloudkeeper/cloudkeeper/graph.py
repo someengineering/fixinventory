@@ -6,7 +6,7 @@ import json
 import datetime
 import re
 from cloudkeeper.baseresources import GraphRoot, BasePluginRoot, BaseResource
-from cloudkeeper.utils import RWLock
+from cloudkeeper.utils import RWLock, json_default
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
@@ -374,14 +374,6 @@ class GraphCache:
     @property
     def metrics(self):
         return self._metrics_cache
-
-
-def json_default(o):
-    if hasattr(o, 'to_json'):
-        return o.to_json()
-    elif isinstance(o, (datetime.date, datetime.datetime)):
-        return o.isoformat()
-    raise TypeError(f'Object of type {o.__class__.__name__} is not JSON serializable')
 
 
 def dump_graph(graph) -> str:
