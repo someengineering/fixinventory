@@ -153,13 +153,7 @@ class AWSAccountCollector:
         self._price_info = {'ec2': {}, 'ebs': {}}
         self._price_info_lock = Lock()
 
-    def collect(self) -> None:
-        account_alias = self.account_alias()
-        if account_alias:
-            self.account.name = self.account.account_alias = account_alias
-        log.debug(f'Collecting account {self.account.dname}')
-
-        global_collectors = {
+        self.global_collectors = {
             'iam_policies': self.collect_iam_policies,
             'iam_groups': self.collect_iam_groups,
             'iam_instance_profiles': self.collect_iam_instance_profiles,
@@ -168,7 +162,7 @@ class AWSAccountCollector:
             'iam_server_certificates': self.collect_iam_server_certificates,
             's3_buckets': self.collect_s3_buckets,
         }
-        region_collectors = {
+        self.region_collectors = {
             'reserved_instances': self.collect_reserved_instances,
             'vpcs': self.collect_vpcs,
             'subnets': self.collect_subnets,
@@ -192,25 +186,27 @@ class AWSAccountCollector:
             'vpc_peering_connections': self.collect_vpc_peering_connections,
             'vpc_endpoints': self.collect_vpc_endpoints,
         }
+        self.collector_set = set(self.global_collectors.keys()).union(set(self.region_collectors.keys()))
 
+    def collect(self) -> None:
+        account_alias = self.account_alias()
+        if account_alias:
+            self.account.name = self.account.account_alias = account_alias
+        services = self.collector_set
         if len(ArgumentParser.args.aws_collect) > 0:
-            for collector in list(global_collectors.keys()):
-                if collector not in ArgumentParser.args.aws_collect:
-                    del global_collectors[collector]
-            for collector in list(region_collectors.keys()):
-                if collector not in ArgumentParser.args.aws_collect:
-                    del region_collectors[collector]
+            services = set(ArgumentParser.args.aws_collect).intersection(self.collector_set)
+        log.debug(f"Running the following collectors in account {self.account.dname}: {', '.join(services)}")
 
         # Collect global resources like IAM and S3 first
         global_region = AWSRegion('us-east-1', {}, name='global', account=self.account)
-        graph = self.collect_resources(global_collectors, global_region)
+        graph = self.collect_resources(self.global_collectors, global_region)
         log.debug(f'Adding graph of region {global_region.name} to account graph')
         self.graph = networkx.compose(self.graph, graph)
         self.graph.add_edge(self.root, global_region)
 
         # Collect regions in parallel after global resources have been collected
         with concurrent.futures.ThreadPoolExecutor(max_workers=ArgumentParser.args.aws_region_pool_size, thread_name_prefix=f'aws_{self.account.id}') as executor:
-            futures = {executor.submit(self.collect_resources, region_collectors, region): region for region in self.regions}
+            futures = {executor.submit(self.collect_resources, self.region_collectors, region): region for region in self.regions}
             for future in concurrent.futures.as_completed(futures):
                 region = futures[future]
                 try:
@@ -229,6 +225,8 @@ class AWSAccountCollector:
         resource_attr = get_resource_attributes(region)
         graph.add_node(region, label=region.name, **resource_attr)
         for collector_name, collector in collectors.items():
+            if len(ArgumentParser.args.aws_collect) > 0 and collector_name not in ArgumentParser.args.aws_collect:
+                continue
             try:
                 log.debug(f'Running {collector_name} collector in account {self.account.dname} region {region.name}')
                 collector(region, graph)
