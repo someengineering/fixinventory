@@ -224,7 +224,7 @@ class AWSAccountCollector:
 
     @retry(stop_max_attempt_number=10, wait_exponential_multiplier=3000, wait_exponential_max=300000, retry_on_exception=retry_on_request_limit_exceeded)
     def collect_resources(self, collectors: Dict, region: AWSRegion) -> Graph:
-        log.info(f'Collecting resources in AWS account {self.account.dname}')
+        log.info(f'Collecting resources in AWS account {self.account.dname} region {region.name}')
         graph = Graph()
         resource_attr = get_resource_attributes(region)
         graph.add_node(region, label=region.name, **resource_attr)
