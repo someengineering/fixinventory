@@ -283,6 +283,8 @@ class CliHandler:
             out['account_name'] = account.name
             out['region_name'] = region.name
             out['event_log'] = item.event_log
+            out['predecessors'] = [i.sha256 for i in item.predecessors(self.graph)]
+            out['successors'] = [i.sha256 for i in item.successors(self.graph)]
             if dump_json:
                 json_out.append(out)
             else:
