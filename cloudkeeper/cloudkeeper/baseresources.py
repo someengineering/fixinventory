@@ -626,8 +626,8 @@ class BaseSnapshot(BaseResource):
         return self._metrics
 
 
-class BasePluginRoot(BaseCloud):
-    resource_type = 'plugin_root'
+class Cloud(BaseCloud):
+    resource_type = 'cloud'
 
 
 class GraphRoot(PhantomBaseResource):

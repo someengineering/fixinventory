@@ -5,7 +5,7 @@ import pickle
 import json
 import datetime
 import re
-from cloudkeeper.baseresources import GraphRoot, BasePluginRoot, BaseResource
+from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
 from cloudkeeper.utils import RWLock, json_default
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
@@ -440,7 +440,7 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
     plugin_roots = {}
     graph_roots = []
     for node in graph.successors(root):
-        if isinstance(node, BasePluginRoot):
+        if isinstance(node, Cloud):
             log.debug(f'Found Plugin Root {node.id}')
             plugin_roots[node.id] = node
         elif isinstance(node, GraphRoot):
@@ -453,7 +453,7 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
         for graph_root in graph_roots:
             log.debug(f'Moving children of graph root {graph_root.id}')
             for node in list(graph.successors(graph_root)):
-                if isinstance(node, BasePluginRoot):
+                if isinstance(node, Cloud):
                     if node.id in plugin_roots:
                         log.debug(f'Found existing plugin root {node.id} - attaching children and removing plugin root')
                         for plugin_root_child in list(graph.successors(node)):
