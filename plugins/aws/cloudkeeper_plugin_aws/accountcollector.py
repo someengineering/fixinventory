@@ -118,6 +118,7 @@ metrics_collect_elbs = Summary('cloudkeeper_plugin_aws_collect_elbs_seconds', 'T
 metrics_collect_alb_target_groups = Summary('cloudkeeper_plugin_aws_collect_alb_target_groups_seconds', 'Time it took the collect_alb_target_groups() method')
 metrics_collect_albs = Summary('cloudkeeper_plugin_aws_collect_albs_seconds', 'Time it took the collect_albs() method')
 metrics_collect_rds_instances = Summary('cloudkeeper_plugin_aws_collect_rds_instances_seconds', 'Time it took the collect_rds_instances() method')
+metrics_collect_rds_metrics = Summary('cloudkeeper_plugin_aws_collect_rds_metrics_seconds', 'Time it took the collect_rds_metrics() method')
 metrics_collect_iam_policies = Summary('cloudkeeper_plugin_aws_collect_iam_policies_seconds', 'Time it took the collect_iam_policies() method')
 metrics_collect_iam_groups = Summary('cloudkeeper_plugin_aws_collect_iam_groups_seconds', 'Time it took the collect_iam_groups() method')
 metrics_collect_iam_instance_profiles = Summary('cloudkeeper_plugin_aws_collect_iam_instance_profiles_seconds', 'Time it took the collect_iam_instance_profiles() method')
@@ -386,35 +387,52 @@ class AWSAccountCollector:
 
     @metrics_collect_volume_metrics.time()
     def collect_volume_metrics(self, region: AWSRegion, volumes: List) -> None:
-        available_volumes = [volume for volume in volumes if volume.volume_status == 'available']
-        log.info(f'Collecting AWS EBS Volume Metrics for {len(available_volumes)} volumes in account {self.account.dname} region {region.id}')
-        for available_volumes_chunk in chunks(available_volumes, 100):
-            self.set_volume_metrics(region, available_volumes_chunk)
+        resources = [volume for volume in volumes if volume.volume_status == 'available']
+        log.info(f'Collecting AWS EBS Volume Metrics for {len(resources)} volumes in account {self.account.dname} region {region.id}')
+        atime_metric = 'VolumeReadOps'
+        mtime_metric = 'VolumeWriteOps'
+        namespace = 'AWS/EBS'
+        dimension_name = 'VolumeId'
+        dimension_attr = 'id'
+        resource_prefix = 'vol'
+        for chunk in chunks(resources, 100):
+            self.set_metrics(region, chunk, atime_metric, mtime_metric, namespace, dimension_name, dimension_attr, resource_prefix)
 
-    def set_volume_metrics(self, region: AWSRegion, volumes: List) -> None:
-        log.debug(f'Setting AWS EBS Volume Metrics for {len(volumes)} Volumes in account {self.account.dname} region {region.id}')
+    @metrics_collect_rds_metrics.time()
+    def collect_rds_metrics(self, region: AWSRegion, resources: List) -> None:
+        log.info(f'Collecting AWS RDS Metrics for {len(resources)} databases in account {self.account.dname} region {region.id}')
+        atime_metric = mtime_metric = 'DatabaseConnections'
+        namespace = 'AWS/RDS'
+        dimension_name = 'DBInstanceIdentifier'
+        dimension_attr = 'name'
+        resource_prefix = 'db'
+        for chunk in chunks(resources, 100):
+            self.set_metrics(region, chunk, atime_metric, mtime_metric, namespace, dimension_name, dimension_attr, resource_prefix)
+
+    def set_metrics(self, region: AWSRegion, resources: List, atime_metric: str, mtime_metric: str, namespace: str, dimension_name: str, dimension_attr: str, resource_prefix: str) -> None:
+        log.debug(f'Setting AWS Metrics for {len(resources)} resources in account {self.account.dname} region {region.id}')
         session = aws_session(self.account.id, self.account.role)
         cw = session.client('cloudwatch', region_name=region.id)
 
         end_time = datetime.now()
         start_time = end_time - timedelta(days=60)
 
+        if atime_metric == mtime_metric:
+            metric_names = [atime_metric]
+        else:
+            metric_names = [atime_metric, mtime_metric]
+
         query = []
-        for volume in volumes:
-            for metric in ['VolumeReadOps', 'VolumeWriteOps']:
+        for resource in resources:
+            for metric_name in metric_names:
                 query.append(
                     {
-                        'Id': 'metric_' + metric + '_' + re.sub('[^0-9a-zA-Z]+', '_', volume.id),
+                        'Id': 'metric_' + metric_name + '_' + re.sub('[^0-9a-zA-Z]+', '_', resource.id),
                         'MetricStat': {
                             'Metric': {
-                                'Namespace': 'AWS/EBS',
-                                'MetricName': metric,
-                                'Dimensions': [
-                                    {
-                                        'Name': 'VolumeId',
-                                        'Value': volume.id
-                                    },
-                                ]
+                                'Namespace': namespace,
+                                'MetricName': metric_name,
+                                'Dimensions': [{'Name': dimension_name, 'Value': getattr(resource, dimension_attr)}]
                             },
                             'Period': 3600,
                             'Stat': 'Sum',
@@ -424,73 +442,73 @@ class AWSAccountCollector:
                     }
                 )
 
-        response = self.get_volume_metrics(cw, query, start_time, end_time)
+        response = self.get_metrics(cw, query, start_time, end_time)
         metrics = response.get('MetricDataResults', [])
-        # We will only fetch more results if a NextToken was returned AND we got any values returned for any of the metrics
-        # get_metric_data() will return a NextToken even when there's no more values being returned
         while response.get('NextToken') is not None and any((len(metric['Values']) > 0 for metric in response.get('MetricDataResults', []))):
-            response = self.get_volume_metrics(cw, query, start_time, end_time, response.get('NextToken'))
+            response = self.get_metrics(cw, query, start_time, end_time, response.get('NextToken'))
             metrics.extend(response.get('MetricDataResults', []))
 
         try:
-            atime, mtime = self.get_atime_mtime_from_volume_metrics(metrics)
+            atime, mtime = self.get_atime_mtime_from_metrics(metrics, resource_prefix, atime_metric, mtime_metric)
 
-            # if after we retrieved a volume's metrics we don't find any read/write ops for it
+            # if after we retrieved a resources's metrics we don't find any atime/mtime for it
             # we will fall back to setting atime/mtime to either the earliest date we tried to
             # retrieve metrics for or the creation time of the volume, whichever is more recent
             fallback_time = make_valid_timestamp(start_time)
-            if volume.ctime > fallback_time:
-                fallback_time = volume.ctime
 
-            for volume in volumes:
-                if volume.id in atime:
-                    volume.atime = atime[volume.id]
-                else:
-                    volume.atime = fallback_time
+            for resource in resources:
+                if resource.ctime > fallback_time:
+                    fallback_time = resource.ctime
 
-                if volume.id in mtime:
-                    volume.mtime = mtime[volume.id]
+                if resource.id in atime:
+                    resource.atime = atime[resource.id]
                 else:
-                    volume.mtime = fallback_time
+                    resource.atime = fallback_time
+
+                if resource.id in mtime:
+                    resource.mtime = mtime[resource.id]
+                else:
+                    resource.mtime = fallback_time
         except ValueError:
-            log.exception(f'Error while processing metrics for volume {volume.id}')
+            log.exception(f'Error while processing metrics for resource {resource.id}')
 
-    def get_atime_mtime_from_volume_metrics(self, metrics: List) -> Tuple:
+    def get_atime_mtime_from_metrics(self, metrics: List, resource_prefix: str, atime_metric: str, mtime_metric: str, ) -> Tuple:
         atime = {}
         mtime = {}
         for metric in metrics:
             id = metric.get('Id')
-            _, metric_name, volume_id = id.split('_', 2)
-            if not volume_id.startswith('vol_'):
-                raise ValueError(f'Invalid volume Id {volume_id}')
-            volume_id = 'vol-' + volume_id[4:]
+            _, metric_name, resource_id = id.split('_', 2)
+            if not resource_id.startswith(f'{resource_prefix}_'):
+                raise ValueError(f'Invalid resource Id {resource_id}')
+            resource_prefix_idx = len(resource_prefix) + 1
+            resource_id = f"{resource_prefix}-" + resource_id[resource_prefix_idx:]
 
             timestamps = metric.get('Timestamps', [])
             values = metric.get('Values', [])
             if len(timestamps) != len(values):
                 raise ValueError(f"Number of timestamps {len(timestamps)} doesn't match number of values {len(values)}")
 
-            if metric_name not in ('VolumeReadOps', 'VolumeWriteOps'):
+            if metric_name not in (atime_metric, mtime_metric):
                 raise ValueError(f'Retrieved unknown metric {metric_name}')
 
-            if (metric_name == 'VolumeReadOps' and volume_id in atime) or (metric_name == 'VolumeWriteOps' and volume_id in mtime):
+            if (metric_name == atime_metric and resource_id in atime) or (metric_name == mtime_metric and resource_id in mtime):
                 continue
 
             for timestamp, value in zip(timestamps, values):
                 if value > 0:
-                    if metric_name == 'VolumeReadOps' and atime.get(volume_id) is None:
-                        log.debug(f'Setting atime for {volume_id} to {timestamp}')
-                        atime[volume_id] = timestamp
-                    elif metric_name == 'VolumeWriteOps' and mtime.get(volume_id) is None:
-                        log.debug(f'Setting mtime for {volume_id} to {timestamp}')
-                        mtime[volume_id] = timestamp
+                    if metric_name == atime_metric and atime.get(resource_id) is None:
+                        log.debug(f'Setting atime for {resource_id} to {timestamp}')
+                        atime[resource_id] = timestamp
+                    if metric_name == mtime_metric and mtime.get(resource_id) is None:
+                        log.debug(f'Setting mtime for {resource_id} to {timestamp}')
+                        mtime[resource_id] = timestamp
                     break
 
         return (atime, mtime)
 
     @retry(stop_max_attempt_number=10, wait_exponential_multiplier=3000, wait_exponential_max=300000, retry_on_exception=retry_on_request_limit_exceeded)
-    def get_volume_metrics(self, cw, query, start_time, end_time, next_token=None) -> Dict:
-        log.debug('Fetching volume metrics')
+    def get_metrics(self, cw, query, start_time, end_time, next_token=None) -> Dict:
+        log.debug('Fetching CloudWatch metrics')
         if next_token:
             response = cw.get_metric_data(
                 MetricDataQueries=query,
@@ -982,6 +1000,7 @@ class AWSAccountCollector:
             response = client.describe_db_instances(Marker=response['Marker'])
             dbs.extend(response.get('DBInstances', []))
 
+        databases = []
         for db in dbs:
             log.debug(f"Found RDS {db['DBInstanceArn']}")
             d = AWSRDSInstance(db['DbiResourceId'], {}, account=self.account, region=region, ctime=db.get('InstanceCreateTime'))
@@ -992,7 +1011,7 @@ class AWSAccountCollector:
             d.instance_type = db.get('DBInstanceClass')
             d.volume_size = int(db.get('AllocatedStorage', 0))
             d.volume_iops = int(db.get('Iops', 0))
-
+            databases.append(d)
             graph.add_resource(region, d)
 
             for security_group in db.get('VpcSecurityGroups', []):
@@ -1015,6 +1034,8 @@ class AWSAccountCollector:
                 if s:
                     log.debug(f'Adding edge from Subnet {s.id} to RDS instance {d.id}')
                     graph.add_edge(s, d)
+
+        self.collect_rds_metrics(region, databases)
 
     @metrics_collect_s3_buckets.time()
     def collect_s3_buckets(self, region: AWSRegion, graph: Graph) -> None:
