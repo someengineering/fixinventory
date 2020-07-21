@@ -480,7 +480,8 @@ class AWSAccountCollector:
             _, metric_name, resource_id = id.split('_', 2)
             if not resource_id.startswith(f'{resource_prefix}_'):
                 raise ValueError(f'Invalid resource Id {resource_id}')
-            resource_id = f"{resource_prefix}-" + resource_id[len(resource_prefix) + 1 :]
+            resource_prefix_idx = len(resource_prefix) + 1
+            resource_id = f"{resource_prefix}-" + resource_id[resource_prefix_idx:]
 
             timestamps = metric.get('Timestamps', [])
             values = metric.get('Values', [])
