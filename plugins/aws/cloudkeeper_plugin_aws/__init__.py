@@ -3,6 +3,7 @@ import networkx
 import logging
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Process, Queue
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
@@ -84,14 +85,20 @@ class AWSPlugin(BaseCollectorPlugin):
         log.info(f'Collecting AWS account {account.dname}')
 
         try:
-            aac = AWSAccountCollector(self.regions, account)
-            aac.collect()
+            queue = Queue()
+            process = Process(target=collect_account, args=(account, self.regions, queue))
+            process.start()
+            res = queue.get()
+            process.join
+            aac_root = res['root']
+            aac_graph = res['graph']
+
             # here we're merging the plugin graph with the account graph, replacing the original plugin graph
             # since we're running multi threaded we're acquiring a lock for the merge and replace operation
             with self.__graph_lock:
                 log.debug(f'Merging graph of account {account.dname} with {self.cloud} plugin graph')
-                self.graph = networkx.compose(self.graph, aac.graph)
-                self.graph.add_edge(self.root, aac.root)
+                self.graph = networkx.compose(self.graph, aac_graph)
+                self.graph.add_edge(self.root, aac_root)
         except botocore.exceptions.ClientError as e:
             log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
             metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
@@ -162,3 +169,10 @@ def all_regions() -> List:
     ec2 = session.client('ec2', region_name='us-east-1')
     regions = ec2.describe_regions()
     return [r['RegionName'] for r in regions['Regions']]
+
+
+def collect_account(account: AWSAccount, regions: List, queue: Queue):
+    log.debug(f'Starting new collect process for account {account.dname}')
+    aac = AWSAccountCollector(regions, account)
+    aac.collect()
+    queue.put({'root': aac.root, 'graph': aac.graph})
