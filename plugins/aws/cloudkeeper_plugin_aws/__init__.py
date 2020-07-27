@@ -1,7 +1,9 @@
 import botocore.exceptions
 import networkx
 import logging
-from threading import Lock
+import sys
+from signal import signal, SIGINT, SIGTERM
+from threading import Lock, current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import signal_on_parent_exit
@@ -165,6 +167,8 @@ def all_regions() -> List:
 
 def collect_account(account: AWSAccount, regions: List):
     signal_on_parent_exit()
+    current_thread().name = f'aws_{account.id}'
+
     log.debug(f'Starting new collect process for account {account.dname}')
 
     aac = AWSAccountCollector(regions, account)

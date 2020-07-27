@@ -3,8 +3,7 @@ import logging
 import time
 import os
 import threading
-import psutil
-from  signal import signal, SIGINT, SIGTERM, SIGKILL
+from  signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
@@ -20,7 +19,7 @@ from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventTy
 from prometheus_client import REGISTRY
 
 
-log_format = '%(asctime)s - %(levelname)s - %(threadName)s - %(message)s'
+log_format = '%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s'
 logging.basicConfig(level=logging.WARN, format=log_format)
 logging.getLogger('cloudkeeper').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
@@ -33,6 +32,9 @@ if '-v' in argv or '--verbose' in argv:
 
 # This will be used in main() and signal_handler()
 shutdown_event = threading.Event()
+parent_pid = os.getpid()
+original_sigint_handler = getsignal(SIGINT)
+original_sigterm_handler = getsignal(SIGTERM)
 
 
 def main() -> None:
@@ -66,8 +68,8 @@ def main() -> None:
     signal_on_parent_exit()
     # Handle Ctrl+c
     signal(SIGINT, signal_handler)
-    # Docker / Container schedulers send SIGTERM
     signal(SIGTERM, signal_handler)
+    signal(SIGUSR1, signal_handler)
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -126,37 +128,39 @@ def shutdown(event: Event) -> None:
 
     if emergency:
         log.fatal(f'EMERGENCY SHUTDOWN: {reason}')
-        os._exit(0)
+        os.killpg(os.getpgid(0), SIGKILL)
 
     if reason is None:
         reason = 'unknown reason'
     log.info(f'Received shut down event {event.event_type}: {reason}')
+    os.killpg(os.getpgid(0), SIGUSR1)
     kt = threading.Thread(target=force_shutdown, name='shutdown')
     kt.start()
-    time.sleep(1)   # give threads a second to shutdown
+    time.sleep(3)   # give threads three seconds to shutdown
     shutdown_event.set()          # and then end the program
 
 
 def force_shutdown() -> None:
-    time.sleep(5)
+    time.sleep(30)
     log_stats()
-    log.error('Some child process or thread timed out during shutdown - killing interpreter')
-    try:
-        parent = psutil.Process(os.getpid())
-    except psutil.NoSuchProcess:
-        log.exception('Can not determine current process PID')
-    children = parent.children(recursive=True)
-    for process in children:
-        log.debug(f"Killing {process}")
-        process.send_signal(SIGKILL)
-
+    log.error('Some child process or thread timed out during shutdown - killing process group')
+    os.killpg(os.getpgid(0), SIGKILL)
     os._exit(0)
 
 
 def signal_handler(sig, frame) -> None:
     """Handles Ctrl+c by letting the Collector() know to shut down"""
-    reason = 'Received shutdown signal'
-    dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}))
+    signal(SIGINT, original_sigint_handler)
+    signal(SIGTERM, original_sigterm_handler)
+
+    current_pid = os.getpid()
+    if current_pid == parent_pid:
+        if sig != SIGUSR1:
+            reason = 'Received shutdown signal {sig}'
+            dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}))
+    else:
+        log.info(f"Shutting down child process {current_pid}")
+        sys.exit(0)
 
 
 if __name__ == '__main__':
