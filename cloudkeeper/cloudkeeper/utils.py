@@ -7,9 +7,11 @@ from pprint import pformat
 from pympler import asizeof
 from typing import List
 from datetime import date, datetime, timezone, timedelta
-
+from ctypes import CDLL
+from signal import Signals, SIGKILL
 
 log = logging.getLogger(__name__)
+PR_SET_PDEATHSIG = 1
 
 
 class RWLock:
@@ -270,3 +272,15 @@ def json_default(o):
     elif isinstance(o, Exception):
         return pformat(o)
     raise TypeError(f'Object of type {o.__class__.__name__} is not JSON serializable')
+
+
+def signal_on_parent_exit(signal: Signals = SIGKILL) -> bool:
+    log.debug(f"Setting PR_SET_PDEATHSIG to {signal.name} for current process")
+    try:
+        libc = CDLL('libc.so.6')
+        res = libc.prctl(PR_SET_PDEATHSIG, signal)
+    except Exception:
+        log.exception("An error occured when trying to set PR_SET_PDEATHSIG")
+    else:
+        return res == 0
+    return False

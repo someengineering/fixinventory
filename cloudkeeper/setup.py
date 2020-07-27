@@ -24,6 +24,7 @@ setup(
         'networkx',
         'falcon',
         'requests',
+        'psutil',
         'prometheus_client',
         'apscheduler',
         'defaultlist',

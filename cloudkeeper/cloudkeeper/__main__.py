@@ -1,9 +1,10 @@
 import sys
-import signal
 import logging
 import time
 import os
 import threading
+import psutil
+from  signal import signal, SIGINT, SIGTERM, SIGKILL
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
@@ -13,7 +14,7 @@ from cloudkeeper.args import get_arg_parser, ArgumentParser
 from cloudkeeper.processor import Processor
 from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.metrics import GraphCollector
-from cloudkeeper.utils import log_stats
+from cloudkeeper.utils import log_stats, signal_on_parent_exit
 from cloudkeeper.cli import Cli
 from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventType, add_args as event_add_args
 from prometheus_client import REGISTRY
@@ -62,10 +63,11 @@ def main() -> None:
         logging.getLogger().addHandler(fh)
 
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
+    signal_on_parent_exit()
     # Handle Ctrl+c
-    signal.signal(signal.SIGINT, signal_handler)
+    signal(SIGINT, signal_handler)
     # Docker / Container schedulers send SIGTERM
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal(SIGTERM, signal_handler)
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -128,7 +130,7 @@ def shutdown(event: Event) -> None:
 
     if reason is None:
         reason = 'unknown reason'
-    log.debug(f'Received shut down event {event.event_type}: {reason}')
+    log.info(f'Received shut down event {event.event_type}: {reason}')
     kt = threading.Thread(target=force_shutdown, name='shutdown')
     kt.start()
     time.sleep(1)   # give threads a second to shutdown
@@ -138,7 +140,16 @@ def shutdown(event: Event) -> None:
 def force_shutdown() -> None:
     time.sleep(5)
     log_stats()
-    log.error('Some thread timed out during shutdown - killing interpreter')
+    log.error('Some child process or thread timed out during shutdown - killing interpreter')
+    try:
+        parent = psutil.Process(os.getpid())
+    except psutil.NoSuchProcess:
+        log.exception('Can not determine current process PID')
+    children = parent.children(recursive=True)
+    for process in children:
+        log.debug(f"Killing {process}")
+        process.send_signal(SIGKILL)
+
     os._exit(0)
 
 

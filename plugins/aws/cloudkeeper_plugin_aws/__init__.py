@@ -2,9 +2,9 @@ import botocore.exceptions
 import networkx
 import logging
 from threading import Lock
-from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Process, Queue
+from concurrent import futures
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.utils import signal_on_parent_exit
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
 from .resources import AWSAccount
@@ -27,6 +27,7 @@ class AWSPlugin(BaseCollectorPlugin):
         super().__init__()
         self.__regions = []
         self.__graph_lock = Lock()
+        self._executor = None
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -77,34 +78,25 @@ class AWSPlugin(BaseCollectorPlugin):
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
-        log.info(f'Collecting {len(accounts)} AWS accounts')
-        with ThreadPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size, thread_name_prefix='aws') as executor:
-            executor.map(self.collect_aws_account, accounts)
-
-    def collect_aws_account(self, account) -> None:
-        log.info(f'Collecting AWS account {account.dname}')
-
-        try:
-            queue = Queue()
-            process = Process(target=collect_account, args=(account, self.regions, queue))
-            process.start()
-            res = queue.get()
-            process.join
+        self._executor = futures.ProcessPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size)
+        wait_for = [
+            self._executor.submit(collect_account, account, self.regions)
+            for account in accounts
+        ]
+        for future in futures.as_completed(wait_for):
+            res = future.result()
             aac_root = res['root']
             aac_graph = res['graph']
+            aac_account = res['account']
+            log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
+            self.graph = networkx.compose(self.graph, aac_graph)
+            self.graph.add_edge(self.root, aac_root)
+        self._executor.shutdown()
+        self._executor = None
 
-            # here we're merging the plugin graph with the account graph, replacing the original plugin graph
-            # since we're running multi threaded we're acquiring a lock for the merge and replace operation
-            with self.__graph_lock:
-                log.debug(f'Merging graph of account {account.dname} with {self.cloud} plugin graph')
-                self.graph = networkx.compose(self.graph, aac_graph)
-                self.graph.add_edge(self.root, aac_root)
-        except botocore.exceptions.ClientError as e:
-            log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
-            metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
-        except Exception:
-            log.exception(f'An unhandled error occurred while collecting AWS account {account.dname}')
-            metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+    def shutdown(self):
+        if isinstance(self._executor, futures.ProcessPoolExecutor):
+            self._executor.shutdown(wait=False)
 
     @property
     def regions(self) -> List:
@@ -171,8 +163,18 @@ def all_regions() -> List:
     return [r['RegionName'] for r in regions['Regions']]
 
 
-def collect_account(account: AWSAccount, regions: List, queue: Queue):
+def collect_account(account: AWSAccount, regions: List):
+    signal_on_parent_exit()
     log.debug(f'Starting new collect process for account {account.dname}')
+
     aac = AWSAccountCollector(regions, account)
-    aac.collect()
-    queue.put({'root': aac.root, 'graph': aac.graph})
+    try:
+        aac.collect()
+    except botocore.exceptions.ClientError as e:
+        log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
+        metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+    except Exception:
+        log.exception(f'An unhandled error occurred while collecting AWS account {account.dname}')
+        metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+
+    return {'root': aac.root, 'graph': aac.graph, 'account': aac.account}
