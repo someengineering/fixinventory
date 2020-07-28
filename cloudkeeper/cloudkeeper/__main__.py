@@ -144,16 +144,16 @@ def shutdown(event: Event) -> None:
     shutdown_event.set()  # and then end the program
 
 
-def force_shutdown() -> None:
-    time.sleep(10)
+def force_shutdown(delay: int = 10) -> None:
+    time.sleep(delay)
     log_stats()
     log.error('Some child process or thread timed out during shutdown - killing process group')
     os.killpg(os.getpgid(0), SIGKILL)
     os._exit(0)
 
 
-def delayed_exit() -> None:
-    time.sleep(3)
+def delayed_exit(delay: int = 3) -> None:
+    time.sleep(delay)
     sys.exit(0)
 
 
