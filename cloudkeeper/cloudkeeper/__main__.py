@@ -3,7 +3,7 @@ import logging
 import time
 import os
 import threading
-from  signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
+from signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
@@ -132,16 +132,16 @@ def shutdown(event: Event) -> None:
 
     if reason is None:
         reason = 'unknown reason'
-    log.info(f'Received shut down event {event.event_type}: {reason}')
+    log.info(f'Received shut down event {event.event_type}: {reason} - killing all threads and child processes')
     os.killpg(os.getpgid(0), SIGUSR1)
     kt = threading.Thread(target=force_shutdown, name='shutdown')
     kt.start()
-    time.sleep(3)   # give threads three seconds to shutdown
-    shutdown_event.set()          # and then end the program
+    time.sleep(3)         # give threads three seconds to shutdown
+    shutdown_event.set()  # and then end the program
 
 
 def force_shutdown() -> None:
-    time.sleep(30)
+    time.sleep(10)
     log_stats()
     log.error('Some child process or thread timed out during shutdown - killing process group')
     os.killpg(os.getpgid(0), SIGKILL)
@@ -159,7 +159,7 @@ def signal_handler(sig, frame) -> None:
             reason = 'Received shutdown signal {sig}'
             dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}))
     else:
-        log.info(f"Shutting down child process {current_pid}")
+        log.debug(f"Shutting down child process {current_pid}")
         sys.exit(0)
 
 
