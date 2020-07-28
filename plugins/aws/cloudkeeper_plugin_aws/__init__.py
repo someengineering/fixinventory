@@ -2,7 +2,6 @@ import botocore.exceptions
 import networkx
 import logging
 import sys
-from signal import signal, SIGINT, SIGTERM
 from threading import Lock, current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
