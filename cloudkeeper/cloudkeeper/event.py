@@ -75,6 +75,9 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     threads = {}
     for listener, listener_data in listeners.items():
         try:
+            if listener_data['pid'] != os.getpid():
+                continue
+
             if listener_data['one-shot'] and not listener_data['lock'].acquire(blocking=False):
                 log.error(f"Not calling one-shot event listener {listener} of type {type(listener)} - can't acquire lock")
                 continue
@@ -116,7 +119,7 @@ def add_event_listener(event_type: EventType, listener: Callable, blocking: bool
     log.debug(f'Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})')
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
-            _events[event_type][listener] = {'blocking': blocking, 'timeout': timeout, 'one-shot': one_shot, 'lock': Lock()}
+            _events[event_type][listener] = {'blocking': blocking, 'timeout': timeout, 'one-shot': one_shot, 'lock': Lock(), 'pid': os.getpid()}
             return True
         return False
 

@@ -130,13 +130,17 @@ def shutdown(event: Event) -> None:
         log.fatal(f'EMERGENCY SHUTDOWN: {reason}')
         os.killpg(os.getpgid(0), SIGKILL)
 
+    current_pid = os.getpid()
+    if current_pid != parent_pid:
+        return
+
     if reason is None:
         reason = 'unknown reason'
     log.info(f'Received shut down event {event.event_type}: {reason} - killing all threads and child processes')
     os.killpg(os.getpgid(0), SIGUSR1)
     kt = threading.Thread(target=force_shutdown, name='shutdown')
     kt.start()
-    time.sleep(3)         # give threads three seconds to shutdown
+    time.sleep(5)         # give threads three seconds to shutdown
     shutdown_event.set()  # and then end the program
 
 
@@ -146,6 +150,11 @@ def force_shutdown() -> None:
     log.error('Some child process or thread timed out during shutdown - killing process group')
     os.killpg(os.getpgid(0), SIGKILL)
     os._exit(0)
+
+
+def delayed_exit() -> None:
+    time.sleep(3)
+    sys.exit(0)
 
 
 def signal_handler(sig, frame) -> None:
@@ -159,7 +168,11 @@ def signal_handler(sig, frame) -> None:
             reason = 'Received shutdown signal {sig}'
             dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}))
     else:
-        log.debug(f"Shutting down child process {current_pid}")
+        log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")
+        reason = 'Received shutdown signal {sig} from parent process'
+        kt = threading.Thread(target=delayed_exit, name='shutdown')
+        kt.start()
+        dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}), blocking=False)
         sys.exit(0)
 
 

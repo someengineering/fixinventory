@@ -8,6 +8,7 @@ from concurrent import futures
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import signal_on_parent_exit
 from cloudkeeper.baseplugin import BaseCollectorPlugin
+from cloudkeeper.event import Event, add_event_listener, EventType
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -30,6 +31,7 @@ class AWSPlugin(BaseCollectorPlugin):
         self.__regions = []
         self.__graph_lock = Lock()
         self._executor = None
+        add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -96,8 +98,9 @@ class AWSPlugin(BaseCollectorPlugin):
         self._executor.shutdown()
         self._executor = None
 
-    def shutdown(self):
+    def shutdown(self, event: Event):
         if isinstance(self._executor, futures.ProcessPoolExecutor):
+            log.debug(f"Received event {event.event_type}, shutting down process pool")
             self._executor.shutdown(wait=False)
 
     @property
