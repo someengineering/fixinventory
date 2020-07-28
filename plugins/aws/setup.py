@@ -16,7 +16,10 @@ setup(
     entry_points={
         'cloudkeeper.plugins': [
             'aws = cloudkeeper_plugin_aws:AWSPlugin',
-        ]
+        ],
+        'console_scripts': [
+            'cloudkeeper-aws-org-list = cloudkeeper_plugin_aws.__main__:main'
+        ],
     },
     include_package_data=True,
     zip_safe=False,

@@ -34,7 +34,8 @@ class Scheduler(threading.Thread):
 
     def shutdown(self, event: Event):
         log.debug(f'Received request to shutdown scheduler {event.event_type}')
-        self._sched.shutdown()
+        if self._sched.running:
+            self._sched.shutdown(wait=False)
         self.exit.set()
 
     def read_config(self, config_file: str) -> None:

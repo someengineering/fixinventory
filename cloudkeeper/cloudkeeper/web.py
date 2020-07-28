@@ -49,8 +49,10 @@ class WebServer(threading.Thread):
 
     def shutdown(self, event: Event):
         log.debug(f'Received request to shutdown http server threads {event.event_type}')
-        self.httpd.socket.close()
-        self.httpd.shutdown()
+        if self.httpd is not None:
+            self.httpd.socket.close()
+            self.httpd.shutdown()
+        self.httpd = None
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
