@@ -1,7 +1,6 @@
 import botocore.exceptions
 import networkx
 import logging
-import sys
 from threading import Lock, current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
