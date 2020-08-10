@@ -227,7 +227,8 @@ class AWSAccountCollector:
         resource_attr = get_resource_attributes(region)
         graph.add_node(region, label=region.name, **resource_attr)
         for collector_name, collector in collectors.items():
-            if len(ArgumentParser.args.aws_collect) > 0 and collector_name not in ArgumentParser.args.aws_collect:
+            if (len(ArgumentParser.args.aws_collect) > 0 and collector_name not in ArgumentParser.args.aws_collect) or collector_name in ArgumentParser.args.aws_no_collect:
+                log.debug(f'Not running {collector_name} collector in account {self.account.dname} region {region.name}')
                 continue
             try:
                 log.debug(f'Running {collector_name} collector in account {self.account.dname} region {region.name}')
@@ -323,6 +324,10 @@ class AWSAccountCollector:
     def get_raw_service_quotas(self, region: AWSRegion, service: str) -> List:
         log.debug(f'Retrieving raw AWS Service Quotas in account {self.account.dname} region {region.id} for service {service}')
         service_quotas = []
+        if 'quotas' in ArgumentParser.args.aws_no_collect:
+            log.debug(f'Skipping quotas collection in account {self.account.dname} region {region.id} for service {service}')
+            return service_quotas
+
         try:
             session = aws_session(self.account.id, self.account.role)
             client = session.client('service-quotas', region_name=region.id)
