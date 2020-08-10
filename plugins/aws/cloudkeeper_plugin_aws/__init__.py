@@ -56,6 +56,8 @@ class AWSPlugin(BaseCollectorPlugin):
                                 dest='aws_region_pool_size', default=20, type=int)
         arg_parser.add_argument('--aws-collect', help='AWS services to collect (default: all)', dest='aws_collect', type=str, default=[],
                                 nargs='+')
+        arg_parser.add_argument('--aws-no-collect', help='AWS services not to collect', dest='aws_no_collect', type=str, default=[],
+                                nargs='+')
 
     @metrics_collect.time()
     def collect(self) -> None:
