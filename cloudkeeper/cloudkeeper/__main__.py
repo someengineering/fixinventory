@@ -64,12 +64,12 @@ def main() -> None:
         fh.setFormatter(log_formatter)
         logging.getLogger().addHandler(fh)
 
-    add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
     signal_on_parent_exit()
-    # Handle Ctrl+c
+    # Handle Ctrl+c and other means of termination/shutdown
     signal(SIGINT, signal_handler)
     signal(SIGTERM, signal_handler)
     signal(SIGUSR1, signal_handler)
+    add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -118,6 +118,7 @@ def main() -> None:
     while not shutdown_event.is_set():
         log_stats()
         shutdown_event.wait(900)
+    time.sleep(5)
     log.info('Shutdown complete')
     quit()
 
@@ -140,7 +141,6 @@ def shutdown(event: Event) -> None:
     os.killpg(os.getpgid(0), SIGUSR1)
     kt = threading.Thread(target=force_shutdown, name='shutdown')
     kt.start()
-    time.sleep(5)         # give threads three seconds to shutdown
     shutdown_event.set()  # and then end the program
 
 
@@ -154,7 +154,7 @@ def force_shutdown(delay: int = 10) -> None:
 
 def delayed_exit(delay: int = 3) -> None:
     time.sleep(delay)
-    sys.exit(0)
+    os._exit(0)
 
 
 def signal_handler(sig, frame) -> None:
@@ -165,13 +165,20 @@ def signal_handler(sig, frame) -> None:
     current_pid = os.getpid()
     if current_pid == parent_pid:
         if sig != SIGUSR1:
-            reason = 'Received shutdown signal {sig}'
+            reason = f'Received shutdown signal {sig}'
+            log.debug(f'Parent caught signal {sig} - dispatching shutdown event')
+            # Dispatch shutdown event in parent process which also causes SIGUSR1 to be sent to
+            # the process group and in turn causes the shutdown event in all child processes.
             dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}))
+        else:
+            log.debug('Parent received SIGUSR1 and ignoring it')
     else:
         log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")
-        reason = 'Received shutdown signal {sig} from parent process'
+        reason = f'Received shutdown signal {sig} from parent process'
+        # Child's threads have 3s to shut down before the following thread will shut them down hard.
         kt = threading.Thread(target=delayed_exit, name='shutdown')
         kt.start()
+        # Dispatch shutdown event in child process
         dispatch_event(Event(EventType.SHUTDOWN, {'reason': reason, 'emergency': False}), blocking=False)
         sys.exit(0)
 
