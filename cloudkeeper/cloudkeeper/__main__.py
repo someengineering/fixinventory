@@ -19,6 +19,7 @@ from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventTy
 from prometheus_client import REGISTRY
 
 
+os.setpgid(0, 0)
 log_format = '%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s'
 logging.basicConfig(level=logging.WARN, format=log_format)
 logging.getLogger('cloudkeeper').setLevel(logging.INFO)
@@ -35,7 +36,6 @@ shutdown_event = threading.Event()
 parent_pid = os.getpid()
 original_sigint_handler = getsignal(SIGINT)
 original_sigterm_handler = getsignal(SIGTERM)
-os.setpgid(0, 0)
 
 
 def main() -> None:
@@ -65,12 +65,12 @@ def main() -> None:
         fh.setFormatter(log_formatter)
         logging.getLogger().addHandler(fh)
 
-    signal_on_parent_exit()
     # Handle Ctrl+c and other means of termination/shutdown
+    signal_on_parent_exit()
+    add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
     signal(SIGINT, signal_handler)
     signal(SIGTERM, signal_handler)
     signal(SIGUSR1, signal_handler)
-    add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
