@@ -35,6 +35,7 @@ shutdown_event = threading.Event()
 parent_pid = os.getpid()
 original_sigint_handler = getsignal(SIGINT)
 original_sigterm_handler = getsignal(SIGTERM)
+os.setpgid(0, 0)
 
 
 def main() -> None:
