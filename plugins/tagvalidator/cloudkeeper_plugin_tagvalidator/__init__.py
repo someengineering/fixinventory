@@ -126,11 +126,6 @@ class TagValidatorPlugin(BasePlugin):
                                 log_msg = f'Current value {current_value} is larger than desired value {desired_value} - setting tag {tag}'
                                 log.debug(log_msg)
                                 set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
-                        else:
-                            log.debug((f'Found {node.resource_type} {node.dname} with age {node.age} in cloud {cloud.name}'
-                                       f' account {account.dname} region {region.name} with missing tag {tag}: {desired_value}'))
-                            log_msg = f'Tag {tag} is not set - setting to desired value {desired_value}'
-                            set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
         pt.run()
 
     @staticmethod
