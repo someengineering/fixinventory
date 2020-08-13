@@ -239,7 +239,9 @@ def split_esc(s, delim):
 
 def log_stats(gc=None, garbage_collector_stats: bool = False) -> None:
     try:
-        maxrss = iec_size_format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
+        maxrss_self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        maxrss_children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        maxrss = iec_size_format((maxrss_self + maxrss_children) * 1024)
         log.debug(f'Stats: max rss {maxrss}, active threads {threading.active_count()}: {", ".join([thread.name for thread in threading.enumerate()])}')
         if gc:
             log.debug((
