@@ -19,7 +19,11 @@ from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventTy
 from prometheus_client import REGISTRY
 
 
-os.setpgid(0, 0)
+try:
+    os.setpgid(0, 0)
+except (PermissionError, AttributeError):
+    pass
+
 log_format = '%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s'
 logging.basicConfig(level=logging.WARN, format=log_format)
 logging.getLogger('cloudkeeper').setLevel(logging.INFO)
