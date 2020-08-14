@@ -6,7 +6,7 @@ from concurrent import futures
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import signal_on_parent_exit
 from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.event import Event, add_event_listener, EventType
+from cloudkeeper.event import Event, add_event_listener, remove_event_listener, EventType
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -29,7 +29,6 @@ class AWSPlugin(BaseCollectorPlugin):
         self.__regions = []
         self.__graph_lock = Lock()
         self._executor = None
-        add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -82,21 +81,25 @@ class AWSPlugin(BaseCollectorPlugin):
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
-        self._executor = futures.ProcessPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size)
-        wait_for = [
-            self._executor.submit(collect_account, account, self.regions)
-            for account in accounts
-        ]
-        for future in futures.as_completed(wait_for):
-            res = future.result()
-            aac_root = res['root']
-            aac_graph = res['graph']
-            aac_account = res['account']
-            log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
-            self.graph = networkx.compose(self.graph, aac_graph)
-            self.graph.add_edge(self.root, aac_root)
-        self._executor.shutdown()
-        self._executor = None
+        try:
+            add_event_listener(EventType.SHUTDOWN, self.shutdown)
+            self._executor = futures.ProcessPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size)
+            wait_for = [
+                self._executor.submit(collect_account, account, self.regions)
+                for account in accounts
+            ]
+            for future in futures.as_completed(wait_for):
+                res = future.result()
+                aac_root = res['root']
+                aac_graph = res['graph']
+                aac_account = res['account']
+                log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
+                self.graph = networkx.compose(self.graph, aac_graph)
+                self.graph.add_edge(self.root, aac_root)
+            self._executor.shutdown()
+        finally:
+            self._executor = None
+            remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def shutdown(self, event: Event):
         if isinstance(self._executor, futures.ProcessPoolExecutor):
