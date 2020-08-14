@@ -3,6 +3,8 @@ import logging
 import re
 import gc as garbage_collector
 import resource
+import time
+from functools import wraps
 from pprint import pformat
 from pympler import asizeof
 from typing import List
@@ -286,3 +288,18 @@ def signal_on_parent_exit(signal: Signals = SIGKILL) -> bool:
     else:
         return res == 0
     return False
+
+
+def log_runtime(f):
+    @wraps(f)
+    def timer(*args, **kwargs):
+        start = time.time()
+        ret = f(*args, **kwargs)
+        runtime = time.time() - start
+        args_str = ', '.join([repr(arg) for arg in args])
+        kwargs_str = ', '.join([f"{k}={repr(v)}" for k, v in kwargs.items()])
+        if len(args) > 0 and len(kwargs) > 0:
+            args_str += ', '
+        log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
+        return ret
+    return timer

@@ -4,7 +4,7 @@ import logging
 from threading import Lock, current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import signal_on_parent_exit
+from cloudkeeper.utils import signal_on_parent_exit, log_runtime
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.event import Event, add_event_listener, remove_event_listener, EventType
 from .utils import aws_session
@@ -171,6 +171,7 @@ def all_regions() -> List:
     return [r['RegionName'] for r in regions['Regions']]
 
 
+@log_runtime
 def collect_account(account: AWSAccount, regions: List):
     signal_on_parent_exit()
     current_thread().name = f'aws_{account.id}'
