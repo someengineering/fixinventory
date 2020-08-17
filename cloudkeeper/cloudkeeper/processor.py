@@ -126,6 +126,9 @@ class Processor(threading.Thread):
         """cleanup() is run after collect() and creates a new instance of the Cleaner()
         """
         if ArgumentParser.args.cleanup:
+            if ArgumentParser.args.no_cleanup_after_collect:
+                log.debug('Not running automated cleanup after collect')
+                return
             resource_cleaner = Cleaner(self.gc.graph)
             resource_cleaner.cleanup()
 
