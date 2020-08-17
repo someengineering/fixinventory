@@ -7,6 +7,7 @@ import time
 import calendar
 import json
 from typing import Iterable, Tuple, Any
+from pympler import asizeof
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
@@ -209,8 +210,8 @@ class CliHandler:
         self.quit('Shutdown requested by CLI input')
         return ()
 
-    def cmd_procinfo(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: procinfo
+    def cmd_debug_procinfo(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: debug_procinfo
 
         Show information about running threads.
         '''
@@ -254,6 +255,18 @@ class CliHandler:
                 break
             elif confirm_delete is True:
                 item.cleanup(self.graph)
+            yield item
+
+    def cmd_debug_byte_size(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | debug_byte_size
+
+        Calculate the resources in-memory size in bytes and add it
+        as a .debug_byte_size attribute which can then be viewed with
+        the dump command.
+        '''
+        for item in items:
+            byte_size = asizeof.asizeof(item)
+            item.debug_byte_size = int(byte_size)
             yield item
 
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
