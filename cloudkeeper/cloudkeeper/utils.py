@@ -248,9 +248,9 @@ def get_stats(graph=None) -> Dict:
         stats['thread_names'] = [thread.name for thread in threading.enumerate()]
         stats['graph_size_bytes'] = asizeof.asizeof(graph)
         stats['garbage_collector'] = garbage_collector.get_stats()
-        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size'])
-        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self'])
-        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children'])
+        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes'])
+        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes'])
+        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes'])
     except Exception:
         log.exception('Error while trying to get stats')
     else:
@@ -260,10 +260,10 @@ def get_stats(graph=None) -> Dict:
 def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
     stats = get_stats(graph)
     try:
-        maxrss = iec_size_format((stats['maxrss_self'] + stats['maxrss_children']))
-        log.debug(f'Stats: max rss {maxrss}, active threads {threading.active_count()}: {", ".join([thread.name for thread in threading.enumerate()])}')
+        maxrss = iec_size_format((stats['maxrss_self_bytes'] + stats['maxrss_children_bytes']))
+        log.debug(f"Stats: max rss {maxrss}, active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}")
         if graph:
-            log.debug(f"Graph Stats: {iec_size_format(stats['graph'])}")
+            log.debug(f"Graph Stats: {iec_size_format(stats['graph_size_bytes'])}")
         if garbage_collector_stats:
             gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(stats['garbage_collector'])])
             log.debug(f'Garbage Collector Stats: {gc_stats}')

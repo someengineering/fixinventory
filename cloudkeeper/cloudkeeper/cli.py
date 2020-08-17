@@ -268,6 +268,14 @@ class CliHandler:
             item.debug_byte_size = int(byte_size)
             yield item
 
+    def cmd_debug_dump_members(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | debug_getmembers
+
+        Dump all the members of a resource in a list.
+        '''
+        for item in items:
+            yield pformat(inspect.getmembers(item))
+
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | dump [--json]
 
