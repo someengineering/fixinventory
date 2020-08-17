@@ -7,7 +7,7 @@ import time
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
-from typing import List
+from typing import Dict, List
 from datetime import date, datetime, timezone, timedelta
 from ctypes import CDLL
 from signal import Signals, SIGKILL
@@ -239,21 +239,33 @@ def split_esc(s, delim):
         i, buf = j + len(delim), ''  # start after delim
 
 
-def log_stats(gc=None, garbage_collector_stats: bool = False) -> None:
+def get_stats(graph=None) -> Dict:
     try:
-        maxrss_self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        maxrss_children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-        maxrss = iec_size_format((maxrss_self + maxrss_children) * 1024)
+        stats = {}
+        stats['maxrss_self_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        stats['maxrss_children_bytes'] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
+        stats['active_threads'] = threading.active_count()
+        stats['thread_names'] = [thread.name for thread in threading.enumerate()]
+        stats['graph_size_bytes'] = asizeof.asizeof(graph)
+        stats['garbage_collector'] = garbage_collector.get_stats()
+        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size'])
+        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self'])
+        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children'])
+    except Exception:
+        log.exception('Error while trying to get stats')
+    else:
+        return stats
+
+
+def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
+    stats = get_stats(graph)
+    try:
+        maxrss = iec_size_format((stats['maxrss_self'] + stats['maxrss_children']))
         log.debug(f'Stats: max rss {maxrss}, active threads {threading.active_count()}: {", ".join([thread.name for thread in threading.enumerate()])}')
-        if gc:
-            log.debug((
-                f'Graph Stats:'
-                f' container {iec_size_format(asizeof.asizeof(gc))}'
-                f', graph {iec_size_format(asizeof.asizeof(gc.graph))}'
-                f', pickle {iec_size_format(asizeof.asizeof(gc.pickle))}'
-            ))
+        if graph:
+            log.debug(f"Graph Stats: {iec_size_format(stats['graph'])}")
         if garbage_collector_stats:
-            gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(garbage_collector.get_stats())])
+            gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(stats['garbage_collector'])])
             log.debug(f'Garbage Collector Stats: {gc_stats}')
     except Exception:
         log.exception('Error while trying to log stats')

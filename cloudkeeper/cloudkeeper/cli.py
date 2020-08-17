@@ -22,7 +22,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default, get_stats
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -213,11 +213,10 @@ class CliHandler:
     def cmd_debug_procinfo(self, items: Iterable, args: str) -> Iterable:
         '''Usage: debug_procinfo
 
-        Show information about running threads.
+        Show system information.
         '''
-        yield 'Threads'
-        for thread in threading.enumerate():
-            yield f'\t{thread.name}: {thread}'
+        stats = get_stats(self.graph)
+        yield pformat(stats)
 
     def cmd_collect(self, items: Iterable, args: str) -> Iterable:
         '''Usage: collect
