@@ -25,7 +25,7 @@ def unless_protected(f):
         if self.protected:
             log.error(f'Resource {self.resource_type} {self.dname} is protected - refusing modification')
             self.log('Modification was requested even though resource is protected - refusing')
-            return
+            return False
         return f(self, *args, **kwargs)
     return wrapper
 
