@@ -40,8 +40,8 @@ class BasePlugin(ABC, Thread):
         try:
             self.go()
         except Exception:
-            metrics_unhandled_plugin_exceptions.labels(plugin=__name__).inc()
-            log.exception(f'Caught unhandled plugin exception in {__name__}')
+            metrics_unhandled_plugin_exceptions.labels(plugin=self.name).inc()
+            log.exception(f'Caught unhandled plugin exception in {self.name}')
 
     @abstractmethod
     def go(self) -> None:
