@@ -381,44 +381,53 @@ class BaseResource(ABC):
 class ResourceTagsDict(dict):
     def __init__(self, *args, parent_resource=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._parent_resource = parent_resource
+        self.__parent_resource = None
+        self.parent_resource = parent_resource
+
+    @property
+    def parent_resource(self):
+        return self.__parent_resource
+
+    @parent_resource.setter
+    def parent_resource(self, value):
+        self.__parent_resource = value
 
     def __setitem__(self, key, value):
-        if self._parent_resource and isinstance(self._parent_resource, BaseResource):
+        if self.parent_resource and isinstance(self.parent_resource, BaseResource):
             log.debug(f'Calling parent resource to set tag {key} to {value} in cloud')
             try:
-                if self._parent_resource.update_tag(key, value):
+                if self.parent_resource.update_tag(key, value):
                     log_msg = f'Successfully set tag {key} to {value} in cloud'
-                    self._parent_resource.log(log_msg)
-                    log.info(log_msg + f' for {self._parent_resource.resource_type} {self._parent_resource.id}')
+                    self.parent_resource.log(log_msg)
+                    log.info(log_msg + f' for {self.parent_resource.resource_type} {self.parent_resource.id}')
                     return super().__setitem__(key, value)
                 else:
                     log_msg = f'Error setting tag {key} to {value} in cloud'
-                    self._parent_resource.log(log_msg)
-                    log.error(log_msg + f' for {self._parent_resource.resource_type} {self._parent_resource.id}')
+                    self.parent_resource.log(log_msg)
+                    log.error(log_msg + f' for {self.parent_resource.resource_type} {self.parent_resource.id}')
             except Exception as e:
                 log_msg = f'Unhandled exception while trying to set tag {key} to {value} in cloud: {type(e)} {e}'
-                self._parent_resource.log(log_msg, exception=e)
+                self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)
         else:
             return super().__setitem__(key, value)
 
     def __delitem__(self, key):
-        if self._parent_resource and isinstance(self._parent_resource, BaseResource):
+        if self.parent_resource and isinstance(self.parent_resource, BaseResource):
             log.debug(f'Calling parent resource to delete tag {key} in cloud')
             try:
-                if self._parent_resource.delete_tag(key):
+                if self.parent_resource.delete_tag(key):
                     log_msg = f'Successfully deleted tag {key} in cloud'
-                    self._parent_resource.log(log_msg)
-                    log.info(log_msg + f' for {self._parent_resource.resource_type} {self._parent_resource.id}')
+                    self.parent_resource.log(log_msg)
+                    log.info(log_msg + f' for {self.parent_resource.resource_type} {self.parent_resource.id}')
                     return super().__delitem__(key)
                 else:
                     log_msg = f'Error deleting tag {key} in cloud'
-                    self._parent_resource.log(log_msg)
-                    log.error(log_msg + f' for {self._parent_resource.resource_type} {self._parent_resource.id}')
+                    self.parent_resource.log(log_msg)
+                    log.error(log_msg + f' for {self.parent_resource.resource_type} {self.parent_resource.id}')
             except Exception as e:
                 log_msg = f'Unhandled exception while trying to delete tag {key} in cloud: {type(e)} {e}'
-                self._parent_resource.log(log_msg, exception=e)
+                self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)
         else:
             return super().__delitem__(key)
