@@ -43,6 +43,8 @@ class AWSPlugin(BaseCollectorPlugin):
                                 default=None, nargs='+')
         arg_parser.add_argument('--aws-scrape-org', help='Scrape the entire AWS Org (default: False)',
                                 dest='aws_scrape_org', action='store_true')
+        arg_parser.add_argument('--aws-fork', help='Use forked process instead of threads (default: False)',
+                                dest='aws_fork', action='store_true')
         arg_parser.add_argument('--aws-scrape-exclude-account', help='AWS exclude this Account when scraping the org',
                                 dest='aws_scrape_exclude_account', type=str, default=[], nargs='+')
         arg_parser.add_argument('--aws-assume-current', help="Assume role in current account (default: False)",
@@ -81,9 +83,13 @@ class AWSPlugin(BaseCollectorPlugin):
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
+        max_workers = len(accounts) if len(accounts) < ArgumentParser.args.aws_account_pool_size else ArgumentParser.args.aws_account_pool_size
         try:
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            self._executor = futures.ProcessPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size)
+            if ArgumentParser.args.aws_fork:
+                self._executor = futures.ProcessPoolExecutor(max_workers=max_workers)
+            else:
+                self._executor = futures.ThreadPoolExecutor(max_workers=max_workers)
             wait_for = [
                 self._executor.submit(collect_account, account, self.regions)
                 for account in accounts
