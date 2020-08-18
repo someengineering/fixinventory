@@ -189,8 +189,12 @@ def signal_handler(sig, frame) -> None:
         else:
             log.debug('Parent received SIGUSR1 and ignoring it')
     else:
-        log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")
-        reason = f'Received shutdown signal {sig} from parent process'
+        if sig != SIGUSR1:
+            reason = f'Received unexpected shutdown signal {sig} of unknown origin - OOM killer?'
+            log.error(reason)
+        else:
+            reason = f'Received shutdown signal {sig} from parent process'
+        log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")        
         # Child's threads have 3s to shut down before the following thread will shut them down hard.
         kt = threading.Thread(target=delayed_exit, name='shutdown')
         kt.start()
