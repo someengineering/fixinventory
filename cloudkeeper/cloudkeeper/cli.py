@@ -22,7 +22,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default, get_stats
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default, get_stats, get_own_process_info
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -219,7 +219,7 @@ class CliHandler:
 
         Show system information.
         '''
-        stats = get_stats(self.graph)
+        stats = {'stats': get_stats(self.graph), 'process': get_own_process_info()}
         yield fmt_json(stats)
 
     def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
