@@ -1,12 +1,11 @@
 import botocore.exceptions
 import networkx
 import logging
-from threading import Lock, current_thread
+from threading import current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import signal_on_parent_exit, log_runtime
 from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.event import Event, add_event_listener, remove_event_listener, EventType
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -27,8 +26,6 @@ class AWSPlugin(BaseCollectorPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.__regions = []
-        self.__graph_lock = Lock()
-        self._executor = None
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -84,14 +81,14 @@ class AWSPlugin(BaseCollectorPlugin):
             accounts = [AWSAccount(current_account_id(), {})]
 
         max_workers = len(accounts) if len(accounts) < ArgumentParser.args.aws_account_pool_size else ArgumentParser.args.aws_account_pool_size
-        try:
-            add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            if ArgumentParser.args.aws_fork:
-                self._executor = futures.ProcessPoolExecutor(max_workers=max_workers)
-            else:
-                self._executor = futures.ThreadPoolExecutor(max_workers=max_workers)
+        if ArgumentParser.args.aws_fork:
+            pool_executor = futures.ProcessPoolExecutor
+        else:
+            pool_executor = futures.ThreadPoolExecutor
+
+        with pool_executor(max_workers=max_workers) as executor:
             wait_for = [
-                self._executor.submit(collect_account, account, self.regions)
+                executor.submit(collect_account, account, self.regions)
                 for account in accounts
             ]
             for future in futures.as_completed(wait_for):
@@ -102,15 +99,6 @@ class AWSPlugin(BaseCollectorPlugin):
                 log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
                 self.graph = networkx.compose(self.graph, aac_graph)
                 self.graph.add_edge(self.root, aac_root)
-            self._executor.shutdown()
-        finally:
-            self._executor = None
-            remove_event_listener(EventType.SHUTDOWN, self.shutdown)
-
-    def shutdown(self, event: Event):
-        if isinstance(self._executor, futures.ProcessPoolExecutor):
-            log.debug(f"Received event {event.event_type}, shutting down process pool")
-            self._executor.shutdown(wait=False)
 
     @property
     def regions(self) -> List:

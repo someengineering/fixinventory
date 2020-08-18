@@ -194,7 +194,7 @@ def signal_handler(sig, frame) -> None:
             log.error(reason)
         else:
             reason = f'Received shutdown signal {sig} from parent process'
-        log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")        
+        log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")
         # Child's threads have 3s to shut down before the following thread will shut them down hard.
         kt = threading.Thread(target=delayed_exit, name='shutdown')
         kt.start()
