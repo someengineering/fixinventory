@@ -3,9 +3,11 @@ import logging
 import re
 import gc as garbage_collector
 import resource
+import time
+from functools import wraps
 from pprint import pformat
 from pympler import asizeof
-from typing import List
+from typing import Dict, List
 from datetime import date, datetime, timezone, timedelta
 from ctypes import CDLL
 from signal import Signals, SIGKILL
@@ -237,19 +239,32 @@ def split_esc(s, delim):
         i, buf = j + len(delim), ''  # start after delim
 
 
-def log_stats(gc=None, garbage_collector_stats: bool = False) -> None:
+def get_stats(graph=None) -> Dict:
     try:
-        maxrss = iec_size_format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
-        log.debug(f'Stats: max rss {maxrss}, active threads {threading.active_count()}: {", ".join([thread.name for thread in threading.enumerate()])}')
-        if gc:
-            log.debug((
-                f'Graph Stats:'
-                f' container {iec_size_format(asizeof.asizeof(gc))}'
-                f', graph {iec_size_format(asizeof.asizeof(gc.graph))}'
-                f', pickle {iec_size_format(asizeof.asizeof(gc.pickle))}'
-            ))
+        stats = {}
+        stats['maxrss_self_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        stats['maxrss_children_bytes'] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
+        stats['active_threads'] = threading.active_count()
+        stats['thread_names'] = [thread.name for thread in threading.enumerate()]
+        stats['graph_size_bytes'] = asizeof.asizeof(graph)
+        stats['garbage_collector'] = garbage_collector.get_stats()
+        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes'])
+        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes'])
+        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes'])
+    except Exception:
+        log.exception('Error while trying to get stats')
+    else:
+        return stats
+
+
+def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
+    stats = get_stats(graph)
+    try:
+        log.debug(f"Stats: max rss self: {stats['maxrss_self_human_readable']}, children: {stats['maxrss_children_human_readable']}, active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}")
+        if graph:
+            log.debug(f"Graph Stats: {stats['graph_size_human_readable']}")
         if garbage_collector_stats:
-            gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(garbage_collector.get_stats())])
+            gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(stats['garbage_collector'])])
             log.debug(f'Garbage Collector Stats: {gc_stats}')
     except Exception:
         log.exception('Error while trying to log stats')
@@ -284,3 +299,18 @@ def signal_on_parent_exit(signal: Signals = SIGKILL) -> bool:
     else:
         return res == 0
     return False
+
+
+def log_runtime(f):
+    @wraps(f)
+    def timer(*args, **kwargs):
+        start = time.time()
+        ret = f(*args, **kwargs)
+        runtime = time.time() - start
+        args_str = ', '.join([repr(arg) for arg in args])
+        kwargs_str = ', '.join([f"{k}={repr(v)}" for k, v in kwargs.items()])
+        if len(args) > 0 and len(kwargs) > 0:
+            args_str += ', '
+        log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
+        return ret
+    return timer

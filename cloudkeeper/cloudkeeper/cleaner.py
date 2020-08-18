@@ -70,6 +70,7 @@ class Cleaner:
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument('--cleanup', help='Cleanup Resources (default: False)', dest='cleanup', action='store_true', default=False)
-        arg_parser.add_argument('--cleanup-pool-size', help='Cleanup Thread Pool Size (default: 10)', dest='cleanup_pool_size', default=10, type=int)
-        arg_parser.add_argument('--cleanup-dry-run', help='Cleanup Dry Run (default: False)', dest='cleanup_dry_run', action='store_true', default=False)
+        arg_parser.add_argument('--cleanup', help='Enable cleanup of resources (default: False)', dest='cleanup', action='store_true', default=False)
+        arg_parser.add_argument('--no-cleanup-after-collect', help='Do not automatically run cleanup after collect (default: False)', dest='no_cleanup_after_collect', action='store_true', default=False)
+        arg_parser.add_argument('--cleanup-pool-size', help='Cleanup thread pool size (default: 10)', dest='cleanup_pool_size', default=10, type=int)
+        arg_parser.add_argument('--cleanup-dry-run', help='Cleanup dry run (default: False)', dest='cleanup_dry_run', action='store_true', default=False)

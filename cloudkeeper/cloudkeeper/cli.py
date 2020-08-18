@@ -6,7 +6,8 @@ import ast
 import time
 import calendar
 import json
-from typing import Iterable, Tuple, Any
+from typing import Iterable, Tuple, Any, List
+from pympler import asizeof
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
@@ -21,7 +22,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default, get_stats
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -39,6 +40,7 @@ class Cli(threading.Thread):
         self.gc = gc
         self.scheduler = scheduler
         self.__run = not ArgumentParser.args.no_cli
+        self.clipboard = Clipboard()
 
         for action in ArgumentParser.args.cli_actions:
             register_cli_action(action)
@@ -53,7 +55,7 @@ class Cli(threading.Thread):
     def run(self) -> None:
         if self.__run:
             session = PromptSession()
-            completer = WordCompleter(CliHandler(self.gc.graph).valid_commands)
+            completer = WordCompleter(CliHandler(self.gc.graph, clipboard=self.clipboard).valid_commands)
 
         while self.__run:
             try:
@@ -61,7 +63,7 @@ class Cli(threading.Thread):
                 if cli_input == '':
                     continue
 
-                ch = CliHandler(self.gc.graph, self.scheduler)
+                ch = CliHandler(self.gc.graph, scheduler=self.scheduler, clipboard=self.clipboard)
                 for item in ch.evaluate_cli_input(cli_input):
                     print(item)
 
@@ -88,10 +90,13 @@ class Cli(threading.Thread):
 
 
 class CliHandler:
-    def __init__(self, graph: Graph, scheduler=None) -> None:
+    def __init__(self, graph: Graph, scheduler=None, clipboard: Iterable = None) -> None:
         self.graph = graph
         self.scheduler = scheduler
         self.valid_commands = sorted([f[4:] for f, _ in inspect.getmembers(self.__class__, predicate=inspect.isfunction) if f.startswith('cmd_')])
+        if clipboard is None:
+            clipboard = Clipboard()
+        self.clipboard = clipboard
 
     def evaluate_cli_input(self, cli_input: str) -> Iterable:
         cli_input = replace_placeholder(cli_input)
@@ -209,14 +214,43 @@ class CliHandler:
         self.quit('Shutdown requested by CLI input')
         return ()
 
-    def cmd_procinfo(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: procinfo
+    def cmd_debug_procinfo(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: debug_procinfo
 
-        Show information about running threads.
+        Show system information.
         '''
-        yield 'Threads'
-        for thread in threading.enumerate():
-            yield f'\t{thread.name}: {thread}'
+        stats = get_stats(self.graph)
+        yield pformat(stats)
+
+    def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | clipboard <copy|append|paste|clear> [passthrough]
+
+        Copy/paste input to/from CLI clipboard.
+        Optional `passthrough` arg will pass any input items through
+        to the next CLI command.
+        '''
+        cmd = args
+        arg = None
+        if ' ' in args:
+            cmd, arg = args.split(' ', 1)
+
+        if cmd in ('copy', 'append'):
+            if cmd == 'copy':
+                self.clipboard.clear()
+            for item in items:
+                self.clipboard.data.append(item)
+                if arg == 'passthrough':
+                    yield item
+        elif cmd == 'paste':
+            yield from self.clipboard.data
+            if arg == 'passthrough':
+                yield from items
+        elif cmd == 'clear':
+            self.clipboard.clear()
+            if arg == 'passthrough':
+                yield from items
+        else:
+            yield "Unknown clipboard command. See `help clipboard`."
 
     def cmd_collect(self, items: Iterable, args: str) -> Iterable:
         '''Usage: collect
@@ -255,6 +289,26 @@ class CliHandler:
             elif confirm_delete is True:
                 item.cleanup(self.graph)
             yield item
+
+    def cmd_debug_byte_size(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | debug_byte_size
+
+        Calculate the resources in-memory size in bytes and add it
+        as a .debug_byte_size attribute which can then be viewed with
+        the dump command.
+        '''
+        for item in items:
+            byte_size = asizeof.asizeof(item)
+            item.debug_byte_size = int(byte_size)
+            yield item
+
+    def cmd_debug_dump_members(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | debug_getmembers
+
+        Dump all the members of a resource in a list.
+        '''
+        for item in items:
+            yield pformat(inspect.getmembers(item))
 
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | dump [--json]
@@ -900,3 +954,19 @@ def replace_placeholder(cli_input: str) -> str:
     cli_input = cli_input.replace('@SUNDAY@', sunday)
 
     return cli_input
+
+
+class Clipboard:
+    def __init__(self) -> None:
+        self.__data = []
+
+    def clear(self):
+        self.data = []
+
+    @property
+    def data(self) -> List:
+        return self.__data
+
+    @data.setter
+    def data(self, value) -> None:
+        self.__data = value

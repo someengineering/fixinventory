@@ -2,6 +2,7 @@ import sys
 import logging
 import time
 import os
+import resource
 import threading
 from signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
 from cloudkeeper.graph import GraphContainer
@@ -19,6 +20,7 @@ from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventTy
 from prometheus_client import REGISTRY
 
 
+# Try to run in a new process group
 try:
     os.setpgid(0, 0)
 except (PermissionError, AttributeError):
@@ -75,6 +77,15 @@ def main() -> None:
     signal(SIGINT, signal_handler)
     signal(SIGTERM, signal_handler)
     signal(SIGUSR1, signal_handler)
+
+    # Try to increase nofile limit
+    nofile_soft, nofile_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    try:
+        if nofile_soft < nofile_hard:
+            log.debug(f'Increasing RLIMIT_NOFILE {nofile_soft} -> {nofile_hard}')
+            resource.setrlimit(resource.RLIMIT_NOFILE, (nofile_hard, nofile_hard))
+    except (ValueError):
+        log.error(f'Failed to increase RLIMIT_NOFILE {nofile_soft} -> {nofile_hard}')
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -178,8 +189,12 @@ def signal_handler(sig, frame) -> None:
         else:
             log.debug('Parent received SIGUSR1 and ignoring it')
     else:
+        if sig != SIGUSR1:
+            reason = f'Received unexpected shutdown signal {sig} of unknown origin - OOM killer?'
+            log.error(reason)
+        else:
+            reason = f'Received shutdown signal {sig} from parent process'
         log.debug(f"Shutting down child process {current_pid} - you might see exceptions from interrupted worker threads")
-        reason = f'Received shutdown signal {sig} from parent process'
         # Child's threads have 3s to shut down before the following thread will shut them down hard.
         kt = threading.Thread(target=delayed_exit, name='shutdown')
         kt.start()

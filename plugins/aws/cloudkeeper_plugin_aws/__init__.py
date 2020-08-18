@@ -1,12 +1,11 @@
 import botocore.exceptions
 import networkx
 import logging
-from threading import Lock, current_thread
+from threading import current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import signal_on_parent_exit
+from cloudkeeper.utils import signal_on_parent_exit, log_runtime
 from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.event import Event, add_event_listener, EventType
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -27,9 +26,6 @@ class AWSPlugin(BaseCollectorPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.__regions = []
-        self.__graph_lock = Lock()
-        self._executor = None
-        add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -44,6 +40,8 @@ class AWSPlugin(BaseCollectorPlugin):
                                 default=None, nargs='+')
         arg_parser.add_argument('--aws-scrape-org', help='Scrape the entire AWS Org (default: False)',
                                 dest='aws_scrape_org', action='store_true')
+        arg_parser.add_argument('--aws-fork', help='Use forked process instead of threads (default: False)',
+                                dest='aws_fork', action='store_true')
         arg_parser.add_argument('--aws-scrape-exclude-account', help='AWS exclude this Account when scraping the org',
                                 dest='aws_scrape_exclude_account', type=str, default=[], nargs='+')
         arg_parser.add_argument('--aws-assume-current', help="Assume role in current account (default: False)",
@@ -82,26 +80,25 @@ class AWSPlugin(BaseCollectorPlugin):
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
-        self._executor = futures.ProcessPoolExecutor(max_workers=ArgumentParser.args.aws_account_pool_size)
-        wait_for = [
-            self._executor.submit(collect_account, account, self.regions)
-            for account in accounts
-        ]
-        for future in futures.as_completed(wait_for):
-            res = future.result()
-            aac_root = res['root']
-            aac_graph = res['graph']
-            aac_account = res['account']
-            log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
-            self.graph = networkx.compose(self.graph, aac_graph)
-            self.graph.add_edge(self.root, aac_root)
-        self._executor.shutdown()
-        self._executor = None
+        max_workers = len(accounts) if len(accounts) < ArgumentParser.args.aws_account_pool_size else ArgumentParser.args.aws_account_pool_size
+        if ArgumentParser.args.aws_fork:
+            pool_executor = futures.ProcessPoolExecutor
+        else:
+            pool_executor = futures.ThreadPoolExecutor
 
-    def shutdown(self, event: Event):
-        if isinstance(self._executor, futures.ProcessPoolExecutor):
-            log.debug(f"Received event {event.event_type}, shutting down process pool")
-            self._executor.shutdown(wait=False)
+        with pool_executor(max_workers=max_workers) as executor:
+            wait_for = [
+                executor.submit(collect_account, account, self.regions)
+                for account in accounts
+            ]
+            for future in futures.as_completed(wait_for):
+                res = future.result()
+                aac_root = res['root']
+                aac_graph = res['graph']
+                aac_account = res['account']
+                log.debug(f'Merging graph of account {aac_account.dname} with {self.cloud} plugin graph')
+                self.graph = networkx.compose(self.graph, aac_graph)
+                self.graph.add_edge(self.root, aac_root)
 
     @property
     def regions(self) -> List:
@@ -168,6 +165,7 @@ def all_regions() -> List:
     return [r['RegionName'] for r in regions['Regions']]
 
 
+@log_runtime
 def collect_account(account: AWSAccount, regions: List):
     signal_on_parent_exit()
     current_thread().name = f'aws_{account.id}'
