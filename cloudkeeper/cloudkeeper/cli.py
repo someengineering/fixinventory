@@ -220,7 +220,7 @@ class CliHandler:
         Show system information.
         '''
         stats = get_stats(self.graph)
-        yield pformat(stats)
+        yield fmt_json(stats)
 
     def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | clipboard <copy|append|paste|clear> [passthrough]
@@ -344,7 +344,7 @@ class CliHandler:
             else:
                 yield(pformat(out))
         if dump_json:
-            yield(json.dumps(json_out, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True))
+            yield(fmt_json(json_out))
 
     def cmd_tag(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | tag <update|delete> key [value]
@@ -970,3 +970,7 @@ class Clipboard:
     @data.setter
     def data(self, value) -> None:
         self.__data = value
+
+
+def fmt_json(value) -> str:
+    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True)

@@ -1,6 +1,7 @@
 import threading
 import logging
 import re
+import os
 import gc as garbage_collector
 import resource
 import time
@@ -255,6 +256,71 @@ def get_stats(graph=None) -> Dict:
         log.exception('Error while trying to get stats')
     else:
         return stats
+
+
+def get_own_process_info(pid: int = None, proc: str = '/proc') -> Dict:
+    if pid is None:
+        pid = os.getpid()
+    process_info = {}
+    process_info['parent'] = {pid: get_process_info(pid)}
+    process_info['parent'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
+    process_info['children'] = get_child_process_info(pid, proc)
+    return process_info
+
+
+def get_child_process_info(parent_pid: int = None, proc: str = '/proc') -> Dict:
+    if parent_pid is None:
+        parent_pid = os.getpid()
+    child_process_info = {}
+    for pid in get_pid_list(proc):
+        process_info = get_process_info(pid)
+        if process_info.get('PPid') == str(parent_pid):
+            child_process_info[pid] = dict(process_info)
+            child_process_info[pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
+    return child_process_info
+
+
+def get_pid_list(proc: str = '/proc') -> List:
+    pids = []
+    for entry in os.listdir(proc):
+        try:
+            if os.path.isdir(os.path.join(proc, entry)) and entry.isdigit():
+                pids.append(int(entry))
+        except (PermissionError, FileNotFoundError):
+            pass
+    return pids
+
+
+def get_process_info(pid: int = None, proc: str = '/proc') -> Dict:
+    if pid is None:
+        pid = os.getpid()
+    process_info = {}
+    try:
+        with open(os.path.join(proc, str(pid), 'status'), 'r') as status:
+            for line in status:
+                k, v = line.split(':', 1)
+                v = re.sub('[ \t]+', ' ', v.strip())
+                process_info[k] = v
+    except (PermissionError, FileNotFoundError):
+        pass
+    return process_info
+
+
+def get_file_descriptor_info(pid: int = None, proc: str = '/proc') -> Dict:
+    if pid is None:
+        pid = os.getpid()
+    pid = str(pid)
+    file_descriptor_info = {}
+    try:
+        for entry in os.listdir(os.path.join(proc, pid, 'fd')):
+            file_descriptor_info[entry] = {}
+            entry_path = os.path.join(proc, pid, 'fd', entry)
+            if os.path.islink(entry_path):
+                target = os.readlink(entry_path)
+                file_descriptor_info[entry]['target'] = target
+    except (PermissionError, FileNotFoundError):
+        pass
+    return file_descriptor_info
 
 
 def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
