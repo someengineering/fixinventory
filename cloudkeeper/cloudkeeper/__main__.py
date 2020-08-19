@@ -4,6 +4,7 @@ import time
 import os
 import resource
 import threading
+import multiprocessing
 from signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
@@ -87,6 +88,8 @@ def main() -> None:
     except (ValueError):
         log.error(f'Failed to increase RLIMIT_NOFILE {nofile_soft} -> {nofile_hard}')
 
+    multiprocessing.set_start_method('forkserver', True)
+
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
     # graph gets reassigned.
@@ -122,9 +125,9 @@ def main() -> None:
         except Exception as e:
             log.exception(f'Caught unhandled persistent Plugin exception {e}')
 
-    collector = Processor(graph_container, plugin_loader.plugins(PluginType.COLLECTOR))
-    collector.daemon = True
-    collector.start()
+    processor = Processor(graph_container, plugin_loader.plugins(PluginType.COLLECTOR))
+    processor.daemon = True
+    processor.start()
 
     # Dispatch the STARTUP event
     dispatch_event(Event(EventType.STARTUP))
