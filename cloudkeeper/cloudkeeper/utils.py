@@ -5,6 +5,8 @@ import os
 import gc as garbage_collector
 import resource
 import time
+import json
+import ipaddress
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
@@ -242,29 +244,34 @@ def split_esc(s, delim):
 
 def get_stats(graph=None) -> Dict:
     try:
-        stats = {}
-        stats['maxrss_self_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
-        stats['maxrss_children_bytes'] = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
-        stats['active_threads'] = threading.active_count()
-        stats['thread_names'] = [thread.name for thread in threading.enumerate()]
-        stats['graph_size_bytes'] = asizeof.asizeof(graph)
-        stats['garbage_collector'] = garbage_collector.get_stats()
-        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes'])
-        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes'])
-        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes'])
+        stats = {
+            'maxrss_self_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+            'maxrss_children_bytes': resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
+            'active_threads': threading.active_count(),
+            'thread_names': [thread.name for thread in threading.enumerate()],
+            'graph_size_bytes': asizeof.asizeof(graph),
+            'garbage_collector': garbage_collector.get_stats(),
+            'process': get_all_process_info()
+        }
+        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes']),
+        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes']),
+        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes']),
     except Exception:
         log.exception('Error while trying to get stats')
+        return {}
     else:
         return stats
 
 
-def get_own_process_info(pid: int = None, proc: str = '/proc') -> Dict:
+def get_all_process_info(pid: int = None, proc: str = '/proc') -> Dict:
     if pid is None:
         pid = os.getpid()
     process_info = {}
     process_info['parent'] = {pid: get_process_info(pid)}
     process_info['parent'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
     process_info['children'] = get_child_process_info(pid, proc)
+    for pid in process_info['children']:
+        process_info['children'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
     return process_info
 
 
@@ -276,7 +283,6 @@ def get_child_process_info(parent_pid: int = None, proc: str = '/proc') -> Dict:
         process_info = get_process_info(pid)
         if process_info.get('PPid') == str(parent_pid):
             child_process_info[pid] = dict(process_info)
-            child_process_info[pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
     return child_process_info
 
 
@@ -380,3 +386,7 @@ def log_runtime(f):
         log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
         return ret
     return timer
+
+
+def fmt_json(value) -> str:
+    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True)

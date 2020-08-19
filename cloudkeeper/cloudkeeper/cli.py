@@ -5,7 +5,6 @@ import re
 import ast
 import time
 import calendar
-import json
 from typing import Iterable, Tuple, Any, List
 from pympler import asizeof
 from collections import deque
@@ -22,7 +21,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, json_default, get_stats, get_own_process_info
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, get_stats, fmt_json
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -219,8 +218,7 @@ class CliHandler:
 
         Show system information.
         '''
-        stats = {'stats': get_stats(self.graph), 'process': get_own_process_info()}
-        yield fmt_json(stats)
+        yield fmt_json(get_stats(self.graph))
 
     def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
         '''Usage: | clipboard <copy|append|paste|clear> [passthrough]
@@ -970,7 +968,3 @@ class Clipboard:
     @data.setter
     def data(self, value) -> None:
         self.__data = value
-
-
-def fmt_json(value) -> str:
-    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True)
