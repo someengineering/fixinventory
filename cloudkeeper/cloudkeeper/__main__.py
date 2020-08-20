@@ -79,14 +79,16 @@ def main() -> None:
     signal(SIGTERM, signal_handler)
     signal(SIGUSR1, signal_handler)
 
-    # Try to increase nofile limit
-    nofile_soft, nofile_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    try:
-        if nofile_soft < nofile_hard:
-            log.debug(f'Increasing RLIMIT_NOFILE {nofile_soft} -> {nofile_hard}')
-            resource.setrlimit(resource.RLIMIT_NOFILE, (nofile_hard, nofile_hard))
-    except (ValueError):
-        log.error(f'Failed to increase RLIMIT_NOFILE {nofile_soft} -> {nofile_hard}')
+    # Try to increase nofile and nproc limits
+    for limit_name in ('RLIMIT_NOFILE', 'RLIMIT_NPROC'):
+        soft_limit, hard_limit = resource.getrlimit(getattr(resource, limit_name))
+        log.debug(f'Current {limit_name} soft: {soft_limit} hard: {hard_limit}')
+        try:
+            if soft_limit < hard_limit:
+                log.debug(f'Increasing {limit_name} {soft_limit} -> {hard_limit}')
+                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
+        except (ValueError):
+            log.error(f'Failed to increase {limit_name} {soft_limit} -> {hard_limit}')
 
     multiprocessing.set_start_method('forkserver', True)
 
