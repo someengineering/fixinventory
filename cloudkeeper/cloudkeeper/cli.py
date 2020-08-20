@@ -1,6 +1,7 @@
 import threading
 import inspect
 import re
+import os
 import ast
 import time
 import calendar
@@ -208,6 +209,15 @@ class CliHandler:
         '''
         self.quit('Shutdown requested by CLI input')
         return ()
+
+    def cmd_debug_closefd(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: debug_closefd <fd>
+
+        Close an open file descriptor.
+        '''
+        fd_num = int(args)
+        yield "Trying to forcefully close file descriptor {fd_num}"
+        os.fdopen(fd_num).close()
 
     def cmd_debug_procinfo(self, items: Iterable, args: str) -> Iterable:
         '''Usage: debug_procinfo

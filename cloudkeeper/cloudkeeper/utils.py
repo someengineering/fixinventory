@@ -242,17 +242,26 @@ def split_esc(s, delim):
 def get_stats(graph=None) -> Dict:
     try:
         stats = {
-            'maxrss_self_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-            'maxrss_children_bytes': resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
             'active_threads': threading.active_count(),
             'thread_names': [thread.name for thread in threading.enumerate()],
             'graph_size_bytes': asizeof.asizeof(graph),
+            'maxrss_parent_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+            'maxrss_children_bytes': resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
             'garbage_collector': garbage_collector.get_stats(),
             'process': get_all_process_info()
         }
-        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes'])
-        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes'])
-        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes'])
+        stats['maxrss_total_bytes'] = stats['maxrss_parent_bytes'] + stats['maxrss_children_bytes']
+        num_fds_parent = stats['process']['parent']['num_file_descriptors']
+        num_fds_children = sum([v['num_file_descriptors'] for v in stats['process']['children'].values()])
+        stats.update({
+            'graph_size_human_readable': iec_size_format(stats['graph_size_bytes']),
+            'maxrss_parent_human_readable': iec_size_format(stats['maxrss_parent_bytes']),
+            'maxrss_children_human_readable': iec_size_format(stats['maxrss_children_bytes']),
+            'maxrss_total_human_readable': iec_size_format(stats['maxrss_total_bytes']),
+            'num_fds_parent': num_fds_parent,
+            'num_fds_children': num_fds_children,
+            'num_fds_total': num_fds_parent + num_fds_children
+        })
     except Exception:
         log.exception('Error while trying to get stats')
         return {}
@@ -264,11 +273,13 @@ def get_all_process_info(pid: int = None, proc: str = '/proc') -> Dict:
     if pid is None:
         pid = os.getpid()
     process_info = {}
-    process_info['parent'] = {pid: get_process_info(pid)}
-    process_info['parent'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
+    process_info['parent'] = get_process_info(pid)
+    process_info['parent']['file_descriptors'] = get_file_descriptor_info(pid, proc)
+    process_info['parent']['num_file_descriptors'] = len(process_info['parent']['file_descriptors'])
     process_info['children'] = get_child_process_info(pid, proc)
     for pid in process_info['children']:
         process_info['children'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
+        process_info['children'][pid]['num_file_descriptors'] = len(process_info['children'][pid]['file_descriptors'])
     return process_info
 
 
@@ -318,9 +329,9 @@ def get_file_descriptor_info(pid: int = None, proc: str = '/proc') -> Dict:
     file_descriptor_info = {}
     try:
         for entry in os.listdir(os.path.join(proc, pid, 'fd')):
-            file_descriptor_info[entry] = {}
             entry_path = os.path.join(proc, pid, 'fd', entry)
             if os.path.islink(entry_path):
+                file_descriptor_info[entry] = {}
                 target = os.readlink(entry_path)
                 file_descriptor_info[entry]['target'] = target
     except (PermissionError, FileNotFoundError):
@@ -331,11 +342,23 @@ def get_file_descriptor_info(pid: int = None, proc: str = '/proc') -> Dict:
 def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
     stats = get_stats(graph)
     try:
-        log.debug(f"Stats: max rss self: {stats['maxrss_self_human_readable']}, children: {stats['maxrss_children_human_readable']}, active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}")
+        log.debug((
+            f"Stats: max rss parent: {stats['maxrss_parent_human_readable']}, "
+            f"children: {stats['maxrss_children_human_readable']}, "
+            f"fds: {stats['num_fds_total']}/{stats['process']['parent']['rlimit_nofile'][0]} "
+            f"active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}"
+         ))
         if graph:
             log.debug(f"Graph Stats: {stats['graph_size_human_readable']}")
         if garbage_collector_stats:
-            gc_stats = " | ".join([f"Gen {i}: collections {data.get('collections')}, collected {data.get('collected')}, uncollectable {data.get('uncollectable')}" for i, data in enumerate(stats['garbage_collector'])])
+            gc_stats = " | ".join([
+                (
+                    f"Gen {i}: collections {data.get('collections')}, "
+                    f"collected {data.get('collected')}, "
+                    f"uncollectable {data.get('uncollectable')}"
+                )
+                for i, data in enumerate(stats['garbage_collector'])
+            ])
             log.debug(f'Garbage Collector Stats: {gc_stats}')
     except Exception:
         log.exception('Error while trying to log stats')
