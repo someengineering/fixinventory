@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import threading
 from datetime import timedelta
 from cloudkeeper.baseplugin import BasePlugin

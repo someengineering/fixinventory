@@ -1,6 +1,6 @@
-import logging
 import pkg_resources
 import inspect
+import cloudkeeper.logging as logging
 from typing import List
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BasePlugin, PluginType

@@ -6,7 +6,7 @@ from typing import Callable, Iterable
 from enum import Enum
 import os
 import time
-import logging
+import cloudkeeper.logging as logging
 
 log = logging.getLogger(__name__)
 

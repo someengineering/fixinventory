@@ -6,7 +6,7 @@ from cloudkeeper.event import Event, EventType, add_event_listener, remove_event
 import json
 import falcon
 import threading
-import logging
+import cloudkeeper.logging as logging
 
 log = logging.getLogger(__name__)
 

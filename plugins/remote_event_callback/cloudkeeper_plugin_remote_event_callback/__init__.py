@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import threading
 import requests
 from functools import partial

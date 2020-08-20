@@ -1,6 +1,6 @@
 import threading
-import logging
 import re
+import cloudkeeper.logging as logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.base import JobLookupError

@@ -1,10 +1,10 @@
 import threading
-import logging
 import inspect
 import re
 import ast
 import time
 import calendar
+import cloudkeeper.logging as logging
 from typing import Iterable, Tuple, Any, List
 from pympler import asizeof
 from collections import deque

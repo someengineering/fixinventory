@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import pickle
 import requests
 import networkx

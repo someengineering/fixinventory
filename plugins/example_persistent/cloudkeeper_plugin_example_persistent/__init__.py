@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import threading
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.args import ArgumentParser

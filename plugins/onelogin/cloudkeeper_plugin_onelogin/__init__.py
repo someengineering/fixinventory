@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import os
 from datetime import datetime, timezone
 from onelogin.api.client import OneLoginClient

@@ -1,5 +1,5 @@
 import sys
-import logging
+import cloudkeeper.logging as logging
 from cloudkeeper.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws import get_org_accounts
 

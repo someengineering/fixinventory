@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 from datetime import datetime
 from pathlib import Path
 from cloudkeeper.baseplugin import BasePlugin

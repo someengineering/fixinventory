@@ -1,5 +1,5 @@
 import re
-import logging
+import cloudkeeper.logging as logging
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import *
 from prometheus_client import Summary

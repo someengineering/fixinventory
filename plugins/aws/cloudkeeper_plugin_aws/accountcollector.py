@@ -1,7 +1,7 @@
 import botocore.exceptions
 import concurrent.futures
 import networkx
-import logging
+import cloudkeeper.logging as logging
 import socket
 import urllib3
 import json

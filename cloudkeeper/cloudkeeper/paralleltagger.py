@@ -1,5 +1,5 @@
-import logging
 import uuid
+import cloudkeeper.logging as logging
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from typing import List

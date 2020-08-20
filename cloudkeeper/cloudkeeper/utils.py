@@ -1,12 +1,11 @@
 import threading
-import logging
 import re
 import os
 import gc as garbage_collector
 import resource
 import time
 import json
-import ipaddress
+import cloudkeeper.logging as logging
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
@@ -253,9 +252,9 @@ def get_stats(graph=None) -> Dict:
             'garbage_collector': garbage_collector.get_stats(),
             'process': get_all_process_info()
         }
-        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes']),
-        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes']),
-        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes']),
+        stats['graph_size_human_readable'] = iec_size_format(stats['graph_size_bytes'])
+        stats['maxrss_self_human_readable'] = iec_size_format(stats['maxrss_self_bytes'])
+        stats['maxrss_children_human_readable'] = iec_size_format(stats['maxrss_children_bytes'])
     except Exception:
         log.exception('Error while trying to get stats')
         return {}
@@ -281,7 +280,7 @@ def get_child_process_info(parent_pid: int = None, proc: str = '/proc') -> Dict:
     child_process_info = {}
     for pid in get_pid_list(proc):
         process_info = get_process_info(pid)
-        if process_info.get('PPid') == str(parent_pid):
+        if process_info.get('ppid') == str(parent_pid):
             child_process_info[pid] = dict(process_info)
     return child_process_info
 

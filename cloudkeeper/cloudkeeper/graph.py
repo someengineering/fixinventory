@@ -1,10 +1,10 @@
 import networkx
-import logging
 import threading
 import pickle
 import json
 import datetime
 import re
+import cloudkeeper.logging as logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
 from cloudkeeper.utils import RWLock, json_default
 from cloudkeeper.args import ArgumentParser

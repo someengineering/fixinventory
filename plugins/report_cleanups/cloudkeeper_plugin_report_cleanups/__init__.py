@@ -1,6 +1,6 @@
 import csv
 import json
-import logging
+import cloudkeeper.logging as logging
 import threading
 from pathlib import Path
 from datetime import datetime, timezone

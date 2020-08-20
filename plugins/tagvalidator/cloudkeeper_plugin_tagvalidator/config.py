@@ -1,5 +1,5 @@
 import configparser
-import logging
+import cloudkeeper.logging as logging
 from collections import defaultdict
 
 log = logging.getLogger('cloudkeeper.' + __name__)

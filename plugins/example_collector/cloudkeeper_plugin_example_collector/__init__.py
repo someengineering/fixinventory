@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser

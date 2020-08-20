@@ -1,7 +1,7 @@
 import threading
-import logging
 import time
 import os
+import cloudkeeper.logging as logging
 from typing import List
 from networkx.algorithms.dag import is_directed_acyclic_graph
 from cloudkeeper.graph import GraphContainer, sanitize

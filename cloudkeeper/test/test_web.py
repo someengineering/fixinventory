@@ -1,6 +1,6 @@
 import socket
 import requests
-import logging
+import cloudkeeper.logging as logging
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import add_args as event_add_args
 from cloudkeeper.web import WebServer

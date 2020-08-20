@@ -2,9 +2,9 @@ from abc import ABC
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
-import logging
 import uuid
 import networkx.algorithms.dag
+import cloudkeeper.logging as logging
 from typing import Dict, Iterator, List, Tuple
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary

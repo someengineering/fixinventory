@@ -1,6 +1,6 @@
 from cloudkeeper.graph import Graph, GraphContainer
 from cloudkeeper.baseresources import BaseResource
-import logging
+import cloudkeeper.logging as logging
 logging.getLogger('cloudkeeper').setLevel(logging.DEBUG)
 
 

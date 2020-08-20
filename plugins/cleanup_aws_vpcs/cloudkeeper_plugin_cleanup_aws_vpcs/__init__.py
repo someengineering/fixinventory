@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 import threading
 import yaml
 from cloudkeeper.baseplugin import BasePlugin

@@ -4,7 +4,7 @@ from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import Event, EventType, add_args as event_add_args
-import logging
+import cloudkeeper.logging as logging
 import time
 import random
 logging.getLogger('cloudkeeper').setLevel(logging.DEBUG)

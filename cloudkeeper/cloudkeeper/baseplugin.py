@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging as logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from cloudkeeper.graph import Graph, get_resource_attributes

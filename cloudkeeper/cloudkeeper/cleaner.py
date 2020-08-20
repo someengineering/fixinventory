@@ -5,7 +5,7 @@ from cloudkeeper.baseresources import BaseResource
 from defaultlist import defaultlist
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-import logging
+import cloudkeeper.logging as logging
 
 log = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 import time
-import logging
+import cloudkeeper.logging as logging
 import copy
 from datetime import date
 from enum import Enum, auto

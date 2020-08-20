@@ -1,10 +1,9 @@
 import sys
-import logging
 import time
 import os
 import resource
 import threading
-import multiprocessing
+import cloudkeeper.logging as logging
 from signal import signal, getsignal, SIGINT, SIGTERM, SIGKILL, SIGUSR1
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
@@ -27,16 +26,7 @@ try:
 except (PermissionError, AttributeError):
     pass
 
-log_format = '%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s'
-logging.basicConfig(level=logging.WARN, format=log_format)
-logging.getLogger('cloudkeeper').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
-
-# Plugins might produce debug logging during arg parsing so we manually
-# look for verbosity and set the log level before using the arg parser.
-argv = sys.argv[1:]
-if '-v' in argv or '--verbose' in argv:
-    logging.getLogger('cloudkeeper').setLevel(logging.DEBUG)
 
 # This will be used in main() and signal_handler()
 shutdown_event = threading.Event()
@@ -49,6 +39,7 @@ def main() -> None:
     # Add cli args
     arg_parser = get_arg_parser()
 
+    logging.add_args(arg_parser)
     Cli.add_args(arg_parser)
     WebServer.add_args(arg_parser)
     Scheduler.add_args(arg_parser)
@@ -64,13 +55,6 @@ def main() -> None:
 
     # At this point the CLI, all Plugins as well as the WebServer have added their args to the arg parser
     arg_parser.parse_args()
-
-    # Write log to a file in addition to stdout
-    if ArgumentParser.args.logfile:
-        log_formatter = logging.Formatter(log_format)
-        fh = logging.FileHandler(ArgumentParser.args.logfile)
-        fh.setFormatter(log_formatter)
-        logging.getLogger().addHandler(fh)
 
     # Handle Ctrl+c and other means of termination/shutdown
     signal_on_parent_exit()
@@ -89,8 +73,6 @@ def main() -> None:
                 resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
         except (ValueError):
             log.error(f'Failed to increase {limit_name} {soft_limit} -> {hard_limit}')
-
-    multiprocessing.set_start_method('forkserver', True)
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
