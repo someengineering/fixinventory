@@ -216,8 +216,9 @@ def parse_delta(delta: str) -> timedelta:
 def chunks(items: List, n: int) -> List:
     """Split a list of items into multiple lists of size n and yield each chunk
     """
-    for i in range(0, len(items), n):
-        yield items[i : i + n]
+    for s in range(0, len(items), n):
+        e = s + n
+        yield items[s:e]
 
 
 def split_esc(s, delim):
