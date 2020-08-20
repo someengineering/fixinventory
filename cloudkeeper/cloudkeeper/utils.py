@@ -307,6 +307,8 @@ def get_process_info(pid: int = None, proc: str = '/proc') -> Dict:
                 k, v = line.split(':', 1)
                 v = re.sub('[ \t]+', ' ', v.strip())
                 process_info[k] = v
+        for limit_name in ('NOFILE', 'NPROC'):
+            process_info[f'RLIMIT_{limit_name}'] = resource.getrlimit(getattr(resource, f'RLIMIT_{limit_name}'))
     except (PermissionError, FileNotFoundError):
         pass
     return process_info
