@@ -210,17 +210,37 @@ class CliHandler:
         self.quit('Shutdown requested by CLI input')
         return ()
 
-    def cmd_debug_closefd(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: debug_closefd <fd>
+    def cmd_debug_close_fd(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: debug_close_fd <fd>[+]
 
         Close an open file descriptor.
+        If the + arg is given close any file
+        descriptor after the one given as well.
         '''
-        fd_num = int(args)
-        yield "Trying to forcefully close file descriptor {fd_num}"
-        os.fdopen(fd_num).close()
+        close_after = False
+        if args.endswith('+'):
+            close_after = True
+            args = args[:-1]
 
-    def cmd_debug_procinfo(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: debug_procinfo
+        if not args.isnumeric():
+            yield "debug_close_fd expects a file descriptor number as arg."
+        else:
+            fd_num = int(args)
+
+            stats = get_stats()
+            all_fds = [int(fd) for fd in stats['process']['parent']['file_descriptors'].keys()]
+            if fd_num not in all_fds:
+                yield f"File descriptor {fd_num} does not belong to us."
+            else:
+                fds = [fd_num]
+                if close_after:
+                    fds.extend([fd for fd in all_fds if fd > fd_num])
+                for fd in fds:
+                    yield f"Forcefully closing file descriptor {fd}."
+                    os.fdopen(fd).close()
+
+    def cmd_debug_proc_info(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: debug_proc_info
 
         Show system information.
         '''
