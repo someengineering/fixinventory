@@ -61,6 +61,7 @@ class RWLock:
 
             def __exit__(self, typ, value, tb):
                 self.rwlock.reader_release()
+
         self.read_access = _ReadAccess(self)
 
         class _WriteAccess:
@@ -73,6 +74,7 @@ class RWLock:
 
             def __exit__(self, typ, value, tb):
                 self.rwlock.writer_release()
+
         self.write_access = _WriteAccess(self)
 
     def reader_acquire(self):
@@ -135,16 +137,16 @@ def delta_to_str(delta: timedelta) -> str:
     that is parseable by parse_delta
     """
     # NOTE: Rounds up to nearest minute)
-    units = [('m', 60), ('h', 60), ('d', 24), ('w', 7)]
+    units = [("m", 60), ("h", 60), ("d", 24), ("w", 7)]
 
     remaining = delta.total_seconds()
 
-    delta_str = ''
+    delta_str = ""
 
     negative = remaining < 0
 
     def add_negative():
-        return '-' + delta_str if negative else delta_str
+        return "-" + delta_str if negative else delta_str
 
     # Only handle things in the future for simplicity in testing.
     if negative:
@@ -152,7 +154,7 @@ def delta_to_str(delta: timedelta) -> str:
 
     # Print 0 minutes as the base case.
     if remaining == 0:
-        return '0m'
+        return "0m"
 
     for i in range(0, len(units)):
         _, count = units[i]
@@ -185,11 +187,11 @@ def parse_delta(delta: str) -> timedelta:
     Takes a delta string like that constructed in delta_to_str and converts
     it into a datetime.timedelta object
     """
-    assert delta != 'never'
-    possible_args = ['weeks', 'days', 'hours', 'minutes']
+    assert delta != "never"
+    possible_args = ["weeks", "days", "hours", "minutes"]
 
     # Find all the <count> <unit> patterns, expand the count + units to build a timedelta.
-    chunk_regex = r'(\d+)\s*(\D+)\s*'
+    chunk_regex = r"(\d+)\s*(\D+)\s*"
     kwargs = {}
     for count, unit in re.findall(chunk_regex, delta, re.I):
         unit = unit.strip()
@@ -215,7 +217,7 @@ def chunks(items: List, n: int) -> List:
     """Split a list of items into multiple lists of size n and yield each chunk
     """
     for i in range(0, len(items), n):
-        yield items[i:i + n]
+        yield items[i : i + n]
 
 
 def split_esc(s, delim):
@@ -223,78 +225,80 @@ def split_esc(s, delim):
 
     Via: https://stackoverflow.com/a/29107566
     """
-    i, res, buf = 0, [], ''
+    i, res, buf = 0, [], ""
     while True:
         j, e = s.find(delim, i), 0
         if j < 0:  # end reached
             return res + [buf + s[i:]]  # add remainder
-        while j - e and s[j - e - 1] == '\\':
+        while j - e and s[j - e - 1] == "\\":
             e += 1  # number of escapes
         d = e // 2  # number of double escapes
         if e != d * 2:  # odd number of escapes
-            buf += s[i:j - d - 1] + s[j]  # add the escaped char
+            buf += s[i : j - d - 1] + s[j]  # add the escaped char
             i = j + 1  # and skip it
             continue  # add more to buf
-        res.append(buf + s[i:j - d])
-        i, buf = j + len(delim), ''  # start after delim
+        res.append(buf + s[i : j - d])
+        i, buf = j + len(delim), ""  # start after delim
 
 
 def get_stats(graph=None) -> Dict:
     try:
         stats = {
-            'active_threads': threading.active_count(),
-            'thread_names': [thread.name for thread in threading.enumerate()],
-            'graph_size_bytes': asizeof.asizeof(graph),
-            'maxrss_parent_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-            'maxrss_children_bytes': resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
-            'garbage_collector': garbage_collector.get_stats(),
-            'process': get_all_process_info()
+            "active_threads": threading.active_count(),
+            "thread_names": [thread.name for thread in threading.enumerate()],
+            "graph_size_bytes": asizeof.asizeof(graph),
+            "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+            "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
+            "garbage_collector": garbage_collector.get_stats(),
+            "process": get_all_process_info(),
         }
-        stats['maxrss_total_bytes'] = stats['maxrss_parent_bytes'] + stats['maxrss_children_bytes']
-        num_fds_parent = stats['process']['parent']['num_file_descriptors']
-        num_fds_children = sum([v['num_file_descriptors'] for v in stats['process']['children'].values()])
-        stats.update({
-            'graph_size_human_readable': iec_size_format(stats['graph_size_bytes']),
-            'maxrss_parent_human_readable': iec_size_format(stats['maxrss_parent_bytes']),
-            'maxrss_children_human_readable': iec_size_format(stats['maxrss_children_bytes']),
-            'maxrss_total_human_readable': iec_size_format(stats['maxrss_total_bytes']),
-            'num_fds_parent': num_fds_parent,
-            'num_fds_children': num_fds_children,
-            'num_fds_total': num_fds_parent + num_fds_children
-        })
+        stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
+        num_fds_parent = stats["process"]["parent"]["num_file_descriptors"]
+        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"]["children"].values()])
+        stats.update(
+            {
+                "graph_size_human_readable": iec_size_format(stats["graph_size_bytes"]),
+                "maxrss_parent_human_readable": iec_size_format(stats["maxrss_parent_bytes"]),
+                "maxrss_children_human_readable": iec_size_format(stats["maxrss_children_bytes"]),
+                "maxrss_total_human_readable": iec_size_format(stats["maxrss_total_bytes"]),
+                "num_fds_parent": num_fds_parent,
+                "num_fds_children": num_fds_children,
+                "num_fds_total": num_fds_parent + num_fds_children,
+            }
+        )
     except Exception:
-        log.exception('Error while trying to get stats')
+        log.exception("Error while trying to get stats")
         return {}
     else:
         return stats
 
 
-def get_all_process_info(pid: int = None, proc: str = '/proc') -> Dict:
+def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
     if pid is None:
         pid = os.getpid()
     process_info = {}
-    process_info['parent'] = get_process_info(pid)
-    process_info['parent']['file_descriptors'] = get_file_descriptor_info(pid, proc)
-    process_info['parent']['num_file_descriptors'] = len(process_info['parent']['file_descriptors'])
-    process_info['children'] = get_child_process_info(pid, proc)
-    for pid in process_info['children']:
-        process_info['children'][pid]['file_descriptors'] = get_file_descriptor_info(pid, proc)
-        process_info['children'][pid]['num_file_descriptors'] = len(process_info['children'][pid]['file_descriptors'])
+    process_info["parent"] = get_process_info(pid)
+    process_info["parent"]["file_descriptors"] = get_file_descriptor_info(pid, proc)
+    process_info["parent"]["num_file_descriptors"] = len(process_info["parent"]["file_descriptors"])
+    process_info["children"] = get_child_process_info(pid, proc)
+    for pid in process_info["children"]:
+        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(pid, proc)
+        process_info["children"][pid]["num_file_descriptors"] = len(process_info["children"][pid]["file_descriptors"])
     return process_info
 
 
-def get_child_process_info(parent_pid: int = None, proc: str = '/proc') -> Dict:
+def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
     if parent_pid is None:
         parent_pid = os.getpid()
     child_process_info = {}
     for pid in get_pid_list(proc):
         process_info = get_process_info(pid)
-        if process_info.get('ppid') == str(parent_pid):
+        if process_info.get("ppid") == str(parent_pid):
             child_process_info[pid] = dict(process_info)
     return child_process_info
 
 
-def get_pid_list(proc: str = '/proc') -> List:
+def get_pid_list(proc: str = "/proc") -> List:
     pids = []
     for entry in os.listdir(proc):
         try:
@@ -305,35 +309,37 @@ def get_pid_list(proc: str = '/proc') -> List:
     return pids
 
 
-def get_process_info(pid: int = None, proc: str = '/proc') -> Dict:
+def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
     if pid is None:
         pid = os.getpid()
     process_info = {}
     try:
-        with open(os.path.join(proc, str(pid), 'status'), 'r') as status:
+        with open(os.path.join(proc, str(pid), "status"), "r") as status:
             for line in status:
-                k, v = line.split(':', 1)
-                v = re.sub('[ \t]+', ' ', v.strip())
+                k, v = line.split(":", 1)
+                v = re.sub("[ \t]+", " ", v.strip())
                 process_info[k.lower()] = v
-        for limit_name in ('NOFILE', 'NPROC'):
-            process_info[f'RLIMIT_{limit_name}'.lower()] = resource.getrlimit(getattr(resource, f'RLIMIT_{limit_name}'))
+        for limit_name in ("NOFILE", "NPROC"):
+            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(
+                getattr(resource, f"RLIMIT_{limit_name}")
+            )
     except (PermissionError, FileNotFoundError):
         pass
     return process_info
 
 
-def get_file_descriptor_info(pid: int = None, proc: str = '/proc') -> Dict:
+def get_file_descriptor_info(pid: int = None, proc: str = "/proc") -> Dict:
     if pid is None:
         pid = os.getpid()
     pid = str(pid)
     file_descriptor_info = {}
     try:
-        for entry in os.listdir(os.path.join(proc, pid, 'fd')):
-            entry_path = os.path.join(proc, pid, 'fd', entry)
+        for entry in os.listdir(os.path.join(proc, pid, "fd")):
+            entry_path = os.path.join(proc, pid, "fd", entry)
             if os.path.islink(entry_path):
                 file_descriptor_info[entry] = {}
                 target = os.readlink(entry_path)
-                file_descriptor_info[entry]['target'] = target
+                file_descriptor_info[entry]["target"] = target
     except (PermissionError, FileNotFoundError):
         pass
     return file_descriptor_info
@@ -342,45 +348,49 @@ def get_file_descriptor_info(pid: int = None, proc: str = '/proc') -> Dict:
 def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
     stats = get_stats(graph)
     try:
-        log.debug((
-            f"Stats: max rss parent: {stats['maxrss_parent_human_readable']}, "
-            f"children: {stats['maxrss_children_human_readable']}, "
-            f"fds: {stats['num_fds_total']}/{stats['process']['parent']['rlimit_nofile'][0]} "
-            f"active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}"
-         ))
+        log.debug(
+            (
+                f"Stats: max rss parent: {stats['maxrss_parent_human_readable']}, "
+                f"children: {stats['maxrss_children_human_readable']}, "
+                f"fds: {stats['num_fds_total']}/{stats['process']['parent']['rlimit_nofile'][0]} "
+                f"active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}"
+            )
+        )
         if graph:
             log.debug(f"Graph Stats: {stats['graph_size_human_readable']}")
         if garbage_collector_stats:
-            gc_stats = " | ".join([
-                (
-                    f"Gen {i}: collections {data.get('collections')}, "
-                    f"collected {data.get('collected')}, "
-                    f"uncollectable {data.get('uncollectable')}"
-                )
-                for i, data in enumerate(stats['garbage_collector'])
-            ])
-            log.debug(f'Garbage Collector Stats: {gc_stats}')
+            gc_stats = " | ".join(
+                [
+                    (
+                        f"Gen {i}: collections {data.get('collections')}, "
+                        f"collected {data.get('collected')}, "
+                        f"uncollectable {data.get('uncollectable')}"
+                    )
+                    for i, data in enumerate(stats["garbage_collector"])
+                ]
+            )
+            log.debug(f"Garbage Collector Stats: {gc_stats}")
     except Exception:
-        log.exception('Error while trying to log stats')
+        log.exception("Error while trying to log stats")
 
 
 # via https://stackoverflow.com/a/1094933
 def iec_size_format(byte_size: int) -> str:
-    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB']:
+    for unit in ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]:
         if abs(byte_size) < 1024.0:
-            return f'{byte_size:.2f} {unit}'
+            return f"{byte_size:.2f} {unit}"
         byte_size /= 1024.0
-    return f'{byte_size:.2f} YiB'
+    return f"{byte_size:.2f} YiB"
 
 
 def json_default(o):
-    if hasattr(o, 'to_json'):
+    if hasattr(o, "to_json"):
         return o.to_json()
     elif isinstance(o, (date, datetime)):
         return o.isoformat()
     elif isinstance(o, Exception):
         return pformat(o)
-    raise TypeError(f'Object of type {o.__class__.__name__} is not JSON serializable')
+    raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 
 def log_runtime(f):
@@ -389,14 +399,15 @@ def log_runtime(f):
         start = time.time()
         ret = f(*args, **kwargs)
         runtime = time.time() - start
-        args_str = ', '.join([repr(arg) for arg in args])
-        kwargs_str = ', '.join([f"{k}={repr(v)}" for k, v in kwargs.items()])
+        args_str = ", ".join([repr(arg) for arg in args])
+        kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
         if len(args) > 0 and len(kwargs) > 0:
-            args_str += ', '
+            args_str += ", "
         log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
         return ret
+
     return timer
 
 
 def fmt_json(value) -> str:
-    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(',', ': '), sort_keys=True)
+    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(",", ": "), sort_keys=True)
