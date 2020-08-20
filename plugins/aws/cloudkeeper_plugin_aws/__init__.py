@@ -2,10 +2,11 @@ import botocore.exceptions
 import networkx
 import cloudkeeper.logging as logging
 import multiprocessing
+import cloudkeeper.signal
 from threading import current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import signal_on_parent_exit, log_runtime
+from cloudkeeper.utils import log_runtime
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
 from .resources import AWSAccount
@@ -85,6 +86,7 @@ class AWSPlugin(BaseCollectorPlugin):
         pool_args = {'max_workers': max_workers}
         if ArgumentParser.args.aws_fork:
             pool_args['mp_context'] = multiprocessing.get_context('spawn')
+            pool_args['initializer'] = cloudkeeper.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -170,8 +172,9 @@ def all_regions() -> List:
 
 @log_runtime
 def collect_account(account: AWSAccount, regions: List, args=None):
-    signal_on_parent_exit()
-    current_thread().name = f'aws_{account.id}'
+    cloudkeeper.signal.on_parent_exit()
+    collector_name = f'aws_{account.id}'
+    current_thread().name = collector_name
 
     if args is not None:
         ArgumentParser.args = args
