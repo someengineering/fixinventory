@@ -11,12 +11,16 @@ argv = sys.argv[1:]
 if '-v' in argv or '--verbose' in argv:
     getLogger('cloudkeeper').setLevel(DEBUG)
 
-if ArgumentParser.args.logfile:
-    log_formatter = Formatter(log_format)
-    fh = FileHandler(ArgumentParser.args.logfile)
-    fh.setFormatter(log_formatter)
-    getLogger().addHandler(fh)
+logfile_arg = '--logfile'
+if logfile_arg in argv:
+    idx = argv.index(logfile_arg)
+    if len(argv) > idx + 1:
+        logfile = argv[idx + 1]
+        log_formatter = Formatter(log_format)
+        fh = FileHandler(logfile)
+        fh.setFormatter(log_formatter)
+        getLogger().addHandler(fh)
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument('--logfile', help='Logfile to log into', dest='logfile')
+    arg_parser.add_argument(logfile_arg, help='Logfile to log into', dest='logfile')
