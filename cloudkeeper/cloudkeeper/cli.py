@@ -229,15 +229,14 @@ class CliHandler:
 
             stats = get_stats()
             all_fds = [int(fd) for fd in stats['process']['parent']['file_descriptors'].keys()]
-            if fd_num not in all_fds:
-                yield f"File descriptor {fd_num} does not belong to us."
-            else:
-                fds = [fd_num]
-                if close_after:
-                    fds.extend([fd for fd in all_fds if fd > fd_num])
-                for fd in fds:
-                    yield f"Forcefully closing file descriptor {fd}."
-                    os.fdopen(fd).close()
+            kill_fds = []
+            if fd_num in all_fds:
+                kill_fds.append(fd_num)
+            if close_after:
+                kill_fds.extend([fd for fd in all_fds if fd > fd_num])
+            for fd in kill_fds:
+                yield f"Forcefully closing file descriptor {fd}."
+                os.fdopen(fd).close()
 
     def cmd_debug_proc_info(self, items: Iterable, args: str) -> Iterable:
         '''Usage: debug_proc_info
