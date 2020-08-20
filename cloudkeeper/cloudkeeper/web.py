@@ -41,9 +41,6 @@ class WebServer(threading.Thread):
         self.httpd = make_server('', ArgumentParser.args.web_port, api, ThreadingWSGIServer, CloudkeeperRequestHandler)
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
-    def __del__(self):
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
-
     def run(self) -> None:
         self.httpd.serve_forever()
 
@@ -53,6 +50,7 @@ class WebServer(threading.Thread):
             self.httpd.socket.close()
             self.httpd.shutdown()
         self.httpd = None
+        import time
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

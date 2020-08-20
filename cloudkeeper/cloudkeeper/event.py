@@ -55,6 +55,8 @@ _events_lock = RWLock()
 def event_listener_registered(event_type: EventType, listener: Callable) -> bool:
     """Return whether listener is registered to event
     """
+    if _events is None:
+        return False
     return event_type in _events.keys() and listener in _events[event_type].keys()
 
 

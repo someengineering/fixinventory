@@ -1,10 +1,11 @@
 import time
 import os
+import sys
 import resource
 import threading
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
-from signal import SIGKILL, SIGUSR1
+from signal import SIGKILL, SIGUSR1, SIGTERM
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
@@ -14,7 +15,7 @@ from cloudkeeper.args import get_arg_parser
 from cloudkeeper.processor import Processor
 from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.metrics import GraphCollector
-from cloudkeeper.utils import log_stats
+from cloudkeeper.utils import log_stats, get_child_process_info
 from cloudkeeper.cli import Cli
 from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventType, add_args as event_add_args
 from prometheus_client import REGISTRY
@@ -34,6 +35,11 @@ shutdown_event = threading.Event()
 
 def main() -> None:
     cloudkeeper.signal.parent_pid = os.getpid()
+    args_str = ''
+    if len(sys.argv) > 1:
+        args_str = f" {' '.join(sys.argv[1:])}"
+    cloudkeeper.signal.set_proc_title(f"cloudkeeper{args_str}")
+    cloudkeeper.signal.set_proc_name('cloudkeeper')
     # Add cli args
     arg_parser = get_arg_parser()
 
@@ -118,9 +124,15 @@ def main() -> None:
     while not shutdown_event.is_set():
         log_stats()
         shutdown_event.wait(900)
-    time.sleep(5)
+    time.sleep(3)
+    num_children = len(get_child_process_info().keys())
+    if num_children > 0:
+        log.debug(f'There are still {num_children} children alive - sending SIGTERM followed by SIGKILL')
+        cloudkeeper.signal.kill_children(SIGTERM)
+        time.sleep(2)
+        cloudkeeper.signal.kill_children(SIGKILL)
     log.info('Shutdown complete')
-    os._exit(0)
+    quit()
 
 
 def shutdown(event: Event) -> None:
@@ -138,8 +150,19 @@ def shutdown(event: Event) -> None:
     if reason is None:
         reason = 'unknown reason'
     log.info(f'Received shut down event {event.event_type}: {reason} - killing all threads and child processes')
-    os.killpg(os.getpgid(0), SIGUSR1)
+    # Send 'friendly' SIGUSR1 to children to have them shut down
+    cloudkeeper.signal.kill_children(SIGUSR1)
+    kt = threading.Thread(target=force_shutdown, name='shutdown')
+    kt.start()
     shutdown_event.set()  # and then end the program
+
+
+def force_shutdown(delay: int = 10) -> None:
+    time.sleep(delay)
+    log_stats()
+    log.error('Some child process or thread timed out during shutdown')
+    cloudkeeper.signal.kill_children(SIGKILL)
+    os._exit(0)
 
 
 if __name__ == '__main__':

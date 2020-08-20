@@ -3,7 +3,6 @@ import networkx
 import cloudkeeper.logging as logging
 import multiprocessing
 import cloudkeeper.signal
-from threading import current_thread
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import log_runtime
@@ -174,10 +173,12 @@ def all_regions() -> List:
 def collect_account(account: AWSAccount, regions: List, args=None):
     cloudkeeper.signal.on_parent_exit()
     collector_name = f'aws_{account.id}'
-    current_thread().name = collector_name
+    cloudkeeper.signal.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args
+        cloudkeeper.signal.set_proc_title(f'cloudkeeper collector aws: {account.id}')
+        cloudkeeper.signal.set_proc_name(collector_name)
 
     log.debug(f'Starting new collect process for account {account.dname}')
 

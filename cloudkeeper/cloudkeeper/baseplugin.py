@@ -73,6 +73,7 @@ class BaseCollectorPlugin(BasePlugin):
         self.name = str(self.cloud)
         self.root = Cloud(self.cloud, {})
         self.graph = Graph()
+        self.finished = False
         resource_attributes = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.id, **resource_attributes)
 
@@ -82,4 +83,5 @@ class BaseCollectorPlugin(BasePlugin):
         pass
 
     def go(self) -> None:
-        return self.collect()
+        self.collect()
+        self.finished = True

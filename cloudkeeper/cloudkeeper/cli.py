@@ -45,11 +45,7 @@ class Cli(threading.Thread):
             register_cli_action(action)
 
         read_cli_actions_config()
-
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-
-    def __del__(self):
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def run(self) -> None:
         if self.__run:

@@ -2,13 +2,17 @@ import os
 import time
 import sys
 import threading
+import multiprocessing
+import setproctitle
 import cloudkeeper.logging as logging
-from ctypes import CDLL
+from cloudkeeper.utils import get_child_process_info
+from ctypes import CDLL, byref, create_string_buffer
 from signal import signal, Signals, SIGKILL, SIGTERM, SIGINT, SIGUSR1
 from cloudkeeper.event import dispatch_event, Event, EventType
 
 
 PR_SET_PDEATHSIG = 1
+PR_SET_NAME = 15
 log = logging.getLogger('cloudkeeper.' + __name__)
 parent_pid = None
 
@@ -61,3 +65,29 @@ def on_parent_exit(signal: Signals = SIGKILL) -> bool:
     else:
         return res == 0
     return False
+
+
+def set_proc_name(proc_name: str = 'cloudkeeper') -> None:
+    multiprocessing.current_process().name = proc_name
+    libc = CDLL('libc.so.6')
+    proc_name = bytes(proc_name, 'utf-8')
+    libc.prctl(PR_SET_NAME, proc_name, None, None, None)
+
+
+def set_proc_title(proc_name: str = 'cloudkeeper') -> None:
+    setproctitle.setproctitle(proc_name)
+
+
+def set_thread_name(thread_name: str = 'cloudkeeper') -> None:
+    threading.current_thread().name = thread_name
+
+
+def kill_children(signal: Signals = SIGKILL, pid: int = None) -> None:
+    if pid is None:
+        pid = parent_pid
+    if pid is None:
+        pid = os.getpid()
+
+    for child_pid in get_child_process_info(pid).keys():
+        log.debug(f'Sending signal {signal.name} to child with pid {child_pid}')
+        os.kill(child_pid, signal)

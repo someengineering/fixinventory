@@ -41,10 +41,6 @@ class Processor(threading.Thread):
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         add_event_listener(EventType.START_COLLECT, self.start_collect)
 
-    def __del__(self):
-        remove_event_listener(EventType.START_COLLECT, self.start_collect)
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
-
     def run(self) -> None:
         num_run = 0
         while self.__run:
@@ -58,7 +54,8 @@ class Processor(threading.Thread):
             dispatch_event(Event(EventType.PROCESS_BEGIN, self.gc.graph))
             self.collect()
             log_stats(garbage_collector_stats=True)
-            self.cleanup()
+            if self.__run:
+                self.cleanup()
             dispatch_event(Event(EventType.PROCESS_FINISH, self.gc.graph), blocking=True)
 
             elapsed = int(time.time() - time_run_start)
@@ -109,6 +106,9 @@ class Processor(threading.Thread):
             log.info(f'Waiting for collector thread of plugin {plugin.cloud} to finish')
             plugin.join(timeout)
             if not plugin.is_alive():  # The plugin has finished its work
+                if not plugin.finished:
+                    log.error(f'Plugin {plugin.cloud} did not finish collection - ignoring plugin results')
+                    continue
                 if not is_directed_acyclic_graph(plugin.graph):
                     log.error(f'Graph of plugin {plugin.cloud} is not acyclic - ignoring plugin results')
                     continue

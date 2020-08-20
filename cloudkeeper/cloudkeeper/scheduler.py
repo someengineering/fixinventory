@@ -23,9 +23,6 @@ class Scheduler(threading.Thread):
         self._event_prefixes = tuple((f'{e.name.lower()}:' for e in EventType))
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
-    def __del__(self):
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
-
     def run(self):
         self._sched.start()
         if ArgumentParser.args.scheduler_config:
