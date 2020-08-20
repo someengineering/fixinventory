@@ -20,7 +20,7 @@ from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener, list_event_listeners
+from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, list_event_listeners
 from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, get_stats, fmt_json
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat

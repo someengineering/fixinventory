@@ -8,7 +8,7 @@ from apscheduler.job import Job
 from typing import Iterable
 from cloudkeeper.cli import register_cli_action, cli_event_handler
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import Event, EventType, add_event_listener
 
 log = logging.getLogger(__name__)
 

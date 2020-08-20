@@ -8,7 +8,7 @@ from cloudkeeper.graph import GraphContainer, sanitize
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.utils import log_stats
-from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener
 from prometheus_client import Summary
 
 log = logging.getLogger(__name__)

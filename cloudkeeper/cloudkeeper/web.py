@@ -2,7 +2,7 @@ from wsgiref.simple_server import make_server, WSGIServer, WSGIRequestHandler
 from socketserver import ThreadingMixIn
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener, dispatch_event
+from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
 import json
 import falcon
 import threading
@@ -50,7 +50,6 @@ class WebServer(threading.Thread):
             self.httpd.socket.close()
             self.httpd.shutdown()
         self.httpd = None
-        import time
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
