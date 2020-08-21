@@ -1,5 +1,5 @@
 import re
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import *
 from prometheus_client import Summary
@@ -7,7 +7,7 @@ from prometheus_client.core import GaugeMetricFamily
 from collections import defaultdict
 from typing import List, Tuple
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_graph2metrics = Summary('cloudkeeper_graph2metrics_seconds', 'Time it took the graph2metrics() method')
 

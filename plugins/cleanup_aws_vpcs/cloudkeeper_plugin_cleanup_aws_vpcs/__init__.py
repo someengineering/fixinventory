@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 import yaml
 from cloudkeeper.baseplugin import BasePlugin
@@ -26,7 +26,7 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 
-log = logging.getLogger("cloudkeeper." + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CleanupAWSVPCsPlugin(BasePlugin):

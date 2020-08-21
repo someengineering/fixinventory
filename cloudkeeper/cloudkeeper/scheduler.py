@@ -1,6 +1,6 @@
 import threading
 import re
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.base import JobLookupError
@@ -10,7 +10,7 @@ from cloudkeeper.cli import register_cli_action, cli_event_handler
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class Scheduler(threading.Thread):

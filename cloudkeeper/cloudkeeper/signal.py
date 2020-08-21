@@ -4,7 +4,7 @@ import sys
 import threading
 import multiprocessing
 import setproctitle
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from cloudkeeper.utils import get_child_process_info
 from ctypes import CDLL
 from signal import signal, Signals, SIGKILL, SIGTERM, SIGINT, SIGUSR1
@@ -13,7 +13,7 @@ from cloudkeeper.event import dispatch_event, Event, EventType
 
 PR_SET_PDEATHSIG = 1
 PR_SET_NAME = 15
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 parent_pid = None
 
 

@@ -5,7 +5,7 @@ import os
 import ast
 import time
 import calendar
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from typing import Iterable, Tuple, Any, List
 from pympler import asizeof
 from collections import deque
@@ -27,7 +27,7 @@ from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class Cli(threading.Thread):

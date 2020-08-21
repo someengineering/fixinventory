@@ -1,12 +1,12 @@
 import uuid
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from typing import List
 from cloudkeeper.baseresources import BaseResource
 
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class ParallelTagger:

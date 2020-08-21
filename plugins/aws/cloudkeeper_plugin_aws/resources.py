@@ -1,5 +1,5 @@
 import time
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import copy
 from datetime import date
 from enum import Enum, auto
@@ -10,7 +10,7 @@ from .utils import aws_client, aws_resource
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))    # AWS public launch date
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html

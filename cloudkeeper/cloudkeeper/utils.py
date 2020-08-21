@@ -5,7 +5,7 @@ import gc as garbage_collector
 import resource
 import time
 import json
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
@@ -13,7 +13,7 @@ from typing import Dict, List
 from datetime import date, datetime, timezone, timedelta
 
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class RWLock:

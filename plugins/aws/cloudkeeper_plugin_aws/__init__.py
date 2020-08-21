@@ -1,6 +1,6 @@
 import botocore.exceptions
 import networkx
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import multiprocessing
 import cloudkeeper.signal
 from concurrent import futures
@@ -14,8 +14,8 @@ from prometheus_client import Summary, Counter
 from typing import List
 
 
-logging.getLogger('boto').setLevel(logging.CRITICAL)
-log = logging.getLogger('cloudkeeper.' + __name__)
+cloudkeeper.logging.getLogger('boto').setLevel(cloudkeeper.logging.CRITICAL)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 metrics_collect = Summary('cloudkeeper_plugin_aws_collect_seconds', 'Time it took the collect() method')
 metrics_unhandled_account_exceptions = Counter('cloudkeeper_plugin_aws_unhandled_account_exceptions_total', 'Unhandled AWS Plugin Account Exceptions', ['account'])

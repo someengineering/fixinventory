@@ -5,9 +5,9 @@ from cloudkeeper.baseresources import BaseResource
 from defaultlist import defaultlist
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_cleanup = Summary('cloudkeeper_cleanup_seconds', 'Time it took the cleanup() method')
 

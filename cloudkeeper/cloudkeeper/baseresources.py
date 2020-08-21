@@ -5,13 +5,13 @@ from hashlib import sha256
 from copy import deepcopy
 import uuid
 import networkx.algorithms.dag
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from typing import Dict, Iterator, List, Tuple
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
 
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_resource_pre_cleanup_exceptions = Counter('resource_pre_cleanup_exceptions_total', 'Number of resource pre_cleanup() exceptions', ['cloud', 'account', 'region', 'resource_type'])
 metrics_resource_cleanup_exceptions = Counter('resource_cleanup_exceptions_total', 'Number of resource cleanup() exceptions', ['cloud', 'account', 'region', 'resource_type'])

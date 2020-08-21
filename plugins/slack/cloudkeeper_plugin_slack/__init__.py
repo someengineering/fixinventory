@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 import os
 import time
@@ -12,7 +12,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 from cloudkeeper.graph import Graph
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 def retry_on_request_limit_exceeded(e):

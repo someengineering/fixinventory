@@ -6,9 +6,9 @@ from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_eve
 import json
 import falcon
 import threading
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):

@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 import inspect
 from .config import TagValidatorConfig
@@ -11,7 +11,7 @@ from cloudkeeper.utils import parse_delta
 from cloudkeeper.paralleltagger import ParallelTagger
 from prometheus_client import Summary, Counter
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 metrics_tag_violations = Counter('cloudkeeper_plugin_tagvalidator_tag_violations_total', 'Tag Validator Plugin Tag Violations', ['cloud', 'account', 'region', 'resource_type'])
 metrics_validate_tags = Summary('cloudkeeper_plugin_tagvalidator_validate_tags_seconds', 'Tag Validator Plugin Time it took the validate_tags() method')

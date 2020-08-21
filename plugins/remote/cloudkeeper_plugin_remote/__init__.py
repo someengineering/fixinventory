@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import pickle
 import requests
 import networkx
@@ -8,7 +8,7 @@ from cloudkeeper.graph import Graph, sanitize
 from cloudkeeper.args import ArgumentParser
 
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 class RemotePlugin(BaseCollectorPlugin):

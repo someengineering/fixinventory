@@ -1,14 +1,14 @@
+import os
+import time
+import cloudkeeper.logging
 from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
 from typing import Callable, Iterable
 from enum import Enum
-import os
-import time
-import cloudkeeper.logging as logging
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 
 class EventType(Enum):

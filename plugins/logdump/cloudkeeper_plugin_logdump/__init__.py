@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 from pathlib import Path
 from datetime import date
@@ -7,7 +7,7 @@ from cloudkeeper.baseresources import *
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 class LogDumpPlugin(BasePlugin):

@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 from datetime import timedelta
 from cloudkeeper.baseplugin import BasePlugin
@@ -7,7 +7,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import parse_delta
 from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 age_ranges = ['30d', '7d', '1d', '12h', '8h', '4h', '2h', '1h']
 age_range_lookup = {}

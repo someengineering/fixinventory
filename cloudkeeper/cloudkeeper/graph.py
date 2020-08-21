@@ -4,7 +4,7 @@ import pickle
 import json
 import datetime
 import re
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
 from cloudkeeper.utils import RWLock, json_default
 from cloudkeeper.args import ArgumentParser
@@ -14,7 +14,7 @@ from prometheus_client import Summary
 from typing import Dict
 from io import BytesIO
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_graph_search = Summary('cloudkeeper_graph_search_seconds', 'Time it took the Graph search() method')
 metrics_graph_searchall = Summary('cloudkeeper_graph_searchall_seconds', 'Time it took the Graph searchall() method')

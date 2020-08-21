@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import os
 from datetime import datetime, timezone
 from onelogin.api.client import OneLoginClient
@@ -8,7 +8,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import make_valid_timestamp
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 class OneLoginAccount(BaseAccount):

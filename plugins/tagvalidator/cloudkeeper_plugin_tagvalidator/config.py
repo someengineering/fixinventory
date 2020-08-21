@@ -1,8 +1,8 @@
 import configparser
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from collections import defaultdict
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 class TagValidatorConfig:

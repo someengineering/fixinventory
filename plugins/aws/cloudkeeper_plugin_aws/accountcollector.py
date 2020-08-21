@@ -1,7 +1,7 @@
 import botocore.exceptions
 import concurrent.futures
 import networkx
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import socket
 import urllib3
 import json
@@ -21,7 +21,7 @@ from retrying import retry
 from pprint import pformat
 
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 # boto3 has no way of converting between short and long region names

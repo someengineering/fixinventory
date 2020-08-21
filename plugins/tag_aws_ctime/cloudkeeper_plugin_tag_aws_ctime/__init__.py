@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 from datetime import datetime, timezone
 from cloudkeeper.graph import Graph
@@ -20,7 +20,7 @@ from cloudkeeper.event import (
 )
 from prometheus_client import Summary, Counter
 
-log = logging.getLogger("cloudkeeper." + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_ctime_tags = Counter(
     "cloudkeeper_plugin_tag_aws_ctime_tags_total",

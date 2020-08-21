@@ -1,17 +1,15 @@
 import sys
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from cloudkeeper.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws import get_org_accounts
 
 
-log_format = "%(asctime)s - %(levelname)s - %(threadName)s - %(message)s"
-logging.basicConfig(level=logging.WARN, format=log_format)
-logging.getLogger("cloudkeeper").setLevel(logging.ERROR)
-log = logging.getLogger(__name__)
+cloudkeeper.logging.getLogger("cloudkeeper").setLevel(cloudkeeper.logging.ERROR)
+log = cloudkeeper.logging.getLogger(__name__)
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
+    cloudkeeper.logging.getLogger("cloudkeeper").setLevel(cloudkeeper.logging.DEBUG)
 
 
 def main() -> None:

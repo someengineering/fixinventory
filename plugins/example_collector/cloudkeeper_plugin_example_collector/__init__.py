@@ -1,10 +1,10 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseResource, BaseInstance, BaseNetwork
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
 class ExampleCollectorPlugin(BaseCollectorPlugin):

@@ -1,7 +1,7 @@
 import threading
 import time
 import os
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 from typing import List
 from networkx.algorithms.dag import is_directed_acyclic_graph
 from cloudkeeper.graph import GraphContainer, sanitize
@@ -11,7 +11,7 @@ from cloudkeeper.utils import log_stats
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener
 from prometheus_client import Summary
 
-log = logging.getLogger(__name__)
+log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_collect = Summary('cloudkeeper_collect_seconds', 'Time it took the collect() method')
 

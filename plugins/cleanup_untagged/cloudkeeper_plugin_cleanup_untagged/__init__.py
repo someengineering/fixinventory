@@ -1,4 +1,4 @@
-import cloudkeeper.logging as logging
+import cloudkeeper.logging
 import threading
 import inspect
 import yaml
@@ -9,7 +9,7 @@ from cloudkeeper.event import Event, EventType, add_event_listener, remove_event
 from cloudkeeper.utils import parse_delta
 from prometheus_client import Counter
 
-log = logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 metrics_cleanup_untagged = Counter('cloudkeeper_plugin_cleanup_untagged_resources_total', 'Cleanup Untagged Plugin Untagged Resources', ['cloud', 'account', 'region', 'resource_type'])
 
