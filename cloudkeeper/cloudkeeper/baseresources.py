@@ -133,7 +133,7 @@ class BaseResource(ABC):
 
     @property
     def rtdname(self) -> str:
-        return f"{self.rtdname}"
+        return f"{self.resource_type} {self.dname}"
 
     @property
     def tags(self) -> Dict:
