@@ -126,7 +126,7 @@ class CliHandler:
     }
 
     def cmd_match(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | match [not] <attribute> <operator> <value>
+        '''Usage: | match [not] <attribute> <operator> <value> |
 
         Matches resources whose attribute matches a value.
 
@@ -191,7 +191,7 @@ class CliHandler:
                 yield item
 
     def cmd_grep(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | grep <str>
+        '''Usage: | grep <str> |
 
         Grep <str> in the input strings.
         '''
@@ -246,7 +246,7 @@ class CliHandler:
         yield fmt_json(get_stats(self.graph))
 
     def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | clipboard <copy|append|paste|clear> [passthrough]
+        '''Usage: | clipboard <copy|append|paste|clear> [passthrough] |
 
         Copy/paste input to/from CLI clipboard.
         Optional `passthrough` arg will pass any input items through
@@ -284,7 +284,7 @@ class CliHandler:
         return ()
 
     def cmd_delete(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | delete [--yes]
+        '''Usage: | delete [--yes] |
 
         Calls the cleanup method on all resources.
         Won't ask for confirmation if --yes is provided.
@@ -313,8 +313,8 @@ class CliHandler:
                 item.cleanup(self.graph)
             yield item
 
-    def cmd_debug_byte_size(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | debug_byte_size
+    def cmd_debug_calc_object_byte_size(self, items: Iterable, args: str) -> Iterable:
+        '''Usage: | debug_calc_object_byte_size |
 
         Calculate the resources in-memory size in bytes and add it
         as a .debug_byte_size attribute which can then be viewed with
@@ -322,7 +322,7 @@ class CliHandler:
         '''
         for item in items:
             byte_size = asizeof.asizeof(item)
-            item.debug_byte_size = int(byte_size)
+            item.debug_object_byte_size = int(byte_size)
             yield item
 
     def cmd_debug_dump_members(self, items: Iterable, args: str) -> Iterable:
@@ -426,7 +426,7 @@ class CliHandler:
         yield f'total: {total}'
 
     def cmd_tail(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | tail <num>
+        '''Usage: | tail <num> |
 
         Returns the last num lines.
         '''
@@ -436,7 +436,7 @@ class CliHandler:
         return deque(items, num)
 
     def cmd_head(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | head <num>
+        '''Usage: | head <num> |
 
         Returns the first num lines.
         '''
@@ -476,7 +476,7 @@ and chain multipe commands using the semicolon (;).
         return (doc,)
 
     def cmd_predecessors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | predecessors [--with-origin]
+        '''Usage: | predecessors [--with-origin] |
 
         List a resource's predecessors in the graph.
         Predecessors are a resource's parents.
@@ -486,7 +486,7 @@ and chain multipe commands using the semicolon (;).
         return self.relatives(items, 'predecessors', args)
 
     def cmd_successors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | successors [--with-origin]
+        '''Usage: | successors [--with-origin] |
 
         List a resource's successors in the graph.
         Successors are a resource's children.
@@ -496,7 +496,7 @@ and chain multipe commands using the semicolon (;).
         return self.relatives(items, 'successors', args)
 
     def cmd_ancestors(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | ancestors [--with-origin]
+        '''Usage: | ancestors [--with-origin] |
 
         List a resource's ancestors in the graph.
         Ancestors are a resource's parents and their parents
@@ -507,7 +507,7 @@ and chain multipe commands using the semicolon (;).
         return self.relatives(items, 'ancestors', args)
 
     def cmd_descendants(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | descendants [--with-origin]
+        '''Usage: | descendants [--with-origin] |
 
         List a resource's descendants in the graph.
         Descendants are a resource's children and their children
@@ -530,7 +530,7 @@ and chain multipe commands using the semicolon (;).
             yield from getattr(node, group)(self.graph)
 
     def cmd_tee(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | tee [-a] <filename>
+        '''Usage: | tee [-a] <filename> |
 
         Write input to file.
         Optionally use -a to append to filename.
@@ -569,7 +569,7 @@ and chain multipe commands using the semicolon (;).
         yield f"Write of {i} item{'' if i == 1 else 's'} complete."
 
     def cmd_sort(self, items: Iterable, args: str, reverse: bool = False) -> Iterable:
-        '''Usage: | sort [attribute]
+        '''Usage: | sort [attribute] |
 
         Sort input alphabetically.
         Optionally sort by attribute.
@@ -587,7 +587,7 @@ and chain multipe commands using the semicolon (;).
         yield from sorted(list(items), key=getsortkey, reverse=reverse)
 
     def cmd_rsort(self, items: Iterable, args: str, reverse: bool = False) -> Iterable:
-        '''Usage: | rsort [attribute]
+        '''Usage: | rsort [attribute] |
 
         Sort input alphabetically in reverse order.
         Optionally sort by attribute.
@@ -606,7 +606,7 @@ and chain multipe commands using the semicolon (;).
         yield('done')
 
     def cmd_clean(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | clean
+        '''Usage: | clean |
 
         Flag a resource for cleaning.
 
@@ -619,7 +619,7 @@ and chain multipe commands using the semicolon (;).
             yield item
 
     def cmd_set(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | set <attribute> <value>
+        '''Usage: | set <attribute> <value> |
 
         Set an attribute to a value.
         Only returns items whose attribute was successfully modified.
@@ -639,7 +639,7 @@ and chain multipe commands using the semicolon (;).
                     yield item
 
     def cmd_protect(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | protect
+        '''Usage: | protect |
 
         Burn a resource's protection fuse so it won't be deleted
         or otherwise modified in the future.
@@ -674,7 +674,7 @@ and chain multipe commands using the semicolon (;).
             yield item
 
     def cmd_log(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | log [loglevel]
+        '''Usage: | log [loglevel] |
 
         Send input to logger.
         '''
@@ -688,7 +688,7 @@ and chain multipe commands using the semicolon (;).
             yield item
 
     def cmd_uniq(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | uniq
+        '''Usage: | uniq |
 
         Deduplicate input.
         '''
@@ -699,7 +699,7 @@ and chain multipe commands using the semicolon (;).
                 yield item
 
     def cmd_has(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | has [not] <attribute>
+        '''Usage: | has [not] <attribute> |
 
         List resources that do or don't have an attribute
         and that attribute has a value.
@@ -719,7 +719,7 @@ and chain multipe commands using the semicolon (;).
                 yield item
 
     def cmd_sleep(self, items: Iterable, args: str) -> Iterable:
-        '''Usage: | sleep [pipe] <seconds>
+        '''Usage: | sleep [pipe] <seconds> |
 
         Sleep for the specified number of seconds.
         If pipe is specified sleep will pipe through all input items.
