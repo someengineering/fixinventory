@@ -27,22 +27,24 @@ class EventType(Enum):
     PROCESS_FINISH: cloudkeeper.graph.Graph
     GENERATE_METRICS: cloudkeeper.graph.Graph
     """
-    STARTUP = 'startup'
-    SHUTDOWN = 'shutdown'
-    START_COLLECT = 'start_collect'
-    COLLECT_BEGIN = 'collect_begin'
-    COLLECT_FINISH = 'collect_finish'
-    CLEANUP_PLAN = 'cleanup_plan'
-    CLEANUP_BEGIN = 'cleanup_begin'
-    CLEANUP_FINISH = 'cleanup_finish'
-    PROCESS_BEGIN = 'process_begin'
-    PROCESS_FINISH = 'process_finish'
-    GENERATE_METRICS = 'generate_metrics'
+
+    STARTUP = "startup"
+    SHUTDOWN = "shutdown"
+    START_COLLECT = "start_collect"
+    COLLECT_BEGIN = "collect_begin"
+    COLLECT_FINISH = "collect_finish"
+    CLEANUP_PLAN = "cleanup_plan"
+    CLEANUP_BEGIN = "cleanup_begin"
+    CLEANUP_FINISH = "cleanup_finish"
+    PROCESS_BEGIN = "process_begin"
+    PROCESS_FINISH = "process_finish"
+    GENERATE_METRICS = "generate_metrics"
 
 
 class Event:
     """An Event
     """
+
     def __init__(self, event_type: EventType, data=None) -> None:
         self.event_type = event_type
         self.data = data
@@ -63,8 +65,8 @@ def event_listener_registered(event_type: EventType, listener: Callable) -> bool
 def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event
     """
-    waiting_str = '' if blocking else 'not '
-    log.debug(f'Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return')
+    waiting_str = "" if blocking else "not "
+    log.debug(f"Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return")
 
     if event.event_type not in _events.keys():
         return
@@ -77,51 +79,64 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     threads = {}
     for listener, listener_data in listeners.items():
         try:
-            if listener_data['pid'] != os.getpid():
+            if listener_data["pid"] != os.getpid():
                 continue
 
-            if listener_data['one-shot'] and not listener_data['lock'].acquire(blocking=False):
-                log.error(f"Not calling one-shot event listener {listener} of type {type(listener)} - can't acquire lock")
+            if listener_data["one-shot"] and not listener_data["lock"].acquire(blocking=False):
+                log.error(f"Not calling one-shot listener {listener} of type {type(listener)} - can't acquire lock")
                 continue
 
-            log.debug(f"Calling event listener {listener} of type {type(listener)} (blocking: {listener_data['blocking']})")
+            log.debug(f"Calling listener {listener} of type {type(listener)} (blocking: {listener_data['blocking']})")
             thread_name = f"{event.event_type.name.lower()}_event-{getattr(listener, '__name__', 'anonymous')}"
             t = Thread(target=listener, args=[event], name=thread_name)
-            if blocking or listener_data['blocking']:
+            if blocking or listener_data["blocking"]:
                 threads[t] = listener
             t.start()
         except Exception:
-            log.exception('Caught unhandled event callback exception')
+            log.exception("Caught unhandled event callback exception")
         finally:
-            if listener_data['one-shot']:
-                log.debug(f'One-shot specified for event {event.event_type.name} listener {listener} - removing event listener')
+            if listener_data["one-shot"]:
+                log.debug(
+                    (
+                        f"One-shot specified for event {event.event_type.name} "
+                        f"listener {listener} - removing event listener"
+                    )
+                )
                 remove_event_listener(event.event_type, listener)
-                listener_data['lock'].release()
+                listener_data["lock"].release()
 
     start_time = time.time()
     for thread, listener in threads.items():
-        timeout = start_time + listeners[listener]['timeout'] - time.time()
+        timeout = start_time + listeners[listener]["timeout"] - time.time()
         if timeout < 1:
             timeout = 1
-        log.debug(f'Waiting up to {timeout:.2f}s for event listener {thread.name} to finish')
+        log.debug(f"Waiting up to {timeout:.2f}s for event listener {thread.name} to finish")
         thread.join(timeout)
-        log.debug(f'Event listener {thread.name} finished (timeout: {thread.is_alive()})')
+        log.debug(f"Event listener {thread.name} finished (timeout: {thread.is_alive()})")
 
 
-def add_event_listener(event_type: EventType, listener: Callable, blocking: bool = False, timeout: int = None, one_shot: bool = False) -> bool:
+def add_event_listener(
+    event_type: EventType, listener: Callable, blocking: bool = False, timeout: int = None, one_shot: bool = False
+) -> bool:
     """Add an Event Listener
     """
     if not callable(listener):
-        log.error(f'Error registering {listener} of type {type(listener)} with event {event_type.name}')
+        log.error(f"Error registering {listener} of type {type(listener)} with event {event_type.name}")
         return False
 
     if timeout is None:
         timeout = ArgumentParser.args.event_timeout
 
-    log.debug(f'Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})')
+    log.debug(f"Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})")
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
-            _events[event_type][listener] = {'blocking': blocking, 'timeout': timeout, 'one-shot': one_shot, 'lock': Lock(), 'pid': os.getpid()}
+            _events[event_type][listener] = {
+                "blocking": blocking,
+                "timeout": timeout,
+                "one-shot": one_shot,
+                "lock": Lock(),
+                "pid": os.getpid(),
+            }
             return True
         return False
 
@@ -131,7 +146,7 @@ def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
     """
     with _events_lock.write_access:
         if event_listener_registered(event_type, listener):
-            log.debug(f'Removing {listener} from event {event_type.name}')
+            log.debug(f"Removing {listener} from event {event_type.name}")
             del _events[event_type][listener]
             if len(_events[event_type]) == 0:
                 del _events[event_type]
@@ -143,10 +158,18 @@ def list_event_listeners() -> Iterable:
     with _events_lock.read_access:
         for event_type, listeners in _events.items():
             for listener, listener_data in listeners.items():
-                yield f"{event_type.name}: {listener}, blocking: {listener_data['blocking']}, one-shot: {listener_data['one-shot']}"
+                yield (
+                    f"{event_type.name}: {listener}, "
+                    f"blocking: {listener_data['blocking']}, "
+                    f"one-shot: {listener_data['one-shot']}"
+                )
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument('--event-timeout', help='Event Listener Timeout in seconds (default 900)',
-                            default=int(os.environ.get('CLOUDKEEPER_EVENT_TIMEOUT', 900)), dest='event_timeout',
-                            type=int)
+    arg_parser.add_argument(
+        "--event-timeout",
+        help="Event Listener Timeout in seconds (default 900)",
+        default=int(os.environ.get("CLOUDKEEPER_EVENT_TIMEOUT", 900)),
+        dest="event_timeout",
+        type=int,
+    )

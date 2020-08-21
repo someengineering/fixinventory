@@ -10,6 +10,7 @@ log = cloudkeeper.logging.getLogger(__name__)
 
 class PluginLoader:
     """Cloudkeeper Plugin Loader"""
+
     def __init__(self) -> None:
         # self.__plugins is a dict with key PluginType and value List
         # The List will hold all the Plugins of a PluginType
@@ -31,8 +32,8 @@ class PluginLoader:
         Any package resource with an entry point of that name will be handed to app_plugin()
         which validates that the package resource is a subclass of BasePlugin.
         """
-        log.debug('Finding plugins')
-        for entry_point in pkg_resources.iter_entry_points('cloudkeeper.plugins'):
+        log.debug("Finding plugins")
+        for entry_point in pkg_resources.iter_entry_points("cloudkeeper.plugins"):
             plugin = entry_point.load()
             self.add_plugin(plugin)
         self.__initialized = True
@@ -40,7 +41,7 @@ class PluginLoader:
     def add_plugin(self, plugin) -> bool:
         """Adds a Plugin class to the list of Plugins"""
         if inspect.isclass(plugin) and not inspect.isabstract(plugin) and issubclass(plugin, BasePlugin):
-            log.debug(f'Found plugin {plugin} ({plugin.plugin_type})')
+            log.debug(f"Found plugin {plugin} ({plugin.plugin_type})")
             if plugin not in self.__plugins[plugin.plugin_type]:
                 self.__plugins[plugin.plugin_type].append(plugin)
         return True
@@ -55,7 +56,7 @@ class PluginLoader:
                 if not ArgumentParser.args.collector or Plugin.cloud in ArgumentParser.args.collector:
                     plugins.append(Plugin)
                 else:
-                    log.debug(f'Plugin {Plugin} not in plugin list - skipping')
+                    log.debug(f"Plugin {Plugin} not in plugin list - skipping")
             else:
                 plugins.append(Plugin)
         return plugins
@@ -66,8 +67,14 @@ class PluginLoader:
 
         This adds the PluginLoader()'s own args.
         """
-        arg_parser.add_argument('--collector', help='Collectors to load (default: all)', dest='collector', type=str,
-                                default=None, nargs='+')
+        arg_parser.add_argument(
+            "--collector",
+            help="Collectors to load (default: all)",
+            dest="collector",
+            type=str,
+            default=None,
+            nargs="+",
+        )
 
     def add_plugin_args(self, arg_parser: ArgumentParser) -> None:
         """Add args to the arg parser
@@ -76,7 +83,7 @@ class PluginLoader:
         """
         if not self.__initialized:
             self.find_plugins()
-        log.debug('Adding plugin args')
-        for plugins in self.__plugins.values():     # iterate over all PluginTypes
-            for Plugin in plugins:                  # iterate over each Plugin of each PluginType
-                Plugin.add_args(arg_parser)         # add that Plugin's args to the ArgumentParser
+        log.debug("Adding plugin args")
+        for plugins in self.__plugins.values():  # iterate over all PluginTypes
+            for Plugin in plugins:  # iterate over each Plugin of each PluginType
+                Plugin.add_args(arg_parser)  # add that Plugin's args to the ArgumentParser

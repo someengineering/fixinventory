@@ -35,11 +35,11 @@ shutdown_event = threading.Event()
 
 def main() -> None:
     cloudkeeper.signal.parent_pid = os.getpid()
-    args_str = ''
+    args_str = ""
     if len(sys.argv) > 1:
         args_str = f" {' '.join(sys.argv[1:])}"
     cloudkeeper.signal.set_proc_title(f"cloudkeeper{args_str}")
-    cloudkeeper.signal.set_proc_name('cloudkeeper')
+    cloudkeeper.signal.set_proc_name("cloudkeeper")
     # Add cli args
     arg_parser = get_arg_parser()
 
@@ -67,15 +67,15 @@ def main() -> None:
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # Try to increase nofile and nproc limits
-    for limit_name in ('RLIMIT_NOFILE', 'RLIMIT_NPROC'):
+    for limit_name in ("RLIMIT_NOFILE", "RLIMIT_NPROC"):
         soft_limit, hard_limit = resource.getrlimit(getattr(resource, limit_name))
-        log.debug(f'Current {limit_name} soft: {soft_limit} hard: {hard_limit}')
+        log.debug(f"Current {limit_name} soft: {soft_limit} hard: {hard_limit}")
         try:
             if soft_limit < hard_limit:
-                log.debug(f'Increasing {limit_name} {soft_limit} -> {hard_limit}')
+                log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
                 resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
         except (ValueError):
-            log.error(f'Failed to increase {limit_name} {soft_limit} -> {hard_limit}')
+            log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -105,12 +105,12 @@ def main() -> None:
 
     for Plugin in plugin_loader.plugins(PluginType.PERSISTENT):
         try:
-            log.debug(f'Starting persistent Plugin {Plugin}')
+            log.debug(f"Starting persistent Plugin {Plugin}")
             plugin = Plugin()
             plugin.daemon = True
             plugin.start()
         except Exception as e:
-            log.exception(f'Caught unhandled persistent Plugin exception {e}')
+            log.exception(f"Caught unhandled persistent Plugin exception {e}")
 
     processor = Processor(graph_container, plugin_loader.plugins(PluginType.COLLECTOR))
     processor.daemon = True
@@ -127,20 +127,20 @@ def main() -> None:
     time.sleep(3)
     num_children = len(get_child_process_info().keys())
     if num_children > 0:
-        log.debug(f'There are still {num_children} children alive - sending SIGTERM followed by SIGKILL')
+        log.debug(f"There are still {num_children} children alive - sending SIGTERM followed by SIGKILL")
         cloudkeeper.signal.kill_children(SIGTERM)
         time.sleep(2)
         cloudkeeper.signal.kill_children(SIGKILL)
-    log.info('Shutdown complete')
+    log.info("Shutdown complete")
     quit()
 
 
 def shutdown(event: Event) -> None:
-    reason = event.data.get('reason')
-    emergency = event.data.get('emergency')
+    reason = event.data.get("reason")
+    emergency = event.data.get("emergency")
 
     if emergency:
-        log.fatal(f'EMERGENCY SHUTDOWN: {reason}')
+        log.fatal(f"EMERGENCY SHUTDOWN: {reason}")
         os.killpg(os.getpgid(0), SIGKILL)
 
     current_pid = os.getpid()
@@ -148,11 +148,11 @@ def shutdown(event: Event) -> None:
         return
 
     if reason is None:
-        reason = 'unknown reason'
-    log.info(f'Received shut down event {event.event_type}: {reason} - killing all threads and child processes')
+        reason = "unknown reason"
+    log.info(f"Received shut down event {event.event_type}: {reason} - killing all threads and child processes")
     # Send 'friendly' SIGUSR1 to children to have them shut down
     cloudkeeper.signal.kill_children(SIGUSR1)
-    kt = threading.Thread(target=force_shutdown, name='shutdown')
+    kt = threading.Thread(target=force_shutdown, name="shutdown")
     kt.start()
     shutdown_event.set()  # and then end the program
 
@@ -160,10 +160,10 @@ def shutdown(event: Event) -> None:
 def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
-    log.error('Some child process or thread timed out during shutdown')
+    log.error("Some child process or thread timed out during shutdown")
     cloudkeeper.signal.kill_children(SIGKILL)
     os._exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

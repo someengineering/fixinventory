@@ -8,7 +8,9 @@ from threading import Thread
 from prometheus_client import Counter
 
 log = cloudkeeper.logging.getLogger(__name__)
-metrics_unhandled_plugin_exceptions = Counter('cloudkeeper_unhandled_plugin_exceptions_total', 'Unhandled Plugin Exceptions', ['plugin'])
+metrics_unhandled_plugin_exceptions = Counter(
+    "cloudkeeper_unhandled_plugin_exceptions_total", "Unhandled Plugin Exceptions", ["plugin"]
+)
 
 
 class PluginType(Enum):
@@ -17,6 +19,7 @@ class PluginType(Enum):
     COLLECTOR is a Cloud Resource Collector Plugin that gets instantiated on each collect() run
     PERSISTENT is a Persistent Plugin that gets instantiated once upon startup
     """
+
     COLLECTOR = auto()
     PERSISTENT = auto()
 
@@ -30,6 +33,7 @@ class BasePlugin(ABC, Thread):
 
     Upon start the go() method is called. For COLLECTOR Plugins collect() is called.
     """
+
     plugin_type = PluginType.PERSISTENT
 
     def __init__(self) -> None:
@@ -41,7 +45,7 @@ class BasePlugin(ABC, Thread):
             self.go()
         except Exception:
             metrics_unhandled_plugin_exceptions.labels(plugin=self.name).inc()
-            log.exception(f'Caught unhandled plugin exception in {self.name}')
+            log.exception(f"Caught unhandled plugin exception in {self.name}")
 
     @abstractmethod
     def go(self) -> None:
@@ -65,6 +69,7 @@ class BaseCollectorPlugin(BasePlugin):
     When the collect() method finishes, the Collector will retrieve the
     Plugins Graph and append it to the global Graph.
     """
+
     plugin_type = PluginType.COLLECTOR  # Type of the Plugin
     cloud = NotImplemented  # Name of the cloud this plugin implements
 
