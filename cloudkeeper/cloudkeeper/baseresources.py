@@ -117,14 +117,8 @@ class BaseResource(ABC):
         self._tags = ResourceTagsDict(dict(value), parent_resource=self)
 
     def log(self, msg: str, data=None, exception=None) -> None:
-        # Create deepcopies of everything even if
-        # msg is supposed to be a string, so we don't
-        # hold any external references.
-        msg = deepcopy(msg)
-        data = deepcopy(data)
-        exception = deepcopy(exception)
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        log_entry = {'timestamp': now, 'msg': str(msg), 'exception': exception, 'data': data}
+        log_entry = {'timestamp': now, 'msg': str(msg), 'exception': deepcopy(exception), 'data': deepcopy(data)}
         self.__log.append(log_entry)
 
     @property
