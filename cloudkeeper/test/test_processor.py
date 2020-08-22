@@ -16,6 +16,9 @@ num_resources = random.randint(1, 100)
 class SomeTestResource(BaseResource):
     resource_type = 'some_test_resource'
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 class SomeTestPlugin(BaseCollectorPlugin):
     cloud = 'test'

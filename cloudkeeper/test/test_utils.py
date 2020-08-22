@@ -185,6 +185,9 @@ class SomeTestResource(BaseResource):
         self.value = value
         return True
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 def test_resource_tags_dict():
     key = 'foo'

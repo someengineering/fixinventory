@@ -4,6 +4,9 @@ from cloudkeeper.baseresources import BaseResource
 class SomeTestResource(BaseResource):
     resource_type = 'some_test_resource'
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 def test_resource():
     r = SomeTestResource('foo', {'foo': 'bar'})

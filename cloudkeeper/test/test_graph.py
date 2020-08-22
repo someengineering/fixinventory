@@ -7,6 +7,9 @@ logging.getLogger('cloudkeeper').setLevel(logging.DEBUG)
 class SomeTestResource(BaseResource):
     resource_type = 'some_test_resource'
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 def test_graph():
     g = Graph()
