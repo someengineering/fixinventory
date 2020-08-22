@@ -361,7 +361,10 @@ class AWSAccountCollector:
     def get_ec2_instance_type_quota(self, region: AWSRegion, instance_type: str) -> int:
         # TODO: support dedicated hosts
         log.debug(
-            f"Retrieving AWS EC2 Instance Type Quota in account {self.account.dname} region {region.id} for instance type {instance_type}"
+            (
+                f"Retrieving AWS EC2 Instance Type Quota in account {self.account.dname} region {region.id} "
+                f"for instance type {instance_type}"
+            )
         )
         return self.get_ec2_service_quotas(region).get(instance_type, -1.0)
 
@@ -373,7 +376,10 @@ class AWSAccountCollector:
     @lru_cache()
     def get_ebs_volume_type_quota(self, region: AWSRegion, volume_type: str) -> int:
         log.debug(
-            f"Retrieving AWS EBS Volume Type Quota in account {self.account.dname} region {region.id} for instance type {volume_type}"
+            (
+                f"Retrieving AWS EBS Volume Type Quota in account {self.account.dname} region {region.id} "
+                f"for instance type {volume_type}"
+            )
         )
         return self.get_ebs_service_quotas(region).get(volume_type, -1.0)
 
@@ -400,7 +406,10 @@ class AWSAccountCollector:
             ).inc()
             return {}
         log.debug(
-            f"Trying to parse raw AWS Service Quotas in account {self.account.dname} region {region.id} for service {service}"
+            (
+                f"Trying to parse raw AWS Service Quotas in account {self.account.dname} region {region.id} for "
+                f"service {service}"
+            )
         )
         quotas = {}
         if service not in QUOTA_TO_SERVICE_MAP:
@@ -429,12 +438,18 @@ class AWSAccountCollector:
     @lru_cache()
     def get_raw_service_quotas(self, region: AWSRegion, service: str) -> List:
         log.debug(
-            f"Retrieving raw AWS Service Quotas in account {self.account.dname} region {region.id} for service {service}"
+            (
+                f"Retrieving raw AWS Service Quotas in account {self.account.dname} region {region.id} for "
+                f"service {service}"
+            )
         )
         service_quotas = []
         if "quotas" in ArgumentParser.args.aws_no_collect:
             log.debug(
-                f"Skipping quotas collection in account {self.account.dname} region {region.id} for service {service}"
+                (
+                    f"Skipping quotas collection in account {self.account.dname} region {region.id} for "
+                    f"service {service}"
+                )
             )
             return service_quotas
 
@@ -453,7 +468,10 @@ class AWSAccountCollector:
 
     def get_quota_services(self, region: AWSRegion) -> List:
         log.debug(
-            f"Retrieving list of AWS ServiceQuota supported services in account {self.account.dname} region {region.id}"
+            (
+                f"Retrieving list of AWS ServiceQuota supported services in "
+                f"account {self.account.dname} region {region.id}"
+            )
         )
         try:
             session = aws_session(self.account.id, self.account.role)
@@ -512,7 +530,10 @@ class AWSAccountCollector:
     def collect_volume_metrics(self, region: AWSRegion, volumes: List) -> None:
         resources = [volume for volume in volumes if volume.volume_status == "available"]
         log.info(
-            f"Collecting AWS EBS Volume Metrics for {len(resources)} volumes in account {self.account.dname} region {region.id}"
+            (
+                f"Collecting AWS EBS Volume Metrics for {len(resources)} volumes in "
+                f"account {self.account.dname} region {region.id}"
+            )
         )
         atime_metric = "VolumeReadOps"
         mtime_metric = "VolumeWriteOps"
@@ -528,7 +549,10 @@ class AWSAccountCollector:
     @metrics_collect_rds_metrics.time()
     def collect_rds_metrics(self, region: AWSRegion, resources: List) -> None:
         log.info(
-            f"Collecting AWS RDS Metrics for {len(resources)} databases in account {self.account.dname} region {region.id}"
+            (
+                f"Collecting AWS RDS Metrics for {len(resources)} databases in "
+                f"account {self.account.dname} region {region.id}"
+            )
         )
         atime_metric = mtime_metric = "DatabaseConnections"
         namespace = "AWS/RDS"
@@ -979,8 +1003,8 @@ class AWSAccountCollector:
                     instance_type_info.reservations += ri["InstanceCount"]
                     log.debug(
                         (
-                            f"Reserved instance count for instance type {ri['InstanceType']} in "
-                            f"account {self.account.dname} region {region.name} is now {instance_type_info.reservations}"
+                            f"Reserved instance count for instance type {ri['InstanceType']} in account "
+                            f"{self.account.dname} region {region.name} is now {instance_type_info.reservations}"
                         )
                     )
                 if ri["Scope"] != "Region":

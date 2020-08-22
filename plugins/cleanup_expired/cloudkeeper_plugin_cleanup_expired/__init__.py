@@ -67,9 +67,9 @@ class CleanupExpiredPlugin(BasePlugin):
                             if now > expires:
                                 log.debug(
                                     (
-                                        f"Found expired resource {node.resource_type} {node.dname} in cloud {cloud.name} "
-                                        f"account {account.dname} region {region.name} age {node.age} with "
-                                        f"expires tag {expires_tag} - marking for cleanup"
+                                        f"Found expired resource {node.resource_type} {node.dname} in cloud "
+                                        f"{cloud.name} account {account.dname} region {region.name} age {node.age} "
+                                        f"with expires tag {expires_tag} - marking for cleanup"
                                     )
                                 )
                                 node.clean = True
