@@ -2,7 +2,7 @@ import configparser
 import cloudkeeper.logging
 from collections import defaultdict
 
-log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class TagValidatorConfig:
@@ -17,34 +17,34 @@ class TagValidatorConfig:
         defaults = defaultdict(dict)
         cacfg = defaultdict(dict)
         for section in config.sections():
-            if 'cloud' in config[section] and 'account' in config[section]:  # configuration of a cloud account
-                cloud = config[section]['cloud']
-                account = config[section]['account']
+            if "cloud" in config[section] and "account" in config[section]:  # configuration of a cloud account
+                cloud = config[section]["cloud"]
+                account = config[section]["account"]
                 cacfg[cloud][account] = {}
 
-                log.debug(f'Reading config for account {account} in cloud {cloud}')
+                log.debug(f"Reading config for account {account} in cloud {cloud}")
 
                 for key, value in config[section].items():
-                    if key in ('cloud', 'account'):
+                    if key in ("cloud", "account"):
                         continue
-                    if ' ' in key:
-                        classname, tag = key.split(' ', 1)
-                        region = '*'
-                        if ' ' in tag:
-                            region, tag = tag.split(' ', 1)
+                    if " " in key:
+                        classname, tag = key.split(" ", 1)
+                        region = "*"
+                        if " " in tag:
+                            region, tag = tag.split(" ", 1)
                         classname = classname.lower()
                         if classname not in cacfg[cloud][account]:
                             cacfg[cloud][account][classname] = {}
                         cacfg[cloud][account][classname][tag] = {}
                         cacfg[cloud][account][classname][tag][region] = value
                     else:
-                        log.error(f'Invalid config key {key}')
-            else:                           # configuration of a resource class
+                        log.error(f"Invalid config key {key}")
+            else:  # configuration of a resource class
                 classname = str(section).lower()
                 for tag, value in config[section].items():
-                    region = '*'
-                    if ' ' in tag:
-                        region, tag = tag.split(' ', 1)
+                    region = "*"
+                    if " " in tag:
+                        region, tag = tag.split(" ", 1)
                     if "\n" in value:
                         value = str(value).splitlines()
                     defaults[classname][tag] = {}

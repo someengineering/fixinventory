@@ -87,14 +87,18 @@ class TagAWSCtimePlugin(BasePlugin):
                         or not isinstance(region, BaseRegion)
                     ):
                         log.error(
-                            f"Resource {node.resource_type} {node.dname} has no valid cloud, account or region associated with it"
+                            (
+                                f"Resource {node.resource_type} {node.dname} has no valid "
+                                "cloud, account or region associated with it"
+                            )
                         )
                         continue
 
                     log.debug(
                         (
-                            f"Resource {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
-                            f" has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API"
+                            f"Resource {node.resource_type} {node.dname} in cloud {cloud.name} account "
+                            f"{account.dname} region {region.name} has no cloudkeeper:ctime tag "
+                            f"- setting it because ctime is not available via the AWS API"
                         )
                     )
                     pt_key = f"{cloud.id}-{account.id}-{region.id}"

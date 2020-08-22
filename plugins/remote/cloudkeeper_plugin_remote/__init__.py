@@ -8,7 +8,7 @@ from cloudkeeper.graph import Graph, sanitize
 from cloudkeeper.args import ArgumentParser
 
 
-log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class RemotePlugin(BaseCollectorPlugin):
@@ -19,7 +19,8 @@ class RemotePlugin(BaseCollectorPlugin):
     remote object. I.e. it executes code retrieved from a remote machine. If the communication was intercepted
     or replaced malicious code could be executed on the local machine!
     """
-    cloud = 'remote'
+
+    cloud = "remote"
 
     def __init__(self) -> None:
         super().__init__()
@@ -30,10 +31,10 @@ class RemotePlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: collecting remote resources")
         for endpoint in ArgumentParser.args.remote_endpoint:
-            log.info(f'Collecting {endpoint}')
-            if endpoint.startswith('file://'):
+            log.info(f"Collecting {endpoint}")
+            if endpoint.startswith("file://"):
                 endpoint = endpoint[7:]
-                with open(endpoint, mode='rb') as local_graph:
+                with open(endpoint, mode="rb") as local_graph:
                     pickled_graph = local_graph.read()
             else:
                 r = requests.get(endpoint)
@@ -41,7 +42,7 @@ class RemotePlugin(BaseCollectorPlugin):
             # todo: implement better (or any) security and authentication of the remote endpoint
             remote_graph = pickle.loads(pickled_graph)
             if not isinstance(remote_graph, Graph):
-                log.error('Downloaded remote graph is not of type Graph() - skipping')
+                log.error("Downloaded remote graph is not of type Graph() - skipping")
                 continue
 
             remote_graph_root = None
@@ -50,13 +51,15 @@ class RemotePlugin(BaseCollectorPlugin):
                     remote_graph_root = node
                     break
             if remote_graph_root:
-                log.debug('Adding remote graph to local plugin graph')
+                log.debug("Adding remote graph to local plugin graph")
                 self.graph = networkx.compose(self.graph, remote_graph)
                 self.graph.add_edge(self.root, remote_graph_root)
                 sanitize(self.graph, self.root)
             else:
-                log.error('Could not determine remote graph root - not using graph')
+                log.error("Could not determine remote graph root - not using graph")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument('--remote-endpoint', help='Remote Endpoint', dest='remote_endpoint', type=str, default=[], nargs='+')
+        arg_parser.add_argument(
+            "--remote-endpoint", help="Remote Endpoint", dest="remote_endpoint", type=str, default=[], nargs="+"
+        )
