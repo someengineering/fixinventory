@@ -1,2 +1,2 @@
-# cloudkeeper-plugin-example_persistent
-Example Persistent Plugin for Cloudkeeper
+# cloudkeeper-plugin-example_cli
+Example Cli Plugin for Cloudkeeper

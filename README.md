@@ -9,7 +9,7 @@ Cloudkeeper is a standalone CLI tool that periodically collects a list of resour
 Resource collection is performed in intervals (`--interval`) for each activated collector plugin (`--collector`).
 When resource collection is finished a resource cleanup can be performed (`--cleanup`). By default nothing will be cleaned!
 Cleanup plugins have to be installed and configured, or resources manually flagged for cleanup using the built-in CLI.
-Read more about collector and cleanup plugins in the [Plugins](#plugins) section below.
+Read more about collector, cli and cleanup plugins in the [Plugins](#plugins) section below.
 
 
 ## Who is it for?
@@ -123,7 +123,7 @@ $ cloudkeeper --collector remote --remote-endpoint file:///tmp/graph --cleanup -
 
 
 ## CLI
-Cloudkeeper comes with a simple CLI. Initially only used for debugging the internal data structures it can now also be used to perform simple searches and mark resources for cleanup. Entering `help` will give a list of all commands. `help <command>` will provide additional help for that command.
+Cloudkeeper comes with a built-in CLI. Initially only used for debugging the internal data structures it can now also be used to perform simple searches and mark resources for cleanup. Entering `help` will give a list of all commands. `help <command>` will provide additional help for that command.
 Commands can be piped into one another using "`|`". Multiple commands can be run after one another using "`;`". If you need to use the pipe or semicolon characters in your commands make sure to escape them using a backslash "`\`" character.
 Internally commands take in and output Iterables often consisting of the Cloud resources. Commands can match any attribute of those resources. So for instance if an AWS EBS volume has an attribute `volume_size` then you could query all EBS volumes larger than 100GB using: `match resource_type = aws_ec2_volume | match volume_size > 100`.
 
@@ -136,15 +136,19 @@ In the next example we will delete all unused EBS volumes larger than 100 GiB th
 > cleanup
 ```
 
-The `dump` command is useful for getting a list of a resource's attributes.
+The `dump` command is useful for getting a list of a resource's attributes and event log. To dump all resources to a json file one can use `dump --json | write resources.json`
+
+The CLI has a clipboard which can copy and paste resources. For instance: `match name ~ sre | clipboard copy; match name ~ eng | clipboard append; match name ~ sales | clipboard paste passthrough` would list all the resources with the strings 'sre', 'eng' or 'sales' in the name. The ones with name containing the strings 'sre' and 'eng' are copied to the clipboard while the ones with 'sales' are passed through after the paste.
+Side note: the same could have been written as `match name ~ (sre\|eng\|sales)`. This was just to demonstrate the functionality of the clipboard command.
 
 Now the CLI is useful for exploring collected data but if you have a repeating cleanup query it would be tedious to manually run it periodically. To that end Cloudkeeper supports an argument `--register-cli-action` which takes a lowercased event name (see [Events](#events) below) followed by a colon : and the CLI command that should be executed when that event is dispatched.
 If we wanted to run our volume cleanup from earlier every time cloudkeeper has finished collecting resources, we could call it like so:
 ```
 $ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_plan:match resource_type = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean"
 ```
-
 As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_volumes/) that does just that. It was written before cloudkeeper had its own CLI.
+
+Instead of passing CLI actions as commandline arguments they can also be stored in a text file and passed using the `--cli-actions-config`.
 
 
 ## Warning
@@ -166,8 +170,8 @@ Using the endoints mentioned in [Distributed Instances](#distributed-instances) 
 
 
 ## Plugins
-Cloudkeeper knows two types of Plugins, COLLECTOR and PERSISTENT. You can find example code for each type in [plugins/example_collector/](plugins/example_collector/) and [plugins/example_persistent/](plugins/example_persistent/).
-COLLECTOR Plugins collect cloud resources and are being instanciated on each collect run. PERSISTENT plugins are instanciated once at startup and are mostly used for resource cleanup decissions or for notification (e.g. to send a Slack message to the owner of an instance that has just been deleted).
+Cloudkeeper knows three types of Plugins, CLI, COLLECTOR and PERSISTENT. You can find example code for each type in [plugins/example_cli/](plugins/example_cli/), [plugins/example_collector/](plugins/example_collector/) and [plugins/example_persistent/](plugins/example_persistent/).
+COLLECTOR Plugins collect cloud resources and are being instanciated on each collect run. PERSISTENT plugins are instanciated once at startup and are mostly used for resource cleanup decissions or for notification (e.g. to send a Slack message to the owner of an instance that has just been deleted). CLI plugins extend the built-in CLI with new commands.
 
 ### Collector Plugins
 Each collector plugin has a local graph. A collector plugin implements resource collection for a cloud provider (e.g. AWS, GCP, Azure, Alicloud, etc.).
@@ -181,6 +185,9 @@ Once the collector finishes Cloudkeeper will take the collector plugin's graph a
 Persistent plugins run on startup and can register with one or more events. This way a plugin can be notified when e.g. cleanup is about to begin.
 As part of the event it would be handed a reference to the current live graph. It could then look at the resources in that graph, search for them, filter them, look at their attributes, etc. and perform actions like protecting a resource from deletion or flagging a resource for deletion.
 It could also register with the event that signals the end of a run and look at which resources have been cleaned up to generate a report that could be emailed or notify resource owners on Slack that their resources have been cleaned.
+
+### CLI Plugins
+CLI plugins extend the functionality of the built-in CLI with new commands. They can act on and filter resources and have full access to the current graph, the scheduler and the CLI clipboard. CLI commands can also be used in scheduled jobs (`--scheduler-config`) and CLI actions (`--register-cli-action` and `--cli-actions-config`).
 
 
 ## Events
