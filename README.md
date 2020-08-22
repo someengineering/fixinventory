@@ -237,7 +237,7 @@ Cloudkeeper comes with a built-in development webserver (defaults to Port 8000).
   /graph.txt        # GET Returns a Text representation of the live Graph
 ```
 The most useful of those will be `/metrics` and `/graph`. In our own setup we have an authentication and TLS proxy in front of our Cloudkeeper instances.
-Because a single collect run can take quite a while depending on the number of accounts that need to be scraped (in our case 40+ AWS accounts take about an hour to collect and clean) I have gotten to a development workflow where I download the live graph to my local system and then work on that local copy.  
+Because a single collect run can take quite a while depending on the number of accounts that need to be scraped I have gotten to a development workflow where I download the live graph to my local system and then work on that local copy.  
 
 ```
 $ cloudkeeper --collector remote --remote-endpoint https://somelogin:somepassword@cloudkeeper.example.com/graph

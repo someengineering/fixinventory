@@ -23,6 +23,7 @@ The collector will scrape resources in all regions unless regions are specified 
   --aws-region AWS_REGION [AWS_REGION ...]
                         AWS Region (default: all)
   --aws-scrape-org      Scrape the entire AWS Org (default: False)
+  --aws-fork            Use forked processes instead of threads (default: False)
   --aws-scrape-exclude-account AWS_SCRAPE_EXCLUDE_ACCOUNT [AWS_SCRAPE_EXCLUDE_ACCOUNT ...]
                         AWS exclude this Account when scraping the org
   --aws-assume-current  Assume role in current account (default: False)
@@ -32,6 +33,10 @@ The collector will scrape resources in all regions unless regions are specified 
                         AWS Account Thread Pool Size (default: 5)
   --aws-region-pool-size AWS_REGION_POOL_SIZE
                         AWS Region Thread Pool Size (default: 20)
+  --aws-collect AWS_COLLECT [AWS_COLLECT ...]
+                        AWS services to collect (default: all)
+  --aws-no-collect AWS_NO_COLLECT [AWS_NO_COLLECT ...]
+                        AWS services not to collect
 ```
 
 ## Scraping multiple accounts
@@ -45,9 +50,13 @@ try to get the list of all accounts using the [ListAccounts](https://docs.aws.am
 If certain accounts are to be excluded from that list they can be specified using the `--aws-scrape-exclde-account` argument.
 
 ## Worker pools
-Since most of the work is I/O bound the AWS collector will spawn multiple threads to collect accounts and regions in parallel.
+Since a lot of the work is I/O bound the AWS collector will spawn multiple threads to collect accounts and regions in parallel.
 The number of which can be specified using the `--aws-account-pool-size` and `--aws-region-pool-size` arguments.
 The defaults are chosen so cloudkeeper would collect five accounts and all regions at a time.
+
+For better performance at the expense of higher memory and CPU consumption during collection specify `--aws-fork`. To give an idea of the performance that can be expected. In our organization on a decent server with 32 cores and 128 GB RAM collecting 40 accounts with `--aws-account-pool-size 40 --aws-region-pool-size 15` using standard Python ThreadPools takes on the order of one hour. Specifying `--aws-fork` will reduce that time to about six minutes. On the other hand running the same on a low end m5.xlarge instance with an account pool size of 8 did not show any significant performance improvements but consumed four times the memory during collection compared to the thread pool method. Once the graph is collected and merged there is no difference in memory consumption between both methods.
+
+So the recommendation is, if you want to collect more than a handful of accounts in high intervals use a high end system and specify `--aws-fork`.
 
 ## Miscellaneous Options
 When working with distributed cloudkeeper instances cloudkeeper stores the role name that was used to retrieve a resource originally inside the graph.
