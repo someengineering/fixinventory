@@ -19,6 +19,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
+from cloudkeeper.pluginloader import PluginLoader, PluginType
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, list_event_listeners
@@ -102,17 +103,39 @@ class Cli(threading.Thread):
         )
 
 
+class Clipboard:
+    def __init__(self) -> None:
+        self.__data = []
+
+    def clear(self):
+        self.data = []
+
+    @property
+    def data(self) -> List:
+        return self.__data
+
+    @data.setter
+    def data(self, value) -> None:
+        self.__data = value
+
+
 class CliHandler:
-    def __init__(self, graph: Graph, scheduler=None, clipboard: Iterable = None) -> None:
+    def __init__(self, graph: Graph, scheduler=None, clipboard: Clipboard = None) -> None:
         self.graph = graph
         self.scheduler = scheduler
-        self.valid_commands = sorted(
-            [
-                f[4:]
-                for f, _ in inspect.getmembers(self.__class__, predicate=inspect.isfunction)
-                if f.startswith("cmd_")
-            ]
-        )
+        self.commands = {}
+        cli_plugins = [Plugin(graph, scheduler, clipboard) for Plugin in PluginLoader().plugins(PluginType.CLI)]
+
+        for f, m in inspect.getmembers(self, predicate=inspect.ismethod):
+            if f.startswith("cmd_"):
+                self.commands[f[4:]] = m
+
+        for cli_plugin in cli_plugins:
+            for f, m in inspect.getmembers(cli_plugin, predicate=inspect.ismethod):
+                if f.startswith("cmd_"):
+                    self.commands[f[4:]] = m
+
+        self.valid_commands = sorted(self.commands.keys())
         if clipboard is None:
             clipboard = Clipboard()
         self.clipboard = clipboard
@@ -127,9 +150,8 @@ class CliHandler:
                     args = ""
                     if " " in cmd:
                         cmd, args = cmd.split(" ", 1)
-                    method = f"cmd_{cmd}"
-                    if hasattr(self, method):
-                        items = getattr(self, method)(items, args)
+                    if cmd in self.commands:
+                        items = self.commands[cmd](items, args)
                     else:
                         items = (f"Unknown command: {cmd}",)
                         break
@@ -484,10 +506,8 @@ Valid commands are:
 Note that you can pipe commands using the pipe character (|)
 and chain multipe commands using the semicolon (;).
             """
-        method = f"cmd_{args}"
-        if hasattr(self, method):
-            f = getattr(self, method)
-            doc = inspect.getdoc(f)
+        if args in self.commands:
+            doc = inspect.getdoc(self.commands[args])
             if doc is None:
                 doc = f"Command {args} has no help text."
         else:
@@ -997,19 +1017,3 @@ def replace_placeholder(cli_input: str) -> str:
     cli_input = cli_input.replace("@SUNDAY@", sunday)
 
     return cli_input
-
-
-class Clipboard:
-    def __init__(self) -> None:
-        self.__data = []
-
-    def clear(self):
-        self.data = []
-
-    @property
-    def data(self) -> List:
-        return self.__data
-
-    @data.setter
-    def data(self, value) -> None:
-        self.__data = value

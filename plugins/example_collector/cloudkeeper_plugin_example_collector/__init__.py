@@ -40,9 +40,15 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
 class ExampleAccount(BaseAccount):
     resource_type = 'example_account'
 
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
 
 class ExampleRegion(BaseRegion):
     resource_type = 'example_region'
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
 
 
 class ExampleResource(BaseResource):
@@ -64,6 +70,14 @@ class ExampleResource(BaseResource):
 class ExampleInstance(BaseInstance, ExampleResource):
     resource_type = 'example_instance'
 
+    def delete(self, graph: Graph) -> bool:
+        log.debug(f'Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}')
+        return True
+
 
 class ExampleNetwork(BaseNetwork, ExampleResource):
     resource_type = 'example_instance'
+
+    def delete(self, graph: Graph) -> bool:
+        log.debug(f'Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}')
+        return True

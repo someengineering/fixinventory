@@ -21,6 +21,9 @@ class AWSAccount(BaseAccount):
         super().__init__(*args, **kwargs)
         self.role = role
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 class AWSRegion(BaseRegion):
     resource_type = 'aws_region'
@@ -29,11 +32,17 @@ class AWSRegion(BaseRegion):
         super().__init__(*args, **kwargs)
         self.ctime = default_ctime
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 class AWSResource:
     def __init__(self, *args, arn: str = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.arn = arn
+
+    def delete(self, graph) -> bool:
+        return False
 
 
 class AWSEC2InstanceType(AWSResource, BaseInstanceType):

@@ -11,15 +11,20 @@ from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
 log = cloudkeeper.logging.getLogger('cloudkeeper.' + __name__)
 
 
-class OneLoginAccount(BaseAccount):
+class OneLoginResource:
+    def delete(self, graph) -> bool:
+        return False
+
+
+class OneLoginAccount(OneLoginResource, BaseAccount):
     resource_type = 'onelogin_account'
 
 
-class OneLoginRegion(BaseRegion):
+class OneLoginRegion(OneLoginResource, BaseRegion):
     resource_type = 'onelogin_region'
 
 
-class OneLoginUser(BaseUser):
+class OneLoginUser(OneLoginResource, BaseUser):
     resource_type = 'onelogin_user'
 
     def __init__(self, identifier, tags, user: User):
@@ -62,6 +67,9 @@ class OneLoginUser(BaseUser):
         self.atime = self.last_login
         self.mtime = self.updated_at
         self.password_age = datetime.utcnow().replace(tzinfo=timezone.utc) - make_valid_timestamp(self.password_changed_at)
+
+    def delete(self, graph) -> bool:
+        return NotImplemented
 
 
 class OneLoginPlugin(BaseCollectorPlugin):

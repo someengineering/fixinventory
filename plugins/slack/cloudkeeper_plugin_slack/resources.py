@@ -4,7 +4,12 @@ from datetime import datetime
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser, BaseGroup, BaseResource
 
 
-class SlackTeam(BaseAccount):
+class SlackResource:
+    def delete(self, graph) -> bool:
+        return False
+
+
+class SlackTeam(SlackResource, BaseAccount):
     resource_type = 'slack_team'
 
     def __init__(self, identifier, tags, team: Dict):
@@ -16,11 +21,11 @@ class SlackTeam(BaseAccount):
         self.icon = team.get('icon', {}).get('image_original')
 
 
-class SlackRegion(BaseRegion):
+class SlackRegion(SlackResource, BaseRegion):
     resource_type = 'slack_region'
 
 
-class SlackUser(BaseUser):
+class SlackUser(SlackResource, BaseUser):
     resource_type = 'slack_user'
 
     def __init__(self, identifier, tags, member: Dict):
@@ -68,7 +73,7 @@ class SlackUser(BaseUser):
         self.real_name_normalized = profile.get('real_name_normalized')
 
 
-class SlackUsergroup(BaseGroup):
+class SlackUsergroup(SlackResource, BaseGroup):
     resource_type = 'slack_usergroup'
 
     def __init__(self, identifier, tags, usergroup: Dict):
@@ -95,7 +100,7 @@ class SlackUsergroup(BaseGroup):
         self._groups = prefs.get('groups', [])
 
 
-class SlackConversation(BaseResource):
+class SlackConversation(SlackResource, BaseResource):
     resource_type = 'slack_conversation'
 
     def __init__(self, identifier, tags, channel: Dict):

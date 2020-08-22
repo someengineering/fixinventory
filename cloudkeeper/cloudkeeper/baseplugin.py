@@ -22,6 +22,7 @@ class PluginType(Enum):
 
     COLLECTOR = auto()
     PERSISTENT = auto()
+    CLI = auto()
 
 
 class BasePlugin(ABC, Thread):
@@ -90,3 +91,17 @@ class BaseCollectorPlugin(BasePlugin):
     def go(self) -> None:
         self.collect()
         self.finished = True
+
+
+class BaseCliPlugin(BasePlugin):
+    plugin_type = PluginType.CLI
+    cli_prefix = NotImplemented
+
+    def __init__(self, graph, scheduler, clipboard) -> None:
+        super().__init__()
+        self.graph = graph
+        self.scheduler = scheduler
+        self.clipboard = clipboard
+
+    def go(self) -> None:
+        pass

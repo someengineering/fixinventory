@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
@@ -315,6 +315,7 @@ class BaseResource(ABC):
         return True
 
     @unless_protected
+    @abstractmethod
     def delete(self, graph) -> bool:
         raise NotImplementedError
 
@@ -325,7 +326,7 @@ class BaseResource(ABC):
         elif graph:
             account = graph.search_first_parent_class(self, BaseAccount)
         if account is None:
-            account = BaseAccount("undefined", {})
+            account = UnknownAccount("undefined", {})
         return account
 
     def cloud(self, graph=None):
@@ -335,7 +336,7 @@ class BaseResource(ABC):
         elif graph:
             cloud = graph.search_first_parent_class(self, BaseCloud)
         if cloud is None:
-            cloud = BaseCloud("undefined", {})
+            cloud = UnknownCloud("undefined", {})
         return cloud
 
     def region(self, graph=None):
@@ -345,7 +346,7 @@ class BaseResource(ABC):
         elif graph:
             region = graph.search_first_parent_class(self, BaseRegion)
         if region is None:
-            region = BaseRegion("undefined", {})
+            region = UnknownRegion("undefined", {})
         return region
 
     def to_json(self):
@@ -751,9 +752,15 @@ class BaseSnapshot(BaseResource):
 class Cloud(BaseCloud):
     resource_type = "cloud"
 
+    def delete(self, graph) -> bool:
+        return False
+
 
 class GraphRoot(PhantomBaseResource):
     resource_type = "graph_root"
+
+    def delete(self, graph) -> bool:
+        return False
 
 
 class BaseBucket(BaseResource):
@@ -1248,3 +1255,18 @@ class BaseAutoScalingGroup(BaseResource):
         if self._cleaned:
             self._metrics["cleaned_autoscaling_groups_total"][metrics_keys] = 1
         return self._metrics
+
+
+class UnknownCloud(BaseCloud):
+    def delete(self, graph) -> bool:
+        return False
+
+
+class UnknownAccount(BaseAccount):
+    def delete(self, graph) -> bool:
+        return False
+
+
+class UnknownRegion(BaseRegion):
+    def delete(self, graph) -> bool:
+        return False
