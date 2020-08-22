@@ -9,15 +9,15 @@ from prometheus_client import Counter
 
 log = cloudkeeper.logging.getLogger(__name__)
 metrics_unhandled_plugin_exceptions = Counter(
-    "cloudkeeper_unhandled_plugin_exceptions_total", "Unhandled Plugin Exceptions", ["plugin"]
+    "cloudkeeper_unhandled_plugin_exceptions_total", "Unhandled plugin exceptions", ["plugin"]
 )
 
 
 class PluginType(Enum):
     """Defines Plugin Type
 
-    COLLECTOR is a Cloud Resource Collector Plugin that gets instantiated on each collect() run
-    PERSISTENT is a Persistent Plugin that gets instantiated once upon startup
+    COLLECTOR is a cloud resource collector plugin that gets instantiated on each collect() run
+    PERSISTENT is a persistent plugin that gets instantiated once upon startup
     """
 
     COLLECTOR = auto()
@@ -61,7 +61,7 @@ class BasePlugin(ABC, Thread):
 
 
 class BaseCollectorPlugin(BasePlugin):
-    """A cloudkeeper Collector Plugin is a thread that collects cloud resources.
+    """A cloudkeeper Collector plugin is a thread that collects cloud resources.
 
     Whenever the thread is started the collect() method is run. The collect() method is expected to add
     cloud resources to self.graph. Cloud resources must inherit the BaseResource or one of the more specific
@@ -93,9 +93,35 @@ class BaseCollectorPlugin(BasePlugin):
         self.finished = True
 
 
-class BaseCliPlugin(BasePlugin):
+class BaseCliPlugin(ABC):
+    """A cloudkeeper CLI plugin adds new commands to the built-in CLI.
+
+    The plugin has references to the current graph, scheduler and CLI clipboard.
+    Every function that is prefixed with the string 'cmd_' will become a new CLI command.
+
+    Signature and example implementation is as follows:
+        def cmd_example(self, items: Iterable, args: str) -> Iterable:
+            '''Usage: | example <string>
+
+            Example command that lists all resources whose name starts with <string>.
+            '''
+            for item in items:
+                if isinstance(item, BaseResource) and item.name.startswith(args):
+                    yield item
+
+    items is usually a generator function being passed in from the previous command.
+    If this is the first command in the chain then items contains all of the graphs resources.
+
+    Args is the string that the user input after the command.
+    For instance when calling `> example foo --bar` args of cmd_example would be 'foo --bar'.
+
+    The function has to take care of tokenizing the string if desired.
+    The functions docstring is being displayed when the user enters `help example`.
+
+    Like every plugin CLI plugins can specify cloudkeeper args by implementing
+    the add_args() method.
+    """
     plugin_type = PluginType.CLI
-    cli_prefix = NotImplemented
 
     def __init__(self, graph, scheduler, clipboard) -> None:
         super().__init__()
@@ -103,5 +129,8 @@ class BaseCliPlugin(BasePlugin):
         self.scheduler = scheduler
         self.clipboard = clipboard
 
-    def go(self) -> None:
+    @staticmethod
+    @abstractmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        """Adds Plugin specific arguments to the global arg parser"""
         pass

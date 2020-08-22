@@ -3,7 +3,7 @@ import inspect
 import cloudkeeper.logging
 from typing import List
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseplugin import BasePlugin, PluginType
+from cloudkeeper.baseplugin import BasePlugin, BaseCliPlugin, PluginType
 
 log = cloudkeeper.logging.getLogger(__name__)
 
@@ -46,8 +46,12 @@ class PluginLoader:
     def add_plugin(self, plugin) -> bool:
         """Adds a Plugin class to the list of Plugins"""
         global plugins
-        if inspect.isclass(plugin) and not inspect.isabstract(plugin) and issubclass(plugin, BasePlugin):
-            log.debug(f"Found plugin {plugin} ({plugin.plugin_type})")
+        if (
+            inspect.isclass(plugin)
+            and not inspect.isabstract(plugin)
+            and issubclass(plugin, (BasePlugin, BaseCliPlugin))
+        ):
+            log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
             if plugin not in plugins[plugin.plugin_type]:
                 plugins[plugin.plugin_type].append(plugin)
         return True
