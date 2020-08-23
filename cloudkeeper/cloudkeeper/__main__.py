@@ -1,11 +1,9 @@
 import time
 import os
 import sys
-import resource
 import threading
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
-from signal import SIGKILL, SIGUSR1, SIGTERM
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
@@ -15,31 +13,28 @@ from cloudkeeper.args import get_arg_parser
 from cloudkeeper.processor import Processor
 from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.metrics import GraphCollector
-from cloudkeeper.utils import log_stats, get_child_process_info
+from cloudkeeper.utils import log_stats, increase_limits
 from cloudkeeper.cli import Cli
 from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventType, add_args as event_add_args
 from prometheus_client import REGISTRY
 
 
-# Try to run in a new process group
-try:
-    os.setpgid(0, 0)
-except (PermissionError, AttributeError):
-    pass
-
 log = logging.getLogger(__name__)
 
-# This will be used in main() and signal_handler()
+# This will be used in main() and shutdown()
 shutdown_event = threading.Event()
 
 
 def main() -> None:
+    # Try to run in a new process group and
+    # ignore if not possible for whatever reason
+    try:
+        os.setpgid(0, 0)
+    except:
+        pass
+
     cloudkeeper.signal.parent_pid = os.getpid()
-    args_str = ""
-    if len(sys.argv) > 1:
-        args_str = f" {' '.join(sys.argv[1:])}"
-    cloudkeeper.signal.set_proc_title(f"cloudkeeper{args_str}")
-    cloudkeeper.signal.set_proc_name("cloudkeeper")
+
     # Add cli args
     arg_parser = get_arg_parser()
 
@@ -60,22 +55,12 @@ def main() -> None:
     # At this point the CLI, all Plugins as well as the WebServer have added their args to the arg parser
     arg_parser.parse_args()
 
-    cloudkeeper.signal.initializer()
-
     # Handle Ctrl+c and other means of termination/shutdown
-    cloudkeeper.signal.on_parent_exit(SIGKILL)
+    cloudkeeper.signal.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # Try to increase nofile and nproc limits
-    for limit_name in ("RLIMIT_NOFILE", "RLIMIT_NPROC"):
-        soft_limit, hard_limit = resource.getrlimit(getattr(resource, limit_name))
-        log.debug(f"Current {limit_name} soft: {soft_limit} hard: {hard_limit}")
-        try:
-            if soft_limit < hard_limit:
-                log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
-                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
-        except (ValueError):
-            log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
+    increase_limits()
 
     # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
     # This way we're not losing the context in other places like the webserver when the
@@ -124,13 +109,8 @@ def main() -> None:
     while not shutdown_event.is_set():
         log_stats()
         shutdown_event.wait(900)
-    time.sleep(3)
-    num_children = len(get_child_process_info().keys())
-    if num_children > 0:
-        log.debug(f"There are still {num_children} children alive - sending SIGTERM followed by SIGKILL")
-        cloudkeeper.signal.kill_children(SIGTERM)
-        time.sleep(2)
-        cloudkeeper.signal.kill_children(SIGKILL)
+    time.sleep(5)
+    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     quit()
 
@@ -140,8 +120,7 @@ def shutdown(event: Event) -> None:
     emergency = event.data.get("emergency")
 
     if emergency:
-        log.fatal(f"EMERGENCY SHUTDOWN: {reason}")
-        os.killpg(os.getpgid(0), SIGKILL)
+        cloudkeeper.signal.emergency_shutdown(reason)
 
     current_pid = os.getpid()
     if current_pid != cloudkeeper.signal.parent_pid:
@@ -150,8 +129,8 @@ def shutdown(event: Event) -> None:
     if reason is None:
         reason = "unknown reason"
     log.info(f"Received shut down event {event.event_type}: {reason} - killing all threads and child processes")
-    # Send 'friendly' SIGUSR1 to children to have them shut down
-    cloudkeeper.signal.kill_children(SIGUSR1)
+    # Send 'friendly' signal to children to have them shut down
+    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
     kt = threading.Thread(target=force_shutdown, name="shutdown")
     kt.start()
     shutdown_event.set()  # and then end the program
@@ -161,7 +140,6 @@ def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
     log.error("Some child process or thread timed out during shutdown")
-    cloudkeeper.signal.kill_children(SIGKILL)
     os._exit(0)
 
 

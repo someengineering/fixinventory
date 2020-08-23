@@ -121,6 +121,7 @@ class BaseCliPlugin(ABC):
     Like every plugin CLI plugins can specify cloudkeeper args by implementing
     the add_args() method.
     """
+
     plugin_type = PluginType.CLI
 
     def __init__(self, graph, scheduler, clipboard) -> None:

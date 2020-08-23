@@ -2,7 +2,10 @@ import threading
 import re
 import os
 import gc as garbage_collector
-import resource
+import sys
+
+if sys.platform == "linux":
+    import resource
 import time
 import json
 import cloudkeeper.logging
@@ -248,14 +251,23 @@ def get_stats(graph=None) -> Dict:
             "active_threads": threading.active_count(),
             "thread_names": [thread.name for thread in threading.enumerate()],
             "graph_size_bytes": asizeof.asizeof(graph),
-            "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-            "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
             "garbage_collector": garbage_collector.get_stats(),
             "process": get_all_process_info(),
         }
+        if sys.platform == "linux":
+            stats.update(
+                {
+                    "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
+                }
+            )
+        else:
+            stats.update(
+                {"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0,}
+            )
         stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
-        num_fds_parent = stats["process"]["parent"]["num_file_descriptors"]
-        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"]["children"].values()])
+        num_fds_parent = stats["process"].get("parent", {}).get("num_file_descriptors", 0)
+        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"].get("children", {}).values()])
         stats.update(
             {
                 "graph_size_human_readable": iec_size_format(stats["graph_size_bytes"]),
@@ -275,6 +287,8 @@ def get_stats(graph=None) -> Dict:
 
 
 def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
+    if os.name == "nt":
+        return {}
     if pid is None:
         pid = os.getpid()
     process_info = {}
@@ -289,6 +303,8 @@ def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
+    if os.name == "nt":
+        return {}
     if parent_pid is None:
         parent_pid = os.getpid()
     child_process_info = {}
@@ -300,6 +316,8 @@ def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_pid_list(proc: str = "/proc") -> List:
+    if os.name == "nt":
+        return []
     pids = []
     for entry in os.listdir(proc):
         try:
@@ -311,6 +329,8 @@ def get_pid_list(proc: str = "/proc") -> List:
 
 
 def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
+    if os.name == "nt":
+        return {}
     if pid is None:
         pid = os.getpid()
     process_info = {}
@@ -330,6 +350,8 @@ def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_file_descriptor_info(pid: int = None, proc: str = "/proc") -> Dict:
+    if os.name == "nt":
+        return {}
     if pid is None:
         pid = os.getpid()
     pid = str(pid)
@@ -353,7 +375,7 @@ def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
             (
                 f"Stats: max rss parent: {stats['maxrss_parent_human_readable']}, "
                 f"children: {stats['maxrss_children_human_readable']}, "
-                f"fds: {stats['num_fds_total']}/{stats['process']['parent']['rlimit_nofile'][0]} "
+                f"fds: {stats['num_fds_total']}/{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]} "
                 f"active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}"
             )
         )
@@ -412,3 +434,17 @@ def log_runtime(f):
 
 def fmt_json(value) -> str:
     return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(",", ": "), sort_keys=True)
+
+
+def increase_limits() -> None:
+    if sys.platform != "linux":
+        return
+    for limit_name in ("RLIMIT_NOFILE", "RLIMIT_NPROC"):
+        soft_limit, hard_limit = resource.getrlimit(getattr(resource, limit_name))
+        log.debug(f"Current {limit_name} soft: {soft_limit} hard: {hard_limit}")
+        try:
+            if soft_limit < hard_limit:
+                log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
+                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
+        except (ValueError):
+            log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
