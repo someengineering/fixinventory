@@ -1,5 +1,5 @@
 FROM python:3.8-alpine AS build-env
-RUN apk add --no-cache build-base findutils
+RUN apk add --no-cache build-base findutils linux-headers
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
