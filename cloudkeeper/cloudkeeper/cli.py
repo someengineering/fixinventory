@@ -23,7 +23,7 @@ from cloudkeeper.pluginloader import PluginLoader, PluginType
 from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, list_event_listeners
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, get_stats, fmt_json
+from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, fmt_json
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
 
@@ -256,41 +256,6 @@ class CliHandler:
         self.quit("Shutdown requested by CLI input")
         return ()
 
-    def cmd_debug_close_fd(self, items: Iterable, args: str) -> Iterable:
-        """Usage: debug_close_fd <fd>[+]
-
-        Close an open file descriptor.
-        If the + arg is given close any file
-        descriptor after the one given as well.
-        """
-        close_after = False
-        if args.endswith("+"):
-            close_after = True
-            args = args[:-1]
-
-        if not args.isnumeric():
-            yield "debug_close_fd expects a file descriptor number as arg."
-        else:
-            fd_num = int(args)
-
-            stats = get_stats()
-            all_fds = [int(fd) for fd in stats["process"]["parent"]["file_descriptors"].keys()]
-            kill_fds = []
-            if fd_num in all_fds:
-                kill_fds.append(fd_num)
-            if close_after:
-                kill_fds.extend([fd for fd in all_fds if fd > fd_num])
-            for fd in kill_fds:
-                yield f"Forcefully closing file descriptor {fd}."
-                os.fdopen(fd).close()
-
-    def cmd_debug_proc_info(self, items: Iterable, args: str) -> Iterable:
-        """Usage: debug_proc_info
-
-        Show system information.
-        """
-        yield fmt_json(get_stats(self.graph))
-
     def cmd_clipboard(self, items: Iterable, args: str) -> Iterable:
         """Usage: | clipboard <copy|append|paste|clear> [passthrough] |
 
@@ -354,26 +319,6 @@ class CliHandler:
             elif confirm_delete is True:
                 item.cleanup(self.graph)
             yield item
-
-    def cmd_debug_calc_object_byte_size(self, items: Iterable, args: str) -> Iterable:
-        """Usage: | debug_calc_object_byte_size |
-
-        Calculate the resources in-memory size in bytes and add it
-        as a .debug_byte_size attribute which can then be viewed with
-        the dump command.
-        """
-        for item in items:
-            byte_size = asizeof.asizeof(item)
-            item.debug_object_byte_size = int(byte_size)
-            yield item
-
-    def cmd_debug_dump_members(self, items: Iterable, args: str) -> Iterable:
-        """Usage: | debug_getmembers
-
-        Dump all the members of a resource in a list.
-        """
-        for item in items:
-            yield pformat(inspect.getmembers(item))
 
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
         """Usage: | dump [--json]
