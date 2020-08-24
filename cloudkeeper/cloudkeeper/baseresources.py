@@ -156,8 +156,6 @@ class BaseResource(ABC):
 
     def log(self, msg: str, data=None, exception=None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        if hasattr(exception, 'kwargs'):
-            del(exception.kwargs)
         log_entry = {
             "timestamp": now,
             "msg": str(msg),
