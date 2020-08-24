@@ -1,7 +1,4 @@
 import argparse
-import logging
-
-log = logging.getLogger(__name__)
 
 
 class Namespace(argparse.Namespace):
@@ -22,7 +19,13 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def get_arg_parser() -> ArgumentParser:
-    arg_parser = ArgumentParser(description='Cloudkeeper - Housekeeping for Clouds')
-    arg_parser.add_argument('--verbose', '-v', help='Verbose logging', dest='verbose', action='store_true', default=False)
-    arg_parser.add_argument('--logfile', help='Logfile to log into', dest='logfile')
+    arg_parser = ArgumentParser(description="Cloudkeeper - Housekeeping for Clouds")
+    arg_parser.add_argument(
+        "--verbose",
+        "-v",
+        help="Verbose logging",
+        dest="verbose",
+        action="store_true",
+        default=False,
+    )
     return arg_parser

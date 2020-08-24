@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging
 import threading
 import yaml
 from cloudkeeper.baseplugin import BasePlugin
@@ -26,7 +26,7 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 
-log = logging.getLogger("cloudkeeper." + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CleanupAWSVPCsPlugin(BasePlugin):
@@ -67,7 +67,10 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                 cloud = node.cloud(graph)
                 account = node.account(graph)
                 region = node.region(graph)
-                log_prefix = f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} region {region.name} marked for cleanup."
+                log_prefix = (
+                    f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} "
+                    f"region {region.name} marked for cleanup."
+                )
 
                 if len(self.config) > 0:
                     if (
@@ -121,23 +124,35 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                         ),
                     ):
                         descendant.log(
-                            f"Marking for cleanup because resource is a descendant of VPC {node.dname} which is set to be cleaned"
+                            (
+                                f"Marking for cleanup because resource is a descendant of VPC {node.dname} "
+                                f"which is set to be cleaned"
+                            )
                         )
                         node.log(
-                            f"Marking {descendant.resource_type} {descendant.dname} for cleanup because resource is a descendant"
+                            f"Marking {descendant.rtdname} for cleanup because resource is a descendant"
                         )
                         descendant.clean = True
                     else:
                         if descendant.clean:
                             log.debug(
-                                f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted but already marked for cleaning"
+                                (
+                                    f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted but "
+                                    f"already marked for cleaning"
+                                )
                             )
                         else:
                             log.error(
-                                f"Descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname} is not targeted and not marked for cleaning - VPC cleanup will likely fail"
+                                (
+                                    f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted and "
+                                    f"not marked for cleaning - VPC cleanup will likely fail"
+                                )
                             )
                             node.log(
-                                f"Descendant {descendant.resource_type} {descendant.dname} is not targeted and not marked for cleaning - cleanup will likely fail"
+                                (
+                                    f"Descendant {descendant.rtdname} is not targeted and not marked for cleaning "
+                                    f"- cleanup will likely fail"
+                                )
                             )
 
     @staticmethod

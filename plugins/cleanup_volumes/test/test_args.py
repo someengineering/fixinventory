@@ -7,4 +7,4 @@ def test_args():
     CleanupVolumesPlugin.add_args(arg_parser)
     arg_parser.parse_args()
     assert ArgumentParser.args.cleanup_volumes is False
-    assert ArgumentParser.args.cleanup_volumes_age == '14 days'
+    assert ArgumentParser.args.cleanup_volumes_age == "14 days"

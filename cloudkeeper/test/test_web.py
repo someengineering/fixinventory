@@ -1,16 +1,17 @@
 import socket
 import requests
-import logging
+import cloudkeeper.logging as logging
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import add_args as event_add_args
 from cloudkeeper.web import WebServer
 from cloudkeeper.graph import GraphContainer
-logging.getLogger('cloudkeeper').setLevel(logging.DEBUG)
+
+logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
 
 
 def test_web():
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp.bind(('', 0))
+    tcp.bind(("", 0))
     _, free_port = tcp.getsockname()
     tcp.close()
     # fixme: race
@@ -26,7 +27,7 @@ def test_web():
     web_server.daemon = True
     web_server.start()
 
-    endpoint = f'http://localhost:{free_port}'
+    endpoint = f"http://localhost:{free_port}"
 
-    r = requests.get(f'{endpoint}/health')
-    assert r.content == b'ok\r\n'
+    r = requests.get(f"{endpoint}/health")
+    assert r.content == b"ok\r\n"

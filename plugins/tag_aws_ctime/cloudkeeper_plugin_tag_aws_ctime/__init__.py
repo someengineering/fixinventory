@@ -1,4 +1,4 @@
-import logging
+import cloudkeeper.logging
 import threading
 from datetime import datetime, timezone
 from cloudkeeper.graph import Graph
@@ -20,7 +20,7 @@ from cloudkeeper.event import (
 )
 from prometheus_client import Summary, Counter
 
-log = logging.getLogger("cloudkeeper." + __name__)
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_ctime_tags = Counter(
     "cloudkeeper_plugin_tag_aws_ctime_tags_total",
@@ -28,7 +28,8 @@ metrics_ctime_tags = Counter(
     ["cloud", "account", "region"],
 )
 metrics_tag_ctime = Summary(
-    "cloudkeeper_plugin_tag_aws_ctime_tag_ctime_seconds", "Tag AWS ctime Plugin Time it took the tag_ctime() method",
+    "cloudkeeper_plugin_tag_aws_ctime_tag_ctime_seconds",
+    "Tag AWS ctime Plugin Time it took the tag_ctime() method",
 )
 
 
@@ -42,7 +43,10 @@ class TagAWSCtimePlugin(BasePlugin):
             log.debug("AWS ctime Tagger plugin initializing")
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
             add_event_listener(
-                EventType.COLLECT_FINISH, self.aws_ctime_tagger, blocking=False, timeout=900,
+                EventType.COLLECT_FINISH,
+                self.aws_ctime_tagger,
+                blocking=False,
+                timeout=900,
             )
         else:
             self.exit.set()
@@ -74,7 +78,9 @@ class TagAWSCtimePlugin(BasePlugin):
         pt = ParallelTagger(self.name)
         with graph.lock.read_access:
             for node in graph.nodes:
-                if not isinstance(node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)):
+                if not isinstance(
+                    node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)
+                ):
                     continue
 
                 if "cloudkeeper:ctime" not in node.tags:
@@ -87,19 +93,25 @@ class TagAWSCtimePlugin(BasePlugin):
                         or not isinstance(region, BaseRegion)
                     ):
                         log.error(
-                            f"Resource {node.resource_type} {node.dname} has no valid cloud, account or region associated with it"
+                            (
+                                f"Resource {node.resource_type} {node.dname} has no valid "
+                                "cloud, account or region associated with it"
+                            )
                         )
                         continue
 
                     log.debug(
                         (
-                            f"Resource {node.resource_type} {node.dname} in cloud {cloud.name} account {account.dname} region {region.name}"
-                            f" has no cloudkeeper:ctime tag - setting it because ctime is not available via the AWS API"
+                            f"Resource {node.resource_type} {node.dname} in cloud {cloud.name} account "
+                            f"{account.dname} region {region.name} has no cloudkeeper:ctime tag "
+                            f"- setting it because ctime is not available via the AWS API"
                         )
                     )
                     pt_key = f"{cloud.id}-{account.id}-{region.id}"
                     pt.add(node, "cloudkeeper:ctime", now, pt_key)
-                    metrics_ctime_tags.labels(cloud=cloud.name, account=account.dname, region=region.name).inc()
+                    metrics_ctime_tags.labels(
+                        cloud=cloud.name, account=account.dname, region=region.name
+                    ).inc()
         pt.run()
 
     @staticmethod
@@ -113,5 +125,7 @@ class TagAWSCtimePlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down AWS ctime tagging plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down AWS ctime tagging plugin"
+        )
         self.exit.set()
