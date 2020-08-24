@@ -31,7 +31,9 @@ class CliDebugPlugin(BaseCliPlugin):
             fd_num = int(args)
 
             stats = get_stats()
-            all_fds = [int(fd) for fd in stats["process"]["parent"]["file_descriptors"].keys()]
+            all_fds = [
+                int(fd) for fd in stats["process"]["parent"]["file_descriptors"].keys()
+            ]
             kill_fds = []
             if fd_num in all_fds:
                 kill_fds.append(fd_num)

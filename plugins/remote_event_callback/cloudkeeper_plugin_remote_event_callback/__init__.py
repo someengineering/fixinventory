@@ -4,7 +4,12 @@ import requests
 from functools import partial
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -37,13 +42,20 @@ class RemoteEventCallbackPlugin(BasePlugin):
         log.info(f"Received event {event.event_type.name}: calling {endpoint}")
         try:
             if ArgumentParser.args.remote_event_callback_psk:
-                r = requests.post(endpoint, json={"psk": ArgumentParser.args.remote_event_callback_psk})
+                r = requests.post(
+                    endpoint,
+                    json={"psk": ArgumentParser.args.remote_event_callback_psk},
+                )
             else:
                 r = requests.post(endpoint)
             if r.json().get("status") == "ok":
-                log.debug(f"Successfully called endpoint {endpoint} for event {event.event_type.name}")
+                log.debug(
+                    f"Successfully called endpoint {endpoint} for event {event.event_type.name}"
+                )
             else:
-                log.error(f"Failure when calling endpoint {endpoint} for event {event.event_type.name}")
+                log.error(
+                    f"Failure when calling endpoint {endpoint} for event {event.event_type.name}"
+                )
         except Exception:
             log.exception(
                 f"An unhandeled exception occured while calling endpoint {endpoint} for event {event.event_type.name}"

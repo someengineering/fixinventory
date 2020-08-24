@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["example_collector = cloudkeeper_plugin_example_collector:ExampleCollectorPlugin"]
+        "cloudkeeper.plugins": [
+            "example_collector = cloudkeeper_plugin_example_collector:ExampleCollectorPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

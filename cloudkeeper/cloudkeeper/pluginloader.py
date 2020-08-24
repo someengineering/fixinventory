@@ -63,7 +63,10 @@ class PluginLoader:
         selected_plugins = []
         for Plugin in plugins[plugin_type]:
             if plugin_type == PluginType.COLLECTOR:
-                if not ArgumentParser.args.collector or Plugin.cloud in ArgumentParser.args.collector:
+                if (
+                    not ArgumentParser.args.collector
+                    or Plugin.cloud in ArgumentParser.args.collector
+                ):
                     selected_plugins.append(Plugin)
                 else:
                     log.debug(f"Plugin {Plugin} not in plugin list - skipping")
@@ -96,4 +99,6 @@ class PluginLoader:
         log.debug("Adding plugin args")
         for type_plugins in plugins.values():  # iterate over all PluginTypes
             for Plugin in type_plugins:  # iterate over each Plugin of each PluginType
-                Plugin.add_args(arg_parser)  # add that Plugin's args to the ArgumentParser
+                Plugin.add_args(
+                    arg_parser
+                )  # add that Plugin's args to the ArgumentParser

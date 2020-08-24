@@ -1,10 +1,20 @@
 import cloudkeeper.logging
 import threading
 from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper_plugin_aws.resources import AWSELB, AWSALB, AWSALBTargetGroup, AWSEC2Instance
+from cloudkeeper_plugin_aws.resources import (
+    AWSELB,
+    AWSALB,
+    AWSALBTargetGroup,
+    AWSEC2Instance,
+)
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import parse_delta
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -16,10 +26,17 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
         self.exit = threading.Event()
         if ArgumentParser.args.cleanup_aws_loadbalancers:
             try:
-                self.age = parse_delta(ArgumentParser.args.cleanup_aws_loadbalancers_age)
+                self.age = parse_delta(
+                    ArgumentParser.args.cleanup_aws_loadbalancers_age
+                )
                 log.debug(f"AWS Loadbalancer Cleanup Plugin Age {self.age}")
                 add_event_listener(EventType.SHUTDOWN, self.shutdown)
-                add_event_listener(EventType.CLEANUP_PLAN, self.loadbalancer_cleanup, blocking=True, timeout=3600)
+                add_event_listener(
+                    EventType.CLEANUP_PLAN,
+                    self.loadbalancer_cleanup,
+                    blocking=True,
+                    timeout=3600,
+                )
             except ValueError:
                 log.exception(
                     (
@@ -65,7 +82,8 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                         [
                             i
                             for i in node.predecessors(graph)
-                            if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
+                            if isinstance(i, AWSEC2Instance)
+                            and i.instance_status != "terminated"
                         ]
                     )
                     == 0
@@ -80,7 +98,14 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                     node.clean = True
                 elif (
                     isinstance(node, AWSALB)
-                    and len([n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]) == 0
+                    and len(
+                        [
+                            n
+                            for n in node.predecessors(graph)
+                            if isinstance(n, AWSALBTargetGroup)
+                        ]
+                    )
+                    == 0
                     and len(node.backends) == 0
                 ):
                     log.debug(
@@ -90,7 +115,10 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                         )
                     )
                     node.clean = True
-                elif isinstance(node, AWSALBTargetGroup) and len(list(node.successors(graph))) == 0:
+                elif (
+                    isinstance(node, AWSALBTargetGroup)
+                    and len(list(node.successors(graph))) == 0
+                ):
                     log.debug(
                         (
                             f"Found orphaned AWS ALB Target Group {node.dname} in cloud {cloud.name} "
@@ -100,7 +128,11 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                     node.clean = True
                 elif isinstance(node, AWSALB):
                     cleanup_alb = True
-                    target_groups = [n for n in node.predecessors(graph) if isinstance(n, AWSALBTargetGroup)]
+                    target_groups = [
+                        n
+                        for n in node.predecessors(graph)
+                        if isinstance(n, AWSALBTargetGroup)
+                    ]
 
                     if len(node.backends) > 0:
                         cleanup_alb = False
@@ -113,7 +145,8 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
                                 [
                                     i
                                     for i in tg.predecessors(graph)
-                                    if isinstance(i, AWSEC2Instance) and i.instance_status != "terminated"
+                                    if isinstance(i, AWSEC2Instance)
+                                    and i.instance_status != "terminated"
                                 ]
                             )
                             > 0
@@ -149,5 +182,7 @@ class CleanupAWSLoadbalancersPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down AWS Loadbalancers Cleanup plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down AWS Loadbalancers Cleanup plugin"
+        )
         self.exit.set()

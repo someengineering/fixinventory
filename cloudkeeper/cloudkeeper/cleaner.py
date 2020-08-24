@@ -9,7 +9,9 @@ import cloudkeeper.logging
 
 log = cloudkeeper.logging.getLogger(__name__)
 
-metrics_cleanup = Summary("cloudkeeper_cleanup_seconds", "Time it took the cleanup() method")
+metrics_cleanup = Summary(
+    "cloudkeeper_cleanup_seconds", "Time it took the cleanup() method"
+)
 
 
 class Cleaner:
@@ -19,7 +21,9 @@ class Cleaner:
     @metrics_cleanup.time()
     def cleanup(self) -> None:
         if not ArgumentParser.args.cleanup:
-            log.error("Cleanup called but --cleanup flag not provided at startup - ignoring call")
+            log.error(
+                "Cleanup called but --cleanup flag not provided at startup - ignoring call"
+            )
             return
 
         log.info("Notifying plugins to plan cleanup")
@@ -31,17 +35,21 @@ class Cleaner:
             cleanup_plan = defaultlist(lambda: [])
 
             for node in cleanup_nodes:
-                log.debug(f"Adding {node.rtdname} to cleanup plan with priority {node.max_graph_depth}")
+                log.debug(
+                    f"Adding {node.rtdname} to cleanup plan with priority {node.max_graph_depth}"
+                )
                 cleanup_plan[node.max_graph_depth].append(node)
 
             with ThreadPoolExecutor(
-                max_workers=ArgumentParser.args.cleanup_pool_size, thread_name_prefix="pre_cleaner"
+                max_workers=ArgumentParser.args.cleanup_pool_size,
+                thread_name_prefix="pre_cleaner",
             ) as executor:
                 executor.map(self.pre_clean, cleanup_nodes)
 
             for nodes in reversed(cleanup_plan):
                 with ThreadPoolExecutor(
-                    max_workers=ArgumentParser.args.cleanup_pool_size, thread_name_prefix="cleaner"
+                    max_workers=ArgumentParser.args.cleanup_pool_size,
+                    thread_name_prefix="cleaner",
                 ) as executor:
                     executor.map(self.clean, nodes)
 
@@ -53,26 +61,34 @@ class Cleaner:
 
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if ArgumentParser.args.cleanup_dry_run:
-            log.debug(f"{log_prefix}, not calling pre cleanup method because of dry run flag")
+            log.debug(
+                f"{log_prefix}, not calling pre cleanup method because of dry run flag"
+            )
             return
 
         log.debug(f"{log_prefix}, calling pre cleanup method")
         try:
             node.pre_cleanup(self.graph)
         except Exception:
-            log.exception(f"An exception occurred when running resource pre cleanup on {node.rtdname}")
+            log.exception(
+                f"An exception occurred when running resource pre cleanup on {node.rtdname}"
+            )
 
     def clean(self, node: BaseResource) -> None:
         log_prefix = f"Resource {node.rtdname} is marked for removal"
         if ArgumentParser.args.cleanup_dry_run:
-            log.debug(f"{log_prefix}, not calling cleanup method because of dry run flag")
+            log.debug(
+                f"{log_prefix}, not calling cleanup method because of dry run flag"
+            )
             return
 
         log.debug(f"{log_prefix}, calling cleanup method")
         try:
             node.cleanup(self.graph)
         except Exception:
-            log.exception(f"An exception occurred when running resource cleanup on {node.rtdname}")
+            log.exception(
+                f"An exception occurred when running resource cleanup on {node.rtdname}"
+            )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

@@ -17,20 +17,30 @@ class ParallelTagger:
 
     def add(self, resource: BaseResource, key, value, pt_key=None) -> None:
         if not isinstance(resource, BaseResource):
-            raise ValueError(f"Resource {resource} is not a valid Cloudkeeper BaseResource")
+            raise ValueError(
+                f"Resource {resource} is not a valid Cloudkeeper BaseResource"
+            )
 
         if pt_key is None:
             pt_key = uuid.uuid4().hex
 
-        log.debug(f"Queuing parallel tag update of {key}: {value} for {resource.dname} with pt_key {pt_key}")
-        self._tag_lists[pt_key].append({"resource": resource, "key": key, "value": value})
+        log.debug(
+            f"Queuing parallel tag update of {key}: {value} for {resource.dname} with pt_key {pt_key}"
+        )
+        self._tag_lists[pt_key].append(
+            {"resource": resource, "key": key, "value": value}
+        )
 
     def run(self):
-        with ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix=self.thread_name_prefix) as executor:
+        with ThreadPoolExecutor(
+            max_workers=self.max_workers, thread_name_prefix=self.thread_name_prefix
+        ) as executor:
             for tag_list in self._tag_lists.values():
                 executor.submit(self.tag, tag_list)
 
     def tag(self, tag_list: List):
         for tag_info in tag_list:
-            log.debug(f"Setting {tag_info['key']}: {tag_info['value']} for {tag_info['resource']}")
+            log.debug(
+                f"Setting {tag_info['key']}: {tag_info['value']} for {tag_info['resource']}"
+            )
             tag_info["resource"].tags[tag_info["key"]] = tag_info["value"]

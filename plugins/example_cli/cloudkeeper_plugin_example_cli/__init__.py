@@ -34,5 +34,8 @@ class ExampleCliPlugin(BaseCliPlugin):
     def add_args(arg_parser: ArgumentParser) -> None:
         """Adds Plugin specific arguments to the global arg parser"""
         arg_parser.add_argument(
-            "--example-cli-arg", help="Example Cli Command Arg", default=None, dest="example_cli_arg"
+            "--example-cli-arg",
+            help="Example Cli Command Arg",
+            default=None,
+            dest="example_cli_arg",
         )

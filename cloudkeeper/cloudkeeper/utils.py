@@ -124,7 +124,9 @@ class _LightSwitch:
 
 def make_valid_timestamp(timestamp: datetime) -> datetime:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
-        timestamp = datetime.combine(timestamp, datetime.min.time()).replace(tzinfo=timezone.utc)
+        timestamp = datetime.combine(timestamp, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
     elif isinstance(timestamp, datetime) and timestamp.tzinfo is None:
         timestamp = timestamp.replace(tzinfo=timezone.utc)
     elif isinstance(timestamp, datetime):
@@ -256,21 +258,42 @@ def get_stats(graph=None) -> Dict:
         if sys.platform == "linux":
             stats.update(
                 {
-                    "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
+                    "maxrss_parent_bytes": resource.getrusage(
+                        resource.RUSAGE_SELF
+                    ).ru_maxrss
+                    * 1024,
+                    "maxrss_children_bytes": resource.getrusage(
+                        resource.RUSAGE_CHILDREN
+                    ).ru_maxrss
+                    * 1024,
                 }
             )
         else:
             stats.update({"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0})
-        stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
-        num_fds_parent = stats["process"].get("parent", {}).get("num_file_descriptors", 0)
-        num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"].get("children", {}).values()])
+        stats["maxrss_total_bytes"] = (
+            stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
+        )
+        num_fds_parent = (
+            stats["process"].get("parent", {}).get("num_file_descriptors", 0)
+        )
+        num_fds_children = sum(
+            [
+                v["num_file_descriptors"]
+                for v in stats["process"].get("children", {}).values()
+            ]
+        )
         stats.update(
             {
                 "graph_size_human_readable": iec_size_format(stats["graph_size_bytes"]),
-                "maxrss_parent_human_readable": iec_size_format(stats["maxrss_parent_bytes"]),
-                "maxrss_children_human_readable": iec_size_format(stats["maxrss_children_bytes"]),
-                "maxrss_total_human_readable": iec_size_format(stats["maxrss_total_bytes"]),
+                "maxrss_parent_human_readable": iec_size_format(
+                    stats["maxrss_parent_bytes"]
+                ),
+                "maxrss_children_human_readable": iec_size_format(
+                    stats["maxrss_children_bytes"]
+                ),
+                "maxrss_total_human_readable": iec_size_format(
+                    stats["maxrss_total_bytes"]
+                ),
                 "num_fds_parent": num_fds_parent,
                 "num_fds_children": num_fds_children,
                 "num_fds_total": num_fds_parent + num_fds_children,
@@ -291,11 +314,17 @@ def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
     process_info = {}
     process_info["parent"] = get_process_info(pid)
     process_info["parent"]["file_descriptors"] = get_file_descriptor_info(pid, proc)
-    process_info["parent"]["num_file_descriptors"] = len(process_info["parent"]["file_descriptors"])
+    process_info["parent"]["num_file_descriptors"] = len(
+        process_info["parent"]["file_descriptors"]
+    )
     process_info["children"] = get_child_process_info(pid, proc)
     for pid in process_info["children"]:
-        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(pid, proc)
-        process_info["children"][pid]["num_file_descriptors"] = len(process_info["children"][pid]["file_descriptors"])
+        process_info["children"][pid]["file_descriptors"] = get_file_descriptor_info(
+            pid, proc
+        )
+        process_info["children"][pid]["num_file_descriptors"] = len(
+            process_info["children"][pid]["file_descriptors"]
+        )
     return process_info
 
 
@@ -338,7 +367,9 @@ def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
                 v = re.sub("[ \t]+", " ", v.strip())
                 process_info[k.lower()] = v
         for limit_name in ("NOFILE", "NPROC"):
-            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(getattr(resource, f"RLIMIT_{limit_name}"))
+            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(
+                getattr(resource, f"RLIMIT_{limit_name}")
+            )
     except (PermissionError, FileNotFoundError):
         pass
     return process_info
@@ -421,14 +452,23 @@ def log_runtime(f):
         kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
         if len(args) > 0 and len(kwargs) > 0:
             args_str += ", "
-        log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
+        log.debug(
+            f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds"
+        )
         return ret
 
     return timer
 
 
 def fmt_json(value) -> str:
-    return json.dumps(value, default=json_default, skipkeys=True, indent=4, separators=(",", ": "), sort_keys=True)
+    return json.dumps(
+        value,
+        default=json_default,
+        skipkeys=True,
+        indent=4,
+        separators=(",", ": "),
+        sort_keys=True,
+    )
 
 
 def increase_limits() -> None:
@@ -440,6 +480,8 @@ def increase_limits() -> None:
         try:
             if soft_limit < hard_limit:
                 log.debug(f"Increasing {limit_name} {soft_limit} -> {hard_limit}")
-                resource.setrlimit(getattr(resource, limit_name), (hard_limit, hard_limit))
+                resource.setrlimit(
+                    getattr(resource, limit_name), (hard_limit, hard_limit)
+                )
         except (ValueError):
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")

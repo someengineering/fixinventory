@@ -5,7 +5,12 @@ from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import *
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import make_valid_timestamp, parse_delta
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -17,7 +22,9 @@ class CleanupExpiredPlugin(BasePlugin):
         self.exit = threading.Event()
         if ArgumentParser.args.cleanup_expired:
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.CLEANUP_PLAN, self.expired_cleanup, blocking=True)
+            add_event_listener(
+                EventType.CLEANUP_PLAN, self.expired_cleanup, blocking=True
+            )
         else:
             self.exit.set()
 
@@ -49,10 +56,14 @@ class CleanupExpiredPlugin(BasePlugin):
                         try:
                             if "cloudkeeper:expires" in node.tags:
                                 expires_tag = node.tags["cloudkeeper:expires"]
-                                expires = make_valid_timestamp(datetime.fromisoformat(expires_tag))
+                                expires = make_valid_timestamp(
+                                    datetime.fromisoformat(expires_tag)
+                                )
                             else:
                                 expires_tag = node.tags["expiration"]
-                                expires = make_valid_timestamp(node.ctime + parse_delta(expires_tag))
+                                expires = make_valid_timestamp(
+                                    node.ctime + parse_delta(expires_tag)
+                                )
 
                         except ValueError:
                             log.exception(
@@ -85,5 +96,7 @@ class CleanupExpiredPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down cleanup expired plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down cleanup expired plugin"
+        )
         self.exit.set()

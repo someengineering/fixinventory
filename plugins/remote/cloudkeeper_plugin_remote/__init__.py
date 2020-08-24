@@ -26,7 +26,9 @@ class RemotePlugin(BaseCollectorPlugin):
         super().__init__()
         self.root = GraphRoot(self.cloud, {})
         self.graph = Graph()
-        self.graph.add_node(self.root, label=self.root.id, resource_type=self.root.resource_type)
+        self.graph.add_node(
+            self.root, label=self.root.id, resource_type=self.root.resource_type
+        )
 
     def collect(self) -> None:
         log.debug("plugin: collecting remote resources")
@@ -61,5 +63,10 @@ class RemotePlugin(BaseCollectorPlugin):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--remote-endpoint", help="Remote Endpoint", dest="remote_endpoint", type=str, default=[], nargs="+"
+            "--remote-endpoint",
+            help="Remote Endpoint",
+            dest="remote_endpoint",
+            type=str,
+            default=[],
+            nargs="+",
         )

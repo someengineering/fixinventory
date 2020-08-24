@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["metrics_age_range = cloudkeeper_plugin_metrics_age_range:MetricsAgeRangePlugin"]
+        "cloudkeeper.plugins": [
+            "metrics_age_range = cloudkeeper_plugin_metrics_age_range:MetricsAgeRangePlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

@@ -17,7 +17,9 @@ class TagValidatorConfig:
         defaults = defaultdict(dict)
         cacfg = defaultdict(dict)
         for section in config.sections():
-            if "cloud" in config[section] and "account" in config[section]:  # configuration of a cloud account
+            if (
+                "cloud" in config[section] and "account" in config[section]
+            ):  # configuration of a cloud account
                 cloud = config[section]["cloud"]
                 account = config[section]["account"]
                 cacfg[cloud][account] = {}

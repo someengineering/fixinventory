@@ -9,7 +9,9 @@ from typing import List, Tuple
 
 log = cloudkeeper.logging.getLogger(__name__)
 
-metrics_graph2metrics = Summary("cloudkeeper_graph2metrics_seconds", "Time it took the graph2metrics() method")
+metrics_graph2metrics = Summary(
+    "cloudkeeper_graph2metrics_seconds", "Time it took the graph2metrics() method"
+)
 
 
 class GraphCollector:
@@ -39,13 +41,17 @@ def graph2metrics(graph):
                     for metric, data in node.metrics_description.items():
                         if metric not in metrics:
                             metrics[metric] = GaugeMetricFamily(
-                                f"cloudkeeper_{metric}", data["help"], labels=mlabels(data["labels"])
+                                f"cloudkeeper_{metric}",
+                                data["help"],
+                                labels=mlabels(data["labels"]),
                             )
                             num[metric] = defaultdict(lambda: 0)
                     for metric, data in node.metrics(graph).items():
                         for labels, value in data.items():
                             if metric not in num:
-                                log.error(f"Couldn't find metric {metric} in num when processing node {node}")
+                                log.error(
+                                    f"Couldn't find metric {metric} in num when processing node {node}"
+                                )
                                 continue
                             num[metric][mtags(labels, node)] += value
                 except AttributeError:

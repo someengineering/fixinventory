@@ -13,7 +13,9 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["backup = cloudkeeper_plugin_backup:BackupPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": ["backup = cloudkeeper_plugin_backup:BackupPlugin"]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper"],

@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["cleanup_untagged = cloudkeeper_plugin_cleanup_untagged:CleanupUntaggedPlugin"]
+        "cloudkeeper.plugins": [
+            "cleanup_untagged = cloudkeeper_plugin_cleanup_untagged:CleanupUntaggedPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

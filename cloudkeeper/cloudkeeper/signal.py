@@ -25,7 +25,9 @@ def handler(sig, frame) -> None:
         log.debug(f"Parent caught signal {sig} - dispatching shutdown event")
         # Dispatch shutdown event in parent process which also causes SIGUSR1 to be sent to
         # the process group and in turn causes the shutdown event in all child processes.
-        dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}))
+        dispatch_event(
+            Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False})
+        )
     else:
         reason = f"Received shutdown signal {sig} from parent process"
         log.debug(
@@ -35,7 +37,10 @@ def handler(sig, frame) -> None:
         kt = threading.Thread(target=delayed_exit, name="shutdown")
         kt.start()
         # Dispatch shutdown event in child process
-        dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}), blocking=False)
+        dispatch_event(
+            Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}),
+            blocking=False,
+        )
         sys.exit(0)
 
 
@@ -55,7 +60,9 @@ def emergency_shutdown(reason: str = "") -> None:
     psutil.Process().kill()
 
 
-def kill_children(signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3) -> None:
+def kill_children(
+    signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3
+) -> None:
     procs = psutil.Process().children(recursive=True)
     num_children = len(procs)
     if num_children == 0:

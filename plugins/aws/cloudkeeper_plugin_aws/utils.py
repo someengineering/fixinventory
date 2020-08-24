@@ -18,7 +18,9 @@ def aws_session(aws_account=None, aws_role=None):
             region_name="us-east-1",
         )
         sts = session.client("sts")
-        token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
+        token = sts.assume_role(
+            RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}"
+        )
         credentials = token["Credentials"]
         return boto3.session.Session(
             aws_access_key_id=credentials["AccessKeyId"],
@@ -39,9 +41,9 @@ def aws_client(resource: BaseResource, service: str, graph: Graph = None):
 
 
 def aws_resource(resource: BaseResource, service: str, graph: Graph = None):
-    return aws_session(resource.account(graph).id, resource.account(graph).role).resource(
-        service, region_name=resource.region(graph).id
-    )
+    return aws_session(
+        resource.account(graph).id, resource.account(graph).role
+    ).resource(service, region_name=resource.region(graph).id)
 
 
 def paginate(method: callable, **kwargs) -> Iterable:

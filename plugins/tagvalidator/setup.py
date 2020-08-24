@@ -13,7 +13,11 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["tagvalidator = cloudkeeper_plugin_tagvalidator:TagValidatorPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": [
+            "tagvalidator = cloudkeeper_plugin_tagvalidator:TagValidatorPlugin"
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper", "prometheus_client"],

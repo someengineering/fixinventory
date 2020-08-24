@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["protect_snowflakes = cloudkeeper_plugin_protect_snowflakes:ProtectSnowflakesPlugin"]
+        "cloudkeeper.plugins": [
+            "protect_snowflakes = cloudkeeper_plugin_protect_snowflakes:ProtectSnowflakesPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

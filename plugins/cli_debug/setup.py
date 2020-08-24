@@ -13,7 +13,11 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["cli_debug = cloudkeeper_plugin_cli_debug:CliDebugPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": [
+            "cli_debug = cloudkeeper_plugin_cli_debug:CliDebugPlugin"
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper", "Pympler"],

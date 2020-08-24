@@ -9,44 +9,74 @@ from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
 from cloudkeeper.utils import RWLock, json_default
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 from prometheus_client import Summary
 from typing import Dict
 from io import BytesIO
 
 log = cloudkeeper.logging.getLogger(__name__)
 
-metrics_graph_search = Summary("cloudkeeper_graph_search_seconds", "Time it took the Graph search() method")
-metrics_graph_searchall = Summary("cloudkeeper_graph_searchall_seconds", "Time it took the Graph searchall() method")
-metrics_graph_searchre = Summary("cloudkeeper_graph_searchre_seconds", "Time it took the Graph searchre() method")
+metrics_graph_search = Summary(
+    "cloudkeeper_graph_search_seconds", "Time it took the Graph search() method"
+)
+metrics_graph_searchall = Summary(
+    "cloudkeeper_graph_searchall_seconds", "Time it took the Graph searchall() method"
+)
+metrics_graph_searchre = Summary(
+    "cloudkeeper_graph_searchre_seconds", "Time it took the Graph searchre() method"
+)
 metrics_graph_search_first = Summary(
-    "cloudkeeper_graph_search_first_seconds", "Time it took the Graph search_first() method"
+    "cloudkeeper_graph_search_first_seconds",
+    "Time it took the Graph search_first() method",
 )
 metrics_graph_search_first_all = Summary(
-    "cloudkeeper_graph_search_first_all_seconds", "Time it took the Graph search_first_all() method"
+    "cloudkeeper_graph_search_first_all_seconds",
+    "Time it took the Graph search_first_all() method",
 )
 metrics_graph_search_first_parent_class = Summary(
-    "cloudkeeper_graph_search_first_parent_seconds", "Time it took the Graph search_first_parent_class() method"
+    "cloudkeeper_graph_search_first_parent_seconds",
+    "Time it took the Graph search_first_parent_class() method",
 )
 metrics_graph_resolve_deferred_connections = Summary(
-    "cloudkeeper_graph_resolve_deferred_connections", "Time it took the Graph resolve_deferred_connections() method"
+    "cloudkeeper_graph_resolve_deferred_connections",
+    "Time it took the Graph resolve_deferred_connections() method",
 )
 metrics_graphcache_update_cache = Summary(
-    "cloudkeeper_graphcache_update_cache_seconds", "Time it took the GraphCache update_cache() method"
+    "cloudkeeper_graphcache_update_cache_seconds",
+    "Time it took the GraphCache update_cache() method",
 )
-metrics_graph2json = Summary("cloudkeeper_graph2json_seconds", "Time it took the graph2json() method")
-metrics_graph2text = Summary("cloudkeeper_graph2text_seconds", "Time it took the graph2text() method")
-metrics_graph2graphml = Summary("cloudkeeper_graph2graphml_seconds", "Time it took the graph2graphml() method")
-metrics_graph2pickle = Summary("cloudkeeper_graph2pickle_seconds", "Time it took the graph2pickle() method")
-metrics_graph2gexf = Summary("cloudkeeper_graph2gexf_seconds", "Time it took the graph2gexf() method")
-metrics_graph2pajek = Summary("cloudkeeper_graph2pajek_seconds", "Time it took the graph2pajek() method")
+metrics_graph2json = Summary(
+    "cloudkeeper_graph2json_seconds", "Time it took the graph2json() method"
+)
+metrics_graph2text = Summary(
+    "cloudkeeper_graph2text_seconds", "Time it took the graph2text() method"
+)
+metrics_graph2graphml = Summary(
+    "cloudkeeper_graph2graphml_seconds", "Time it took the graph2graphml() method"
+)
+metrics_graph2pickle = Summary(
+    "cloudkeeper_graph2pickle_seconds", "Time it took the graph2pickle() method"
+)
+metrics_graph2gexf = Summary(
+    "cloudkeeper_graph2gexf_seconds", "Time it took the graph2gexf() method"
+)
+metrics_graph2pajek = Summary(
+    "cloudkeeper_graph2pajek_seconds", "Time it took the graph2pajek() method"
+)
 
 resource_attributes_blacklist = ["metrics_description"]
 
 
 def get_resource_attributes(resource) -> Dict:
     attributes = dict(resource.__dict__)
-    attributes["tags"] = dict(attributes.pop("_tags"))  # Turn ResourceTagsDict() back into dict() for *ML marshalling
+    attributes["tags"] = dict(
+        attributes.pop("_tags")
+    )  # Turn ResourceTagsDict() back into dict() for *ML marshalling
     attributes["resource_type"] = resource.resource_type
     attributes["dname"] = resource.dname
     attributes["ctime"] = resource.ctime
@@ -112,7 +142,9 @@ class Graph(networkx.DiGraph):
         """
         resource_attr = get_resource_attributes(node_for_adding)
 
-        super().add_node(node_for_adding, label=node_for_adding.name, **resource_attr, **attr)
+        super().add_node(
+            node_for_adding, label=node_for_adding.name, **resource_attr, **attr
+        )
         super().add_edge(parent, node_for_adding)
 
     def add_node(self, *args, **kwargs):
@@ -135,9 +167,13 @@ class Graph(networkx.DiGraph):
     def search(self, attr, value, regex_search=False):
         """Search for graph nodes by their attribute value"""
         if value is None:
-            log.error(f"Not searching graph for nodes with attribute values {attr}: {value}")
+            log.error(
+                f"Not searching graph for nodes with attribute values {attr}: {value}"
+            )
             return ()
-        log.debug(f"Searching graph for nodes with attribute values {attr}: {value} (regex: {regex_search})")
+        log.debug(
+            f"Searching graph for nodes with attribute values {attr}: {value} (regex: {regex_search})"
+        )
         with self.lock.read_access:
             for node in self.nodes():
                 node_attr = getattr(node, attr, None)
@@ -154,7 +190,9 @@ class Graph(networkx.DiGraph):
     @metrics_graph_searchre.time()
     def searchre(self, attr, regex):
         """Regex search for graph nodes by their attribute value"""
-        log.debug(f"Regex searching graph for nodes with attribute values {attr}: {regex}")
+        log.debug(
+            f"Regex searching graph for nodes with attribute values {attr}: {regex}"
+        )
         return self.search(attr, regex, regex_search=True)
 
     @metrics_graph_searchall.time()
@@ -164,7 +202,9 @@ class Graph(networkx.DiGraph):
             return (
                 node
                 for node in self.nodes()
-                if all(getattr(node, attr, None) == value for attr, value in match.items())
+                if all(
+                    getattr(node, attr, None) == value for attr, value in match.items()
+                )
             )
 
     @metrics_graph_search_first.time()
@@ -205,7 +245,9 @@ class Graph(networkx.DiGraph):
                 if ret:
                     break
         except RecursionError:
-            log.exception(f"Recursive search error triggered for node {node}'s parent class {cls}")
+            log.exception(
+                f"Recursive search error triggered for node {node}'s parent class {cls}"
+            )
         return ret
 
     @metrics_graph_resolve_deferred_connections.time()
@@ -416,7 +458,10 @@ def dump_graph(graph) -> str:
 
 @metrics_graph2json.time()
 def graph2json(graph):
-    return json.dumps(networkx.node_link_data(graph), default=json_default, skipkeys=True) + "\n"
+    return (
+        json.dumps(networkx.node_link_data(graph), default=json_default, skipkeys=True)
+        + "\n"
+    )
 
 
 @metrics_graph2text.time()
@@ -483,7 +528,9 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
             for node in list(graph.successors(graph_root)):
                 if isinstance(node, Cloud):
                     if node.id in plugin_roots:
-                        log.debug(f"Found existing plugin root {node.id} - attaching children and removing plugin root")
+                        log.debug(
+                            f"Found existing plugin root {node.id} - attaching children and removing plugin root"
+                        )
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
                                 (
@@ -495,7 +542,9 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
                             graph.remove_edge(node, plugin_root_child)
                         graph.remove_node(node)
                     else:
-                        log.debug(f"Found new plugin root {node.id} - attaching to top level root")
+                        log.debug(
+                            f"Found new plugin root {node.id} - attaching to top level root"
+                        )
                         graph.add_edge(root, node)
                         graph.remove_edge(graph_root, node)
                 else:

@@ -23,17 +23,23 @@ metrics_resource_cleanup_exceptions = Counter(
     "Number of resource cleanup() exceptions",
     ["cloud", "account", "region", "resource_type"],
 )
-metrics_resource_cleanup = Summary("cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method")
+metrics_resource_cleanup = Summary(
+    "cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method"
+)
 
 
 def unless_protected(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         if not isinstance(self, BaseResource):
-            raise ValueError("unless_protected() only supports BaseResource type objects")
+            raise ValueError(
+                "unless_protected() only supports BaseResource type objects"
+            )
         if self.protected:
             log.error(f"Resource {self.rtdname} is protected - refusing modification")
-            self.log("Modification was requested even though resource is protected - refusing")
+            self.log(
+                "Modification was requested even though resource is protected - refusing"
+            )
             return False
         return f(self, *args, **kwargs)
 
@@ -113,7 +119,14 @@ class BaseResource(ABC):
         )
 
     def _keys(self):
-        return (self.resource_type, self.account().id, self.region().id, self.id, self.name, self.ctime)
+        return (
+            self.resource_type,
+            self.account().id,
+            self.region().id,
+            self.id,
+            self.name,
+            self.ctime,
+        )
 
     #    def __hash__(self):
     #        return hash(self._keys())
@@ -143,7 +156,12 @@ class BaseResource(ABC):
 
     def log(self, msg: str, data=None, exception=None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        log_entry = {"timestamp": now, "msg": str(msg), "exception": deepcopy(exception), "data": deepcopy(data)}
+        log_entry = {
+            "timestamp": now,
+            "msg": str(msg),
+            "exception": deepcopy(exception),
+            "data": deepcopy(data),
+        }
         self.__log.append(log_entry)
 
     @property
@@ -253,7 +271,9 @@ class BaseResource(ABC):
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-            log.error(f"Could not determine account or region for cleanup of {self.rtdname}")
+            log.error(
+                f"Could not determine account or region for cleanup of {self.rtdname}"
+            )
             return False
 
         log_suffix = f" in account {account.dname} region {region.name}"
@@ -269,10 +289,15 @@ class BaseResource(ABC):
             log.info(f"Successfully cleaned up {self.rtdname}{log_suffix}")
         except Exception as e:
             self.log("An error occurred during clean up", exception=e)
-            log.exception(f"An error occurred during clean up {self.rtdname}{log_suffix}")
+            log.exception(
+                f"An error occurred during clean up {self.rtdname}{log_suffix}"
+            )
             cloud = self.cloud(graph)
             metrics_resource_cleanup_exceptions.labels(
-                cloud=cloud.name, account=account.dname, region=region.name, resource_type=self.resource_type
+                cloud=cloud.name,
+                account=account.dname,
+                region=region.name,
+                resource_type=self.resource_type,
             ).inc()
             return False
         return True
@@ -289,7 +314,9 @@ class BaseResource(ABC):
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-            log.error(f"Could not determine account or region for pre cleanup of {self.rtdname}")
+            log.error(
+                f"Could not determine account or region for pre cleanup of {self.rtdname}"
+            )
             return False
 
         log_suffix = f" in account {account.dname} region {region.name}"
@@ -304,10 +331,15 @@ class BaseResource(ABC):
             log.info(f"Successfully ran pre clean up {self.rtdname}{log_suffix}")
         except Exception as e:
             self.log("An error occurred during pre clean up", exception=e)
-            log.exception(f"An error occurred during pre clean up {self.rtdname}{log_suffix}")
+            log.exception(
+                f"An error occurred during pre clean up {self.rtdname}{log_suffix}"
+            )
             cloud = self.cloud(graph)
             metrics_resource_pre_cleanup_exceptions.labels(
-                cloud=cloud.name, account=account.dname, region=region.name, resource_type=self.resource_type
+                cloud=cloud.name,
+                account=account.dname,
+                region=region.name,
+                resource_type=self.resource_type,
             ).inc()
             return False
         return True
@@ -353,7 +385,9 @@ class BaseResource(ABC):
     def metrics(self, graph) -> Dict:
         return self._metrics
 
-    def add_metric(self, metric: str, value: int, help: str, labels: List, label_values: Tuple) -> bool:
+    def add_metric(
+        self, metric: str, value: int, help: str, labels: List, label_values: Tuple
+    ) -> bool:
         self.__custom_metrics = True
         # todo: sync test and assignment
         if metric not in self.metrics_description:
@@ -363,7 +397,9 @@ class BaseResource(ABC):
         self._metrics[metric][label_values] = value
 
     def add_deferred_connection(self, attr, value, parent=True) -> None:
-        self._deferred_connections.append({"attr": attr, "value": value, "parent": parent})
+        self._deferred_connections.append(
+            {"attr": attr, "value": value, "parent": parent}
+        )
 
     def resolve_deferred_connections(self, graph) -> None:
         while self._deferred_connections:
@@ -428,12 +464,18 @@ class ResourceTagsDict(dict):
                 if self.parent_resource.update_tag(key, value):
                     log_msg = f"Successfully set tag {key} to {value} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.info(log_msg + f" for {self.parent_resource.resource_type} {self.parent_resource.id}")
+                    log.info(
+                        log_msg
+                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                    )
                     return super().__setitem__(key, value)
                 else:
                     log_msg = f"Error setting tag {key} to {value} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.error(log_msg + f" for {self.parent_resource.resource_type} {self.parent_resource.id}")
+                    log.error(
+                        log_msg
+                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                    )
             except Exception as e:
                 log_msg = f"Unhandled exception while trying to set tag {key} to {value} in cloud: {type(e)} {e}"
                 self.parent_resource.log(log_msg, exception=e)
@@ -448,12 +490,18 @@ class ResourceTagsDict(dict):
                 if self.parent_resource.delete_tag(key):
                     log_msg = f"Successfully deleted tag {key} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.info(log_msg + f" for {self.parent_resource.resource_type} {self.parent_resource.id}")
+                    log.info(
+                        log_msg
+                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                    )
                     return super().__delitem__(key)
                 else:
                     log_msg = f"Error deleting tag {key} in cloud"
                     self.parent_resource.log(log_msg)
-                    log.error(log_msg + f" for {self.parent_resource.resource_type} {self.parent_resource.id}")
+                    log.error(
+                        log_msg
+                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                    )
             except Exception as e:
                 log_msg = f"Unhandled exception while trying to delete tag {key} in cloud: {type(e)} {e}"
                 self.parent_resource.log(log_msg, exception=e)
@@ -469,7 +517,9 @@ class PhantomBaseResource(BaseResource):
     phantom = True
 
     def cleanup(self, graph=None) -> bool:
-        log.error(f"Resource {self.rtdname} is a phantom resource and can't be cleaned up")
+        log.error(
+            f"Resource {self.rtdname} is a phantom resource and can't be cleaned up"
+        )
         return False
 
 
@@ -526,7 +576,12 @@ class BaseInstanceType(BaseType):
         self.reservations = 0
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.instance_type)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+            self.instance_type,
+        )
         if self.reservations > 0:
             self._metrics["reserved_instances_total"][metrics_keys] = self.reservations
         return self._metrics
@@ -561,9 +616,18 @@ class BaseRegion(BaseResource):
 
 class BaseInstance(BaseResource):
     metrics_description = {
-        "instances_total": {"help": "Number of Instances", "labels": ["cloud", "account", "region", "type", "status"]},
-        "cores_total": {"help": "Number of CPU cores", "labels": ["cloud", "account", "region", "type"]},
-        "memory_bytes": {"help": "Amount of RAM in bytes", "labels": ["cloud", "account", "region", "type"]},
+        "instances_total": {
+            "help": "Number of Instances",
+            "labels": ["cloud", "account", "region", "type", "status"],
+        },
+        "cores_total": {
+            "help": "Number of CPU cores",
+            "labels": ["cloud", "account", "region", "type"],
+        },
+        "memory_bytes": {
+            "help": "Amount of RAM in bytes",
+            "labels": ["cloud", "account", "region", "type"],
+        },
         "instances_hourly_cost_estimate": {
             "help": "Hourly instance cost estimate",
             "labels": ["cloud", "account", "region", "type"],
@@ -597,21 +661,34 @@ class BaseInstance(BaseResource):
         return graph.search_first_parent_class(self, BaseInstanceType)
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.instance_type)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+            self.instance_type,
+        )
         instance_type_info = self.instance_type_info(graph)
         self._metrics["instances_total"][metrics_keys + (self.instance_status,)] = 1
         if self._cleaned:
-            self._metrics["cleaned_instances_total"][metrics_keys + (self.instance_status,)] = 1
+            self._metrics["cleaned_instances_total"][
+                metrics_keys + (self.instance_status,)
+            ] = 1
 
         if self.instance_status == "running":
             self._metrics["cores_total"][metrics_keys] = self.instance_cores
             if self._cleaned:
                 self._metrics["cleaned_cores_total"][metrics_keys] = self.instance_cores
             if instance_type_info:
-                self._metrics["memory_bytes"][metrics_keys] = instance_type_info.instance_memory * 1024 ** 3
+                self._metrics["memory_bytes"][metrics_keys] = (
+                    instance_type_info.instance_memory * 1024 ** 3
+                )
                 if self._cleaned:
-                    self._metrics["cleaned_memory_bytes"][metrics_keys] = instance_type_info.instance_memory * 1024 ** 3
-                self._metrics["instances_hourly_cost_estimate"][metrics_keys] = instance_type_info.ondemand_cost
+                    self._metrics["cleaned_memory_bytes"][metrics_keys] = (
+                        instance_type_info.instance_memory * 1024 ** 3
+                    )
+                self._metrics["instances_hourly_cost_estimate"][
+                    metrics_keys
+                ] = instance_type_info.ondemand_cost
                 if self._cleaned:
                     self._metrics["cleaned_instances_hourly_cost_estimate"][
                         metrics_keys
@@ -633,7 +710,12 @@ class BaseVolumeType(BaseType):
         self.ondemand_cost = 0.0
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.volume_type)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+            self.volume_type,
+        )
         if self.quota > -1:
             self._metrics["volumes_quotas_bytes"][metrics_keys] = self.quota * 1024 ** 4
         return self._metrics
@@ -641,7 +723,10 @@ class BaseVolumeType(BaseType):
 
 class BaseVolume(BaseResource):
     metrics_description = {
-        "volumes_total": {"help": "Number of Volumes", "labels": ["cloud", "account", "region", "type", "status"]},
+        "volumes_total": {
+            "help": "Number of Volumes",
+            "labels": ["cloud", "account", "region", "type", "status"],
+        },
         "volume_bytes": {
             "help": "Size of Volumes in bytes",
             "labels": ["cloud", "account", "region", "type", "status"],
@@ -687,7 +772,9 @@ class BaseVolume(BaseResource):
         self._metrics["volume_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
         if self._cleaned:
             self._metrics["cleaned_volumes_total"][metrics_keys] = 1
-            self._metrics["cleaned_volume_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
+            self._metrics["cleaned_volume_bytes"][metrics_keys] = (
+                self.volume_size * 1024 ** 3
+            )
         if volume_type_info:
             self._metrics["volumes_monthly_cost_estimate"][metrics_keys] = (
                 self.volume_size * volume_type_info.ondemand_cost
@@ -701,7 +788,10 @@ class BaseVolume(BaseResource):
 
 class BaseSnapshot(BaseResource):
     metrics_description = {
-        "snapshots_total": {"help": "Number of Snapshots", "labels": ["cloud", "account", "region", "status"]},
+        "snapshots_total": {
+            "help": "Number of Snapshots",
+            "labels": ["cloud", "account", "region", "status"],
+        },
         "snapshots_volumes_bytes": {
             "help": "Size of Snapshots Volumes in bytes",
             "labels": ["cloud", "account", "region", "status"],
@@ -734,10 +824,14 @@ class BaseSnapshot(BaseResource):
             self.snapshot_status,
         )
         self._metrics["snapshots_total"][metrics_keys] = 1
-        self._metrics["snapshots_volumes_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
+        self._metrics["snapshots_volumes_bytes"][metrics_keys] = (
+            self.volume_size * 1024 ** 3
+        )
         if self._cleaned:
             self._metrics["cleaned_snapshots_total"][metrics_keys] = 1
-            self._metrics["cleaned_snapshots_volumes_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
+            self._metrics["cleaned_snapshots_volumes_bytes"][metrics_keys] = (
+                self.volume_size * 1024 ** 3
+            )
         return self._metrics
 
 
@@ -757,7 +851,10 @@ class GraphRoot(PhantomBaseResource):
 
 class BaseBucket(BaseResource):
     metrics_description = {
-        "buckets_total": {"help": "Number of Storage Buckets", "labels": ["cloud", "account", "region"]},
+        "buckets_total": {
+            "help": "Number of Storage Buckets",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_buckets_total": {
             "help": "Cleaned number of Storage Buckets",
             "labels": ["cloud", "account", "region"],
@@ -765,7 +862,11 @@ class BaseBucket(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["buckets_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_buckets_total"][metrics_keys] = 1
@@ -774,8 +875,14 @@ class BaseBucket(BaseResource):
 
 class BaseKeyPair(BaseResource):
     metrics_description = {
-        "keypairs_total": {"help": "Number of Key Pairs", "labels": ["cloud", "account", "region"]},
-        "cleaned_keypairs_total": {"help": "Cleaned number of Key Pairs", "labels": ["cloud", "account", "region"]},
+        "keypairs_total": {
+            "help": "Number of Key Pairs",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_keypairs_total": {
+            "help": "Cleaned number of Key Pairs",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -783,7 +890,11 @@ class BaseKeyPair(BaseResource):
         self.fingerprint = ""
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["keypairs_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_keypairs_total"][metrics_keys] = 1
@@ -792,11 +903,18 @@ class BaseKeyPair(BaseResource):
 
 class BaseBucketQuota(BaseQuota):
     metrics_description = {
-        "buckets_quotas_total": {"help": "Quotas of Storage Buckets", "labels": ["cloud", "account", "region"]},
+        "buckets_quotas_total": {
+            "help": "Quotas of Storage Buckets",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         if self.quota > -1:
             self._metrics["buckets_quotas_total"][metrics_keys] = self.quota
         return self._metrics
@@ -804,12 +922,22 @@ class BaseBucketQuota(BaseQuota):
 
 class BaseNetwork(BaseResource):
     metrics_description = {
-        "networks_total": {"help": "Number of Networks", "labels": ["cloud", "account", "region"]},
-        "cleaned_networks_total": {"help": "Cleaned number of Networks", "labels": ["cloud", "account", "region"]},
+        "networks_total": {
+            "help": "Number of Networks",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_networks_total": {
+            "help": "Cleaned number of Networks",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["networks_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_networks_total"][metrics_keys] = 1
@@ -818,11 +946,18 @@ class BaseNetwork(BaseResource):
 
 class BaseNetworkQuota(BaseQuota):
     metrics_description = {
-        "networks_quotas_total": {"help": "Quotas of Networks", "labels": ["cloud", "account", "region"]},
+        "networks_quotas_total": {
+            "help": "Quotas of Networks",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         if self.quota > -1:
             self._metrics["networks_quotas_total"][metrics_keys] = self.quota
         return self._metrics
@@ -869,13 +1004,18 @@ class BaseDatabase(BaseResource):
         self._metrics["databases_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
         if self._cleaned:
             self._metrics["cleaned_databases_total"][metrics_keys] = 1
-            self._metrics["cleaned_databases_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
+            self._metrics["cleaned_databases_bytes"][metrics_keys] = (
+                self.volume_size * 1024 ** 3
+            )
         return self._metrics
 
 
 class BaseLoadBalancer(BaseResource):
     metrics_description = {
-        "load_balancers_total": {"help": "Number of Load Balancers", "labels": ["cloud", "account", "region", "type"]},
+        "load_balancers_total": {
+            "help": "Number of Load Balancers",
+            "labels": ["cloud", "account", "region", "type"],
+        },
         "cleaned_load_balancers_total": {
             "help": "Cleaned number of Load Balancers",
             "labels": ["cloud", "account", "region", "type"],
@@ -888,7 +1028,12 @@ class BaseLoadBalancer(BaseResource):
         self.backends = []
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name, self.lb_type)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+            self.lb_type,
+        )
         self._metrics["load_balancers_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_load_balancers_total"][metrics_keys] = 1
@@ -897,11 +1042,18 @@ class BaseLoadBalancer(BaseResource):
 
 class BaseLoadBalancerQuota(BaseQuota):
     metrics_description = {
-        "load_balancers_quotas_total": {"help": "Quotas of Load Balancers", "labels": ["cloud", "account", "region"]},
+        "load_balancers_quotas_total": {
+            "help": "Quotas of Load Balancers",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         if self.quota > -1:
             self._metrics["load_balancers_quotas_total"][metrics_keys] = self.quota
         return self._metrics
@@ -909,12 +1061,22 @@ class BaseLoadBalancerQuota(BaseQuota):
 
 class BaseSubnet(BaseResource):
     metrics_description = {
-        "subnets_total": {"help": "Number of Subnets", "labels": ["cloud", "account", "region"]},
-        "cleaned_subnets_total": {"help": "Cleaned number of Subnets", "labels": ["cloud", "account", "region"]},
+        "subnets_total": {
+            "help": "Number of Subnets",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_subnets_total": {
+            "help": "Cleaned number of Subnets",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["subnets_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_subnets_total"][metrics_keys] = 1
@@ -923,12 +1085,22 @@ class BaseSubnet(BaseResource):
 
 class BaseGateway(BaseResource):
     metrics_description = {
-        "gateways_total": {"help": "Number of Gateways", "labels": ["cloud", "account", "region"]},
-        "cleaned_gateways_total": {"help": "Cleaned number of Gateways", "labels": ["cloud", "account", "region"]},
+        "gateways_total": {
+            "help": "Number of Gateways",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_gateways_total": {
+            "help": "Cleaned number of Gateways",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["gateways_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_gateways_total"][metrics_keys] = 1
@@ -937,11 +1109,18 @@ class BaseGateway(BaseResource):
 
 class BaseGatewayQuota(BaseQuota):
     metrics_description = {
-        "gateways_quotas_total": {"help": "Quotas of Gateways", "labels": ["cloud", "account", "region"]},
+        "gateways_quotas_total": {
+            "help": "Quotas of Gateways",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         if self.quota > -1:
             self._metrics["gateways_quotas_total"][metrics_keys] = self.quota
         return self._metrics
@@ -949,7 +1128,10 @@ class BaseGatewayQuota(BaseQuota):
 
 class BaseSecurityGroup(BaseResource):
     metrics_description = {
-        "security_groups_total": {"help": "Number of Security Groups", "labels": ["cloud", "account", "region"]},
+        "security_groups_total": {
+            "help": "Number of Security Groups",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_security_groups_total": {
             "help": "Cleaned number of Security Groups",
             "labels": ["cloud", "account", "region"],
@@ -957,7 +1139,11 @@ class BaseSecurityGroup(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["security_groups_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_security_groups_total"][metrics_keys] = 1
@@ -966,7 +1152,10 @@ class BaseSecurityGroup(BaseResource):
 
 class BaseRoutingTable(BaseResource):
     metrics_description = {
-        "routing_tables_total": {"help": "Number of Routing Tables", "labels": ["cloud", "account", "region"]},
+        "routing_tables_total": {
+            "help": "Number of Routing Tables",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_routing_tables_total": {
             "help": "Cleaned number of Routing Tables",
             "labels": ["cloud", "account", "region"],
@@ -974,7 +1163,11 @@ class BaseRoutingTable(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["routing_tables_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_routing_tables_total"][metrics_keys] = 1
@@ -983,7 +1176,10 @@ class BaseRoutingTable(BaseResource):
 
 class BaseNetworkAcl(BaseResource):
     metrics_description = {
-        "network_acls_total": {"help": "Number of Network ACLs", "labels": ["cloud", "account", "region"]},
+        "network_acls_total": {
+            "help": "Number of Network ACLs",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_network_acls_total": {
             "help": "Cleaned number of Network ACLs",
             "labels": ["cloud", "account", "region"],
@@ -991,7 +1187,11 @@ class BaseNetworkAcl(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["network_acls_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_network_acls_total"][metrics_keys] = 1
@@ -1011,7 +1211,11 @@ class BasePeeringConnection(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["peering_connections_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_peering_connections_total"][metrics_keys] = 1
@@ -1020,12 +1224,22 @@ class BasePeeringConnection(BaseResource):
 
 class BaseEndpoint(BaseResource):
     metrics_description = {
-        "endpoints_total": {"help": "Number of Endpoints", "labels": ["cloud", "account", "region"]},
-        "cleaned_endpoints_total": {"help": "Cleaned number of Endpoints", "labels": ["cloud", "account", "region"]},
+        "endpoints_total": {
+            "help": "Number of Endpoints",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_endpoints_total": {
+            "help": "Cleaned number of Endpoints",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["endpoints_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_endpoints_total"][metrics_keys] = 1
@@ -1069,12 +1283,22 @@ class BaseNetworkInterface(BaseResource):
 
 class BaseUser(BaseResource):
     metrics_description = {
-        "users_total": {"help": "Number of Users", "labels": ["cloud", "account", "region"]},
-        "cleaned_users_total": {"help": "Cleaned number of Users", "labels": ["cloud", "account", "region"]},
+        "users_total": {
+            "help": "Number of Users",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_users_total": {
+            "help": "Cleaned number of Users",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["users_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_users_total"][metrics_keys] = 1
@@ -1083,12 +1307,22 @@ class BaseUser(BaseResource):
 
 class BaseGroup(BaseResource):
     metrics_description = {
-        "groups_total": {"help": "Number of Groups", "labels": ["cloud", "account", "region"]},
-        "cleaned_groups_total": {"help": "Cleaned number of Groups", "labels": ["cloud", "account", "region"]},
+        "groups_total": {
+            "help": "Number of Groups",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_groups_total": {
+            "help": "Cleaned number of Groups",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["groups_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_groups_total"][metrics_keys] = 1
@@ -1097,12 +1331,22 @@ class BaseGroup(BaseResource):
 
 class BasePolicy(BaseResource):
     metrics_description = {
-        "policies_total": {"help": "Number of Policies", "labels": ["cloud", "account", "region"]},
-        "cleaned_policies_total": {"help": "Cleaned number of Policies", "labels": ["cloud", "account", "region"]},
+        "policies_total": {
+            "help": "Number of Policies",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_policies_total": {
+            "help": "Cleaned number of Policies",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["policies_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_policies_total"][metrics_keys] = 1
@@ -1111,12 +1355,22 @@ class BasePolicy(BaseResource):
 
 class BaseRole(BaseResource):
     metrics_description = {
-        "roles_total": {"help": "Number of Roles", "labels": ["cloud", "account", "region"]},
-        "cleaned_roles_total": {"help": "Cleaned number of Roles", "labels": ["cloud", "account", "region"]},
+        "roles_total": {
+            "help": "Number of Roles",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_roles_total": {
+            "help": "Cleaned number of Roles",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["roles_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_roles_total"][metrics_keys] = 1
@@ -1125,7 +1379,10 @@ class BaseRole(BaseResource):
 
 class BaseInstanceProfile(BaseResource):
     metrics_description = {
-        "instance_profiles_total": {"help": "Number of Instance Profiles", "labels": ["cloud", "account", "region"]},
+        "instance_profiles_total": {
+            "help": "Number of Instance Profiles",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_instance_profiles_total": {
             "help": "Cleaned number of Instance Profiles",
             "labels": ["cloud", "account", "region"],
@@ -1133,7 +1390,11 @@ class BaseInstanceProfile(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["instance_profiles_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_instance_profiles_total"][metrics_keys] = 1
@@ -1142,7 +1403,10 @@ class BaseInstanceProfile(BaseResource):
 
 class BaseAccessKey(BaseResource):
     metrics_description = {
-        "access_keys_total": {"help": "Number of Access Keys", "labels": ["cloud", "account", "region", "status"]},
+        "access_keys_total": {
+            "help": "Number of Access Keys",
+            "labels": ["cloud", "account", "region", "status"],
+        },
         "cleaned_access_keys_total": {
             "help": "Cleaned number of Access Keys",
             "labels": ["cloud", "account", "region", "status"],
@@ -1176,7 +1440,10 @@ class BaseAccessKey(BaseResource):
 
 class BaseCertificate(BaseResource):
     metrics_description = {
-        "certificates_total": {"help": "Number of Certificates", "labels": ["cloud", "account", "region"]},
+        "certificates_total": {
+            "help": "Number of Certificates",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_certificates_total": {
             "help": "Cleaned number of Certificates",
             "labels": ["cloud", "account", "region"],
@@ -1188,7 +1455,11 @@ class BaseCertificate(BaseResource):
         self.expires = None
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["certificates_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_certificates_total"][metrics_keys] = 1
@@ -1197,11 +1468,18 @@ class BaseCertificate(BaseResource):
 
 class BaseCertificateQuota(BaseQuota):
     metrics_description = {
-        "certificates_quotas_total": {"help": "Quotas of Certificates", "labels": ["cloud", "account", "region"]},
+        "certificates_quotas_total": {
+            "help": "Quotas of Certificates",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         if self.quota > -1:
             self._metrics["certificates_quotas_total"][metrics_keys] = self.quota
         return self._metrics
@@ -1215,12 +1493,22 @@ class BaseStack(BaseResource):
         self.stack_parameters = {}
 
     metrics_description = {
-        "stacks_total": {"help": "Number of Stacks", "labels": ["cloud", "account", "region"]},
-        "cleaned_stacks_total": {"help": "Cleaned number of Stacks", "labels": ["cloud", "account", "region"]},
+        "stacks_total": {
+            "help": "Number of Stacks",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_stacks_total": {
+            "help": "Cleaned number of Stacks",
+            "labels": ["cloud", "account", "region"],
+        },
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["stacks_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_stacks_total"][metrics_keys] = 1
@@ -1234,7 +1522,10 @@ class BaseAutoScalingGroup(BaseResource):
         self.max_size = None
 
     metrics_description = {
-        "autoscaling_groups_total": {"help": "Number of Autoscaling Groups", "labels": ["cloud", "account", "region"]},
+        "autoscaling_groups_total": {
+            "help": "Number of Autoscaling Groups",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_autoscaling_groups_total": {
             "help": "Cleaned number of Autoscaling Groups",
             "labels": ["cloud", "account", "region"],
@@ -1242,7 +1533,11 @@ class BaseAutoScalingGroup(BaseResource):
     }
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["autoscaling_groups_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_autoscaling_groups_total"][metrics_keys] = 1

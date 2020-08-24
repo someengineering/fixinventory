@@ -23,8 +23,14 @@ def main() -> None:
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument("--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id")
-    arg_parser.add_argument("--aws-secret-access-key", help="AWS Secret Access Key", dest="aws_secret_access_key")
+    arg_parser.add_argument(
+        "--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id"
+    )
+    arg_parser.add_argument(
+        "--aws-secret-access-key",
+        help="AWS Secret Access Key",
+        dest="aws_secret_access_key",
+    )
     arg_parser.add_argument("--aws-role", help="AWS IAM Role", dest="aws_role")
     arg_parser.add_argument(
         "--aws-role-override",

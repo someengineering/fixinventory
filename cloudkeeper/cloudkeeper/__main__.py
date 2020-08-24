@@ -14,7 +14,13 @@ from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.metrics import GraphCollector
 from cloudkeeper.utils import log_stats, increase_limits
 from cloudkeeper.cli import Cli
-from cloudkeeper.event import add_event_listener, dispatch_event, Event, EventType, add_args as event_add_args
+from cloudkeeper.event import (
+    add_event_listener,
+    dispatch_event,
+    Event,
+    EventType,
+    add_args as event_add_args,
+)
 from prometheus_client import REGISTRY
 
 
@@ -127,7 +133,9 @@ def shutdown(event: Event) -> None:
 
     if reason is None:
         reason = "unknown reason"
-    log.info(f"Received shut down event {event.event_type}: {reason} - killing all threads and child processes")
+    log.info(
+        f"Received shut down event {event.event_type}: {reason} - killing all threads and child processes"
+    )
     # Send 'friendly' signal to children to have them shut down
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
     kt = threading.Thread(target=force_shutdown, name="shutdown")
@@ -138,7 +146,9 @@ def shutdown(event: Event) -> None:
 def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
-    log.error("Some child process or thread timed out during shutdown - forcing shutdown completion")
+    log.error(
+        "Some child process or thread timed out during shutdown - forcing shutdown completion"
+    )
     os._exit(0)
 
 

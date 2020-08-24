@@ -31,4 +31,6 @@ class BackupPlugin(BasePlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument("--backup-to", help="Backup Destination", default=None, dest="backup_to")
+        arg_parser.add_argument(
+            "--backup-to", help="Backup Destination", default=None, dest="backup_to"
+        )

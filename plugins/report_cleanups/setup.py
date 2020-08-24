@@ -13,7 +13,11 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["report_cleanups = cloudkeeper_plugin_report_cleanups:ReportCleanupsPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": [
+            "report_cleanups = cloudkeeper_plugin_report_cleanups:ReportCleanupsPlugin"
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper"],

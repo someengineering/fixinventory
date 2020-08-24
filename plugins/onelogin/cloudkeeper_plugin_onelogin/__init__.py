@@ -66,9 +66,9 @@ class OneLoginUser(OneLoginResource, BaseUser):
         self.ctime = self.created_at
         self.atime = self.last_login
         self.mtime = self.updated_at
-        self.password_age = datetime.utcnow().replace(tzinfo=timezone.utc) - make_valid_timestamp(
-            self.password_changed_at
-        )
+        self.password_age = datetime.utcnow().replace(
+            tzinfo=timezone.utc
+        ) - make_valid_timestamp(self.password_changed_at)
 
     def delete(self, graph) -> bool:
         return NotImplemented
@@ -80,7 +80,10 @@ class OneLoginPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: OneLogin collecting resources")
 
-        if not ArgumentParser.args.onelogin_client_id or not ArgumentParser.args.onelogin_client_secret:
+        if (
+            not ArgumentParser.args.onelogin_client_id
+            or not ArgumentParser.args.onelogin_client_secret
+        ):
             log.debug("OneLogin: no credentials given, skipping collection")
             return
 

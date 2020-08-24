@@ -39,14 +39,22 @@ class WebServer(threading.Thread):
         api.add_route("/graph.json", JSON(gc))
         api.add_route("/graph.net", Pajek(gc))
         api.add_route("/graph.txt", TXT(gc))
-        self.httpd = make_server("", ArgumentParser.args.web_port, api, ThreadingWSGIServer, CloudkeeperRequestHandler)
+        self.httpd = make_server(
+            "",
+            ArgumentParser.args.web_port,
+            api,
+            ThreadingWSGIServer,
+            CloudkeeperRequestHandler,
+        )
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def run(self) -> None:
         self.httpd.serve_forever()
 
     def shutdown(self, event: Event):
-        log.debug(f"Received request to shutdown http server threads {event.event_type}")
+        log.debug(
+            f"Received request to shutdown http server threads {event.event_type}"
+        )
         if self.httpd is not None:
             self.httpd.socket.close()
             self.httpd.shutdown()
@@ -54,9 +62,19 @@ class WebServer(threading.Thread):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument("--web-port", help="Web Port (default 8000)", default=8000, dest="web_port", type=int)
         arg_parser.add_argument(
-            "--web-psk", help="Pre Shared Key for /collect requests", default=None, dest="web_psk", type=str
+            "--web-port",
+            help="Web Port (default 8000)",
+            default=8000,
+            dest="web_port",
+            type=int,
+        )
+        arg_parser.add_argument(
+            "--web-psk",
+            help="Pre Shared Key for /collect requests",
+            default=None,
+            dest="web_psk",
+            type=str,
         )
 
 
@@ -147,7 +165,10 @@ def validate_psk(req, resp, resource, params):
         except json.decoder.JSONDecodeError:
             raise falcon.HTTPUnauthorized("Authentication required")
         else:
-            if not isinstance(data, dict) or data.get("psk") != ArgumentParser.args.web_psk:
+            if (
+                not isinstance(data, dict)
+                or data.get("psk") != ArgumentParser.args.web_psk
+            ):
                 raise falcon.HTTPUnauthorized("Invalid PSK")
         return True
 

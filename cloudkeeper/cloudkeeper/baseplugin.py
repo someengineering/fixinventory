@@ -9,7 +9,9 @@ from prometheus_client import Counter
 
 log = cloudkeeper.logging.getLogger(__name__)
 metrics_unhandled_plugin_exceptions = Counter(
-    "cloudkeeper_unhandled_plugin_exceptions_total", "Unhandled plugin exceptions", ["plugin"]
+    "cloudkeeper_unhandled_plugin_exceptions_total",
+    "Unhandled plugin exceptions",
+    ["plugin"],
 )
 
 

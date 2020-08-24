@@ -5,7 +5,12 @@ from datetime import date
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import *
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -24,7 +29,9 @@ class LogDumpPlugin(BasePlugin):
         self.logdump_path.mkdir(parents=True, exist_ok=True)
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-        add_event_listener(EventType.PROCESS_FINISH, self.dump_resource_event_logs, blocking=False)
+        add_event_listener(
+            EventType.PROCESS_FINISH, self.dump_resource_event_logs, blocking=False
+        )
 
     def __del__(self):
         remove_event_listener(EventType.COLLECT_FINISH, self.dump_resource_event_logs)
@@ -57,7 +64,13 @@ class LogDumpPlugin(BasePlugin):
                         )
                         continue
 
-                    out_dir = self.logdump_path / date_dir / cloud.name / account.name / region.name
+                    out_dir = (
+                        self.logdump_path
+                        / date_dir
+                        / cloud.name
+                        / account.name
+                        / region.name
+                    )
                     out_dir.mkdir(parents=True, exist_ok=True)
                     filename = str(node.id).replace("/", "_") + ".log"
                     out_file = out_dir / filename
@@ -71,7 +84,10 @@ class LogDumpPlugin(BasePlugin):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--logdump-path", help="Path to Event Log Dump Directory ", default=None, dest="logdump_path"
+            "--logdump-path",
+            help="Path to Event Log Dump Directory ",
+            default=None,
+            dest="logdump_path",
         )
 
     def shutdown(self, event: Event):

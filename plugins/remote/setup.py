@@ -13,7 +13,9 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["remote = cloudkeeper_plugin_remote:RemotePlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": ["remote = cloudkeeper_plugin_remote:RemotePlugin"]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper", "requests", "networkx"],

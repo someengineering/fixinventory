@@ -1,7 +1,13 @@
 import time
 from typing import Dict
 from datetime import datetime
-from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser, BaseGroup, BaseResource
+from cloudkeeper.baseresources import (
+    BaseAccount,
+    BaseRegion,
+    BaseUser,
+    BaseGroup,
+    BaseResource,
+)
 
 
 class SlackResource:

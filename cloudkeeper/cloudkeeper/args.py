@@ -21,6 +21,11 @@ class ArgumentParser(argparse.ArgumentParser):
 def get_arg_parser() -> ArgumentParser:
     arg_parser = ArgumentParser(description="Cloudkeeper - Housekeeping for Clouds")
     arg_parser.add_argument(
-        "--verbose", "-v", help="Verbose logging", dest="verbose", action="store_true", default=False
+        "--verbose",
+        "-v",
+        help="Verbose logging",
+        dest="verbose",
+        action="store_true",
+        default=False,
     )
     return arg_parser

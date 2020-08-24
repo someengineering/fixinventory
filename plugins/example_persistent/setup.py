@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["example_persistent = cloudkeeper_plugin_example_persistent:ExamplePersistentPlugin"]
+        "cloudkeeper.plugins": [
+            "example_persistent = cloudkeeper_plugin_example_persistent:ExamplePersistentPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

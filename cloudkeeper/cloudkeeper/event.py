@@ -63,7 +63,9 @@ def event_listener_registered(event_type: EventType, listener: Callable) -> bool
 def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event"""
     waiting_str = "" if blocking else "not "
-    log.debug(f"Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return")
+    log.debug(
+        f"Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return"
+    )
 
     if event.event_type not in _events.keys():
         return
@@ -79,11 +81,17 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
             if listener_data["pid"] != os.getpid():
                 continue
 
-            if listener_data["one-shot"] and not listener_data["lock"].acquire(blocking=False):
-                log.error(f"Not calling one-shot listener {listener} of type {type(listener)} - can't acquire lock")
+            if listener_data["one-shot"] and not listener_data["lock"].acquire(
+                blocking=False
+            ):
+                log.error(
+                    f"Not calling one-shot listener {listener} of type {type(listener)} - can't acquire lock"
+                )
                 continue
 
-            log.debug(f"Calling listener {listener} of type {type(listener)} (blocking: {listener_data['blocking']})")
+            log.debug(
+                f"Calling listener {listener} of type {type(listener)} (blocking: {listener_data['blocking']})"
+            )
             thread_name = f"{event.event_type.name.lower()}_event-{getattr(listener, '__name__', 'anonymous')}"
             t = Thread(target=listener, args=[event], name=thread_name)
             if blocking or listener_data["blocking"]:
@@ -107,23 +115,35 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
         timeout = start_time + listeners[listener]["timeout"] - time.time()
         if timeout < 1:
             timeout = 1
-        log.debug(f"Waiting up to {timeout:.2f}s for event listener {thread.name} to finish")
+        log.debug(
+            f"Waiting up to {timeout:.2f}s for event listener {thread.name} to finish"
+        )
         thread.join(timeout)
-        log.debug(f"Event listener {thread.name} finished (timeout: {thread.is_alive()})")
+        log.debug(
+            f"Event listener {thread.name} finished (timeout: {thread.is_alive()})"
+        )
 
 
 def add_event_listener(
-    event_type: EventType, listener: Callable, blocking: bool = False, timeout: int = None, one_shot: bool = False
+    event_type: EventType,
+    listener: Callable,
+    blocking: bool = False,
+    timeout: int = None,
+    one_shot: bool = False,
 ) -> bool:
     """Add an Event Listener"""
     if not callable(listener):
-        log.error(f"Error registering {listener} of type {type(listener)} with event {event_type.name}")
+        log.error(
+            f"Error registering {listener} of type {type(listener)} with event {event_type.name}"
+        )
         return False
 
     if timeout is None:
         timeout = ArgumentParser.args.event_timeout
 
-    log.debug(f"Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})")
+    log.debug(
+        f"Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})"
+    )
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
             _events[event_type][listener] = {

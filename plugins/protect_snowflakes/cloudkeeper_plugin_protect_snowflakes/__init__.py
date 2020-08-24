@@ -4,7 +4,13 @@ import yaml
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseResource, BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener, dispatch_event
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+    dispatch_event,
+)
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -16,10 +22,17 @@ class ProtectSnowflakesPlugin(BasePlugin):
         self.name = "protect_snowflakes"
         self.exit = threading.Event()
         if ArgumentParser.args.protect_snowflakes_config:
-            self.config = ProtectSnowflakesConfig(config_file=ArgumentParser.args.protect_snowflakes_config)
+            self.config = ProtectSnowflakesConfig(
+                config_file=ArgumentParser.args.protect_snowflakes_config
+            )
             self.config.read()  # initial read to ensure config format is valid
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.COLLECT_FINISH, self.protect_snowflakes, blocking=True, timeout=900)
+            add_event_listener(
+                EventType.COLLECT_FINISH,
+                self.protect_snowflakes,
+                blocking=True,
+                timeout=900,
+            )
         else:
             self.exit.set()
 
@@ -53,8 +66,12 @@ class ProtectSnowflakesPlugin(BasePlugin):
                     or cloud.id not in self.config
                     or account.id not in self.config[cloud.id]
                     or region.id not in self.config[cloud.id][account.id]
-                    or node.resource_type not in self.config[cloud.id][account.id][region.id]
-                    or node.id not in self.config[cloud.id][account.id][region.id][node.resource_type]
+                    or node.resource_type
+                    not in self.config[cloud.id][account.id][region.id]
+                    or node.id
+                    not in self.config[cloud.id][account.id][region.id][
+                        node.resource_type
+                    ]
                 ):
                     continue
 
@@ -78,7 +95,9 @@ class ProtectSnowflakesPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down Protect Snowflakes Plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down Protect Snowflakes Plugin"
+        )
         self.exit.set()
 
 
@@ -90,7 +109,9 @@ class ProtectSnowflakesConfig(dict):
     def read(self) -> bool:
         try:
             if not self.config_file:
-                raise ValueError("Attribute config_file is not set on ProtectSnowflakesConfig() instance")
+                raise ValueError(
+                    "Attribute config_file is not set on ProtectSnowflakesConfig() instance"
+                )
 
             with open(self.config_file) as config_file:
                 config = yaml.load(config_file, Loader=yaml.FullLoader)
@@ -102,7 +123,10 @@ class ProtectSnowflakesConfig(dict):
                 "Snowflake Protection failed to validate config "
                 "- Resource Protection can't be guaranteed - configuration fix required!"
             )
-            dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": True}), blocking=True)
+            dispatch_event(
+                Event(EventType.SHUTDOWN, {"reason": reason, "emergency": True}),
+                blocking=True,
+            )
         else:
             return True
         return False
@@ -132,11 +156,17 @@ class ProtectSnowflakesConfig(dict):
 
                     for resource_type, resource_list in resource_data.items():
                         if not isinstance(resource_type, str):
-                            raise ValueError(f"Resource Type {resource_type} is no string")
+                            raise ValueError(
+                                f"Resource Type {resource_type} is no string"
+                            )
                         if not isinstance(resource_list, list):
-                            raise ValueError(f"Resource List {resource_list} is no list")
+                            raise ValueError(
+                                f"Resource List {resource_list} is no list"
+                            )
 
                         for resource_id in resource_list:
                             if not isinstance(resource_id, str):
-                                raise ValueError(f"Resource ID {resource_id} is no string")
+                                raise ValueError(
+                                    f"Resource ID {resource_id} is no string"
+                                )
         return True

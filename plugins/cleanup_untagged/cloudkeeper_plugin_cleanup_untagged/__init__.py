@@ -5,7 +5,12 @@ import yaml
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import *
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 from cloudkeeper.utils import parse_delta
 from prometheus_client import Counter
 
@@ -24,10 +29,17 @@ class CleanupUntaggedPlugin(BasePlugin):
         self.name = "cleanup_untagged"
         self.exit = threading.Event()
         if ArgumentParser.args.cleanup_untagged_config:
-            self.config = CleanupUntaggedConfig(config_file=ArgumentParser.args.cleanup_untagged_config)
+            self.config = CleanupUntaggedConfig(
+                config_file=ArgumentParser.args.cleanup_untagged_config
+            )
             self.config.read()  # initial read to ensure config format is valid
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.CLEANUP_PLAN, self.cleanup_untagged, blocking=True, timeout=900)
+            add_event_listener(
+                EventType.CLEANUP_PLAN,
+                self.cleanup_untagged,
+                blocking=True,
+                timeout=900,
+            )
         else:
             self.exit.set()
 
@@ -65,12 +77,20 @@ class CleanupUntaggedPlugin(BasePlugin):
                     or account.id not in self.config["accounts"][cloud.id]
                     or node.age < self.config["accounts"][cloud.id][account.id]["age"]
                     or set(node_classes).isdisjoint(self.config["classes"])
-                    or all((tag in node.tags and len(node.tags[tag]) > 0 for tag in self.config["tags"]))
+                    or all(
+                        (
+                            tag in node.tags and len(node.tags[tag]) > 0
+                            for tag in self.config["tags"]
+                        )
+                    )
                 ):
                     continue
 
                 metrics_cleanup_untagged.labels(
-                    cloud=cloud.name, account=account.name, region=region.name, resource_type=node.resource_type
+                    cloud=cloud.name,
+                    account=account.name,
+                    region=region.name,
+                    resource_type=node.resource_type,
                 ).inc()
                 log_msg = (
                     f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older "
@@ -95,7 +115,9 @@ class CleanupUntaggedPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down Cleanup Untagged Plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down Cleanup Untagged Plugin"
+        )
         self.exit.set()
 
 
@@ -106,7 +128,9 @@ class CleanupUntaggedConfig(dict):
 
     def read(self) -> bool:
         if not self.config_file:
-            log.error("Attribute config_file is not set on CleanupUntaggedConfig() instance")
+            log.error(
+                "Attribute config_file is not set on CleanupUntaggedConfig() instance"
+            )
             return False
 
         with open(self.config_file) as config_file:
@@ -138,7 +162,9 @@ class CleanupUntaggedConfig(dict):
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
                 if "name" not in account_data:
-                    raise ValueError(f"Missing 'name' for account '{cloud_id}/{account_id}")
+                    raise ValueError(
+                        f"Missing 'name' for account '{cloud_id}/{account_id}"
+                    )
                 if "age" in account_data:
                     account_data["age"] = parse_delta(account_data["age"])
                 else:

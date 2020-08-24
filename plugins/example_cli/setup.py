@@ -13,7 +13,11 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["example_cli = cloudkeeper_plugin_example_cli:ExampleCliPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": [
+            "example_cli = cloudkeeper_plugin_example_cli:ExampleCliPlugin"
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper"],

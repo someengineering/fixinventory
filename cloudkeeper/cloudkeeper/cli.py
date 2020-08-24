@@ -20,9 +20,20 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.pluginloader import PluginLoader, PluginType
-from cloudkeeper.graph import Graph, GraphContainer, get_resource_attributes, graph2pickle
+from cloudkeeper.graph import (
+    Graph,
+    GraphContainer,
+    get_resource_attributes,
+    graph2pickle,
+)
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import dispatch_event, Event, EventType, add_event_listener, list_event_listeners
+from cloudkeeper.event import (
+    dispatch_event,
+    Event,
+    EventType,
+    add_event_listener,
+    list_event_listeners,
+)
 from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, fmt_json
 from cloudkeeper.cleaner import Cleaner
 from pprint import pformat
@@ -56,7 +67,9 @@ class Cli(threading.Thread):
             if ArgumentParser.args.cli_history:
                 history = FileHistory(ArgumentParser.args.cli_history)
             session = PromptSession(history=history)
-            completer = WordCompleter(CliHandler(self.gc.graph, clipboard=self.clipboard).valid_commands)
+            completer = WordCompleter(
+                CliHandler(self.gc.graph, clipboard=self.clipboard).valid_commands
+            )
 
         while self.__run:
             try:
@@ -64,7 +77,9 @@ class Cli(threading.Thread):
                 if cli_input == "":
                     continue
 
-                ch = CliHandler(self.gc.graph, scheduler=self.scheduler, clipboard=self.clipboard)
+                ch = CliHandler(
+                    self.gc.graph, scheduler=self.scheduler, clipboard=self.clipboard
+                )
                 for item in ch.evaluate_cli_input(cli_input):
                     print(item)
 
@@ -86,7 +101,11 @@ class Cli(threading.Thread):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--no-cli", help="Don't run the CLI thread", dest="no_cli", action="store_true", default=False
+            "--no-cli",
+            help="Don't run the CLI thread",
+            dest="no_cli",
+            action="store_true",
+            default=False,
         )
         arg_parser.add_argument(
             "--register-cli-action",
@@ -133,11 +152,16 @@ class Clipboard:
 
 
 class CliHandler:
-    def __init__(self, graph: Graph, scheduler=None, clipboard: Clipboard = None) -> None:
+    def __init__(
+        self, graph: Graph, scheduler=None, clipboard: Clipboard = None
+    ) -> None:
         self.graph = graph
         self.scheduler = scheduler
         self.commands = {}
-        cli_plugins = [Plugin(graph, scheduler, clipboard) for Plugin in PluginLoader().plugins(PluginType.CLI)]
+        cli_plugins = [
+            Plugin(graph, scheduler, clipboard)
+            for Plugin in PluginLoader().plugins(PluginType.CLI)
+        ]
 
         for f, m in inspect.getmembers(self, predicate=inspect.ismethod):
             if f.startswith("cmd_"):
@@ -173,7 +197,9 @@ class CliHandler:
 
     @staticmethod
     def quit(reason=None):
-        dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}))
+        dispatch_event(
+            Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False})
+        )
 
     match_actions = {
         ">": lambda x, y: x > y,
@@ -204,7 +230,9 @@ class CliHandler:
             if action in args:
                 pos = args.index(action)
                 if pos == 0 or pos == len(args) - 1:
-                    raise RuntimeError(f"Can't have {action} at the beginning or end of match")
+                    raise RuntimeError(
+                        f"Can't have {action} at the beginning or end of match"
+                    )
                 attr, value = args.split(action, 1)
                 attr = attr.strip()
                 value = value.strip()
@@ -244,8 +272,12 @@ class CliHandler:
                 else:
                     match_item_attr, match_value = str(item_attr), str(value)
 
-            if (not negate_match and self.match_actions[action](match_item_attr, match_value)) or (
-                negate_match and not self.match_actions[action](match_item_attr, match_value)
+            if (
+                not negate_match
+                and self.match_actions[action](match_item_attr, match_value)
+            ) or (
+                negate_match
+                and not self.match_actions[action](match_item_attr, match_value)
             ):
                 yield item
 
@@ -317,7 +349,9 @@ class CliHandler:
         """
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - deletion failed")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - deletion failed"
+                )
             if args == "--yes":
                 confirm_delete = True
             else:
@@ -348,7 +382,9 @@ class CliHandler:
 
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - dumping failed")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - dumping failed"
+                )
             out = get_resource_attributes(item)
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
@@ -386,7 +422,9 @@ class CliHandler:
             value = cmd[2]
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - tag update failed")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - tag update failed"
+                )
             if action == "update" and value is not None:
                 item.tags[key] = value
                 yield item
@@ -611,7 +649,9 @@ and chain multipe commands using the semicolon (;).
         """
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - cleanup flagging failed")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - cleanup flagging failed"
+                )
             item.clean = True
             yield item
 
@@ -624,13 +664,17 @@ and chain multipe commands using the semicolon (;).
         attribute, value = args.split(" ", 1)
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - setting attribute failed")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - setting attribute failed"
+                )
             if hasattr(item, attribute):
                 type_attr = type(getattr(item, attribute))
                 try:
                     converted = type_attr(ast.literal_eval(value))
                 except ValueError:
-                    log.exception(f"An error occurred when trying to cast value '{value}' to {type_attr}")
+                    log.exception(
+                        f"An error occurred when trying to cast value '{value}' to {type_attr}"
+                    )
                 else:
                     setattr(item, attribute, converted)
                     yield item
@@ -645,7 +689,9 @@ and chain multipe commands using the semicolon (;).
         """
         for item in items:
             if not isinstance(item, BaseResource):
-                raise RuntimeError(f"Item {item} is not a valid resource - can't burn protection fuse")
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - can't burn protection fuse"
+                )
             item.protected = True
             yield item
 
@@ -712,7 +758,9 @@ and chain multipe commands using the semicolon (;).
 
         for item in items:
             item_attr = self.get_item_attr(item, attr)
-            if (not negate_match and item_attr is not None) or (negate_match and item_attr is None):
+            if (not negate_match and item_attr is not None) or (
+                negate_match and item_attr is None
+            ):
                 yield item
 
     def cmd_sleep(self, items: Iterable, args: str) -> Iterable:
@@ -896,7 +944,9 @@ def read_cli_actions_config(config_file: str = None) -> None:
 
 def cli_event_handler(cli_input: str, event: Event = None, graph: Graph = None) -> None:
     if graph is None and event:
-        log.info(f"Received event {event.event_type.name}, running command: {cli_input}")
+        log.info(
+            f"Received event {event.event_type.name}, running command: {cli_input}"
+        )
         graph = event.data
     try:
         ch = CliHandler(graph)

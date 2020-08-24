@@ -109,7 +109,12 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
 
-    def delete(self, graph: Graph, snapshot_before_delete: bool = False, snapshot_timeout: int = 3600) -> bool:
+    def delete(
+        self,
+        graph: Graph,
+        snapshot_before_delete: bool = False,
+        snapshot_timeout: int = 3600,
+    ) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
         volume = ec2.Volume(self.id)
         if snapshot_before_delete or self.snapshot_before_delete:
@@ -219,7 +224,9 @@ class AWSVPC(AWSResource, BaseNetwork):
 
     def delete(self, graph: Graph) -> bool:
         if self.is_default:
-            log_msg = f"Not removing the default VPC {self.id} - aborting delete request"
+            log_msg = (
+                f"Not removing the default VPC {self.id} - aborting delete request"
+            )
             log.debug(log_msg)
             self.log(log_msg)
             return False
@@ -271,7 +278,9 @@ class AWSELB(AWSResource, BaseLoadBalancer):
 
     def update_tag(self, key, value) -> bool:
         client = aws_client(self, "elb")
-        client.add_tags(LoadBalancerNames=[self.name], Tags=[{"Key": key, "Value": value}])
+        client.add_tags(
+            LoadBalancerNames=[self.name], Tags=[{"Key": key, "Value": value}]
+        )
         return True
 
     def delete_tag(self, key) -> bool:
@@ -319,7 +328,11 @@ class AWSALBTargetGroup(AWSResource, BaseResource):
         self.target_type = ""
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["aws_alb_target_groups_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_aws_alb_target_groups_total"][metrics_keys] = 1
@@ -360,7 +373,9 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
             if isinstance(predecessor, AWSVPC):
                 log_msg = f"Detaching {predecessor.resource_type} {predecessor.dname}"
                 self.log(log_msg)
-                log.debug(f"{log_msg} for deletion of {self.resource_type} {self.dname}")
+                log.debug(
+                    f"{log_msg} for deletion of {self.resource_type} {self.dname}"
+                )
                 internet_gateway.detach_from_vpc(VpcId=predecessor.id)
         return True
 
@@ -418,16 +433,26 @@ class AWSEC2SecurityGroup(AWSResource, BaseSecurityGroup):
         remove_egress = []
 
         for permission in security_group.ip_permissions:
-            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
+            if (
+                "UserIdGroupPairs" in permission
+                and len(permission["UserIdGroupPairs"]) > 0
+            ):
                 p = copy.deepcopy(permission)
                 remove_ingress.append(p)
-                log.debug(f"Adding incoming permission {p} of {self.resource_type} {self.dname} to removal list")
+                log.debug(
+                    f"Adding incoming permission {p} of {self.resource_type} {self.dname} to removal list"
+                )
 
         for permission in security_group.ip_permissions_egress:
-            if "UserIdGroupPairs" in permission and len(permission["UserIdGroupPairs"]) > 0:
+            if (
+                "UserIdGroupPairs" in permission
+                and len(permission["UserIdGroupPairs"]) > 0
+            ):
                 p = copy.deepcopy(permission)
                 remove_egress.append(p)
-                log.debug(f"Adding outgoing permission {p} of {self.resource_type} {self.dname} to removal list")
+                log.debug(
+                    f"Adding outgoing permission {p} of {self.resource_type} {self.dname} to removal list"
+                )
 
         if len(remove_ingress) > 0:
             security_group.revoke_ingress(IpPermissions=remove_ingress)
@@ -677,10 +702,14 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         DELETE = auto()
 
     def update_tag(self, key, value) -> bool:
-        return self._modify_tag(key, value, mode=AWSCloudFormationStack.ModificationMode.UPDATE)
+        return self._modify_tag(
+            key, value, mode=AWSCloudFormationStack.ModificationMode.UPDATE
+        )
 
     def delete_tag(self, key) -> bool:
-        return self._modify_tag(key, mode=AWSCloudFormationStack.ModificationMode.DELETE)
+        return self._modify_tag(
+            key, mode=AWSCloudFormationStack.ModificationMode.DELETE
+        )
 
     def _modify_tag(self, key, value=None, mode=None, wait=False) -> bool:
         tags = dict(self.tags)
@@ -703,11 +732,14 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
             UsePreviousTemplate=True,
             Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
             Parameters=[
-                {"ParameterKey": parameter, "UsePreviousValue": True} for parameter in self.stack_parameters.keys()
+                {"ParameterKey": parameter, "UsePreviousValue": True}
+                for parameter in self.stack_parameters.keys()
             ],
         )
         if response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) != 200:
-            raise RuntimeError(f"Error updating AWS Cloudformation Stack {self.dname} for {mode.name} of tag {key}")
+            raise RuntimeError(
+                f"Error updating AWS Cloudformation Stack {self.dname} for {mode.name} of tag {key}"
+            )
         if wait:
             self.wait_for_completion(stack, cf)
         self.tags = tags
@@ -732,7 +764,10 @@ class AWSEKSCluster(AWSResource, BaseResource):
     resource_type = "aws_eks_cluster"
 
     metrics_description = {
-        "aws_eks_clusters_total": {"help": "Number of AWS EKS Clusters", "labels": ["cloud", "account", "region"]},
+        "aws_eks_clusters_total": {
+            "help": "Number of AWS EKS Clusters",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_aws_eks_clusters_total": {
             "help": "Cleaned number of AWS EKS Clusters",
             "labels": ["cloud", "account", "region"],
@@ -745,7 +780,11 @@ class AWSEKSCluster(AWSResource, BaseResource):
         self.cluster_endpoint = ""
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["aws_eks_clusters_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_aws_eks_clusters_total"][metrics_keys] = 1
@@ -771,7 +810,10 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
     resource_type = "aws_eks_nodegroup"
 
     metrics_description = {
-        "aws_eks_nodegroups_total": {"help": "Number of AWS EKS Nodegroups", "labels": ["cloud", "account", "region"]},
+        "aws_eks_nodegroups_total": {
+            "help": "Number of AWS EKS Nodegroups",
+            "labels": ["cloud", "account", "region"],
+        },
         "cleaned_aws_eks_nodegroups_total": {
             "help": "Cleaned number of AWS EKS Nodegroups",
             "labels": ["cloud", "account", "region"],
@@ -784,7 +826,11 @@ class AWSEKSNodegroup(AWSResource, BaseResource):
         self.nodegroup_status = ""
 
     def metrics(self, graph) -> Dict:
-        metrics_keys = (self.cloud(graph).name, self.account(graph).dname, self.region(graph).name)
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
         self._metrics["aws_eks_nodegroups_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_aws_eks_nodegroups_total"][metrics_keys] = 1
@@ -811,7 +857,9 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
 
     def delete(self, graph: Graph, force_delete: bool = True) -> bool:
         client = aws_client(self, "autoscaling", graph)
-        client.delete_auto_scaling_group(AutoScalingGroupName=self.name, ForceDelete=force_delete)
+        client.delete_auto_scaling_group(
+            AutoScalingGroupName=self.name, ForceDelete=force_delete
+        )
         return True
 
     def update_tag(self, key, value) -> bool:

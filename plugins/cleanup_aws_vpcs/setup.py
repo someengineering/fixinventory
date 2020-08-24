@@ -14,7 +14,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["cleanup_aws_vpcs = cloudkeeper_plugin_cleanup_aws_vpcs:CleanupAWSVPCsPlugin"]
+        "cloudkeeper.plugins": [
+            "cleanup_aws_vpcs = cloudkeeper_plugin_cleanup_aws_vpcs:CleanupAWSVPCsPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

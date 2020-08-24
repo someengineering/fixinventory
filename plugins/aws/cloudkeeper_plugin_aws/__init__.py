@@ -17,9 +17,13 @@ from typing import List
 cloudkeeper.logging.getLogger("boto").setLevel(cloudkeeper.logging.CRITICAL)
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
-metrics_collect = Summary("cloudkeeper_plugin_aws_collect_seconds", "Time it took the collect() method")
+metrics_collect = Summary(
+    "cloudkeeper_plugin_aws_collect_seconds", "Time it took the collect() method"
+)
 metrics_unhandled_account_exceptions = Counter(
-    "cloudkeeper_plugin_aws_unhandled_account_exceptions_total", "Unhandled AWS Plugin Account Exceptions", ["account"]
+    "cloudkeeper_plugin_aws_unhandled_account_exceptions_total",
+    "Unhandled AWS Plugin Account Exceptions",
+    ["account"],
 )
 
 
@@ -32,8 +36,14 @@ class AWSPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument("--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id")
-        arg_parser.add_argument("--aws-secret-access-key", help="AWS Secret Access Key", dest="aws_secret_access_key")
+        arg_parser.add_argument(
+            "--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id"
+        )
+        arg_parser.add_argument(
+            "--aws-secret-access-key",
+            help="AWS Secret Access Key",
+            dest="aws_secret_access_key",
+        )
         arg_parser.add_argument("--aws-role", help="AWS IAM Role", dest="aws_role")
         arg_parser.add_argument(
             "--aws-role-override",
@@ -43,10 +53,20 @@ class AWSPlugin(BaseCollectorPlugin):
             default=False,
         )
         arg_parser.add_argument(
-            "--aws-account", help="AWS Account", dest="aws_account", type=str, default=None, nargs="+"
+            "--aws-account",
+            help="AWS Account",
+            dest="aws_account",
+            type=str,
+            default=None,
+            nargs="+",
         )
         arg_parser.add_argument(
-            "--aws-region", help="AWS Region (default: all)", dest="aws_region", type=str, default=None, nargs="+"
+            "--aws-region",
+            help="AWS Region (default: all)",
+            dest="aws_region",
+            type=str,
+            default=None,
+            nargs="+",
         )
         arg_parser.add_argument(
             "--aws-scrape-org",
@@ -118,7 +138,10 @@ class AWSPlugin(BaseCollectorPlugin):
             log.error("Failed to authenticate - skipping collection")
             return
 
-        if ArgumentParser.args.aws_assume_current and ArgumentParser.args.aws_scrape_current:
+        if (
+            ArgumentParser.args.aws_assume_current
+            and ArgumentParser.args.aws_scrape_current
+        ):
             log.warning(
                 "You specified --aws-assume-current but not --aws-dont-scrape-current! "
                 "This will result in the same account being scraped twice and is likely not what you want."
@@ -157,14 +180,19 @@ class AWSPlugin(BaseCollectorPlugin):
 
         with pool_executor(**pool_args) as executor:
             wait_for = [
-                executor.submit(collect_account, account, self.regions, ArgumentParser.args) for account in accounts
+                executor.submit(
+                    collect_account, account, self.regions, ArgumentParser.args
+                )
+                for account in accounts
             ]
             for future in futures.as_completed(wait_for):
                 res = future.result()
                 aac_root = res["root"]
                 aac_graph = res["graph"]
                 aac_account = res["account"]
-                log.debug(f"Merging graph of account {aac_account.dname} with {self.cloud} plugin graph")
+                log.debug(
+                    f"Merging graph of account {aac_account.dname} with {self.cloud} plugin graph"
+                )
                 self.graph = networkx.compose(self.graph, aac_graph)
                 self.graph.add_edge(self.root, aac_root)
 
@@ -219,7 +247,11 @@ def get_org_accounts(filter_current_account=False):
         else:
             raise
     filter_account_id = current_account_id() if filter_current_account else -1
-    accounts = [aws_account["Id"] for aws_account in accounts if aws_account["Id"] != filter_account_id]
+    accounts = [
+        aws_account["Id"]
+        for aws_account in accounts
+        if aws_account["Id"] != filter_account_id
+    ]
     for account in accounts:
         log.debug(f"AWS found org account {account}")
     log.info(f"AWS found a total of {len(accounts)} org accounts")
@@ -247,10 +279,14 @@ def collect_account(account: AWSAccount, regions: List, args=None):
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
-        log.exception(f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}")
+        log.exception(
+            f"An AWS {e.response['Error']['Code']} error occurred while collecting account {account.dname}"
+        )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
     except Exception:
-        log.exception(f"An unhandled error occurred while collecting AWS account {account.dname}")
+        log.exception(
+            f"An unhandled error occurred while collecting AWS account {account.dname}"
+        )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
 
     return {"root": aac.root, "graph": aac.graph, "account": aac.account}

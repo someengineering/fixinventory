@@ -6,7 +6,12 @@ from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import *
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.graph import Graph
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 from cloudkeeper.utils import parse_delta
 from cloudkeeper.paralleltagger import ParallelTagger
 from prometheus_client import Summary, Counter
@@ -33,7 +38,9 @@ class TagValidatorPlugin(BasePlugin):
         if ArgumentParser.args.tagvalidator_config:
             self.config = TagValidatorConfig(ArgumentParser.args.tagvalidator_config)
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(EventType.COLLECT_FINISH, self.tag_validator, blocking=True, timeout=900)
+            add_event_listener(
+                EventType.COLLECT_FINISH, self.tag_validator, blocking=True, timeout=900
+            )
         else:
             self.exit.set()
 
@@ -124,7 +131,16 @@ class TagValidatorPlugin(BasePlugin):
                                     f"setting tag {tag} to desired value {desired_value}"
                                 )
                                 log.debug(log_msg)
-                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(
+                                    pt,
+                                    node,
+                                    tag,
+                                    desired_value,
+                                    log_msg,
+                                    cloud,
+                                    account,
+                                    region,
+                                )
                                 continue
 
                             try:
@@ -135,13 +151,24 @@ class TagValidatorPlugin(BasePlugin):
                                     f"setting tag {tag} to desired value {desired_value}"
                                 )
                                 log.error(log_msg)
-                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(
+                                    pt,
+                                    node,
+                                    tag,
+                                    desired_value,
+                                    log_msg,
+                                    cloud,
+                                    account,
+                                    region,
+                                )
                                 continue
 
                             try:
                                 desired_value_td = parse_delta(desired_value)
                             except (AssertionError, ValueError):
-                                log.error("Can't parse desired value {} into timedelta - skipping tag")
+                                log.error(
+                                    "Can't parse desired value {} into timedelta - skipping tag"
+                                )
                                 continue
 
                             if desired_value_td < current_value_td:
@@ -150,13 +177,25 @@ class TagValidatorPlugin(BasePlugin):
                                     f"setting tag {tag}"
                                 )
                                 log.debug(log_msg)
-                                set_tag(pt, node, tag, desired_value, log_msg, cloud, account, region)
+                                set_tag(
+                                    pt,
+                                    node,
+                                    tag,
+                                    desired_value,
+                                    log_msg,
+                                    cloud,
+                                    account,
+                                    region,
+                                )
         pt.run()
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--tagvalidator-config", help="Path to Tag Validator Config", default=None, dest="tagvalidator_config"
+            "--tagvalidator-config",
+            help="Path to Tag Validator Config",
+            default=None,
+            dest="tagvalidator_config",
         )
         arg_parser.add_argument(
             "--tagvalidator-dry-run",
@@ -167,7 +206,9 @@ class TagValidatorPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down tag validator plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down tag validator plugin"
+        )
         self.exit.set()
 
 
@@ -184,13 +225,18 @@ def set_tag(
     pt_key = None
     if node and cloud and account and region:
         metrics_tag_violations.labels(
-            cloud=cloud.name, account=account.dname, region=region.name, resource_type=node.resource_type
+            cloud=cloud.name,
+            account=account.dname,
+            region=region.name,
+            resource_type=node.resource_type,
         ).inc()
         pt_key = f"{cloud.id}-{account.id}-{region.id}"
     if ArgumentParser.args.tagvalidator_dry_run:
         log_msg = f"DRY RUN - ACTION NOT PERFORMED: {log_msg}"
         node.log(log_msg)
-        log.debug(f"Tag Validator Dry Run - not setting {tag}: {value} for node {node.dname}")
+        log.debug(
+            f"Tag Validator Dry Run - not setting {tag}: {value} for node {node.dname}"
+        )
     else:
         node.log(log_msg)
         pt.add(node, tag, value, pt_key)

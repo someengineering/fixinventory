@@ -13,7 +13,9 @@ from prometheus_client import Summary
 
 log = cloudkeeper.logging.getLogger(__name__)
 
-metrics_collect = Summary("cloudkeeper_collect_seconds", "Time it took the collect() method")
+metrics_collect = Summary(
+    "cloudkeeper_collect_seconds", "Time it took the collect() method"
+)
 
 
 class Processor(threading.Thread):
@@ -58,10 +60,14 @@ class Processor(threading.Thread):
             log_stats(garbage_collector_stats=True)
             if self.__run:
                 self.cleanup()
-            dispatch_event(Event(EventType.PROCESS_FINISH, self.gc.graph), blocking=True)
+            dispatch_event(
+                Event(EventType.PROCESS_FINISH, self.gc.graph), blocking=True
+            )
 
             elapsed = int(time.time() - time_run_start)
-            log.info(f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in {elapsed} seconds")
+            log.info(
+                f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in {elapsed} seconds"
+            )
             log_stats(garbage_collector_stats=True)
 
             if self.__interval > elapsed:
@@ -74,7 +80,10 @@ class Processor(threading.Thread):
             if ArgumentParser.args.one_shot:
                 reason = "One shot run specified"
                 log.debug(f"Requesting shutdown: {reason}")
-                dispatch_event(Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}), blocking=True)
+                dispatch_event(
+                    Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False}),
+                    blocking=True,
+                )
         log.debug("Processor thread shut down")
 
     @metrics_collect.time()
@@ -93,7 +102,9 @@ class Processor(threading.Thread):
         dispatch_event(
             Event(EventType.COLLECT_BEGIN, gc.graph)
         )  # Let interested parties know that we're about to start our collect run
-        plugins = [Plugin() for Plugin in self.plugins]  # Create instances of each Plugin()
+        plugins = [
+            Plugin() for Plugin in self.plugins
+        ]  # Create instances of each Plugin()
         start_time = time.time()
 
         # First we run each Collector Plugin
@@ -113,20 +124,28 @@ class Processor(threading.Thread):
             plugin.join(timeout)
             if not plugin.is_alive():  # The plugin has finished its work
                 if not plugin.finished:
-                    log.error(f"Plugin {plugin.cloud} did not finish collection - ignoring plugin results")
+                    log.error(
+                        f"Plugin {plugin.cloud} did not finish collection - ignoring plugin results"
+                    )
                     continue
                 if not is_directed_acyclic_graph(plugin.graph):
-                    log.error(f"Graph of plugin {plugin.cloud} is not acyclic - ignoring plugin results")
+                    log.error(
+                        f"Graph of plugin {plugin.cloud} is not acyclic - ignoring plugin results"
+                    )
                     continue
                 log.info(f"Merging graph of plugin {plugin.cloud} with global graph")
                 gc.add(plugin.graph)
-                gc.graph.add_edge(gc.GRAPH_ROOT, plugin.root)  # Connect the root of our graph with the plugin's
+                gc.graph.add_edge(
+                    gc.GRAPH_ROOT, plugin.root
+                )  # Connect the root of our graph with the plugin's
             else:
                 log.error(f"Plugin {plugin.cloud} timed out - discarding Plugin graph")
         sanitize(gc.graph, gc.GRAPH_ROOT)
         dispatch_event(Event(EventType.GENERATE_METRICS, gc.graph), blocking=True)
         dispatch_event(Event(EventType.COLLECT_FINISH, gc.graph), blocking=True)
-        self.gc.graph = gc.graph  # Swap the live graph with the newly created one from our current run
+        self.gc.graph = (
+            gc.graph
+        )  # Swap the live graph with the newly created one from our current run
 
     def cleanup(self) -> None:
         """cleanup() is run after collect() and creates a new instance of the Cleaner()"""

@@ -319,7 +319,7 @@ As mentioned Cloudkeeper collects in intervals. As such it will not see resource
 
 ## Contributing
 If you would like to contribute new plugins or other code improvements fork the repo into your own Github account, create a feature branch and submit a PR.  
-Code formating tests currently use `black --line-length 120 --target-version py38`.  
+Code formating tests currently use `black --line-length 88 --target-version py38` and flake8 with `max-line-length=120`. Meaning code must wrap after 88 characters but strings are allowed to be up to 120 characters long. This will change once black stable starts to wrap strings.  
 If you find a bug or have a question about something please create a Github issue.
 
 

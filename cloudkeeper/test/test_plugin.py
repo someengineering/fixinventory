@@ -20,7 +20,12 @@ class SomeTestPlugin(BaseCollectorPlugin):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--example-region", help="Example Region", dest="example_region", type=str, default=None, nargs="+"
+            "--example-region",
+            help="Example Region",
+            dest="example_region",
+            type=str,
+            default=None,
+            nargs="+",
         )
 
 

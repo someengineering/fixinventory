@@ -44,7 +44,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
 
         self.config = {}
         if ArgumentParser.args.cleanup_aws_vpcs_config:
-            self.config = CleanupAWSVPCsConfig(config_file=ArgumentParser.args.cleanup_aws_vpcs_config)
+            self.config = CleanupAWSVPCsConfig(
+                config_file=ArgumentParser.args.cleanup_aws_vpcs_config
+            )
             self.config.read()  # initial read to ensure config format is valid
 
     def __del__(self):
@@ -71,8 +73,15 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                 )
 
                 if len(self.config) > 0:
-                    if cloud.id not in self.config or account.id not in self.config[cloud.id]:
-                        log.debug((f"{log_prefix} Account not found in config - ignoring dependent resources."))
+                    if (
+                        cloud.id not in self.config
+                        or account.id not in self.config[cloud.id]
+                    ):
+                        log.debug(
+                            (
+                                f"{log_prefix} Account not found in config - ignoring dependent resources."
+                            )
+                        )
                         continue
 
                 vpc_instances = [
@@ -89,10 +98,14 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                     node.clean = False
                     continue
 
-                log.debug(f"{log_prefix} Marking dependent resources for cleanup as well.")
+                log.debug(
+                    f"{log_prefix} Marking dependent resources for cleanup as well."
+                )
 
                 for descendant in node.descendants(graph):
-                    log.debug(f"Found descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname}")
+                    log.debug(
+                        f"Found descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname}"
+                    )
                     if isinstance(
                         descendant,
                         (
@@ -116,7 +129,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                                 f"which is set to be cleaned"
                             )
                         )
-                        node.log(f"Marking {descendant.rtdname} for cleanup because resource is a descendant")
+                        node.log(
+                            f"Marking {descendant.rtdname} for cleanup because resource is a descendant"
+                        )
                         descendant.clean = True
                     else:
                         if descendant.clean:
@@ -157,7 +172,9 @@ class CleanupAWSVPCsPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down AWS VPC Cleanup plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down AWS VPC Cleanup plugin"
+        )
         self.exit.set()
 
 
@@ -168,7 +185,9 @@ class CleanupAWSVPCsConfig(dict):
 
     def read(self) -> bool:
         if not self.config_file:
-            raise ValueError("Attribute config_file is not set on CleanupAWSVPCsConfig() instance")
+            raise ValueError(
+                "Attribute config_file is not set on CleanupAWSVPCsConfig() instance"
+            )
 
         with open(self.config_file) as config_file:
             config = yaml.load(config_file, Loader=yaml.FullLoader)

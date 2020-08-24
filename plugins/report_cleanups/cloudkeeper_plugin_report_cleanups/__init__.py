@@ -8,7 +8,12 @@ from cloudkeeper.graph import get_resource_attributes
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseResource, BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -27,7 +32,9 @@ class ReportCleanupsPlugin(BasePlugin):
         self.report_cleanups_path.mkdir(parents=True, exist_ok=True)
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-        add_event_listener(EventType.CLEANUP_FINISH, self.report_cleanup, blocking=False)
+        add_event_listener(
+            EventType.CLEANUP_FINISH, self.report_cleanup, blocking=False
+        )
 
     def __del__(self):
         remove_event_listener(EventType.CLEANUP_FINISH, self.report_cleanup)
@@ -41,7 +48,9 @@ class ReportCleanupsPlugin(BasePlugin):
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         report_file_prefix = f'cleanup_report_{now.strftime("%Y-%m-%d_%H-%M-%S")}.'
-        report_file = self.report_cleanups_path / (report_file_prefix + ArgumentParser.args.report_cleanups_format)
+        report_file = self.report_cleanups_path / (
+            report_file_prefix + ArgumentParser.args.report_cleanups_format
+        )
 
         log.info(f"Writing Cleanup Report to {report_file}")
         rows = []
@@ -76,7 +85,16 @@ class ReportCleanupsPlugin(BasePlugin):
 
         with report_file.open("w") as report_file_io:
             if ArgumentParser.args.report_cleanups_format == "csv":
-                fieldnames = ["datetime", "cloud", "account", "region", "resource_type", "id", "name", "ctime"]
+                fieldnames = [
+                    "datetime",
+                    "cloud",
+                    "account",
+                    "region",
+                    "resource_type",
+                    "id",
+                    "name",
+                    "ctime",
+                ]
                 fieldnames.extend(ArgumentParser.args.report_cleanups_add_attr)
                 # for CSV we remove any unwanted attributes and initialize wanted missing ones
                 # for JSON we leave them all intact
@@ -94,7 +112,9 @@ class ReportCleanupsPlugin(BasePlugin):
             elif ArgumentParser.args.report_cleanups_format == "json":
                 json.dump(rows, report_file_io)
             else:
-                log.error(f"Unknown output format: {ArgumentParser.args.report_cleanups_format}")
+                log.error(
+                    f"Unknown output format: {ArgumentParser.args.report_cleanups_format}"
+                )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -121,5 +141,7 @@ class ReportCleanupsPlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type.name} - shutting down Cleanups Report Plugin")
+        log.debug(
+            f"Received event {event.event_type.name} - shutting down Cleanups Report Plugin"
+        )
         self.exit.set()

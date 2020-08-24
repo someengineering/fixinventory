@@ -13,7 +13,9 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"cloudkeeper.plugins": ["logdump = cloudkeeper_plugin_logdump:LogDumpPlugin"]},
+    entry_points={
+        "cloudkeeper.plugins": ["logdump = cloudkeeper_plugin_logdump:LogDumpPlugin"]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper"],

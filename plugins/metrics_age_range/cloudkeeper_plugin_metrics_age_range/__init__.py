@@ -5,7 +5,12 @@ from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseInstance, BaseVolume
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import parse_delta
-from cloudkeeper.event import Event, EventType, add_event_listener, remove_event_listener
+from cloudkeeper.event import (
+    Event,
+    EventType,
+    add_event_listener,
+    remove_event_listener,
+)
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -29,13 +34,19 @@ class MetricsAgeRangePlugin(BasePlugin):
         self.name = "metrics_age_range"
         self.exit = threading.Event()
         if ArgumentParser.args.metrics_age_range:
-            add_event_listener(EventType.GENERATE_METRICS, self.generate_age_range_metrics, blocking=True)
+            add_event_listener(
+                EventType.GENERATE_METRICS,
+                self.generate_age_range_metrics,
+                blocking=True,
+            )
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
         else:
             self.exit.set()
 
     def __del__(self):
-        remove_event_listener(EventType.GENERATE_METRICS, self.generate_age_range_metrics)
+        remove_event_listener(
+            EventType.GENERATE_METRICS, self.generate_age_range_metrics
+        )
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):
@@ -56,7 +67,14 @@ class MetricsAgeRangePlugin(BasePlugin):
                 if isinstance(node, BaseInstance):
                     metric_name = "instances_age_range"
                     metric_help = "Age Range of Instances"
-                    metric_labels = ["cloud", "account", "region", "type", "status", "age"]
+                    metric_labels = [
+                        "cloud",
+                        "account",
+                        "region",
+                        "type",
+                        "status",
+                        "age",
+                    ]
                     metric_label_values = (
                         node.cloud(graph).name,
                         node.account(graph).dname,
@@ -65,11 +83,24 @@ class MetricsAgeRangePlugin(BasePlugin):
                         node.instance_status,
                         node_age_range,
                     )
-                    node.add_metric(metric_name, metric_value, metric_help, metric_labels, metric_label_values)
+                    node.add_metric(
+                        metric_name,
+                        metric_value,
+                        metric_help,
+                        metric_labels,
+                        metric_label_values,
+                    )
                 elif isinstance(node, BaseVolume):
                     metric_name = "volumes_age_range"
                     metric_help = "Age Range of Volumes"
-                    metric_labels = ["cloud", "account", "region", "type", "status", "age"]
+                    metric_labels = [
+                        "cloud",
+                        "account",
+                        "region",
+                        "type",
+                        "status",
+                        "age",
+                    ]
                     metric_label_values = (
                         node.cloud(graph).name,
                         node.account(graph).dname,
@@ -78,7 +109,13 @@ class MetricsAgeRangePlugin(BasePlugin):
                         node.volume_status,
                         node_age_range,
                     )
-                    node.add_metric(metric_name, metric_value, metric_help, metric_labels, metric_label_values)
+                    node.add_metric(
+                        metric_name,
+                        metric_value,
+                        metric_help,
+                        metric_labels,
+                        metric_label_values,
+                    )
                 else:
                     continue
 
@@ -100,5 +137,7 @@ class MetricsAgeRangePlugin(BasePlugin):
         )
 
     def shutdown(self, event: Event):
-        log.debug(f"Received event {event.event_type} - shutting down age range metrics plugin")
+        log.debug(
+            f"Received event {event.event_type} - shutting down age range metrics plugin"
+        )
         self.exit.set()
