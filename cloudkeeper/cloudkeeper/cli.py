@@ -32,8 +32,7 @@ log = cloudkeeper.logging.getLogger(__name__)
 
 
 class Cli(threading.Thread):
-    """The cloudkeeper CLI
-    """
+    """The cloudkeeper CLI"""
 
     def __init__(self, gc: GraphContainer, scheduler) -> None:
         super().__init__()
@@ -517,8 +516,7 @@ and chain multipe commands using the semicolon (;).
         return self.relatives(items, "descendants", args)
 
     def relatives(self, nodes: Iterable, group: str, args: str) -> Iterable:
-        """Return a group of relatives for any given list of nodes
-        """
+        """Return a group of relatives for any given list of nodes"""
         output_origin_node = args == "--with-origin"
 
         for node in nodes:

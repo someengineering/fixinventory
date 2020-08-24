@@ -42,8 +42,7 @@ class EventType(Enum):
 
 
 class Event:
-    """An Event
-    """
+    """An Event"""
 
     def __init__(self, event_type: EventType, data=None) -> None:
         self.event_type = event_type
@@ -55,16 +54,14 @@ _events_lock = RWLock()
 
 
 def event_listener_registered(event_type: EventType, listener: Callable) -> bool:
-    """Return whether listener is registered to event
-    """
+    """Return whether listener is registered to event"""
     if _events is None:
         return False
     return event_type in _events.keys() and listener in _events[event_type].keys()
 
 
 def dispatch_event(event: Event, blocking: bool = False) -> None:
-    """Dispatch an Event
-    """
+    """Dispatch an Event"""
     waiting_str = "" if blocking else "not "
     log.debug(f"Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return")
 
@@ -118,8 +115,7 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
 def add_event_listener(
     event_type: EventType, listener: Callable, blocking: bool = False, timeout: int = None, one_shot: bool = False
 ) -> bool:
-    """Add an Event Listener
-    """
+    """Add an Event Listener"""
     if not callable(listener):
         log.error(f"Error registering {listener} of type {type(listener)} with event {event_type.name}")
         return False
@@ -142,8 +138,7 @@ def add_event_listener(
 
 
 def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
-    """Remove an Event Listener
-    """
+    """Remove an Event Listener"""
     with _events_lock.write_access:
         if event_listener_registered(event_type, listener):
             log.debug(f"Removing {listener} from event {event_type.name}")

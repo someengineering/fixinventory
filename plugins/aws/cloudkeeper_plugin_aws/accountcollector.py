@@ -315,9 +315,7 @@ class AWSAccountCollector:
                 collector(region, graph)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnauthorizedOperation":
-                    log.error(
-                        f"Not authorized to collect resources in account {self.account.dname} region {region.id}"
-                    )
+                    log.error(f"Not authorized to collect resources in account {self.account.dname} region {region.id}")
                     return graph
                 else:
                     log.exception(
@@ -398,9 +396,7 @@ class AWSAccountCollector:
         try:
             service_quotas = self.get_raw_service_quotas(region, service)
         except botocore.exceptions.ClientError:
-            log.exception(
-                f"Failed to retrieve raw service quotas in account {self.account.dname} region {region.name}"
-            )
+            log.exception(f"Failed to retrieve raw service quotas in account {self.account.dname} region {region.name}")
             metrics_unhandled_collector_exceptions.labels(
                 account=self.account.name, region=region.name, collector="Service Quota"
             ).inc()
@@ -657,9 +653,7 @@ class AWSAccountCollector:
             timestamps = metric.get("Timestamps", [])
             values = metric.get("Values", [])
             if len(timestamps) != len(values):
-                raise ValueError(
-                    f"Number of timestamps {len(timestamps)} doesn't match number of values {len(values)}"
-                )
+                raise ValueError(f"Number of timestamps {len(timestamps)} doesn't match number of values {len(values)}")
 
             if metric_name not in (atime_metric, mtime_metric):
                 raise ValueError(f"Retrieved unknown metric {metric_name}")

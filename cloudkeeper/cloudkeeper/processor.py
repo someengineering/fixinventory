@@ -129,8 +129,7 @@ class Processor(threading.Thread):
         self.gc.graph = gc.graph  # Swap the live graph with the newly created one from our current run
 
     def cleanup(self) -> None:
-        """cleanup() is run after collect() and creates a new instance of the Cleaner()
-        """
+        """cleanup() is run after collect() and creates a new instance of the Cleaner()"""
         if ArgumentParser.args.cleanup:
             if ArgumentParser.args.no_cleanup_after_collect:
                 log.debug("Not running automated cleanup after collect")

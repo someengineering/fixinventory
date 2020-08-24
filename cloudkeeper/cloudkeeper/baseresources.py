@@ -23,9 +23,7 @@ metrics_resource_cleanup_exceptions = Counter(
     "Number of resource cleanup() exceptions",
     ["cloud", "account", "region", "resource_type"],
 )
-metrics_resource_cleanup = Summary(
-    "cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method"
-)
+metrics_resource_cleanup = Summary("cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method")
 
 
 def unless_protected(f):
@@ -382,23 +380,19 @@ class BaseResource(ABC):
                 graph.add_edge(src, dst)
 
     def predecessors(self, graph) -> Iterator:
-        """Returns an iterator of the node's parent nodes
-        """
+        """Returns an iterator of the node's parent nodes"""
         return graph.predecessors(self)
 
     def successors(self, graph) -> Iterator:
-        """Returns an iterator of the node's child nodes
-        """
+        """Returns an iterator of the node's child nodes"""
         return graph.successors(self)
 
     def ancestors(self, graph) -> Iterator:
-        """Returns an iterator of the node's ancestors
-        """
+        """Returns an iterator of the node's ancestors"""
         return networkx.algorithms.dag.ancestors(graph, self)
 
     def descendants(self, graph) -> Iterator:
-        """Returns an iterator of the node's descendants
-        """
+        """Returns an iterator of the node's descendants"""
         return networkx.algorithms.dag.descendants(graph, self)
 
     def __getstate__(self):
@@ -616,9 +610,7 @@ class BaseInstance(BaseResource):
             if instance_type_info:
                 self._metrics["memory_bytes"][metrics_keys] = instance_type_info.instance_memory * 1024 ** 3
                 if self._cleaned:
-                    self._metrics["cleaned_memory_bytes"][metrics_keys] = (
-                        instance_type_info.instance_memory * 1024 ** 3
-                    )
+                    self._metrics["cleaned_memory_bytes"][metrics_keys] = instance_type_info.instance_memory * 1024 ** 3
                 self._metrics["instances_hourly_cost_estimate"][metrics_keys] = instance_type_info.ondemand_cost
                 if self._cleaned:
                     self._metrics["cleaned_instances_hourly_cost_estimate"][

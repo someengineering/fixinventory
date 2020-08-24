@@ -13,9 +13,7 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={
-        "cloudkeeper.plugins": ["cleanup_volumes = cloudkeeper_plugin_cleanup_volumes:CleanupVolumesPlugin"]
-    },
+    entry_points={"cloudkeeper.plugins": ["cleanup_volumes = cloudkeeper_plugin_cleanup_volumes:CleanupVolumesPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=["cloudkeeper"],

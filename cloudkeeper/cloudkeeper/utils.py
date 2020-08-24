@@ -217,8 +217,7 @@ def parse_delta(delta: str) -> timedelta:
 
 
 def chunks(items: List, n: int) -> List:
-    """Split a list of items into multiple lists of size n and yield each chunk
-    """
+    """Split a list of items into multiple lists of size n and yield each chunk"""
     for s in range(0, len(items), n):
         e = s + n
         yield items[s:e]
@@ -339,9 +338,7 @@ def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
                 v = re.sub("[ \t]+", " ", v.strip())
                 process_info[k.lower()] = v
         for limit_name in ("NOFILE", "NPROC"):
-            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(
-                getattr(resource, f"RLIMIT_{limit_name}")
-            )
+            process_info[f"RLIMIT_{limit_name}".lower()] = resource.getrlimit(getattr(resource, f"RLIMIT_{limit_name}"))
     except (PermissionError, FileNotFoundError):
         pass
     return process_info

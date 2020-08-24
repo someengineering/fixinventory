@@ -483,9 +483,7 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
             for node in list(graph.successors(graph_root)):
                 if isinstance(node, Cloud):
                     if node.id in plugin_roots:
-                        log.debug(
-                            f"Found existing plugin root {node.id} - attaching children and removing plugin root"
-                        )
+                        log.debug(f"Found existing plugin root {node.id} - attaching children and removing plugin root")
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
                                 (

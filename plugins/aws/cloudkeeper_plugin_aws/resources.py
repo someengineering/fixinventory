@@ -671,8 +671,7 @@ class AWSCloudFormationStack(AWSResource, BaseStack):
         return True
 
     class ModificationMode(Enum):
-        """Defines Tag modification mode
-        """
+        """Defines Tag modification mode"""
 
         UPDATE = auto()
         DELETE = auto()
