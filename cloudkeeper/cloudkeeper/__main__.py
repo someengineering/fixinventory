@@ -1,6 +1,5 @@
 import time
 import os
-import sys
 import threading
 import cloudkeeper.logging as logging
 import cloudkeeper.signal

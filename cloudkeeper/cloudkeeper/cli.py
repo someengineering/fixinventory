@@ -1,13 +1,11 @@
 import threading
 import inspect
 import re
-import os
 import ast
 import time
 import calendar
 import cloudkeeper.logging
 from typing import Iterable, Tuple, Any, List
-from pympler import asizeof
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
