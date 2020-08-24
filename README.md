@@ -298,17 +298,17 @@ As mentioned Cloudkeeper collects in intervals. As such it will not see resource
 
 
 ## TODO
-- Document all plugins in their README.md
+- ~~Document all plugins in their README.md~~ ✔️
 - Update docstrings for pdoc3 and configure automated generation/export
 - Better tests for Cloudkeeper core and plugins
   - The basic test infrastructure is there and runs as part of the Docker image build
-  - flake8 syntax checks run with very lenient settings
-    - Use more sane defaults than 240 char line length
-    - Maybe give project formating in the hands of black and be done with it?
+  - ~~flake8 syntax checks run with very lenient settings~~ ✔️
+    - ~~Use more sane defaults than 240 char line length~~ ✔️
+    - ~~Maybe give project formating in the hands of black and be done with it?~~ ✔️
   - Cloudkeeper core currently has some testing but not nearly enough
   - Plugins have virtually no testing; just a test_args.py stub that tests each plugin's args for correct default values
 - Move to Poetry and pyproject.toml
-- Implement delete() and update/delete_tag() Methods for all resources, not just the expensive ones
+- ~~Implement delete() and update/delete_tag() Methods for all resources, not just the expensive ones~~ ✔️
 - Make existing delete() methods smarter - e.g. EKS Nodegroup deletion could block until the Nodegroup is gone so the EKS Cluster does not have to wait until the next collection round for its own deletion - on the other hand this would increase the number of API calls
 - Distribute parallel cleanup by cloud, account and region as to optimaly use API request limits
 - Implement more Cloud Providers (esp. GCP and Azure)
@@ -319,6 +319,7 @@ As mentioned Cloudkeeper collects in intervals. As such it will not see resource
 
 ## Contributing
 If you would like to contribute new plugins or other code improvements fork the repo into your own Github account, create a feature branch and submit a PR.  
+Code formating tests currently use `black --line-length 120 --target-version py38`.  
 If you find a bug or have a question about something please create a Github issue.
 
 
