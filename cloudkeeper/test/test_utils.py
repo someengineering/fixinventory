@@ -173,7 +173,7 @@ class RWLockTestCase(unittest.TestCase):
 
 
 class SomeTestResource(BaseResource):
-    resource_type = 'some_test_resource'
+    resource_type = "some_test_resource"
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -190,10 +190,10 @@ class SomeTestResource(BaseResource):
 
 
 def test_resource_tags_dict():
-    key = 'foo'
-    value = 'bar'
-    new_value = 'baz'
-    r = SomeTestResource('foo', {key: value})
+    key = "foo"
+    value = "bar"
+    new_value = "baz"
+    r = SomeTestResource("foo", {key: value})
     assert r.tags[key] == value
     assert r.key is None
     assert r.value is None

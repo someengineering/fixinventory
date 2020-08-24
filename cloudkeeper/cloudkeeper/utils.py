@@ -252,19 +252,17 @@ def get_stats(graph=None) -> Dict:
             "thread_names": [thread.name for thread in threading.enumerate()],
             "graph_size_bytes": asizeof.asizeof(graph),
             "garbage_collector": garbage_collector.get_stats(),
-            "process": get_all_process_info()
+            "process": get_all_process_info(),
         }
         if sys.platform == "linux":
             stats.update(
                 {
                     "maxrss_parent_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
+                    "maxrss_children_bytes": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024,
                 }
             )
         else:
-            stats.update(
-                {"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0}
-            )
+            stats.update({"maxrss_parent_bytes": 0, "maxrss_children_bytes": 0})
         stats["maxrss_total_bytes"] = stats["maxrss_parent_bytes"] + stats["maxrss_children_bytes"]
         num_fds_parent = stats["process"].get("parent", {}).get("num_file_descriptors", 0)
         num_fds_children = sum([v["num_file_descriptors"] for v in stats["process"].get("children", {}).values()])
@@ -276,7 +274,7 @@ def get_stats(graph=None) -> Dict:
                 "maxrss_total_human_readable": iec_size_format(stats["maxrss_total_bytes"]),
                 "num_fds_parent": num_fds_parent,
                 "num_fds_children": num_fds_children,
-                "num_fds_total": num_fds_parent + num_fds_children
+                "num_fds_total": num_fds_parent + num_fds_children,
             }
         )
     except Exception:

@@ -138,7 +138,7 @@ def shutdown(event: Event) -> None:
 def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
-    log.error("Some child process or thread timed out during shutdown")
+    log.error("Some child process or thread timed out during shutdown - forcing shutdown completion")
     os._exit(0)
 
 

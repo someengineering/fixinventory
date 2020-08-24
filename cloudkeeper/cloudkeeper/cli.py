@@ -1,6 +1,7 @@
 import threading
 import inspect
 import re
+import pathlib
 import ast
 import time
 import calendar
@@ -14,6 +15,7 @@ from datetime import datetime, timedelta, timezone, date
 from distutils.util import strtobool
 from collections import defaultdict
 from prompt_toolkit import PromptSession
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper.baseresources import BaseResource
@@ -51,7 +53,10 @@ class Cli(threading.Thread):
     def run(self) -> None:
         session = completer = None
         if self.__run:
-            session = PromptSession()
+            history = None
+            if ArgumentParser.args.cli_history:
+                history = FileHistory(ArgumentParser.args.cli_history)
+            session = PromptSession(history=history)
             completer = WordCompleter(CliHandler(self.gc.graph, clipboard=self.clipboard).valid_commands)
 
         while self.__run:
@@ -98,6 +103,17 @@ class Cli(threading.Thread):
             dest="cli_actions_config",
             type=str,
             default=None,
+        )
+        default_history_file = pathlib.Path.home() / ".cloudkeeper_history"
+        cli_history_default = None
+        if default_history_file.exists():
+            cli_history_default = str(default_history_file)
+        arg_parser.add_argument(
+            "--cli-history",
+            help="Path to CLI history file (default: None or ~/.cloudkeeper_history if exists)",
+            dest="cli_history",
+            type=str,
+            default=cli_history_default,
         )
 
 

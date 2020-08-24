@@ -82,10 +82,12 @@ class MetricsAgeRangePlugin(BasePlugin):
                 else:
                     continue
 
-                log.debug((
-                    f"Adding metrics for node {node.dname} of resource type {node.resource_type}, "
-                    f"created {node.age} ago, age range {node_age_range}"
-                ))
+                log.debug(
+                    (
+                        f"Adding metrics for node {node.dname} of resource type {node.resource_type}, "
+                        f"created {node.age} ago, age range {node_age_range}"
+                    )
+                )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
