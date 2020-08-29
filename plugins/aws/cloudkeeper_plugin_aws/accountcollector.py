@@ -771,7 +771,11 @@ class AWSAccountCollector:
             log.exception(f"Error while processing metrics for resource {resource.id}")
 
     def get_atime_mtime_from_metrics(
-        self, metrics: List, resource_prefix: str, atime_metric: str, mtime_metric: str,
+        self,
+        metrics: List,
+        resource_prefix: str,
+        atime_metric: str,
+        mtime_metric: str,
     ) -> Tuple:
         atime = {}
         mtime = {}

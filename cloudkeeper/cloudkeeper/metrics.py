@@ -36,26 +36,30 @@ def graph2metrics(graph):
 
     with graph.lock.read_access:
         for node in graph.nodes:
-            if isinstance(node, BaseResource):
-                try:
-                    for metric, data in node.metrics_description.items():
-                        if metric not in metrics:
-                            metrics[metric] = GaugeMetricFamily(
-                                f"cloudkeeper_{metric}",
-                                data["help"],
-                                labels=mlabels(data["labels"]),
-                            )
-                            num[metric] = defaultdict(lambda: 0)
-                    for metric, data in node.metrics(graph).items():
-                        for labels, value in data.items():
-                            if metric not in num:
-                                log.error(
-                                    f"Couldn't find metric {metric} in num when processing node {node}"
+            if not isinstance(node, BaseResource):
+                continue
+            try:
+                for metric, data in node.metrics_description.items():
+                    if metric not in metrics:
+                        metrics[metric] = GaugeMetricFamily(
+                            f"cloudkeeper_{metric}",
+                            data["help"],
+                            labels=mlabels(data["labels"]),
+                        )
+                        num[metric] = defaultdict(lambda: 0)
+                for metric, data in node.metrics(graph).items():
+                    for labels, value in data.items():
+                        if metric not in num:
+                            log.error(
+                                (
+                                    f"Couldn't find metric {metric} in num when"
+                                    f" processing node {node}"
                                 )
-                                continue
-                            num[metric][mtags(labels, node)] += value
-                except AttributeError:
-                    log.exception(f"Encountered invalid node in graph {node}")
+                            )
+                            continue
+                        num[metric][mtags(labels, node)] += value
+            except AttributeError:
+                log.exception(f"Encountered invalid node in graph {node}")
 
         for metric in metrics:
             for labels, value in num[metric].items():
@@ -64,11 +68,12 @@ def graph2metrics(graph):
     return metrics
 
 
-# The mlabels() and mtags() functions are being used to dynamically add more labels to each metric
-# The idea here is that via a cli arg we can specify resource tags that should be exported as labels
-# for each metric. This way we don't have to touch the code itself any time we want to add another
-# metrics dimension. Instead we could just have a tag like 'project' and then use the
-# '--tag-as-metrics-label project' argument to export another label based on the given tag.
+# The mlabels() and mtags() functions are being used to dynamically add more labels
+# to each metric. The idea here is that via a cli arg we can specify resource tags
+# that should be exported as labels for each metric. This way we don't have to touch
+# the code itself any time we want to add another metrics dimension. Instead we could
+# just have a tag like 'project' and then use the '--tag-as-metrics-label project'
+# argument to export another label based on the given tag.
 def mlabels(labels: List) -> List:
     """Takes a list of labels and appends any cli arg specified tag names to it."""
     if ArgumentParser.args and ArgumentParser.args.metrics_tag_as_label:

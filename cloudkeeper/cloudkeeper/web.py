@@ -20,10 +20,11 @@ class CloudkeeperRequestHandler(WSGIRequestHandler):
 
 
 class WebServer(threading.Thread):
-    """A basic webserver returning some metrics and Graph representations for debugging purposes
+    """A basic webserver returning some metrics and Graph representations for debugging
+    purposes
 
-    This is just Python's build in web server used to return some light debug and metric information.
-    Don't abuse it for heavy workloads!
+    This is just Python's build in web server used to return some light debug and
+    metric information. Don't abuse it for heavy workloads!
     """
 
     def __init__(self, gc) -> None:

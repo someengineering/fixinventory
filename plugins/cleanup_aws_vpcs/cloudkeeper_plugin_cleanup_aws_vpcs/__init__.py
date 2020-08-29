@@ -37,7 +37,10 @@ class CleanupAWSVPCsPlugin(BasePlugin):
         if ArgumentParser.args.cleanup_aws_vpcs:
             add_event_listener(EventType.SHUTDOWN, self.shutdown)
             add_event_listener(
-                EventType.CLEANUP_BEGIN, self.vpc_cleanup, blocking=True, timeout=3600,
+                EventType.CLEANUP_BEGIN,
+                self.vpc_cleanup,
+                blocking=True,
+                timeout=3600,
             )
         else:
             self.exit.set()
