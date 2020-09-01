@@ -18,10 +18,12 @@ class PluginLoader:
     def __init__(self) -> None:
         # self.__plugins is a dict with key PluginType and value List
         # The List will hold all the Plugins of a PluginType
-        # Current PluginTypes are COLLECTOR and PERSISTENT. So the Dict could look something like this:
+        # Current PluginTypes are COLLECTOR, CLI and PERSISTENT. So the Dict could look
+        # something like this:
         # {
         #   PluginType.COLLECTOR: [AWSPlugin, GCPPlugin, AzurePlugin],
-        #   PluginType.PERSISTENT: [SlackNotificationPlugin, VolumeCleanupPlugin, GraphBackupPlugin]
+        #   PluginType.CLI: [CliDebugPlugin]
+        #   PluginType.PERSISTENT: [SlackNotificationPlugin, VolumeCleanupPlugin]
         # }
         global plugins
 
@@ -33,8 +35,9 @@ class PluginLoader:
         """Finds Cloudkeeper Plugins
 
         Cloudkeeper Plugins have an entry point cloudkeeper.plugins.
-        Any package resource with an entry point of that name will be handed to app_plugin()
-        which validates that the package resource is a subclass of BasePlugin.
+        Any package resource with an entry point of that name will be handed to
+        app_plugin() which validates that the package resource is a subclass of
+        BasePlugin.
         """
         global initialized
         log.debug("Finding plugins")

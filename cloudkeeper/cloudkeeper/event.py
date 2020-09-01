@@ -64,7 +64,10 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event"""
     waiting_str = "" if blocking else "not "
     log.debug(
-        f"Dispatching event {event.event_type.name} and {waiting_str}waiting for listeners to return"
+        (
+            f"Dispatching event {event.event_type.name} and {waiting_str}waiting for"
+            " listeners to return"
+        )
     )
 
     if event.event_type not in _events.keys():
@@ -85,14 +88,23 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
                 blocking=False
             ):
                 log.error(
-                    f"Not calling one-shot listener {listener} of type {type(listener)} - can't acquire lock"
+                    (
+                        f"Not calling one-shot listener {listener} of type"
+                        f" {type(listener)} - can't acquire lock"
+                    )
                 )
                 continue
 
             log.debug(
-                f"Calling listener {listener} of type {type(listener)} (blocking: {listener_data['blocking']})"
+                (
+                    f"Calling listener {listener} of type {type(listener)}"
+                    f" (blocking: {listener_data['blocking']})"
+                )
             )
-            thread_name = f"{event.event_type.name.lower()}_event-{getattr(listener, '__name__', 'anonymous')}"
+            thread_name = (
+                f"{event.event_type.name.lower()}_event"
+                f"-{getattr(listener, '__name__', 'anonymous')}"
+            )
             t = Thread(target=listener, args=[event], name=thread_name)
             if blocking or listener_data["blocking"]:
                 threads[t] = listener
@@ -134,7 +146,10 @@ def add_event_listener(
     """Add an Event Listener"""
     if not callable(listener):
         log.error(
-            f"Error registering {listener} of type {type(listener)} with event {event_type.name}"
+            (
+                f"Error registering {listener} of type {type(listener)} with event"
+                f" {event_type.name}"
+            )
         )
         return False
 
@@ -142,7 +157,10 @@ def add_event_listener(
         timeout = ArgumentParser.args.event_timeout
 
     log.debug(
-        f"Registering {listener} with event {event_type.name} (blocking: {blocking}, one-shot: {one_shot})"
+        (
+            f"Registering {listener} with event {event_type.name}"
+            f" (blocking: {blocking}, one-shot: {one_shot})"
+        )
     )
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):

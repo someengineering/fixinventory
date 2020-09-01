@@ -60,8 +60,9 @@ class Scheduler(threading.Thread):
             event, cmd = command.split(":", 1)
             log.debug(
                 (
-                    f"Scheduling to register command '{cmd}' for event {event} at "
-                    f"minute={minute}, hour={hour}, day={day}, month={month}, day_of_week={day_of_week}"
+                    f"Scheduling to register command '{cmd}' for event {event} at"
+                    f" minute={minute}, hour={hour}, day={day}, month={month},"
+                    f" day_of_week={day_of_week}"
                 )
             )
             job = self._sched.add_job(
@@ -77,8 +78,9 @@ class Scheduler(threading.Thread):
         else:
             log.debug(
                 (
-                    f"Scheduling command '{command}' at "
-                    f"minute={minute}, hour={hour}, day={day}, month={month}, day_of_week={day_of_week}"
+                    f"Scheduling command '{command}' at"
+                    f" minute={minute}, hour={hour}, day={day}, month={month},"
+                    f" day_of_week={day_of_week}"
                 )
             )
             job = self._sched.add_job(
@@ -109,8 +111,9 @@ class Scheduler(threading.Thread):
                 for field in job.trigger.fields:
                     trigger_map[field.name] = str(field)
                 cron_line = (
-                    f"{job.id}: {trigger_map.get('minute')} {trigger_map.get('hour')} {trigger_map.get('day')}"
-                    f" {trigger_map.get('month')} {trigger_map.get('day_of_week')} {job.args[0]}"
+                    f"{job.id}: {trigger_map.get('minute')} {trigger_map.get('hour')}"
+                    f" {trigger_map.get('day')} {trigger_map.get('month')}"
+                    f" {trigger_map.get('day_of_week')} {job.args[0]}"
                 )
                 yield cron_line
 

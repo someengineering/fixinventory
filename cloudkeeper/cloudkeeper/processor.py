@@ -21,17 +21,20 @@ metrics_collect = Summary(
 class Processor(threading.Thread):
     """The Processor is cloudkeeper's logic loop.
 
-    It runs forever or until interrupted and each loop creates fresh instances of each Plugin.
-    Each Plugin itself is running as a separate thread. Once all the Plugin collect() threads have finished
-    running the Collector retrieves their individual Graphs and merges them into the global Graph.
+    It runs forever or until interrupted and each loop creates fresh instances of each
+    Plugin. Each Plugin itself is running as a separate thread. Once all the Plugin
+    collect() threads have finished running the Collector retrieves their individual
+    Graphs and merges them into the global Graph.
 
-    After all cloud resources have been collected the cleanup() method is run which creates an instance of the
-    Cleaner() which in turn emits a blocking event CLEANUP_BEGIN. After all event listeners have processed the
-    event the Cleaner checks which nodes have the .clean property set to True and calls the cleanup() method
-    on those nodes.
-    If the node's BaseClass has the delete() method implemented it'll get deleted during this process.
-    Finally the CLEANUP_FINISH event is emitted to be consumed by other Plugins that might write reports or send
-    notifications about the cleaned up resources.
+    After all cloud resources have been collected the cleanup() method is run which
+    creates an instance of the Cleaner() which in turn emits a blocking event
+    CLEANUP_BEGIN. After all event listeners have processed the event the Cleaner
+    checks which nodes have the .clean property set to True and calls the cleanup()
+    method on those nodes.
+    If the node's BaseClass has the delete() method implemented it'll get deleted during
+    this process.
+    Finally the CLEANUP_FINISH event is emitted to be consumed by other Plugins that
+    might write reports or send notifications about the cleaned up resources.
     """
 
     def __init__(self, gc: GraphContainer, plugins: List) -> None:
@@ -66,7 +69,10 @@ class Processor(threading.Thread):
 
             elapsed = int(time.time() - time_run_start)
             log.info(
-                f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in {elapsed} seconds"
+                (
+                    f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in"
+                    f" {elapsed} seconds"
+                )
             )
             log_stats(garbage_collector_stats=True)
 
@@ -90,15 +96,16 @@ class Processor(threading.Thread):
     def collect(self) -> None:
         """collect() is run every loop, collecting Plugin resources.
 
-        Every time collect() is run it creates a new working Graph. It then creates instances of each Plugin
-        and starts their thread which in turn runs the Plugin's collect() method. Once all Plugins have finished
-        collecting cloud resources, it retrieves the Plugin's Graphs and appends them to its own working Graph.
+        Every time collect() is run it creates a new working Graph. It then creates
+        instances of each Plugin and starts their thread which in turn runs the Plugin's
+        collect() method. Once all Plugins have finished collecting cloud resources,
+        it retrieves the Plugin's Graphs and appends them to its own working Graph.
 
         At the end the live Graph is swapped with the working Graph.
         """
         gc = GraphContainer(
             cache_graph=False
-        )  # Create a new graph container to hold the Graph() which we'll swap out at the end
+        )  # Create a new graph container to hold the Graph() which we'll swap out
         dispatch_event(
             Event(EventType.COLLECT_BEGIN, gc.graph)
         )  # Let interested parties know that we're about to start our collect run
@@ -110,12 +117,13 @@ class Processor(threading.Thread):
         # First we run each Collector Plugin
         # Each Plugin is a threading.Thread so we call start() on it
         for plugin in plugins:
-            plugin.start()  # Run the collect() method on each plugin which in turn generates a Graph()
+            plugin.start()  # Run the collect() method on each plugin
 
         # Now we wait for each Plugin to complete its work or time out
         # Because we always swap out the completed graph at the end of our collect run
-        # it doesn't matter in which order we wait for (join) Plugins. I.e. there's no speed
-        # advantage in checking for already completed Plugins and collecting slow ones last.
+        # it doesn't matter in which order we wait for (join) Plugins. I.e. there's no
+        # speed advantage in checking for already completed Plugins and collecting
+        # slow ones last.
         for plugin in plugins:
             timeout = start_time + ArgumentParser.args.timeout - time.time()
             if timeout < 1:
@@ -125,12 +133,18 @@ class Processor(threading.Thread):
             if not plugin.is_alive():  # The plugin has finished its work
                 if not plugin.finished:
                     log.error(
-                        f"Plugin {plugin.cloud} did not finish collection - ignoring plugin results"
+                        (
+                            f"Plugin {plugin.cloud} did not finish collection"
+                            " - ignoring plugin results"
+                        )
                     )
                     continue
                 if not is_directed_acyclic_graph(plugin.graph):
                     log.error(
-                        f"Graph of plugin {plugin.cloud} is not acyclic - ignoring plugin results"
+                        (
+                            f"Graph of plugin {plugin.cloud} is not acyclic"
+                            " - ignoring plugin results"
+                        )
                     )
                     continue
                 log.info(f"Merging graph of plugin {plugin.cloud} with global graph")
@@ -148,7 +162,7 @@ class Processor(threading.Thread):
         )  # Swap the live graph with the newly created one from our current run
 
     def cleanup(self) -> None:
-        """cleanup() is run after collect() and creates a new instance of the Cleaner()"""
+        """cleanup() is run after collect() and creates a new Cleaner() instance"""
         if ArgumentParser.args.cleanup:
             if ArgumentParser.args.no_cleanup_after_collect:
                 log.debug("Not running automated cleanup after collect")

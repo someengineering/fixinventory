@@ -128,17 +128,20 @@ class Graph(networkx.DiGraph):
     def add_resource(self, parent, node_for_adding, **attr):
         """Add a resource node to the graph
 
-        When adding resource nodes to the graph there's always a label and a resource_type as well as
-        an edge connecting the new resource with its parent resource. This way we should never have disconnected
-        nodes within the graph.
+        When adding resource nodes to the graph there's always a label and a
+        resource_type as well as an edge connecting the new resource with its parent
+        resource. This way we should never have disconnected nodes within the graph.
 
-        The graph_attributes are a Dict of key=value pairs that contain all the attributes of a graph node.
-        When working with the graph that information isn't too important as each node is a standard Python
-        object containing all its properties. However when exporting in graphml, gexf or json those attributes
-        are the only thing being exported with the node name. So we'll try to turn every public property
-        of a graph node into key=value attribute pairs to be exported with the graph.
+        The graph_attributes are a Dict of key=value pairs that contain all the
+        attributes of a graph node. When working with the graph that information isn't
+        too important as each node is a standard Python object containing all its
+        properties. However when exporting in graphml, gexf or json those attributes are
+        the only thing being exported with the node name. So we'll try to turn every
+        public property of a graph node into key=value attribute pairs to be exported
+        with the graph.
 
-        Attributes can also be used in graph searches to find nodes matching certain attributes.
+        Attributes can also be used in graph searches to find nodes matching certain
+        attributes.
         """
         resource_attr = get_resource_attributes(node_for_adding)
 
@@ -172,7 +175,10 @@ class Graph(networkx.DiGraph):
             )
             return ()
         log.debug(
-            f"Searching graph for nodes with attribute values {attr}: {value} (regex: {regex_search})"
+            (
+                f"Searching graph for nodes with attribute values {attr}: {value}"
+                f" (regex: {regex_search})"
+            )
         )
         with self.lock.read_access:
             for node in self.nodes():
@@ -233,7 +239,8 @@ class Graph(networkx.DiGraph):
     def search_first_parent_class(self, node, cls):
         """Return the first parent node matching a certain class
 
-        This is being used to search up the graph and e.g. find the account that the graph node is a member of.
+        This is being used to search up the graph and e.g. find the account that the
+        graph node is a member of.
         """
         ret = None
         try:
@@ -272,8 +279,8 @@ class Graph(networkx.DiGraph):
 class GraphContainer:
     """A context containing a Graph()
 
-    This can be passed to various code parts like e.g. a WebServer() allowing replacement and updating
-    of the graph without losing its context.
+    This can be passed to various code parts like e.g. a WebServer() allowing
+    replacement and updating of the graph without losing its context.
     """
 
     GRAPH_ROOT = GraphRoot("cloudkeeper", {})
@@ -447,13 +454,18 @@ class GraphCache:
 
 
 def dump_graph(graph) -> str:
-    """Debug dump the directed graph and list each nodes predecessor and successor nodes"""
+    """Debug dump the graph and list each nodes predecessor and successor nodes"""
     for node in graph.nodes:
         yield f"Node: {node.name} (type: {node.resource_type})"
         for predecessor_node in graph.predecessors(node):
-            yield f"\tParent: {predecessor_node.name} (type: {predecessor_node.resource_type})"
+            yield (
+                f"\tParent: {predecessor_node.name}"
+                f" (type: {predecessor_node.resource_type})"
+            )
         for successor_node in graph.successors(node):
-            yield f"\tChild {successor_node.name} (type: {successor_node.resource_type})"
+            yield (
+                f"\tChild {successor_node.name} (type: {successor_node.resource_type})"
+            )
 
 
 @metrics_graph2json.time()
@@ -529,13 +541,17 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
                 if isinstance(node, Cloud):
                     if node.id in plugin_roots:
                         log.debug(
-                            f"Found existing plugin root {node.id} - attaching children and removing plugin root"
+                            (
+                                f"Found existing plugin root {node.id}"
+                                " - attaching children and removing plugin root"
+                            )
                         )
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
                                 (
                                     f"Found node {plugin_root_child.id} of type "
-                                    f"{plugin_root_child.resource_type} - attaching to existing plugin root"
+                                    f"{plugin_root_child.resource_type}"
+                                    " - attaching to existing plugin root"
                                 )
                             )
                             graph.add_edge(plugin_roots[node.id], plugin_root_child)
@@ -543,13 +559,19 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
                         graph.remove_node(node)
                     else:
                         log.debug(
-                            f"Found new plugin root {node.id} - attaching to top level root"
+                            (
+                                f"Found new plugin root {node.id}"
+                                " - attaching to top level root"
+                            )
                         )
                         graph.add_edge(root, node)
                         graph.remove_edge(graph_root, node)
                 else:
                     log.debug(
-                        f"Found unknown node {node.id} of type {node.resource_type} - attaching to top level root"
+                        (
+                            f"Found unknown node {node.id} of type {node.resource_type}"
+                            " - attaching to top level root"
+                        )
                     )
                     graph.add_edge(root, node)
                     graph.remove_edge(graph_root, node)

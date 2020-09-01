@@ -18,7 +18,8 @@ metrics_unhandled_plugin_exceptions = Counter(
 class PluginType(Enum):
     """Defines Plugin Type
 
-    COLLECTOR is a cloud resource collector plugin that gets instantiated on each collect() run
+    COLLECTOR is a cloud resource collector plugin that gets instantiated
+    on each collect() run
     PERSISTENT is a persistent plugin that gets instantiated once upon startup
     """
 
@@ -30,9 +31,11 @@ class PluginType(Enum):
 class BasePlugin(ABC, Thread):
     """A cloudkeeper Plugin is a thread that does some work.
 
-    If the plugin_type is PluginType.COLLECTOR the Plugin gets instantiated each collect run.
-    If the plugin_type is PluginType.PERSISTENT the Plugin gets instantiated upon startup and is expected
-    to run forever. It may register to any events it's interested in and act upon them.
+    If the plugin_type is PluginType.COLLECTOR the Plugin gets instantiated each
+    collect run.
+    If the plugin_type is PluginType.PERSISTENT the Plugin gets instantiated upon
+    startup and is expected to run forever. It may register to any events it's
+    interested in and act upon them.
 
     Upon start the go() method is called. For COLLECTOR Plugins collect() is called.
     """
@@ -65,9 +68,10 @@ class BasePlugin(ABC, Thread):
 class BaseCollectorPlugin(BasePlugin):
     """A cloudkeeper Collector plugin is a thread that collects cloud resources.
 
-    Whenever the thread is started the collect() method is run. The collect() method is expected to add
-    cloud resources to self.graph. Cloud resources must inherit the BaseResource or one of the more specific
-    resource types like BaseAccount, BaseInstance, BaseNetwork, BaseLoadBalancer, etc.
+    Whenever the thread is started the collect() method is run. The collect() method
+    is expected to add cloud resources to self.graph. Cloud resources must inherit
+    the BaseResource or one of the more specific resource types like BaseAccount,
+    BaseInstance, BaseNetwork, BaseLoadBalancer, etc.
 
     When the collect() method finishes, the Collector will retrieve the
     Plugins Graph and append it to the global Graph.
@@ -99,7 +103,8 @@ class BaseCliPlugin(ABC):
     """A cloudkeeper CLI plugin adds new commands to the built-in CLI.
 
     The plugin has references to the current graph, scheduler and CLI clipboard.
-    Every function that is prefixed with the string 'cmd_' will become a new CLI command.
+    Every function that is prefixed with the string 'cmd_' will become a new CLI
+    command.
 
     Signature and example implementation is as follows:
         def cmd_example(self, items: Iterable, args: str) -> Iterable:
@@ -112,10 +117,12 @@ class BaseCliPlugin(ABC):
                     yield item
 
     items is usually a generator function being passed in from the previous command.
-    If this is the first command in the chain then items contains all of the graphs resources.
+    If this is the first command in the chain then items contains all of the graphs
+    resources.
 
     Args is the string that the user input after the command.
-    For instance when calling `> example foo --bar` args of cmd_example would be 'foo --bar'.
+    For instance when calling `> example foo --bar` args of cmd_example would be
+    'foo --bar'.
 
     The function has to take care of tokenizing the string if desired.
     The functions docstring is being displayed when the user enters `help example`.

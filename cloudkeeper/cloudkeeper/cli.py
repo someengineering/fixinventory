@@ -128,7 +128,10 @@ class Cli(threading.Thread):
             cli_history_default = str(default_history_file)
         arg_parser.add_argument(
             "--cli-history",
-            help="Path to CLI history file (default: None or ~/.cloudkeeper_history if exists)",
+            help=(
+                "Path to CLI history file"
+                " (default: None or ~/.cloudkeeper_history if exists)"
+            ),
             dest="cli_history",
             type=str,
             default=cli_history_default,
@@ -673,7 +676,10 @@ and chain multipe commands using the semicolon (;).
                     converted = type_attr(ast.literal_eval(value))
                 except ValueError:
                     log.exception(
-                        f"An error occurred when trying to cast value '{value}' to {type_attr}"
+                        (
+                            "An error occurred when trying to cast value"
+                            f" '{value}' to {type_attr}"
+                        )
                     )
                 else:
                     setattr(item, attribute, converted)

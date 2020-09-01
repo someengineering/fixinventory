@@ -22,7 +22,10 @@ class Cleaner:
     def cleanup(self) -> None:
         if not ArgumentParser.args.cleanup:
             log.error(
-                "Cleanup called but --cleanup flag not provided at startup - ignoring call"
+                (
+                    "Cleanup called but --cleanup flag not provided at startup"
+                    " - ignoring call"
+                )
             )
             return
 
@@ -36,7 +39,10 @@ class Cleaner:
 
             for node in cleanup_nodes:
                 log.debug(
-                    f"Adding {node.rtdname} to cleanup plan with priority {node.max_graph_depth}"
+                    (
+                        f"Adding {node.rtdname} to cleanup plan with priority"
+                        f" {node.max_graph_depth}"
+                    )
                 )
                 cleanup_plan[node.max_graph_depth].append(node)
 
@@ -71,7 +77,10 @@ class Cleaner:
             node.pre_cleanup(self.graph)
         except Exception:
             log.exception(
-                f"An exception occurred when running resource pre cleanup on {node.rtdname}"
+                (
+                    "An exception occurred when running resource pre cleanup on"
+                    f" {node.rtdname}"
+                )
             )
 
     def clean(self, node: BaseResource) -> None:

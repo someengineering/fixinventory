@@ -40,8 +40,8 @@ class RWLock:
         Communications of the ACM, 1971 (via [3])
     [3] http://en.wikipedia.org/wiki/Readers-writers_problem
 
-    This code is a derivative of the code from ActiveState Code service at:
-    http://code.activestate.com/recipes/577803-reader-writer-lock-with-priority-for-writers
+    This code is a derivative of the code from ActiveState Code service at: http://
+    code.activestate.com/recipes/577803-reader-writer-lock-with-priority-for-writers
     and is licensed under the MIT license.
     """
 
@@ -195,7 +195,8 @@ def parse_delta(delta: str) -> timedelta:
     assert delta != "never"
     possible_args = ["weeks", "days", "hours", "minutes"]
 
-    # Find all the <count> <unit> patterns, expand the count + units to build a timedelta.
+    # Find all the <count> <unit> patterns, expand the count + units to build a
+    # timedelta.
     chunk_regex = r"(\d+)\s*(\D+)\s*"
     kwargs = {}
     for count, unit in re.findall(chunk_regex, delta, re.I):
@@ -399,10 +400,12 @@ def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
     try:
         log.debug(
             (
-                f"Stats: max rss parent: {stats['maxrss_parent_human_readable']}, "
-                f"children: {stats['maxrss_children_human_readable']}, "
-                f"fds: {stats['num_fds_total']}/{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]} "
-                f"active threads {stats['active_threads']}: {', '.join([thread for thread in stats['thread_names']])}"
+                f"Stats: max rss parent: {stats['maxrss_parent_human_readable']},"
+                f" children: {stats['maxrss_children_human_readable']},"
+                f" fds: {stats['num_fds_total']}/"
+                f"{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]}"
+                f" active threads {stats['active_threads']}:"
+                f" {', '.join([thread for thread in stats['thread_names']])}"
             )
         )
         if graph:

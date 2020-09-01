@@ -23,17 +23,22 @@ def handler(sig, frame) -> None:
     if current_pid == parent_pid:
         reason = f"Received shutdown signal {sig}"
         log.debug(f"Parent caught signal {sig} - dispatching shutdown event")
-        # Dispatch shutdown event in parent process which also causes SIGUSR1 to be sent to
-        # the process group and in turn causes the shutdown event in all child processes.
+        # Dispatch shutdown event in parent process which also causes SIGTERM to be sent
+        # to the process group and in turn causes the shutdown event in all child
+        # processes.
         dispatch_event(
             Event(EventType.SHUTDOWN, {"reason": reason, "emergency": False})
         )
     else:
         reason = f"Received shutdown signal {sig} from parent process"
         log.debug(
-            f"Child with PID {current_pid} shutting down - you might see exceptions from interrupted worker threads"
+            (
+                f"Child with PID {current_pid} shutting down"
+                " - you might see exceptions from interrupted worker threads"
+            )
         )
-        # Child's threads have 3s to shut down before the following thread will shut them down hard.
+        # Child's threads have 3s to shut down before the following thread will
+        # shut them down hard.
         kt = threading.Thread(target=delayed_exit, name="shutdown")
         kt.start()
         # Dispatch shutdown event in child process

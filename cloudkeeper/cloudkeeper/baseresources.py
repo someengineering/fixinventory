@@ -38,7 +38,10 @@ def unless_protected(f):
         if self.protected:
             log.error(f"Resource {self.rtdname} is protected - refusing modification")
             self.log(
-                "Modification was requested even though resource is protected - refusing"
+                (
+                    "Modification was requested even though resource is protected"
+                    " - refusing"
+                )
             )
             return False
         return f(self, *args, **kwargs)
@@ -49,26 +52,36 @@ def unless_protected(f):
 class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
-    BaseResources have an id, name and tags. The id is a unique id used to search for the resource within
-    the Graph. The name is used for display purposes. Tags are key/value pairs that get exported in the
-    GRAPHML view.
+    BaseResources have an id, name and tags. The id is a unique id used to search for
+    the resource within the Graph. The name is used for display purposes. Tags are
+    key/value pairs that get exported in the GRAPHML view.
 
     There's also three class variables, resource_type, phantom and metrics_description.
-    resource_type is a string describing the type of resource, e.g. 'aws_ec2_instance' or 'some_cloud_load_balancer'.
-    phantom is a bool describing whether or not the resource actually exists within the cloud or if it's just a
-    phantom resource like pricing information or usage quota. I.e. some information relevant to the cloud account
-    but not actually existing in the form of a usable resource.
+    resource_type is a string describing the type of resource, e.g. 'aws_ec2_instance'
+    or 'some_cloud_load_balancer'.
+    phantom is a bool describing whether or not the resource actually exists within
+    the cloud or if it's just a phantom resource like pricing information or usage
+    quota. I.e. some information relevant to the cloud account but not actually existing
+    in the form of a usable resource.
 
-    metrics_description is a dict of metrics the resource exports. They are turned into Prometheus GaugeMetricFamily()
-    metrics by the metrics module. The key defines the name of the metric. Its value is another Dict with the keys
-    'help' containing the Help Text and nother key 'labels' containing a List of metrics labels.
+    metrics_description is a dict of metrics the resource exports. They are turned into
+    Prometheus GaugeMetricFamily() metrics by the metrics module. The key defines the
+    name of the metric. Its value is another Dict with the keys 'help' containing the
+    Help Text and nother key 'labels' containing a List of metrics labels.
 
     An example for an instance metric could be
-    { 'cores_total': {'help': 'Number of CPU cores', 'labels': ['cloud', 'account', 'region', 'type']} }
-    which would get exported as 'cloudkeeper_cores_total' with labels cloud=aws, account=1234567, region=us-west-2,
-    type=m5.xlarge and value 8 if the instance has 8 CPU cores. The actual /metrics endpoint would then SUM all the
-    values from metrics with the same name and labels and export a total of e.g. 1105 cores accross all instances
-    of this type and in this cloud, account and region.
+    {
+      'cores_total':
+        {
+          'help': 'Number of CPU cores',
+          'labels': ['cloud', 'account', 'region', 'type']
+        }
+    }
+    which would get exported as 'cloudkeeper_cores_total' with labels cloud=aws,
+    account=1234567, region=us-west-2, type=m5.xlarge and value 8 if the instance has
+    8 CPU cores. The actual /metrics endpoint would then SUM all the values from metrics
+    with the same name and labels and export a total of e.g. 1105 cores accross all
+    instances of this type and in this cloud, account and region.
     """
 
     resource_type = NotImplemented
@@ -113,9 +126,10 @@ class BaseResource(ABC):
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}('{self.id}', name='{self.name}', region='{self.region().name}',"
-            f" account='{self.account().dname}', resource_type='{self.resource_type}',"
-            f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
+            f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
+            f" region='{self.region().name}', account='{self.account().dname}',"
+            f" resource_type='{self.resource_type}', ctime={self.ctime!r},"
+            f" uuid={self.uuid}, sha256={self.sha256})"
         )
 
     def _keys(self):
@@ -315,7 +329,10 @@ class BaseResource(ABC):
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
             log.error(
-                f"Could not determine account or region for pre cleanup of {self.rtdname}"
+                (
+                    "Could not determine account or region for pre cleanup of"
+                    f" {self.rtdname}"
+                )
             )
             return False
 
@@ -465,19 +482,26 @@ class ResourceTagsDict(dict):
                     log_msg = f"Successfully set tag {key} to {value} in cloud"
                     self.parent_resource.log(log_msg)
                     log.info(
-                        log_msg
-                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                        (
+                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f" {self.parent_resource.id}"
+                        )
                     )
                     return super().__setitem__(key, value)
                 else:
                     log_msg = f"Error setting tag {key} to {value} in cloud"
                     self.parent_resource.log(log_msg)
                     log.error(
-                        log_msg
-                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                        (
+                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f" {self.parent_resource.id}"
+                        )
                     )
             except Exception as e:
-                log_msg = f"Unhandled exception while trying to set tag {key} to {value} in cloud: {type(e)} {e}"
+                log_msg = (
+                    f"Unhandled exception while trying to set tag {key} to {value}"
+                    f"in cloud: {type(e)} {e}"
+                )
                 self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)
         else:
@@ -491,19 +515,26 @@ class ResourceTagsDict(dict):
                     log_msg = f"Successfully deleted tag {key} in cloud"
                     self.parent_resource.log(log_msg)
                     log.info(
-                        log_msg
-                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                        (
+                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f" {self.parent_resource.id}"
+                        )
                     )
                     return super().__delitem__(key)
                 else:
                     log_msg = f"Error deleting tag {key} in cloud"
                     self.parent_resource.log(log_msg)
                     log.error(
-                        log_msg
-                        + f" for {self.parent_resource.resource_type} {self.parent_resource.id}"
+                        (
+                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f" {self.parent_resource.id}"
+                        )
                     )
             except Exception as e:
-                log_msg = f"Unhandled exception while trying to delete tag {key} in cloud: {type(e)} {e}"
+                log_msg = (
+                    f"Unhandled exception while trying to delete tag {key} in cloud:"
+                    f" {type(e)} {e}"
+                )
                 self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)
         else:

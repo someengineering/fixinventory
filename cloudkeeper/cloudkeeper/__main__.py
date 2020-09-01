@@ -57,7 +57,8 @@ def main() -> None:
     plugin_loader = PluginLoader()
     plugin_loader.add_plugin_args(arg_parser)
 
-    # At this point the CLI, all Plugins as well as the WebServer have added their args to the arg parser
+    # At this point the CLI, all Plugins as well as the WebServer have
+    # added their args to the arg parser
     arg_parser.parse_args()
 
     # Handle Ctrl+c and other means of termination/shutdown
@@ -67,9 +68,9 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    # We're using a GraphContainer() to contain the graph which gets replaced at runtime.
-    # This way we're not losing the context in other places like the webserver when the
-    # graph gets reassigned.
+    # We're using a GraphContainer() to contain the graph which gets replaced
+    # at runtime. This way we're not losing the context in other places like
+    # the webserver when the graph gets reassigned.
     graph_container = GraphContainer()
 
     # GraphCollector() is a custom Prometheus Collector that
@@ -87,8 +88,9 @@ def main() -> None:
     cli.daemon = True
     cli.start()
 
-    # WebServer is handed the graph container context so it can e.g. produce graphml from it
-    # The webserver serves Prometheus Metrics as well as different graph endpoints
+    # WebServer is handed the graph container context so it can e.g. produce graphml
+    # from it. The webserver serves Prometheus Metrics as well as different graph
+    # endpoints.
     web_server = WebServer(graph_container)
     web_server.daemon = True
     web_server.start()
@@ -134,7 +136,10 @@ def shutdown(event: Event) -> None:
     if reason is None:
         reason = "unknown reason"
     log.info(
-        f"Received shut down event {event.event_type}: {reason} - killing all threads and child processes"
+        (
+            f"Received shut down event {event.event_type}:"
+            f" {reason} - killing all threads and child processes"
+        )
     )
     # Send 'friendly' signal to children to have them shut down
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
@@ -147,7 +152,10 @@ def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
     log.error(
-        "Some child process or thread timed out during shutdown - forcing shutdown completion"
+        (
+            "Some child process or thread timed out during shutdown"
+            " - forcing shutdown completion"
+        )
     )
     os._exit(0)
 
