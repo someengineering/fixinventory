@@ -140,6 +140,22 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             nargs="+",
         )
         arg_parser.add_argument(
+            "--gcp-collect",
+            help="GCP services to collect (default: all)",
+            dest="gcp_collect",
+            type=str,
+            default=[],
+            nargs="+",
+        )
+        arg_parser.add_argument(
+            "--gcp-no-collect",
+            help="GCP services not to collect",
+            dest="gcp_no_collect",
+            type=str,
+            default=[],
+            nargs="+",
+        )
+        arg_parser.add_argument(
             "--gcp-project-pool-size",
             help="GCP Project Thread Pool Size (default: 5)",
             dest="gcp_project_pool_size",
@@ -170,13 +186,38 @@ class GCPProjectCollector:
         resource_attr = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.name, **resource_attr)
 
+        self.mandatory_collectors = {
+            "regions": self.collect_regions,
+            "zones": self.collect_zones,
+        }
+        self.global_collectors = {
+            "instances": self.collect_instances,
+            "disk_types": self.collect_disk_types,
+            "disks": self.collect_disks,
+        }
+        self.region_collectors = {}
+        self.zone_collectors = {}
+        self.all_collectors = dict(self.mandatory_collectors)
+        self.all_collectors.update(self.global_collectors)
+        self.all_collectors.update(self.region_collectors)
+        self.all_collectors.update(self.zone_collectors)
+        self.collector_set = set(self.all_collectors.keys())
+
     def collect(self) -> None:
-        log.debug(f"Collecting {self.project.rtdname}")
-        self.collect_regions()
-        self.collect_zones()
-        self.collect_instances()
-        self.collect_disk_types()
-        self.collect_disks()
+        collectors = set(self.collector_set)
+        if len(ArgumentParser.args.gcp_collect) > 0:
+            collectors = set(ArgumentParser.args.gcp_collect).intersection(collectors)
+        if len(ArgumentParser.args.gcp_no_collect) > 0:
+            collectors = collectors - set(ArgumentParser.args.gcp_no_collect)
+        collectors = collectors.union(set(self.mandatory_collectors.keys()))
+
+        log.debug(
+            f"Running the following collectors in {self.project.rtdname}: {', '.join(collectors)}"
+        )
+        for collector_name, collector in self.all_collectors.items():
+            if collector_name in collectors:
+                log.info(f"Collecting {collector_name} in {self.project.rtdname}")
+                collector()
 
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
@@ -223,7 +264,11 @@ class GCPProjectCollector:
                     if not map_to in search_results:
                         search_results[map_to] = []
                     search_results[map_to].append(search_result)
-            if map_to not in kwargs and map_to in search_results and not str(map_to).startswith("__"):
+            if (
+                map_to not in kwargs
+                and map_to in search_results
+                and not str(map_to).startswith("__")
+            ):
                 search_result = search_results[map_to]
                 if len(search_result) == 1:
                     kwargs[map_to] = search_result[0]
@@ -257,7 +302,7 @@ class GCPProjectCollector:
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
-        log.info(f"Collecting {client_method_name}")
+        log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
         if compute_client_kwargs is None:

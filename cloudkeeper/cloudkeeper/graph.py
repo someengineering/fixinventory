@@ -259,7 +259,7 @@ class Graph(networkx.DiGraph):
 
     @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self):
-        log.info("Resolving deferred graph connections")
+        log.debug("Resolving deferred graph connections")
         for node in self.nodes:
             node.resolve_deferred_connections(self)
 

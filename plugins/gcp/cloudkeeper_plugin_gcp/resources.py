@@ -4,7 +4,8 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import (
     BaseAccount,
     BaseRegion,
-    BaseVolume, BaseVolumeType,
+    BaseVolume,
+    BaseVolumeType,
     BaseZone,
     BaseResource,
     BaseInstance,
