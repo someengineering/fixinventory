@@ -10,13 +10,22 @@ from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.graph import Graph, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import log_runtime
-from .resources import GCPProject, GCPRegion, GCPZone, GCPDiskType, GCPDisk, GCPInstance
+from .resources import (
+    GCPProject,
+    GCPRegion,
+    GCPZone,
+    GCPDiskType,
+    GCPDisk,
+    GCPInstance,
+    GCPNetwork,
+)
 from .utils import (
     compute_client,
     load_credentials,
     list_credential_projects,
     paginate,
     iso2datetime,
+    get_result_data,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -28,6 +37,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: GCP collecting resources")
         projects = self.load_projects()
+        if len(projects) == 0:
+            return
 
         if len(ArgumentParser.args.gcp_project) > 0:
             for project in list(projects.keys()):
@@ -80,9 +91,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     project["id"],
                     {},
                     name=project["name"],
-                    ctime=project["ctime"],
-                    lifecycle_status=project["lifecycle_status"],
-                    project_number=project["project_number"],
+                    ctime=project.get("ctime"),
                 )
                 if p.id not in projects:
                     projects[p.id] = {"resource": p, "credentials": c}
@@ -103,8 +112,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         log.debug(f"Starting new collect process for project {project.dname}")
 
-        gpc = GCPProjectCollector(project, credentials)
         try:
+            gpc = GCPProjectCollector(project, credentials)
             gpc.collect()
         except Exception:
             log.exception(
@@ -191,6 +200,7 @@ class GCPProjectCollector:
             "zones": self.collect_zones,
         }
         self.global_collectors = {
+            "networks": self.collect_networks,
             "instances": self.collect_instances,
             "disk_types": self.collect_disk_types,
             "disks": self.collect_disks,
@@ -238,8 +248,12 @@ class GCPProjectCollector:
         }
         if attr_map is not None:
             for map_to, map_from in attr_map.items():
-                if map_from in result:
-                    kwargs[map_to] = result[map_from]
+                data = get_result_data(result, map_from)
+                if data is None:
+                    log.error(f"Attribute {map_from} not in result")
+                    continue
+                log.debug(f"Found attribute {map_to}: {pformat(data)}")
+                kwargs[map_to] = data
 
         default_search_map = {"region": ["link", "region"], "zone": ["link", "zone"]}
         search_results = {}
@@ -251,9 +265,9 @@ class GCPProjectCollector:
         for map_to, search_data in search_map.items():
             search_attr = search_data[0]
             search_value_name = search_data[1]
-            if not search_value_name in result:
+            search_value = get_result_data(result, search_value_name)
+            if search_value is None:
                 continue
-            search_value = result[search_value_name]
             if isinstance(search_value, List):
                 search_values = search_value
             else:
@@ -267,7 +281,7 @@ class GCPProjectCollector:
             if (
                 map_to not in kwargs
                 and map_to in search_results
-                and not str(map_to).startswith("__")
+                and not str(map_to).startswith("_")
             ):
                 search_result = search_results[map_to]
                 if len(search_result) == 1:
@@ -408,20 +422,37 @@ class GCPProjectCollector:
         )
 
     def collect_disks(self):
+        def volume_status(result):
+            status = result.get("status")
+            num_users = len(result.get("users", []))
+            if num_users == 0 and status == "READY":
+                status = "AVAILABLE"
+            return status
+
         self.collect_something(
             client_method_name="disks",
             paginate_method_name="aggregatedList",
             resource_class=GCPDisk,
             search_map={
                 "volume_type": ["link", "type"],
-                "__users": ["link", "users"],
+                "_users": ["link", "users"],
             },
             attr_map={
                 "volume_size": "sizeGb",
-                "volume_status": "status",
+                "volume_status": volume_status,
+                "last_attach_timestamp": (
+                    lambda r: iso2datetime(
+                        r.get("lastAttachTimestamp", r["creationTimestamp"])
+                    )
+                ),
+                "last_detach_timestamp": (
+                    lambda r: iso2datetime(
+                        r.get("lastDetachTimestamp", r["creationTimestamp"])
+                    )
+                ),
             },
             predecessors=["volume_type"],
-            successors=["__users"],
+            successors=["_users"],
         )
 
     def collect_instances(self):
@@ -429,6 +460,17 @@ class GCPProjectCollector:
             client_method_name="instances",
             paginate_method_name="aggregatedList",
             resource_class=GCPInstance,
+            search_map={
+                "_network": [
+                    "link",
+                    (
+                        lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
+                            "network"
+                        )
+                    ),
+                ]
+            },
+            predecessors=["_network"],
         )
 
     def collect_disk_types(self):
@@ -436,4 +478,10 @@ class GCPProjectCollector:
             client_method_name="diskTypes",
             paginate_method_name="aggregatedList",
             resource_class=GCPDiskType,
+        )
+
+    def collect_networks(self):
+        self.collect_something(
+            client_method_name="networks",
+            resource_class=GCPNetwork,
         )

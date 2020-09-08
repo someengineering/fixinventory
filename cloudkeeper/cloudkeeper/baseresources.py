@@ -6,6 +6,7 @@ from copy import deepcopy
 import uuid
 import networkx.algorithms.dag
 import cloudkeeper.logging
+from enum import Enum
 from typing import Dict, Iterator, List, Tuple
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
@@ -775,6 +776,15 @@ class BaseVolumeType(BaseType):
         return self._metrics
 
 
+class VolumeStatus(Enum):
+    IN_USE = "in-use"
+    AVAILABLE = "available"
+    BUSY = "busy"
+    ERROR = "error"
+    DELETED = "deleted"
+    UNKNOWN = "unknown"
+
+
 class BaseVolume(BaseResource):
     metrics_description = {
         "volumes_total": {
@@ -815,8 +825,18 @@ class BaseVolume(BaseResource):
         super().__init__(*args, **kwargs)
         self.volume_size = int(volume_size)
         self.volume_type = volume_type
+        self._volume_status = VolumeStatus.UNKNOWN
         self.volume_status = volume_status
         self.snapshot_before_delete = snapshot_before_delete
+
+    @property
+    def volume_status(self) -> str:
+        return self._volume_status.value
+
+    @volume_status.setter
+    @abstractmethod
+    def volume_status(self, value: str) -> None:
+        raise NotImplementedError
 
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)

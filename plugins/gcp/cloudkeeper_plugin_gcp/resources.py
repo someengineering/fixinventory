@@ -1,9 +1,10 @@
+from datetime import datetime
+from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import (
     BaseAccount,
     BaseRegion,
+    VolumeStatus,
     BaseVolume,
     BaseVolumeType,
     BaseZone,
@@ -36,12 +37,6 @@ class GCPResource:
 class GCPProject(GCPResource, BaseAccount):
     resource_type = "gcp_project"
 
-    def __init__(
-        self, *args, lifecycle_status=None, project_number=None, **kwargs
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.lifecycle_status = lifecycle_status
-
 
 class GCPZone(GCPResource, BaseZone):
     resource_type = "gcp_zone"
@@ -66,11 +61,49 @@ class GCPDiskType(GCPResource, BaseVolumeType):
 class GCPDisk(GCPResource, BaseVolume):
     resource_type = "gcp_disk"
 
-    def __init__(self, *args, **kwargs) -> None:
+    volume_status_map = {
+        "CREATING": VolumeStatus.BUSY,
+        "RESTORING": VolumeStatus.BUSY,
+        "FAILED": VolumeStatus.ERROR,
+        "READY": VolumeStatus.IN_USE,
+        "AVAILABLE": VolumeStatus.AVAILABLE,
+        "DELETING": VolumeStatus.BUSY,
+    }
+
+    def __init__(
+        self,
+        *args,
+        last_attach_timestamp: datetime = None,
+        last_detach_timestamp: datetime = None,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
+        self.last_attach_timestamp = make_valid_timestamp(last_attach_timestamp)
+        self.last_detach_timestamp = make_valid_timestamp(last_detach_timestamp)
+
+        last_activity = (
+            self.last_detach_timestamp
+            if self.last_detach_timestamp > self.last_attach_timestamp
+            else self.last_attach_timestamp
+        )
+        if self.volume_status == "available":
+            self.atime = self.mtime = last_activity
+
         if isinstance(self.volume_type, BaseResource):
             self.volume_type = self.volume_type.name
+
+    @BaseVolume.volume_status.setter
+    def volume_status(self, value: str) -> None:
+        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
 
 class GCPInstance(GCPResource, BaseInstance):
     resource_type = "gcp_instance"
+
+    def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.network_interfaces = network_interfaces
+
+
+class GCPNetwork(GCPResource, BaseNetwork):
+    resource_type = "gcp_network"

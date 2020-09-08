@@ -1,8 +1,5 @@
-from pprint import pformat
-from re import sub
-from cloudkeeper_plugin_gcp import resources
-from typing import Iterable, List
 import cloudkeeper.logging
+from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery_cache.base import Cache
@@ -49,22 +46,31 @@ def gcp_client(service: str, version: str, credentials: str):
 
 def list_credential_projects(credentials) -> List:
     ret = []
-    client = gcp_client("cloudresourcemanager", "v1", credentials=credentials)
-    projects = client.projects()
-    for project in paginate(projects, "list", "projects"):
-        lifecycle_status = project.get("lifecycleState")
-        ctime = project.get("createTime")
-        if ctime is not None:
-            ctime = iso2datetime(ctime)
-        project_name = project.get("name")
-        project_id = project.get("projectId")
-        project_number = project.get("projectNumber")
+    try:
+        client = gcp_client("cloudresourcemanager", "v1", credentials=credentials)
+        projects = client.projects()
+        for project in paginate(projects, "list", "projects"):
+            ctime = project.get("createTime")
+            if ctime is not None:
+                ctime = iso2datetime(ctime)
+            project_name = project.get("name")
+            project_id = project.get("projectId")
+            p = {
+                "id": project_id,
+                "name": project_name,
+                "ctime": ctime,
+            }
+            ret.append(p)
+    except HttpError:
+        log.exception(
+            (
+                "Unable to load projects from cloudresourcemanager"
+                " - falling back to local credentials information"
+            )
+        )
         p = {
-            "id": project_id,
-            "name": project_name,
-            "project_number": project_number,
-            "lifecycle_status": lifecycle_status,
-            "ctime": ctime,
+            "id": credentials.project_id,
+            "name": credentials.project_id,
         }
         ret.append(p)
     return ret
@@ -73,7 +79,8 @@ def list_credential_projects(credentials) -> List:
 def iso2datetime(ts: str) -> datetime:
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts)
+    if ts is not None:
+        return datetime.fromisoformat(ts)
 
 
 def paginate(
@@ -101,3 +108,15 @@ def paginate(
 
 def compute_client(credentials):
     return gcp_client("compute", "v1", credentials=credentials)
+
+
+def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
+    data = None
+    if callable(value):
+        try:
+            data = value(result)
+        except Exception:
+            log.exception(f"Exception while trying to fetch data calling {value}")
+    elif value in result:
+        data = result[value]
+    return data

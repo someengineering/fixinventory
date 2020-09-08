@@ -74,21 +74,14 @@ resource_attributes_blacklist = ["metrics_description"]
 
 def get_resource_attributes(resource) -> Dict:
     attributes = dict(resource.__dict__)
-    attributes["tags"] = dict(
-        attributes.pop("_tags")
-    )  # Turn ResourceTagsDict() back into dict() for *ML marshalling
     attributes["resource_type"] = resource.resource_type
-    attributes["dname"] = resource.dname
-    attributes["ctime"] = resource.ctime
-    attributes["mtime"] = resource.mtime
-    attributes["atime"] = resource.atime
-    attributes["sha256"] = resource.sha256
-    attributes["age"] = resource.age
-    attributes["last_access"] = resource.last_access
-    attributes["last_update"] = resource.last_update
-    attributes["protected"] = resource.protected
-    attributes["clean"] = resource.clean
-    attributes["cleaned"] = resource.cleaned
+
+    for attr_name in dir(resource):
+        if attr_name.startswith("_"):
+            continue
+        attr_type = getattr(type(resource), attr_name, None)
+        if isinstance(attr_type, property):
+            attributes[attr_name] = getattr(resource, attr_name, None)
 
     remove_keys = []
     add_keys = {}
