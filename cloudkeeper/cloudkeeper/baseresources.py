@@ -96,6 +96,7 @@ class BaseResource(ABC):
         cloud=None,
         account=None,
         region=None,
+        zone=None,
         ctime: datetime = None,
         mtime: datetime = None,
         atime: datetime = None,
@@ -107,6 +108,7 @@ class BaseResource(ABC):
         self._cloud = cloud
         self._account = account
         self._region = region
+        self._zone = zone
         self._ctime = None
         self._mtime = None
         self._atime = None
@@ -127,9 +129,9 @@ class BaseResource(ABC):
     def __repr__(self):
         return (
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
-            f" region='{self.region().name}', account='{self.account().dname}',"
-            f" resource_type='{self.resource_type}', ctime={self.ctime!r},"
-            f" uuid={self.uuid}, sha256={self.sha256})"
+            f" region='{self.region().name}', zone='{self.zone().name}',"
+            f" account='{self.account().dname}', resource_type='{self.resource_type}',"
+            f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
         )
 
     def _keys(self):
@@ -396,6 +398,16 @@ class BaseResource(ABC):
             region = UnknownRegion("undefined", {})
         return region
 
+    def zone(self, graph=None):
+        zone = None
+        if self._zone:
+            zone = self._zone
+        elif graph:
+            zone = graph.search_first_parent_class(self, BaseZone)
+        if zone is None:
+            zone = UnknownZone("undefined", {})
+        return zone
+
     def to_json(self):
         return self.__repr__()
 
@@ -429,8 +441,18 @@ class BaseResource(ABC):
                 else:
                     src = self
                     dst = node
-                log.debug(f"Adding deferred edge from {src.name} to {dst.name}")
-                graph.add_edge(src, dst)
+                if not graph.has_edge(src, dst):
+                    log.debug(
+                        f"Adding deferred edge from {src.rtdname} to {dst.rtdname}"
+                    )
+                    graph.add_edge(src, dst)
+                else:
+                    log.error(
+                        (
+                            f"Edge from {src.rtdname} to {dst.rtdname}"
+                            " already exists in graph"
+                        )
+                    )
 
     def predecessors(self, graph) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
@@ -628,10 +650,6 @@ class BaseAccount(BaseResource):
         "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.account_alias = ""
-
     def account(self, graph=None):
         return self
 
@@ -642,6 +660,11 @@ class BaseAccount(BaseResource):
 
 class BaseRegion(BaseResource):
     def region(self, graph=None):
+        return self
+
+
+class BaseZone(BaseResource):
+    def zone(self, graph=None):
         return self
 
 
@@ -780,12 +803,20 @@ class BaseVolume(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        volume_size: int = 0,
+        volume_type: str = "",
+        volume_status: str = "",
+        snapshot_before_delete: bool = False,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.volume_size = 0
-        self.volume_type = ""
-        self.volume_status = ""
-        self.snapshot_before_delete = False
+        self.volume_size = int(volume_size)
+        self.volume_type = volume_type
+        self.volume_status = volume_status
+        self.snapshot_before_delete = snapshot_before_delete
 
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)
@@ -1586,5 +1617,10 @@ class UnknownAccount(BaseAccount):
 
 
 class UnknownRegion(BaseRegion):
+    def delete(self, graph) -> bool:
+        return False
+
+
+class UnknownZone(BaseZone):
     def delete(self, graph) -> bool:
         return False

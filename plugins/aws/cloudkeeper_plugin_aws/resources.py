@@ -19,6 +19,7 @@ class AWSAccount(BaseAccount):
 
     def __init__(self, *args, role: str = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.account_alias = ""
         self.role = role
 
     def delete(self, graph) -> bool:

@@ -76,7 +76,7 @@ class AWSPlugin(BaseCollectorPlugin):
         )
         arg_parser.add_argument(
             "--aws-fork",
-            help="Use forked process instead of threads (default: False)",
+            help="AWS use forked process instead of threads (default: False)",
             dest="aws_fork",
             action="store_true",
         )
