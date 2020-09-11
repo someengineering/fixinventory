@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
 from cloudkeeper.baseresources import (
@@ -87,10 +87,21 @@ class GCPDisk(GCPResource, BaseVolume):
             else self.last_attach_timestamp
         )
         if self.volume_status == "available":
-            self.atime = self.mtime = last_activity
+            #self.atime = self.mtime = last_activity
+            pass
 
         if isinstance(self.volume_type, BaseResource):
             self.volume_type = self.volume_type.name
+
+    @property
+    def last_attach(self) -> timedelta:
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        return now - self.last_attach_timestamp
+
+    @property
+    def last_detach(self) -> timedelta:
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        return now - self.last_detach_timestamp
 
     @BaseVolume.volume_status.setter
     def volume_status(self, value: str) -> None:
