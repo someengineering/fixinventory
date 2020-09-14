@@ -4,7 +4,7 @@ import multiprocessing
 import cloudkeeper.signal
 from pprint import pformat
 from concurrent import futures
-from typing import List, Dict, Type, Union
+from typing import List, Dict, Type, Union, Optional
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.graph import Graph, get_resource_attributes
@@ -20,9 +20,8 @@ from .resources import (
     GCPNetwork,
 )
 from .utils import (
+    Credentials,
     compute_client,
-    load_credentials,
-    list_credential_projects,
     paginate,
     iso2datetime,
     get_result_data,
@@ -36,7 +35,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     def collect(self) -> None:
         log.debug("plugin: GCP collecting resources")
-        projects = self.load_projects()
+        Credentials.load()
+        projects = Credentials.all()
         if len(projects) == 0:
             return
 
@@ -62,17 +62,18 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             wait_for = [
                 executor.submit(
                     self.collect_project,
-                    project["resource"],
-                    project["credentials"],
+                    project_id,
                     ArgumentParser.args,
                 )
-                for project in projects.values()
+                for project_id in projects.keys()
             ]
             for future in futures.as_completed(wait_for):
                 res = future.result()
-                gpc_root = res["root"]
-                gpc_graph = res["graph"]
-                gpc_project = res["project"]
+                if not isinstance(res, dict):
+                    continue
+                gpc_root = res.get("root")
+                gpc_graph = res.get("graph")
+                gpc_project = res.get("project")
                 log.debug(
                     (
                         f"Merging graph of project {gpc_project.dname}"
@@ -82,28 +83,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 self.graph = networkx.compose(self.graph, gpc_graph)
                 self.graph.add_edge(self.root, gpc_root)
 
-    def load_projects(self) -> Dict:
-        projects = {}
-        for sa_file in ArgumentParser.args.gcp_service_account:
-            c = load_credentials(sa_file)
-            for project in list_credential_projects(c):
-                p = GCPProject(
-                    project["id"],
-                    {},
-                    name=project["name"],
-                    ctime=project.get("ctime"),
-                )
-                if p.id not in projects:
-                    projects[p.id] = {"resource": p, "credentials": c}
-                else:
-                    log.error(
-                        f"Project {p.id} already in list of projects - ignoring redundant access"
-                    )
-        return projects
-
     @staticmethod
     @log_runtime
-    def collect_project(project: GCPProject, credentials, args=None):
+    def collect_project(project_id: str, args=None) -> Optional[Dict]:
+        project = GCPProject(project_id, {})
         collector_name = f"gcp_{project.id}"
         cloudkeeper.signal.set_thread_name(collector_name)
 
@@ -113,14 +96,14 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         log.debug(f"Starting new collect process for project {project.dname}")
 
         try:
-            gpc = GCPProjectCollector(project, credentials)
+            gpc = GCPProjectCollector(project)
             gpc.collect()
         except Exception:
             log.exception(
                 f"An unhandled error occurred while collecting {project.rtdname}"
             )
-
-        return {"root": gpc.root, "graph": gpc.graph, "project": gpc.project}
+        else:
+            return {"root": gpc.root, "graph": gpc.graph, "project": gpc.project}
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -187,9 +170,9 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
 
 class GCPProjectCollector:
-    def __init__(self, project: GCPProject, credentials) -> None:
+    def __init__(self, project: GCPProject) -> None:
         self.project = project
-        self.credentials = credentials
+        self.credentials = Credentials.get(self.project.id)
         self.root = self.project
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.root)
@@ -222,7 +205,10 @@ class GCPProjectCollector:
         collectors = collectors.union(set(self.mandatory_collectors.keys()))
 
         log.debug(
-            f"Running the following collectors in {self.project.rtdname}: {', '.join(collectors)}"
+            (
+                f"Running the following collectors in {self.project.rtdname}:"
+                f" {', '.join(collectors)}"
+            )
         )
         for collector_name, collector in self.all_collectors.items():
             if collector_name in collectors:
@@ -303,7 +289,6 @@ class GCPProjectCollector:
 
     def collect_something(
         self,
-        client_method_name: str,
         resource_class: Type[BaseResource],
         paginate_method_name: str = "list",
         paginate_items_name: str = "items",
@@ -316,6 +301,7 @@ class GCPProjectCollector:
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
+        client_method_name = resource_class.api_identifier + "s"
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -328,12 +314,12 @@ class GCPProjectCollector:
         parent_map = {True: predecessors, False: successors}
 
         client = compute_client(credentials=self.credentials, **compute_client_kwargs)
-        resources = getattr(client, client_method_name)
-        if not callable(resources):
+        gcp_resource = getattr(client, client_method_name)
+        if not callable(gcp_resource):
             raise RuntimeError(f"No method {client_method_name} on client {client}")
 
         for resource in paginate(
-            resource=resources(),
+            gcp_resource=gcp_resource(),
             method_name=paginate_method_name,
             items_name=paginate_items_name,
             subitems_name=paginate_subitems_name,
@@ -410,14 +396,12 @@ class GCPProjectCollector:
 
     def collect_regions(self) -> List:
         self.collect_something(
-            client_method_name="regions",
             resource_class=GCPRegion,
             attr_map={"region_status": "status"},
         )
 
     def collect_zones(self) -> List:
         self.collect_something(
-            client_method_name="zones",
             resource_class=GCPZone,
         )
 
@@ -430,7 +414,6 @@ class GCPProjectCollector:
             return status
 
         self.collect_something(
-            client_method_name="disks",
             paginate_method_name="aggregatedList",
             resource_class=GCPDisk,
             search_map={
@@ -457,7 +440,6 @@ class GCPProjectCollector:
 
     def collect_instances(self):
         self.collect_something(
-            client_method_name="instances",
             paginate_method_name="aggregatedList",
             resource_class=GCPInstance,
             search_map={
@@ -475,13 +457,11 @@ class GCPProjectCollector:
 
     def collect_disk_types(self):
         self.collect_something(
-            client_method_name="diskTypes",
             paginate_method_name="aggregatedList",
             resource_class=GCPDiskType,
         )
 
     def collect_networks(self):
         self.collect_something(
-            client_method_name="networks",
             resource_class=GCPNetwork,
         )

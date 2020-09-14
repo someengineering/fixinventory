@@ -1,3 +1,5 @@
+from cloudkeeper.baseresources import BaseResource
+from cloudkeeper.args import ArgumentParser
 import cloudkeeper.logging
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
@@ -5,6 +7,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.discovery_cache.base import Cache
 from google.oauth2 import service_account
 from datetime import datetime
+from pprint import pformat
 
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
@@ -26,11 +29,20 @@ class MemoryCache(Cache):
 class Credentials:
     _CREDENTIALS = {}
 
-    def __init__(self):
-        pass
+    @staticmethod
+    def load():
+        for sa_file in ArgumentParser.args.gcp_service_account:
+            credentials = load_credentials(sa_file)
+            for project in list_credential_projects(credentials):
+                Credentials._CREDENTIALS[project["id"]] = credentials
 
-    def load(sa_file):
-        credentials = load_credentials(sa_file)
+    @staticmethod
+    def get(project_id: str):
+        return Credentials._CREDENTIALS.get(project_id)
+
+    @staticmethod
+    def all() -> Dict:
+        return dict(Credentials._CREDENTIALS)
 
 
 def load_credentials(sa_file: str):
@@ -84,10 +96,10 @@ def iso2datetime(ts: str) -> datetime:
 
 
 def paginate(
-    resource, method_name, items_name, subitems_name=None, **kwargs
+    gcp_resource, method_name, items_name, subitems_name=None, **kwargs
 ) -> Iterable:
     next_method_name = method_name + "_next"
-    method = getattr(resource, method_name)
+    method = getattr(gcp_resource, method_name)
     request = method(**kwargs)
     while request is not None:
         result = request.execute()
@@ -99,8 +111,8 @@ def paginate(
                         yield from item[subitems_name]
             else:
                 yield from items
-        if hasattr(resource, next_method_name):
-            method = getattr(resource, next_method_name)
+        if hasattr(gcp_resource, next_method_name):
+            method = getattr(gcp_resource, next_method_name)
             request = method(request, result)
         else:
             request = None
@@ -120,3 +132,64 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
     elif value in result:
         data = result[value]
     return data
+
+
+def common_client_kwargs(resource: BaseResource) -> Dict:
+    common_kwargs = {}
+    if resource.account().id != "undefined":
+        common_kwargs["project"] = resource.account().id
+    if resource.zone().name != "undefined":
+        common_kwargs["zone"] = resource.zone().name
+    elif resource.region().name != "undefined":
+        common_kwargs["region"] = resource.region().name
+    return common_kwargs
+
+
+def delete_resource(resource: BaseResource) -> bool:
+    delete_kwargs = {str(resource.delete_identifier): resource.name}
+    common_kwargs = common_client_kwargs(resource)
+    delete_kwargs.update(common_kwargs)
+
+    gr = gcp_resource(resource)
+    request = gr.delete(**delete_kwargs)
+    request.execute()
+    return True
+
+
+def update_label(resource: BaseResource, key: str, value: str) -> bool:
+    get_kwargs = {str(resource.get_identifier): resource.name}
+    set_labels_kwargs = {str(resource.set_label_identifier): resource.name}
+
+    common_kwargs = common_client_kwargs(resource)
+    get_kwargs.update(common_kwargs)
+    set_labels_kwargs.update(common_kwargs)
+
+    labels = dict(resource.tags)
+    if value is None:
+        if key in labels:
+            del labels[key]
+        else:
+            return False
+    else:
+        labels.update({key: value})
+    body = {"labels": labels, "labelFingerprint": resource.label_fingerprint}
+    set_labels_kwargs["body"] = body
+    gr = gcp_resource(resource)
+    request = gr.setLabels(**set_labels_kwargs)
+    response = request.execute()
+    # Update label_fingerprint
+    request = gr.get(**get_kwargs)
+    response = request.execute()
+    resource.label_fingerprint = response.get("labelFingerprint")
+    return True
+
+
+def gcp_resource(resource: BaseResource):
+    client_kwargs = {}
+    if resource.account().id != "undefined":
+        client_kwargs["credentials"] = Credentials.get(resource.account().id)
+
+    client = compute_client(**client_kwargs)
+    client_method_name = resource.api_identifier + "s"
+    gr = getattr(client, client_method_name)
+    return gr()

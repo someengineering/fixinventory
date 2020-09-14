@@ -523,7 +523,7 @@ class ResourceTagsDict(dict):
             except Exception as e:
                 log_msg = (
                     f"Unhandled exception while trying to set tag {key} to {value}"
-                    f"in cloud: {type(e)} {e}"
+                    f" in cloud: {type(e)} {e}"
                 )
                 self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)

@@ -12,11 +12,15 @@ from cloudkeeper.baseresources import (
     BaseInstance,
     BaseNetwork,
 )
+from .utils import update_label, delete_resource
+
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GCPResource:
+    api_identifier = NotImplemented
+
     def __init__(
         self,
         *args,
@@ -29,17 +33,29 @@ class GCPResource:
         self.link = link
         self.gcpid = gcpid
         self.label_fingerprint = label_fingerprint
+        self.client_method = self.api_identifier + "s"
+        self.get_identifier = self.api_identifier
+        self.delete_identifier = self.api_identifier
+        self.set_label_identifier = self.api_identifier
 
     def delete(self, graph) -> bool:
-        return False
+        return delete_resource(self)
+
+    def update_tag(self, key, value) -> bool:
+        return update_label(self, key, value)
+
+    def delete_tag(self, key) -> bool:
+        return update_label(self, key, None)
 
 
 class GCPProject(GCPResource, BaseAccount):
     resource_type = "gcp_project"
+    api_identifier = "project"
 
 
 class GCPZone(GCPResource, BaseZone):
     resource_type = "gcp_zone"
+    api_identifier = "zone"
 
     def __init__(self, *args, zone_status=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -48,6 +64,7 @@ class GCPZone(GCPResource, BaseZone):
 
 class GCPRegion(GCPResource, BaseRegion):
     resource_type = "gcp_region"
+    api_identifier = "region"
 
     def __init__(self, *args, region_status=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -56,10 +73,12 @@ class GCPRegion(GCPResource, BaseRegion):
 
 class GCPDiskType(GCPResource, BaseVolumeType):
     resource_type = "gcp_disk_type"
+    api_identifier = "diskType"
 
 
 class GCPDisk(GCPResource, BaseVolume):
     resource_type = "gcp_disk"
+    api_identifier = "disk"
 
     volume_status_map = {
         "CREATING": VolumeStatus.BUSY,
@@ -78,6 +97,7 @@ class GCPDisk(GCPResource, BaseVolume):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
+        self.set_label_identifier = "resource"
         self.last_attach_timestamp = make_valid_timestamp(last_attach_timestamp)
         self.last_detach_timestamp = make_valid_timestamp(last_detach_timestamp)
 
@@ -87,7 +107,7 @@ class GCPDisk(GCPResource, BaseVolume):
             else self.last_attach_timestamp
         )
         if self.volume_status == "available":
-            #self.atime = self.mtime = last_activity
+            # self.atime = self.mtime = last_activity
             pass
 
         if isinstance(self.volume_type, BaseResource):
@@ -110,6 +130,7 @@ class GCPDisk(GCPResource, BaseVolume):
 
 class GCPInstance(GCPResource, BaseInstance):
     resource_type = "gcp_instance"
+    api_identifier = "instance"
 
     def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -118,3 +139,4 @@ class GCPInstance(GCPResource, BaseInstance):
 
 class GCPNetwork(GCPResource, BaseNetwork):
     resource_type = "gcp_network"
+    api_identifier = "network"
