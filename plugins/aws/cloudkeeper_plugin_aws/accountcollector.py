@@ -241,7 +241,6 @@ def retry_on_request_limit_exceeded(e):
 
 class AWSAccountCollector:
     def __init__(self, regions: List, account: AWSAccount) -> None:
-        super().__init__()
         self.regions = [AWSRegion(region, {}, account=account) for region in regions]
         self.account = account
         self.root = self.account

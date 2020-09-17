@@ -6,6 +6,7 @@ from copy import deepcopy
 import uuid
 import networkx.algorithms.dag
 import cloudkeeper.logging
+from enum import Enum
 from typing import Dict, Iterator, List, Tuple
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
@@ -96,6 +97,7 @@ class BaseResource(ABC):
         cloud=None,
         account=None,
         region=None,
+        zone=None,
         ctime: datetime = None,
         mtime: datetime = None,
         atime: datetime = None,
@@ -107,6 +109,7 @@ class BaseResource(ABC):
         self._cloud = cloud
         self._account = account
         self._region = region
+        self._zone = zone
         self._ctime = None
         self._mtime = None
         self._atime = None
@@ -127,9 +130,9 @@ class BaseResource(ABC):
     def __repr__(self):
         return (
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
-            f" region='{self.region().name}', account='{self.account().dname}',"
-            f" resource_type='{self.resource_type}', ctime={self.ctime!r},"
-            f" uuid={self.uuid}, sha256={self.sha256})"
+            f" region='{self.region().name}', zone='{self.zone().name}',"
+            f" account='{self.account().dname}', resource_type='{self.resource_type}',"
+            f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
         )
 
     def _keys(self):
@@ -396,6 +399,16 @@ class BaseResource(ABC):
             region = UnknownRegion("undefined", {})
         return region
 
+    def zone(self, graph=None):
+        zone = None
+        if self._zone:
+            zone = self._zone
+        elif graph:
+            zone = graph.search_first_parent_class(self, BaseZone)
+        if zone is None:
+            zone = UnknownZone("undefined", {})
+        return zone
+
     def to_json(self):
         return self.__repr__()
 
@@ -429,8 +442,18 @@ class BaseResource(ABC):
                 else:
                     src = self
                     dst = node
-                log.debug(f"Adding deferred edge from {src.name} to {dst.name}")
-                graph.add_edge(src, dst)
+                if not graph.has_edge(src, dst):
+                    log.debug(
+                        f"Adding deferred edge from {src.rtdname} to {dst.rtdname}"
+                    )
+                    graph.add_edge(src, dst)
+                else:
+                    log.error(
+                        (
+                            f"Edge from {src.rtdname} to {dst.rtdname}"
+                            " already exists in graph"
+                        )
+                    )
 
     def predecessors(self, graph) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
@@ -500,7 +523,7 @@ class ResourceTagsDict(dict):
             except Exception as e:
                 log_msg = (
                     f"Unhandled exception while trying to set tag {key} to {value}"
-                    f"in cloud: {type(e)} {e}"
+                    f" in cloud: {type(e)} {e}"
                 )
                 self.parent_resource.log(log_msg, exception=e)
                 log.exception(log_msg)
@@ -628,10 +651,6 @@ class BaseAccount(BaseResource):
         "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.account_alias = ""
-
     def account(self, graph=None):
         return self
 
@@ -642,6 +661,11 @@ class BaseAccount(BaseResource):
 
 class BaseRegion(BaseResource):
     def region(self, graph=None):
+        return self
+
+
+class BaseZone(BaseResource):
+    def zone(self, graph=None):
         return self
 
 
@@ -752,6 +776,15 @@ class BaseVolumeType(BaseType):
         return self._metrics
 
 
+class VolumeStatus(Enum):
+    IN_USE = "in-use"
+    AVAILABLE = "available"
+    BUSY = "busy"
+    ERROR = "error"
+    DELETED = "deleted"
+    UNKNOWN = "unknown"
+
+
 class BaseVolume(BaseResource):
     metrics_description = {
         "volumes_total": {
@@ -780,12 +813,30 @@ class BaseVolume(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        volume_size: int = 0,
+        volume_type: str = "",
+        volume_status: str = "",
+        snapshot_before_delete: bool = False,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.volume_size = 0
-        self.volume_type = ""
-        self.volume_status = ""
-        self.snapshot_before_delete = False
+        self.volume_size = int(volume_size)
+        self.volume_type = volume_type
+        self._volume_status = VolumeStatus.UNKNOWN
+        self.volume_status = volume_status
+        self.snapshot_before_delete = snapshot_before_delete
+
+    @property
+    def volume_status(self) -> str:
+        return self._volume_status.value
+
+    @volume_status.setter
+    @abstractmethod
+    def volume_status(self, value: str) -> None:
+        raise NotImplementedError
 
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)
@@ -1586,5 +1637,10 @@ class UnknownAccount(BaseAccount):
 
 
 class UnknownRegion(BaseRegion):
+    def delete(self, graph) -> bool:
+        return False
+
+
+class UnknownZone(BaseZone):
     def delete(self, graph) -> bool:
         return False

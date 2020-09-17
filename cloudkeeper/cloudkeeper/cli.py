@@ -392,12 +392,15 @@ class CliHandler:
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
             region = item.region(self.graph)
+            zone = item.zone(self.graph)
             out["cloud_id"] = cloud.id
             out["account_id"] = account.id
             out["region_id"] = region.id
+            out["zone_id"] = zone.id
             out["cloud_name"] = cloud.name
             out["account_name"] = account.name
             out["region_name"] = region.name
+            out["zone_name"] = zone.name
             out["event_log"] = item.event_log
             out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
             out["successors"] = [i.sha256 for i in item.successors(self.graph)]
@@ -885,7 +888,7 @@ and chain multipe commands using the semicolon (;).
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
-        if attr in ["cloud", "account", "region"] and callable(item_attr):
+        if attr in ["cloud", "account", "region", "zone"] and callable(item_attr):
             item_attr = item_attr(self.graph)
         if item_attr is not None and not callable(item_attr):
             if attr_key is not None and isinstance(item_attr, dict):

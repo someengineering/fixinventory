@@ -19,6 +19,7 @@ class AWSAccount(BaseAccount):
 
     def __init__(self, *args, role: str = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.account_alias = ""
         self.role = role
 
     def delete(self, graph) -> bool:
@@ -108,6 +109,19 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type = "aws_ec2_volume"
+
+    volume_status_map = {
+        "creating": VolumeStatus.BUSY,
+        "available": VolumeStatus.AVAILABLE,
+        "in-use": VolumeStatus.IN_USE,
+        "deleting": VolumeStatus.BUSY,
+        "deleted": VolumeStatus.DELETED,
+        "error": VolumeStatus.ERROR,
+    }
+
+    @BaseVolume.volume_status.setter
+    def volume_status(self, value: str) -> None:
+        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
     def delete(
         self,
