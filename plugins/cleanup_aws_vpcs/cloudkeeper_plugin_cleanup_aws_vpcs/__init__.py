@@ -17,6 +17,7 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2RouteTable,
     AWSVPCEndpoint,
     AWSEC2Instance,
+    AWSEC2ElasticIP,
 )
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import (
@@ -124,6 +125,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
                             AWSEC2NATGateway,
                             AWSEC2RouteTable,
                             AWSVPCEndpoint,
+                            AWSEC2ElasticIP,
                         ),
                     ):
                         descendant.log(

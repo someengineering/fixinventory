@@ -223,6 +223,10 @@ metrics_collect_eks_clusters = Summary(
     "cloudkeeper_plugin_aws_collect_eks_clusters_seconds",
     "Time it took the collect_eks_clusters() method",
 )
+metrics_collect_elastic_ips = Summary(
+    "cloudkeeper_plugin_aws_collect_elastic_ips_seconds",
+    "Time it took the collect_elastic_ips() method",
+)
 metrics_get_eks_nodegroups = Summary(
     "cloudkeeper_plugin_aws_get_eks_nodegroups_seconds",
     "Time it took the get_eks_nodegroups() method",
@@ -286,6 +290,7 @@ class AWSAccountCollector:
             "eks_clusters": self.collect_eks_clusters,
             "vpc_peering_connections": self.collect_vpc_peering_connections,
             "vpc_endpoints": self.collect_vpc_endpoints,
+            "elastic_ips": self.collect_elastic_ips,
         }
         self.collector_set = set(self.global_collectors.keys()).union(
             set(self.region_collectors.keys())
@@ -2121,6 +2126,45 @@ class AWSAccountCollector:
                 c.add_deferred_connection("arn", cluster["roleArn"])
             graph.add_resource(region, c)
             self.get_eks_nodegroups(region, graph, c)
+
+    @metrics_collect_elastic_ips.time()
+    def collect_elastic_ips(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(
+            f"Collecting AWS Elastic IPs in account {self.account.dname} region {region.id}"
+        )
+
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("ec2", region_name=region.id)
+
+        response = client.describe_addresses()
+        addresses = response.get("Addresses", [])
+        for address in addresses:
+            allocation_id = address["AllocationId"]
+            public_ip = address.get("PublicIp")
+            private_ip_address = address.get("PrivateIpAddress")
+            name = public_ip if public_ip is not None else private_ip_address
+            tags = self.tags_as_dict(address.get("Tags", []))
+            ip = AWSEC2ElasticIP(
+                allocation_id, tags, name=name, account=self.account, region=region
+            )
+            ip.allocation_id = allocation_id
+            ip.association_id = address.get("AssociationId")
+            ip.instance_id = address.get("InstanceId")
+            ip.public_ip = public_ip
+            ip.private_ip_address = private_ip_address
+            ip.domain = address.get("Domain")
+            ip.network_interface_id = address.get("NetworkInterfaceId")
+            ip.network_interface_owner_id = address.get("NetworkInterfaceOwnerId")
+            log.debug(f"Found Elastic IP {ip.dname}")
+            graph.add_resource(region, ip)
+            i = graph.search_first("id", ip.instance_id)
+            if i:
+                log.debug(f"Adding edge from {ip.rtdname} to {i.rtdname}")
+                graph.add_edge(ip, i)
+            ni = graph.search_first("id", ip.network_interface_id)
+            if ni:
+                log.debug(f"Adding edge from {ni.rtdname} to {ip.rtdname}")
+                graph.add_edge(ni, ip)
 
     @metrics_get_eks_nodegroups.time()
     def get_eks_nodegroups(
