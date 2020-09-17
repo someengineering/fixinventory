@@ -1,10 +1,11 @@
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.utils import RWLock
 import cloudkeeper.logging
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
-from googleapiclient.errors import HttpError
-from googleapiclient.discovery_cache.base import Cache
+from googleapiclient.errors import HttpError as GoogleApiClientHttpError
+from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
 from google.oauth2 import service_account
 from datetime import datetime
 from pprint import pformat
@@ -12,37 +13,54 @@ from pprint import pformat
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+cloudkeeper.logging.getLogger("googleapiclient").setLevel(cloudkeeper.logging.ERROR)
+
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
 
-class MemoryCache(Cache):
-    _CACHE = {}
+class MemoryCache(GoogleApiClientCache):
+    _cache = {}
 
     def get(self, url):
-        return MemoryCache._CACHE.get(url)
+        return MemoryCache._cache.get(url)
 
     def set(self, url, content):
-        MemoryCache._CACHE[url] = content
+        MemoryCache._cache[url] = content
 
 
 class Credentials:
-    _CREDENTIALS = {}
+    _credentials = {}
+    _initialized = False
+    _lock = RWLock()
 
     @staticmethod
     def load():
-        for sa_file in ArgumentParser.args.gcp_service_account:
-            credentials = load_credentials(sa_file)
-            for project in list_credential_projects(credentials):
-                Credentials._CREDENTIALS[project["id"]] = credentials
+        with Credentials._lock.write_access:
+            if not Credentials._initialized:
+                for sa_file in ArgumentParser.args.gcp_service_account:
+                    credentials = load_credentials(sa_file)
+                    for project in list_credential_projects(credentials):
+                        Credentials._credentials[project["id"]] = credentials
+                Credentials._initialized = True
 
     @staticmethod
     def get(project_id: str):
-        return Credentials._CREDENTIALS.get(project_id)
+        Credentials.load()
+        with Credentials._lock.read_access:
+            return Credentials._credentials.get(project_id)
 
     @staticmethod
     def all() -> Dict:
-        return dict(Credentials._CREDENTIALS)
+        Credentials.load()
+        with Credentials._lock.read_access:
+            return dict(Credentials._credentials)
+
+    @staticmethod
+    def reload():
+        with Credentials._lock.write_access:
+            Credentials._initialized = False
+        Credentials.load()
 
 
 def load_credentials(sa_file: str):
@@ -73,8 +91,8 @@ def list_credential_projects(credentials) -> List:
                 "ctime": ctime,
             }
             ret.append(p)
-    except HttpError:
-        log.exception(
+    except GoogleApiClientHttpError:
+        log.error(
             (
                 "Unable to load projects from cloudresourcemanager"
                 " - falling back to local credentials information"

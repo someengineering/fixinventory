@@ -35,7 +35,6 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     def collect(self) -> None:
         log.debug("plugin: GCP collecting resources")
-        Credentials.load()
         projects = Credentials.all()
         if len(projects) == 0:
             return
