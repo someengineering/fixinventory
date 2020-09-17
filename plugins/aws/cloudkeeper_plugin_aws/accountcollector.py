@@ -2142,12 +2142,13 @@ class AWSAccountCollector:
             allocation_id = address["AllocationId"]
             public_ip = address.get("PublicIp")
             private_ip_address = address.get("PrivateIpAddress")
-            name = public_ip if public_ip is not None else private_ip_address
+            ip_address = public_ip if public_ip is not None else private_ip_address
             tags = self.tags_as_dict(address.get("Tags", []))
+            name = tags.get("Name", allocation_id)
             ip = AWSEC2ElasticIP(
                 allocation_id, tags, name=name, account=self.account, region=region
             )
-            ip.ip_address = name
+            ip.ip_address = ip_address
             ip.allocation_id = allocation_id
             ip.association_id = address.get("AssociationId")
             ip.instance_id = address.get("InstanceId")
