@@ -229,6 +229,49 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
         return True
 
 
+class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
+    resource_type = "aws_ec2_elastic_ip"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.instance_id = None
+        self.public_ip = None
+        self.allocation_id = None
+        self.association_id = None
+        self.domain = None
+        self.network_interface_id = None
+        self.network_interface_owner_id = None
+        self.private_ip_address = None
+        self.release_on_delete = False
+
+    def pre_delete(self, graph: Graph) -> bool:
+        if self.association_id is not None:
+            ec2 = aws_client(self, "ec2", graph=graph)
+            ec2.disassociate_address(AssociationId=self.association_id)
+        else:
+            log.debug(f"No association for {self.rtdname}")
+        return True
+
+    def delete(self, graph: Graph) -> bool:
+        if self.release_on_delete:
+            ec2 = aws_client(self, "ec2", graph=graph)
+            ec2.release_address(AllocationId=self.allocation_id)
+            return True
+        else:
+            log.debug(f"Attribute release_on_delete not set for {self.rtdname}")
+        return False
+
+    def update_tag(self, key, value) -> bool:
+        ec2 = aws_client(self, "ec2")
+        ec2.create_tags(Resources=[self.id], Tags=[{"Key": key, "Value": value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        ec2 = aws_client(self, "ec2")
+        ec2.delete_tags(Resources=[self.id], Tags=[{"Key": key}])
+        return True
+
+
 class AWSVPC(AWSResource, BaseNetwork):
     resource_type = "aws_vpc"
 

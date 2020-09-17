@@ -1626,6 +1626,35 @@ class BaseAutoScalingGroup(BaseResource):
         return self._metrics
 
 
+class BaseIPAddress(BaseResource):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.ip_address = ""
+        self.ip_address_family = ""
+
+    metrics_description = {
+        "ip_addresses_total": {
+            "help": "Number of IP Addresses",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_ip_addresses_total": {
+            "help": "Cleaned number of IP Addresses",
+            "labels": ["cloud", "account", "region"],
+        },
+    }
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
+        self._metrics["ip_addresses_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_ip_addresses_total"][metrics_keys] = 1
+        return self._metrics
+
+
 class UnknownCloud(BaseCloud):
     def delete(self, graph) -> bool:
         return False
