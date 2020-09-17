@@ -1629,8 +1629,8 @@ class BaseAutoScalingGroup(BaseResource):
 class BaseIPAddress(BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.ip_address = ''
-        self.ip_address_family = ''
+        self.ip_address = ""
+        self.ip_address_family = ""
 
     metrics_description = {
         "ip_addresses_total": {

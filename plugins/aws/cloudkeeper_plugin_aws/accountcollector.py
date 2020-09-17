@@ -2147,6 +2147,7 @@ class AWSAccountCollector:
             ip = AWSEC2ElasticIP(
                 allocation_id, tags, name=name, account=self.account, region=region
             )
+            ip.ip_address = name
             ip.allocation_id = allocation_id
             ip.association_id = address.get("AssociationId")
             ip.instance_id = address.get("InstanceId")
