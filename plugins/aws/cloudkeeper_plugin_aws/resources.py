@@ -256,9 +256,10 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
         if self.release_on_delete:
             ec2 = aws_client(self, "ec2", graph=graph)
             ec2.release_address(AllocationId=self.allocation_id)
+            return True
         else:
             log.debug(f"Attribute release_on_delete not set for {self.rtdname}")
-        return True
+        return False
 
     def update_tag(self, key, value) -> bool:
         ec2 = aws_client(self, "ec2")
