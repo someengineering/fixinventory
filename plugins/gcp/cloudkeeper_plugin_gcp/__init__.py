@@ -260,7 +260,7 @@ class GCPProjectCollector:
             for search_value in search_values:
                 search_result = self.graph.search_first(search_attr, search_value)
                 if search_result:
-                    if not map_to in search_results:
+                    if map_to not in search_results:
                         search_results[map_to] = []
                     search_results[map_to].append(search_result)
             if (

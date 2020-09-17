@@ -101,14 +101,13 @@ class GCPDisk(GCPResource, BaseVolume):
         self.last_attach_timestamp = make_valid_timestamp(last_attach_timestamp)
         self.last_detach_timestamp = make_valid_timestamp(last_detach_timestamp)
 
-        last_activity = (
-            self.last_detach_timestamp
-            if self.last_detach_timestamp > self.last_attach_timestamp
-            else self.last_attach_timestamp
-        )
-        if self.volume_status == "available":
-            # self.atime = self.mtime = last_activity
-            pass
+        #last_activity = (
+        #    self.last_detach_timestamp
+        #    if self.last_detach_timestamp > self.last_attach_timestamp
+        #    else self.last_attach_timestamp
+        #)
+        #if self.volume_status == "available":
+        #    self.atime = self.mtime = last_activity
 
         if isinstance(self.volume_type, BaseResource):
             self.volume_type = self.volume_type.name
