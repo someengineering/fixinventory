@@ -163,7 +163,7 @@ def common_client_kwargs(resource: BaseResource) -> Dict:
 
 
 def delete_resource(resource: BaseResource) -> bool:
-    delete_kwargs = {str(resource.delete_identifier): resource.name}
+    delete_kwargs = {str(resource._delete_identifier): resource.name}
     common_kwargs = common_client_kwargs(resource)
     delete_kwargs.update(common_kwargs)
 
@@ -174,8 +174,8 @@ def delete_resource(resource: BaseResource) -> bool:
 
 
 def update_label(resource: BaseResource, key: str, value: str) -> bool:
-    get_kwargs = {str(resource.get_identifier): resource.name}
-    set_labels_kwargs = {str(resource.set_label_identifier): resource.name}
+    get_kwargs = {str(resource._get_identifier): resource.name}
+    set_labels_kwargs = {str(resource._set_label_identifier): resource.name}
 
     common_kwargs = common_client_kwargs(resource)
     get_kwargs.update(common_kwargs)
@@ -207,6 +207,5 @@ def gcp_resource(resource: BaseResource):
         client_kwargs["credentials"] = Credentials.get(resource.account().id)
 
     client = compute_client(**client_kwargs)
-    client_method_name = resource.api_identifier + "s"
-    gr = getattr(client, client_method_name)
+    gr = getattr(client, resource._client_method)
     return gr()

@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-gcp
+# cloudkeeper-plugin-gcp (Alpha)
 An GCP collector plugin for Cloudkeeper.
 
 ## Usage

@@ -10,12 +10,14 @@ from cloudkeeper.baseresources import (
     BaseZone,
     BaseResource,
     BaseInstance,
+    BaseInstanceType,
     BaseNetwork,
     BaseSubnet,
     BaseTunnel,
     BaseGateway,
     BasePolicy,
     BaseSnapshot,
+    BaseCertificate,
 )
 from .utils import update_label, delete_resource
 
@@ -38,10 +40,10 @@ class GCPResource:
         self.link = link
         self.gcpid = gcpid
         self.label_fingerprint = label_fingerprint
-        self.client_method = self.api_identifier + "s"
-        self.get_identifier = self.api_identifier
-        self.delete_identifier = self.api_identifier
-        self.set_label_identifier = self.api_identifier
+        self._client_method = self.api_identifier + "s"
+        self._get_identifier = self.api_identifier
+        self._delete_identifier = self.api_identifier
+        self._set_label_identifier = self.api_identifier
 
     def delete(self, graph) -> bool:
         return delete_resource(self)
@@ -102,7 +104,7 @@ class GCPDisk(GCPResource, BaseVolume):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.set_label_identifier = "resource"
+        self._set_label_identifier = "resource"
         self.last_attach_timestamp = make_valid_timestamp(last_attach_timestamp)
         self.last_detach_timestamp = make_valid_timestamp(last_detach_timestamp)
 
@@ -139,6 +141,10 @@ class GCPInstance(GCPResource, BaseInstance):
     def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.network_interfaces = network_interfaces
+        if isinstance(self.instance_type, GCPMachineType):
+            self.instance_cores = self.instance_type.instance_cores
+            self.instance_memory = self.instance_type.instance_memory
+            self.instance_type = self.instance_type.name
 
 
 class GCPNetwork(GCPResource, BaseNetwork):
@@ -182,9 +188,29 @@ class GCPSecurityPolicy(GCPResource, BasePolicy):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.client_method = "securityPolicies"
+        self._client_method = "securityPolicies"
 
 
 class GCPSnapshot(GCPResource, BaseSnapshot):
     resource_type = "gcp_snapshot"
     api_identifier = "snapshot"
+
+    def __init__(self, *args, storage_bytes: int = 0, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.storage_bytes = int(storage_bytes)
+        if isinstance(self.volume_id, BaseResource):
+            self.volume_id = self.volume_id.name
+
+
+class GCPSSLCertificate(GCPResource, BaseCertificate):
+    resource_type = "gcp_ssl_certificate"
+    api_identifier = "sslCertificate"
+
+
+class GCPMachineType(GCPResource, BaseInstanceType):
+    resource_type = "gcp_machine_type"
+    api_identifier = "machineType"
+
+    def __init__(self, *args, storage_bytes: int = 0, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.instance_type = self.name

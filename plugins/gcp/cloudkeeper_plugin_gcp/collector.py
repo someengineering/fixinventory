@@ -1,3 +1,5 @@
+from ast import dump
+from os import dup
 import cloudkeeper.logging
 import cloudkeeper.signal
 from pprint import pformat
@@ -12,6 +14,7 @@ from .resources import (
     GCPDiskType,
     GCPDisk,
     GCPInstance,
+    GCPMachineType,
     GCPNetwork,
     GCPSubnetwork,
     GCPTargetVPNGateway,
@@ -21,6 +24,7 @@ from .resources import (
     GCPRoute,
     GCPSecurityPolicy,
     GCPSnapshot,
+    GCPSSLCertificate,
 )
 from .utils import (
     Credentials,
@@ -51,6 +55,7 @@ class GCPProjectCollector:
             "subnetworks": self.collect_subnetworks,
             "routers": self.collect_routers,
             "routes": self.collect_routes,
+            "machine_types": self.collect_machine_types,
             "instances": self.collect_instances,
             "disk_types": self.collect_disk_types,
             "disks": self.collect_disks,
@@ -59,6 +64,7 @@ class GCPProjectCollector:
             "vpn_tunnels": self.collect_vpn_tunnels,
             "security_policies": self.collect_security_policies,
             "snapshots": self.collect_snapshots,
+            "ssl_certificates": self.collect_ssl_certificates,
         }
         self.region_collectors = {}
         self.zone_collectors = {}
@@ -118,7 +124,9 @@ class GCPProjectCollector:
         if search_map is None:
             search_map = dict(default_search_map)
         else:
-            search_map.update(default_search_map)
+            updated_search_map = dict(default_search_map)
+            updated_search_map.update(search_map)
+            search_map = updated_search_map
 
         for map_to, search_data in search_map.items():
             search_attr = search_data[0]
@@ -173,7 +181,7 @@ class GCPProjectCollector:
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
-        client_method_name = resource_class('', {}).client_method
+        client_method_name = resource_class("", {})._client_method
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -329,9 +337,13 @@ class GCPProjectCollector:
                             "subnetwork"
                         )
                     ),
-                ]
+                ],
+                "instance_type": ["link", "machineType"],
             },
-            predecessors=["_network", "_subnetwork"],
+            attr_map={
+                "instance_status": "status",
+            },
+            predecessors=["_network", "_subnetwork", "instance_type"],
         )
 
     def collect_disk_types(self):
@@ -406,16 +418,39 @@ class GCPProjectCollector:
         )
 
     def collect_security_policies(self):
-        self.collect_something(
-            resource_class=GCPSecurityPolicy,
-            dump_resource=True
-        )
+        self.collect_something(resource_class=GCPSecurityPolicy)
 
     def collect_snapshots(self):
         self.collect_something(
             resource_class=GCPSnapshot,
             search_map={
-                "_network": ["link", "network"],
+                "volume_id": ["link", "sourceDisk"],
             },
-            predecessors=["_network"],
+            attr_map={
+                "volume_size": "diskSizeGb",
+                "storage_bytes": "storageBytes",
+            },
+        )
+
+    def collect_ssl_certificates(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPSSLCertificate,
+            search_map={
+                "_user": ["link", "user"],
+            },
+            successors=["_user"],
+        )
+
+    def collect_machine_types(self):
+        self.collect_something(
+            resource_class=GCPMachineType,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "zone": ["name", "zone"],
+            },
+            attr_map={
+                "instance_cores": "guestCpus",
+                "instance_memory": "memoryMb",
+            },
         )

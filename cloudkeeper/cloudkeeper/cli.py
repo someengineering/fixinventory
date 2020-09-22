@@ -10,6 +10,7 @@ from typing import Iterable, Tuple, Any, List
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
+
 try:
     from tzlocal import get_localzone
 except ImportError:

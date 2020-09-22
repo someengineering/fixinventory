@@ -621,13 +621,22 @@ class BaseInstanceType(BaseType):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        instance_type: str = None,
+        instance_cores: int = 0,
+        instance_memory: int = 0,
+        ondemand_cost: float = 0.0,
+        reservations: int = 0,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.instance_type = self.id
-        self.instance_cores = 0
-        self.instance_memory = 0
-        self.ondemand_cost = 0.0
-        self.reservations = 0
+        self.instance_type = instance_type if instance_type else self.id
+        self.instance_cores = int(instance_cores)
+        self.instance_memory = int(instance_memory)
+        self.ondemand_cost = float(ondemand_cost)
+        self.reservations = int(reservations)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -705,12 +714,20 @@ class BaseInstance(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        instance_cores: int = 0,
+        instance_memory: int = 0,
+        instance_type: str = "",
+        instance_status: str = "",
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.instance_cores = 0
-        self.instance_memory = 0
-        self.instance_type = ""
-        self.instance_status = ""
+        self.instance_cores = int(instance_cores)
+        self.instance_memory = int(instance_memory)
+        self.instance_type = instance_type
+        self.instance_status = instance_status
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
@@ -888,15 +905,26 @@ class BaseSnapshot(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        snapshot_status: str = "",
+        description: str = "",
+        volume_id: str = None,
+        volume_size: int = 0,
+        encrypted: bool = False,
+        owner_id=None,
+        owner_alias="",
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.snapshot_status = ""
-        self.description = ""
-        self.volume_id = None
-        self.volume_size = 0
-        self.encrypted = False
-        self.owner_id = None
-        self.owner_alias = ""
+        self.snapshot_status = snapshot_status
+        self.description = description
+        self.volume_id = volume_id
+        self.volume_size = int(volume_size)
+        self.encrypted = encrypted
+        self.owner_id = owner_id
+        self.owner_alias = owner_alias
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
