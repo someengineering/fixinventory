@@ -1189,6 +1189,30 @@ class BaseGateway(BaseResource):
         return self._metrics
 
 
+class BaseTunnel(BaseResource):
+    metrics_description = {
+        "tunnels_total": {
+            "help": "Number of Tunnels",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_tunnels_total": {
+            "help": "Cleaned number of Tunnels",
+            "labels": ["cloud", "account", "region"],
+        },
+    }
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
+        self._metrics["tunnels_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_tunnels_total"][metrics_keys] = 1
+        return self._metrics
+
+
 class BaseGatewayQuota(BaseQuota):
     metrics_description = {
         "gateways_quotas_total": {

@@ -11,6 +11,9 @@ from cloudkeeper.baseresources import (
     BaseResource,
     BaseInstance,
     BaseNetwork,
+    BaseSubnet,
+    BaseTunnel,
+    BaseGateway,
 )
 from .utils import update_label, delete_resource
 
@@ -139,3 +142,32 @@ class GCPInstance(GCPResource, BaseInstance):
 class GCPNetwork(GCPResource, BaseNetwork):
     resource_type = "gcp_network"
     api_identifier = "network"
+
+
+class GCPSubnetwork(GCPResource, BaseSubnet):
+    resource_type = "gcp_subnetwork"
+    api_identifier = "subnetwork"
+
+
+class GCPVPNTunnel(GCPResource, BaseTunnel):
+    resource_type = "gcp_vpn_tunnel"
+    api_identifier = "vpnTunnel"
+
+
+class GCPVPNGateway(GCPResource, BaseGateway):
+    resource_type = "gcp_vpn_gateway"
+    api_identifier = "vpnGateway"
+
+
+class GCPTargetVPNGateway(GCPResource, BaseGateway):
+    resource_type = "gcp_target_vpn_gateway"
+    api_identifier = "targetVpnGateway"
+
+
+class GCPRouter(GCPResource, BaseGateway):
+    resource_type = "gcp_router"
+    api_identifier = "router"
+
+class GCPRoute(GCPResource, BaseResource):
+    resource_type = "gcp_route"
+    api_identifier = "route"

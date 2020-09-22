@@ -13,6 +13,12 @@ from .resources import (
     GCPDisk,
     GCPInstance,
     GCPNetwork,
+    GCPSubnetwork,
+    GCPTargetVPNGateway,
+    GCPVPNGateway,
+    GCPVPNTunnel,
+    GCPRouter,
+    GCPRoute,
 )
 from .utils import (
     Credentials,
@@ -33,6 +39,10 @@ class GCPProjectCollector:
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.name, **resource_attr)
+        self.global_region = GCPRegion("global", {})
+        self.global_zone = GCPZone("global", {})
+        self.graph.add_resource(self.root, self.global_region)
+        self.graph.add_resource(self.global_region, self.global_zone)
 
         self.mandatory_collectors = {
             "regions": self.collect_regions,
@@ -40,9 +50,15 @@ class GCPProjectCollector:
         }
         self.global_collectors = {
             "networks": self.collect_networks,
+            "subnetworks": self.collect_subnetworks,
+            "routers": self.collect_routers,
+            "routes": self.collect_routes,
             "instances": self.collect_instances,
             "disk_types": self.collect_disk_types,
             "disks": self.collect_disks,
+            "target_vpn_gateways": self.collect_target_vpn_gateways,
+            "vpn_gateways": self.collect_vpn_gateways,
+            "vpn_tunnels": self.collect_vpn_tunnels,
         }
         self.region_collectors = {}
         self.zone_collectors = {}
@@ -157,7 +173,7 @@ class GCPProjectCollector:
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
-        client_method_name = resource_class.api_identifier + "s"
+        client_method_name = resource_class('', {}).client_method
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -181,14 +197,14 @@ class GCPProjectCollector:
             subitems_name=paginate_subitems_name,
             project=self.project.id,
         ):
-            if dump_resource:
-                log.debug(f"Resource Dump: {pformat(resource)}")
-
             kwargs, search_results = self.default_attributes(
                 resource, attr_map=attr_map, search_map=search_map
             )
             r = resource_class(**kwargs)
             pr = parent_resource
+            log.debug(f"Adding {r.rtdname} to the graph")
+            if dump_resource:
+                log.debug(f"Resource Dump: {pformat(resource)}")
             if isinstance(pr, str) and pr in search_results:
                 pr = search_results[parent_resource][0]
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
@@ -198,9 +214,8 @@ class GCPProjectCollector:
                 log.debug(
                     f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
                 )
-
-            log.debug(f"Adding {r.rtdname} to the graph")
             self.graph.add_resource(pr, r)
+
             for is_parent, sr_names in parent_map.items():
                 for sr_name in sr_names:
                     if sr_name in search_results:
@@ -306,9 +321,17 @@ class GCPProjectCollector:
                             "network"
                         )
                     ),
+                ],
+                "_subnetwork": [
+                    "link",
+                    (
+                        lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
+                            "subnetwork"
+                        )
+                    ),
                 ]
             },
-            predecessors=["_network"],
+            predecessors=["_network", "_subnetwork"],
         )
 
     def collect_disk_types(self):
@@ -320,4 +343,65 @@ class GCPProjectCollector:
     def collect_networks(self):
         self.collect_something(
             resource_class=GCPNetwork,
+        )
+
+    def collect_subnetworks(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPSubnetwork,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
+        )
+
+    def collect_vpn_tunnels(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPVPNTunnel,
+            search_map={
+                "_vpn_gateway": ["link", "vpnGateway"],
+                "_target_vpn_gateway": ["link", "targetVpnGateway"],
+            },
+            successors=["_target_vpn_gateway", "_vpn_gateway"],
+        )
+
+    def collect_vpn_gateways(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPVPNGateway,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
+        )
+
+    def collect_target_vpn_gateways(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPTargetVPNGateway,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
+        )
+
+    def collect_routers(self):
+        self.collect_something(
+            paginate_method_name="aggregatedList",
+            resource_class=GCPRouter,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
+        )
+
+    def collect_routes(self):
+        self.collect_something(
+            resource_class=GCPRoute,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
+            dump_resource=True
         )
