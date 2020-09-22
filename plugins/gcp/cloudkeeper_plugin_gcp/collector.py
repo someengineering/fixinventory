@@ -19,6 +19,8 @@ from .resources import (
     GCPVPNTunnel,
     GCPRouter,
     GCPRoute,
+    GCPSecurityPolicy,
+    GCPSnapshot,
 )
 from .utils import (
     Credentials,
@@ -39,10 +41,6 @@ class GCPProjectCollector:
         self.graph = Graph()
         resource_attr = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.name, **resource_attr)
-        self.global_region = GCPRegion("global", {})
-        self.global_zone = GCPZone("global", {})
-        self.graph.add_resource(self.root, self.global_region)
-        self.graph.add_resource(self.global_region, self.global_zone)
 
         self.mandatory_collectors = {
             "regions": self.collect_regions,
@@ -59,6 +57,8 @@ class GCPProjectCollector:
             "target_vpn_gateways": self.collect_target_vpn_gateways,
             "vpn_gateways": self.collect_vpn_gateways,
             "vpn_tunnels": self.collect_vpn_tunnels,
+            "security_policies": self.collect_security_policies,
+            "snapshots": self.collect_snapshots,
         }
         self.region_collectors = {}
         self.zone_collectors = {}
@@ -403,5 +403,19 @@ class GCPProjectCollector:
                 "_network": ["link", "network"],
             },
             predecessors=["_network"],
+        )
+
+    def collect_security_policies(self):
+        self.collect_something(
+            resource_class=GCPSecurityPolicy,
             dump_resource=True
+        )
+
+    def collect_snapshots(self):
+        self.collect_something(
+            resource_class=GCPSnapshot,
+            search_map={
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network"],
         )

@@ -25,7 +25,7 @@ setup(
         "defaultlist",
         "prompt_toolkit",
         "Pympler",
-        "tzlocal>=2.1b1",
+        "tzlocal==2.1",
         "psutil",
     ],
     setup_requires=["pytest-runner"],

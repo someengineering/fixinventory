@@ -10,7 +10,10 @@ from typing import Iterable, Tuple, Any, List
 from collections import deque
 from itertools import islice
 from functools import lru_cache, partial
-from tzlocal import get_localzone
+try:
+    from tzlocal import get_localzone
+except ImportError:
+    pass
 from datetime import datetime, timedelta, timezone, date
 from distutils.util import strtobool
 from collections import defaultdict
@@ -991,8 +994,11 @@ def replace_placeholder(cli_input: str) -> str:
         @SUNDAY@    -> '2020-04-26'
     """
     t = date.today()
-    n = get_localzone().localize(datetime.now())
     utc = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+    try:
+        n = get_localzone().localize(datetime.now())
+    except Exception:
+        n = utc
     now = n.isoformat()
     today = t.strftime("%Y-%m-%d")
     year = t.strftime("%Y")

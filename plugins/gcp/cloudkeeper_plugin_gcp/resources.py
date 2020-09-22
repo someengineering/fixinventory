@@ -14,6 +14,8 @@ from cloudkeeper.baseresources import (
     BaseSubnet,
     BaseTunnel,
     BaseGateway,
+    BasePolicy,
+    BaseSnapshot,
 )
 from .utils import update_label, delete_resource
 
@@ -168,6 +170,21 @@ class GCPRouter(GCPResource, BaseGateway):
     resource_type = "gcp_router"
     api_identifier = "router"
 
+
 class GCPRoute(GCPResource, BaseResource):
     resource_type = "gcp_route"
     api_identifier = "route"
+
+
+class GCPSecurityPolicy(GCPResource, BasePolicy):
+    resource_type = "gcp_security_policy"
+    api_identifier = "securityPolicy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.client_method = "securityPolicies"
+
+
+class GCPSnapshot(GCPResource, BaseSnapshot):
+    resource_type = "gcp_snapshot"
+    api_identifier = "snapshot"
