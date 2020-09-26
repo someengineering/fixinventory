@@ -18,6 +18,8 @@ from cloudkeeper.baseresources import (
     BasePolicy,
     BaseSnapshot,
     BaseCertificate,
+    BaseAutoScalingGroup,
+    BaseHealthCheck,
 )
 from .utils import update_label, delete_resource
 
@@ -211,6 +213,64 @@ class GCPMachineType(GCPResource, BaseInstanceType):
     resource_type = "gcp_machine_type"
     api_identifier = "machineType"
 
-    def __init__(self, *args, storage_bytes: int = 0, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.instance_type = self.name
+
+
+class GCPNetworkEndpointGroup(GCPResource, BaseResource):
+    resource_type = "gcp_network_endpoint_group"
+    api_identifier = "networkEndpointGroup"
+
+    def __init__(
+        self, *args, default_port: int = -1, neg_type: str = "", **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.default_port = int(default_port)
+        self.neg_type = neg_type
+
+
+class GCPInstanceGroup(GCPResource, BaseResource):
+    resource_type = "gcp_instance_group"
+    api_identifier = "instanceGroup"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPInstanceGroupManager(GCPResource, BaseResource):
+    resource_type = "gcp_instance_group_manager"
+    api_identifier = "instanceGroupManager"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
+    resource_type = "gcp_autoscaler"
+    api_identifier = "autoscaler"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPHealthCheck(GCPResource, BaseHealthCheck):
+    resource_type = "gcp_health_check"
+    api_identifier = "healthCheck"
+
+
+class GCPUrlMap(GCPResource, BaseResource):
+    resource_type = "gcp_url_map"
+    api_identifier = "urlMap"
+
+
+class GCPTargetPool(GCPResource, BaseResource):
+    resource_type = "gcp_target_pool"
+    api_identifier = "targetPool"
+
+    def __init__(
+        self, *args, session_affinity: str = "", failover_ratio: float = -1.0, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.session_affinity = session_affinity
+        failover_ratio = float(failover_ratio)

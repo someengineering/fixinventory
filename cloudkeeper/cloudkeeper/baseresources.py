@@ -1650,10 +1650,10 @@ class BaseStack(BaseResource):
 
 
 class BaseAutoScalingGroup(BaseResource):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, min_size: int = -1, max_size: int = -1, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.min_size = None
-        self.max_size = None
+        self.min_size = int(min_size)
+        self.max_size = int(max_size)
 
     metrics_description = {
         "autoscaling_groups_total": {
@@ -1704,6 +1704,47 @@ class BaseIPAddress(BaseResource):
         self._metrics["ip_addresses_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_ip_addresses_total"][metrics_keys] = 1
+        return self._metrics
+
+
+class BaseHealthCheck(BaseResource):
+    def __init__(
+        self,
+        *args,
+        check_interval: int = -1,
+        healthy_threshold: int = -1,
+        unhealthy_threshold: int = -1,
+        timeout: int = -1,
+        health_check_type: str = "",
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.check_interval = int(check_interval)
+        self.healthy_threshold = int(healthy_threshold)
+        self.unhealthy_threshold = int(unhealthy_threshold)
+        self.timeout = int(timeout)
+        self.health_check_type = health_check_type
+
+    metrics_description = {
+        "health_checks_total": {
+            "help": "Number of Health Checks",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_health_checks_total": {
+            "help": "Cleaned number of Health Checks",
+            "labels": ["cloud", "account", "region"],
+        },
+    }
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
+        self._metrics["health_checks_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_health_checks_total"][metrics_keys] = 1
         return self._metrics
 
 

@@ -1,5 +1,3 @@
-from ast import dump
-from os import dup
 import cloudkeeper.logging
 import cloudkeeper.signal
 from pprint import pformat
@@ -25,6 +23,13 @@ from .resources import (
     GCPSecurityPolicy,
     GCPSnapshot,
     GCPSSLCertificate,
+    GCPNetworkEndpointGroup,
+    GCPInstanceGroup,
+    GCPInstanceGroupManager,
+    GCPAutoscaler,
+    GCPHealthCheck,
+    GCPUrlMap,
+    GCPTargetPool,
 )
 from .utils import (
     Credentials,
@@ -55,6 +60,7 @@ class GCPProjectCollector:
             "subnetworks": self.collect_subnetworks,
             "routers": self.collect_routers,
             "routes": self.collect_routes,
+            "health_checks": self.collect_health_checks,
             "machine_types": self.collect_machine_types,
             "instances": self.collect_instances,
             "disk_types": self.collect_disk_types,
@@ -65,6 +71,12 @@ class GCPProjectCollector:
             "security_policies": self.collect_security_policies,
             "snapshots": self.collect_snapshots,
             "ssl_certificates": self.collect_ssl_certificates,
+            "network_endpoint_groups": self.collect_network_endpoint_groups,
+            "instance_groups": self.collect_instance_groups,
+            "instance_group_managers": self.collect_instance_group_managers,
+            "autoscalers": self.collect_autoscalers,
+            "url_maps": self.collect_url_maps,
+            "target_pools": self.collect_target_pools,
         }
         self.region_collectors = {}
         self.zone_collectors = {}
@@ -453,4 +465,102 @@ class GCPProjectCollector:
                 "instance_cores": "guestCpus",
                 "instance_memory": "memoryMb",
             },
+        )
+
+    def collect_network_endpoint_groups(self):
+        self.collect_something(
+            resource_class=GCPNetworkEndpointGroup,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_subnetwork": ["link", "subnetwork"],
+                "_network": ["link", "network"],
+            },
+            attr_map={
+                "default_port": "defaultPort",
+                "neg_type": "networkEndpointType",
+            },
+            predecessors=["_network", "_subnetwork"],
+        )
+
+    def collect_instance_groups(self):
+        self.collect_something(
+            resource_class=GCPInstanceGroup,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_subnetwork": ["link", "subnetwork"],
+                "_network": ["link", "network"],
+            },
+            predecessors=["_network", "_subnetwork"],
+        )
+
+    def collect_instance_group_managers(self):
+        self.collect_something(
+            resource_class=GCPInstanceGroupManager,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_instance_group": ["link", "instanceGroup"],
+                "_health_checks": [
+                    "link",
+                    (
+                        lambda r: [
+                            hc.get("healthCheck", "")
+                            for hc in r.get("autoHealingPolicies", [])
+                        ]
+                    ),
+                ],
+            },
+            predecessors=["_instance_group", "_health_checks"],
+        )
+
+    def collect_autoscalers(self):
+        self.collect_something(
+            resource_class=GCPAutoscaler,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_instance_group_manager": ["link", "target"],
+            },
+            attr_map={
+                "min_size": (
+                    lambda r: r.get("autoscalingPolicy", {}).get("minNumReplicas", -1)
+                ),
+                "max_size": (
+                    lambda r: r.get("autoscalingPolicy", {}).get("maxNumReplicas", -1)
+                ),
+            },
+            successors=["_instance_group_manager"],
+        )
+
+    def collect_health_checks(self):
+        self.collect_something(
+            resource_class=GCPHealthCheck,
+            paginate_method_name="aggregatedList",
+            attr_map={
+                "check_interval": "checkIntervalSec",
+                "healthy_threshold": "healthyThreshold",
+                "unhealthy_threshold": "unhealthyThreshold",
+                "timeout": "timeoutSec",
+                "health_check_type": "type",
+            },
+        )
+
+    def collect_url_maps(self):
+        self.collect_something(
+            resource_class=GCPUrlMap,
+            paginate_method_name="aggregatedList",
+        )
+
+    def collect_target_pools(self):
+        self.collect_something(
+            resource_class=GCPTargetPool,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_health_checks": ["link", "healthChecks"],
+                "_instances": ["link", "instances"],
+            },
+            attr_map={
+                "session_affinity": "sessionAffinity",
+                "failover_ratio": "failoverRatio",
+            },
+            predecessors=["_instances", "_health_checks"],
+            dump_resource=True,
         )
