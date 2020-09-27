@@ -91,14 +91,6 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--gcp-zone",
-            help="GCP Zone",
-            dest="gcp_zone",
-            type=str,
-            default=None,
-            nargs="+",
-        )
-        arg_parser.add_argument(
             "--gcp-service-account",
             help="GCP Service Account File",
             dest="gcp_service_account",
@@ -135,13 +127,6 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             help="GCP Project Thread Pool Size (default: 5)",
             dest="gcp_project_pool_size",
             default=5,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--gcp-zone-pool-size",
-            help="GCP Zone Thread Pool Size (default: 20)",
-            dest="gcp_zone_pool_size",
-            default=20,
             type=int,
         )
         arg_parser.add_argument(
