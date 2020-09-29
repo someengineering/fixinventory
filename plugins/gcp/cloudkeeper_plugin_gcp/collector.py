@@ -24,12 +24,27 @@ from .resources import (
     GCPSnapshot,
     GCPSSLCertificate,
     GCPNetworkEndpointGroup,
+    GCPGlobalNetworkEndpointGroup,
     GCPInstanceGroup,
     GCPInstanceGroupManager,
     GCPAutoscaler,
     GCPHealthCheck,
+    GCPHTTPHealthCheck,
+    GCPHTTPSHealthCheck,
     GCPUrlMap,
     GCPTargetPool,
+    GCPTargetHttpProxy,
+    GCPTargetHttpsProxy,
+    GCPTargetSslProxy,
+    GCPTargetTcpProxy,
+    GCPTargetGrpcProxy,
+    GCPTargetInstance,
+    GCPBackendService,
+    GCPForwardingRule,
+    GCPGlobalForwardingRule,
+    GCPRegionSSLCertificate,
+    GCPRegionTargetHttpProxy,
+    GCPRegionTargetHttpsProxy,
 )
 from .utils import (
     Credentials,
@@ -61,6 +76,8 @@ class GCPProjectCollector:
             "routers": self.collect_routers,
             "routes": self.collect_routes,
             "health_checks": self.collect_health_checks,
+            "http_health_checks": self.collect_http_health_checks,
+            "https_health_checks": self.collect_https_health_checks,
             "machine_types": self.collect_machine_types,
             "instances": self.collect_instances,
             "disk_types": self.collect_disk_types,
@@ -72,13 +89,27 @@ class GCPProjectCollector:
             "snapshots": self.collect_snapshots,
             "ssl_certificates": self.collect_ssl_certificates,
             "network_endpoint_groups": self.collect_network_endpoint_groups,
+#            "global_network_endpoint_groups": self.collect_global_network_endpoint_groups,
             "instance_groups": self.collect_instance_groups,
             "instance_group_managers": self.collect_instance_group_managers,
             "autoscalers": self.collect_autoscalers,
-            "url_maps": self.collect_url_maps,
             "target_pools": self.collect_target_pools,
+            "target_instances": self.collect_target_instances,
+            "target_http_proxies": self.collect_target_http_proxies,
+            "target_https_proxies": self.collect_target_https_proxies,
+            "target_ssl_proxies": self.collect_target_ssl_proxies,
+            "target_tcp_proxies": self.collect_target_tcp_proxies,
+            "target_grpc_proxies": self.collect_target_grpc_proxies,
+            "backend_services": self.collect_backend_services,
+            "url_maps": self.collect_url_maps,
+            "forwarding_rules": self.collect_forwarding_rules,
+#            "global_forwarding_rules": self.collect_global_forwarding_rules,
         }
-        self.region_collectors = {}
+        self.region_collectors = {
+            "region_ssl_certificates": self.collect_region_ssl_certificates,
+            "region_target_http_proxies": self.collect_region_target_http_proxies,
+            "region_target_https_proxies": self.collect_region_target_https_proxies,
+        }
         self.zone_collectors = {}
         self.all_collectors = dict(self.mandatory_collectors)
         self.all_collectors.update(self.global_collectors)
@@ -100,10 +131,31 @@ class GCPProjectCollector:
                 f" {', '.join(collectors)}"
             )
         )
-        for collector_name, collector in self.all_collectors.items():
+        for collector_name, collector in self.mandatory_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.project.rtdname}")
                 collector()
+        regions = [r for r in self.graph.nodes if isinstance(r, GCPRegion)]
+        zones = [z for z in self.graph.nodes if isinstance(z, GCPZone)]
+
+        log.debug(f"Found {len(zones)} zones in {len(regions)} regions")
+
+        for collector_name, collector in self.global_collectors.items():
+            if collector_name in collectors:
+                log.info(f"Collecting {collector_name} in {self.project.rtdname}")
+                collector()
+
+        for region in regions:
+            for collector_name, collector in self.region_collectors.items():
+                if collector_name in collectors:
+                    log.info(f"Collecting {collector_name} in {region.rtdname} {self.project.rtdname}")
+                    collector(region=region)
+
+        for zone in zones:
+            for collector_name, collector in self.zone_collectors.items():
+                if collector_name in collectors:
+                    log.info(f"Collecting {collector_name} in {zone.rtdname} {self.project.rtdname}")
+                    collector(zone=zone)
 
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
@@ -190,6 +242,7 @@ class GCPProjectCollector:
         successors: List = None,
         predecessors: List = None,
         compute_client_kwargs: Dict = None,
+        resource_kwargs: Dict = None,
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
@@ -199,6 +252,8 @@ class GCPProjectCollector:
             paginate_subitems_name = client_method_name
         if compute_client_kwargs is None:
             compute_client_kwargs = {}
+        if resource_kwargs is None:
+            resource_kwargs = {}
         if successors is None:
             successors = []
         if predecessors is None:
@@ -216,6 +271,7 @@ class GCPProjectCollector:
             items_name=paginate_items_name,
             subitems_name=paginate_subitems_name,
             project=self.project.id,
+            **resource_kwargs,
         ):
             kwargs, search_results = self.default_attributes(
                 resource, attr_map=attr_map, search_map=search_map
@@ -454,6 +510,16 @@ class GCPProjectCollector:
             successors=["_user"],
         )
 
+    def collect_region_ssl_certificates(self, region: GCPRegion):
+        self.collect_something(
+            resource_kwargs={"region": region.name},
+            resource_class=GCPRegionSSLCertificate,
+            search_map={
+                "_user": ["link", "user"],
+            },
+            successors=["_user"],
+        )
+
     def collect_machine_types(self):
         self.collect_something(
             resource_class=GCPMachineType,
@@ -471,6 +537,20 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPNetworkEndpointGroup,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_subnetwork": ["link", "subnetwork"],
+                "_network": ["link", "network"],
+            },
+            attr_map={
+                "default_port": "defaultPort",
+                "neg_type": "networkEndpointType",
+            },
+            predecessors=["_network", "_subnetwork"],
+        )
+
+    def collect_global_network_endpoint_groups(self):
+        self.collect_something(
+            resource_class=GCPGlobalNetworkEndpointGroup,
             search_map={
                 "_subnetwork": ["link", "subnetwork"],
                 "_network": ["link", "network"],
@@ -543,10 +623,44 @@ class GCPProjectCollector:
             },
         )
 
+    def collect_http_health_checks(self):
+        self.collect_something(
+            resource_class=GCPHTTPHealthCheck,
+            attr_map={
+                "check_interval": "checkIntervalSec",
+                "healthy_threshold": "healthyThreshold",
+                "unhealthy_threshold": "unhealthyThreshold",
+                "timeout": "timeoutSec",
+                "host": "host",
+                "request_path": "requestPath",
+                "port": "port",
+            },
+        )
+
+    def collect_https_health_checks(self):
+        self.collect_something(
+            resource_class=GCPHTTPSHealthCheck,
+            attr_map={
+                "check_interval": "checkIntervalSec",
+                "healthy_threshold": "healthyThreshold",
+                "unhealthy_threshold": "unhealthyThreshold",
+                "timeout": "timeoutSec",
+                "health_check_type": "type",
+                "host": "host",
+                "request_path": "requestPath",
+                "port": "port",
+            },
+        )
+
     def collect_url_maps(self):
         self.collect_something(
             resource_class=GCPUrlMap,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_default_service": ["link", "defaultService"],
+            },
+            successors=["_default_service"],
+            dump_resource=True,
         )
 
     def collect_target_pools(self):
@@ -562,5 +676,108 @@ class GCPProjectCollector:
                 "failover_ratio": "failoverRatio",
             },
             predecessors=["_instances", "_health_checks"],
+            dump_resource=True,
+        )
+
+    def collect_target_instances(self):
+        self.collect_something(
+            resource_class=GCPTargetInstance,
+            paginate_method_name="aggregatedList",
+            dump_resource=True,
+        )
+
+    def collect_target_http_proxies(self):
+        self.collect_something(
+            resource_class=GCPTargetHttpProxy,
+            paginate_method_name="aggregatedList",
+            dump_resource=True,
+        )
+
+    def collect_target_https_proxies(self):
+        self.collect_something(
+            resource_class=GCPTargetHttpsProxy,
+            paginate_method_name="aggregatedList",
+            dump_resource=True,
+        )
+
+    def collect_region_target_http_proxies(self, region: GCPRegion):
+        self.collect_something(
+            resource_kwargs={"region": region.name},
+            resource_class=GCPRegionTargetHttpProxy,
+            dump_resource=True,
+        )
+
+    def collect_region_target_https_proxies(self, region: GCPRegion):
+        self.collect_something(
+            resource_kwargs={"region": region.name},
+            resource_class=GCPRegionTargetHttpsProxy,
+            dump_resource=True,
+        )
+
+    def collect_target_ssl_proxies(self):
+        self.collect_something(
+            resource_class=GCPTargetSslProxy,
+            dump_resource=True,
+        )
+
+    def collect_target_tcp_proxies(self):
+        self.collect_something(
+            resource_class=GCPTargetTcpProxy,
+            dump_resource=True,
+        )
+
+    def collect_target_grpc_proxies(self):
+        self.collect_something(
+            resource_class=GCPTargetGrpcProxy,
+            dump_resource=True,
+        )
+
+    def collect_backend_services(self):
+        self.collect_something(
+            resource_class=GCPBackendService,
+            paginate_method_name="aggregatedList",
+            search_map={
+                "_health_checks": ["link", "healthChecks"],
+                "_backends": [
+                    "link",
+                    (lambda r: [g.get("group", "") for g in r.get("backends", [])]),
+                ],
+            },
+            predecessors=["_health_checks", "_backends"],
+            dump_resource=True,
+        )
+
+    def collect_forwarding_rules(self):
+        self.collect_something(
+            resource_class=GCPForwardingRule,
+            paginate_method_name="aggregatedList",
+            attr_map={
+                "ip_address": "IPAddress",
+                "ip_protocol": "IPProtocol",
+                "load_balancing_scheme": "loadBalancingScheme",
+                "network_tier": "networkTier",
+                "port_range": "portRange",
+            },
+            search_map={
+                "_target": ["link", "target"],
+            },
+            predecessors=["_target"],
+            dump_resource=True,
+        )
+
+    def collect_global_forwarding_rules(self):
+        self.collect_something(
+            resource_class=GCPGlobalForwardingRule,
+            attr_map={
+                "ip_address": "IPAddress",
+                "ip_protocol": "IPProtocol",
+                "load_balancing_scheme": "loadBalancingScheme",
+                "network_tier": "networkTier",
+                "port_range": "portRange",
+            },
+            search_map={
+                "_target": ["link", "target"],
+            },
+            predecessors=["_target"],
             dump_resource=True,
         )
