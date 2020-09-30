@@ -1,3 +1,5 @@
+import json
+import os
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import RWLock
@@ -37,8 +39,8 @@ class Credentials:
     def load():
         with Credentials._lock.write_access:
             if not Credentials._initialized:
-                for sa_file in ArgumentParser.args.gcp_service_account:
-                    credentials = load_credentials(sa_file)
+                for sa_data in ArgumentParser.args.gcp_service_account:
+                    credentials = load_credentials(sa_data)
                     for project in list_credential_projects(credentials):
                         Credentials._credentials[project["id"]] = credentials
                 Credentials._initialized = True
@@ -62,8 +64,15 @@ class Credentials:
         Credentials.load()
 
 
-def load_credentials(sa_file: str):
-    return service_account.Credentials.from_service_account_file(sa_file, scopes=SCOPES)
+def load_credentials(sa_data: str):
+    if os.path.isfile(sa_data):
+        return service_account.Credentials.from_service_account_file(
+            sa_data, scopes=SCOPES
+        )
+    else:
+        return service_account.Credentials.from_service_account_info(
+            json.loads(sa_data), scopes=SCOPES
+        )
 
 
 def gcp_client(service: str, version: str, credentials: str):

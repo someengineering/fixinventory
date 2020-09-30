@@ -6,7 +6,6 @@ from concurrent import futures
 from typing import Dict, Optional
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import log_runtime
 from .resources import GCPProject
 from .utils import Credentials
 from .collector import GCPProjectCollector
@@ -67,7 +66,6 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 self.graph.add_edge(self.root, gpc_root)
 
     @staticmethod
-    @log_runtime
     def collect_project(project_id: str, args=None) -> Optional[Dict]:
         project = GCPProject(project_id, {})
         collector_name = f"gcp_{project.id}"
