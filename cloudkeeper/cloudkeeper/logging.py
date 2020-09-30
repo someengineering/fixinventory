@@ -1,4 +1,5 @@
 import sys
+import os
 from logging import *
 from cloudkeeper.args import ArgumentParser
 
@@ -8,7 +9,11 @@ basicConfig(level=WARN, format=log_format)
 getLogger("cloudkeeper").setLevel(INFO)
 
 argv = sys.argv[1:]
-if "-v" in argv or "--verbose" in argv:
+if (
+    "-v" in argv
+    or "--verbose" in argv
+    or os.environ.get("CLOUDKEEPER_VERBOSE", "False") == "True"
+):
     getLogger("cloudkeeper").setLevel(DEBUG)
 
 logfile_arg = "--logfile"
