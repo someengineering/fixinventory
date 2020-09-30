@@ -664,7 +664,6 @@ class GCPProjectCollector:
                 "_default_service": ["link", "defaultService"],
             },
             successors=["_default_service"],
-            dump_resource=True,
         )
 
     def collect_target_pools(self):
@@ -680,60 +679,51 @@ class GCPProjectCollector:
                 "failover_ratio": "failoverRatio",
             },
             predecessors=["_instances", "_health_checks"],
-            dump_resource=True,
         )
 
     def collect_target_instances(self):
         self.collect_something(
             resource_class=GCPTargetInstance,
             paginate_method_name="aggregatedList",
-            dump_resource=True,
         )
 
     def collect_target_http_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpProxy,
             paginate_method_name="aggregatedList",
-            dump_resource=True,
         )
 
     def collect_target_https_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpsProxy,
             paginate_method_name="aggregatedList",
-            dump_resource=True,
         )
 
     def collect_region_target_http_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpProxy,
-            dump_resource=True,
         )
 
     def collect_region_target_https_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpsProxy,
-            dump_resource=True,
         )
 
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
-            dump_resource=True,
         )
 
     def collect_target_tcp_proxies(self):
         self.collect_something(
             resource_class=GCPTargetTcpProxy,
-            dump_resource=True,
         )
 
     def collect_target_grpc_proxies(self):
         self.collect_something(
             resource_class=GCPTargetGrpcProxy,
-            dump_resource=True,
         )
 
     def collect_backend_services(self):
@@ -748,7 +738,6 @@ class GCPProjectCollector:
                 ],
             },
             predecessors=["_health_checks", "_backends"],
-            dump_resource=True,
         )
 
     def collect_forwarding_rules(self):
@@ -766,7 +755,6 @@ class GCPProjectCollector:
                 "_target": ["link", "target"],
             },
             predecessors=["_target"],
-            dump_resource=True,
         )
 
     def collect_global_forwarding_rules(self):
@@ -783,5 +771,4 @@ class GCPProjectCollector:
                 "_target": ["link", "target"],
             },
             predecessors=["_target"],
-            dump_resource=True,
         )
