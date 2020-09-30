@@ -185,14 +185,14 @@ class Processor(threading.Thread):
         arg_parser.add_argument(
             "--interval",
             help="Collection Interval in seconds (default: 3600)",
-            default=int(os.environ.get("CLOUDKEEPER_INTERVAL", 3600)),
+            default=3600,
             dest="interval",
             type=int,
         )
         arg_parser.add_argument(
             "--timeout",
             help="Collection Timeout in seconds (default: 10800)",
-            default=int(os.environ.get("CLOUDKEEPER_TIMEOUT", 10800)),
+            default=10800,
             dest="timeout",
             type=int,
         )
