@@ -3,6 +3,8 @@ import ast
 import argparse
 
 
+ENV_ARGS_PREFIX = "CLOUDKEEPER_"
+
 class Namespace(argparse.Namespace):
     def __getattr__(self, item):
         return None
@@ -20,7 +22,7 @@ class ArgumentParser(argparse.ArgumentParser):
             for option_string in action.option_strings:
                 if option_string.startswith("--"):
                     env_name = (
-                        "CLOUDKEEPER_" + option_string[2:].replace("-", "_").upper()
+                        ENV_ARGS_PREFIX + option_string[2:].replace("-", "_").upper()
                     )
                     break
             if env_name is not None and action.default != argparse.SUPPRESS:
