@@ -1,6 +1,5 @@
 import threading
 import time
-import os
 import cloudkeeper.logging
 from typing import List
 from networkx.algorithms.dag import is_directed_acyclic_graph
