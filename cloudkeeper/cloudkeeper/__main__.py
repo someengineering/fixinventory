@@ -31,6 +31,7 @@ shutdown_event = threading.Event()
 
 
 def main() -> None:
+    log.info("Cloudkeeper initializing")
     # Try to run in a new process group and
     # ignore if not possible for whatever reason
     try:

@@ -1,3 +1,5 @@
+import os
+import ast
 import argparse
 
 
@@ -13,6 +15,46 @@ class ArgumentParser(argparse.ArgumentParser):
     args = Namespace()
 
     def parse_args(self, *args, **kwargs):
+        for action in self._actions:
+            env_name = None
+            for option_string in action.option_strings:
+                if option_string.startswith("--"):
+                    env_name = (
+                        "CLOUDKEEPER_" + option_string[2:].replace("-", "_").upper()
+                    )
+                    break
+            if env_name is not None and action.default != argparse.SUPPRESS:
+                new_default = None
+                if action.nargs not in (0, None):
+                    new_default = os.environ.get(env_name)
+                    if new_default is not None:
+                        new_default = new_default.split(" ")
+                    else:
+                        new_default = []
+                        for i in range(255):
+                            new_ittr_default = os.environ.get(env_name + str(i))
+                            if new_ittr_default is not None:
+                                new_default.append(new_ittr_default)
+                        if len(new_default) == 0:
+                            new_default = None
+                else:
+                    new_default = os.environ.get(env_name)
+
+                if new_default is not None:
+                    if action.type is not None:
+                        type_goal = action.type
+                    else:
+                        type_goal = type(action.default)
+                    if type_goal not in (str, int, float, complex, bool):
+                        type_goal = str
+
+                    if type_goal != str:
+                        if isinstance(new_default, list):
+                            for i, v in enumerate(new_default):
+                                new_default[i] = convert(v, type_goal)
+                        else:
+                            new_default = convert(new_default, type_goal)
+                    action.default = new_default
         ret = super().parse_args(*args, **kwargs)
         ArgumentParser.args = ret
         return ret
@@ -29,3 +71,13 @@ def get_arg_parser() -> ArgumentParser:
         default=False,
     )
     return arg_parser
+
+
+def convert(value, type_goal):
+    try:
+        converted_value = type_goal(ast.literal_eval(value))
+    except ValueError:
+        pass
+    else:
+        value = converted_value
+    return value

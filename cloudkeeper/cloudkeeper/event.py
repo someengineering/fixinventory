@@ -202,7 +202,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--event-timeout",
         help="Event Listener Timeout in seconds (default 900)",
-        default=int(os.environ.get("CLOUDKEEPER_EVENT_TIMEOUT", 900)),
+        default=900,
         dest="event_timeout",
         type=int,
     )

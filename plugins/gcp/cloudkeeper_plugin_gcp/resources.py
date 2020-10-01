@@ -10,7 +10,16 @@ from cloudkeeper.baseresources import (
     BaseZone,
     BaseResource,
     BaseInstance,
+    BaseInstanceType,
     BaseNetwork,
+    BaseSubnet,
+    BaseTunnel,
+    BaseGateway,
+    BasePolicy,
+    BaseSnapshot,
+    BaseCertificate,
+    BaseAutoScalingGroup,
+    BaseHealthCheck,
 )
 from .utils import update_label, delete_resource
 
@@ -33,10 +42,10 @@ class GCPResource:
         self.link = link
         self.gcpid = gcpid
         self.label_fingerprint = label_fingerprint
-        self.client_method = self.api_identifier + "s"
-        self.get_identifier = self.api_identifier
-        self.delete_identifier = self.api_identifier
-        self.set_label_identifier = self.api_identifier
+        self._client_method = self.api_identifier + "s"
+        self._get_identifier = self.api_identifier
+        self._delete_identifier = self.api_identifier
+        self._set_label_identifier = self.api_identifier
 
     def delete(self, graph) -> bool:
         return delete_resource(self)
@@ -97,7 +106,7 @@ class GCPDisk(GCPResource, BaseVolume):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.set_label_identifier = "resource"
+        self._set_label_identifier = "resource"
         self.last_attach_timestamp = make_valid_timestamp(last_attach_timestamp)
         self.last_detach_timestamp = make_valid_timestamp(last_detach_timestamp)
 
@@ -134,8 +143,269 @@ class GCPInstance(GCPResource, BaseInstance):
     def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.network_interfaces = network_interfaces
+        if isinstance(self.instance_type, GCPMachineType):
+            self.instance_cores = self.instance_type.instance_cores
+            self.instance_memory = self.instance_type.instance_memory
+            self.instance_type = self.instance_type.name
 
 
 class GCPNetwork(GCPResource, BaseNetwork):
     resource_type = "gcp_network"
     api_identifier = "network"
+
+
+class GCPSubnetwork(GCPResource, BaseSubnet):
+    resource_type = "gcp_subnetwork"
+    api_identifier = "subnetwork"
+
+
+class GCPVPNTunnel(GCPResource, BaseTunnel):
+    resource_type = "gcp_vpn_tunnel"
+    api_identifier = "vpnTunnel"
+
+
+class GCPVPNGateway(GCPResource, BaseGateway):
+    resource_type = "gcp_vpn_gateway"
+    api_identifier = "vpnGateway"
+
+
+class GCPTargetVPNGateway(GCPResource, BaseGateway):
+    resource_type = "gcp_target_vpn_gateway"
+    api_identifier = "targetVpnGateway"
+
+
+class GCPRouter(GCPResource, BaseGateway):
+    resource_type = "gcp_router"
+    api_identifier = "router"
+
+
+class GCPRoute(GCPResource, BaseResource):
+    resource_type = "gcp_route"
+    api_identifier = "route"
+
+
+class GCPSecurityPolicy(GCPResource, BasePolicy):
+    resource_type = "gcp_security_policy"
+    api_identifier = "securityPolicy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "securityPolicies"
+
+
+class GCPSnapshot(GCPResource, BaseSnapshot):
+    resource_type = "gcp_snapshot"
+    api_identifier = "snapshot"
+
+    def __init__(self, *args, storage_bytes: int = 0, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.storage_bytes = int(storage_bytes)
+        if isinstance(self.volume_id, BaseResource):
+            self.volume_id = self.volume_id.name
+
+
+class GCPSSLCertificate(GCPResource, BaseCertificate):
+    resource_type = "gcp_ssl_certificate"
+    api_identifier = "sslCertificate"
+
+
+class GCPRegionSSLCertificate(GCPResource, BaseCertificate):
+    resource_type = "gcp_region_ssl_certificate"
+    api_identifier = "regionSslCertificate"
+
+
+class GCPMachineType(GCPResource, BaseInstanceType):
+    resource_type = "gcp_machine_type"
+    api_identifier = "machineType"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.instance_type = self.name
+
+
+class GCPNetworkEndpointGroup(GCPResource, BaseResource):
+    resource_type = "gcp_network_endpoint_group"
+    api_identifier = "networkEndpointGroup"
+
+    def __init__(
+        self, *args, default_port: int = -1, neg_type: str = "", **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.default_port = int(default_port)
+        self.neg_type = neg_type
+
+
+class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
+    resource_type = "gcp_global_network_endpoint_group"
+    api_identifier = "globalNetworkEndpointGroup"
+
+    def __init__(
+        self, *args, default_port: int = -1, neg_type: str = "", **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.default_port = int(default_port)
+        self.neg_type = neg_type
+
+
+class GCPInstanceGroup(GCPResource, BaseResource):
+    resource_type = "gcp_instance_group"
+    api_identifier = "instanceGroup"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPInstanceGroupManager(GCPResource, BaseResource):
+    resource_type = "gcp_instance_group_manager"
+    api_identifier = "instanceGroupManager"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
+    resource_type = "gcp_autoscaler"
+    api_identifier = "autoscaler"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class GCPHealthCheck(GCPResource, BaseHealthCheck):
+    resource_type = "gcp_health_check"
+    api_identifier = "healthCheck"
+
+
+class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
+    resource_type = "gcp_http_health_check"
+    api_identifier = "httpHealthCheck"
+
+    def __init__(
+        self, *args, host: str = "", request_path: str = "", port: int = -1, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.host = host
+        self.request_path = request_path
+        self.port = int(port)
+
+
+class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
+    resource_type = "gcp_https_health_check"
+    api_identifier = "httpsHealthCheck"
+
+
+class GCPUrlMap(GCPResource, BaseResource):
+    resource_type = "gcp_url_map"
+    api_identifier = "urlMap"
+
+
+class GCPTargetPool(GCPResource, BaseResource):
+    resource_type = "gcp_target_pool"
+    api_identifier = "targetPool"
+
+    def __init__(
+        self, *args, session_affinity: str = "", failover_ratio: float = -1.0, **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.session_affinity = session_affinity
+        self.failover_ratio = float(failover_ratio)
+
+
+class GCPTargetHttpProxy(GCPResource, BaseResource):
+    resource_type = "gcp_target_http_proxy"
+    api_identifier = "targetHttpProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "targetHttpProxies"
+
+
+class GCPTargetHttpsProxy(GCPResource, BaseResource):
+    resource_type = "gcp_target_https_proxy"
+    api_identifier = "targetHttpsProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "targetHttpsProxies"
+
+
+class GCPRegionTargetHttpProxy(GCPResource, BaseResource):
+    resource_type = "gcp_region_target_http_proxy"
+    api_identifier = "regionTargetHttpProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "regionTargetHttpProxies"
+
+
+class GCPRegionTargetHttpsProxy(GCPResource, BaseResource):
+    resource_type = "gcp_region_target_https_proxy"
+    api_identifier = "regionTargetHttpsProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "regionTargetHttpsProxies"
+
+
+class GCPTargetSslProxy(GCPResource, BaseResource):
+    resource_type = "gcp_target_ssl_proxy"
+    api_identifier = "targetSslProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "targetSslProxies"
+
+
+class GCPTargetTcpProxy(GCPResource, BaseResource):
+    resource_type = "gcp_target_tcp_proxy"
+    api_identifier = "targetTcpProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "targetTcpProxies"
+
+
+class GCPTargetGrpcProxy(GCPResource, BaseResource):
+    resource_type = "gcp_target_grpc_proxy"
+    api_identifier = "targetGrpcProxy"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_method = "targetGrpcProxies"
+
+
+class GCPTargetInstance(GCPResource, BaseResource):
+    resource_type = "gcp_target_instance"
+    api_identifier = "targetInstance"
+
+
+class GCPBackendService(GCPResource, BaseResource):
+    resource_type = "gcp_backend_service"
+    api_identifier = "backendService"
+
+
+class GCPForwardingRule(GCPResource, BaseResource):
+    resource_type = "gcp_forwarding_rule"
+    api_identifier = "forwardingRule"
+
+    def __init__(
+        self,
+        *args,
+        ip_address: str = "",
+        ip_protocol: str = "",
+        load_balancing_scheme: str = "",
+        network_tier: str = "",
+        port_range: str = "",
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.ip_address = ip_address
+        self.ip_protocol = ip_protocol
+        self.load_balancing_scheme = load_balancing_scheme
+        self.network_tier = network_tier
+        self.port_range = port_range
+
+
+class GCPGlobalForwardingRule(GCPForwardingRule):
+    resource_type = "gcp_global_forwarding_rule"
+    api_identifier = "globalForwardingRule"

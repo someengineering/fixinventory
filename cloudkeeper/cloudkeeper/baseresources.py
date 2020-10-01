@@ -621,13 +621,22 @@ class BaseInstanceType(BaseType):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        instance_type: str = None,
+        instance_cores: int = 0,
+        instance_memory: int = 0,
+        ondemand_cost: float = 0.0,
+        reservations: int = 0,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.instance_type = self.id
-        self.instance_cores = 0
-        self.instance_memory = 0
-        self.ondemand_cost = 0.0
-        self.reservations = 0
+        self.instance_type = instance_type if instance_type else self.id
+        self.instance_cores = int(instance_cores)
+        self.instance_memory = int(instance_memory)
+        self.ondemand_cost = float(ondemand_cost)
+        self.reservations = int(reservations)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -705,12 +714,20 @@ class BaseInstance(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        instance_cores: int = 0,
+        instance_memory: int = 0,
+        instance_type: str = "",
+        instance_status: str = "",
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.instance_cores = 0
-        self.instance_memory = 0
-        self.instance_type = ""
-        self.instance_status = ""
+        self.instance_cores = int(instance_cores)
+        self.instance_memory = int(instance_memory)
+        self.instance_type = instance_type
+        self.instance_status = instance_status
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
@@ -888,15 +905,26 @@ class BaseSnapshot(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        snapshot_status: str = "",
+        description: str = "",
+        volume_id: str = None,
+        volume_size: int = 0,
+        encrypted: bool = False,
+        owner_id=None,
+        owner_alias="",
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.snapshot_status = ""
-        self.description = ""
-        self.volume_id = None
-        self.volume_size = 0
-        self.encrypted = False
-        self.owner_id = None
-        self.owner_alias = ""
+        self.snapshot_status = snapshot_status
+        self.description = description
+        self.volume_id = volume_id
+        self.volume_size = int(volume_size)
+        self.encrypted = encrypted
+        self.owner_id = owner_id
+        self.owner_alias = owner_alias
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1186,6 +1214,30 @@ class BaseGateway(BaseResource):
         self._metrics["gateways_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_gateways_total"][metrics_keys] = 1
+        return self._metrics
+
+
+class BaseTunnel(BaseResource):
+    metrics_description = {
+        "tunnels_total": {
+            "help": "Number of Tunnels",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_tunnels_total": {
+            "help": "Cleaned number of Tunnels",
+            "labels": ["cloud", "account", "region"],
+        },
+    }
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
+        self._metrics["tunnels_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_tunnels_total"][metrics_keys] = 1
         return self._metrics
 
 
@@ -1598,10 +1650,10 @@ class BaseStack(BaseResource):
 
 
 class BaseAutoScalingGroup(BaseResource):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, min_size: int = -1, max_size: int = -1, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.min_size = None
-        self.max_size = None
+        self.min_size = int(min_size)
+        self.max_size = int(max_size)
 
     metrics_description = {
         "autoscaling_groups_total": {
@@ -1652,6 +1704,47 @@ class BaseIPAddress(BaseResource):
         self._metrics["ip_addresses_total"][metrics_keys] = 1
         if self._cleaned:
             self._metrics["cleaned_ip_addresses_total"][metrics_keys] = 1
+        return self._metrics
+
+
+class BaseHealthCheck(BaseResource):
+    def __init__(
+        self,
+        *args,
+        check_interval: int = -1,
+        healthy_threshold: int = -1,
+        unhealthy_threshold: int = -1,
+        timeout: int = -1,
+        health_check_type: str = "",
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.check_interval = int(check_interval)
+        self.healthy_threshold = int(healthy_threshold)
+        self.unhealthy_threshold = int(unhealthy_threshold)
+        self.timeout = int(timeout)
+        self.health_check_type = health_check_type
+
+    metrics_description = {
+        "health_checks_total": {
+            "help": "Number of Health Checks",
+            "labels": ["cloud", "account", "region"],
+        },
+        "cleaned_health_checks_total": {
+            "help": "Cleaned number of Health Checks",
+            "labels": ["cloud", "account", "region"],
+        },
+    }
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+        )
+        self._metrics["health_checks_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_health_checks_total"][metrics_keys] = 1
         return self._metrics
 
 
