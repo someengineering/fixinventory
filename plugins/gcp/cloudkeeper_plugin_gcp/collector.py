@@ -89,7 +89,6 @@ class GCPProjectCollector:
             "snapshots": self.collect_snapshots,
             "ssl_certificates": self.collect_ssl_certificates,
             "network_endpoint_groups": self.collect_network_endpoint_groups,
-            #            "global_network_endpoint_groups": self.collect_global_network_endpoint_groups,
             "instance_groups": self.collect_instance_groups,
             "instance_group_managers": self.collect_instance_group_managers,
             "autoscalers": self.collect_autoscalers,
@@ -103,7 +102,6 @@ class GCPProjectCollector:
             "backend_services": self.collect_backend_services,
             "url_maps": self.collect_url_maps,
             "forwarding_rules": self.collect_forwarding_rules,
-            #            "global_forwarding_rules": self.collect_global_forwarding_rules,
         }
         self.region_collectors = {
             "region_ssl_certificates": self.collect_region_ssl_certificates,
@@ -149,7 +147,10 @@ class GCPProjectCollector:
             for collector_name, collector in self.region_collectors.items():
                 if collector_name in collectors:
                     log.info(
-                        f"Collecting {collector_name} in {region.rtdname} {self.project.rtdname}"
+                        (
+                            f"Collecting {collector_name} in {region.rtdname}"
+                            f" {self.project.rtdname}"
+                        )
                     )
                     collector(region=region)
 
@@ -157,7 +158,10 @@ class GCPProjectCollector:
             for collector_name, collector in self.zone_collectors.items():
                 if collector_name in collectors:
                     log.info(
-                        f"Collecting {collector_name} in {zone.rtdname} {self.project.rtdname}"
+                        (
+                            f"Collecting {collector_name} in {zone.rtdname}"
+                            f" {self.project.rtdname}"
+                        )
                     )
                     collector(zone=zone)
 
