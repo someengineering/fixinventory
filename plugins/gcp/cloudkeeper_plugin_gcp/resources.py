@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-from pprint import pformat
 from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
@@ -24,8 +23,16 @@ from cloudkeeper.baseresources import (
     BaseAutoScalingGroup,
     BaseHealthCheck,
     BaseBucket,
+    BaseDatabase,
 )
-from .utils import gcp_service, paginate, update_label, delete_resource, gcp_resource
+from .utils import (
+    gcp_service,
+    paginate,
+    update_label,
+    delete_resource,
+    gcp_resource,
+    common_client_kwargs,
+)
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -35,6 +42,7 @@ class GCPResource:
     api_identifier = NotImplemented
     client = "compute"
     api_version = "v1"
+    client_args = ["project", "zone", "region"]
 
     def __init__(
         self,
@@ -486,6 +494,29 @@ class GCPBucket(GCPResource, BaseBucket):
         labels = dict(self.tags)
         labels[key] = value
         kwargs["body"] = {"labels": labels}
+        request = gr.patch(**kwargs)
+        request.execute()
+        return True
+
+    def delete_tag(self, key) -> bool:
+        return self.update_tag(key, None)
+
+
+class GCPDatabase(GCPResource, BaseDatabase):
+    resource_type = "gcp_database"
+    api_identifier = "instance"
+    client = "sqladmin"
+    api_version = "v1beta4"
+    client_args = ["project"]
+
+    def update_tag(self, key, value) -> bool:
+        kwargs = {str(self._patch_identifier): self.name}
+        common_kwargs = common_client_kwargs(self)
+        kwargs.update(common_kwargs)
+        gr = gcp_resource(self)
+        labels = dict(self.tags)
+        labels[key] = value
+        kwargs["body"] = {"settings": {"userLabels": labels}}
         request = gr.patch(**kwargs)
         request.execute()
         return True

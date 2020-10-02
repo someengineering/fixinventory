@@ -1111,14 +1111,24 @@ class BaseDatabase(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        db_type: str = "",
+        db_status: str = "",
+        db_endpoint: str = "",
+        instance_type: str = "",
+        volume_size: int = -1,
+        volume_iops: int = -1,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.db_type = ""
-        self.db_status = ""
-        self.db_endpoint = ""
-        self.instance_type = ""
-        self.volume_size = 0
-        self.volume_iops = 0
+        self.db_type = db_type
+        self.db_status = db_status
+        self.db_endpoint = db_endpoint
+        self.instance_type = instance_type
+        self.volume_size = int(volume_size)
+        self.volume_iops = int(volume_iops)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (

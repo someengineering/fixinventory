@@ -46,6 +46,7 @@ from .resources import (
     GCPRegionTargetHttpProxy,
     GCPRegionTargetHttpsProxy,
     GCPBucket,
+    GCPDatabase,
 )
 from .utils import (
     Credentials,
@@ -104,6 +105,7 @@ class GCPProjectCollector:
             "url_maps": self.collect_url_maps,
             "forwarding_rules": self.collect_forwarding_rules,
             "buckets": self.collect_buckets,
+            "databases": self.collect_databases,
         }
         self.region_collectors = {
             "region_ssl_certificates": self.collect_region_ssl_certificates,
@@ -236,7 +238,13 @@ class GCPProjectCollector:
 
         return kwargs, search_results
 
-    def collect_something(
+    def collect_something(self, *args, **kwargs):
+        try:
+            self.collector(*args, **kwargs)
+        except Exception:
+            log.exception("Unhandeled error while collecting resources")
+
+    def collector(
         self,
         resource_class: Type[BaseResource],
         paginate_method_name: str = "list",
@@ -789,5 +797,31 @@ class GCPProjectCollector:
                 "location_type": "locationType",
                 "storage_class": "storageClass",
                 "zone_separation": "zoneSeparation",
+            },
+        )
+
+    def collect_databases(self):
+        self.collect_something(
+            resource_class=GCPDatabase,
+            attr_map={
+                "db_type": "databaseVersion",
+                "db_status": "state",
+                "db_endpoint": lambda r: next(
+                    iter(
+                        [
+                            ip["ipAddress"]
+                            for ip in r.get("ipAddresses", [])
+                            if ip.get("type") == "PRIMARY"
+                        ]
+                    ),
+                    None,
+                ),
+                "instance_type": lambda r: r.get("settings", {}).get("tier"),
+                "volume_size": lambda r: r.get("settings", {}).get("dataDiskSizeGb"),
+                "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
+            },
+            search_map={
+                "region": ["name", "region"],
+                "zone": ["name", "gceZone"],
             },
         )

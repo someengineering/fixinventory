@@ -161,11 +161,11 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
 
 def common_client_kwargs(resource: BaseResource) -> Dict:
     common_kwargs = {}
-    if resource.account().id != "undefined":
+    if resource.account().id != "undefined" and "project" in resource.client_args:
         common_kwargs["project"] = resource.account().id
-    if resource.zone().name != "undefined":
+    if resource.zone().name != "undefined" and "zone" in resource.client_args:
         common_kwargs["zone"] = resource.zone().name
-    elif resource.region().name != "undefined":
+    elif resource.region().name != "undefined" and "region" in resource.client_args:
         common_kwargs["region"] = resource.region().name
     return common_kwargs
 
