@@ -2,6 +2,7 @@ import json
 import os
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.graph import Graph
 from cloudkeeper.utils import RWLock
 import cloudkeeper.logging
 from typing import Iterable, List, Union, Callable, Any, Dict
@@ -115,6 +116,8 @@ def list_credential_projects(credentials) -> List:
 
 
 def iso2datetime(ts: str) -> datetime:
+    if ts is None:
+        return
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     if ts is not None:
@@ -142,10 +145,6 @@ def paginate(
             request = method(request, result)
         else:
             request = None
-
-
-def compute_client(credentials):
-    return gcp_client("compute", "v1", credentials=credentials)
 
 
 def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
@@ -210,11 +209,14 @@ def update_label(resource: BaseResource, key: str, value: str) -> bool:
     return True
 
 
-def gcp_resource(resource: BaseResource):
-    client_kwargs = {}
+def gcp_service(resource: BaseResource, graph: Graph = None):
+    service_kwargs = {}
     if resource.account().id != "undefined":
-        client_kwargs["credentials"] = Credentials.get(resource.account().id)
+        service_kwargs["credentials"] = Credentials.get(resource.account(graph).id)
+    return gcp_client(resource.client, resource.api_version, **service_kwargs)
 
-    client = compute_client(**client_kwargs)
-    gr = getattr(client, resource._client_method)
+
+def gcp_resource(resource: BaseResource, graph: Graph = None):
+    service = gcp_service(resource, graph)
+    gr = getattr(service, resource._client_method)
     return gr()

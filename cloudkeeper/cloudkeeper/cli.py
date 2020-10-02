@@ -371,6 +371,7 @@ class CliHandler:
             if confirm_delete is None:
                 break
             elif confirm_delete is True:
+                item.pre_cleanup(self.graph)
                 item.cleanup(self.graph)
             yield item
 

@@ -45,10 +45,11 @@ from .resources import (
     GCPRegionSSLCertificate,
     GCPRegionTargetHttpProxy,
     GCPRegionTargetHttpsProxy,
+    GCPBucket,
 )
 from .utils import (
     Credentials,
-    compute_client,
+    gcp_client,
     paginate,
     iso2datetime,
     get_result_data,
@@ -102,6 +103,7 @@ class GCPProjectCollector:
             "backend_services": self.collect_backend_services,
             "url_maps": self.collect_url_maps,
             "forwarding_rules": self.collect_forwarding_rules,
+            "buckets": self.collect_buckets,
         }
         self.region_collectors = {
             "region_ssl_certificates": self.collect_region_ssl_certificates,
@@ -168,16 +170,11 @@ class GCPProjectCollector:
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
     ) -> Dict:
-        ctime = (
-            iso2datetime(result["creationTimestamp"])
-            if "creationTimestamp" in result
-            else None
-        )
         kwargs = {
             "identifier": result.get("id", result.get("name", result.get("selfLink"))),
             "tags": result.get("labels", {}),
             "name": result.get("name"),
-            "ctime": ctime,
+            "ctime": iso2datetime(result.get("creationTimestamp")),
             "link": result.get("selfLink"),
             "label_fingerprint": result.get("labelFingerprint"),
             "account": self.project,
@@ -249,7 +246,7 @@ class GCPProjectCollector:
         search_map: Dict = None,
         successors: List = None,
         predecessors: List = None,
-        compute_client_kwargs: Dict = None,
+        client_kwargs: Dict = None,
         resource_kwargs: Dict = None,
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
@@ -258,8 +255,8 @@ class GCPProjectCollector:
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
-        if compute_client_kwargs is None:
-            compute_client_kwargs = {}
+        if client_kwargs is None:
+            client_kwargs = {}
         if resource_kwargs is None:
             resource_kwargs = {}
         if successors is None:
@@ -268,7 +265,12 @@ class GCPProjectCollector:
             predecessors = []
         parent_map = {True: predecessors, False: successors}
 
-        client = compute_client(credentials=self.credentials, **compute_client_kwargs)
+        client = gcp_client(
+            resource_class.client,
+            resource_class.api_version,
+            credentials=self.credentials,
+            **client_kwargs,
+        )
         gcp_resource = getattr(client, client_method_name)
         if not callable(gcp_resource):
             raise RuntimeError(f"No method {client_method_name} on client {client}")
@@ -775,4 +777,17 @@ class GCPProjectCollector:
                 "_target": ["link", "target"],
             },
             predecessors=["_target"],
+        )
+
+    def collect_buckets(self):
+        self.collect_something(
+            resource_class=GCPBucket,
+            attr_map={
+                "ctime": lambda r: iso2datetime(r.get("timeCreated")),
+                "mtime": lambda r: iso2datetime(r.get("updated")),
+                "location": "location",
+                "location_type": "locationType",
+                "storage_class": "storageClass",
+                "zone_separation": "zoneSeparation",
+            },
         )

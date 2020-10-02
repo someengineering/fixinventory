@@ -69,7 +69,7 @@ metrics_graph2pajek = Summary(
     "cloudkeeper_graph2pajek_seconds", "Time it took the graph2pajek() method"
 )
 
-resource_attributes_blacklist = ["metrics_description"]
+resource_attributes_blacklist = ["metrics_description", "event_log"]
 
 
 def get_resource_attributes(resource) -> Dict:

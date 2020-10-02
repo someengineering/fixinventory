@@ -1,4 +1,6 @@
 from datetime import datetime, timezone, timedelta
+from pprint import pformat
+from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
 from cloudkeeper.baseresources import (
@@ -21,8 +23,9 @@ from cloudkeeper.baseresources import (
     BaseCertificate,
     BaseAutoScalingGroup,
     BaseHealthCheck,
+    BaseBucket,
 )
-from .utils import update_label, delete_resource
+from .utils import gcp_service, paginate, update_label, delete_resource, gcp_resource
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -30,6 +33,8 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 class GCPResource:
     api_identifier = NotImplemented
+    client = "compute"
+    api_version = "v1"
 
     def __init__(
         self,
@@ -45,6 +50,9 @@ class GCPResource:
         self.label_fingerprint = label_fingerprint
         self._client_method = self.api_identifier + "s"
         self._get_identifier = self.api_identifier
+        self._list_identifier = self.api_identifier
+        self._update_identifier = self.api_identifier
+        self._patch_identifier = self.api_identifier
         self._delete_identifier = self.api_identifier
         self._set_label_identifier = self.api_identifier
 
@@ -427,3 +435,60 @@ class GCPForwardingRule(GCPResource, BaseResource):
 class GCPGlobalForwardingRule(GCPForwardingRule):
     resource_type = "gcp_global_forwarding_rule"
     api_identifier = "globalForwardingRule"
+
+
+class GCPBucket(GCPResource, BaseBucket):
+    resource_type = "gcp_bucket"
+    api_identifier = "bucket"
+    client = "storage"
+
+    def __init__(
+        self,
+        *args,
+        location: str = "",
+        location_type: str = "",
+        storage_class: str = "",
+        zone_separation: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.location = location
+        self.location_type = location_type
+        self.storage_class = storage_class
+        self.zone_separation = zone_separation
+
+    def pre_delete(self, graph: Graph) -> bool:
+        kwargs = {str(self._list_identifier): self.name}
+        gs = gcp_service(self, graph=graph)
+        for document in paginate(
+            gcp_resource=gs.objects(),
+            method_name="list",
+            items_name="items",
+            **kwargs,
+        ):
+            log.debug(
+                f"Removing {document['name']} in {self.rtdname} before resource cleanup"
+            )
+            request = gs.objects().delete(object=document["name"], **kwargs)
+            request.execute()
+        return True
+
+    def delete(self, graph: Graph) -> bool:
+        kwargs = {str(self._delete_identifier): self.name}
+        gr = gcp_resource(self, graph=graph)
+        request = gr.delete(**kwargs)
+        request.execute()
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        kwargs = {str(self._patch_identifier): self.name}
+        gr = gcp_resource(self)
+        labels = dict(self.tags)
+        labels[key] = value
+        kwargs["body"] = {"labels": labels}
+        request = gr.patch(**kwargs)
+        request.execute()
+        return True
+
+    def delete_tag(self, key) -> bool:
+        return self.update_tag(key, None)
