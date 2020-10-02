@@ -68,14 +68,18 @@ class AWSEC2Instance(AWSResource, BaseInstance):
 
     @BaseInstance.instance_status.setter
     def instance_status(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
+        self._instance_status = self.instance_status_map.get(
+            value, InstanceStatus.UNKNOWN
+        )
 
     def delete(self, graph: Graph) -> bool:
-        if self.instance_status == "terminated":
+        if self.instance_status == InstanceStatus.TERMINATED.value:
             log.error(
                 (
-                    f"AWS EC2 Instance {self.dname} in account {self.account(graph).dname} "
-                    f"region {self.region(graph).name} is already terminated"
+                    f"AWS EC2 Instance {self.dname} in"
+                    f" account {self.account(graph).dname}"
+                    f" region {self.region(graph).name}"
+                    " is already terminated"
                 )
             )
             return False

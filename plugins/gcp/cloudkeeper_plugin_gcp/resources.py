@@ -154,7 +154,9 @@ class GCPInstance(GCPResource, BaseInstance):
 
     @BaseInstance.instance_status.setter
     def instance_status(self, value: str) -> None:
-        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
+        self._instance_status = self.instance_status_map.get(
+            value, InstanceStatus.UNKNOWN
+        )
 
     def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)

@@ -5,6 +5,7 @@ import argparse
 
 ENV_ARGS_PREFIX = "CLOUDKEEPER_"
 
+
 class Namespace(argparse.Namespace):
     def __getattr__(self, item):
         return None
