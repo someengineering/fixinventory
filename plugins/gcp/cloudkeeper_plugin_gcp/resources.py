@@ -9,6 +9,7 @@ from cloudkeeper.baseresources import (
     BaseVolumeType,
     BaseZone,
     BaseResource,
+    InstanceStatus,
     BaseInstance,
     BaseInstanceType,
     BaseNetwork,
@@ -139,6 +140,21 @@ class GCPDisk(GCPResource, BaseVolume):
 class GCPInstance(GCPResource, BaseInstance):
     resource_type = "gcp_instance"
     api_identifier = "instance"
+
+    instance_status_map = {
+        "PROVISIONING": InstanceStatus.BUSY,
+        "STAGING": InstanceStatus.BUSY,
+        "RUNNING": InstanceStatus.RUNNING,
+        "STOPPING": InstanceStatus.BUSY,
+        "SUSPENDING": InstanceStatus.BUSY,
+        "SUSPENDED": InstanceStatus.STOPPED,
+        "REPAIRING": InstanceStatus.BUSY,
+        "TERMINATED": InstanceStatus.TERMINATED,
+    }
+
+    @BaseInstance.instance_status.setter
+    def instance_status(self, value: str) -> None:
+        self._instance_status = self.instance_status_map.get(value, InstanceStatus.UNKNOWN)
 
     def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
