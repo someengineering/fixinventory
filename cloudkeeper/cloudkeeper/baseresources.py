@@ -678,6 +678,14 @@ class BaseZone(BaseResource):
         return self
 
 
+class InstanceStatus(Enum):
+    RUNNING = "running"
+    STOPPED = "stopped"
+    TERMINATED = "terminated"
+    BUSY = "busy"
+    UNKNOWN = "unknown"
+
+
 class BaseInstance(BaseResource):
     metrics_description = {
         "instances_total": {
@@ -727,10 +735,20 @@ class BaseInstance(BaseResource):
         self.instance_cores = int(instance_cores)
         self.instance_memory = int(instance_memory)
         self.instance_type = instance_type
+        self._instance_status = InstanceStatus.UNKNOWN
         self.instance_status = instance_status
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
+
+    @property
+    def instance_status(self) -> str:
+        return self._instance_status.value
+
+    @instance_status.setter
+    @abstractmethod
+    def instance_status(self, value: str) -> None:
+        raise NotImplementedError
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (

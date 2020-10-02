@@ -57,12 +57,29 @@ class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
 class AWSEC2Instance(AWSResource, BaseInstance):
     resource_type = "aws_ec2_instance"
 
+    instance_status_map = {
+        "pending": InstanceStatus.BUSY,
+        "running": InstanceStatus.RUNNING,
+        "shutting-down": InstanceStatus.BUSY,
+        "terminated": InstanceStatus.TERMINATED,
+        "stopping": InstanceStatus.BUSY,
+        "stopped": InstanceStatus.STOPPED,
+    }
+
+    @BaseInstance.instance_status.setter
+    def instance_status(self, value: str) -> None:
+        self._instance_status = self.instance_status_map.get(
+            value, InstanceStatus.UNKNOWN
+        )
+
     def delete(self, graph: Graph) -> bool:
-        if self.instance_status == "terminated":
+        if self.instance_status == InstanceStatus.TERMINATED.value:
             log.error(
                 (
-                    f"AWS EC2 Instance {self.dname} in account {self.account(graph).dname} "
-                    f"region {self.region(graph).name} is already terminated"
+                    f"AWS EC2 Instance {self.dname} in"
+                    f" account {self.account(graph).dname}"
+                    f" region {self.region(graph).name}"
+                    " is already terminated"
                 )
             )
             return False

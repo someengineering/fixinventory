@@ -156,9 +156,8 @@ class Processor(threading.Thread):
         sanitize(gc.graph, gc.GRAPH_ROOT)
         dispatch_event(Event(EventType.GENERATE_METRICS, gc.graph), blocking=True)
         dispatch_event(Event(EventType.COLLECT_FINISH, gc.graph), blocking=True)
-        self.gc.graph = (
-            gc.graph
-        )  # Swap the live graph with the newly created one from our current run
+        # Swap the live graph with the newly created one from our current run
+        self.gc.graph = gc.graph
 
     def cleanup(self) -> None:
         """cleanup() is run after collect() and creates a new Cleaner() instance"""
