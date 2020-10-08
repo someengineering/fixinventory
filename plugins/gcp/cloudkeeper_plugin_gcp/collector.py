@@ -294,7 +294,7 @@ class GCPProjectCollector:
             for map_to, map_from in attr_map.items():
                 data = get_result_data(result, map_from)
                 if data is None:
-                    log.error(f"Attribute {map_from} not in result")
+                    log.debug(f"Attribute {map_from} not in result")
                     continue
                 log.debug(f"Found attribute {map_to}: {pformat(data)}")
                 kwargs[map_to] = data
