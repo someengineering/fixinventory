@@ -52,9 +52,11 @@ from .resources import (
 from .utils import (
     Credentials,
     gcp_client,
+    gcp_service,
     paginate,
     iso2datetime,
     get_result_data,
+    common_client_kwargs,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -117,6 +119,8 @@ class GCPProjectCollector:
             "instance_groups": self.collect_instance_groups,
             "instance_group_managers": self.collect_instance_group_managers,
             "autoscalers": self.collect_autoscalers,
+            "backend_services": self.collect_backend_services,
+            "url_maps": self.collect_url_maps,
             "target_pools": self.collect_target_pools,
             "target_instances": self.collect_target_instances,
             "target_http_proxies": self.collect_target_http_proxies,
@@ -124,8 +128,6 @@ class GCPProjectCollector:
             "target_ssl_proxies": self.collect_target_ssl_proxies,
             "target_tcp_proxies": self.collect_target_tcp_proxies,
             "target_grpc_proxies": self.collect_target_grpc_proxies,
-            "backend_services": self.collect_backend_services,
-            "url_maps": self.collect_url_maps,
             "forwarding_rules": self.collect_forwarding_rules,
             "buckets": self.collect_buckets,
             "databases": self.collect_databases,
@@ -537,7 +539,6 @@ class GCPProjectCollector:
             },
             predecessors=["volume_type"],
             successors=["_users"],
-            dump_resource=True,
         )
 
     def collect_instances(self):
@@ -727,6 +728,24 @@ class GCPProjectCollector:
             },
             predecessors=["_network", "_subnetwork"],
         )
+        for instance_group in list(
+            self.graph.search("resource_type", "gcp_instance_group")
+        ):
+            gs = gcp_service(instance_group, graph=self.graph)
+            kwargs = {"instanceGroup": instance_group.name}
+            kwargs.update(common_client_kwargs(instance_group))
+            for r in paginate(
+                gcp_resource=gs.instanceGroups(),
+                method_name="listInstances",
+                items_name="items",
+                **kwargs,
+            ):
+                i = self.graph.search_first("link", r.get("instance"))
+                if i:
+                    log.debug(
+                        f"Adding edge from {i.rtdname} to {instance_group.rtdname}"
+                    )
+                    self.graph.add_edge(i, instance_group)
 
     def collect_instance_group_managers(self):
         self.collect_something(
@@ -836,45 +855,77 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPTargetInstance,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_instance": ["link", "instance"],
+            },
+            predecessors=["_instance"],
         )
 
     def collect_target_http_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpProxy,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_target_https_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpsProxy,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_region_target_http_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_region_target_https_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpsProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
+            search_map={
+                "_service": ["link", "service"],
+            },
+            predecessors=["_service"],
         )
 
     def collect_target_tcp_proxies(self):
         self.collect_something(
             resource_class=GCPTargetTcpProxy,
+            search_map={
+                "_service": ["link", "service"],
+            },
+            predecessors=["_service"],
         )
 
     def collect_target_grpc_proxies(self):
         self.collect_something(
             resource_class=GCPTargetGrpcProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_backend_services(self):
