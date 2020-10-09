@@ -14,18 +14,31 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
+    """Google Cloud Platform Cloudkeeper collector plugin.
+
+    Gets instantiated in Cloudkeeper's Processor thread. The collect() method
+    is run during a resource collection loop.
+    """
+
     cloud = "gcp"
 
     def collect(self) -> None:
-        log.debug("plugin: GCP collecting resources")
-        projects = Credentials.all()
-        if len(projects) == 0:
-            return
+        """Run by Cloudkeeper during the global collect() run.
 
+        This method kicks off code that adds GCP resources to `self.graph`.
+        When collect() finishes the parent thread will take `self.graph` and merge
+        it with the global production graph.
+        """
+        log.debug("plugin: GCP collecting resources")
+
+        projects = Credentials.all()
         if len(ArgumentParser.args.gcp_project) > 0:
             for project in list(projects.keys()):
                 if project not in ArgumentParser.args.gcp_project:
                     del projects[project]
+
+        if len(projects) == 0:
+            return
 
         max_workers = (
             len(projects)
@@ -37,15 +50,17 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = cloudkeeper.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
+            collect_args = {"args": ArgumentParser.args}
         else:
             pool_executor = futures.ThreadPoolExecutor
+            collect_args = {}
 
         with pool_executor(**pool_args) as executor:
             wait_for = [
                 executor.submit(
                     self.collect_project,
                     project_id,
-                    ArgumentParser.args,
+                    **collect_args,
                 )
                 for project_id in projects.keys()
             ]
@@ -67,6 +82,15 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def collect_project(project_id: str, args=None) -> Optional[Dict]:
+        """Collects an individual project.
+
+        Is being called in collect() and either run within a thread or a spawned
+        process. Depending on whether `--gcp-fork` was specified or not.
+
+        Because the spawned process does not inherit any of our memory or file
+        descriptors we are passing the already parsed `args` Namespace() to this
+        method.
+        """
         project = GCPProject(project_id, {})
         collector_name = f"gcp_{project.id}"
         cloudkeeper.signal.set_thread_name(collector_name)
@@ -88,6 +112,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
+        """Called by Cloudkeeper upon startup to populate the ArgumentParser"""
         arg_parser.add_argument(
             "--gcp-service-account",
             help="GCP Service Account File",

@@ -127,6 +127,17 @@ def iso2datetime(ts: str) -> datetime:
 def paginate(
     gcp_resource, method_name, items_name, subitems_name=None, **kwargs
 ) -> Iterable:
+    """Paginate GCP API list and aggregatedList results.
+
+    Args:
+        gcp_resource: GCP resource on which we do our paging
+        method_name: list method to call. Usually `list` or `aggregatedList`
+        items_name: Name of the key in our result that contains the list of items.
+            Usually `items`
+        subitems_name: When using aggregatedList this contains the actual items.
+            Usually the same as the gcp_resource name. E.g. `disks` when requesting
+            disks, `instances` when fetching instances, etc.
+    """
     next_method_name = method_name + "_next"
     method = getattr(gcp_resource, method_name)
     request = method(**kwargs)
@@ -148,6 +159,14 @@ def paginate(
 
 
 def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
+    """Returns data from a GCP API call result dict.
+
+    Args:
+        result: Dict containing the result or a GCP API execute() call.
+        value: Either directly the name of a key found in result or
+            a callable like a lambda that finds the relevant data withing
+            result.
+    """
     data = None
     if callable(value):
         try:

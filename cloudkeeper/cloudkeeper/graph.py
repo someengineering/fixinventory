@@ -138,18 +138,37 @@ class Graph(networkx.DiGraph):
         """
         resource_attr = get_resource_attributes(node_for_adding)
 
-        super().add_node(
+        self.add_node(
             node_for_adding, label=node_for_adding.name, **resource_attr, **attr
         )
-        super().add_edge(parent, node_for_adding)
+        self.add_edge(parent, node_for_adding)
 
     def add_node(self, *args, **kwargs):
         with self.lock.write_access:
             super().add_node(*args, **kwargs)
 
-    def add_edge(self, *args, **kwargs):
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
         with self.lock.write_access:
-            super().add_edge(*args, **kwargs)
+            super().add_edge(u_of_edge, v_of_edge, **attr)
+        if isinstance(u_of_edge, BaseResource) and isinstance(v_of_edge, BaseResource):
+            try:
+                u_of_edge.successor_added(v_of_edge, self)
+            except Exception:
+                log.exception(
+                    (
+                        f"Unhandeled exception while telling {u_of_edge.rtdname}"
+                        f" that {v_of_edge.rtdname} was added as a successor"
+                    )
+                )
+            try:
+                v_of_edge.predecessor_added(u_of_edge, self)
+            except Exception:
+                log.exception(
+                    (
+                        f"Unhandeled exception while telling {v_of_edge.rtdname}"
+                        f" that {u_of_edge.rtdname} was added as a predecessor"
+                    )
+                )
 
     def remove_node(self, *args, **kwargs):
         with self.lock.write_access:

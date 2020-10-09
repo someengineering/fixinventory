@@ -463,6 +463,14 @@ class BaseResource(ABC):
         """Returns an iterator of the node's child nodes"""
         return graph.successors(self)
 
+    def predecessor_added(self, resource, graph) -> None:
+        """Called when a predecessor is added to this node"""
+        pass
+
+    def successor_added(self, resource, graph) -> None:
+        """Called when a successor is added to this node"""
+        pass
+
     def ancestors(self, graph) -> Iterator:
         """Returns an iterator of the node's ancestors"""
         return networkx.algorithms.dag.ancestors(graph, self)
@@ -1160,10 +1168,19 @@ class BaseLoadBalancer(BaseResource):
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        lb_type: str = "",
+        backends: List = None,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.lb_type = ""
-        self.backends = []
+        self.lb_type = lb_type
+        if backends is None:
+            self.backends = []
+        else:
+            self.backends = backends
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (

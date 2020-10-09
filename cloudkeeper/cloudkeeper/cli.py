@@ -891,6 +891,10 @@ and chain multipe commands using the semicolon (;).
                 yield "failed"
 
     def get_item_attr(self, item: BaseResource, attr: str) -> Any:
+        return_length = False
+        if attr.startswith("len:"):
+            return_length = True
+            attr = attr[4:]
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
         if attr in ["cloud", "account", "region", "zone"] and callable(item_attr):
@@ -898,8 +902,21 @@ and chain multipe commands using the semicolon (;).
         if item_attr is not None and not callable(item_attr):
             if attr_key is not None and isinstance(item_attr, dict):
                 item_attr = item_attr.get(attr_key)
+            elif (
+                attr_key is not None
+                and isinstance(item_attr, list)
+                and str(attr_key).isnumeric()
+            ):
+                attr_key = int(attr_key)
+                if attr_key < len(item_attr):
+                    item_attr = item_attr[attr_key]
         if attr_attr is not None:
             item_attr = getattr(item_attr, attr_attr, None)
+        if return_length:
+            if isinstance(item_attr, (list, dict, str, tuple, set, bytes, frozenset)):
+                item_attr = len(item_attr)
+            else:
+                item_attr = None
         return item_attr
 
 

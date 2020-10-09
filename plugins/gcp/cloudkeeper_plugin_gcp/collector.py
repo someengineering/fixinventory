@@ -5,6 +5,7 @@ from typing import List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.utils import except_log_and_pass
 from .resources import (
     GCPProject,
     GCPRegion,
@@ -51,16 +52,34 @@ from .resources import (
 from .utils import (
     Credentials,
     gcp_client,
+    gcp_service,
     paginate,
     iso2datetime,
     get_result_data,
+    common_client_kwargs,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GCPProjectCollector:
+    """Collects a single GCP project.
+
+    Responsible for collecting all the resources of an individual project.
+    Builds up its own local graph which is then taken by collect_project()
+    and merged with the plugin graph.
+
+    This way we can have many instances of GCPProjectCollector running in parallel.
+    All building up individual graphs which in the end are merged to a final graph
+    containing all GCP resources.
+    """
+
     def __init__(self, project: GCPProject) -> None:
+        """
+        Args:
+            project: The GCP project resource object this project collector
+                is going to collect.
+        """
         self.project = project
         self.credentials = Credentials.get(self.project.id)
         self.root = self.project
@@ -68,10 +87,16 @@ class GCPProjectCollector:
         resource_attr = get_resource_attributes(self.root)
         self.graph.add_node(self.root, label=self.root.name, **resource_attr)
 
+        # Mandatory collectors are always collected regardless of whether
+        # they were included by --gcp-collect or excluded by --gcp-no-collect
         self.mandatory_collectors = {
             "regions": self.collect_regions,
             "zones": self.collect_zones,
         }
+        # Global collectors are resources that are either specified on a global level
+        # as opposed to a per zone or per region level or they are zone/region
+        # resources that provide a aggregatedList() function returning all resources
+        # for all zones/regions.
         self.global_collectors = {
             "networks": self.collect_networks,
             "subnetworks": self.collect_subnetworks,
@@ -94,6 +119,8 @@ class GCPProjectCollector:
             "instance_groups": self.collect_instance_groups,
             "instance_group_managers": self.collect_instance_group_managers,
             "autoscalers": self.collect_autoscalers,
+            "backend_services": self.collect_backend_services,
+            "url_maps": self.collect_url_maps,
             "target_pools": self.collect_target_pools,
             "target_instances": self.collect_target_instances,
             "target_http_proxies": self.collect_target_http_proxies,
@@ -101,17 +128,19 @@ class GCPProjectCollector:
             "target_ssl_proxies": self.collect_target_ssl_proxies,
             "target_tcp_proxies": self.collect_target_tcp_proxies,
             "target_grpc_proxies": self.collect_target_grpc_proxies,
-            "backend_services": self.collect_backend_services,
-            "url_maps": self.collect_url_maps,
             "forwarding_rules": self.collect_forwarding_rules,
             "buckets": self.collect_buckets,
             "databases": self.collect_databases,
         }
+        # Region collectors collect resources in a single region.
+        # They are being passed the GCPRegion resource object as `region` arg.
         self.region_collectors = {
             "region_ssl_certificates": self.collect_region_ssl_certificates,
             "region_target_http_proxies": self.collect_region_target_http_proxies,
             "region_target_https_proxies": self.collect_region_target_https_proxies,
         }
+        # Zone collectors are being called for each zone.
+        # They are being passed the GCPZone resource object as `zone` arg.
         self.zone_collectors = {}
         self.all_collectors = dict(self.mandatory_collectors)
         self.all_collectors.update(self.global_collectors)
@@ -120,6 +149,10 @@ class GCPProjectCollector:
         self.collector_set = set(self.all_collectors.keys())
 
     def collect(self) -> None:
+        """Runs the actual resource collection across all resource collectors.
+
+        Resource collectors add their resources to the local `self.graph` graph.
+        """
         collectors = set(self.collector_set)
         if len(ArgumentParser.args.gcp_collect) > 0:
             collectors = set(ArgumentParser.args.gcp_collect).intersection(collectors)
@@ -147,6 +180,7 @@ class GCPProjectCollector:
                 log.info(f"Collecting {collector_name} in {self.project.rtdname}")
                 collector()
 
+        # Todo: parallelize region and zone collection
         for region in regions:
             for collector_name, collector in self.region_collectors.items():
                 if collector_name in collectors:
@@ -172,6 +206,80 @@ class GCPProjectCollector:
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
     ) -> Dict:
+        """Finds resource attributes in the GCP API result data and returns
+        them together with any graph search results.
+
+        Args:
+            result: Dict containing the result or a GCP API execute() call.
+            attr_map: Dict of map_to: map_from pairs where map_to is the name of the arg
+                that a Cloudkeeper resource expects and map_from is the name of the key
+                in the result dictionary.
+            search_map: Dict of map_to: [search_attr, search_value_name]. Where map_to
+                is the arg that a Cloudkeeper resource expects. search_attr is the
+                attribute name to search for in the graph and search_value_name is the
+                name of the key in the result dictionary that is passed into the graph
+                search as attribute value.
+
+        Example:
+            result:
+            ```
+            {
+                'creationTimestamp': '2020-10-08T05:45:43.294-07:00',
+                'id': '7684174949783877401',
+                'kind': 'compute#disk',
+                'labelFingerprint': '42WmSpB8rSM=',
+                'lastAttachTimestamp': '2020-10-08T05:45:43.294-07:00',
+                'name': 'instance-group-1-lnmq',
+                'physicalBlockSizeBytes': '4096',
+                'sizeGb': '10',
+                'status': 'READY',
+                'selfLink': 'https://www.googleapis.com/.../disks/instance-1-lnmq',
+                'type': 'https://www.googleapis.com/.../diskTypes/pd-standard',
+                'users': ['https://www.googleapis.com/.../instances/instance-1-lnmq'],
+                'zone': 'https://www.googleapis.com/.../zones/europe-west1-d'
+            }
+            attr_map:
+            {
+                "volume_size": "sizeGb",
+                "volume_status": "status",
+            }
+            search_map:
+            {
+                "volume_type": ["link", "type"],
+                "_users": ["link", "users"],
+            }
+            ```
+            This would create
+            GCPDisk(
+                identifier="7684174949783877401",
+                name="instance-group-1-lnmq",
+                ctime=iso2datetime("2020-10-08T05:45:43.294-07:00"),
+                volume_size="10",
+                volume_status="READY",
+                volume_type=GCPDiskType()
+                link="https://www.googleapis.com/.../disks/instance-1-lnmq"
+            )
+            Where the GCPDiskType() object would be one that was found in the graph
+            with attribute "link": https://www.googleapis.com/.../diskTypes/pd-standard
+
+            The map_from and search_value_name in attr_map and search_map respectively
+            can also be a callable which is passed the entire result dict and then
+            responsible for finding and returning the relevant data.
+            E.g. the entry from above:
+                "volume_size": "sizeGb",
+            could also be written as:
+                "volume_size": (lambda r: r.get("sizeGb")),
+            This is mainly useful for searching deeply nested data.
+
+            Any key in the search_map that starts with an underscore like _users
+            in the example above will only be looked up and if found added to the
+            search_results return value but not be added to kwargs.
+
+            This returned search data can then be used to draw predecessor and successor
+            edges in the graph.
+        """
+        # The following are default attributes that are passed to every
+        # BaseResource() if found in `result`
         kwargs = {
             "identifier": result.get("id", result.get("name", result.get("selfLink"))),
             "tags": result.get("labels", {}),
@@ -181,15 +289,17 @@ class GCPProjectCollector:
             "label_fingerprint": result.get("labelFingerprint"),
             "account": self.project,
         }
+
         if attr_map is not None:
             for map_to, map_from in attr_map.items():
                 data = get_result_data(result, map_from)
                 if data is None:
-                    log.error(f"Attribute {map_from} not in result")
+                    log.debug(f"Attribute {map_from} not in result")
                     continue
                 log.debug(f"Found attribute {map_to}: {pformat(data)}")
                 kwargs[map_to] = data
 
+        # By default we search for a resources region and/or zone
         default_search_map = {"region": ["link", "region"], "zone": ["link", "zone"]}
         search_results = {}
         if search_map is None:
@@ -225,6 +335,11 @@ class GCPProjectCollector:
                     kwargs[map_to] = search_result[0]
                 else:
                     kwargs[map_to] = list(search_result)
+
+        # If the resource was referencing a zone but not a region we look up its
+        # region based on the zone information we found.
+        # E.g. if we know a disk is in zone us-central1-a then we can find
+        # the region us-central1 from that.
         if (
             "zone" in kwargs
             and "region" not in kwargs
@@ -238,13 +353,8 @@ class GCPProjectCollector:
 
         return kwargs, search_results
 
-    def collect_something(self, *args, **kwargs):
-        try:
-            self.collector(*args, **kwargs)
-        except Exception:
-            log.exception("Unhandeled error while collecting resources")
-
-    def collector(
+    @except_log_and_pass
+    def collect_something(
         self,
         resource_class: Type[BaseResource],
         paginate_method_name: str = "list",
@@ -259,6 +369,32 @@ class GCPProjectCollector:
         paginate_subitems_name: str = None,
         dump_resource: bool = False,
     ) -> List:
+        """Collects some resource and adds it to the graph.
+
+        Args:
+            resource_class: A GCP resource class name that inherits
+                Cloudkeeper's BaseResource
+            paginate_method_name: usually "list" or "aggregatedList"
+            paginate_items_name: key name that contains all the items
+                of our list/aggregatedList request
+            parent_resource: The resources parent resource in the graph.
+                This defaults to the zone or region for local or the
+                project for global resources.
+            attr_map: Dict containing a mapping of GCP API result dict keys
+                to resource_class attributes. See default_attributes()
+                for a detailed description.
+            search_map: Dict containing a mapping similar to attr_map except that
+                any results get looked up in `self.graph` instead of just passing
+                the result data as an attribute.
+            successors: List of resource successors (child nodes)
+            predecessors: List of resource predecessors (parent nodes)
+            client_kwargs: **kwargs that get passed to the GCP client
+            resource_kwargs: **kwargs that get passed to the GCP resource
+            paginate_subitems_name: Name of a resource in a aggregatedList result set
+                Defaults to be the name as the client method name. E.g. if we request
+                all disks it'll be {"items": {'zones/...': {'disks': []}}
+            dump_resource: If True will log.debug() a dump of the API result.
+        """
         client_method_name = resource_class("", {})._client_method
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
@@ -359,6 +495,8 @@ class GCPProjectCollector:
                         else:
                             log.error(f"Key {sr_name} is missing in search_map")
 
+    # All of the following methods just call collect_something() with some resource
+    # specific options.
     def collect_regions(self) -> List:
         self.collect_something(
             resource_class=GCPRegion,
@@ -590,6 +728,24 @@ class GCPProjectCollector:
             },
             predecessors=["_network", "_subnetwork"],
         )
+        for instance_group in list(
+            self.graph.search("resource_type", "gcp_instance_group")
+        ):
+            gs = gcp_service(instance_group, graph=self.graph)
+            kwargs = {"instanceGroup": instance_group.name}
+            kwargs.update(common_client_kwargs(instance_group))
+            for r in paginate(
+                gcp_resource=gs.instanceGroups(),
+                method_name="listInstances",
+                items_name="items",
+                **kwargs,
+            ):
+                i = self.graph.search_first("link", r.get("instance"))
+                if i:
+                    log.debug(
+                        f"Adding edge from {i.rtdname} to {instance_group.rtdname}"
+                    )
+                    self.graph.add_edge(i, instance_group)
 
     def collect_instance_group_managers(self):
         self.collect_something(
@@ -699,45 +855,77 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPTargetInstance,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_instance": ["link", "instance"],
+            },
+            predecessors=["_instance"],
         )
 
     def collect_target_http_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpProxy,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_target_https_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpsProxy,
             paginate_method_name="aggregatedList",
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_region_target_http_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_region_target_https_proxies(self, region: GCPRegion):
         self.collect_something(
             resource_kwargs={"region": region.name},
             resource_class=GCPRegionTargetHttpsProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
+            search_map={
+                "_service": ["link", "service"],
+            },
+            predecessors=["_service"],
         )
 
     def collect_target_tcp_proxies(self):
         self.collect_something(
             resource_class=GCPTargetTcpProxy,
+            search_map={
+                "_service": ["link", "service"],
+            },
+            predecessors=["_service"],
         )
 
     def collect_target_grpc_proxies(self):
         self.collect_something(
             resource_class=GCPTargetGrpcProxy,
+            search_map={
+                "_url_map": ["link", "urlMap"],
+            },
+            predecessors=["_url_map"],
         )
 
     def collect_backend_services(self):

@@ -4,6 +4,7 @@ from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
 from cloudkeeper.baseresources import (
     BaseAccount,
+    BaseLoadBalancer,
     BaseRegion,
     VolumeStatus,
     BaseVolume,
@@ -418,7 +419,7 @@ class GCPBackendService(GCPResource, BaseResource):
     api_identifier = "backendService"
 
 
-class GCPForwardingRule(GCPResource, BaseResource):
+class GCPForwardingRule(GCPResource, BaseLoadBalancer):
     resource_type = "gcp_forwarding_rule"
     api_identifier = "forwardingRule"
 
