@@ -439,6 +439,7 @@ class GCPForwardingRule(GCPResource, BaseLoadBalancer):
         self.load_balancing_scheme = load_balancing_scheme
         self.network_tier = network_tier
         self.port_range = port_range
+        self.lb_type = "gcp"
 
 
 class GCPGlobalForwardingRule(GCPForwardingRule):

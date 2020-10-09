@@ -1,7 +1,7 @@
 import cloudkeeper.logging
 import cloudkeeper.signal
 from pprint import pformat
-from typing import List, Dict, Type, Union
+from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
@@ -367,6 +367,7 @@ class GCPProjectCollector:
         client_kwargs: Dict = None,
         resource_kwargs: Dict = None,
         paginate_subitems_name: str = None,
+        post_process: Callable = None,
         dump_resource: bool = False,
     ) -> List:
         """Collects some resource and adds it to the graph.
@@ -393,6 +394,8 @@ class GCPProjectCollector:
             paginate_subitems_name: Name of a resource in a aggregatedList result set
                 Defaults to be the name as the client method name. E.g. if we request
                 all disks it'll be {"items": {'zones/...': {'disks': []}}
+            post_process: Callable that is called after a resource has been added to
+                the graph. The resource object and the graph are given as args.
             dump_resource: If True will log.debug() a dump of the API result.
         """
         client_method_name = resource_class("", {})._client_method
@@ -494,6 +497,8 @@ class GCPProjectCollector:
                                     )
                         else:
                             log.error(f"Key {sr_name} is missing in search_map")
+            if callable(post_process):
+                post_process(r, self.graph)
 
     # All of the following methods just call collect_something() with some resource
     # specific options.
@@ -719,6 +724,22 @@ class GCPProjectCollector:
         )
 
     def collect_instance_groups(self):
+        def post_process(resource: GCPInstanceGroup, graph: Graph):
+            gs = gcp_service(resource, graph=graph)
+            kwargs = {"instanceGroup": resource.name}
+            kwargs.update(common_client_kwargs(resource))
+            log.debug(f"Getting instances for {resource.rtdname}")
+            for r in paginate(
+                gcp_resource=gs.instanceGroups(),
+                method_name="listInstances",
+                items_name="items",
+                **kwargs,
+            ):
+                i = graph.search_first("link", r.get("instance"))
+                if i:
+                    log.debug(f"Adding edge from {i.rtdname} to {resource.rtdname}")
+                    graph.add_edge(i, resource)
+
         self.collect_something(
             resource_class=GCPInstanceGroup,
             paginate_method_name="aggregatedList",
@@ -727,25 +748,8 @@ class GCPProjectCollector:
                 "_network": ["link", "network"],
             },
             predecessors=["_network", "_subnetwork"],
+            post_process=post_process,
         )
-        for instance_group in list(
-            self.graph.search("resource_type", "gcp_instance_group")
-        ):
-            gs = gcp_service(instance_group, graph=self.graph)
-            kwargs = {"instanceGroup": instance_group.name}
-            kwargs.update(common_client_kwargs(instance_group))
-            for r in paginate(
-                gcp_resource=gs.instanceGroups(),
-                method_name="listInstances",
-                items_name="items",
-                **kwargs,
-            ):
-                i = self.graph.search_first("link", r.get("instance"))
-                if i:
-                    log.debug(
-                        f"Adding edge from {i.rtdname} to {instance_group.rtdname}"
-                    )
-                    self.graph.add_edge(i, instance_group)
 
     def collect_instance_group_managers(self):
         self.collect_something(
@@ -943,6 +947,13 @@ class GCPProjectCollector:
         )
 
     def collect_forwarding_rules(self):
+        def post_process(resource: GCPForwardingRule, graph: Graph):
+            instances = [
+                i.name for i in resource.ancestors(graph) if isinstance(i, GCPInstance)
+            ]
+            if len(instances) > 0:
+                resource.backends = sorted(instances)
+
         self.collect_something(
             resource_class=GCPForwardingRule,
             paginate_method_name="aggregatedList",
@@ -957,6 +968,7 @@ class GCPProjectCollector:
                 "_target": ["link", "target"],
             },
             predecessors=["_target"],
+            post_process=post_process,
         )
 
     def collect_global_forwarding_rules(self):
