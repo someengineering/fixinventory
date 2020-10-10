@@ -72,12 +72,12 @@ metrics_graph2pajek = Summary(
 resource_attributes_blacklist = ["metrics_description", "event_log"]
 
 
-def get_resource_attributes(resource) -> Dict:
+def get_resource_attributes(resource, exclude_private: bool = True) -> Dict:
     attributes = dict(resource.__dict__)
     attributes["resource_type"] = resource.resource_type
 
     for attr_name in dir(resource):
-        if attr_name.startswith("_"):
+        if exclude_private and attr_name.startswith("_"):
             continue
         attr_type = getattr(type(resource), attr_name, None)
         if isinstance(attr_type, property):
@@ -87,7 +87,11 @@ def get_resource_attributes(resource) -> Dict:
     add_keys = {}
 
     for key, value in attributes.items():
-        if str(key).startswith("_") or str(key) in resource_attributes_blacklist:
+        if (
+            exclude_private
+            and str(key).startswith("_")
+            or str(key) in resource_attributes_blacklist
+        ):
             remove_keys.append(key)
         elif type(value) is list or type(value) is tuple:
             remove_keys.append(key)

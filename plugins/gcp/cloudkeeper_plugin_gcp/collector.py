@@ -43,20 +43,19 @@ from .resources import (
     GCPBackendService,
     GCPForwardingRule,
     GCPGlobalForwardingRule,
-    GCPRegionSSLCertificate,
-    GCPRegionTargetHttpProxy,
-    GCPRegionTargetHttpsProxy,
     GCPBucket,
     GCPDatabase,
+    GCPService,
+    GCPServiceSKU,
 )
 from .utils import (
     Credentials,
     gcp_client,
-    gcp_service,
+    gcp_resource,
     paginate,
     iso2datetime,
     get_result_data,
-    common_client_kwargs,
+    common_resource_kwargs,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -90,6 +89,7 @@ class GCPProjectCollector:
         # Mandatory collectors are always collected regardless of whether
         # they were included by --gcp-collect or excluded by --gcp-no-collect
         self.mandatory_collectors = {
+            "services": self.collect_services,
             "regions": self.collect_regions,
             "zones": self.collect_zones,
         }
@@ -134,11 +134,7 @@ class GCPProjectCollector:
         }
         # Region collectors collect resources in a single region.
         # They are being passed the GCPRegion resource object as `region` arg.
-        self.region_collectors = {
-            "region_ssl_certificates": self.collect_region_ssl_certificates,
-            "region_target_http_proxies": self.collect_region_target_http_proxies,
-            "region_target_https_proxies": self.collect_region_target_https_proxies,
-        }
+        self.region_collectors = {}
         # Zone collectors are being called for each zone.
         # They are being passed the GCPZone resource object as `zone` arg.
         self.zone_collectors = {}
@@ -399,6 +395,7 @@ class GCPProjectCollector:
             dump_resource: If True will log.debug() a dump of the API result.
         """
         client_method_name = resource_class("", {})._client_method
+        default_resource_args = resource_class("", {}).resource_args
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -411,6 +408,9 @@ class GCPProjectCollector:
         if predecessors is None:
             predecessors = []
         parent_map = {True: predecessors, False: successors}
+
+        if "project" in default_resource_args:
+            resource_kwargs["project"] = self.project.id
 
         client = gcp_client(
             resource_class.client,
@@ -427,7 +427,6 @@ class GCPProjectCollector:
             method_name=paginate_method_name,
             items_name=paginate_items_name,
             subitems_name=paginate_subitems_name,
-            project=self.project.id,
             **resource_kwargs,
         ):
             kwargs, search_results = self.default_attributes(
@@ -671,16 +670,6 @@ class GCPProjectCollector:
             successors=["_user"],
         )
 
-    def collect_region_ssl_certificates(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionSSLCertificate,
-            search_map={
-                "_user": ["link", "user"],
-            },
-            successors=["_user"],
-        )
-
     def collect_machine_types(self):
         self.collect_something(
             resource_class=GCPMachineType,
@@ -725,12 +714,11 @@ class GCPProjectCollector:
 
     def collect_instance_groups(self):
         def post_process(resource: GCPInstanceGroup, graph: Graph):
-            gs = gcp_service(resource, graph=graph)
             kwargs = {"instanceGroup": resource.name}
-            kwargs.update(common_client_kwargs(resource))
-            log.debug(f"Getting instances for {resource.rtdname}")
+            kwargs.update(common_resource_kwargs(resource))
+            log.debug(f"Getting instances for {resource}")
             for r in paginate(
-                gcp_resource=gs.instanceGroups(),
+                gcp_resource=gcp_resource(resource, graph),
                 method_name="listInstances",
                 items_name="items",
                 **kwargs,
@@ -885,26 +873,6 @@ class GCPProjectCollector:
             predecessors=["_url_map"],
         )
 
-    def collect_region_target_http_proxies(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionTargetHttpProxy,
-            search_map={
-                "_url_map": ["link", "urlMap"],
-            },
-            predecessors=["_url_map"],
-        )
-
-    def collect_region_target_https_proxies(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionTargetHttpsProxy,
-            search_map={
-                "_url_map": ["link", "urlMap"],
-            },
-            predecessors=["_url_map"],
-        )
-
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
@@ -1024,4 +992,50 @@ class GCPProjectCollector:
                 "region": ["name", "region"],
                 "zone": ["name", "gceZone"],
             },
+        )
+
+    def collect_services(self):
+        def post_process(service: GCPService, graph: Graph):
+            # Right now we are only interested in Compute Engine pricing
+            if service.name != "Compute Engine":
+                return
+            gs = gcp_client("cloudbilling", "v1", credentials=self.credentials)
+            kwargs = {"parent": f"services/{service.id}"}
+            for r in paginate(
+                gcp_resource=gs.services().skus(),
+                method_name="list",
+                items_name="skus",
+                **kwargs,
+            ):
+                sku = GCPServiceSKU(
+                    r["skuId"],
+                    {},
+                    name=r.get("description"),
+                    service=r.get("category", {}).get("serviceDisplayName"),
+                    resource_family=r.get("category", {}).get("resourceFamily"),
+                    resource_group=r.get("category", {}).get("resourceGroup"),
+                    usage_type=r.get("category", {}).get("usageType"),
+                    pricing_info=r.get("pricingInfo"),
+                    service_provider_name=r.get("serviceProviderName"),
+                    geo_taxonomy_type=r.get("geoTaxonomy", {}).get("type"),
+                    geo_taxonomy_regions=r.get("geoTaxonomy", {}).get("regions"),
+                    link=(
+                        f"https://{service.client}.googleapis.com/"
+                        f"{service.api_version}/{r.get('name')}"
+                    ),
+                    account=service.account(graph),
+                    region=service.region(graph),
+                    zone=service.zone(graph),
+                )
+                graph.add_resource(service, sku)
+
+        self.collect_something(
+            resource_class=GCPService,
+            paginate_method_name="list",
+            paginate_items_name="services",
+            attr_map={
+                "identifier": "serviceId",
+                "name": "displayName",
+            },
+            post_process=post_process,
         )

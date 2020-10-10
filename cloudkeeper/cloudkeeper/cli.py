@@ -376,24 +376,29 @@ class CliHandler:
             yield item
 
     def cmd_dump(self, items: Iterable, args: str) -> Iterable:
-        """Usage: | dump [--json]
+        """Usage: | dump [--json] [--private]
 
         Dumps details about the resources.
         Optionally dump them as one JSON object.
         Beware that dumping large datasets as JSON requires
         the entire dataset to be in memory.
+
+        If --private is given private resource attributes
+        (those starting with _) will be included in the dump.
         """
         dump_json = False
         json_out = []
-        if args == "--json":
+        args = args.split(" ")
+        if "--json" in args:
             dump_json = True
+        exclude_private = "--private" not in args
 
         for item in items:
             if not isinstance(item, BaseResource):
                 raise RuntimeError(
                     f"Item {item} is not a valid resource - dumping failed"
                 )
-            out = get_resource_attributes(item)
+            out = get_resource_attributes(item, exclude_private=exclude_private)
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
             region = item.region(self.graph)
