@@ -437,6 +437,7 @@ class GCPProjectCollector:
             log.debug(f"Adding {r.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource)}")
+
             if isinstance(pr, str) and pr in search_results:
                 pr = search_results[parent_resource][0]
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
@@ -575,9 +576,85 @@ class GCPProjectCollector:
         )
 
     def collect_disk_types(self):
+        def post_process(resource: GCPDiskType, graph: Graph):
+            if (
+                resource.region(graph).name == "undefined"
+                and resource.zone(graph).name == "undefined"
+            ):
+                return
+            log.debug(f"Looking up pricing for {resource.rtdname}")
+            resource_group_map = {
+                "local-ssd": "LocalSSD",
+                "pd-balanced": "SSD",
+                "pd-ssd": "SSD",
+                "pd-standard": "PDStandard",
+            }
+            resource_group = resource_group_map.get(resource.name)
+            skus = list(
+                graph.searchall(
+                    {
+                        "resource_type": "gcp_service_sku",
+                        "resource_family": "Storage",
+                        "usage_type": "OnDemand",
+                        "resource_group": resource_group,
+                    }
+                )
+            )
+            for sku in list(skus):
+                if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                    skus.remove(sku)
+                    continue
+                if resource.name == "pd-balanced" and not sku.name.startswith(
+                    "Balanced"
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name != "pd-balanced" and sku.name.startswith("Balanced"):
+                    skus.remove(sku)
+                    continue
+                if resource.zone(graph).name != "undefined" and sku.name.startswith(
+                    "Regional"
+                ):
+                    skus.remove(sku)
+                    continue
+                if (
+                    resource.zone(graph).name == "undefined"
+                    and not sku.name.startswith("Regional")
+                    and resource.name != "pd-balanced"
+                ):
+                    skus.remove(sku)
+                    continue
+            if len(skus) == 1:
+                graph.add_edge(skus[0], resource)
+                # Determine an ondemand cost estimation based
+                # on the first non-free tiered rate
+                tiered_rates = (
+                    skus[0]
+                    .pricing_info[0]
+                    .get("pricingExpression", {})
+                    .get("tieredRates", [])
+                )
+                ondemand_cost = -1
+                if len(tiered_rates) == 1:
+                    ondemand_cost = (
+                        tiered_rates[0].get("unitPrice", {}).get("nanos", -1)
+                    )
+                else:
+                    for tiered_rate in tiered_rates:
+                        if tiered_rate.get("startUsageAmount", -1) > 0:
+                            ondemand_cost = tiered_rate.get("unitPrice", {}).get(
+                                "nanos", -1
+                            )
+                            break
+                if ondemand_cost > -1:
+                    resource.ondemand_cost = ondemand_cost / 1000000000
+            else:
+                log.debug(f"Unable to determine SKU for {resource}")
+
         self.collect_something(
             paginate_method_name="aggregatedList",
             resource_class=GCPDiskType,
+            post_process=post_process,
         )
 
     def collect_networks(self):
@@ -671,6 +748,9 @@ class GCPProjectCollector:
         )
 
     def collect_machine_types(self):
+        def post_process(resource: GCPMachineType, graph: Graph):
+            pass
+
         self.collect_something(
             resource_class=GCPMachineType,
             paginate_method_name="aggregatedList",
@@ -681,6 +761,7 @@ class GCPProjectCollector:
                 "instance_cores": "guestCpus",
                 "instance_memory": "memoryMb",
             },
+            post_process=post_process,
         )
 
     def collect_network_endpoint_groups(self):
