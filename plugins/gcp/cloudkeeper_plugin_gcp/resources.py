@@ -576,3 +576,18 @@ class GCPServiceSKU(GCPResource, BaseResource):
         self.usage_type = usage_type
         self.geo_taxonomy_type = geo_taxonomy_type
         self.geo_taxonomy_regions = geo_taxonomy_regions
+        self.usage_unit_nanos = -1
+        if len(self.pricing_info) > 0:
+            tiered_rates = (
+                self.pricing_info[0].get("pricingExpression", {}).get("tieredRates", [])
+            )
+            cost = -1
+            if len(tiered_rates) == 1:
+                cost = tiered_rates[0].get("unitPrice", {}).get("nanos", -1)
+            else:
+                for tiered_rate in tiered_rates:
+                    if tiered_rate.get("startUsageAmount", -1) > 0:
+                        cost = tiered_rate.get("unitPrice", {}).get("nanos", -1)
+                        break
+            if cost > -1:
+                self.usage_unit_nanos = cost

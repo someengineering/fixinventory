@@ -89,7 +89,6 @@ class GCPProjectCollector:
         # Mandatory collectors are always collected regardless of whether
         # they were included by --gcp-collect or excluded by --gcp-no-collect
         self.mandatory_collectors = {
-            "services": self.collect_services,
             "regions": self.collect_regions,
             "zones": self.collect_zones,
         }
@@ -98,6 +97,7 @@ class GCPProjectCollector:
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
         self.global_collectors = {
+            "services": self.collect_services,
             "networks": self.collect_networks,
             "subnetworks": self.collect_subnetworks,
             "routers": self.collect_routers,
@@ -626,28 +626,7 @@ class GCPProjectCollector:
                     continue
             if len(skus) == 1:
                 graph.add_edge(skus[0], resource)
-                # Determine an ondemand cost estimation based
-                # on the first non-free tiered rate
-                tiered_rates = (
-                    skus[0]
-                    .pricing_info[0]
-                    .get("pricingExpression", {})
-                    .get("tieredRates", [])
-                )
-                ondemand_cost = -1
-                if len(tiered_rates) == 1:
-                    ondemand_cost = (
-                        tiered_rates[0].get("unitPrice", {}).get("nanos", -1)
-                    )
-                else:
-                    for tiered_rate in tiered_rates:
-                        if tiered_rate.get("startUsageAmount", -1) > 0:
-                            ondemand_cost = tiered_rate.get("unitPrice", {}).get(
-                                "nanos", -1
-                            )
-                            break
-                if ondemand_cost > -1:
-                    resource.ondemand_cost = ondemand_cost / 1000000000
+                resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
             else:
                 log.debug(f"Unable to determine SKU for {resource}")
 
@@ -749,7 +728,101 @@ class GCPProjectCollector:
 
     def collect_machine_types(self):
         def post_process(resource: GCPMachineType, graph: Graph):
-            pass
+            """Adds edges from machine type to SKUs and determines ondemand pricing
+
+            TODO: Implement Custom and GPU types
+            """
+            if (
+                resource.region(graph).name == "undefined"
+                and resource.zone(graph).name == "undefined"
+            ):
+                return
+
+            log.debug(f"Looking up pricing for {resource.rtdname}")
+            skus = list(
+                graph.searchall(
+                    {
+                        "resource_type": "gcp_service_sku",
+                        "resource_family": "Compute",
+                        "usage_type": "OnDemand",
+                    }
+                )
+            )
+            for sku in list(skus):
+                if sku.resource_group not in (
+                    "G1Small",
+                    "F1Micro",
+                    "N1Standard",
+                    "CPU",
+                    "RAM",
+                ):
+                    skus.remove(sku)
+                    continue
+                if "Custom" in sku.name:
+                    skus.remove(sku)
+                    continue
+                if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                    skus.remove(sku)
+                    continue
+                if resource.name == "g1-small" and sku.resource_group != "G1Small":
+                    skus.remove(sku)
+                    continue
+                if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
+                    skus.remove(sku)
+                    continue
+                if (
+                    resource.name.startswith("n1-")
+                    and sku.resource_group != "N1Standard"
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("e2-") and not sku.name.startswith("E2 "):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("n2d-") and not sku.name.startswith(
+                    "N2D AMD Instance "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("n2-") and not sku.name.startswith(
+                    "N2 Instance "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("m1-") and not sku.name.startswith(
+                    "Memory-optimized "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("c2-") and not sku.name.startswith(
+                    "Compute optimized "
+                ):
+                    skus.remove(sku)
+                    continue
+
+            if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
+                graph.add_edge(skus[0], resource)
+                resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            elif len(skus) == 2:
+                graph.add_edge(skus[0], resource)
+                graph.add_edge(skus[1], resource)
+                ondemand_cost = 0
+                for sku in skus:
+                    if "Core" in sku.name:
+                        ondemand_cost += sku.usage_unit_nanos * resource.instance_cores
+                    elif "Ram" in sku.name:
+                        ondemand_cost += sku.usage_unit_nanos * (
+                            resource.instance_memory / 1024
+                        )
+                if ondemand_cost > 0:
+                    resource.ondemand_cost = ondemand_cost / 1000000000
+            else:
+                log.debug(
+                    (
+                        f"Unable to determine SKU(s) for {resource}:"
+                        f" {[sku.dname for sku in skus]}"
+                    )
+                )
 
         self.collect_something(
             resource_class=GCPMachineType,
