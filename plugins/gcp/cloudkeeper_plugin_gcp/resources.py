@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List
 from datetime import datetime, timezone, timedelta
 from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
