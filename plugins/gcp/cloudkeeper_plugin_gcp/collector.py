@@ -6,6 +6,7 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import except_log_and_pass
+from prometheus_client import Summary
 from .resources import (
     GCPProject,
     GCPRegion,
@@ -59,6 +60,160 @@ from .utils import (
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+
+
+metrics_collect_regions = Summary(
+    "cloudkeeper_plugin_gcp_collect_regions_seconds",
+    "Time it took the collect_regions() method",
+)
+metrics_collect_zones = Summary(
+    "cloudkeeper_plugin_gcp_collect_zones_seconds",
+    "Time it took the collect_zones() method",
+)
+metrics_collect_disks = Summary(
+    "cloudkeeper_plugin_gcp_collect_disks_seconds",
+    "Time it took the collect_disks() method",
+)
+metrics_collect_instances = Summary(
+    "cloudkeeper_plugin_gcp_collect_instances_seconds",
+    "Time it took the collect_instances() method",
+)
+metrics_collect_disk_types = Summary(
+    "cloudkeeper_plugin_gcp_collect_disk_types_seconds",
+    "Time it took the collect_disk_types() method",
+)
+metrics_collect_networks = Summary(
+    "cloudkeeper_plugin_gcp_collect_networks_seconds",
+    "Time it took the collect_networks() method",
+)
+metrics_collect_subnetworks = Summary(
+    "cloudkeeper_plugin_gcp_collect_subnetworks_seconds",
+    "Time it took the collect_subnetworks() method",
+)
+metrics_collect_vpn_tunnels = Summary(
+    "cloudkeeper_plugin_gcp_collect_vpn_tunnels_seconds",
+    "Time it took the collect_vpn_tunnels() method",
+)
+metrics_collect_vpn_gateways = Summary(
+    "cloudkeeper_plugin_gcp_collect_vpn_gateways_seconds",
+    "Time it took the collect_vpn_gateways() method",
+)
+metrics_collect_target_vpn_gateways = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_vpn_gateways_seconds",
+    "Time it took the collect_target_vpn_gateways() method",
+)
+metrics_collect_routers = Summary(
+    "cloudkeeper_plugin_gcp_collect_routers_seconds",
+    "Time it took the collect_routers() method",
+)
+metrics_collect_routes = Summary(
+    "cloudkeeper_plugin_gcp_collect_routes_seconds",
+    "Time it took the collect_routes() method",
+)
+metrics_collect_security_policies = Summary(
+    "cloudkeeper_plugin_gcp_collect_security_policies_seconds",
+    "Time it took the collect_security_policies() method",
+)
+metrics_collect_snapshots = Summary(
+    "cloudkeeper_plugin_gcp_collect_snapshots_seconds",
+    "Time it took the collect_snapshots() method",
+)
+metrics_collect_ssl_certificates = Summary(
+    "cloudkeeper_plugin_gcp_collect_ssl_certificates_seconds",
+    "Time it took the collect_ssl_certificates() method",
+)
+metrics_collect_machine_types = Summary(
+    "cloudkeeper_plugin_gcp_collect_machine_types_seconds",
+    "Time it took the collect_machine_types() method",
+)
+metrics_collect_network_endpoint_groups = Summary(
+    "cloudkeeper_plugin_gcp_collect_network_endpoint_groups_seconds",
+    "Time it took the collect_network_endpoint_groups() method",
+)
+metrics_collect_global_network_endpoint_groups = Summary(
+    "cloudkeeper_plugin_gcp_collect_global_network_endpoint_groups_seconds",
+    "Time it took the collect_global_network_endpoint_groups() method",
+)
+metrics_collect_instance_groups = Summary(
+    "cloudkeeper_plugin_gcp_collect_instance_groups_seconds",
+    "Time it took the collect_instance_groups() method",
+)
+metrics_collect_instance_group_managers = Summary(
+    "cloudkeeper_plugin_gcp_collect_instance_group_managers_seconds",
+    "Time it took the collect_instance_group_managers() method",
+)
+metrics_collect_autoscalers = Summary(
+    "cloudkeeper_plugin_gcp_collect_autoscalers_seconds",
+    "Time it took the collect_autoscalers() method",
+)
+metrics_collect_health_checks = Summary(
+    "cloudkeeper_plugin_gcp_collect_health_checks_seconds",
+    "Time it took the collect_health_checks() method",
+)
+metrics_collect_http_health_checks = Summary(
+    "cloudkeeper_plugin_gcp_collect_http_health_checks_seconds",
+    "Time it took the collect_http_health_checks() method",
+)
+metrics_collect_https_health_checks = Summary(
+    "cloudkeeper_plugin_gcp_collect_https_health_checks_seconds",
+    "Time it took the collect_https_health_checks() method",
+)
+metrics_collect_url_maps = Summary(
+    "cloudkeeper_plugin_gcp_collect_url_maps_seconds",
+    "Time it took the collect_url_maps() method",
+)
+metrics_collect_target_pools = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_pools_seconds",
+    "Time it took the collect_target_pools() method",
+)
+metrics_collect_target_instances = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_instances_seconds",
+    "Time it took the collect_target_instances() method",
+)
+metrics_collect_target_http_proxies = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_http_proxies_seconds",
+    "Time it took the collect_target_http_proxies() method",
+)
+metrics_collect_target_https_proxies = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_https_proxies_seconds",
+    "Time it took the collect_target_https_proxies() method",
+)
+metrics_collect_target_ssl_proxies = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_ssl_proxies_seconds",
+    "Time it took the collect_target_ssl_proxies() method",
+)
+metrics_collect_target_tcp_proxies = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_tcp_proxies_seconds",
+    "Time it took the collect_target_tcp_proxies() method",
+)
+metrics_collect_target_grpc_proxies = Summary(
+    "cloudkeeper_plugin_gcp_collect_target_grpc_proxies_seconds",
+    "Time it took the collect_target_grpc_proxies() method",
+)
+metrics_collect_backend_services = Summary(
+    "cloudkeeper_plugin_gcp_collect_backend_services_seconds",
+    "Time it took the collect_backend_services() method",
+)
+metrics_collect_forwarding_rules = Summary(
+    "cloudkeeper_plugin_gcp_collect_forwarding_rules_seconds",
+    "Time it took the collect_forwarding_rules() method",
+)
+metrics_collect_global_forwarding_rules = Summary(
+    "cloudkeeper_plugin_gcp_collect_global_forwarding_rules_seconds",
+    "Time it took the collect_global_forwarding_rules() method",
+)
+metrics_collect_buckets = Summary(
+    "cloudkeeper_plugin_gcp_collect_buckets_seconds",
+    "Time it took the collect_buckets() method",
+)
+metrics_collect_databases = Summary(
+    "cloudkeeper_plugin_gcp_collect_databases_seconds",
+    "Time it took the collect_databases() method",
+)
+metrics_collect_services = Summary(
+    "cloudkeeper_plugin_gcp_collect_services_seconds",
+    "Time it took the collect_services() method",
+)
 
 
 class GCPProjectCollector:
@@ -502,17 +657,20 @@ class GCPProjectCollector:
 
     # All of the following methods just call collect_something() with some resource
     # specific options.
+    @metrics_collect_regions.time()
     def collect_regions(self) -> List:
         self.collect_something(
             resource_class=GCPRegion,
             attr_map={"region_status": "status"},
         )
 
+    @metrics_collect_zones.time()
     def collect_zones(self) -> List:
         self.collect_something(
             resource_class=GCPZone,
         )
 
+    @metrics_collect_disks.time()
     def collect_disks(self):
         def volume_status(result):
             status = result.get("status")
@@ -546,6 +704,7 @@ class GCPProjectCollector:
             successors=["_users"],
         )
 
+    @metrics_collect_instances.time()
     def collect_instances(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -575,6 +734,7 @@ class GCPProjectCollector:
             predecessors=["_network", "_subnetwork", "instance_type"],
         )
 
+    @metrics_collect_disk_types.time()
     def collect_disk_types(self):
         def post_process(resource: GCPDiskType, graph: Graph):
             if (
@@ -631,11 +791,13 @@ class GCPProjectCollector:
             post_process=post_process,
         )
 
+    @metrics_collect_networks.time()
     def collect_networks(self):
         self.collect_something(
             resource_class=GCPNetwork,
         )
 
+    @metrics_collect_subnetworks.time()
     def collect_subnetworks(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -646,6 +808,7 @@ class GCPProjectCollector:
             predecessors=["_network"],
         )
 
+    @metrics_collect_vpn_tunnels.time()
     def collect_vpn_tunnels(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -657,6 +820,7 @@ class GCPProjectCollector:
             successors=["_target_vpn_gateway", "_vpn_gateway"],
         )
 
+    @metrics_collect_vpn_gateways.time()
     def collect_vpn_gateways(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -667,6 +831,7 @@ class GCPProjectCollector:
             predecessors=["_network"],
         )
 
+    @metrics_collect_target_vpn_gateways.time()
     def collect_target_vpn_gateways(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -677,6 +842,7 @@ class GCPProjectCollector:
             predecessors=["_network"],
         )
 
+    @metrics_collect_routers.time()
     def collect_routers(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -687,6 +853,7 @@ class GCPProjectCollector:
             predecessors=["_network"],
         )
 
+    @metrics_collect_routes.time()
     def collect_routes(self):
         self.collect_something(
             resource_class=GCPRoute,
@@ -696,9 +863,11 @@ class GCPProjectCollector:
             predecessors=["_network"],
         )
 
+    @metrics_collect_security_policies.time()
     def collect_security_policies(self):
         self.collect_something(resource_class=GCPSecurityPolicy)
 
+    @metrics_collect_snapshots.time()
     def collect_snapshots(self):
         self.collect_something(
             resource_class=GCPSnapshot,
@@ -711,6 +880,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_ssl_certificates.time()
     def collect_ssl_certificates(self):
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -721,6 +891,7 @@ class GCPProjectCollector:
             successors=["_user"],
         )
 
+    @metrics_collect_machine_types.time()
     def collect_machine_types(self):
         def post_process(resource: GCPMachineType, graph: Graph):
             """Adds edges from machine type to SKUs and determines ondemand pricing
@@ -820,6 +991,7 @@ class GCPProjectCollector:
             post_process=post_process,
         )
 
+    @metrics_collect_network_endpoint_groups.time()
     def collect_network_endpoint_groups(self):
         self.collect_something(
             resource_class=GCPNetworkEndpointGroup,
@@ -835,6 +1007,7 @@ class GCPProjectCollector:
             predecessors=["_network", "_subnetwork"],
         )
 
+    @metrics_collect_global_network_endpoint_groups.time()
     def collect_global_network_endpoint_groups(self):
         self.collect_something(
             resource_class=GCPGlobalNetworkEndpointGroup,
@@ -849,6 +1022,7 @@ class GCPProjectCollector:
             predecessors=["_network", "_subnetwork"],
         )
 
+    @metrics_collect_instance_groups.time()
     def collect_instance_groups(self):
         def post_process(resource: GCPInstanceGroup, graph: Graph):
             kwargs = {"instanceGroup": resource.name}
@@ -876,6 +1050,7 @@ class GCPProjectCollector:
             post_process=post_process,
         )
 
+    @metrics_collect_instance_group_managers.time()
     def collect_instance_group_managers(self):
         self.collect_something(
             resource_class=GCPInstanceGroupManager,
@@ -895,6 +1070,7 @@ class GCPProjectCollector:
             predecessors=["_instance_group", "_health_checks"],
         )
 
+    @metrics_collect_autoscalers.time()
     def collect_autoscalers(self):
         self.collect_something(
             resource_class=GCPAutoscaler,
@@ -913,6 +1089,7 @@ class GCPProjectCollector:
             successors=["_instance_group_manager"],
         )
 
+    @metrics_collect_health_checks.time()
     def collect_health_checks(self):
         self.collect_something(
             resource_class=GCPHealthCheck,
@@ -926,6 +1103,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_http_health_checks.time()
     def collect_http_health_checks(self):
         self.collect_something(
             resource_class=GCPHTTPHealthCheck,
@@ -940,6 +1118,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_https_health_checks.time()
     def collect_https_health_checks(self):
         self.collect_something(
             resource_class=GCPHTTPSHealthCheck,
@@ -955,6 +1134,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_url_maps.time()
     def collect_url_maps(self):
         self.collect_something(
             resource_class=GCPUrlMap,
@@ -965,6 +1145,7 @@ class GCPProjectCollector:
             successors=["_default_service"],
         )
 
+    @metrics_collect_target_pools.time()
     def collect_target_pools(self):
         self.collect_something(
             resource_class=GCPTargetPool,
@@ -980,6 +1161,7 @@ class GCPProjectCollector:
             predecessors=["_instances", "_health_checks"],
         )
 
+    @metrics_collect_target_instances.time()
     def collect_target_instances(self):
         self.collect_something(
             resource_class=GCPTargetInstance,
@@ -990,6 +1172,7 @@ class GCPProjectCollector:
             predecessors=["_instance"],
         )
 
+    @metrics_collect_target_http_proxies.time()
     def collect_target_http_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpProxy,
@@ -1000,6 +1183,7 @@ class GCPProjectCollector:
             predecessors=["_url_map"],
         )
 
+    @metrics_collect_target_https_proxies.time()
     def collect_target_https_proxies(self):
         self.collect_something(
             resource_class=GCPTargetHttpsProxy,
@@ -1010,6 +1194,7 @@ class GCPProjectCollector:
             predecessors=["_url_map"],
         )
 
+    @metrics_collect_target_ssl_proxies.time()
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
@@ -1019,6 +1204,7 @@ class GCPProjectCollector:
             predecessors=["_service"],
         )
 
+    @metrics_collect_target_tcp_proxies.time()
     def collect_target_tcp_proxies(self):
         self.collect_something(
             resource_class=GCPTargetTcpProxy,
@@ -1028,6 +1214,7 @@ class GCPProjectCollector:
             predecessors=["_service"],
         )
 
+    @metrics_collect_target_grpc_proxies.time()
     def collect_target_grpc_proxies(self):
         self.collect_something(
             resource_class=GCPTargetGrpcProxy,
@@ -1037,6 +1224,7 @@ class GCPProjectCollector:
             predecessors=["_url_map"],
         )
 
+    @metrics_collect_backend_services.time()
     def collect_backend_services(self):
         self.collect_something(
             resource_class=GCPBackendService,
@@ -1051,6 +1239,7 @@ class GCPProjectCollector:
             predecessors=["_health_checks", "_backends"],
         )
 
+    @metrics_collect_forwarding_rules.time()
     def collect_forwarding_rules(self):
         def post_process(resource: GCPForwardingRule, graph: Graph):
             instances = [
@@ -1076,6 +1265,7 @@ class GCPProjectCollector:
             post_process=post_process,
         )
 
+    @metrics_collect_global_forwarding_rules.time()
     def collect_global_forwarding_rules(self):
         self.collect_something(
             resource_class=GCPGlobalForwardingRule,
@@ -1092,6 +1282,7 @@ class GCPProjectCollector:
             predecessors=["_target"],
         )
 
+    @metrics_collect_buckets.time()
     def collect_buckets(self):
         self.collect_something(
             resource_class=GCPBucket,
@@ -1105,6 +1296,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_databases.time()
     def collect_databases(self):
         self.collect_something(
             resource_class=GCPDatabase,
@@ -1131,6 +1323,7 @@ class GCPProjectCollector:
             },
         )
 
+    @metrics_collect_services.time()
     def collect_services(self):
         def post_process(service: GCPService, graph: Graph):
             # Right now we are only interested in Compute Engine pricing

@@ -23,6 +23,7 @@ setup(
         "google-api-python-client",
         "oauth2client",
         "networkx",
+        "prometheus_client",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
