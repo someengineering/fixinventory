@@ -590,40 +590,35 @@ class GCPProjectCollector:
                 "pd-standard": "PDStandard",
             }
             resource_group = resource_group_map.get(resource.name)
-            skus = list(
-                graph.searchall(
-                    {
-                        "resource_type": "gcp_service_sku",
-                        "resource_family": "Storage",
-                        "usage_type": "OnDemand",
-                        "resource_group": resource_group,
-                    }
-                )
-            )
-            for sku in list(skus):
+            skus = []
+            for sku in graph.searchall(
+                {
+                    "resource_type": "gcp_service_sku",
+                    "resource_family": "Storage",
+                    "usage_type": "OnDemand",
+                    "resource_group": resource_group,
+                }
+            ):
                 if resource.region(graph).name not in sku.geo_taxonomy_regions:
-                    skus.remove(sku)
                     continue
                 if resource.name == "pd-balanced" and not sku.name.startswith(
                     "Balanced"
                 ):
-                    skus.remove(sku)
                     continue
                 if resource.name != "pd-balanced" and sku.name.startswith("Balanced"):
-                    skus.remove(sku)
                     continue
                 if resource.zone(graph).name != "undefined" and sku.name.startswith(
                     "Regional"
                 ):
-                    skus.remove(sku)
                     continue
                 if (
                     resource.zone(graph).name == "undefined"
                     and not sku.name.startswith("Regional")
                     and resource.name != "pd-balanced"
                 ):
-                    skus.remove(sku)
                     continue
+                skus.append(sku)
+
             if len(skus) == 1:
                 graph.add_edge(skus[0], resource)
                 resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
@@ -739,16 +734,14 @@ class GCPProjectCollector:
                 return
 
             log.debug(f"Looking up pricing for {resource.rtdname}")
-            skus = list(
-                graph.searchall(
-                    {
-                        "resource_type": "gcp_service_sku",
-                        "resource_family": "Compute",
-                        "usage_type": "OnDemand",
-                    }
-                )
-            )
-            for sku in list(skus):
+            skus = []
+            for sku in graph.searchall(
+                {
+                    "resource_type": "gcp_service_sku",
+                    "resource_family": "Compute",
+                    "usage_type": "OnDemand",
+                }
+            ):
                 if sku.resource_group not in (
                     "G1Small",
                     "F1Micro",
@@ -756,49 +749,39 @@ class GCPProjectCollector:
                     "CPU",
                     "RAM",
                 ):
-                    skus.remove(sku)
                     continue
                 if "Custom" in sku.name:
-                    skus.remove(sku)
                     continue
                 if resource.region(graph).name not in sku.geo_taxonomy_regions:
-                    skus.remove(sku)
                     continue
                 if resource.name == "g1-small" and sku.resource_group != "G1Small":
-                    skus.remove(sku)
                     continue
                 if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
-                    skus.remove(sku)
                     continue
                 if (
                     resource.name.startswith("n1-")
                     and sku.resource_group != "N1Standard"
                 ):
-                    skus.remove(sku)
                     continue
                 if resource.name.startswith("e2-") and not sku.name.startswith("E2 "):
-                    skus.remove(sku)
                     continue
                 if resource.name.startswith("n2d-") and not sku.name.startswith(
                     "N2D AMD Instance "
                 ):
-                    skus.remove(sku)
                     continue
                 if resource.name.startswith("n2-") and not sku.name.startswith(
                     "N2 Instance "
                 ):
-                    skus.remove(sku)
                     continue
                 if resource.name.startswith("m1-") and not sku.name.startswith(
                     "Memory-optimized "
                 ):
-                    skus.remove(sku)
                     continue
                 if resource.name.startswith("c2-") and not sku.name.startswith(
                     "Compute optimized "
                 ):
-                    skus.remove(sku)
                     continue
+                skus.append(sku)
 
             if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
                 graph.add_edge(skus[0], resource)
