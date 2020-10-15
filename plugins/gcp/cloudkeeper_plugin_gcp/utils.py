@@ -125,7 +125,12 @@ def iso2datetime(ts: str) -> datetime:
 
 
 def paginate(
-    gcp_resource, method_name, items_name, subitems_name=None, **kwargs
+    gcp_resource: Callable,
+    method_name: str,
+    items_name: str,
+    subitems_name: str = None,
+    exclude_region_resources: bool = False,
+    **kwargs,
 ) -> Iterable:
     """Paginate GCP API list and aggregatedList results.
 
@@ -137,6 +142,8 @@ def paginate(
         subitems_name: When using aggregatedList this contains the actual items.
             Usually the same as the gcp_resource name. E.g. `disks` when requesting
             disks, `instances` when fetching instances, etc.
+        exclude_region_resources: Regional resources have their own API and can be
+            excluded from aggregatedList calls if so desired
     """
     next_method_name = method_name + "_next"
     method = getattr(gcp_resource, method_name)
@@ -146,7 +153,13 @@ def paginate(
         if items_name in result:
             items = result[items_name]
             if isinstance(items, dict):
-                for item in items.values():
+                for location, item in items.items():
+                    if (
+                        method_name == "aggregatedList"
+                        and exclude_region_resources
+                        and str(location).startswith("regions/")
+                    ):
+                        continue
                     if subitems_name in item:
                         yield from item[subitems_name]
             else:
@@ -178,20 +191,20 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
     return data
 
 
-def common_client_kwargs(resource: BaseResource) -> Dict:
+def common_resource_kwargs(resource: BaseResource) -> Dict:
     common_kwargs = {}
-    if resource.account().id != "undefined" and "project" in resource.client_args:
+    if resource.account().id != "undefined" and "project" in resource.resource_args:
         common_kwargs["project"] = resource.account().id
-    if resource.zone().name != "undefined" and "zone" in resource.client_args:
+    if resource.zone().name != "undefined" and "zone" in resource.resource_args:
         common_kwargs["zone"] = resource.zone().name
-    elif resource.region().name != "undefined" and "region" in resource.client_args:
+    elif resource.region().name != "undefined" and "region" in resource.resource_args:
         common_kwargs["region"] = resource.region().name
     return common_kwargs
 
 
 def delete_resource(resource: BaseResource) -> bool:
     delete_kwargs = {str(resource._delete_identifier): resource.name}
-    common_kwargs = common_client_kwargs(resource)
+    common_kwargs = common_resource_kwargs(resource)
     delete_kwargs.update(common_kwargs)
 
     gr = gcp_resource(resource)
@@ -204,7 +217,7 @@ def update_label(resource: BaseResource, key: str, value: str) -> bool:
     get_kwargs = {str(resource._get_identifier): resource.name}
     set_labels_kwargs = {str(resource._set_label_identifier): resource.name}
 
-    common_kwargs = common_client_kwargs(resource)
+    common_kwargs = common_resource_kwargs(resource)
     get_kwargs.update(common_kwargs)
     set_labels_kwargs.update(common_kwargs)
 

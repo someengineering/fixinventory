@@ -1,3 +1,4 @@
+from typing import List
 from datetime import datetime, timezone, timedelta
 from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
@@ -32,18 +33,36 @@ from .utils import (
     update_label,
     delete_resource,
     gcp_resource,
-    common_client_kwargs,
+    common_resource_kwargs,
 )
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+
+# Resources that can exist within zones OR outside zones in regions only
+regional_resources = (
+    "gcp_autoscaler",
+    "gcp_backend_service",
+    "gcp_commitment",
+    "gcp_disk_type",
+    "gcp_disk",
+    "gcp_health_check",
+    "gcp_instance_group_manager",
+    "gcp_instance_group",
+    "gcp_network_endpoint_group",
+    "gcp_notification_endpoint",
+    "gcp_ssl_certificate",
+    "gcp_target_http_proxy",
+    "gcp_target_https_proxy",
+    "gcp_url_map",
+)
 
 
 class GCPResource:
     api_identifier = NotImplemented
     client = "compute"
     api_version = "v1"
-    client_args = ["project", "zone", "region"]
+    resource_args = ["project", "zone", "region"]
 
     def __init__(
         self,
@@ -64,6 +83,25 @@ class GCPResource:
         self._patch_identifier = self.api_identifier
         self._delete_identifier = self.api_identifier
         self._set_label_identifier = self.api_identifier
+        self._check_region_resource()
+
+    def _check_region_resource(self):
+        """Checks if the resource is a regional or a zonal one.
+
+        If the resource has no zone but a region assigned and is part of
+        the list of `regional_resources` above we will update the
+        client method name as regional resources have their own API
+        methods.
+        """
+        if (
+            self.id != ""
+            and self.zone().name == "undefined"
+            and self.region().name != "undefined"
+            and self.resource_type in regional_resources
+        ):
+            self._client_method = (
+                "region" + self._client_method[0].upper() + self._client_method[1:]
+            )
 
     def delete(self, graph) -> bool:
         return delete_resource(self)
@@ -244,11 +282,6 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     api_identifier = "sslCertificate"
 
 
-class GCPRegionSSLCertificate(GCPResource, BaseCertificate):
-    resource_type = "gcp_region_ssl_certificate"
-    api_identifier = "regionSslCertificate"
-
-
 class GCPMachineType(GCPResource, BaseInstanceType):
     resource_type = "gcp_machine_type"
     api_identifier = "machineType"
@@ -286,24 +319,15 @@ class GCPInstanceGroup(GCPResource, BaseResource):
     resource_type = "gcp_instance_group"
     api_identifier = "instanceGroup"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
 
 class GCPInstanceGroupManager(GCPResource, BaseResource):
     resource_type = "gcp_instance_group_manager"
     api_identifier = "instanceGroupManager"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
 
 class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
     resource_type = "gcp_autoscaler"
     api_identifier = "autoscaler"
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
 
 
 class GCPHealthCheck(GCPResource, BaseHealthCheck):
@@ -353,6 +377,7 @@ class GCPTargetHttpProxy(GCPResource, BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._client_method = "targetHttpProxies"
+        self._check_region_resource()
 
 
 class GCPTargetHttpsProxy(GCPResource, BaseResource):
@@ -362,24 +387,7 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._client_method = "targetHttpsProxies"
-
-
-class GCPRegionTargetHttpProxy(GCPResource, BaseResource):
-    resource_type = "gcp_region_target_http_proxy"
-    api_identifier = "regionTargetHttpProxy"
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._client_method = "regionTargetHttpProxies"
-
-
-class GCPRegionTargetHttpsProxy(GCPResource, BaseResource):
-    resource_type = "gcp_region_target_https_proxy"
-    api_identifier = "regionTargetHttpsProxy"
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._client_method = "regionTargetHttpsProxies"
+        self._check_region_resource()
 
 
 class GCPTargetSslProxy(GCPResource, BaseResource):
@@ -509,11 +517,11 @@ class GCPDatabase(GCPResource, BaseDatabase):
     api_identifier = "instance"
     client = "sqladmin"
     api_version = "v1beta4"
-    client_args = ["project"]
+    resource_args = ["project"]
 
     def update_tag(self, key, value) -> bool:
         kwargs = {str(self._patch_identifier): self.name}
-        common_kwargs = common_client_kwargs(self)
+        common_kwargs = common_resource_kwargs(self)
         kwargs.update(common_kwargs)
         gr = gcp_resource(self)
         labels = dict(self.tags)
@@ -525,3 +533,61 @@ class GCPDatabase(GCPResource, BaseDatabase):
 
     def delete_tag(self, key) -> bool:
         return self.update_tag(key, None)
+
+
+class GCPService(GCPResource, BaseResource):
+    resource_type = "gcp_service"
+    api_identifier = "service"
+    client = "cloudbilling"
+    api_version = "v1"
+    resource_args = []
+
+
+class GCPServiceSKU(GCPResource, BaseResource):
+    resource_type = "gcp_service_sku"
+    api_identifier = "service"
+    client = "cloudbilling"
+    api_version = "v1"
+    resource_args = []
+
+    def __init__(
+        self,
+        *args,
+        service: str = "",
+        resource_family: str = "",
+        resource_group: str = "",
+        usage_type: str = "",
+        pricing_info: List = None,
+        service_provider_name: str = "",
+        geo_taxonomy_type: str = "",
+        geo_taxonomy_regions: List = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if pricing_info is None:
+            pricing_info = []
+        if geo_taxonomy_regions is None:
+            geo_taxonomy_regions = []
+        self.pricing_info = pricing_info
+        self.service_provider_name = service_provider_name
+        self.service = service
+        self.resource_family = resource_family
+        self.resource_group = resource_group
+        self.usage_type = usage_type
+        self.geo_taxonomy_type = geo_taxonomy_type
+        self.geo_taxonomy_regions = geo_taxonomy_regions
+        self.usage_unit_nanos = -1
+        if len(self.pricing_info) > 0:
+            tiered_rates = (
+                self.pricing_info[0].get("pricingExpression", {}).get("tieredRates", [])
+            )
+            cost = -1
+            if len(tiered_rates) == 1:
+                cost = tiered_rates[0].get("unitPrice", {}).get("nanos", -1)
+            else:
+                for tiered_rate in tiered_rates:
+                    if tiered_rate.get("startUsageAmount", -1) > 0:
+                        cost = tiered_rate.get("unitPrice", {}).get("nanos", -1)
+                        break
+            if cost > -1:
+                self.usage_unit_nanos = cost

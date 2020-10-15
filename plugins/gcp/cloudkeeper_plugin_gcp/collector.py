@@ -43,20 +43,19 @@ from .resources import (
     GCPBackendService,
     GCPForwardingRule,
     GCPGlobalForwardingRule,
-    GCPRegionSSLCertificate,
-    GCPRegionTargetHttpProxy,
-    GCPRegionTargetHttpsProxy,
     GCPBucket,
     GCPDatabase,
+    GCPService,
+    GCPServiceSKU,
 )
 from .utils import (
     Credentials,
     gcp_client,
-    gcp_service,
+    gcp_resource,
     paginate,
     iso2datetime,
     get_result_data,
-    common_client_kwargs,
+    common_resource_kwargs,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -98,6 +97,7 @@ class GCPProjectCollector:
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
         self.global_collectors = {
+            "services": self.collect_services,
             "networks": self.collect_networks,
             "subnetworks": self.collect_subnetworks,
             "routers": self.collect_routers,
@@ -134,11 +134,7 @@ class GCPProjectCollector:
         }
         # Region collectors collect resources in a single region.
         # They are being passed the GCPRegion resource object as `region` arg.
-        self.region_collectors = {
-            "region_ssl_certificates": self.collect_region_ssl_certificates,
-            "region_target_http_proxies": self.collect_region_target_http_proxies,
-            "region_target_https_proxies": self.collect_region_target_https_proxies,
-        }
+        self.region_collectors = {}
         # Zone collectors are being called for each zone.
         # They are being passed the GCPZone resource object as `zone` arg.
         self.zone_collectors = {}
@@ -399,6 +395,7 @@ class GCPProjectCollector:
             dump_resource: If True will log.debug() a dump of the API result.
         """
         client_method_name = resource_class("", {})._client_method
+        default_resource_args = resource_class("", {}).resource_args
         log.debug(f"Collecting {client_method_name}")
         if paginate_subitems_name is None:
             paginate_subitems_name = client_method_name
@@ -411,6 +408,9 @@ class GCPProjectCollector:
         if predecessors is None:
             predecessors = []
         parent_map = {True: predecessors, False: successors}
+
+        if "project" in default_resource_args:
+            resource_kwargs["project"] = self.project.id
 
         client = gcp_client(
             resource_class.client,
@@ -427,7 +427,6 @@ class GCPProjectCollector:
             method_name=paginate_method_name,
             items_name=paginate_items_name,
             subitems_name=paginate_subitems_name,
-            project=self.project.id,
             **resource_kwargs,
         ):
             kwargs, search_results = self.default_attributes(
@@ -438,6 +437,7 @@ class GCPProjectCollector:
             log.debug(f"Adding {r.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource)}")
+
             if isinstance(pr, str) and pr in search_results:
                 pr = search_results[parent_resource][0]
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
@@ -576,9 +576,64 @@ class GCPProjectCollector:
         )
 
     def collect_disk_types(self):
+        def post_process(resource: GCPDiskType, graph: Graph):
+            if (
+                resource.region(graph).name == "undefined"
+                and resource.zone(graph).name == "undefined"
+            ):
+                return
+            log.debug(f"Looking up pricing for {resource.rtdname}")
+            resource_group_map = {
+                "local-ssd": "LocalSSD",
+                "pd-balanced": "SSD",
+                "pd-ssd": "SSD",
+                "pd-standard": "PDStandard",
+            }
+            resource_group = resource_group_map.get(resource.name)
+            skus = list(
+                graph.searchall(
+                    {
+                        "resource_type": "gcp_service_sku",
+                        "resource_family": "Storage",
+                        "usage_type": "OnDemand",
+                        "resource_group": resource_group,
+                    }
+                )
+            )
+            for sku in list(skus):
+                if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                    skus.remove(sku)
+                    continue
+                if resource.name == "pd-balanced" and not sku.name.startswith(
+                    "Balanced"
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name != "pd-balanced" and sku.name.startswith("Balanced"):
+                    skus.remove(sku)
+                    continue
+                if resource.zone(graph).name != "undefined" and sku.name.startswith(
+                    "Regional"
+                ):
+                    skus.remove(sku)
+                    continue
+                if (
+                    resource.zone(graph).name == "undefined"
+                    and not sku.name.startswith("Regional")
+                    and resource.name != "pd-balanced"
+                ):
+                    skus.remove(sku)
+                    continue
+            if len(skus) == 1:
+                graph.add_edge(skus[0], resource)
+                resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            else:
+                log.debug(f"Unable to determine SKU for {resource}")
+
         self.collect_something(
             paginate_method_name="aggregatedList",
             resource_class=GCPDiskType,
+            post_process=post_process,
         )
 
     def collect_networks(self):
@@ -671,17 +726,104 @@ class GCPProjectCollector:
             successors=["_user"],
         )
 
-    def collect_region_ssl_certificates(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionSSLCertificate,
-            search_map={
-                "_user": ["link", "user"],
-            },
-            successors=["_user"],
-        )
-
     def collect_machine_types(self):
+        def post_process(resource: GCPMachineType, graph: Graph):
+            """Adds edges from machine type to SKUs and determines ondemand pricing
+
+            TODO: Implement Custom and GPU types
+            """
+            if (
+                resource.region(graph).name == "undefined"
+                and resource.zone(graph).name == "undefined"
+            ):
+                return
+
+            log.debug(f"Looking up pricing for {resource.rtdname}")
+            skus = list(
+                graph.searchall(
+                    {
+                        "resource_type": "gcp_service_sku",
+                        "resource_family": "Compute",
+                        "usage_type": "OnDemand",
+                    }
+                )
+            )
+            for sku in list(skus):
+                if sku.resource_group not in (
+                    "G1Small",
+                    "F1Micro",
+                    "N1Standard",
+                    "CPU",
+                    "RAM",
+                ):
+                    skus.remove(sku)
+                    continue
+                if "Custom" in sku.name:
+                    skus.remove(sku)
+                    continue
+                if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                    skus.remove(sku)
+                    continue
+                if resource.name == "g1-small" and sku.resource_group != "G1Small":
+                    skus.remove(sku)
+                    continue
+                if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
+                    skus.remove(sku)
+                    continue
+                if (
+                    resource.name.startswith("n1-")
+                    and sku.resource_group != "N1Standard"
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("e2-") and not sku.name.startswith("E2 "):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("n2d-") and not sku.name.startswith(
+                    "N2D AMD Instance "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("n2-") and not sku.name.startswith(
+                    "N2 Instance "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("m1-") and not sku.name.startswith(
+                    "Memory-optimized "
+                ):
+                    skus.remove(sku)
+                    continue
+                if resource.name.startswith("c2-") and not sku.name.startswith(
+                    "Compute optimized "
+                ):
+                    skus.remove(sku)
+                    continue
+
+            if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
+                graph.add_edge(skus[0], resource)
+                resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+            elif len(skus) == 2:
+                graph.add_edge(skus[0], resource)
+                graph.add_edge(skus[1], resource)
+                ondemand_cost = 0
+                for sku in skus:
+                    if "Core" in sku.name:
+                        ondemand_cost += sku.usage_unit_nanos * resource.instance_cores
+                    elif "Ram" in sku.name:
+                        ondemand_cost += sku.usage_unit_nanos * (
+                            resource.instance_memory / 1024
+                        )
+                if ondemand_cost > 0:
+                    resource.ondemand_cost = ondemand_cost / 1000000000
+            else:
+                log.debug(
+                    (
+                        f"Unable to determine SKU(s) for {resource}:"
+                        f" {[sku.dname for sku in skus]}"
+                    )
+                )
+
         self.collect_something(
             resource_class=GCPMachineType,
             paginate_method_name="aggregatedList",
@@ -692,6 +834,7 @@ class GCPProjectCollector:
                 "instance_cores": "guestCpus",
                 "instance_memory": "memoryMb",
             },
+            post_process=post_process,
         )
 
     def collect_network_endpoint_groups(self):
@@ -725,12 +868,11 @@ class GCPProjectCollector:
 
     def collect_instance_groups(self):
         def post_process(resource: GCPInstanceGroup, graph: Graph):
-            gs = gcp_service(resource, graph=graph)
             kwargs = {"instanceGroup": resource.name}
-            kwargs.update(common_client_kwargs(resource))
-            log.debug(f"Getting instances for {resource.rtdname}")
+            kwargs.update(common_resource_kwargs(resource))
+            log.debug(f"Getting instances for {resource}")
             for r in paginate(
-                gcp_resource=gs.instanceGroups(),
+                gcp_resource=gcp_resource(resource, graph),
                 method_name="listInstances",
                 items_name="items",
                 **kwargs,
@@ -885,26 +1027,6 @@ class GCPProjectCollector:
             predecessors=["_url_map"],
         )
 
-    def collect_region_target_http_proxies(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionTargetHttpProxy,
-            search_map={
-                "_url_map": ["link", "urlMap"],
-            },
-            predecessors=["_url_map"],
-        )
-
-    def collect_region_target_https_proxies(self, region: GCPRegion):
-        self.collect_something(
-            resource_kwargs={"region": region.name},
-            resource_class=GCPRegionTargetHttpsProxy,
-            search_map={
-                "_url_map": ["link", "urlMap"],
-            },
-            predecessors=["_url_map"],
-        )
-
     def collect_target_ssl_proxies(self):
         self.collect_something(
             resource_class=GCPTargetSslProxy,
@@ -1024,4 +1146,50 @@ class GCPProjectCollector:
                 "region": ["name", "region"],
                 "zone": ["name", "gceZone"],
             },
+        )
+
+    def collect_services(self):
+        def post_process(service: GCPService, graph: Graph):
+            # Right now we are only interested in Compute Engine pricing
+            if service.name != "Compute Engine":
+                return
+            gs = gcp_client("cloudbilling", "v1", credentials=self.credentials)
+            kwargs = {"parent": f"services/{service.id}"}
+            for r in paginate(
+                gcp_resource=gs.services().skus(),
+                method_name="list",
+                items_name="skus",
+                **kwargs,
+            ):
+                sku = GCPServiceSKU(
+                    r["skuId"],
+                    {},
+                    name=r.get("description"),
+                    service=r.get("category", {}).get("serviceDisplayName"),
+                    resource_family=r.get("category", {}).get("resourceFamily"),
+                    resource_group=r.get("category", {}).get("resourceGroup"),
+                    usage_type=r.get("category", {}).get("usageType"),
+                    pricing_info=r.get("pricingInfo"),
+                    service_provider_name=r.get("serviceProviderName"),
+                    geo_taxonomy_type=r.get("geoTaxonomy", {}).get("type"),
+                    geo_taxonomy_regions=r.get("geoTaxonomy", {}).get("regions"),
+                    link=(
+                        f"https://{service.client}.googleapis.com/"
+                        f"{service.api_version}/{r.get('name')}"
+                    ),
+                    account=service.account(graph),
+                    region=service.region(graph),
+                    zone=service.zone(graph),
+                )
+                graph.add_resource(service, sku)
+
+        self.collect_something(
+            resource_class=GCPService,
+            paginate_method_name="list",
+            paginate_items_name="services",
+            attr_map={
+                "identifier": "serviceId",
+                "name": "displayName",
+            },
+            post_process=post_process,
         )
