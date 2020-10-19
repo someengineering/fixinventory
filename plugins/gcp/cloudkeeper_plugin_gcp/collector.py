@@ -729,7 +729,7 @@ class GCPProjectCollector:
                 result = request.execute()
                 machine_type.id = result.get("id")
                 machine_type.instance_cores = result.get("guestCpus")
-                machine_type.instance_memory = result.get("memoryMb")
+                machine_type.instance_memory = result.get("memoryMb", 0) / 1024
                 graph.add_resource(machine_type.zone(graph), machine_type)
                 graph.add_edge(machine_type, resource)
                 post_process_machine_type(machine_type, graph)
@@ -934,7 +934,7 @@ class GCPProjectCollector:
             },
             attr_map={
                 "instance_cores": "guestCpus",
-                "instance_memory": "memoryMb",
+                "instance_memory": lambda r: r.get("memoryMb", 0) / 1024,
             },
             post_process=post_process_machine_type,
         )
@@ -1405,7 +1405,7 @@ def post_process_machine_type(resource: GCPMachineType, graph: Graph):
     elif len(skus) == 2 or (len(skus) == 3 and "custom" in resource.name):
         ondemand_cost = 0
         cores = resource.instance_cores
-        ram = resource.instance_memory / 1024
+        ram = resource.instance_memory
         extended_memory_pricing = False
         if "custom" in resource.name:
             extended_memory_pricing = ram / cores > 8
