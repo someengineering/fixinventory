@@ -711,16 +711,17 @@ class GCPProjectCollector:
             Once added to the graph Cloudkeeper will find it for successive
             instances of the same machine type.
             """
-            if resource.instance_type == "" and "custom" in resource.machine_type_link:
+            if resource.instance_type == "" and "custom" in resource._machine_type_link:
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
-                    resource.machine_type_link.split("/")[-1],
+                    resource._machine_type_link.split("/")[-1],
                     {},
                     zone=resource.zone(graph),
                     region=resource.region(graph),
                     account=resource.account(graph),
-                    link=resource.machine_type_link,
+                    link=resource._machine_type_link,
                 )
+                resource._machine_type_link = None
                 kwargs = {str(machine_type._get_identifier): machine_type.name}
                 common_kwargs = common_resource_kwargs(machine_type)
                 kwargs.update(common_kwargs)
@@ -734,7 +735,6 @@ class GCPProjectCollector:
                 graph.add_edge(machine_type, resource)
                 post_process_machine_type(machine_type, graph)
                 resource.instance_type = machine_type
-                resource.check_instance_type()
 
         self.collect_something(
             paginate_method_name="aggregatedList",
@@ -764,7 +764,6 @@ class GCPProjectCollector:
                 "machine_type_link": "machineType",
             },
             predecessors=["_network", "_subnetwork", "instance_type"],
-            #            dump_resource=True,
         )
 
     @metrics_collect_disk_types.time()

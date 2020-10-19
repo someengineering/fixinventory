@@ -216,12 +216,18 @@ class GCPInstance(GCPResource, BaseInstance):
     def __init__(
         self, *args, network_interfaces=None, machine_type_link=None, **kwargs
     ) -> None:
+        self.__instance_type = None
         super().__init__(*args, **kwargs)
         self.network_interfaces = network_interfaces
-        self.machine_type_link = machine_type_link
-        self.check_instance_type()
+        self._machine_type_link = machine_type_link
 
-    def check_instance_type(self):
+    @property
+    def instance_type(self):
+        return self.__instance_type
+
+    @instance_type.setter
+    def instance_type(self, value):
+        self.__instance_type = value
         if isinstance(self.instance_type, GCPMachineType):
             self.instance_cores = self.instance_type.instance_cores
             self.instance_memory = self.instance_type.instance_memory
