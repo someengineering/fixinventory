@@ -151,26 +151,32 @@ class Graph(networkx.DiGraph):
         with self.lock.write_access:
             super().add_node(*args, **kwargs)
 
-    def add_edge(self, u_of_edge, v_of_edge, **attr):
+    def add_edge(self, src, dst, **attr):
+        if self.has_edge(src, dst):
+            log.error(
+                f"Edge from {src} to {dst} already exists in graph"
+            )
+            return
         with self.lock.write_access:
-            super().add_edge(u_of_edge, v_of_edge, **attr)
-        if isinstance(u_of_edge, BaseResource) and isinstance(v_of_edge, BaseResource):
+            super().add_edge(src, dst, **attr)
+        if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
+            log.debug(f"Added edge from {src.rtdname} to {dst.rtdname}")
             try:
-                u_of_edge.successor_added(v_of_edge, self)
+                src.successor_added(dst, self)
             except Exception:
                 log.exception(
                     (
-                        f"Unhandeled exception while telling {u_of_edge.rtdname}"
-                        f" that {v_of_edge.rtdname} was added as a successor"
+                        f"Unhandeled exception while telling {src.rtdname}"
+                        f" that {dst.rtdname} was added as a successor"
                     )
                 )
             try:
-                v_of_edge.predecessor_added(u_of_edge, self)
+                dst.predecessor_added(src, self)
             except Exception:
                 log.exception(
                     (
-                        f"Unhandeled exception while telling {v_of_edge.rtdname}"
-                        f" that {u_of_edge.rtdname} was added as a predecessor"
+                        f"Unhandeled exception while telling {dst.rtdname}"
+                        f" that {src.rtdname} was added as a predecessor"
                     )
                 )
 

@@ -442,18 +442,7 @@ class BaseResource(ABC):
                 else:
                     src = self
                     dst = node
-                if not graph.has_edge(src, dst):
-                    log.debug(
-                        f"Adding deferred edge from {src.rtdname} to {dst.rtdname}"
-                    )
-                    graph.add_edge(src, dst)
-                else:
-                    log.error(
-                        (
-                            f"Edge from {src.rtdname} to {dst.rtdname}"
-                            " already exists in graph"
-                        )
-                    )
+                graph.add_edge(src, dst)
 
     def predecessors(self, graph) -> Iterator:
         """Returns an iterator of the node's parent nodes"""

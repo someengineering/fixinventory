@@ -213,9 +213,12 @@ class GCPInstance(GCPResource, BaseInstance):
             value, InstanceStatus.UNKNOWN
         )
 
-    def __init__(self, *args, network_interfaces=None, **kwargs) -> None:
+    def __init__(
+        self, *args, network_interfaces=None, machine_type_link=None, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.network_interfaces = network_interfaces
+        self.machine_type_link = machine_type_link
         if isinstance(self.instance_type, GCPMachineType):
             self.instance_cores = self.instance_type.instance_cores
             self.instance_memory = self.instance_type.instance_memory
@@ -255,6 +258,11 @@ class GCPRouter(GCPResource, BaseGateway):
 class GCPRoute(GCPResource, BaseResource):
     resource_type = "gcp_route"
     api_identifier = "route"
+
+
+class GCPInstanceTemplate(GCPResource, BaseResource):
+    resource_type = "gcp_instance_template"
+    api_identifier = "instanceTemplate"
 
 
 class GCPSecurityPolicy(GCPResource, BasePolicy):
