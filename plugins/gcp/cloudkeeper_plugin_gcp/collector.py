@@ -733,7 +733,7 @@ class GCPProjectCollector:
                 machine_type.instance_memory = float(result.get("memoryMb", 0) / 1024)
                 graph.add_resource(machine_type.zone(graph), machine_type)
                 graph.add_edge(machine_type, resource)
-                post_process_machine_type(machine_type, graph)
+                self.post_process_machine_type(machine_type, graph)
                 resource.instance_type = machine_type
 
         self.collect_something(
@@ -774,7 +774,7 @@ class GCPProjectCollector:
                 and resource.zone(graph).name == "undefined"
             ):
                 return
-            log.debug(f"Looking up pricing for {resource.rtdname}")
+            log.debug(f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}")
             resource_group_map = {
                 "local-ssd": "LocalSSD",
                 "pd-balanced": "SSD",
@@ -923,6 +923,109 @@ class GCPProjectCollector:
             successors=["_user"],
         )
 
+    @staticmethod
+    def post_process_machine_type(resource: GCPMachineType, graph: Graph):
+        """Adds edges from machine type to SKUs and determines ondemand pricing
+
+        TODO: Implement GPU types
+        """
+        if (
+            resource.region(graph).name == "undefined"
+            and resource.zone(graph).name == "undefined"
+        ):
+            return
+
+        log.debug(f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}")
+        skus = []
+        for sku in graph.searchall(
+            {
+                "resource_type": "gcp_service_sku",
+                "resource_family": "Compute",
+                "usage_type": "OnDemand",
+            }
+        ):
+            if sku.resource_group not in (
+                "G1Small",
+                "F1Micro",
+                "N1Standard",
+                "CPU",
+                "RAM",
+            ):
+                continue
+            if ("custom" not in resource.name and "Custom" in sku.name) or (
+                "custom" in resource.name and "Custom" not in sku.name
+            ):
+                continue
+            if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                continue
+            if resource.name == "g1-small" and sku.resource_group != "G1Small":
+                continue
+            if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
+                continue
+            if (
+                resource.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")
+            ) or (not resource.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")):
+                continue
+            if (resource.name.startswith("n2-") and not sku.name.startswith("N2 ")) or (
+                not resource.name.startswith("n2-") and sku.name.startswith("N2 ")
+            ):
+                continue
+            if (
+                resource.name.startswith("m1-")
+                and not sku.name.startswith("Memory-optimized ")
+            ) or (
+                not resource.name.startswith("m1-")
+                and sku.name.startswith("Memory-optimized ")
+            ):
+                continue
+            if (
+                resource.name.startswith("c2-")
+                and not sku.name.startswith("Compute optimized ")
+            ) or (
+                not resource.name.startswith("c2-")
+                and sku.name.startswith("Compute optimized ")
+            ):
+                continue
+            if resource.name.startswith("n1-") and sku.resource_group != "N1Standard":
+                continue
+            if "custom" not in resource.name:
+                if (resource.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
+                    not resource.name.startswith("e2-") and sku.name.startswith("E2 ")
+                ):
+                    continue
+            skus.append(sku)
+
+        if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
+            graph.add_edge(skus[0], resource)
+            resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
+        elif len(skus) == 2 or (len(skus) == 3 and "custom" in resource.name):
+            ondemand_cost = 0
+            cores = resource.instance_cores
+            ram = resource.instance_memory
+            extended_memory_pricing = False
+            if "custom" in resource.name:
+                extended_memory_pricing = ram / cores > 8
+
+            for sku in skus:
+                if "Core" in sku.name:
+                    ondemand_cost += sku.usage_unit_nanos * cores
+                elif "Ram" in sku.name:
+                    if (extended_memory_pricing and "Extended" not in sku.name) or (
+                        not extended_memory_pricing and "Extended" in sku.name
+                    ):
+                        continue
+                    ondemand_cost += sku.usage_unit_nanos * ram
+                graph.add_edge(sku, resource)
+            if ondemand_cost > 0:
+                resource.ondemand_cost = ondemand_cost / 1000000000
+        else:
+            log.debug(
+                (
+                    f"Unable to determine SKU(s) for {resource}:"
+                    f" {[sku.dname for sku in skus]}"
+                )
+            )
+
     @metrics_collect_machine_types.time()
     def collect_machine_types(self):
         self.collect_something(
@@ -935,7 +1038,7 @@ class GCPProjectCollector:
                 "instance_cores": "guestCpus",
                 "instance_memory": lambda r: r.get("memoryMb", 0) / 1024,
             },
-            post_process=post_process_machine_type,
+            post_process=self.post_process_machine_type,
         )
 
     @metrics_collect_network_endpoint_groups.time()
@@ -1235,8 +1338,8 @@ class GCPProjectCollector:
             attr_map={
                 "ctime": lambda r: iso2datetime(r.get("timeCreated")),
                 "mtime": lambda r: iso2datetime(r.get("updated")),
-                "location": "location",
-                "location_type": "locationType",
+                "bucket_location": "location",
+                "bucket_location_type": "locationType",
                 "storage_class": "storageClass",
                 "zone_separation": "zoneSeparation",
             },
@@ -1324,107 +1427,4 @@ class GCPProjectCollector:
                 "_machine_type": ["link", "machineType"],
             },
             predecessors=["_machine_type"],
-        )
-
-
-def post_process_machine_type(resource: GCPMachineType, graph: Graph):
-    """Adds edges from machine type to SKUs and determines ondemand pricing
-
-    TODO: Implement GPU types
-    """
-    if (
-        resource.region(graph).name == "undefined"
-        and resource.zone(graph).name == "undefined"
-    ):
-        return
-
-    log.debug(f"Looking up pricing for {resource.rtdname}")
-    skus = []
-    for sku in graph.searchall(
-        {
-            "resource_type": "gcp_service_sku",
-            "resource_family": "Compute",
-            "usage_type": "OnDemand",
-        }
-    ):
-        if sku.resource_group not in (
-            "G1Small",
-            "F1Micro",
-            "N1Standard",
-            "CPU",
-            "RAM",
-        ):
-            continue
-        if ("custom" not in resource.name and "Custom" in sku.name) or (
-            "custom" in resource.name and "Custom" not in sku.name
-        ):
-            continue
-        if resource.region(graph).name not in sku.geo_taxonomy_regions:
-            continue
-        if resource.name == "g1-small" and sku.resource_group != "G1Small":
-            continue
-        if resource.name == "f1-micro" and sku.resource_group != "F1Micro":
-            continue
-        if (
-            resource.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")
-        ) or (not resource.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")):
-            continue
-        if (resource.name.startswith("n2-") and not sku.name.startswith("N2 ")) or (
-            not resource.name.startswith("n2-") and sku.name.startswith("N2 ")
-        ):
-            continue
-        if (
-            resource.name.startswith("m1-")
-            and not sku.name.startswith("Memory-optimized ")
-        ) or (
-            not resource.name.startswith("m1-")
-            and sku.name.startswith("Memory-optimized ")
-        ):
-            continue
-        if (
-            resource.name.startswith("c2-")
-            and not sku.name.startswith("Compute optimized ")
-        ) or (
-            not resource.name.startswith("c2-")
-            and sku.name.startswith("Compute optimized ")
-        ):
-            continue
-        if resource.name.startswith("n1-") and sku.resource_group != "N1Standard":
-            continue
-        if "custom" not in resource.name:
-            if (resource.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
-                not resource.name.startswith("e2-") and sku.name.startswith("E2 ")
-            ):
-                continue
-        skus.append(sku)
-
-    if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
-        graph.add_edge(skus[0], resource)
-        resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
-    elif len(skus) == 2 or (len(skus) == 3 and "custom" in resource.name):
-        ondemand_cost = 0
-        cores = resource.instance_cores
-        ram = resource.instance_memory
-        extended_memory_pricing = False
-        if "custom" in resource.name:
-            extended_memory_pricing = ram / cores > 8
-
-        for sku in skus:
-            if "Core" in sku.name:
-                ondemand_cost += sku.usage_unit_nanos * cores
-            elif "Ram" in sku.name:
-                if (extended_memory_pricing and "Extended" not in sku.name) or (
-                    not extended_memory_pricing and "Extended" in sku.name
-                ):
-                    continue
-                ondemand_cost += sku.usage_unit_nanos * ram
-            graph.add_edge(sku, resource)
-        if ondemand_cost > 0:
-            resource.ondemand_cost = ondemand_cost / 1000000000
-    else:
-        log.debug(
-            (
-                f"Unable to determine SKU(s) for {resource}:"
-                f" {[sku.dname for sku in skus]}"
-            )
         )

@@ -480,15 +480,15 @@ class GCPBucket(GCPResource, BaseBucket):
     def __init__(
         self,
         *args,
-        location: str = "",
-        location_type: str = "",
+        bucket_location: str = "",
+        bucket_location_type: str = "",
         storage_class: str = "",
         zone_separation: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.location = location
-        self.location_type = location_type
+        self.bucket_location = bucket_location
+        self.bucket_location_type = bucket_location_type
         self.storage_class = storage_class
         self.zone_separation = zone_separation
 

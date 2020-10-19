@@ -426,6 +426,22 @@ class BaseResource(ABC):
             zone = UnknownZone("undefined", {})
         return zone
 
+    @property
+    def location(self):
+        zone = self.zone()
+        if zone.name != "undefined":
+            return zone
+        region = self.region()
+        if region.name != "undefined":
+            return region
+        account = self.account()
+        if account.name != "undefined":
+            return account
+        cloud = self.cloud()
+        if cloud.name != "undefined":
+            return cloud
+        return UnknownLocation("undefined", {})
+
     def to_json(self):
         return self.__repr__()
 
@@ -1820,20 +1836,35 @@ class BaseHealthCheck(BaseResource):
 
 
 class UnknownCloud(BaseCloud):
+    resource_type = "unknown_cloud"
+
     def delete(self, graph) -> bool:
         return False
 
 
 class UnknownAccount(BaseAccount):
+    resource_type = "unknown_account"
+
     def delete(self, graph) -> bool:
         return False
 
 
 class UnknownRegion(BaseRegion):
+    resource_type = "unknown_region"
+
     def delete(self, graph) -> bool:
         return False
 
 
 class UnknownZone(BaseZone):
+    resource_type = "unknown_zone"
+
+    def delete(self, graph) -> bool:
+        return False
+
+
+class UnknownLocation(BaseResource):
+    resource_type = "unknown_location"
+
     def delete(self, graph) -> bool:
         return False
