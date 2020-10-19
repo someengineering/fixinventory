@@ -1414,7 +1414,7 @@ def post_process_machine_type(resource: GCPMachineType, graph: Graph):
             if "Core" in sku.name:
                 ondemand_cost += sku.usage_unit_nanos * cores
             elif "Ram" in sku.name:
-                if (extended_memory_pricing and not "Extended" in sku.name) or (
+                if (extended_memory_pricing and "Extended" not in sku.name) or (
                     not extended_memory_pricing and "Extended" in sku.name
                 ):
                     continue
