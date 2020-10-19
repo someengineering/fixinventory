@@ -701,7 +701,7 @@ class GCPProjectCollector:
     @metrics_collect_instances.time()
     def collect_instances(self):
         def post_process(resource: GCPInstance, graph: Graph):
-            if "custom" in resource.machine_type_link:
+            if resource.instance_type == "" and "custom" in resource.machine_type_link:
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
                     resource.machine_type_link.split("/")[-1],
@@ -723,6 +723,8 @@ class GCPProjectCollector:
                 graph.add_resource(machine_type.zone(graph), machine_type)
                 graph.add_edge(machine_type, resource)
                 post_process_machine_type(machine_type, graph)
+                resource.instance_type = machine_type
+                resource.check_instance_type()
 
         self.collect_something(
             paginate_method_name="aggregatedList",
