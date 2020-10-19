@@ -608,9 +608,6 @@ class AWSAccountCollector:
                     region, graph, v.volume_type
                 )
                 if volume_type_info:
-                    log.debug(
-                        f"Adding edge from volume type info {volume_type_info.id} to instance {v.id}"
-                    )
                     graph.add_edge(volume_type_info, v)
                 for attachment in volume.attachments:
                     if "InstanceId" in attachment:
@@ -620,9 +617,6 @@ class AWSAccountCollector:
                         )
                         instance = graph.search_first("id", instance_id)
                         if instance:
-                            log.debug(
-                                f"Adding edge from volume {v.id} to instance {instance.id}"
-                            )
                             graph.add_edge(v, instance)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {volume} - skipping")
@@ -955,7 +949,6 @@ class AWSAccountCollector:
                 for policy in policies:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
-                        log.debug(f"Adding edge from Policy {p.name} to Group {g.name}")
                         graph.add_edge(p, g)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchEntity":
@@ -1044,9 +1037,6 @@ class AWSAccountCollector:
                 for instance_profile in instance_profiles:
                     ip = graph.search_first("arn", instance_profile["Arn"])
                     if ip:
-                        log.debug(
-                            f"Adding edge from Role {r.name} to Instance Profile {ip.name}"
-                        )
                         graph.add_edge(r, ip)
 
                 role_response = role_client.list_attached_role_policies(RoleName=r.name)
@@ -1059,7 +1049,6 @@ class AWSAccountCollector:
                 for policy in policies:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
-                        log.debug(f"Adding edge from Role {r.name} to Policy {p.name}")
                         graph.add_edge(r, p)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchEntity":
@@ -1117,7 +1106,6 @@ class AWSAccountCollector:
                 for policy in policies:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
-                        log.debug(f"Adding edge from Policy {p.name} to User {u.name}")
                         graph.add_edge(p, u)
 
                 user_response = user_client.list_groups_for_user(UserName=u.name)
@@ -1130,7 +1118,6 @@ class AWSAccountCollector:
                 for group in groups:
                     g = graph.search_first("arn", group["Arn"])
                     if g:
-                        log.debug(f"Adding edge from Group {g.name} to User {u.name}")
                         graph.add_edge(g, u)
 
                 user_response = user_client.list_access_keys(UserName=u.name)
@@ -1240,9 +1227,6 @@ class AWSAccountCollector:
                     region, graph, i.instance_type
                 )
                 if instance_type_info:
-                    log.debug(
-                        f"Adding edge from instance type info {instance_type_info.id} to instance {i.id}"
-                    )
                     graph.add_edge(instance_type_info, i)
                     i.instance_cores = instance_type_info.instance_cores
                     i.instance_memory = instance_type_info.instance_memory
@@ -1258,7 +1242,6 @@ class AWSAccountCollector:
                     {"name": instance.key_name, "resource_type": "aws_ec2_keypair"}
                 )
                 if kp:
-                    log.debug(f"Adding edge from Key Pair {kp.name} to instance {i.id}")
                     graph.add_edge(kp, i)
 
             except botocore.exceptions.ClientError:
@@ -1290,9 +1273,6 @@ class AWSAccountCollector:
                 instance_id = instance["InstanceId"]
                 i = graph.search_first("id", instance_id)
                 if i:
-                    log.debug(
-                        f"Adding edge from instance {i.id} to Autoscaling Group {asg.id}"
-                    )
                     graph.add_edge(i, asg)
 
     @metrics_collect_network_acls.time()
@@ -1316,16 +1296,12 @@ class AWSAccountCollector:
             if vpc_id:
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to network acl {acl.id}")
                     graph.add_edge(v, acl)
             for association in network_acl.get("Associations", []):
                 subnet_id = association.get("SubnetId")
                 if subnet_id:
                     s = graph.search_first("id", subnet_id)
                     if s:
-                        log.debug(
-                            f"Adding edge from network acl {acl.id} to Subnet {s.id}"
-                        )
                         graph.add_edge(acl, s)
 
     @metrics_collect_nat_gateways.time()
@@ -1355,21 +1331,16 @@ class AWSAccountCollector:
             if vpc_id:
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to NAT gateway {ngw.id}")
                     graph.add_edge(v, ngw)
             if subnet_id:
                 s = graph.search_first("id", subnet_id)
                 if s:
-                    log.debug(f"Adding edge from Subnet {s.id} to NAT gateway {ngw.id}")
                     graph.add_edge(s, ngw)
             for gateway_address in nat_gw.get("NatGatewayAddresses", []):
                 network_interface_id = gateway_address.get("NetworkInterfaceId")
                 if network_interface_id:
                     n = graph.search_first("id", network_interface_id)
                     if n:
-                        log.debug(
-                            f"Adding edge from Network Interface {n.id} to NAT gateway {ngw.id}"
-                        )
                         graph.add_edge(n, ngw)
 
     @metrics_collect_snapshots.time()
@@ -1404,7 +1375,6 @@ class AWSAccountCollector:
     #            if snap.volume_id:
     #                v = graph.search_first('id', snap.volume_id)
     #                if v:
-    #                    log.debug(f'Adding edge from volume {v.id} to snapshot {snap.id}')
     #                    graph.add_edge(v, snap)
 
     @metrics_collect_vpc_peering_connections.time()
@@ -1444,9 +1414,6 @@ class AWSAccountCollector:
             for vpc_id in vpc_ids:
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(
-                        f"Adding edge from VPC {v.id} to VPC Peering Connection {pc.id}"
-                    )
                     graph.add_edge(v, pc)
 
     @metrics_collect_vpc_endpoints.time()
@@ -1475,36 +1442,23 @@ class AWSAccountCollector:
             if endpoint.get("VpcId"):
                 v = graph.search_first("id", endpoint.get("VpcId"))
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to VPC Endpoint {ep.id}")
                     graph.add_edge(v, ep)
             for rt_id in endpoint.get("RouteTableIds", []):
                 rt = graph.search_first("id", rt_id)
                 if rt:
-                    log.debug(
-                        f"Adding edge from Route Table {rt.id} to VPC Endpoint {ep.id}"
-                    )
                     graph.add_edge(rt, ep)
             for sn_id in endpoint.get("SubnetIds", []):
                 sn = graph.search_first("id", sn_id)
                 if sn:
-                    log.debug(
-                        f"Adding edge from Subnet {sn.id} to VPC Endpoint {ep.id}"
-                    )
                     graph.add_edge(sn, ep)
             for security_group in endpoint.get("Groups", []):
                 sg_id = security_group["GroupId"]
                 sg = graph.search_first("id", sg_id)
                 if sg:
-                    log.debug(
-                        f"Adding edge from Security Group {sg.id} to VPC Endpoint {ep.id}"
-                    )
                     graph.add_edge(sg, ep)
             for ni_id in endpoint.get("NetworkInterfaceIds", []):
                 ni = graph.search_first("id", ni_id)
                 if ni:
-                    log.debug(
-                        f"Adding edge from Network Interface {ni.id} to VPC Endpoint {ep.id}"
-                    )
                     graph.add_edge(ni, ep)
 
     @metrics_collect_keypairs.time()
@@ -1565,22 +1519,17 @@ class AWSAccountCollector:
                 if sg_id:
                     sg = graph.search_first("id", sg_id)
                     if sg:
-                        log.debug(
-                            f"Adding edge from Security Group {sg.id} to RDS instance {d.id}"
-                        )
                         graph.add_edge(sg, d)
             vpc_id = db.get("DBSubnetGroup", {}).get("VpcId")
             if vpc_id:
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to RDS instance {d.id}")
                     graph.add_edge(v, d)
 
             for subnet in db.get("DBSubnetGroup", {}).get("Subnets"):
                 subnet_id = subnet.get("SubnetIdentifier")
                 s = graph.search_first("id", subnet_id)
                 if s:
-                    log.debug(f"Adding edge from Subnet {s.id} to RDS instance {d.id}")
                     graph.add_edge(s, d)
 
         self.collect_rds_metrics(region, databases)
@@ -1643,7 +1592,6 @@ class AWSAccountCollector:
             vpc_id = target_group.get("VpcId")
             v = graph.search_first("id", vpc_id)
             if v:
-                log.debug(f"Adding edge from VPC {v.id} to ALB Target Group {tg.id}")
                 graph.add_edge(v, tg)
 
             backends = []
@@ -1656,9 +1604,6 @@ class AWSAccountCollector:
                     backends.append(instance_id)
                     i = graph.search_first("id", instance_id)
                     if i:
-                        log.debug(
-                            f"Adding edge from instance {i.id} to ALB Target Group {tg.id}"
-                        )
                         graph.add_edge(i, tg)
 
             load_balancer_arns = target_group.get("LoadBalancerArns", [])
@@ -1666,9 +1611,6 @@ class AWSAccountCollector:
                 alb = graph.search_first("arn", load_balancer_arn)
                 if alb:
                     alb.backends.extend(backends)
-                    log.debug(
-                        f"Adding edge from ALB Target Group {tg.id} to ALB {alb.id}"
-                    )
                     graph.add_edge(tg, alb)
 
     @metrics_collect_albs.time()
@@ -1710,7 +1652,6 @@ class AWSAccountCollector:
                 vpc_id = alb.get("VPCId")
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to ALB {a.id}")
                     graph.add_edge(v, a)
 
                 availability_zones = alb.get("AvailabilityZones", [])
@@ -1718,16 +1659,12 @@ class AWSAccountCollector:
                     subnet_id = availability_zone["SubnetId"]
                     s = graph.search_first("id", subnet_id)
                     if s:
-                        log.debug(f"Adding edge from Subnet {s.id} to ALB {a.id}")
                         graph.add_edge(s, a)
 
                 security_groups = alb.get("SecurityGroups", [])
                 for sg_id in security_groups:
                     sg = graph.search_first("id", sg_id)
                     if sg:
-                        log.debug(
-                            f"Adding edge from Security Group {sg.id} to ALB {a.id}"
-                        )
                         graph.add_edge(sg, a)
 
                 response = client.describe_listeners(LoadBalancerArn=arn)
@@ -1790,29 +1727,23 @@ class AWSAccountCollector:
                 vpc_id = elb.get("VPCId")
                 v = graph.search_first("id", vpc_id)
                 if v:
-                    log.debug(f"Adding edge from VPC {v.id} to ELB {e.id}")
                     graph.add_edge(v, e)
 
                 for instance_id in instances:
                     i = graph.search_first("id", instance_id)
                     if i:
-                        log.debug(f"Adding edge from instance {i.id} to ELB {e.id}")
                         graph.add_edge(i, e)
 
                 subnets = elb.get("Subnets", [])
                 for subnet_id in subnets:
                     s = graph.search_first("id", subnet_id)
                     if s:
-                        log.debug(f"Adding edge from Subnet {s.id} to ELB {e.id}")
                         graph.add_edge(s, e)
 
                 security_groups = elb.get("SecurityGroups", [])
                 for sg_id in security_groups:
                     sg = graph.search_first("id", sg_id)
                     if sg:
-                        log.debug(
-                            f"Adding edge from Security Group {sg.id} to ELB {e.id}"
-                        )
                         graph.add_edge(sg, e)
 
                 listener_descriptions = elb.get("ListenerDescriptions", [])
@@ -1882,7 +1813,6 @@ class AWSAccountCollector:
                     log.debug(f"Subnet {s.id} is attached to VPC {subnet.vpc_id}")
                     v = graph.search_first("id", subnet.vpc_id)
                     if v:
-                        log.debug(f"Adding edge from vpc {v.id} to subnet {s.id}")
                         graph.add_edge(v, s)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {subnet} - skipping")
@@ -1917,9 +1847,6 @@ class AWSAccountCollector:
                         )
                         v = graph.search_first("id", vpc_id)
                         if v:
-                            log.debug(
-                                f"Adding edge from vpc {v.id} to internet gateway {i.id}"
-                            )
                             graph.add_edge(v, i)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {igw} - skipping")
@@ -1946,9 +1873,6 @@ class AWSAccountCollector:
                     log.debug(f"Security Group {s.id} is attached to VPC {sg.vpc_id}")
                     v = graph.search_first("id", sg.vpc_id)
                     if v:
-                        log.debug(
-                            f"Adding edge from vpc {v.id} to security group {s.id}"
-                        )
                         graph.add_edge(v, s)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {sg} - skipping")
@@ -1973,7 +1897,6 @@ class AWSAccountCollector:
                     log.debug(f"Route Table {r.id} is attached to VPC {rt.vpc_id}")
                     v = graph.search_first("id", rt.vpc_id)
                     if v:
-                        log.debug(f"Adding edge from vpc {v.id} to route table {r.id}")
                         graph.add_edge(v, r)
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {rt} - skipping")
@@ -2018,9 +1941,6 @@ class AWSAccountCollector:
                     log.debug(f"Network Interface {n.id} resides in VPC {ni.vpc_id}")
                     v = graph.search_first("id", ni.vpc_id)
                     if v:
-                        log.debug(
-                            f"Adding edge from vpc {v.id} to network interface {n.id}"
-                        )
                         graph.add_edge(v, n)
                 if ni.subnet_id:
                     log.debug(
@@ -2028,9 +1948,6 @@ class AWSAccountCollector:
                     )
                     s = graph.search_first("id", ni.subnet_id)
                     if s:
-                        log.debug(
-                            f"Adding edge from subnet {s.id} to network interface {n.id}"
-                        )
                         graph.add_edge(s, n)
                 if ni.attachment and "InstanceId" in ni.attachment:
                     instance_id = ni.attachment["InstanceId"]
@@ -2039,9 +1956,6 @@ class AWSAccountCollector:
                     )
                     i = graph.search_first("id", instance_id)
                     if i:
-                        log.debug(
-                            f"Adding edge from network interface {n.id} to instance {i.id}"
-                        )
                         graph.add_edge(n, i)
                 for group in ni.groups:
                     group_id = group.get("GroupId")
@@ -2051,9 +1965,6 @@ class AWSAccountCollector:
                         )
                         sg = graph.search_first("id", group_id)
                         if sg:
-                            log.debug(
-                                f"Adding edge from security group {sg.id} to network interface {n.id}"
-                            )
                             graph.add_edge(sg, n)
 
             except botocore.exceptions.ClientError:
@@ -2161,11 +2072,9 @@ class AWSAccountCollector:
             graph.add_resource(region, ip)
             i = graph.search_first("id", ip.instance_id)
             if i:
-                log.debug(f"Adding edge from {ip.rtdname} to {i.rtdname}")
                 graph.add_edge(ip, i)
             ni = graph.search_first("id", ip.network_interface_id)
             if ni:
-                log.debug(f"Adding edge from {ni.rtdname} to {ip.rtdname}")
                 graph.add_edge(ni, ip)
 
     @metrics_get_eks_nodegroups.time()
@@ -2215,9 +2124,6 @@ class AWSAccountCollector:
                     }
                 )
                 if asg:
-                    log.debug(
-                        f"Adding edge from autoscaling group {asg.name} to nodegroup {n.name}"
-                    )
                     graph.add_edge(asg, n)
 
     def account_alias(self) -> Optional[str]:

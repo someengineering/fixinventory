@@ -597,6 +597,44 @@ and chain multipe commands using the semicolon (;).
                 outfile.write(f"{item}\n")
                 yield item
 
+    def cmd_format(self, items: Iterable, args: str) -> Iterable:
+        """Usage: | format "{attr}: {attr.name}" |
+
+        String format the output.
+        Any resource attribute returned in the dump output can be used.
+        If a resource is missing a referenced attribute an empty string will
+        be printed instead.
+
+        Example:
+            > match resource_type = gcp_instance |
+              format {name} {instance_cores} {instance_memory/1024}
+
+        See
+            https://docs.python.org/3.8/library/string.html#formatspec
+        for more on the Python Format Specification Mini-Language.
+        """
+        for item in items:
+            if not isinstance(item, BaseResource):
+                raise RuntimeError(
+                    f"Item {item} is not a valid resource - dumping failed"
+                )
+            fmt = defaultdict(str)
+            out = get_resource_attributes(item)
+            cloud = item.cloud(self.graph)
+            account = item.account(self.graph)
+            region = item.region(self.graph)
+            zone = item.zone(self.graph)
+            out["cloud"] = cloud
+            out["account"] = account
+            out["region"] = region
+            out["zone"] = zone
+            out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
+            out["successors"] = [i.sha256 for i in item.successors(self.graph)]
+            out["resource"] = item
+            fmt.update(out)
+            fmt_item = args.format_map(fmt)
+            yield fmt_item
+
     def cmd_write(self, items: Iterable, args: str) -> Iterable:
         """Usage: | write [-a] <filename>
 

@@ -87,7 +87,6 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             for user_id in ug._users:
                 u = self.graph.search_first("id", user_id)
                 if u:
-                    log.debug(f"Adding edge from Usergroup {ug.name} to User {u.name}")
                     self.graph.add_edge(ug, u)
 
         for conversation in self.list_conversations():
