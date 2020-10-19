@@ -701,6 +701,16 @@ class GCPProjectCollector:
     @metrics_collect_instances.time()
     def collect_instances(self):
         def post_process(resource: GCPInstance, graph: Graph):
+            """Post process instance resources
+
+            The first time we encounter a custom machine type we will
+            fetch its details. This is because the machineTypes API's
+            list/aggregatedList functions only return predefined machine types.
+            Custom ones have to be fetched individually when we encounter them
+            on a instance.
+            Once added to the graph Cloudkeeper will find it for successive
+            instances of the same machine type.
+            """
             if resource.instance_type == "" and "custom" in resource.machine_type_link:
                 log.debug(f"Fetching custom instance type for {resource.rtdname}")
                 machine_type = GCPMachineType(
