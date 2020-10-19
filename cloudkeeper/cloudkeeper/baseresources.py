@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from hashlib import sha256
 from copy import deepcopy
 import uuid
+import weakref
 import networkx.algorithms.dag
 import cloudkeeper.logging
 from enum import Enum
@@ -120,6 +121,7 @@ class BaseResource(ABC):
         self._cleaned = False
         self._metrics = {}
         self._deferred_connections = []
+        self.__graph = None
         self.__log = []
         self.__protected = False
         self.__custom_metrics = False
@@ -140,6 +142,7 @@ class BaseResource(ABC):
             self.resource_type,
             self.account().id,
             self.region().id,
+            self.zone().id,
             self.id,
             self.name,
             self.ctime,
@@ -285,6 +288,9 @@ class BaseResource(ABC):
             log.debug(f"Resource {self.rtdname} has already been cleaned up")
             return True
 
+        if graph is None:
+            graph = self._graph
+
         account = self.account(graph)
         region = self.region(graph)
         if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
@@ -323,6 +329,9 @@ class BaseResource(ABC):
     def pre_cleanup(self, graph=None) -> bool:
         if not hasattr(self, "pre_delete"):
             return True
+
+        if graph is None:
+            graph = self._graph
 
         if self.cleaned:
             log.debug(f"Resource {self.rtdname} has already been cleaned up")
@@ -371,6 +380,8 @@ class BaseResource(ABC):
 
     def account(self, graph=None):
         account = None
+        if graph is None:
+            graph = self._graph
         if self._account:
             account = self._account
         elif graph:
@@ -381,6 +392,8 @@ class BaseResource(ABC):
 
     def cloud(self, graph=None):
         cloud = None
+        if graph is None:
+            graph = self._graph
         if self._cloud:
             cloud = self._cloud
         elif graph:
@@ -391,6 +404,8 @@ class BaseResource(ABC):
 
     def region(self, graph=None):
         region = None
+        if graph is None:
+            graph = self._graph
         if self._region:
             region = self._region
         elif graph:
@@ -401,6 +416,8 @@ class BaseResource(ABC):
 
     def zone(self, graph=None):
         zone = None
+        if graph is None:
+            graph = self._graph
         if self._zone:
             zone = self._zone
         elif graph:
@@ -432,6 +449,8 @@ class BaseResource(ABC):
         )
 
     def resolve_deferred_connections(self, graph) -> None:
+        if graph is None:
+            graph = self._graph
         while self._deferred_connections:
             dc = self._deferred_connections.pop(0)
             node = graph.search_first(dc["attr"], dc["value"])
@@ -446,10 +465,14 @@ class BaseResource(ABC):
 
     def predecessors(self, graph) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
+        if graph is None:
+            graph = self._graph
         return graph.predecessors(self)
 
     def successors(self, graph) -> Iterator:
         """Returns an iterator of the node's child nodes"""
+        if graph is None:
+            graph = self._graph
         return graph.successors(self)
 
     def predecessor_added(self, resource, graph) -> None:
@@ -462,16 +485,30 @@ class BaseResource(ABC):
 
     def ancestors(self, graph) -> Iterator:
         """Returns an iterator of the node's ancestors"""
+        if graph is None:
+            graph = self._graph
         return networkx.algorithms.dag.ancestors(graph, self)
 
     def descendants(self, graph) -> Iterator:
         """Returns an iterator of the node's descendants"""
+        if graph is None:
+            graph = self._graph
         return networkx.algorithms.dag.descendants(graph, self)
+
+    @property
+    def _graph(self):
+        if self.__graph is not None:
+            return self.__graph()
+
+    @_graph.setter
+    def _graph(self, value) -> None:
+        self.__graph = weakref.ref(value)
 
     def __getstate__(self):
         ret = self.__dict__.copy()
         if self.__custom_metrics:
             ret["__instance_metrics_description"] = self.metrics_description
+        ret["_BaseResource__graph"] = None
         return ret
 
     def __setstate__(self, state):

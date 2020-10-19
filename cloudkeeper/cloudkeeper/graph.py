@@ -147,9 +147,13 @@ class Graph(networkx.DiGraph):
         )
         self.add_edge(parent, node_for_adding)
 
-    def add_node(self, *args, **kwargs):
+    def add_node(self, node_for_adding, **attr):
         with self.lock.write_access:
-            super().add_node(*args, **kwargs)
+            super().add_node(node_for_adding, **attr)
+        if isinstance(node_for_adding, BaseResource):
+            # We hand a reference to ourselve to the added BaseResource
+            # which stores it as a weakref.
+            node_for_adding._graph = self
 
     def add_edge(self, src, dst, **attr):
         if src is None or dst is None:
@@ -535,9 +539,16 @@ def graph2pajek(graph):
     return "\n".join(networkx.generate_pajek(new_graph)) + "\n"
 
 
-def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0):
-    if isinstance(node, BaseResource) and current_depth > node.max_graph_depth:
-        node.max_graph_depth = current_depth
+def update_graph_ref(graph: Graph) -> None:
+    for node in graph.nodes:
+        if isinstance(node, BaseResource):
+            node._graph = graph
+
+
+def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> None:
+    if isinstance(node, BaseResource):
+        if current_depth > node.max_graph_depth:
+            node.max_graph_depth = current_depth
 
     for child_node in node.successors(graph):
         set_max_depth(graph, child_node, current_depth + 1)
@@ -601,4 +612,5 @@ def sanitize(graph: Graph, root: GraphRoot) -> None:
             log.debug(f"Removing graph root {graph_root.id}")
             graph.remove_node(graph_root)
     graph.resolve_deferred_connections()
+    update_graph_ref(graph)
     set_max_depth(graph, root)
