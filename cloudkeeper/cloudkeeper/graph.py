@@ -152,10 +152,11 @@ class Graph(networkx.DiGraph):
             super().add_node(*args, **kwargs)
 
     def add_edge(self, src, dst, **attr):
+        if src is None or dst is None:
+            log.error(f"Not creating edge from or to NoneType: {src} to {dst}")
+            return
         if self.has_edge(src, dst):
-            log.error(
-                f"Edge from {src} to {dst} already exists in graph"
-            )
+            log.error(f"Edge from {src} to {dst} already exists in graph")
             return
         with self.lock.write_access:
             super().add_edge(src, dst, **attr)
