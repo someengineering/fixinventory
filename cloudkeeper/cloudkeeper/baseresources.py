@@ -622,16 +622,16 @@ class BaseInstanceType(BaseType):
         self,
         *args,
         instance_type: str = None,
-        instance_cores: int = 0,
-        instance_memory: int = 0,
+        instance_cores: float = 0.0,
+        instance_memory: float = 0.0,
         ondemand_cost: float = 0.0,
         reservations: int = 0,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.instance_type = instance_type if instance_type else self.id
-        self.instance_cores = int(instance_cores)
-        self.instance_memory = int(instance_memory)
+        self.instance_cores = float(instance_cores)
+        self.instance_memory = float(instance_memory)
         self.ondemand_cost = float(ondemand_cost)
         self.reservations = int(reservations)
 
@@ -722,15 +722,15 @@ class BaseInstance(BaseResource):
     def __init__(
         self,
         *args,
-        instance_cores: int = 0,
-        instance_memory: int = 0,
+        instance_cores: float = 0.0,
+        instance_memory: float = 0.0,
         instance_type: str = "",
         instance_status: str = "",
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.instance_cores = int(instance_cores)
-        self.instance_memory = int(instance_memory)
+        self.instance_cores = float(instance_cores)
+        self.instance_memory = float(instance_memory)
         self.instance_type = instance_type
         self._instance_status = InstanceStatus.UNKNOWN
         self.instance_status = instance_status

@@ -728,8 +728,8 @@ class GCPProjectCollector:
                 request = gr.get(**kwargs)
                 result = request.execute()
                 machine_type.id = result.get("id")
-                machine_type.instance_cores = result.get("guestCpus")
-                machine_type.instance_memory = result.get("memoryMb", 0) / 1024
+                machine_type.instance_cores = float(result.get("guestCpus"))
+                machine_type.instance_memory = float(result.get("memoryMb", 0) / 1024)
                 graph.add_resource(machine_type.zone(graph), machine_type)
                 graph.add_edge(machine_type, resource)
                 post_process_machine_type(machine_type, graph)
