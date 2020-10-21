@@ -793,7 +793,10 @@ class GCPProjectCollector:
             ):
                 return
             log.debug(
-                f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}"
+                (
+                    f"Looking up pricing for {resource.rtdname}"
+                    f" in {resource.location.rtdname}"
+                )
             )
             resource_group_map = {
                 "local-ssd": "LocalSSD",
