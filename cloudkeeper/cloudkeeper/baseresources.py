@@ -426,18 +426,19 @@ class BaseResource(ABC):
             zone = UnknownZone("undefined", {})
         return zone
 
-    @property
-    def location(self):
-        zone = self.zone()
+    def location(self, graph=None):
+        if graph is None:
+            graph = self._graph
+        zone = self.zone(graph)
         if zone.name != "undefined":
             return zone
-        region = self.region()
+        region = self.region(graph)
         if region.name != "undefined":
             return region
-        account = self.account()
+        account = self.account(graph)
         if account.name != "undefined":
             return account
-        cloud = self.cloud()
+        cloud = self.cloud(graph)
         if cloud.name != "undefined":
             return cloud
         return UnknownLocation("undefined", {})

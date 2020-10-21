@@ -402,14 +402,17 @@ class CliHandler:
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
             region = item.region(self.graph)
+            location = item.location(self.graph)
             zone = item.zone(self.graph)
             out["cloud_id"] = cloud.id
             out["account_id"] = account.id
             out["region_id"] = region.id
+            out["location_id"] = location.id
             out["zone_id"] = zone.id
             out["cloud_name"] = cloud.name
             out["account_name"] = account.name
             out["region_name"] = region.name
+            out["location_name"] = location.name
             out["zone_name"] = zone.name
             out["event_log"] = item.event_log
             out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
@@ -623,11 +626,13 @@ and chain multipe commands using the semicolon (;).
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
             region = item.region(self.graph)
+            location = item.location(self.graph)
             zone = item.zone(self.graph)
             out["cloud"] = cloud
             out["account"] = account
             out["region"] = region
             out["zone"] = zone
+            out["location"] = location
             out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
             out["successors"] = [i.sha256 for i in item.successors(self.graph)]
             out["resource"] = item
@@ -940,7 +945,9 @@ and chain multipe commands using the semicolon (;).
             attr = attr[4:]
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
-        if attr in ["cloud", "account", "region", "zone"] and callable(item_attr):
+        if attr in ["cloud", "account", "region", "zone", "location"] and callable(
+            item_attr
+        ):
             item_attr = item_attr(self.graph)
         if item_attr is not None and not callable(item_attr):
             if attr_key is not None and isinstance(item_attr, dict):

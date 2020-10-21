@@ -794,7 +794,7 @@ class GCPProjectCollector:
             log.debug(
                 (
                     f"Looking up pricing for {resource.rtdname}"
-                    f" in {resource.location.rtdname}"
+                    f" in {resource.location(graph).rtdname}"
                 )
             )
             resource_group_map = {
@@ -958,7 +958,10 @@ class GCPProjectCollector:
             return
 
         log.debug(
-            f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}"
+            (
+                f"Looking up pricing for {resource.rtdname}"
+                f" in {resource.location(graph).rtdname}"
+            )
         )
         skus = []
         for sku in graph.searchall(
