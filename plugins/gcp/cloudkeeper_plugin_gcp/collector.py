@@ -734,7 +734,6 @@ class GCPProjectCollector:
                 machine_type = GCPMachineType(
                     resource._machine_type_link.split("/")[-1],
                     {},
-                    zone=resource.zone(graph),
                     region=resource.region(graph),
                     account=resource.account(graph),
                     link=resource._machine_type_link,
