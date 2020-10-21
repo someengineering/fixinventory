@@ -628,9 +628,9 @@ class PhantomBaseResource(BaseResource):
 
 
 class BaseQuota(PhantomBaseResource):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, quota: int = -1, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.quota = -1.0
+        self.quota = quota
 
 
 class BaseType(BaseQuota):

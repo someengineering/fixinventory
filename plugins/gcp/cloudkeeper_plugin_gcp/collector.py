@@ -9,6 +9,7 @@ from cloudkeeper.utils import except_log_and_pass
 from prometheus_client import Summary
 from .resources import (
     GCPProject,
+    GCPQuota,
     GCPRegion,
     GCPZone,
     GCPDiskType,
@@ -653,9 +654,25 @@ class GCPProjectCollector:
     # specific options.
     @metrics_collect_regions.time()
     def collect_regions(self) -> List:
+        def post_process(resource: GCPRegion, graph: Graph):
+            for quota in resource._quotas:
+                q = GCPQuota(
+                    quota["metric"],
+                    {},
+                    quota=quota["limit"],
+                    usage=quota["usage"],
+                    region=resource.region(),
+                    account=resource.account(),
+                    zone=resource.zone(),
+                    ctime=resource.ctime,
+                )
+                graph.add_resource(resource, q)
+            resource._quotas = None
+
         self.collect_something(
             resource_class=GCPRegion,
-            attr_map={"region_status": "status"},
+            attr_map={"region_status": "status", "quotas": "quotas"},
+            post_process=post_process,
         )
 
     @metrics_collect_zones.time()
@@ -774,7 +791,9 @@ class GCPProjectCollector:
                 and resource.zone(graph).name == "undefined"
             ):
                 return
-            log.debug(f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}")
+            log.debug(
+                f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}"
+            )
             resource_group_map = {
                 "local-ssd": "LocalSSD",
                 "pd-balanced": "SSD",
@@ -935,7 +954,9 @@ class GCPProjectCollector:
         ):
             return
 
-        log.debug(f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}")
+        log.debug(
+            f"Looking up pricing for {resource.rtdname} in {resource.location.rtdname}"
+        )
         skus = []
         for sku in graph.searchall(
             {
@@ -964,7 +985,9 @@ class GCPProjectCollector:
                 continue
             if (
                 resource.name.startswith("n2d-") and not sku.name.startswith("N2D AMD ")
-            ) or (not resource.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")):
+            ) or (
+                not resource.name.startswith("n2d-") and sku.name.startswith("N2D AMD ")
+            ):
                 continue
             if (resource.name.startswith("n2-") and not sku.name.startswith("N2 ")) or (
                 not resource.name.startswith("n2-") and sku.name.startswith("N2 ")
@@ -989,7 +1012,9 @@ class GCPProjectCollector:
             if resource.name.startswith("n1-") and sku.resource_group != "N1Standard":
                 continue
             if "custom" not in resource.name:
-                if (resource.name.startswith("e2-") and not sku.name.startswith("E2 ")) or (
+                if (
+                    resource.name.startswith("e2-") and not sku.name.startswith("E2 ")
+                ) or (
                     not resource.name.startswith("e2-") and sku.name.startswith("E2 ")
                 ):
                     continue
