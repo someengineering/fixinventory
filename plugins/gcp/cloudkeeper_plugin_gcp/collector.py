@@ -660,8 +660,8 @@ class GCPProjectCollector:
                     q = GCPQuota(
                         quota["metric"],
                         {},
-                        quota=["limit"],
-                        usage=["usage"],
+                        quota=quota["limit"],
+                        usage=quota["usage"],
                         region=resource.region(),
                         account=resource.account(),
                         zone=resource.zone(),

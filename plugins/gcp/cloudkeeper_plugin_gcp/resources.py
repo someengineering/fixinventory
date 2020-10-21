@@ -453,6 +453,13 @@ class GCPQuota(GCPResource, BaseQuota):
         super().__init__(*args, **kwargs)
         self.usage = usage
 
+    @property
+    def usage_percentage(self) -> float:
+        if self.quota > 0:
+            return self.usage / self.quota * 100
+        else:
+            return 0.0
+
 
 class GCPBackendService(GCPResource, BaseResource):
     resource_type = "gcp_backend_service"

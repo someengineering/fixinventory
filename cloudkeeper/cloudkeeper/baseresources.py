@@ -628,9 +628,17 @@ class PhantomBaseResource(BaseResource):
 
 
 class BaseQuota(PhantomBaseResource):
-    def __init__(self, *args, quota: int = -1, **kwargs) -> None:
+    def __init__(self, *args, quota: int = -1, usage: int = 0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.quota = quota
+        self.usage = usage
+
+    @property
+    def usage_percentage(self) -> float:
+        if self.quota > 0:
+            return self.usage / self.quota * 100
+        else:
+            return 0.0
 
 
 class BaseType(BaseQuota):
