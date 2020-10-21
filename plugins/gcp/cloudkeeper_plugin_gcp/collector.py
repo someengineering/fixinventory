@@ -656,17 +656,18 @@ class GCPProjectCollector:
     def collect_regions(self) -> List:
         def post_process(resource: GCPRegion, graph: Graph):
             for quota in resource._quotas:
-                q = GCPQuota(
-                    quota["metric"],
-                    {},
-                    quota=quota["limit"],
-                    usage=quota["usage"],
-                    region=resource.region(),
-                    account=resource.account(),
-                    zone=resource.zone(),
-                    ctime=resource.ctime,
-                )
-                graph.add_resource(resource, q)
+                if set(["metric", "limit", "usage"]) == set(quota.keys()):
+                    q = GCPQuota(
+                        quota["metric"],
+                        {},
+                        quota=["limit"],
+                        usage=["usage"],
+                        region=resource.region(),
+                        account=resource.account(),
+                        zone=resource.zone(),
+                        ctime=resource.ctime,
+                    )
+                    graph.add_resource(resource, q)
             resource._quotas = None
 
         self.collect_something(
