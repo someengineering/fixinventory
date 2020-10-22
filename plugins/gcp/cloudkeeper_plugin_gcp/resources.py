@@ -4,6 +4,7 @@ from cloudkeeper.graph import Graph
 from cloudkeeper.utils import make_valid_timestamp
 import cloudkeeper.logging
 from cloudkeeper.baseresources import (
+    BaseQuota,
     BaseAccount,
     BaseLoadBalancer,
     BaseRegion,
@@ -131,9 +132,14 @@ class GCPRegion(GCPResource, BaseRegion):
     resource_type = "gcp_region"
     api_identifier = "region"
 
-    def __init__(self, *args, region_status=None, **kwargs) -> None:
+    def __init__(
+        self, *args, region_status: str = None, quotas: List = None, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.region_status = region_status
+        if quotas is None:
+            quotas = []
+        self._quotas = quotas
 
 
 class GCPDiskType(GCPResource, BaseVolumeType):
@@ -437,6 +443,22 @@ class GCPTargetGrpcProxy(GCPResource, BaseResource):
 class GCPTargetInstance(GCPResource, BaseResource):
     resource_type = "gcp_target_instance"
     api_identifier = "targetInstance"
+
+
+class GCPQuota(GCPResource, BaseQuota):
+    resource_type = "gcp_quota"
+    api_identifier = "dummy"
+
+    def __init__(self, *args, usage: int = 0, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.usage = usage
+
+    @property
+    def usage_percentage(self) -> float:
+        if self.quota > 0:
+            return self.usage / self.quota * 100
+        else:
+            return 0.0
 
 
 class GCPBackendService(GCPResource, BaseResource):

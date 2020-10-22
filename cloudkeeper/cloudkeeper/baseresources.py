@@ -426,18 +426,19 @@ class BaseResource(ABC):
             zone = UnknownZone("undefined", {})
         return zone
 
-    @property
-    def location(self):
-        zone = self.zone()
+    def location(self, graph=None):
+        if graph is None:
+            graph = self._graph
+        zone = self.zone(graph)
         if zone.name != "undefined":
             return zone
-        region = self.region()
+        region = self.region(graph)
         if region.name != "undefined":
             return region
-        account = self.account()
+        account = self.account(graph)
         if account.name != "undefined":
             return account
-        cloud = self.cloud()
+        cloud = self.cloud(graph)
         if cloud.name != "undefined":
             return cloud
         return UnknownLocation("undefined", {})
@@ -628,9 +629,17 @@ class PhantomBaseResource(BaseResource):
 
 
 class BaseQuota(PhantomBaseResource):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, quota: int = -1, usage: int = 0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.quota = -1.0
+        self.quota = quota
+        self.usage = usage
+
+    @property
+    def usage_percentage(self) -> float:
+        if self.quota > 0:
+            return self.usage / self.quota * 100
+        else:
+            return 0.0
 
 
 class BaseType(BaseQuota):
