@@ -4,6 +4,7 @@ from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
 import json
+import cherrypy
 import falcon
 import threading
 import cloudkeeper.logging
@@ -19,7 +20,63 @@ class CloudkeeperRequestHandler(WSGIRequestHandler):
     pass
 
 
+class CloudkeeperWeb:
+    def __init__(self, gc) -> None:
+        self.gc = gc
+
+    @cherrypy.expose
+    def index(self):
+        return "Hello world!"
+
+
 class WebServer(threading.Thread):
+    def __init__(self, gc) -> None:
+        super().__init__()
+        self.name = "webserver"
+        self.gc = gc
+        add_event_listener(EventType.SHUTDOWN, self.shutdown)
+
+    def run(self) -> None:
+        cherrypy.config.update(
+            {
+                "server.socket_port": ArgumentParser.args.web_port,
+                "log.screen": False,
+                "log.access_file": "",
+                "log.error_file": "",
+            }
+        )
+        cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
+        cherrypy.tree.mount(
+            CloudkeeperWeb(self.gc),
+        )
+        cherrypy.engine.start()
+        cherrypy.engine.block()
+
+    def shutdown(self, event: Event):
+        log.debug(
+            f"Received request to shutdown http server threads {event.event_type}"
+        )
+        cherrypy.engine.exit()
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument(
+            "--web-port",
+            help="Web Port (default 8000)",
+            default=8000,
+            dest="web_port",
+            type=int,
+        )
+        arg_parser.add_argument(
+            "--web-psk",
+            help="Pre Shared Key for /collect requests",
+            default=None,
+            dest="web_psk",
+            type=str,
+        )
+
+
+class WebServer2(threading.Thread):
     """A basic webserver returning some metrics and Graph representations for debugging
     purposes
 
