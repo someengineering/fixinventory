@@ -80,10 +80,16 @@ class WebServer(threading.Thread):
         self.gc = gc
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
+    @property
+    def serving(self):
+        return cherrypy.engine.state == cherrypy.engine.states.STARTED
+
     def run(self) -> None:
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
             CloudkeeperWebApp(self.gc),
+            "/",
+            {"/": {"tools.gzip.on": True}},
         )
         cherrypy.config.update(
             {
