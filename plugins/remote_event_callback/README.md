@@ -5,7 +5,7 @@ This plugin posts to a remote http(s) endpoint when an event is dispatched.
 
 ## Usage
 ```
-$ cloudkeeper -v --remote-event-callback-endpoint collect_finish:http://cloudkeeper.example.com:8000/collect
+$ cloudkeeper -v --remote-event-callback-endpoint collect_finish:http://cloudkeeper.example.com:8000/callback
 ```
 
 Optionally specify a preshared key that should be transmitted with the request using the `--remote-event-callback-psk` argument.
@@ -16,7 +16,7 @@ Instance A
 $ cloudkeeper -v \
     --web-port 8000 \
     --collector example \
-    --remote-event-callback-endpoint collect_finish:http://localhost:8001/collect \
+    --remote-event-callback-endpoint collect_finish:http://localhost:8001/callback \
     --remote-event-callback-psk somepresharedkey
 ```
 Instance B

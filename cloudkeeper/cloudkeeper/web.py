@@ -1,6 +1,7 @@
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
+import jwt
 import cherrypy
 import threading
 import cloudkeeper.logging
@@ -34,18 +35,22 @@ class CloudkeeperWebApp:
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
-    def collect(self):
-        if ArgumentParser.args.web_psk:
-            if not hasattr(cherrypy.request, "json"):
-                raise cherrypy.HTTPError(400, "Invalid JSON request")
-            data = cherrypy.request.json
-            if (
-                not isinstance(data, dict)
-                or data.get("psk") != ArgumentParser.args.web_psk
-            ):
-                raise cherrypy.HTTPError(401, "Invalid PSK")
-        dispatch_event(Event(EventType.START_COLLECT))
-        return {"status": "ok"}
+    def callback(self):
+        data = getattr(cherrypy.request, "json")
+        if not isinstance(data, dict):
+            raise cherrypy.HTTPError(400, "Invalid JSON request")
+        try:
+            jwt_data = jwt.decode(
+                data.get("jwt"), ArgumentParser.args.web_psk, algorithms=["HS256"]
+            )
+        except jwt.PyJWTError as e:
+            log.error(f"Rejecting JWT token in incoming callback request: {str(e)}")
+            raise cherrypy.HTTPError(401, str(e))
+
+        if jwt_data.get("event") in ("COLLECT_FINISH", "PROCESS_FINISH"):
+            dispatch_event(Event(EventType.START_COLLECT))
+            return {"status": "ok"}
+        return {"status": "unknown event"}
 
     @cherrypy.expose
     def graph_gexf(self):
@@ -124,8 +129,8 @@ class WebServer(threading.Thread):
         )
         arg_parser.add_argument(
             "--web-psk",
-            help="Pre Shared Key for /collect requests",
-            default=None,
+            help="Pre Shared Key for /callback requests",
+            default="cloudkeeper",
             dest="web_psk",
             type=str,
         )
