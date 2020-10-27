@@ -18,7 +18,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "networkx",
-        "falcon",
+        "cherrypy",
         "requests",
         "prometheus_client",
         "apscheduler",

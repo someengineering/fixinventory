@@ -82,7 +82,7 @@ def get_resource_attributes(resource, exclude_private: bool = True) -> Dict:
         attr_type = getattr(type(resource), attr_name, None)
         if isinstance(attr_type, property):
             attributes[attr_name] = getattr(resource, attr_name, None)
-    attributes['tags'] = dict(attributes.pop('_tags'))
+    attributes["tags"] = dict(attributes.pop("_tags"))
 
     remove_keys = []
     add_keys = {}
