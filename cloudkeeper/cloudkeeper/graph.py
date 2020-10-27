@@ -197,7 +197,7 @@ class Graph(networkx.DiGraph):
     def search(self, attr, value, regex_search=False):
         """Search for graph nodes by their attribute value"""
         if value is None:
-            log.error(
+            log.debug(
                 f"Not searching graph for nodes with attribute values {attr}: {value}"
             )
             return ()
