@@ -7,4 +7,4 @@ def test_args():
     RemoteEventCallbackPlugin.add_args(arg_parser)
     arg_parser.parse_args()
     assert len(ArgumentParser.args.remote_event_endpoint) == 0
-    assert ArgumentParser.args.remote_event_callback_psk is None
+    assert ArgumentParser.args.remote_event_callback_psk == "cloudkeeper"

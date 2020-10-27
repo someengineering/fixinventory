@@ -8,6 +8,7 @@ from cloudkeeper.baseresources import (
     BaseResource,
     BaseInstance,
     BaseNetwork,
+    InstanceStatus,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -94,11 +95,26 @@ class ExampleResource(BaseResource):
 class ExampleInstance(BaseInstance, ExampleResource):
     resource_type = "example_instance"
 
+    instance_status_map = {
+        "pending": InstanceStatus.BUSY,
+        "running": InstanceStatus.RUNNING,
+        "shutting-down": InstanceStatus.BUSY,
+        "terminated": InstanceStatus.TERMINATED,
+        "stopping": InstanceStatus.BUSY,
+        "stopped": InstanceStatus.STOPPED,
+    }
+
     def delete(self, graph: Graph) -> bool:
         log.debug(
             f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
         )
         return True
+
+    @BaseInstance.instance_status.setter
+    def instance_status(self, value: str) -> None:
+        self._instance_status = self.instance_status_map.get(
+            value, InstanceStatus.UNKNOWN
+        )
 
 
 class ExampleNetwork(BaseNetwork, ExampleResource):

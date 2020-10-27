@@ -18,7 +18,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "networkx",
-        "falcon",
+        "cherrypy",
         "requests",
         "prometheus_client",
         "apscheduler",
@@ -27,6 +27,7 @@ setup(
         "Pympler",
         "tzlocal==2.1",
         "psutil",
+        "PyJWT",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],

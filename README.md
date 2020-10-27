@@ -260,11 +260,11 @@ Note that there is currently no HMAC signing or any form of authentication or da
 Also note that the remote graph never contains any authentication credentials. It is just the metadata describing the resources in your account. If you want to act on those resources in a cloudkeeper cleanup instance, this instance will require its own local credentials. Think of it as me emailing you a list of resources that I want you to clean up. You will still need your own credentials to actually clean them up.
 The only credential related thing that is stored within the graph is the name of the AWS role that was originally used to collect the resource - if a role was originally specified. By default Cloudkeeper would try and assume the same role again when cleaning up resources using the credentials you provide. This can be turned off and/or overridden by optionally providing your own `--aws-role` and using the `--aws-role-override` cli arg.
 
-The `/collect` endpoint can be used together with the [remote_event_callback](plugins/remote_event_callback/) plugin to let chained instances know when to collect an updated graph.
+The `/callback` endpoint can be used together with the [remote_event_callback](plugins/remote_event_callback/) plugin to let chained instances know when to collect an updated graph.
 
 Collector Instance
 ```
-$ cloudkeeper -v --collector aws --remote-event-callback-endpoint process_finish:http://cleanup-instance.local:8000/collect --remote-event-callback-psk somepsk
+$ cloudkeeper -v --collector aws --remote-event-callback-endpoint process_finish:http://cleanup-instance.local:8000/callback --remote-event-callback-psk somepsk
 ```
 
 Cleanup instance

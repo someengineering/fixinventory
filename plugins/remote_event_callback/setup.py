@@ -20,7 +20,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "requests"],
+    install_requires=["cloudkeeper", "requests", "PyJWT"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

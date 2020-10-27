@@ -1,6 +1,8 @@
 import cloudkeeper.logging
 import threading
 import requests
+import jwt
+import datetime
 from functools import partial
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.args import ArgumentParser
@@ -41,14 +43,26 @@ class RemoteEventCallbackPlugin(BasePlugin):
     def remote_event_callback(endpoint: str, event: Event):
         log.info(f"Received event {event.event_type.name}: calling {endpoint}")
         try:
-            if ArgumentParser.args.remote_event_callback_psk:
-                r = requests.post(
-                    endpoint,
-                    json={"psk": ArgumentParser.args.remote_event_callback_psk},
+            data = {
+                "event": event.event_type.name,
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=30),
+            }
+            jwt_token = jwt.encode(
+                data, ArgumentParser.args.remote_event_callback_psk
+            ).decode("utf-8")
+
+            r = requests.post(
+                endpoint,
+                json={"jwt": jwt_token},
+            )
+            if r.status_code != 200:
+                log.error(
+                    (
+                        f"Failure when calling endpoint {endpoint}"
+                        f" for event {event.event_type.name}: {r.text}"
+                    )
                 )
-            else:
-                r = requests.post(endpoint)
-            if r.json().get("status") == "ok":
+            elif r.json().get("status") == "ok":
                 log.debug(
                     f"Successfully called endpoint {endpoint} for event {event.event_type.name}"
                 )
@@ -74,7 +88,7 @@ class RemoteEventCallbackPlugin(BasePlugin):
         arg_parser.add_argument(
             "--remote-event-callback-psk",
             help="Remote Event Callback pre-shared-key",
-            default=None,
+            default="cloudkeeper",
             dest="remote_event_callback_psk",
             type=str,
         )
