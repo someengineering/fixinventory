@@ -1,6 +1,7 @@
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
+from typing import Dict
 import jwt
 import cherrypy
 import threading
@@ -14,68 +15,85 @@ class CloudkeeperWebApp:
         self.gc = gc
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def index(self):
         return "Cloudkeeper"
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def health(self):
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return "ok\r\n"
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def metrics(self):
         cherrypy.response.headers["Content-Type"] = CONTENT_TYPE_LATEST
         return generate_latest()
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph(self):
         cherrypy.response.headers["Content-Type"] = "application/octet-stream"
         return self.gc.pickle
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["POST"])
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def callback(self):
-        data = getattr(cherrypy.request, "json")
-        if not isinstance(data, dict):
-            raise cherrypy.HTTPError(400, "Invalid JSON request")
-        try:
-            jwt_data = jwt.decode(
-                data.get("jwt"), ArgumentParser.args.web_psk, algorithms=["HS256"]
-            )
-        except jwt.PyJWTError as e:
-            log.error(f"Rejecting JWT token in incoming callback request: {str(e)}")
-            raise cherrypy.HTTPError(401, str(e))
-
+        jwt_data = self.get_jwt_data(cherrypy.request)
         if jwt_data.get("event") in ("COLLECT_FINISH", "PROCESS_FINISH"):
             dispatch_event(Event(EventType.START_COLLECT))
             return {"status": "ok"}
         return {"status": "unknown event"}
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph_gexf(self):
         cherrypy.response.headers["Content-Type"] = "application/xml; charset=utf-8"
         return str(self.gc.gexf).encode("utf-8")
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph_graphml(self):
         cherrypy.response.headers["Content-Type"] = "application/xml; charset=utf-8"
         return str(self.gc.graphml).encode("utf-8")
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph_json(self):
         cherrypy.response.headers["Content-Type"] = "application/json; charset=utf-8"
         return str(self.gc.json).encode("utf-8")
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph_net(self):
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return self.gc.pajek
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
     def graph_txt(self):
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return self.gc.text
+
+    @staticmethod
+    def get_jwt_data(cherrypy_request) -> Dict:
+        data = getattr(cherrypy_request, "json")
+        jwt_data = {}
+        if not isinstance(data, dict):
+            raise cherrypy.HTTPError("400 Invalid JSON request")
+        if not "jwt" in data:
+            raise cherrypy.HTTPError("400 JWT token missing")
+        try:
+            jwt_data = jwt.decode(
+                data.get("jwt"), ArgumentParser.args.web_psk, algorithms=["HS256"]
+            )
+        except jwt.PyJWTError as e:
+            log.error(f"Rejecting JWT token in incoming callback request: {str(e)}")
+            raise cherrypy.HTTPError(f"401 {e}")
+        return jwt_data
 
 
 class WebServer(threading.Thread):
@@ -105,8 +123,11 @@ class WebServer(threading.Thread):
                     "log.screen": False,
                     "log.access_file": "",
                     "log.error_file": "",
+                    "tools.log_headers.on": False,
                     "tools.encode.on": True,
                     "tools.encode.encoding": "utf-8",
+                    "request.show_tracebacks": False,
+                    "request.show_mismatched_params": False,
                 }
             }
         )
