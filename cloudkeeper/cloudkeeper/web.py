@@ -84,7 +84,7 @@ class CloudkeeperWebApp:
         jwt_data = {}
         if not isinstance(data, dict):
             raise cherrypy.HTTPError("400 Invalid JSON request")
-        if not "jwt" in data:
+        if "jwt" not in data:
             raise cherrypy.HTTPError("400 JWT token missing")
         try:
             jwt_data = jwt.decode(
