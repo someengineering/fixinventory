@@ -17,11 +17,6 @@ class CloudkeeperWebApp:
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
-    def index(self):
-        return "Cloudkeeper"
-
-    @cherrypy.expose
-    @cherrypy.tools.allow(methods=["GET"])
     def health(self):
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return "ok\r\n"
@@ -115,12 +110,9 @@ class WebServer(threading.Thread):
             CloudkeeperWebApp(self.gc),
             "/",
             {
-                "/": {"tools.gzip.on": True},
-                "/favicon.ico": {
-                    "tools.staticfile.on": True,
-                    "tools.staticfile.filename": f"{local_path}/static/favicon.ico",
-                },
-                "/static": {
+                "/": {
+                    "tools.gzip.on": True,
+                    "tools.staticdir.index": "index.html",
                     "tools.staticdir.on": True,
                     "tools.staticdir.dir": f"{local_path}/static",
                 },
