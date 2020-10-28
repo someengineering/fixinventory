@@ -1,6 +1,7 @@
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
+from cloudkeeper.utils import get_stats
 from typing import Dict
 import os
 import jwt
@@ -43,6 +44,12 @@ class CloudkeeperWebApp:
             dispatch_event(Event(EventType.START_COLLECT))
             return {"status": "ok"}
         return {"status": "unknown event"}
+
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
+    @cherrypy.tools.json_out()
+    def stats(self):
+        return get_stats(self.gc.graph)
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
