@@ -2,6 +2,7 @@ from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
 from typing import Dict
+import os
 import jwt
 import cherrypy
 import threading
@@ -108,11 +109,22 @@ class WebServer(threading.Thread):
         return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
     def run(self) -> None:
+        local_path = os.path.abspath(os.path.dirname(__file__))
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
             CloudkeeperWebApp(self.gc),
             "/",
-            {"/": {"tools.gzip.on": True}},
+            {
+                "/": {"tools.gzip.on": True},
+                "/favicon.ico": {
+                    "tools.staticfile.on": True,
+                    "tools.staticfile.filename": f"{local_path}/static/favicon.ico",
+                },
+                "/static": {
+                    "tools.staticdir.on": True,
+                    "tools.staticdir.dir": f"{local_path}/static",
+                },
+            },
         )
         cherrypy.config.update(
             {
