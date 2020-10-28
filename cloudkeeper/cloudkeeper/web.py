@@ -100,6 +100,7 @@ class WebServer(threading.Thread):
             {
                 "global": {
                     "engine.autoreload.on": False,
+                    "server.socket_host": ArgumentParser.args.web_host,
                     "server.socket_port": ArgumentParser.args.web_port,
                     "log.screen": False,
                     "log.access_file": "",
@@ -126,6 +127,13 @@ class WebServer(threading.Thread):
             default=8000,
             dest="web_port",
             type=int,
+        )
+        arg_parser.add_argument(
+            "--web-host",
+            help="IP to bind to (default: ::)",
+            default="::",
+            dest="web_host",
+            type=str,
         )
         arg_parser.add_argument(
             "--web-psk",
