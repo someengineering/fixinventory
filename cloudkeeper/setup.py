@@ -14,7 +14,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={"console_scripts": ["cloudkeeper = cloudkeeper.__main__:main"]},
-    include_package_data=True,
+    data_files=[("static", ["static/*"])],
     zip_safe=False,
     install_requires=[
         "networkx",
