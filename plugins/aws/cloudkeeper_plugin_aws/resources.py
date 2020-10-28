@@ -701,6 +701,17 @@ class AWSIAMGroup(AWSResource, BaseGroup):
 class AWSIAMRole(AWSResource, BaseRole):
     resource_type = "aws_iam_role"
 
+    def pre_delete(self, graph: Graph) -> bool:
+        iam = aws_resource(self, "iam", graph)
+        role = iam.Role(self.name)
+        for successor in self.successors(graph):
+            if isinstance(successor, AWSIAMPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                log.debug(f"{log_msg} for deletion of {self.rtdname}")
+                role.detach_policy(PolicyArn=successor.arn)
+        return True
+
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         role = iam.Role(self.name)
@@ -720,6 +731,17 @@ class AWSIAMPolicy(AWSResource, BasePolicy):
 
 class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     resource_type = "aws_iam_instance_profile"
+
+    def pre_delete(self, graph: Graph) -> bool:
+        iam = aws_resource(self, "iam", graph)
+        instance_profile = iam.InstanceProfile(self.name)
+        for predecessor in self.predecessors(graph):
+            if isinstance(predecessor, AWSIAMRole):
+                log_msg = f"Detaching {predecessor.rtdname}"
+                self.log(log_msg)
+                log.debug(f"{log_msg} for deletion of {self.rtdname}")
+                instance_profile.remove_role(RoleName=predecessor.name)
+        return True
 
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
