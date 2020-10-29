@@ -273,11 +273,11 @@ $ cloudkeeper -v --collector remote --remote-endpoint http://collector-instance.
 ```
 
 ## Docker image
-Building the Docker image
+Building
 ```
 $ docker build --build-arg TESTS=true -t cloudkeeper .
 ```
-By default the image build will run a full test suite of syntax and unit tests. Specify `--build-arg TESTS=false` to skip running the tests during image build.
+By default the build will run the full test suite of syntax and unit tests. Specify `--build-arg TESTS=false` to skip testing.
 
 The resulting Docker image contains a DNS cache. Running Cloudkeeper in a highly parallelized way (e.g. `--aws-fork --aws-account-pool-size 50 --gcp-fork --gcp-project-pool-size 50`) results in many API calls and as such DNS requests. When exporting the environment variable `USE_DNS_CACHE=true` into the Docker container an internal dnsmasq DNS cache will be started to reduce load on the upstream resolvers.
 
