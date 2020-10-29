@@ -1,7 +1,9 @@
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
+from cloudkeeper.utils import get_stats
 from typing import Dict
+import os
 import jwt
 import cherrypy
 import threading
@@ -13,11 +15,6 @@ log = cloudkeeper.logging.getLogger(__name__)
 class CloudkeeperWebApp:
     def __init__(self, gc) -> None:
         self.gc = gc
-
-    @cherrypy.expose
-    @cherrypy.tools.allow(methods=["GET"])
-    def index(self):
-        return "Cloudkeeper"
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
@@ -47,6 +44,12 @@ class CloudkeeperWebApp:
             dispatch_event(Event(EventType.START_COLLECT))
             return {"status": "ok"}
         return {"status": "unknown event"}
+
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=["GET"])
+    @cherrypy.tools.json_out()
+    def stats(self):
+        return get_stats(self.gc.graph)
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
@@ -108,11 +111,19 @@ class WebServer(threading.Thread):
         return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
     def run(self) -> None:
+        local_path = os.path.abspath(os.path.dirname(__file__))
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
             CloudkeeperWebApp(self.gc),
             "/",
-            {"/": {"tools.gzip.on": True}},
+            {
+                "/": {
+                    "tools.gzip.on": True,
+                    "tools.staticdir.index": "index.html",
+                    "tools.staticdir.on": True,
+                    "tools.staticdir.dir": f"{local_path}/static",
+                },
+            },
         )
         cherrypy.config.update(
             {
