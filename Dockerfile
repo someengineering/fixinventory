@@ -4,9 +4,9 @@ RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper
-RUN cd cloudkeeper/ && pip wheel -w /build . && cd -
+RUN cd cloudkeeper/ && tox && pip wheel -w /build . && cd -
 RUN cd plugins/aws/ && pip wheel -w /build -f /build . && cd -
-#RUN find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done
+RUN find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done
 RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
 
 FROM python:3.8-alpine
