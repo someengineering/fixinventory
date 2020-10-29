@@ -5,11 +5,11 @@ RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper/cloudkeeper
-RUN if [ "X$TESTS" = Xtrue ]; then tox; fi
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build .
 WORKDIR /usr/src/cloudkeeper
 RUN cd plugins/aws/ && pip wheel -w /build -f /build . && cd -
-RUN if [ "X$TESTS" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
 RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
 
 FROM python:3.8-alpine

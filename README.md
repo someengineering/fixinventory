@@ -272,6 +272,18 @@ Cleanup instance
 $ cloudkeeper -v --collector remote --remote-endpoint http://collector-instance.local:8000/graph --web-psk somepsk --cleanup
 ```
 
+## Docker image
+Building the Docker image
+```
+$ docker build --build-arg TESTS=true -t cloudkeeper .
+```
+By default the image build will run a full test suite of syntax and unit tests. Specify `--build-arg TESTS=false` to skip running the tests during image build.
+
+The resulting Docker image contains a DNS cache. Running Cloudkeeper in a highly parallelized way (e.g. `--aws-fork --aws-account-pool-size 50 --gcp-fork --gcp-project-pool-size 50`) results in many API calls and as such DNS requests. When exporting the environment variable `USE_DNS_CACHE=true` into the Docker container an internal dnsmasq DNS cache will be started to reduce load on the upstream resolvers.
+
+If instead of running Cloudkeeper permanently you would prefer to run it only at very specific points in time the Docker image supports two environment variables `USE_CROND=true` and `CRONTAB="0 */3 * * * cloudkeeper --cleanup --no-cli --one-shot --interval 0 --logfile /var/log/cloudkeeper.log --register-cli-action 'cleanup_plan:...'"` which will write the contents of `$CRONTAB` to the user's crontab and run `crond` instead of cloudkeeper. On stdout it'll tail the contents of the `/var/log/cloudkeeper.log` file. It is up to the user to instruct their cloudkeeper cron jobs to write to that file using the `--logfile` argument.
+
+
 ## Design Goals
 - Allow easy capability extension via plugins for developers.
 - Allow for useful one-liners for non-developers.
