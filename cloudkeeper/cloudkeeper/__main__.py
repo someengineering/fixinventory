@@ -1,3 +1,4 @@
+from cloudkeeper.baseresources import Cloud
 import time
 import os
 import threading
@@ -6,7 +7,7 @@ import cloudkeeper.signal
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
-from cloudkeeper.web import WebServer
+from cloudkeeper.web import WebServer, CloudkeeperWebApp
 from cloudkeeper.scheduler import Scheduler
 from cloudkeeper.args import get_arg_parser
 from cloudkeeper.processor import Processor
@@ -92,7 +93,7 @@ def main() -> None:
     # WebServer is handed the graph container context so it can e.g. produce graphml
     # from it. The webserver serves Prometheus Metrics as well as different graph
     # endpoints.
-    web_server = WebServer(graph_container)
+    web_server = WebServer(CloudkeeperWebApp(graph_container))
     web_server.daemon = True
     web_server.start()
 
