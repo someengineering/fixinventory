@@ -16,7 +16,7 @@ log = cloudkeeper.logging.getLogger(__name__)
 class CloudkeeperWebApp:
     def __init__(self, gc) -> None:
         self.gc = gc
-        self.mount = "/"
+        self.mountpoint = "/"
         local_path = os.path.abspath(os.path.dirname(__file__))
         self.config = {
             "/": {
@@ -131,7 +131,7 @@ class WebServer(threading.Thread):
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
             self.webapp,
-            self.webapp.mount,
+            self.webapp.mountpoint,
             self.webapp.config,
         )
         cherrypy.config.update(
