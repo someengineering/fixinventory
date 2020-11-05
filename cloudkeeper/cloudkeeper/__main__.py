@@ -1,4 +1,3 @@
-from cloudkeeper.baseresources import Cloud
 import time
 import os
 import threading
