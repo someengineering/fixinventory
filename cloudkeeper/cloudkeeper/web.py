@@ -9,12 +9,23 @@ import cherrypy
 import threading
 import cloudkeeper.logging
 
+
 log = cloudkeeper.logging.getLogger(__name__)
 
 
 class CloudkeeperWebApp:
     def __init__(self, gc) -> None:
         self.gc = gc
+        self.mountpoint = "/"
+        local_path = os.path.abspath(os.path.dirname(__file__))
+        self.config = {
+            "/": {
+                "tools.gzip.on": True,
+                "tools.staticdir.index": "index.html",
+                "tools.staticdir.on": True,
+                "tools.staticdir.dir": f"{local_path}/static",
+            },
+        }
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
@@ -39,7 +50,7 @@ class CloudkeeperWebApp:
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def callback(self):
-        jwt_data = self.get_jwt_data(cherrypy.request)
+        jwt_data = get_jwt_data(cherrypy.request)
         if jwt_data.get("event") in ("COLLECT_FINISH", "PROCESS_FINISH"):
             dispatch_event(Event(EventType.START_COLLECT))
             return {"status": "ok"}
@@ -81,29 +92,29 @@ class CloudkeeperWebApp:
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return self.gc.text
 
-    @staticmethod
-    def get_jwt_data(cherrypy_request) -> Dict:
-        data = getattr(cherrypy_request, "json")
-        jwt_data = {}
-        if not isinstance(data, dict):
-            raise cherrypy.HTTPError("400 Invalid JSON request")
-        if "jwt" not in data:
-            raise cherrypy.HTTPError("400 JWT token missing")
-        try:
-            jwt_data = jwt.decode(
-                data.get("jwt"), ArgumentParser.args.web_psk, algorithms=["HS256"]
-            )
-        except jwt.PyJWTError as e:
-            log.error(f"Rejecting JWT token in incoming callback request: {str(e)}")
-            raise cherrypy.HTTPError(f"401 {e}")
-        return jwt_data
+
+def get_jwt_data(cherrypy_request) -> Dict:
+    data = getattr(cherrypy_request, "json")
+    jwt_data = {}
+    if not isinstance(data, dict):
+        raise cherrypy.HTTPError("400 Invalid JSON request")
+    if "jwt" not in data:
+        raise cherrypy.HTTPError("400 JWT token missing")
+    try:
+        jwt_data = jwt.decode(
+            data.get("jwt"), ArgumentParser.args.web_psk, algorithms=["HS256"]
+        )
+    except jwt.PyJWTError as e:
+        log.error(f"Rejecting JWT token in incoming callback request: {str(e)}")
+        raise cherrypy.HTTPError(f"401 {e}")
+    return jwt_data
 
 
 class WebServer(threading.Thread):
-    def __init__(self, gc) -> None:
+    def __init__(self, webapp) -> None:
         super().__init__()
         self.name = "webserver"
-        self.gc = gc
+        self.webapp = webapp
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     @property
@@ -111,19 +122,17 @@ class WebServer(threading.Thread):
         return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
     def run(self) -> None:
-        local_path = os.path.abspath(os.path.dirname(__file__))
+        # CherryPy always prefixes its log messages with a timestamp.
+        # The next line monkey patches that time method to return a
+        # fixed string. So instead of having duplicate timestamps in
+        # each web server related log message they are now prefixed
+        # with the string 'CherryPy'.
+        cherrypy._cplogging.LogManager.time = lambda self: "CherryPy"
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
-            CloudkeeperWebApp(self.gc),
-            "/",
-            {
-                "/": {
-                    "tools.gzip.on": True,
-                    "tools.staticdir.index": "index.html",
-                    "tools.staticdir.on": True,
-                    "tools.staticdir.dir": f"{local_path}/static",
-                },
-            },
+            self.webapp,
+            self.webapp.mountpoint,
+            self.webapp.config,
         )
         cherrypy.config.update(
             {
