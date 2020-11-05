@@ -4,7 +4,7 @@ import time
 import cloudkeeper.logging as logging
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import add_args as event_add_args, Event, EventType
-from cloudkeeper.web import WebServer
+from cloudkeeper.web import WebServer, CloudkeeperWebApp
 from cloudkeeper.graph import GraphContainer
 
 logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
@@ -20,11 +20,11 @@ def test_web():
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.bind(("", 0))
     _, free_port = tcp.getsockname()
-    tcp.close()
-    # fixme: race
     ArgumentParser.args.web_port = free_port
+    tcp.close()
+    # todo: race between closing socket and reusing free port in WebServer
 
-    web_server = WebServer(gc)
+    web_server = WebServer(CloudkeeperWebApp(gc))
     web_server.daemon = True
     web_server.start()
     start_time = time.time()
