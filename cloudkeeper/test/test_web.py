@@ -17,6 +17,9 @@ def test_web():
     arg_parser.parse_args()
 
     gc = GraphContainer(cache_graph=False)
+    # Find a free local port to reuse when we bind the web server.
+    # This is so that multiple builds/tests can run in parallel
+    # on the same CI box.
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.bind(("", 0))
     _, free_port = tcp.getsockname()
