@@ -9,6 +9,7 @@ import cherrypy
 import threading
 import cloudkeeper.logging
 
+
 log = cloudkeeper.logging.getLogger(__name__)
 
 
@@ -121,6 +122,12 @@ class WebServer(threading.Thread):
         return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
     def run(self) -> None:
+        # CherryPy always prefixes its log messages with a timestamp.
+        # The next line monkey patches that time method to return a
+        # fixed string. So instead of having duplicate timestamps in
+        # each web server related log message they are now prefixed
+        # with the string 'CherryPy'.
+        cherrypy._cplogging.LogManager.time = lambda self: "CherryPy"
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
         cherrypy.tree.mount(
             self.webapp,
