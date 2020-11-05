@@ -36,7 +36,17 @@ def test_web():
             raise RuntimeError("timeout waiting for web server start")
         time.sleep(0.1)
 
-    endpoint = f"http://localhost:{free_port}"
+    # We're statically using localhost in the endpoint url.
+    # Other options would have been to set ArgumentParser.args.web_host
+    # and then connect to that value. However we'd have to use an IP
+    # address and then needed to decide if we use either
+    # 127.0.0.1 or ::1. Which might fail on CI boxes without
+    # IPv4 or IPv6 respectively. Instead we leave the default which
+    # binds to all IPs and assume that localhost will resolve to
+    # the appropriate v4 or v6 loopback address. A disadvantage
+    # of this is that for a brief moment during the test we're
+    # exposing the web server on all local IPs.
+    endpoint = f"http://localhost:{ArgumentParser.args.web_port}"
     r = requests.get(f"{endpoint}/health")
     assert r.content == b"ok\r\n"
     web_server.shutdown(Event(EventType.SHUTDOWN))
