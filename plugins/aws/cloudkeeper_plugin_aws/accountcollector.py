@@ -1024,6 +1024,15 @@ class AWSAccountCollector:
             role_client = role_session.client("iam", region_name=region.id)
 
             try:
+                role_response = role_client.list_role_policies(RoleName=r.name)
+                role_policies = role_response.get("PolicyNames", [])
+                while role_response.get("Marker") is not None:
+                    role_response = role_client.list_role_policies(
+                        RoleName=r.name, Marker=role_response["Marker"]
+                    )
+                    role_policies.extend(role_response.get("PolicyNames", []))
+                r.role_policies = list(role_policies)
+
                 role_response = role_client.list_instance_profiles_for_role(
                     RoleName=r.name
                 )
