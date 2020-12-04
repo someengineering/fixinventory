@@ -73,7 +73,7 @@ resource_attributes_blacklist = ["metrics_description", "event_log"]
 
 
 def get_resource_attributes(
-    resource, exclude_private: bool = True, exclude_tags: bool = False
+    resource, exclude_private: bool = True, keep_data_structures: bool = False
 ) -> Dict:
     attributes = dict(resource.__dict__)
     attributes["resource_type"] = resource.resource_type
@@ -84,8 +84,7 @@ def get_resource_attributes(
         attr_type = getattr(type(resource), attr_name, None)
         if isinstance(attr_type, property):
             attributes[attr_name] = getattr(resource, attr_name, None)
-    if not exclude_tags:
-        attributes["tags"] = dict(attributes.pop("_tags"))
+    attributes["tags"] = dict(attributes.pop("_tags"))
 
     remove_keys = []
     add_keys = {}
@@ -97,12 +96,12 @@ def get_resource_attributes(
             or str(key) in resource_attributes_blacklist
         ):
             remove_keys.append(key)
-        elif type(value) is list or type(value) is tuple:
+        elif isinstance(value, (list, tuple, set)) and not keep_data_structures:
             remove_keys.append(key)
             for i, v in enumerate(value):
                 if v is not None:
                     add_keys[key + "[" + str(i) + "]"] = v
-        elif type(value) is dict:
+        elif isinstance(value, dict) and not keep_data_structures:
             remove_keys.append(key)
             for k, v in value.items():
                 if v is not None:

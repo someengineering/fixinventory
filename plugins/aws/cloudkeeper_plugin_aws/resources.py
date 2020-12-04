@@ -681,6 +681,31 @@ class AWSRDSInstance(AWSResource, BaseDatabase):
 class AWSIAMUser(AWSResource, BaseUser):
     resource_type = "aws_iam_user"
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.user_policies = []
+
+    def pre_delete(self, graph: Graph) -> bool:
+        iam = aws_resource(self, "iam", graph)
+        user = iam.User(self.name)
+        for successor in self.successors(graph):
+            if isinstance(successor, AWSIAMPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                log.debug(f"{log_msg} for deletion of {self.rtdname}")
+                user.detach_policy(PolicyArn=successor.arn)
+
+        iam = aws_client(self, "iam", graph)
+        for user_policy in self.user_policies:
+            log_msg = f"Deleting inline policy {user_policy}"
+            self.log(log_msg)
+            log.debug(f"{log_msg} for deletion of {self.rtdname}")
+            iam.delete_user_policy(
+                UserName=self.name,
+                PolicyName=user_policy,
+            )
+        return True
+
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         user = iam.User(self.name)
@@ -690,6 +715,31 @@ class AWSIAMUser(AWSResource, BaseUser):
 
 class AWSIAMGroup(AWSResource, BaseGroup):
     resource_type = "aws_iam_group"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.group_policies = []
+
+    def pre_delete(self, graph: Graph) -> bool:
+        iam = aws_resource(self, "iam", graph)
+        group = iam.Group(self.name)
+        for successor in self.successors(graph):
+            if isinstance(successor, AWSIAMPolicy):
+                log_msg = f"Detaching {successor.rtdname}"
+                self.log(log_msg)
+                log.debug(f"{log_msg} for deletion of {self.rtdname}")
+                group.detach_policy(PolicyArn=successor.arn)
+
+        iam = aws_client(self, "iam", graph)
+        for group_policy in self.group_policies:
+            log_msg = f"Deleting inline policy {group_policy}"
+            self.log(log_msg)
+            log.debug(f"{log_msg} for deletion of {self.rtdname}")
+            iam.delete_group_policy(
+                GroupName=self.name,
+                PolicyName=group_policy,
+            )
+        return True
 
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
