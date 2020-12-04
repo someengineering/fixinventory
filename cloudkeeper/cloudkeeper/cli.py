@@ -5,6 +5,7 @@ import pathlib
 import ast
 import time
 import calendar
+import yaml
 import cloudkeeper.logging
 from typing import Iterable, Tuple, Any, List
 from collections import deque
@@ -399,7 +400,7 @@ class CliHandler:
                     f"Item {item} is not a valid resource - dumping failed"
                 )
             out = get_resource_attributes(
-                item, exclude_private=exclude_private, exclude_tags=True
+                item, exclude_private=exclude_private, keep_data_structures=True
             )
             cloud = item.cloud(self.graph)
             account = item.account(self.graph)
@@ -417,13 +418,12 @@ class CliHandler:
             out["location_name"] = location.name
             out["zone_name"] = zone.name
             out["event_log"] = item.event_log
-            out["tags"] = item.tags
             out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
             out["successors"] = [i.sha256 for i in item.successors(self.graph)]
             if dump_json:
                 json_out.append(out)
             else:
-                yield (pformat(out))
+                yield ("---\n" + yaml.dump(out, Dumper=yaml.Dumper).strip())
         if dump_json:
             yield (fmt_json(json_out))
 

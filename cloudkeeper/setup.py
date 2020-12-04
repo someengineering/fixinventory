@@ -27,6 +27,7 @@ setup(
         "Pympler",
         "tzlocal==2.1",
         "psutil",
+        "pyyaml",
         "PyJWT",
     ],
     setup_requires=["pytest-runner"],
