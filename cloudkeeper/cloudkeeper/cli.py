@@ -41,7 +41,6 @@ from cloudkeeper.event import (
 )
 from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, fmt_json
 from cloudkeeper.cleaner import Cleaner
-from pprint import pformat
 
 
 log = cloudkeeper.logging.getLogger(__name__)
