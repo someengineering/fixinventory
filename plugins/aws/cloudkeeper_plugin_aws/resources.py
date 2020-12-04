@@ -701,6 +701,10 @@ class AWSIAMGroup(AWSResource, BaseGroup):
 class AWSIAMRole(AWSResource, BaseRole):
     resource_type = "aws_iam_role"
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.role_policies = []
+
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         role = iam.Role(self.name)
@@ -710,6 +714,16 @@ class AWSIAMRole(AWSResource, BaseRole):
                 self.log(log_msg)
                 log.debug(f"{log_msg} for deletion of {self.rtdname}")
                 role.detach_policy(PolicyArn=successor.arn)
+
+        iam = aws_client(self, "iam", graph)
+        for role_policy in self.role_policies:
+            log_msg = f"Deleting inline policy {role_policy}"
+            self.log(log_msg)
+            log.debug(f"{log_msg} for deletion of {self.rtdname}")
+            iam.delete_role_policy(
+                RoleName=self.name,
+                PolicyName=role_policy,
+            )
         return True
 
     def delete(self, graph: Graph) -> bool:

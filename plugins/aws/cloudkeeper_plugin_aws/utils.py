@@ -5,8 +5,30 @@ from typing import Iterable
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
+from retrying import retry
+from prometheus_client import Counter
+from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 
 
+metrics_session_exceptions = Counter(
+    "cloudkeeper_plugin_aws_session_exceptions_total",
+    "Unhandled AWS Plugin Session Exceptions",
+)
+
+
+def retry_on_session_error(e):
+    if isinstance(e, (ConnectionClosedError, CredentialRetrievalError)):
+        metrics_session_exceptions.inc()
+        return True
+    return False
+
+
+@retry(
+    stop_max_attempt_number=10,
+    wait_random_min=1000,
+    wait_random_max=6000,
+    retry_on_exception=retry_on_session_error,
+)
 def aws_session(aws_account=None, aws_role=None):
     if ArgumentParser.args.aws_role_override:
         aws_role = ArgumentParser.args.aws_role
