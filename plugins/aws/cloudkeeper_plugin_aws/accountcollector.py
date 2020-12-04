@@ -882,10 +882,20 @@ class AWSAccountCollector:
         session = aws_session(self.account.id, self.account.role)
         client = session.client("iam", region_name=region.id)
 
-        response = client.list_policies(Scope="Local")
+        response = client.list_policies(Scope="Local", OnlyAttached=False)
         policies = response.get("Policies", [])
         while response.get("Marker") is not None:
-            response = client.list_policies(Scope="Local", Marker=response["Marker"])
+            response = client.list_policies(
+                Scope="Local", OnlyAttached=False, Marker=response["Marker"]
+            )
+            policies.extend(response.get("Policies", []))
+
+        response = client.list_policies(Scope="AWS", OnlyAttached=True)
+        policies.extend(response.get("Policies", []))
+        while response.get("Marker") is not None:
+            response = client.list_policies(
+                Scope="Local", OnlyAttached=True, Marker=response["Marker"]
+            )
             policies.extend(response.get("Policies", []))
 
         for policy in policies:
@@ -899,8 +909,14 @@ class AWSAccountCollector:
             p.name = policy.get("PolicyName")
             p.arn = policy.get("Arn")
             p.mtime = policy.get("UpdateDate")
+
+            # We can not delete AWS pre-defined policies
+            # so we mark them as phantom resource
+            if p.arn.startswith("arn:aws:iam::aws:"):
+                p.phantom = True
+
             log.debug(
-                f"Found IAM Policy {p.name} ({p.id}) in account {self.account.dname} region {region.id}"
+                f"Found {p.rtdname} ({p.id}) {self.account.dname} region {region.id}"
             )
             graph.add_resource(region, p)
 
@@ -929,7 +945,7 @@ class AWSAccountCollector:
             g.name = group.get("GroupName")
             g.arn = group.get("Arn")
             log.debug(
-                f"Found IAM Group {g.name} ({g.id}) in account {self.account.dname} region {region.id}"
+                f"Found {g.rtdname} in account {self.account.dname} region {region.id}"
             )
             graph.add_resource(region, g)
 
@@ -937,6 +953,15 @@ class AWSAccountCollector:
             group_client = group_session.client("iam", region_name=region.id)
 
             try:
+                group_response = group_client.list_group_policies(GroupName=g.name)
+                group_policies = group_response.get("PolicyNames", [])
+                while group_response.get("Marker") is not None:
+                    group_response = group_client.list_group_policies(
+                        GroupName=g.name, Marker=group_response["Marker"]
+                    )
+                    group_policies.extend(group_response.get("PolicyNames", []))
+                g.group_policies = list(group_policies)
+
                 group_response = group_client.list_attached_group_policies(
                     GroupName=g.name
                 )
@@ -987,7 +1012,7 @@ class AWSAccountCollector:
             ip.name = instance_profile.get("InstanceProfileName")
             ip.arn = instance_profile.get("Arn")
             log.debug(
-                f"Found IAM Instance Profile {ip.name} ({ip.id}) in account {self.account.dname} region {region.id}"
+                f"Found {ip.rtdname} in account {self.account.dname} region {region.id}"
             )
             graph.add_resource(region, ip)
 
@@ -1012,11 +1037,12 @@ class AWSAccountCollector:
                 account=self.account,
                 region=region,
                 ctime=role.get("CreateDate"),
+                atime=role.get("RoleLastUsed", {}).get("LastUsedDate"),
             )
             r.name = role.get("RoleName")
             r.arn = role.get("Arn")
             log.debug(
-                f"Found IAM Role {r.name} ({r.id}) in account {self.account.dname} region {region.id}"
+                f"Found {r.rtdname} in account {self.account.dname} region {region.id}"
             )
             graph.add_resource(region, r)
 
@@ -1105,6 +1131,15 @@ class AWSAccountCollector:
             user_client = user_session.client("iam", region_name=region.id)
 
             try:
+                user_response = user_client.list_user_policies(UserName=u.name)
+                user_policies = user_response.get("PolicyNames", [])
+                while user_response.get("Marker") is not None:
+                    user_response = user_client.list_user_policies(
+                        UserName=u.name, Marker=user_response["Marker"]
+                    )
+                    user_policies.extend(user_response.get("PolicyNames", []))
+                u.user_policies = list(user_policies)
+
                 user_response = user_client.list_attached_user_policies(UserName=u.name)
                 policies = user_response.get("AttachedPolicies", [])
                 while user_response.get("Marker") is not None:

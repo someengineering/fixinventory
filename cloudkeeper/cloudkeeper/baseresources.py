@@ -253,7 +253,7 @@ class BaseResource(ABC):
     @unless_protected
     def clean(self, value: bool) -> None:
         if self.phantom and value:
-            raise ValueError(f"Can't cleanup phantom resource {self.dname}")
+            raise ValueError(f"Can't cleanup phantom resource {self.rtdname}")
 
         clean_str = "" if value else "not "
         self.log(f"Setting to {clean_str}be cleaned")
@@ -284,6 +284,9 @@ class BaseResource(ABC):
     @metrics_resource_cleanup.time()
     @unless_protected
     def cleanup(self, graph=None) -> bool:
+        if self.phantom:
+            raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
+
         if self.cleaned:
             log.debug(f"Resource {self.rtdname} has already been cleaned up")
             return True
@@ -332,6 +335,9 @@ class BaseResource(ABC):
 
         if graph is None:
             graph = self._graph
+
+        if self.phantom:
+            raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
 
         if self.cleaned:
             log.debug(f"Resource {self.rtdname} has already been cleaned up")
