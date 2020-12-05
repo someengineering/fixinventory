@@ -16,16 +16,17 @@ log = cloudkeeper.logging.getLogger(__name__)
 class CloudkeeperWebApp:
     def __init__(self, gc) -> None:
         self.gc = gc
-        self.mountpoint = "/"
+        self.mountpoint = ArgumentParser.args.web_path
         local_path = os.path.abspath(os.path.dirname(__file__))
-        self.config = {
-            "/": {
-                "tools.gzip.on": True,
-                "tools.staticdir.index": "index.html",
-                "tools.staticdir.on": True,
-                "tools.staticdir.dir": f"{local_path}/static",
-            },
+        config = {
+            "tools.gzip.on": True,
+            "tools.staticdir.index": "index.html",
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": f"{local_path}/static",
         }
+        self.config = {"/": config}
+        if self.mountpoint not in ("/", ""):
+            self.config[self.mountpoint] = config
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
@@ -129,11 +130,19 @@ class WebServer(threading.Thread):
         # with the string 'CherryPy'.
         cherrypy._cplogging.LogManager.time = lambda self: "CherryPy"
         cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
+
+        # We always mount at / as well as any user configured --web-path
         cherrypy.tree.mount(
             self.webapp,
-            self.webapp.mountpoint,
+            "",
             self.webapp.config,
         )
+        if self.webapp.mountpoint not in ("/", ""):
+            cherrypy.tree.mount(
+                self.webapp,
+                self.webapp.mountpoint,
+                self.webapp.config,
+            )
         cherrypy.config.update(
             {
                 "global": {
@@ -174,6 +183,13 @@ class WebServer(threading.Thread):
             help="IP to bind to (default: ::)",
             default="::",
             dest="web_host",
+            type=str,
+        )
+        arg_parser.add_argument(
+            "--web-path",
+            help="Web root in browser (default: /)",
+            default="/",
+            dest="web_path",
             type=str,
         )
         arg_parser.add_argument(
