@@ -14,7 +14,8 @@ class CliJqPlugin(BaseCliPlugin):
     def cmd_jq(self, items: Iterable, args: str) -> Iterable:
         """Usage: | jq <jq filter> |
 
-        Run jq JSON processor against the input
+        Run jq JSON processor against the input which must
+        either be Cloudkeeper resources or a JSON string.
         """
         compiled_jq = jq.compile(args)
         for item in items:
