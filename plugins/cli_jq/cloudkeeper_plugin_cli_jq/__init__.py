@@ -1,13 +1,9 @@
 import jq
-import cloudkeeper.logging
 from typing import Iterable
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.baseplugin import BaseCliPlugin
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import fmt_json, resource2dict
-
-
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CliJqPlugin(BaseCliPlugin):
