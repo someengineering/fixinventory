@@ -772,13 +772,21 @@ and chain multipe commands using the semicolon (;).
         yield "Cleanup finished"
 
     def cmd_print(self, items: Iterable, args: str) -> Iterable:
-        """Usage: | print
+        """Usage: | print [attribute] |
 
         Prints all input items.
+        Optionally print an input items attribute.
         """
         for item in items:
-            print(item)
-            yield item
+            if args and isinstance(item, BaseResource):
+                item_attr = self.get_item_attr(item, args)
+                if item_attr is None:
+                    continue
+                print(item_attr)
+                yield item
+            else:
+                print(item)
+                yield item
 
     def cmd_log(self, items: Iterable, args: str) -> Iterable:
         """Usage: | log [loglevel] |
@@ -948,29 +956,49 @@ and chain multipe commands using the semicolon (;).
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
 
-        if attr in (
-            "cloud",
-            "account",
-            "region",
-            "zone",
-            "location",
-            "predecessors",
-            "successors",
-            "ancestors",
-            "descendants",
-        ) and callable(item_attr):
+        if (
+            attr
+            in (
+                "cloud",
+                "account",
+                "region",
+                "zone",
+                "location",
+            )
+            and callable(item_attr)
+        ):
             item_attr = item_attr(self.graph)
+        elif (
+            attr
+            in (
+                "predecessors",
+                "successors",
+                "ancestors",
+                "descendants",
+            )
+            and callable(item_attr)
+        ):
+            item_attr = list(item_attr(self.graph))
         if item_attr is not None and not callable(item_attr):
             if attr_key is not None and isinstance(item_attr, dict):
                 item_attr = item_attr.get(attr_key)
             elif (
                 attr_key is not None
-                and isinstance(item_attr, list)
-                and str(attr_key).isnumeric()
+                and isinstance(item_attr, (list, tuple, set))
+                and isint(attr_key)
             ):
                 attr_key = int(attr_key)
-                if attr_key < len(item_attr):
+                if isinstance(item_attr, set):
+                    item_attr = tuple(item_attr)
+                if (
+                    attr_key >= 0
+                    and attr_key < len(item_attr)
+                    or attr_key < 0
+                    and attr_key * -1 <= len(item_attr)
+                ):
                     item_attr = item_attr[attr_key]
+                else:
+                    item_attr = None
         if attr_attr is not None:
             item_attr = self.get_item_attr(item_attr, attr_attr)
         if return_length:
@@ -979,6 +1007,15 @@ and chain multipe commands using the semicolon (;).
             else:
                 item_attr = None
         return item_attr
+
+
+def isint(s):
+    try:
+        int(s)
+    except ValueError:
+        return False
+    else:
+        return True
 
 
 @lru_cache()
