@@ -947,9 +947,18 @@ and chain multipe commands using the semicolon (;).
             attr = attr[4:]
         attr, attr_key, attr_attr = get_attr_key(attr)
         item_attr = getattr(item, attr, None)
-        if attr in ["cloud", "account", "region", "zone", "location"] and callable(
-            item_attr
-        ):
+
+        if attr in (
+            "cloud",
+            "account",
+            "region",
+            "zone",
+            "location",
+            "predecessors",
+            "successors",
+            "ancestors",
+            "descendants",
+        ) and callable(item_attr):
             item_attr = item_attr(self.graph)
         if item_attr is not None and not callable(item_attr):
             if attr_key is not None and isinstance(item_attr, dict):
@@ -963,7 +972,7 @@ and chain multipe commands using the semicolon (;).
                 if attr_key < len(item_attr):
                     item_attr = item_attr[attr_key]
         if attr_attr is not None:
-            item_attr = getattr(item_attr, attr_attr, None)
+            item_attr = self.get_item_attr(item_attr, attr_attr)
         if return_length:
             if isinstance(item_attr, (list, dict, str, tuple, set, bytes, frozenset)):
                 item_attr = len(item_attr)
