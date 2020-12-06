@@ -4,7 +4,7 @@ import cloudkeeper.logging
 import threading
 from pathlib import Path
 from datetime import datetime, timezone
-from cloudkeeper.graph import get_resource_attributes
+from cloudkeeper.utils import get_resource_attributes
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.baseresources import BaseResource, BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper.args import ArgumentParser

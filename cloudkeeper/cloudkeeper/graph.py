@@ -6,7 +6,7 @@ import datetime
 import re
 import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
-from cloudkeeper.utils import RWLock, json_default
+from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.event import (
@@ -70,52 +70,6 @@ metrics_graph2pajek = Summary(
 )
 
 resource_attributes_blacklist = ["metrics_description", "event_log"]
-
-
-def get_resource_attributes(
-    resource, exclude_private: bool = True, keep_data_structures: bool = False
-) -> Dict:
-    attributes = dict(resource.__dict__)
-    attributes["resource_type"] = resource.resource_type
-
-    for attr_name in dir(resource):
-        if exclude_private and attr_name.startswith("_"):
-            continue
-        attr_type = getattr(type(resource), attr_name, None)
-        if isinstance(attr_type, property):
-            attributes[attr_name] = getattr(resource, attr_name, None)
-    attributes["tags"] = dict(attributes.pop("_tags"))
-
-    remove_keys = []
-    add_keys = {}
-
-    for key, value in attributes.items():
-        if (
-            exclude_private
-            and str(key).startswith("_")
-            or str(key) in resource_attributes_blacklist
-        ):
-            remove_keys.append(key)
-        elif isinstance(value, (list, tuple, set)) and not keep_data_structures:
-            remove_keys.append(key)
-            for i, v in enumerate(value):
-                if v is not None:
-                    add_keys[key + "[" + str(i) + "]"] = v
-        elif isinstance(value, dict) and not keep_data_structures:
-            remove_keys.append(key)
-            for k, v in value.items():
-                if v is not None:
-                    add_keys[key + "['" + k + "']"] = v
-        elif isinstance(value, (datetime.date, datetime.datetime, datetime.timedelta)):
-            attributes[key] = str(value)
-        elif value is None:
-            remove_keys.append(key)
-
-    for key in remove_keys:
-        attributes.pop(key)
-    attributes.update(add_keys)
-
-    return attributes
 
 
 class Graph(networkx.DiGraph):

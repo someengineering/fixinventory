@@ -3,9 +3,9 @@ import cloudkeeper.signal
 from pprint import pformat
 from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.graph import Graph, get_resource_attributes
+from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import except_log_and_pass
+from cloudkeeper.utils import except_log_and_pass, get_resource_attributes
 from prometheus_client import Summary
 from .resources import (
     GCPProject,

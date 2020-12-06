@@ -28,7 +28,6 @@ from cloudkeeper.pluginloader import PluginLoader, PluginType
 from cloudkeeper.graph import (
     Graph,
     GraphContainer,
-    get_resource_attributes,
     graph2pickle,
 )
 from cloudkeeper.args import ArgumentParser
@@ -39,7 +38,13 @@ from cloudkeeper.event import (
     add_event_listener,
     list_event_listeners,
 )
-from cloudkeeper.utils import parse_delta, make_valid_timestamp, split_esc, fmt_json
+from cloudkeeper.utils import (
+    parse_delta,
+    make_valid_timestamp,
+    split_esc,
+    fmt_json,
+    resource2dict,
+)
 from cloudkeeper.cleaner import Cleaner
 
 
@@ -398,27 +403,7 @@ class CliHandler:
                 raise RuntimeError(
                     f"Item {item} is not a valid resource - dumping failed"
                 )
-            out = get_resource_attributes(
-                item, exclude_private=exclude_private, keep_data_structures=True
-            )
-            cloud = item.cloud(self.graph)
-            account = item.account(self.graph)
-            region = item.region(self.graph)
-            location = item.location(self.graph)
-            zone = item.zone(self.graph)
-            out["cloud_id"] = cloud.id
-            out["account_id"] = account.id
-            out["region_id"] = region.id
-            out["location_id"] = location.id
-            out["zone_id"] = zone.id
-            out["cloud_name"] = cloud.name
-            out["account_name"] = account.name
-            out["region_name"] = region.name
-            out["location_name"] = location.name
-            out["zone_name"] = zone.name
-            out["event_log"] = item.event_log
-            out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
-            out["successors"] = [i.sha256 for i in item.successors(self.graph)]
+            out = resource2dict(item, exclude_private, self.graph)
             if dump_json:
                 json_out.append(out)
             else:
@@ -624,19 +609,7 @@ and chain multipe commands using the semicolon (;).
                     f"Item {item} is not a valid resource - dumping failed"
                 )
             fmt = defaultdict(str)
-            out = get_resource_attributes(item)
-            cloud = item.cloud(self.graph)
-            account = item.account(self.graph)
-            region = item.region(self.graph)
-            location = item.location(self.graph)
-            zone = item.zone(self.graph)
-            out["cloud"] = cloud
-            out["account"] = account
-            out["region"] = region
-            out["zone"] = zone
-            out["location"] = location
-            out["predecessors"] = [i.sha256 for i in item.predecessors(self.graph)]
-            out["successors"] = [i.sha256 for i in item.successors(self.graph)]
+            out = resource2dict(item, True, self.graph)
             out["resource"] = item
             fmt.update(out)
             fmt_item = args.format_map(fmt)
