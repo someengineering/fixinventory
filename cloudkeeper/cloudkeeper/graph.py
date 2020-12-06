@@ -2,7 +2,6 @@ import networkx
 import threading
 import pickle
 import json
-import datetime
 import re
 import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
@@ -68,8 +67,6 @@ metrics_graph2gexf = Summary(
 metrics_graph2pajek = Summary(
     "cloudkeeper_graph2pajek_seconds", "Time it took the graph2pajek() method"
 )
-
-resource_attributes_blacklist = ["metrics_description", "event_log"]
 
 
 class Graph(networkx.DiGraph):
