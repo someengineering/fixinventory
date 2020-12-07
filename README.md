@@ -78,15 +78,55 @@ A Docker image is available as [`mesosphere/cloudkeeper`](https://hub.docker.com
 
 
 ## Development Setup
+### Installing build dependencies
+Alpine 3.12
+```
+# apk add build-base linux-headers findutils libtool automake autoconf git python3 python3-dev py3-pip
+```
+
+Debian 11
+```
+# apt install build-essential python3 python3-venv python3-pip git libtool autoconf automake
+```
+
+CentOS 8
+```
+# dnf -y groupinstall "Development Tools"
+# dnf -y install python38 python38-devel
+```
+### Option 1) Installing Cloudkeeper for local development
 ```
 $ git clone https://github.com/mesosphere/cloudkeeper.git
 $ cd cloudkeeper
-$ python3.8 -m venv venv
+$ python3 -m venv venv   # ensure Python 3.8 or later is installed
 $ source venv/bin/activate
 $ pip install --editable cloudkeeper/
 $ pip install --editable plugins/aws/  # one of the other plugins depends on aws
 $ find plugins/ -maxdepth 1 -mindepth 1 -type d -exec pip install --editable "{}" \+
 ```
+The contents of the cloned git repo can now be modified and changes will be immediatelly
+reflected when running `cloudkeeper`.
+
+### Option 2) Building binary wheels
+```
+$ mkdir ~/packages
+$ git clone https://github.com/mesosphere/cloudkeeper.git
+$ cd cloudkeeper
+$ python3 -m venv venv   # ensure Python 3.8 or later is installed
+$ source venv/bin/activate
+$ pip install wheel
+$ pip wheel -w ~/packages cloudkeeper/
+$ pip wheel -w ~/packages -f ~/packages plugins/aws/
+$ find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w ~/packages -f ~/packages
+```
+
+Copy the contents of ~/packages/ to any other system and install using e.g.
+```
+$ pip install -f ~/packages ~/packages/cloudkeeper*.whl
+```
+The target system does not require above installed compilers and build tools as the resulting wheels
+contain all of the binary dependencies. Only a basic Python 3.8+ setup is required.
+
 
 ## Example usage
 ```

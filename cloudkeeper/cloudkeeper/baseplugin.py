@@ -1,7 +1,8 @@
 import cloudkeeper.logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from cloudkeeper.graph import Graph, get_resource_attributes
+from cloudkeeper.graph import Graph
+from cloudkeeper.utils import get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import Cloud
 from threading import Thread

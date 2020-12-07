@@ -503,3 +503,77 @@ def increase_limits() -> None:
                 )
         except (ValueError):
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
+
+
+resource_attributes_blacklist = ["metrics_description", "event_log"]
+
+
+def get_resource_attributes(
+    resource, exclude_private: bool = True, keep_data_structures: bool = False
+) -> Dict:
+    attributes = dict(resource.__dict__)
+    attributes["resource_type"] = resource.resource_type
+
+    for attr_name in dir(resource):
+        if exclude_private and attr_name.startswith("_"):
+            continue
+        attr_type = getattr(type(resource), attr_name, None)
+        if isinstance(attr_type, property):
+            attributes[attr_name] = getattr(resource, attr_name, None)
+    attributes["tags"] = dict(attributes.pop("_tags"))
+
+    remove_keys = []
+    add_keys = {}
+
+    for key, value in attributes.items():
+        if (
+            exclude_private
+            and str(key).startswith("_")
+            or str(key) in resource_attributes_blacklist
+        ):
+            remove_keys.append(key)
+        elif isinstance(value, (list, tuple, set)) and not keep_data_structures:
+            remove_keys.append(key)
+            for i, v in enumerate(value):
+                if v is not None:
+                    add_keys[key + "[" + str(i) + "]"] = v
+        elif isinstance(value, dict) and not keep_data_structures:
+            remove_keys.append(key)
+            for k, v in value.items():
+                if v is not None:
+                    add_keys[key + "['" + k + "']"] = v
+        elif isinstance(value, (date, datetime, timedelta)):
+            attributes[key] = str(value)
+        elif value is None:
+            remove_keys.append(key)
+
+    for key in remove_keys:
+        attributes.pop(key)
+    attributes.update(add_keys)
+
+    return attributes
+
+
+def resource2dict(item, exclude_private=True, graph=None) -> Dict:
+    out = get_resource_attributes(
+        item, exclude_private=exclude_private, keep_data_structures=True
+    )
+    cloud = item.cloud(graph)
+    account = item.account(graph)
+    region = item.region(graph)
+    location = item.location(graph)
+    zone = item.zone(graph)
+    out["cloud_id"] = cloud.id
+    out["account_id"] = account.id
+    out["region_id"] = region.id
+    out["location_id"] = location.id
+    out["zone_id"] = zone.id
+    out["cloud_name"] = cloud.name
+    out["account_name"] = account.name
+    out["region_name"] = region.name
+    out["location_name"] = location.name
+    out["zone_name"] = zone.name
+    out["event_log"] = item.event_log
+    out["predecessors"] = [i.sha256 for i in item.predecessors(graph)]
+    out["successors"] = [i.sha256 for i in item.successors(graph)]
+    return out

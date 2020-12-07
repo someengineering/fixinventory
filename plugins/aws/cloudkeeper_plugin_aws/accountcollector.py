@@ -10,8 +10,8 @@ from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph, get_resource_attributes
-from cloudkeeper.utils import make_valid_timestamp, chunks
+from cloudkeeper.graph import Graph
+from cloudkeeper.utils import make_valid_timestamp, chunks, get_resource_attributes
 from .utils import aws_session, paginate
 from .resources import *
 from prometheus_client import Summary, Counter
