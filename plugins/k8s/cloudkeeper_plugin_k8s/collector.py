@@ -36,7 +36,7 @@ class KubernetesCollector:
         """
         self.cluster = cluster
         self.config = cluster_config
-        self.client = client.CoreV1Api(client.ApiClient(self.config))
+        self.api_client = client.ApiClient(self.config)
         self.graph = Graph(root=self.cluster)
 
     def collect(self) -> None:
@@ -60,9 +60,9 @@ class KubernetesCollector:
         for collector_name, collector in mandatory_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.cluster.rtdname}")
-                collector(self.client, self.graph)
+                collector(self.api_client, self.graph)
 
         for collector_name, collector in global_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.cluster.rtdname}")
-                collector(self.client, self.graph)
+                collector(self.api_client, self.graph)

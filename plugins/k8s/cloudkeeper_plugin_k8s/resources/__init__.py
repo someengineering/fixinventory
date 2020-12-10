@@ -1,5 +1,6 @@
 from .cluster import KubernetesCluster
 from .namespace import collect as collect_namespaces
+from .deployment import collect as collect_deployments
 from .pod import collect as collect_pods
 
 mandatory_collectors = {
@@ -7,6 +8,7 @@ mandatory_collectors = {
 }
 
 global_collectors = {
+    "deployments": collect_deployments,
     "pods": collect_pods,
 }
 
