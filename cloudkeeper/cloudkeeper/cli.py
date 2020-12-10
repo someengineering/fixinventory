@@ -609,7 +609,7 @@ and chain multipe commands using the semicolon (;).
                     f"Item {item} is not a valid resource - dumping failed"
                 )
             fmt = defaultdict(str)
-            out = resource2dict(item, True, self.graph)
+            out = resource2dict(item, exclude_private=False, graph=self.graph)
             out["resource"] = item
             fmt.update(out)
             fmt_item = args.format_map(fmt)

@@ -118,7 +118,7 @@ class ExampleInstance(BaseInstance, ExampleResource):
 
 
 class ExampleNetwork(BaseNetwork, ExampleResource):
-    resource_type = "example_instance"
+    resource_type = "example_network"
 
     def delete(self, graph: Graph) -> bool:
         log.debug(
