@@ -1,5 +1,6 @@
 from cloudkeeper.graph import Graph
 from pprint import pformat
+import kubernetes
 
 
 class KubernetesResource:

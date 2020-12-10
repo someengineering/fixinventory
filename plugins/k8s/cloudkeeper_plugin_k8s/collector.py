@@ -1,22 +1,17 @@
 import cloudkeeper.logging
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
-from prometheus_client import Summary
+
 from kubernetes import client
-from .resources import KubernetesCluster, KubernetesNamespace, KubernetesPod
+from .resources import (
+    all_collectors,
+    mandatory_collectors,
+    global_collectors,
+    KubernetesCluster,
+)
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
-
-
-metrics_collect_namespaces = Summary(
-    "cloudkeeper_plugin_k8s_collect_namespaces_seconds",
-    "Time it took the collect_namespaces() method",
-)
-metrics_collect_pods = Summary(
-    "cloudkeeper_plugin_k8s_collect_pods_seconds",
-    "Time it took the collect_pods() method",
-)
 
 
 class KubernetesCollector:
@@ -44,29 +39,17 @@ class KubernetesCollector:
         self.client = client.CoreV1Api(client.ApiClient(self.config))
         self.graph = Graph(root=self.cluster)
 
-        # Mandatory collectors are always collected regardless of whether
-        # they were included by --k8s-collect or excluded by --k8s-no-collect
-        self.mandatory_collectors = {
-            "namespaces": self.collect_namespaces,
-        }
-
-        self.global_collectors = {
-            "pods": self.collect_pods,
-        }
-        self.all_collectors = dict(self.mandatory_collectors)
-        self.all_collectors.update(self.global_collectors)
-
     def collect(self) -> None:
         """Runs the actual resource collection across all resource collectors.
 
         Resource collectors add their resources to the local `self.graph` graph.
         """
-        collectors = set(self.all_collectors.keys())
+        collectors = set(all_collectors.keys())
         if len(ArgumentParser.args.k8s_collect) > 0:
             collectors = set(ArgumentParser.args.k8s_collect).intersection(collectors)
         if len(ArgumentParser.args.k8s_no_collect) > 0:
             collectors = collectors - set(ArgumentParser.args.k8s_no_collect)
-        collectors = collectors.union(set(self.mandatory_collectors.keys()))
+        collectors = collectors.union(set(mandatory_collectors.keys()))
 
         log.debug(
             (
@@ -74,35 +57,12 @@ class KubernetesCollector:
                 f" {', '.join(collectors)}"
             )
         )
-        for collector_name, collector in self.mandatory_collectors.items():
+        for collector_name, collector in mandatory_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.cluster.rtdname}")
-                collector()
+                collector(self.client, self.graph)
 
-        for collector_name, collector in self.global_collectors.items():
+        for collector_name, collector in global_collectors.items():
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.cluster.rtdname}")
-                collector()
-
-    @metrics_collect_namespaces.time()
-    def collect_namespaces(self) -> None:
-        ret = self.client.list_namespace(watch=False)
-        for r in ret.items:
-            namespace = KubernetesNamespace(r.metadata.name, {}, api_response=r)
-            self.graph.add_resource(self.graph.root, namespace)
-
-    @metrics_collect_pods.time()
-    def collect_pods(self) -> None:
-        ret = self.client.list_pod_for_all_namespaces(watch=False)
-        for r in ret.items:
-            name = r.metadata.name
-            namespace = r.metadata.namespace
-            status = r.status.phase
-            pod = KubernetesPod(name, {}, instance_status=status, api_response=r)
-            ns = self.graph.search_first_all(
-                {"resource_type": "kubernetes_namespace", "id": namespace}
-            )
-            parent = self.graph.root
-            if ns:
-                parent = ns
-            self.graph.add_resource(parent, pod)
+                collector(self.client, self.graph)
