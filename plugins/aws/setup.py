@@ -23,7 +23,6 @@ setup(
     zip_safe=False,
     install_requires=[
         "cloudkeeper",
-        "networkx",
         "retrying",
         "prometheus_client",
         "boto3",

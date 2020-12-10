@@ -1,11 +1,11 @@
 import cloudkeeper.logging
 import multiprocessing
 import cloudkeeper.signal
-import networkx
 from concurrent import futures
 from typing import Optional, Dict
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.graph import Graph
 from kubernetes import client
 from .utils import k8s_config
 from .collector import KubernetesCollector
@@ -51,20 +51,11 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                 for cluster_id, cluster_config in clusters.items()
             ]
             for future in futures.as_completed(wait_for):
-                res = future.result()
-                if not isinstance(res, dict):
+                cluster_graph = future.result()
+                if not isinstance(cluster_graph, Graph):
+                    log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
                     continue
-                kc_root = res.get("root")
-                kc_graph = res.get("graph")
-                kc_host = res.get("cluster")
-                log.debug(
-                    (
-                        f"Merging graph of project {kc_host.dname}"
-                        f" with {self.cloud} plugin graph"
-                    )
-                )
-                self.graph = networkx.compose(self.graph, kc_graph)
-                self.graph.add_edge(self.root, kc_root)
+                self.graph.merge(cluster_graph)
 
     @staticmethod
     def collect_cluster(
@@ -96,7 +87,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                 f"An unhandled error occurred while collecting {cluster.rtdname}"
             )
         else:
-            return {"root": kc.root, "graph": kc.graph, "cluster": kc.cluster}
+            return kc.graph
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

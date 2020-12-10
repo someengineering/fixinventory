@@ -146,14 +146,11 @@ class Processor(threading.Thread):
                         )
                     )
                     continue
-                log.info(f"Merging graph of plugin {plugin.cloud} with global graph")
-                gc.add(plugin.graph)
-                gc.graph.add_edge(
-                    gc.GRAPH_ROOT, plugin.root
-                )  # Connect the root of our graph with the plugin's
+                log.info(f"Collector of plugin {plugin.cloud} finished")
+                gc.graph.merge(plugin.graph)
             else:
                 log.error(f"Plugin {plugin.cloud} timed out - discarding Plugin graph")
-        sanitize(gc.graph, gc.GRAPH_ROOT)
+        sanitize(gc.graph)
         dispatch_event(Event(EventType.GENERATE_METRICS, gc.graph), blocking=True)
         dispatch_event(Event(EventType.COLLECT_FINISH, gc.graph), blocking=True)
         # Swap the live graph with the newly created one from our current run

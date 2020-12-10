@@ -1,7 +1,6 @@
 import cloudkeeper.logging
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import get_resource_attributes
 from prometheus_client import Summary
 from kubernetes import client
 from .resources import KubernetesCluster, KubernetesNamespace, KubernetesPod
@@ -43,10 +42,7 @@ class KubernetesCollector:
         self.cluster = cluster
         self.config = cluster_config
         self.client = client.CoreV1Api(client.ApiClient(self.config))
-        self.root = self.cluster
-        self.graph = Graph()
-        resource_attr = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.name, **resource_attr)
+        self.graph = Graph(root=self.cluster)
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --k8s-collect or excluded by --k8s-no-collect
@@ -93,7 +89,7 @@ class KubernetesCollector:
         ret = self.client.list_namespace(watch=False)
         for r in ret.items:
             namespace = KubernetesNamespace(r.metadata.name, {}, api_response=r)
-            self.graph.add_resource(self.root, namespace)
+            self.graph.add_resource(self.graph.root, namespace)
 
     @metrics_collect_pods.time()
     def collect_pods(self) -> None:
@@ -106,7 +102,7 @@ class KubernetesCollector:
             ns = self.graph.search_first_all(
                 {"resource_type": "kubernetes_namespace", "id": namespace}
             )
-            parent = self.root
+            parent = self.graph.root
             if ns:
                 parent = ns
             self.graph.add_resource(parent, pod)

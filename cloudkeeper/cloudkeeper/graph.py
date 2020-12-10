@@ -72,9 +72,35 @@ metrics_graph2pajek = Summary(
 class Graph(networkx.DiGraph):
     """A directed Graph"""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.lock = RWLock()
+        self.root = None
+        if isinstance(root, BaseResource):
+            self.root = root
+            self.add_node(
+                self.root, label=self.root.name, **get_resource_attributes(self.root)
+            )
+
+    def merge(self, graph: networkx.DiGraph):
+        """Merge another graph into ourselves
+
+        If the other graph has a graph.root an edge will be created between
+        it and our own graph root.
+        """
+        self.update(graph)
+        if isinstance(self.root, BaseResource) and isinstance(
+            getattr(graph, "root", None), BaseResource
+        ):
+            log.debug(
+                (
+                    f"Merging graph of {graph.root.rtdname}"
+                    f" into graph of {self.root.rtdname}"
+                )
+            )
+            self.add_edge(self.root, graph.root)
+        else:
+            log.warn("Merging graphs with no valid roots")
 
     def add_resource(self, parent, node_for_adding, **attr):
         """Add a resource node to the graph
@@ -270,9 +296,7 @@ class GraphContainer:
         self._graph = None
         self._observers = []
         self.__lock = threading.Lock()
-        self.graph = Graph()
-        resource_attr = get_resource_attributes(self.GRAPH_ROOT)
-        self.graph.add_node(self.GRAPH_ROOT, label=self.GRAPH_ROOT.id, **resource_attr)
+        self.graph = Graph(root=self.GRAPH_ROOT)
         if cache_graph:
             self.cache = GraphCache()
             self.cache.update_cache(Event(EventType.STARTUP, self.graph))
@@ -508,10 +532,14 @@ def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> N
         set_max_depth(graph, child_node, current_depth + 1)
 
 
-def sanitize(graph: Graph, root: GraphRoot) -> None:
+def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     log.debug("Sanitizing Graph")
     plugin_roots = {}
     graph_roots = []
+
+    if root is None and isinstance(getattr(graph, "root", None), BaseResource):
+        root = graph.root
+
     for node in graph.successors(root):
         if isinstance(node, Cloud):
             log.debug(f"Found Plugin Root {node.id}")

@@ -490,12 +490,16 @@ class BaseResource(ABC):
         """Returns an iterator of the node's parent nodes"""
         if graph is None:
             graph = self._graph
+        if graph is None:
+            return ()
         return graph.predecessors(self)
 
     def successors(self, graph) -> Iterator:
         """Returns an iterator of the node's child nodes"""
         if graph is None:
             graph = self._graph
+        if graph is None:
+            return ()
         return graph.successors(self)
 
     def predecessor_added(self, resource, graph) -> None:
@@ -510,12 +514,16 @@ class BaseResource(ABC):
         """Returns an iterator of the node's ancestors"""
         if graph is None:
             graph = self._graph
+        if graph is None:
+            return ()
         return networkx.algorithms.dag.ancestors(graph, self)
 
     def descendants(self, graph) -> Iterator:
         """Returns an iterator of the node's descendants"""
         if graph is None:
             graph = self._graph
+        if graph is None:
+            return ()
         return networkx.algorithms.dag.descendants(graph, self)
 
     @property

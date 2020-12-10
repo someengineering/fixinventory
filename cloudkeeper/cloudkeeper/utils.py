@@ -546,6 +546,26 @@ def get_resource_attributes(
             attributes[key] = str(value)
         elif value is None:
             remove_keys.append(key)
+        elif not isinstance(
+            value,
+            (
+                str,
+                int,
+                float,
+                complex,
+                list,
+                tuple,
+                range,
+                dict,
+                set,
+                frozenset,
+                bool,
+                bytes,
+                bytearray,
+                memoryview,
+            ),
+        ):
+            remove_keys.append(key)
 
     for key in remove_keys:
         attributes.pop(key)

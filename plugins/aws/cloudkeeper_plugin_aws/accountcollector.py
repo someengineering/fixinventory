@@ -1,6 +1,5 @@
 import botocore.exceptions
 import concurrent.futures
-import networkx
 import cloudkeeper.logging
 import socket
 import urllib3
@@ -11,7 +10,7 @@ from threading import Lock
 from collections.abc import Mapping
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.graph import Graph
-from cloudkeeper.utils import make_valid_timestamp, chunks, get_resource_attributes
+from cloudkeeper.utils import make_valid_timestamp, chunks
 from .utils import aws_session, paginate
 from .resources import *
 from prometheus_client import Summary, Counter
@@ -248,9 +247,7 @@ class AWSAccountCollector:
         self.regions = [AWSRegion(region, {}, account=account) for region in regions]
         self.account = account
         self.root = self.account
-        self.graph = Graph()
-        resource_attr = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.name, **resource_attr)
+        self.graph = Graph(root=self.account)
 
         # The pricing info is being used to cache the results of pricing information. This way we don't ask
         # the API 10 times what the price of an e.g. m5.xlarge instance is. The lock is being used to ensure
@@ -314,8 +311,7 @@ class AWSAccountCollector:
         global_region = AWSRegion("us-east-1", {}, name="global", account=self.account)
         graph = self.collect_resources(self.global_collectors, global_region)
         log.debug(f"Adding graph of region {global_region.name} to account graph")
-        self.graph = networkx.compose(self.graph, graph)
-        self.graph.add_edge(self.root, global_region)
+        self.graph.merge(graph)
 
         # Collect regions in parallel after global resources have been collected
         with concurrent.futures.ThreadPoolExecutor(
@@ -341,8 +337,7 @@ class AWSAccountCollector:
                     )
                 else:
                     log.debug(f"Adding graph of region {region.name} to account graph")
-                    self.graph = networkx.compose(self.graph, graph)
-                    self.graph.add_edge(self.root, region)
+                    self.graph.merge(graph)
 
     @retry(
         stop_max_attempt_number=10,
@@ -354,9 +349,7 @@ class AWSAccountCollector:
         log.info(
             f"Collecting resources in AWS account {self.account.dname} region {region.name}"
         )
-        graph = Graph()
-        resource_attr = get_resource_attributes(region)
-        graph.add_node(region, label=region.name, **resource_attr)
+        graph = Graph(root=region)
         for collector_name, collector in collectors.items():
             if (
                 len(ArgumentParser.args.aws_collect) > 0
