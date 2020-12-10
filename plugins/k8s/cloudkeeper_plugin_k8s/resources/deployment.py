@@ -21,12 +21,14 @@ class KubernetesDeployment(KubernetesResource, BaseResource):
 
 @metrics_collect.time()
 def collect(api_client: client.ApiClient, graph: Graph):
-    api = client.CoreV1Api(api_client)
+    api = client.AppsV1Api(api_client)
     ret = api.list_pod_for_all_namespaces(watch=False)
     for r in ret.items:
         name = r.metadata.name
         namespace = r.metadata.namespace
-        deployment = KubernetesDeployment(name, {}, api_response=r)
+        deployment = KubernetesDeployment(
+            name, {}, self_link=r.metadata.self_link, api_response=r
+        )
         ns = graph.search_first_all(
             {"resource_type": "kubernetes_namespace", "id": namespace}
         )

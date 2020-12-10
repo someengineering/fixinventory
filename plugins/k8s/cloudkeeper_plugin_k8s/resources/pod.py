@@ -41,7 +41,13 @@ def collect(api_client: client.ApiClient, graph: Graph):
         name = r.metadata.name
         namespace = r.metadata.namespace
         status = r.status.phase
-        pod = KubernetesPod(name, {}, instance_status=status, api_response=r)
+        pod = KubernetesPod(
+            name,
+            {},
+            instance_status=status,
+            self_link=r.metadata.self_link,
+            api_response=r,
+        )
         ns = graph.search_first_all(
             {"resource_type": "kubernetes_namespace", "id": namespace}
         )

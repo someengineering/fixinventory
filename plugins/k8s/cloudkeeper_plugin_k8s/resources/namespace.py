@@ -22,5 +22,7 @@ def collect(api_client: client.ApiClient, graph: Graph):
     api = client.CoreV1Api(api_client)
     ret = api.list_namespace(watch=False)
     for r in ret.items:
-        namespace = KubernetesNamespace(r.metadata.name, {}, api_response=r)
+        namespace = KubernetesNamespace(
+            r.metadata.name, {}, self_link=r.metadata.self_link, api_response=r
+        )
         graph.add_resource(graph.root, namespace)
