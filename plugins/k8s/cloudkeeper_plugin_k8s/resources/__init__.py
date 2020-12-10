@@ -1,15 +1,17 @@
 from .cluster import KubernetesCluster
-from .namespace import collect as collect_namespaces
-from .deployment import collect as collect_deployments
-from .pod import collect as collect_pods
+from .namespace import KubernetesNamespace
+from .deployment import KubernetesDeployment
+from .replica_set import KubernetesReplicaSet
+from .pod import KubernetesPod
 
 mandatory_collectors = {
-    "namespaces": collect_namespaces,
+    "namespaces": KubernetesNamespace.collect,
 }
 
 global_collectors = {
-    "deployments": collect_deployments,
-    "pods": collect_pods,
+    "deployments": KubernetesDeployment.collect,
+    "replica_set": KubernetesReplicaSet.collect,
+    "pods": KubernetesPod.collect,
 }
 
 all_collectors = dict(mandatory_collectors)

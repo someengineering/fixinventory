@@ -1,6 +1,5 @@
 import cloudkeeper.logging
 from kubernetes import client
-from prometheus_client import Summary
 from .common import KubernetesResource
 from cloudkeeper.graph import Graph
 from cloudkeeper.baseresources import (
@@ -10,14 +9,14 @@ from cloudkeeper.baseresources import (
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
-metrics_collect = Summary(
-    "cloudkeeper_plugin_k8s_collect_pods_seconds",
-    "Time it took the pods collect() method",
-)
 
 
 class KubernetesPod(KubernetesResource, BaseInstance):
     resource_type = "kubernetes_pod"
+    api = client.CoreV1Api
+    list_method = "list_pod_for_all_namespaces"
+
+    attr_map = {"instance_status": lambda r: r.status.phase}
 
     instance_status_map = {
         "Pending": InstanceStatus.BUSY,
@@ -31,27 +30,3 @@ class KubernetesPod(KubernetesResource, BaseInstance):
         self._instance_status = self.instance_status_map.get(
             value, InstanceStatus.UNKNOWN
         )
-
-
-@metrics_collect.time()
-def collect(api_client: client.ApiClient, graph: Graph):
-    api = client.CoreV1Api(api_client)
-    ret = api.list_pod_for_all_namespaces(watch=False)
-    for r in ret.items:
-        name = r.metadata.name
-        namespace = r.metadata.namespace
-        status = r.status.phase
-        pod = KubernetesPod(
-            name,
-            {},
-            instance_status=status,
-            self_link=r.metadata.self_link,
-            api_response=r,
-        )
-        ns = graph.search_first_all(
-            {"resource_type": "kubernetes_namespace", "id": namespace}
-        )
-        parent = graph.root
-        if ns:
-            parent = ns
-        graph.add_resource(parent, pod)
