@@ -3,11 +3,11 @@ from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
 
 from kubernetes import client
+from .resources.cluster import KubernetesCluster
 from .resources import (
     all_collectors,
     mandatory_collectors,
     global_collectors,
-    KubernetesCluster,
 )
 
 

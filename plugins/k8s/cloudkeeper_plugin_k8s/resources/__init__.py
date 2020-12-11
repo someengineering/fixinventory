@@ -1,10 +1,9 @@
-from .cluster import KubernetesCluster
 from .node import KubernetesNode
 from .namespace import KubernetesNamespace
 from .deployment import KubernetesDeployment
 from .replica_set import KubernetesReplicaSet
 from .stateful_set import KubernetesStatefulSet
-from.daemon_set import KubernetesDaemonSet
+from .daemon_set import KubernetesDaemonSet
 from .controller_revision import KubernetesControllerRevision
 from .pod import KubernetesPod
 

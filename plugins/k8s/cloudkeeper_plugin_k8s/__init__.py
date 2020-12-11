@@ -9,7 +9,7 @@ from cloudkeeper.graph import Graph
 from kubernetes import client
 from .utils import k8s_config
 from .collector import KubernetesCollector
-from .resources import KubernetesCluster
+from .resources.cluster import KubernetesCluster
 
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
