@@ -1,7 +1,6 @@
 import cloudkeeper.logging
 from kubernetes import client
 from .common import KubernetesResource
-from cloudkeeper.graph import Graph
 from cloudkeeper.baseresources import (
     BaseInstance,
     InstanceStatus,
