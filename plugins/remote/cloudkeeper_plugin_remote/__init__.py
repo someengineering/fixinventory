@@ -42,15 +42,23 @@ class RemotePlugin(BaseCollectorPlugin):
                 log.error("Downloaded remote graph is not of type Graph() - skipping")
                 continue
 
+            # If remote graph does not have the new graph root property yet
+            # we try to find it in the graph
             if not isinstance(getattr(remote_graph, "root", None), GraphRoot):
-                log.error(
-                    "Downloaded remote graph root is not of type GraphRoot() - skipping"
-                )
-                continue
+                log.error("Downloaded remote graph root is not of type GraphRoot()")
+                for node in remote_graph.nodes:
+                    if isinstance(node, GraphRoot):
+                        remote_graph.root = node
+                        log.info(f"Found remote graph root {node.rtdname} - setting")
+                        break
+                else:
+                    log.error(f"Skipping remote graph {endpoint}")
+                    continue
 
             log.debug("Adding remote graph to local plugin graph")
             self.graph.merge(remote_graph)
             sanitize(self.graph)
+        log.debug(f"Local root: {self.graph.root}")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
