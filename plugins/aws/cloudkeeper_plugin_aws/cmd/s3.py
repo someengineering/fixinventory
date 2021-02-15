@@ -102,19 +102,19 @@ def main() -> None:
             try:
                 buckets = collect_buckets(account)
             except Exception:
-                log.error(f"Failed to collect buckets in {account.rtdname}")
+                log.exception(f"Failed to collect buckets in {account.rtdname}")
                 continue
             for bucket in buckets:
                 try:
                     collect_bucket(account, bucket.name)
                 except Exception:
-                    log.error(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
+                    log.exception(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
                     continue
         else:
             try:
                 collect_bucket(account, ArgumentParser.args.aws_s3_bucket)
             except Exception:
-                log.error(f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}")
+                log.exception(f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}")
                 continue
 
 
