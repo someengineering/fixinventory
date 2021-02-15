@@ -17,7 +17,7 @@ setup(
         "cloudkeeper.plugins": ["aws = cloudkeeper_plugin_aws:AWSPlugin"],
         "console_scripts": [
             "cloudkeeper-aws-org-list = cloudkeeper_plugin_aws.cmd.org_list:main",
-            "cloudkeeper-aws-s3-ls = cloudkeeper_plugin_aws.cmd.s3_ls:main",
+            "cloudkeeper-aws-s3 = cloudkeeper_plugin_aws.cmd.s3:main",
         ],
     },
     include_package_data=True,
@@ -25,6 +25,7 @@ setup(
     install_requires=[
         "cloudkeeper",
         "retrying",
+        "sqlalchemy",
         "prometheus_client",
         "boto3",
         "botocore",
