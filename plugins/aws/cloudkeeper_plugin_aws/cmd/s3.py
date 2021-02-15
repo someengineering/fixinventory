@@ -103,19 +103,17 @@ def main() -> None:
                 buckets = collect_buckets(account)
             except Exception:
                 log.exception(f"Failed to collect buckets in {account.rtdname}")
-                continue
-            for bucket in buckets:
-                try:
-                    collect_bucket(account, bucket.name)
-                except Exception:
-                    log.exception(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
-                    continue
+            else:
+                for bucket in buckets:
+                    try:
+                        collect_bucket(account, bucket.name)
+                    except Exception:
+                        log.exception(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
         else:
             try:
                 collect_bucket(account, ArgumentParser.args.aws_s3_bucket)
             except Exception:
                 log.exception(f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}")
-                continue
 
 
 def collect_bucket(account: AWSAccount, bucket_name):
@@ -176,7 +174,7 @@ def collect_buckets(account: AWSAccount):
         dbs.add(b)
     dbs.commit()
 
-    return dbs.query(Bucket)
+    return dbs.query(Bucket).filter_by(account=account.id)
 
 
 def authenticated() -> bool:
