@@ -96,15 +96,26 @@ Base.metadata.create_all()
 
 
 def main() -> None:
-    # Add cli args
-
     accounts = get_accounts()
     for account in accounts:
         if not ArgumentParser.args.aws_s3_bucket:
-            for bucket in collect_buckets(account):
-                collect_bucket(account, bucket.name)
+            try:
+                buckets = collect_buckets(account)
+            except Exception:
+                log.error(f"Failed to collect buckets in {account.rtdname}")
+                continue
+            for bucket in buckets:
+                try:
+                    collect_bucket(account, bucket.name)
+                except Exception:
+                    log.error(f"Failed to collect bucket {bucket.name} in {account.rtdname}")
+                    continue
         else:
-            collect_bucket(account, ArgumentParser.args.aws_s3_bucket)
+            try:
+                collect_bucket(account, ArgumentParser.args.aws_s3_bucket)
+            except Exception:
+                log.error(f"Failed to collect bucket {ArgumentParser.args.aws_s3_bucket} in {account.rtdname}")
+                continue
 
 
 def collect_bucket(account: AWSAccount, bucket_name):
