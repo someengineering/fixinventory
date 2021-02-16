@@ -493,7 +493,7 @@ def list_accounts(dbs):
     results = (
         dbs.query(BucketObject.account, func.sum(BucketObject.size).label("size"))
         .group_by(BucketObject.account)
-        .order_by(BucketObject.size, BucketObject.account)
+        .order_by(BucketObject.size)
         .all()
     )
     return results
@@ -508,7 +508,7 @@ def list_buckets(dbs, account):
         )
         .filter_by(account=account)
         .group_by(BucketObject.account, BucketObject.bucket_name)
-        .order_by(BucketObject.size, BucketObject.account, BucketObject.bucket_name)
+        .order_by(BucketObject.size)
         .all()
     )
     return results
