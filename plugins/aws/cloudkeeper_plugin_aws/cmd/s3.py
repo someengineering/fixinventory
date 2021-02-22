@@ -116,20 +116,24 @@ class Bucket(Base):
 
 
 class BucketObject(Base):
-    __tablename__ = "bucketobject"
+    __tablename__ = "bucketobjects"
     __table_args__ = (PrimaryKeyConstraint("account", "bucket_name", "name"),)
 
     account = Column(String, index=True)
     bucket_name = Column(String, index=True)
     name = Column(String, index=True)
+    dirname = Column(String, index=True)
+    basename = Column(String, index=True)
     size = Column(Integer, index=True)
     mtime = Column(DateTime, index=True)
 
     def __repr__(self):
-        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>" % (
+        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', dirname='%s', basename='%s', size='%s', mtime='%s')>" % (
             self.account,
             self.bucket_name,
             self.name,
+            self.dirname,
+            self.basename,
             self.size,
             self.mtime,
         )
