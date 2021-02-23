@@ -553,7 +553,6 @@ def list_objects(dbs, account, bucket_name, dirname, limit=10000):
     return results
 
 def list_directories(dbs, account, bucket_name, dirname):
-    log.info(f"LISTIN {dirname}")
     if dirname is None:
         dirname = ""
     dirname_len = len(dirname) + 1
