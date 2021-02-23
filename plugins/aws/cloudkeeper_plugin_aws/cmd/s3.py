@@ -1,5 +1,4 @@
 import botocore.exceptions
-import os
 import sys
 import inspect
 import pathlib
@@ -72,13 +71,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
         action="store_true",
         default=False,
     )
-    arg_parser.add_argument(
-        "--aws-s3-upgrade",
-        help="Upgrade DB (default: False)",
-        dest="aws_s3_upgrade",
-        action="store_true",
-        default=False,
-    )
     default_history_file = pathlib.Path.home() / ".cloudkeeper_s3_history"
     cli_history_default = None
     if default_history_file.exists():
@@ -130,18 +122,14 @@ class BucketObject(Base):
     account = Column(String, index=True)
     bucket_name = Column(String, index=True)
     name = Column(String, index=True)
-    dirname = Column(String, index=True)
-    basename = Column(String, index=True)
     size = Column(Integer, index=True)
     mtime = Column(DateTime, index=True)
 
     def __repr__(self):
-        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', dirname='%s', basename='%s', size='%s', mtime='%s')>" % (
+        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>" % (
             self.account,
             self.bucket_name,
             self.name,
-            self.dirname,
-            self.basename,
             self.size,
             self.mtime,
         )
@@ -153,21 +141,8 @@ Base.metadata.create_all()
 def main() -> None:
     if ArgumentParser.args.aws_s3_collect:
         collect()
-    if ArgumentParser.args.aws_s3_upgrade:
-        upgrade()
     cli()
 
-
-def upgrade():
-    from pprint import pprint
-    dbs = Session()
-    for bo in dbs.query(BucketObject).all():
-        dirname = os.path.dirname(bo.name)
-        basename = os.path.basename(bo.name)
-        log.info(f"Updating {bo.name} -> {dirname} / {basename}")
-        bo.dirname = dirname
-        bo.basename = basename
-    dbs.commit()
 
 def cli():
     session = PromptSession(history=None)
@@ -246,15 +221,10 @@ def collect_bucket(account: AWSAccount, bucket_name):
         ):
             continue
 
-        dirname = os.path.dirname(bucket_object.key)
-        basename = os.path.basename(bucket_object.key)
-
         bo = BucketObject(
             account=account.id,
             bucket_name=bucket_name,
             name=bucket_object.key,
-            dirname=dirname,
-            basename=basename,
             size=bucket_object.size,
             mtime=bucket_object.last_modified,
         )
@@ -479,7 +449,7 @@ and chain multipe commands using the semicolon (;).
         elif len(components) == 4:
             account = components[1]
             bucket = components[2]
-            s3object = components[3]
+            s3object = components[3] + "/"
 
         if account is None:
             for result in list_accounts(self.dbs):
@@ -495,7 +465,8 @@ and chain multipe commands using the semicolon (;).
                     directory = result.directory
                 yield f"DIR\t{directory}\t{iec_size_format(result.size)}"
             for result in list_objects(self.dbs, account, bucket, s3object):
-                yield f"FILE\t{result.basename}\t{iec_size_format(result.size)}"
+                if len(result.name) > 0:
+                    yield f"FILE\t{result.name}\t{iec_size_format(result.size)}"
 
     def cmd_cd(self, items: Iterable, args: str) -> Iterable:
         """Usage: cd <directory>
@@ -542,7 +513,6 @@ def list_accounts(dbs):
         )
         .group_by(BucketObject.account)
         .order_by("size")
-        .all()
     )
     return results
 
@@ -558,7 +528,6 @@ def list_buckets(dbs, account):
         .filter_by(account=account)
         .group_by(BucketObject.account, BucketObject.bucket_name)
         .order_by("size")
-        .all()
     )
     return results
 
@@ -566,41 +535,41 @@ def list_buckets(dbs, account):
 def list_objects(dbs, account, bucket_name, dirname, limit=10000):
     if dirname is None:
         dirname = ""
+    dirname_len = len(dirname) + 1
     results = (
         dbs.query(
             BucketObject.account,
             BucketObject.bucket_name,
-            BucketObject.basename,
+            func.substr(BucketObject.name, dirname_len).label("name"),
             BucketObject.size,
             BucketObject.mtime,
         )
-        .filter_by(account=account, bucket_name=bucket_name, dirname=dirname)
-        .order_by(BucketObject.basename)
+        .filter_by(account=account, bucket_name=bucket_name)
+        .filter(BucketObject.name.like(dirname + "%"))
+        .filter(func.substr(BucketObject.name, dirname_len).notlike("%/%"))
+        .order_by("name")
         .limit(limit)
-        .all()
     )
     return results
 
 def list_directories(dbs, account, bucket_name, dirname):
+    log.info(f"LISTIN {dirname}")
     if dirname is None:
         dirname = ""
-        dirname_len = 1
-    else:
-        dirname_len = len(dirname) + 2
+    dirname_len = len(dirname) + 1
 
     results = (
         dbs.query(
             BucketObject.account,
             BucketObject.bucket_name,
-            func.substr(BucketObject.dirname, dirname_len, func.instr(func.substr(BucketObject.dirname, dirname_len), "/")).label("directory"),
+            func.substr(BucketObject.name, dirname_len, func.instr(func.substr(BucketObject.name, dirname_len), "/")).label("directory"),
             func.sum(BucketObject.size).label("size"),
             func.max(BucketObject.mtime).label("mtime"),
         )
         .filter_by(account=account, bucket_name=bucket_name)
-        .filter(BucketObject.dirname.like(dirname + "%"))
+        .filter(BucketObject.name.like(dirname + "%"))
         .group_by(BucketObject.account, BucketObject.bucket_name, "directory")
         .order_by("directory")
-        .all()
     )
     return results
 
