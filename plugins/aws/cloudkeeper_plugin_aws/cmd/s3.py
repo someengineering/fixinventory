@@ -321,6 +321,8 @@ class CliHandler:
         self.dbs = dbs
         self.commands = {}
         self.pwd = pwd
+        self.current_directories = []
+        self.current_files = []
         for f, m in inspect.getmembers(self, predicate=inspect.ismethod):
             if f.startswith("cmd_"):
                 self.commands[f[4:]] = m
@@ -451,22 +453,34 @@ and chain multipe commands using the semicolon (;).
             bucket = components[2]
             s3object = components[3] + "/"
 
+        yield f"{'type':<8} {'size':>10} {'date':>22} {'name':>40}"
         if account is None:
             for result in list_accounts(self.dbs):
-                yield f"ACCOUNT\t{result.account}\t{iec_size_format(result.size)}"
+                yield self.fprint_result(
+                    "account", result.size, result.mtime, result.account
+                )
         elif bucket is None:
             for result in list_buckets(self.dbs, account):
-                yield f"BUCKET\t{result.bucket_name}\t{iec_size_format(result.size)}"
+                yield self.fprint_result(
+                    "bucket", result.size, result.mtime, result.bucket_name
+                )
         else:
             for result in list_directories(self.dbs, account, bucket, s3object):
                 if result.directory == "":
                     directory = "."
                 else:
                     directory = result.directory
-                yield f"DIR\t{directory}\t{iec_size_format(result.size)}"
+                yield self.fprint_result("dir", result.size, result.mtime, directory)
             for result in list_objects(self.dbs, account, bucket, s3object):
                 if len(result.name) > 0:
-                    yield f"FILE\t{result.name}\t{iec_size_format(result.size)}"
+                    yield self.fprint_result(
+                        "file", result.size, result.mtime, result.name
+                    )
+
+    @staticmethod
+    def fprint_result(obj_type, obj_size, obj_date, obj_name):
+        obj_size = iec_size_format(obj_size)
+        return f"{obj_type:<8} {obj_size:>10} {str(obj_date):>22} {obj_name:>40}"
 
     def cmd_cd(self, items: Iterable, args: str) -> Iterable:
         """Usage: cd <directory>
@@ -552,6 +566,7 @@ def list_objects(dbs, account, bucket_name, dirname, limit=10000):
     )
     return results
 
+
 def list_directories(dbs, account, bucket_name, dirname):
     if dirname is None:
         dirname = ""
@@ -561,14 +576,18 @@ def list_directories(dbs, account, bucket_name, dirname):
         dbs.query(
             BucketObject.account,
             BucketObject.bucket_name,
-            func.substr(BucketObject.name, dirname_len, func.instr(func.substr(BucketObject.name, dirname_len), "/")).label("directory"),
+            func.substr(
+                BucketObject.name,
+                dirname_len,
+                func.instr(func.substr(BucketObject.name, dirname_len), "/"),
+            ).label("directory"),
             func.sum(BucketObject.size).label("size"),
             func.max(BucketObject.mtime).label("mtime"),
         )
         .filter_by(account=account, bucket_name=bucket_name)
         .filter(BucketObject.name.like(dirname + "%"))
         .group_by(BucketObject.account, BucketObject.bucket_name, "directory")
-        .order_by("directory")
+        .order_by("size")
     )
     return results
 
