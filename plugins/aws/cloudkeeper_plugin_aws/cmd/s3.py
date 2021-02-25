@@ -347,7 +347,7 @@ class CliHandler:
 
     @staticmethod
     def quit(reason=None):
-        log.info(f"Shutting down {reason}")
+        log.info(f"Shutting down: {reason}")
         sys.exit(0)
 
     def cmd_quit(self, items: Iterable, args: str) -> Iterable:
@@ -433,10 +433,18 @@ and chain multipe commands using the semicolon (;).
             yield result.name
 
     def cmd_ls(self, items: Iterable, args: str) -> Iterable:
-        """Usage: ls |
+        """Usage: ls [-t|-S] |
 
         List buckets.
+            -t order by mtime
+            -S order by size
         """
+        if args == "-t":
+            order_by = "mtime"
+        elif args == "-S":
+            order_by = "size"
+        else:
+            order_by = "dname"
         components = self.pwd.split("/", 3)
         if len(components) == 2:
             account = components[1]
@@ -455,26 +463,26 @@ and chain multipe commands using the semicolon (;).
 
         yield f"{'type':<8} {'size':>10} {'date':>22} {'name':>40}"
         if account is None:
-            for result in list_accounts(self.dbs):
+            for result in list_accounts(self.dbs, order_by=order_by):
                 yield self.fprint_result(
-                    "account", result.size, result.mtime, result.account
+                    "account", result.size, result.mtime, result.dname
                 )
         elif bucket is None:
-            for result in list_buckets(self.dbs, account):
+            for result in list_buckets(self.dbs, account, order_by=order_by):
                 yield self.fprint_result(
-                    "bucket", result.size, result.mtime, result.bucket_name
+                    "bucket", result.size, result.mtime, result.dname
                 )
         else:
-            for result in list_directories(self.dbs, account, bucket, s3object):
-                if result.directory == "":
+            for result in list_directories(self.dbs, account, bucket, s3object, order_by=order_by):
+                if result.dname == "":
                     directory = "."
                 else:
-                    directory = result.directory
+                    directory = result.dname
                 yield self.fprint_result("dir", result.size, result.mtime, directory)
-            for result in list_objects(self.dbs, account, bucket, s3object):
+            for result in list_objects(self.dbs, account, bucket, s3object, order_by=order_by):
                 if len(result.name) > 0:
                     yield self.fprint_result(
-                        "file", result.size, result.mtime, result.name
+                        "file", result.size, result.mtime, result.dname
                     )
 
     @staticmethod
@@ -518,35 +526,35 @@ and chain multipe commands using the semicolon (;).
             yield row
 
 
-def list_accounts(dbs):
+def list_accounts(dbs, order_by="dname"):
     results = (
         dbs.query(
-            BucketObject.account,
+            BucketObject.account.label("dname"),
             func.sum(BucketObject.size).label("size"),
             func.max(BucketObject.mtime).label("mtime"),
         )
         .group_by(BucketObject.account)
-        .order_by("size")
+        .order_by(order_by)
     )
     return results
 
 
-def list_buckets(dbs, account):
+def list_buckets(dbs, account, order_by="dname"):
     results = (
         dbs.query(
             BucketObject.account,
-            BucketObject.bucket_name,
+            BucketObject.bucket_name.label("dname"),
             func.sum(BucketObject.size).label("size"),
             func.max(BucketObject.mtime).label("mtime"),
         )
         .filter_by(account=account)
         .group_by(BucketObject.account, BucketObject.bucket_name)
-        .order_by("size")
+        .order_by(order_by)
     )
     return results
 
 
-def list_objects(dbs, account, bucket_name, dirname, limit=10000):
+def list_objects(dbs, account, bucket_name, dirname, limit=10000, order_by="dname"):
     if dirname is None:
         dirname = ""
     dirname_len = len(dirname) + 1
@@ -554,20 +562,20 @@ def list_objects(dbs, account, bucket_name, dirname, limit=10000):
         dbs.query(
             BucketObject.account,
             BucketObject.bucket_name,
-            func.substr(BucketObject.name, dirname_len).label("name"),
-            BucketObject.size,
-            BucketObject.mtime,
+            func.substr(BucketObject.name, dirname_len).label("dname"),
+            BucketObject.size.label("size"),
+            BucketObject.mtime.label("mtime"),
         )
         .filter_by(account=account, bucket_name=bucket_name)
         .filter(BucketObject.name.like(dirname + "%"))
         .filter(func.substr(BucketObject.name, dirname_len).notlike("%/%"))
-        .order_by("name")
+        .order_by(order_by)
         .limit(limit)
     )
     return results
 
 
-def list_directories(dbs, account, bucket_name, dirname):
+def list_directories(dbs, account, bucket_name, dirname, order_by="dname"):
     if dirname is None:
         dirname = ""
     dirname_len = len(dirname) + 1
@@ -580,14 +588,14 @@ def list_directories(dbs, account, bucket_name, dirname):
                 BucketObject.name,
                 dirname_len,
                 func.instr(func.substr(BucketObject.name, dirname_len), "/"),
-            ).label("directory"),
+            ).label("dname"),
             func.sum(BucketObject.size).label("size"),
             func.max(BucketObject.mtime).label("mtime"),
         )
         .filter_by(account=account, bucket_name=bucket_name)
         .filter(BucketObject.name.like(dirname + "%"))
-        .group_by(BucketObject.account, BucketObject.bucket_name, "directory")
-        .order_by("size")
+        .group_by(BucketObject.account, BucketObject.bucket_name, "dname")
+        .order_by(order_by)
     )
     return results
 
