@@ -461,7 +461,7 @@ and chain multipe commands using the semicolon (;).
             bucket = components[2]
             s3object = components[3] + "/"
 
-        yield f"{'type':<8} {'size':>10} {'date':>22} {'name':>40}"
+        yield f"{'type':<8} {'size':>10} {'modification date':>22} {'name':>40}"
         if account is None:
             for result in list_accounts(self.dbs, order_by=order_by):
                 yield self.fprint_result(
