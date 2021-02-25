@@ -480,7 +480,7 @@ and chain multipe commands using the semicolon (;).
                     directory = result.dname
                 yield self.fprint_result("dir", result.size, result.mtime, directory)
             for result in list_objects(self.dbs, account, bucket, s3object, order_by=order_by):
-                if len(result.name) > 0:
+                if len(result.dname) > 0:
                     yield self.fprint_result(
                         "file", result.size, result.mtime, result.dname
                     )
