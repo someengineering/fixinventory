@@ -473,13 +473,17 @@ and chain multipe commands using the semicolon (;).
                     "bucket", result.size, result.mtime, result.dname
                 )
         else:
-            for result in list_directories(self.dbs, account, bucket, s3object, order_by=order_by):
+            for result in list_directories(
+                self.dbs, account, bucket, s3object, order_by=order_by
+            ):
                 if result.dname == "":
                     directory = "."
                 else:
                     directory = result.dname
                 yield self.fprint_result("dir", result.size, result.mtime, directory)
-            for result in list_objects(self.dbs, account, bucket, s3object, order_by=order_by):
+            for result in list_objects(
+                self.dbs, account, bucket, s3object, order_by=order_by
+            ):
                 if len(result.dname) > 0:
                     yield self.fprint_result(
                         "file", result.size, result.mtime, result.dname
@@ -495,6 +499,8 @@ and chain multipe commands using the semicolon (;).
 
         Change directory
         """
+        if args != "/":
+            args = args.rstrip("/")
         if args == ".":
             return ()
         elif args == "..":
