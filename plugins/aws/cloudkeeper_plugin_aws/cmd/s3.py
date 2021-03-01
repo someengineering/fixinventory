@@ -32,7 +32,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cloudkeeper.logging.getLogger("cloudkeeper").setLevel(cloudkeeper.logging.DEBUG)
+    cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.DEBUG)
 log.info("Cloudkeeper S3 bucket collector")
 
 
