@@ -3,7 +3,7 @@ import sys
 from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
-from cloudkeeper_plugin_aws import AWSPlugin
+from cloudkeeper_plugin_aws import AWSPlugin, current_account_id
 from cloudkeeper.utils import make_valid_timestamp
 from cloudkeeper.args import get_arg_parser, ArgumentParser
 import cloudkeeper.logging
@@ -64,7 +64,20 @@ arg_parser.parse_args()
 
 
 def main():
-    session = aws_session()
+    if ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
+        accounts = [
+            AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
+            for aws_account_id in ArgumentParser.args.aws_account
+        ]
+    else:
+        accounts = [AWSAccount(current_account_id(), {})]
+
+    if len(accounts) != 1:
+        log.error("This tool only supports a single account at a time")
+        sys.exit(1)
+
+    account = accounts[0]
+    session = aws_session(account.id, account.role)
     client = session.client("s3")
     Bucket = ArgumentParser.args.aws_s3_bucket
     Prefix = ArgumentParser.args.aws_s3_prefix
