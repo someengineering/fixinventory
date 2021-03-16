@@ -137,6 +137,9 @@ def main():
                     f"Object {object_key} does not match {ArgumentParser.args.aws_s3_pattern}"
                 )
                 continue
+            log.info(
+                f"Object {object_key} with version {object_version} and mtime {object_mtime} matches {ArgumentParser.args.aws_s3_pattern}"
+            )
             delete_objects.append({"VersionId": object_version, "Key": object_key})
         try:
             if len(delete_objects) > 0:
@@ -153,7 +156,6 @@ def main():
                 if confirm_delete is None:
                     sys.exit(0)
                 elif confirm_delete is True:
-                    log.info(f"Deleting {delete_objects}")
                     client.delete_objects(
                         Bucket=Bucket, Delete={"Objects": delete_objects}
                     )
