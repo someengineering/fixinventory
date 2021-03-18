@@ -156,9 +156,10 @@ def main():
                 if confirm_delete is None:
                     sys.exit(0)
                 elif confirm_delete is True:
-                    client.delete_objects(
+                    response = client.delete_objects(
                         Bucket=Bucket, Delete={"Objects": delete_objects}
                     )
+                    log.info(f"Delete response {response}")
         except Exception:
             log.exception(f"Something went wrong trying to delete")
 
