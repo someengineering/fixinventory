@@ -308,7 +308,7 @@ def get_stats(graph=None) -> Dict:
 
 
 def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if os.name == "nt":
+    if sys.platform != "linux":
         return {}
     if pid is None:
         pid = os.getpid()
@@ -330,7 +330,7 @@ def get_all_process_info(pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
-    if os.name == "nt":
+    if sys.platform != "linux":
         return {}
     if parent_pid is None:
         parent_pid = os.getpid()
@@ -343,7 +343,7 @@ def get_child_process_info(parent_pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_pid_list(proc: str = "/proc") -> List:
-    if os.name == "nt":
+    if sys.platform != "linux":
         return []
     pids = []
     for entry in os.listdir(proc):
@@ -356,7 +356,7 @@ def get_pid_list(proc: str = "/proc") -> List:
 
 
 def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if os.name == "nt":
+    if sys.platform != "linux":
         return {}
     if pid is None:
         pid = os.getpid()
@@ -377,7 +377,7 @@ def get_process_info(pid: int = None, proc: str = "/proc") -> Dict:
 
 
 def get_file_descriptor_info(pid: int = None, proc: str = "/proc") -> Dict:
-    if os.name == "nt":
+    if sys.platform != "linux":
         return {}
     if pid is None:
         pid = os.getpid()
