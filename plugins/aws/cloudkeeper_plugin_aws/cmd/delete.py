@@ -79,8 +79,8 @@ def main():
     account = accounts[0]
     session = aws_session(account.id, account.role)
     client = session.client("s3")
-    Bucket = ArgumentParser.args.aws_s3_bucket
-    Prefix = ArgumentParser.args.aws_s3_prefix
+    bucket = ArgumentParser.args.aws_s3_bucket
+    prefix = ArgumentParser.args.aws_s3_prefix
 
     mtime = (
         make_valid_timestamp(datetime.fromisoformat(ArgumentParser.args.aws_s3_mtime))
@@ -88,31 +88,31 @@ def main():
         else None
     )
 
-    IsTruncated = True
-    MaxKeys = 500
-    KeyMarker = None
-    VersionIdMarker = None
+    is_truncated = True
+    max_keys = 500
+    key_marker = None
+    version_id_marker = None
 
-    while IsTruncated == True:
-        if KeyMarker and VersionIdMarker:
+    while is_truncated is True:
+        if key_marker and version_id_marker:
             version_list = client.list_object_versions(
-                Bucket=Bucket,
-                MaxKeys=MaxKeys,
-                Prefix=Prefix,
-                KeyMarker=KeyMarker,
-                VersionIdMarker=VersionIdMarker,
+                Bucket=bucket,
+                MaxKeys=max_keys,
+                Prefix=prefix,
+                KeyMarker=key_marker,
+                VersionIdMarker=version_id_marker,
             )
-        elif KeyMarker:
+        elif key_marker:
             version_list = client.list_object_versions(
-                Bucket=Bucket, MaxKeys=MaxKeys, Prefix=Prefix, KeyMarker=KeyMarker
+                Bucket=bucket, MaxKeys=max_keys, Prefix=prefix, KeyMarker=key_marker
             )
         else:
             version_list = client.list_object_versions(
-                Bucket=Bucket, MaxKeys=MaxKeys, Prefix=Prefix
+                Bucket=bucket, MaxKeys=max_keys, Prefix=prefix
             )
-        IsTruncated = version_list.get("IsTruncated", False)
-        KeyMarker = version_list.get("NextKeyMarker")
-        VersionIdMarker = version_list.get("NextVersionIdMarker")
+        is_truncated = version_list.get("IsTruncated", False)
+        key_marker = version_list.get("NextKeyMarker")
+        version_id_marker = version_list.get("NextVersionIdMarker")
 
         delete_objects = []
         versions = version_list.get("Versions", [])
@@ -138,7 +138,10 @@ def main():
                 )
                 continue
             log.info(
-                f"Object {object_key} with version {object_version} and mtime {object_mtime} matches {ArgumentParser.args.aws_s3_pattern}"
+                (
+                    f"Object {object_key} with version {object_version} and mtime"
+                    f" {object_mtime} matches {ArgumentParser.args.aws_s3_pattern}"
+                )
             )
             delete_objects.append({"VersionId": object_version, "Key": object_key})
         try:
@@ -157,11 +160,11 @@ def main():
                     sys.exit(0)
                 elif confirm_delete is True:
                     response = client.delete_objects(
-                        Bucket=Bucket, Delete={"Objects": delete_objects}
+                        Bucket=bucket, Delete={"Objects": delete_objects}
                     )
                     log.info(f"Delete response {response}")
         except Exception:
-            log.exception(f"Something went wrong trying to delete")
+            log.exception("Something went wrong trying to delete")
 
 
 if __name__ == "__main__":

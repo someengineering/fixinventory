@@ -22,7 +22,6 @@ import cloudkeeper.logging
 from cloudkeeper.cli import replace_placeholder
 from cloudkeeper.utils import split_esc, iec_size_format
 from cloudkeeper.args import get_arg_parser, ArgumentParser
-from sqlalchemy.sql.sqltypes import Date
 from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
 from cloudkeeper_plugin_aws import current_account_id, AWSPlugin, get_org_accounts
