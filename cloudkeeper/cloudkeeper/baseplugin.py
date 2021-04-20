@@ -2,7 +2,6 @@ import cloudkeeper.logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from cloudkeeper.graph import Graph
-from cloudkeeper.utils import get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import Cloud
 from threading import Thread
@@ -84,11 +83,10 @@ class BaseCollectorPlugin(BasePlugin):
     def __init__(self) -> None:
         super().__init__()
         self.name = str(self.cloud)
-        self.root = Cloud(self.cloud, {})
-        self.graph = Graph()
+        cloud = Cloud(self.cloud, {})
+        self.root = cloud
+        self.graph = Graph(root=cloud)
         self.finished = False
-        resource_attributes = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.id, **resource_attributes)
 
     @abstractmethod
     def collect(self) -> None:

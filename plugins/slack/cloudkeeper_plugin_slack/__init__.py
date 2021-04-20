@@ -165,11 +165,11 @@ class SlackBotPlugin(BasePlugin):
 
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         add_event_listener(
-            EventType.PROCESS_FINISH, self.process_cloudkeeper_events, blocking=False
+            EventType.CLEANUP_FINISH, self.process_cloudkeeper_events, blocking=False
         )
 
     def __del__(self):
-        remove_event_listener(EventType.PROCESS_FINISH, self.process_cloudkeeper_events)
+        remove_event_listener(EventType.CLEANUP_FINISH, self.process_cloudkeeper_events)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):

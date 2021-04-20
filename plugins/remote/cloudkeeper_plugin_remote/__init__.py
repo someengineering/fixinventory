@@ -1,7 +1,6 @@
 import cloudkeeper.logging
 import pickle
 import requests
-import networkx
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.baseresources import GraphRoot
 from cloudkeeper.graph import Graph, sanitize
@@ -24,11 +23,7 @@ class RemotePlugin(BaseCollectorPlugin):
 
     def __init__(self) -> None:
         super().__init__()
-        self.root = GraphRoot(self.cloud, {})
-        self.graph = Graph()
-        self.graph.add_node(
-            self.root, label=self.root.id, resource_type=self.root.resource_type
-        )
+        self.graph = Graph(root=GraphRoot(self.cloud, {}))
 
     def collect(self) -> None:
         log.debug("plugin: collecting remote resources")
@@ -47,18 +42,23 @@ class RemotePlugin(BaseCollectorPlugin):
                 log.error("Downloaded remote graph is not of type Graph() - skipping")
                 continue
 
-            remote_graph_root = None
-            for node in remote_graph.nodes():
-                if isinstance(node, GraphRoot):
-                    remote_graph_root = node
-                    break
-            if remote_graph_root:
-                log.debug("Adding remote graph to local plugin graph")
-                self.graph = networkx.compose(self.graph, remote_graph)
-                self.graph.add_edge(self.root, remote_graph_root)
-                sanitize(self.graph, self.root)
-            else:
-                log.error("Could not determine remote graph root - not using graph")
+            # If remote graph does not have the new graph root property yet
+            # we try to find it in the graph
+            if not isinstance(getattr(remote_graph, "root", None), GraphRoot):
+                log.error("Downloaded remote graph root is not of type GraphRoot()")
+                for node in remote_graph.nodes:
+                    if isinstance(node, GraphRoot):
+                        remote_graph.root = node
+                        log.info(f"Found remote graph root {node.rtdname} - setting")
+                        break
+                else:
+                    log.error(f"Skipping remote graph {endpoint}")
+                    continue
+
+            log.debug("Adding remote graph to local plugin graph")
+            self.graph.merge(remote_graph)
+            sanitize(self.graph)
+        log.debug(f"Local root: {self.graph.root}")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

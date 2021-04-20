@@ -1,10 +1,10 @@
 import botocore.exceptions
-import networkx
 import cloudkeeper.logging
 import multiprocessing
 import cloudkeeper.signal
 from concurrent import futures
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.graph import Graph
 from cloudkeeper.utils import log_runtime
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
@@ -186,15 +186,13 @@ class AWSPlugin(BaseCollectorPlugin):
                 for account in accounts
             ]
             for future in futures.as_completed(wait_for):
-                res = future.result()
-                aac_root = res["root"]
-                aac_graph = res["graph"]
-                aac_account = res["account"]
-                log.debug(
-                    f"Merging graph of account {aac_account.dname} with {self.cloud} plugin graph"
-                )
-                self.graph = networkx.compose(self.graph, aac_graph)
-                self.graph.add_edge(self.root, aac_root)
+                account_graph = future.result()
+                if not isinstance(account_graph, Graph):
+                    log.error(
+                        f"Returned account graph has invalid type {type(account_graph)}"
+                    )
+                    continue
+                self.graph.merge(account_graph)
 
     @property
     def regions(self) -> List:
@@ -289,4 +287,4 @@ def collect_account(account: AWSAccount, regions: List, args=None):
         )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
 
-    return {"root": aac.root, "graph": aac.graph, "account": aac.account}
+    return aac.graph

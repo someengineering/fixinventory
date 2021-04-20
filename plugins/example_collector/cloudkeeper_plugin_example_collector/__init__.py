@@ -21,7 +21,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: collecting example resources")
 
         account = ExampleAccount("Example Account", {})
-        self.graph.add_resource(self.root, account)
+        self.graph.add_resource(self.graph.root, account)
 
         region1 = ExampleRegion("us-west", {"Some Tag": "Some Value"})
         self.graph.add_resource(account, region1)
@@ -118,7 +118,7 @@ class ExampleInstance(BaseInstance, ExampleResource):
 
 
 class ExampleNetwork(BaseNetwork, ExampleResource):
-    resource_type = "example_instance"
+    resource_type = "example_network"
 
     def delete(self, graph: Graph) -> bool:
         log.debug(

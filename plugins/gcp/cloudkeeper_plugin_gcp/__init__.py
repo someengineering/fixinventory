@@ -1,10 +1,10 @@
-import networkx
 import multiprocessing
 import cloudkeeper.logging
 import cloudkeeper.signal
 from concurrent import futures
 from typing import Dict, Optional
 from cloudkeeper.baseplugin import BaseCollectorPlugin
+from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
 from .resources import GCPProject
 from .utils import Credentials
@@ -65,20 +65,11 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 for project_id in projects.keys()
             ]
             for future in futures.as_completed(wait_for):
-                res = future.result()
-                if not isinstance(res, dict):
+                project_graph = future.result()
+                if not isinstance(project_graph, Graph):
+                    log.error(f"Skipping invalid project_graph {type(project_graph)}")
                     continue
-                gpc_root = res.get("root")
-                gpc_graph = res.get("graph")
-                gpc_project = res.get("project")
-                log.debug(
-                    (
-                        f"Merging graph of project {gpc_project.dname}"
-                        f" with {self.cloud} plugin graph"
-                    )
-                )
-                self.graph = networkx.compose(self.graph, gpc_graph)
-                self.graph.add_edge(self.root, gpc_root)
+                self.graph.merge(project_graph)
 
     @staticmethod
     def collect_project(project_id: str, args=None) -> Optional[Dict]:
@@ -108,7 +99,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 f"An unhandled error occurred while collecting {project.rtdname}"
             )
         else:
-            return {"root": gpc.root, "graph": gpc.graph, "project": gpc.project}
+            return gpc.graph
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

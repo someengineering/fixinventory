@@ -7,18 +7,20 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-remote",
+    name="cloudkeeper-plugin-k8s",
     version="0.0.2",
-    description="Cloudkeeper Remote Plugin",
+    description="Cloudkeeper Kubernetes Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["remote = cloudkeeper_plugin_remote:RemotePlugin"]
+        "cloudkeeper.plugins": [
+            "k8s_collector = cloudkeeper_plugin_k8s:KubernetesCollectorPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "requests"],
+    install_requires=["cloudkeeper", "kubernetes"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

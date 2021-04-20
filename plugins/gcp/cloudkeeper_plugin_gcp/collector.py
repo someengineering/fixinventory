@@ -5,7 +5,7 @@ from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import except_log_and_pass, get_resource_attributes
+from cloudkeeper.utils import except_log_and_pass
 from prometheus_client import Summary
 from .resources import (
     GCPProject,
@@ -242,10 +242,7 @@ class GCPProjectCollector:
         """
         self.project = project
         self.credentials = Credentials.get(self.project.id)
-        self.root = self.project
-        self.graph = Graph()
-        resource_attr = get_resource_attributes(self.root)
-        self.graph.add_node(self.root, label=self.root.name, **resource_attr)
+        self.graph = Graph(root=self.project)
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --gcp-collect or excluded by --gcp-no-collect
@@ -605,7 +602,7 @@ class GCPProjectCollector:
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
 
             if not isinstance(pr, BaseResource):
-                pr = kwargs.get("zone", kwargs.get("region", self.root))
+                pr = kwargs.get("zone", kwargs.get("region", self.graph.root))
                 log.debug(
                     f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
                 )
