@@ -1,5 +1,7 @@
 # cloudkeeper-plugin-k8s
-Kubernetes Collector Plugin for Cloudkeeper
+Kubernetes Collector Plugin for Cloudkeeper (Alpha)
+!!! This plugin was created as part of a Hackathon and has not been extensively tested !!!
+It is meant as a starting point for K8S work but not intended for production use.
 
 ## Usage
 When the collector is enabled (`--collector k8s`) it will automatically collect the current active contex if any exists.
