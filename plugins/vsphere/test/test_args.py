@@ -6,4 +6,4 @@ def test_args():
     arg_parser = get_arg_parser()
     VSphereCollectorPlugin.add_args(arg_parser)
     arg_parser.parse_args()
-    assert ArgumentParser.args.vsphere_region is None
+    assert ArgumentParser.args.vsphere_port == 443
