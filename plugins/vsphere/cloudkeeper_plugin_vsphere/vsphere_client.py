@@ -1,8 +1,7 @@
 from cloudkeeper.args import ArgumentParser
 
-import atexit
 from pyVmomi import vim, vmodl
-from pyVim.connect import SmartConnect, Disconnect
+from pyVim.connect import SmartConnect
 
 
 class VSphereClient(object):

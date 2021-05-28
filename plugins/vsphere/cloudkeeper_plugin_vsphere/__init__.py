@@ -5,12 +5,10 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.baseresources import BaseResource
 
-from .vsphere_client import VSphereClient, new_vsphere_client
+from .vsphere_client import new_vsphere_client
 from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
 
-import atexit
-from pyVmomi import vim, vmodl
-from pyVim.connect import SmartConnect, Disconnect
+from pyVmomi import vim
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -22,12 +20,12 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         super().__init__(*args, **kwargs)
         self.vsphere_client = new_vsphere_client()
 
-    def getCluster(self) -> VSphereCluster:
+    def get_cluster(self) -> VSphereCluster:
         return VSphereCluster(ArgumentParser.args.vsphere_host, {})
 
-    def get_keymap_from_vmlist(self, listVM) -> VSphereCluster:
+    def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
         keyMap = {}
-        for key in listVM[0].availableField:
+        for key in list_vm[0].availableField:
             keyMap[key.key] = key.name
 
         return keyMap
@@ -39,7 +37,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         return attr
 
-    def addInstances(self, parent: BaseResource) -> None:
+    def add_instances(self, parent: BaseResource) -> None:
         content = self.vsphere_client.client.RetrieveContent()
 
         container = content.rootFolder  # starting point to look into
@@ -53,33 +51,33 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         keys = self.get_keymap_from_vmlist(VMs)
 
-        for listVM in VMs:
-            tags = self.get_custom_attributes(listVM, keys)
+        for list_vm in VMs:
+            tags = self.get_custom_attributes(list_vm, keys)
             # get TS and create clean datetime
-            ctime = datetime.fromtimestamp(listVM.config.createDate.timestamp())
+            ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
 
             vm = VSphereInstance(
-                listVM._moId,
-                name=str(listVM.name),
-                instance_cores=int(listVM.config.hardware.numCPU),
-                instance_memory=int(listVM.config.hardware.memoryMB / 1024),
+                list_vm._moId,
+                name=str(list_vm.name),
+                instance_cores=int(list_vm.config.hardware.numCPU),
+                instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
                 tags=tags,
                 ctime=ctime,
             )
-            vm.instance_status = listVM.guest.guestState
+            vm.instance_status = list_vm.guest.guestState
 
             self.graph.add_resource(parent, vm)
 
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
 
-        cluster = self.getCluster()
+        cluster = self.get_cluster()
         dc1 = VSphereDataCenter("dc1", tags={})
 
         self.graph.add_resource(self.graph.root, cluster)
         self.graph.add_resource(cluster, dc1)
 
-        self.addInstances(dc1)
+        self.add_instances(dc1)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

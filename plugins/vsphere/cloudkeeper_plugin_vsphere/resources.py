@@ -1,16 +1,18 @@
 from cloudkeeper.graph import Graph
+import cloudkeeper.logging
 from cloudkeeper.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseResource,
     BaseInstance,
-    BaseNetwork,
     InstanceStatus,
 )
 
 from pyVmomi import vim
 
-from .vsphere_client import VSphereClient, new_vsphere_client
+from .vsphere_client import new_vsphere_client
+
+log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 class VSphereCluster(BaseAccount):
@@ -78,12 +80,12 @@ class VSphereInstance(BaseInstance, VSphereResource):
 
         if self.vm.runtime.powerState == "poweredOn":
             task = self.vm.PowerOffVM_Task()
-            vsphere_client.wait_for_tasks([task])
+            self.vsphere_client.wait_for_tasks([task])
             log.debug(f"task finished - state: {task.info.state}")
 
         log.info(f"Destroying VM {self.id} with name {self.name}")
         task = self.vm.Destroy_Task()
-        vsphere_client.wait_for_tasks([task])
+        self.vsphere_client.wait_for_tasks([task])
         log.debug(f"task finished - state: {task.info.state}")
 
         return True
