@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import cloudkeeper.logging
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BaseCollectorPlugin
@@ -33,7 +35,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
     def get_custom_attributes(self, vm, keymap):
         attr = {}
         for value in vm.value:
-            attr[keymap[value.key]] = value.value
+            attr[str(keymap[value.key])] = str(value.value)
 
         return attr
 
@@ -53,14 +55,16 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         for listVM in VMs:
             tags = self.get_custom_attributes(listVM, keys)
+            # get TS and create clean datetime
+            ctime = datetime.fromtimestamp(listVM.config.createDate.timestamp())
 
             vm = VSphereInstance(
                 listVM._moId,
-                name=listVM.name,
-                instance_cores=listVM.config.hardware.numCPU,
+                name=str(listVM.name),
+                instance_cores=int(listVM.config.hardware.numCPU),
                 instance_memory=int(listVM.config.hardware.memoryMB / 1024),
                 tags=tags,
-                ctime=listVM.config.createDate,
+                ctime=ctime,
             )
             vm.instance_status = listVM.guest.guestState
 

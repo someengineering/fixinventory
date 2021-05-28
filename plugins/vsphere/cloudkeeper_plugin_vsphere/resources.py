@@ -30,9 +30,12 @@ class VSphereDataCenter(BaseRegion):
 class VSphereResource(BaseResource):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.vsphere_client = new_vsphere_client()
 
     resource_type = "vsphere_resource"
+
+    @property
+    def vsphere_client(self):
+        return new_vsphere_client()
 
     def delete(self, graph: Graph) -> bool:
         log.debug(
