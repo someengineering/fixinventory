@@ -4,6 +4,7 @@ import atexit
 from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect, Disconnect
 
+
 class VSphereClient(object):
     """docstring for VSphereClient."""
 
@@ -16,19 +17,19 @@ class VSphereClient(object):
         self.insecure = insecure
         self._client = None
 
-
     def connect(self):
         if self.insecure:
-            self._client = SmartConnect(host=self.host,
-                                                user=self.user,
-                                                pwd=self.pwd,
-                                                port=self.port,
-                                                disableSslCertValidation=True)
+            self._client = SmartConnect(
+                host=self.host,
+                user=self.user,
+                pwd=self.pwd,
+                port=self.port,
+                disableSslCertValidation=True,
+            )
         else:
-            self._client = SmartConnect(host=self.host,
-                                                user=self.user,
-                                                pwd=self.pwd,
-                                                port=self.port)
+            self._client = SmartConnect(
+                host=self.host, user=self.user, pwd=self.pwd, port=self.port
+            )
 
     @property
     def client(self):
@@ -73,11 +74,12 @@ class VSphereClient(object):
         property_collector = self.client.content.propertyCollector
         task_list = [str(task) for task in tasks]
         # Create filter
-        obj_specs = [vmodl.query.PropertyCollector.ObjectSpec(obj=task)
-                     for task in tasks]
-        property_spec = vmodl.query.PropertyCollector.PropertySpec(type=vim.Task,
-                                                                   pathSet=[],
-                                                                   all=True)
+        obj_specs = [
+            vmodl.query.PropertyCollector.ObjectSpec(obj=task) for task in tasks
+        ]
+        property_spec = vmodl.query.PropertyCollector.PropertySpec(
+            type=vim.Task, pathSet=[], all=True
+        )
         filter_spec = vmodl.query.PropertyCollector.FilterSpec()
         filter_spec.objectSet = obj_specs
         filter_spec.propSet = [property_spec]
@@ -91,9 +93,9 @@ class VSphereClient(object):
                     for obj_set in filter_set.objectSet:
                         task = obj_set.obj
                         for change in obj_set.changeSet:
-                            if change.name == 'info':
+                            if change.name == "info":
                                 state = change.val.state
-                            elif change.name == 'info.state':
+                            elif change.name == "info.state":
                                 state = change.val
                             else:
                                 continue
@@ -112,9 +114,12 @@ class VSphereClient(object):
             if pcfilter:
                 pcfilter.Destroy()
 
+
 def new_vsphere_client() -> VSphereClient:
-    return VSphereClient(host=ArgumentParser.args.vsphere_host,
-                         user=ArgumentParser.args.vsphere_user,
-                         pwd=ArgumentParser.args.vsphere_password,
-                         port=ArgumentParser.args.vsphere_port,
-                         insecure=ArgumentParser.args.vsphere_insecure)
+    return VSphereClient(
+        host=ArgumentParser.args.vsphere_host,
+        user=ArgumentParser.args.vsphere_user,
+        pwd=ArgumentParser.args.vsphere_password,
+        port=ArgumentParser.args.vsphere_port,
+        insecure=ArgumentParser.args.vsphere_insecure,
+    )

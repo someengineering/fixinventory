@@ -12,11 +12,13 @@ from pyVmomi import vim
 
 from .vsphere_client import VSphereClient, new_vsphere_client
 
+
 class VSphereCluster(BaseAccount):
     resource_type = "vsphere_cluster"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
+
 
 class VSphereDataCenter(BaseRegion):
     resource_type = "vsphere_data_center"

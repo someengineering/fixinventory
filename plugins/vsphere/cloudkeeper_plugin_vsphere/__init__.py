@@ -12,6 +12,7 @@ from pyVim.connect import SmartConnect, Disconnect
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
+
 class VSphereCollectorPlugin(BaseCollectorPlugin):
     cloud = "vsphere"
 
@@ -43,7 +44,8 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         view_type = [vim.VirtualMachine]  # object types to look for
         recursive = True  # whether we should look into it recursively
         container_view = content.viewManager.CreateContainerView(
-            container, view_type, recursive)
+            container, view_type, recursive
+        )
 
         VMs = container_view.view
 
@@ -52,13 +54,14 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         for listVM in VMs:
             tags = self.get_custom_attributes(listVM, keys)
 
-            vm = VSphereInstance(listVM._moId,
-                                 name=listVM.name,
-                                 instance_cores=listVM.config.hardware.numCPU,
-                                 instance_memory=int(listVM.config.hardware.memoryMB / 1024),
-                                 tags=tags,
-                                 ctime=listVM.config.createDate,
-                                 )
+            vm = VSphereInstance(
+                listVM._moId,
+                name=listVM.name,
+                instance_cores=listVM.config.hardware.numCPU,
+                instance_memory=int(listVM.config.hardware.memoryMB / 1024),
+                tags=tags,
+                ctime=listVM.config.createDate,
+            )
             vm.instance_status = listVM.guest.guestState
 
             self.graph.add_resource(parent, vm)
@@ -67,9 +70,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: collecting vsphere resources")
 
         cluster = self.getCluster()
-        dc1 = VSphereDataCenter(
-            "dc1", tags={}
-        )
+        dc1 = VSphereDataCenter("dc1", tags={})
 
         self.graph.add_resource(self.graph.root, cluster)
         self.graph.add_resource(cluster, dc1)
@@ -83,7 +84,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             help="VSphere user name",
             dest="vsphere_user",
             type=str,
-            default=None
+            default=None,
         )
 
         arg_parser.add_argument(
@@ -91,7 +92,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             help="VSphere user password",
             dest="vsphere_password",
             type=str,
-            default=None
+            default=None,
         )
 
         arg_parser.add_argument(
@@ -99,7 +100,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             help="VSphere Host address",
             dest="vsphere_host",
             type=str,
-            default=None
+            default=None,
         )
 
         arg_parser.add_argument(
@@ -107,12 +108,12 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             help="VSphere Region",
             dest="vsphere_port",
             type=int,
-            default=443
+            default=443,
         )
 
         arg_parser.add_argument(
             "--vsphere-insecure",
             help="VSphere insecure connection. Do not verify certificates",
             dest="vsphere_insecure",
-            action="store_true"
+            action="store_true",
         )
