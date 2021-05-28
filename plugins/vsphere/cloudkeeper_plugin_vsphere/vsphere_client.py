@@ -1,7 +1,8 @@
+from cloudkeeper.args import ArgumentParser
+
 import atexit
 from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect, Disconnect
-
 
 class VSphereClient(object):
     """docstring for VSphereClient."""
@@ -110,3 +111,10 @@ class VSphereClient(object):
         finally:
             if pcfilter:
                 pcfilter.Destroy()
+
+def new_vsphere_client() -> VSphereClient:
+    return VSphereClient(host=ArgumentParser.args.vsphere_host,
+                         user=ArgumentParser.args.vsphere_user,
+                         pwd=ArgumentParser.args.vsphere_password,
+                         port=ArgumentParser.args.vsphere_port,
+                         insecure=ArgumentParser.args.vsphere_insecure)
