@@ -27,7 +27,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         """
         return VSphereCluster(ArgumentParser.args.vsphere_host, {})
 
-    def get_keymap_from_vmlist(self, list_vm: List[Any]) -> VSphereCluster:
+    def get_keymap_from_vmlist(self, list_vm: Any) -> VSphereCluster:
         """
         resolve custom key ID into a dict with its name
         """
