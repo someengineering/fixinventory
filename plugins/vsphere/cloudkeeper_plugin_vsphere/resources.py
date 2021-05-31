@@ -10,7 +10,7 @@ from cloudkeeper.baseresources import (
 
 from pyVmomi import vim
 
-from .vsphere_client import new_vsphere_client
+from .vsphere_client import new_vsphere_client, VSphereClient
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -36,7 +36,7 @@ class VSphereResource(BaseResource):
     resource_type = "vsphere_resource"
 
     @property
-    def vsphere_client(self):
+    def vsphere_client(self) -> VSphereClient:
         return new_vsphere_client()
 
     def delete(self, graph: Graph) -> bool:

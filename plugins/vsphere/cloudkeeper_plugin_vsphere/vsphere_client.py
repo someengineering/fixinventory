@@ -16,7 +16,7 @@ class VSphereClient(object):
         self.insecure = insecure
         self._client = None
 
-    def connect(self):
+    def connect(self) -> None:
         if self.insecure:
             self._client = SmartConnect(
                 host=self.host,

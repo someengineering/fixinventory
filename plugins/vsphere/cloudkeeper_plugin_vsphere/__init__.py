@@ -61,12 +61,12 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
             container, view_type, recursive
         )
 
-        VMs = container_view.view
+        vms = container_view.view
 
-        keys = self.get_keymap_from_vmlist(VMs)
+        keys = self.get_keymap_from_vmlist(vms)
 
         # loop over the list of VMs
-        for list_vm in VMs:
+        for list_vm in vms:
             tags = self.get_custom_attributes(list_vm, keys)
             # get TS and create clean datetime
             ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
