@@ -37,14 +37,16 @@ class VSphereClient(object):
 
         return self._client
 
-    # taken from: https://github.com/vmware/pyvmomi-community-samples/blob/889a2fadcb24e6b1bc1e30caab66f1a41a950988/samples/tools/pchelper.py#L146
+    # taken from: https://github.com/vmware/
+    # pyvmomi-community-samples/blob/
+    # 889a2fadcb24e6b1bc1e30caab66f1a41a950988/
+    # samples/tools/pchelper.py#L146
     def list_objects(self, type, folder=None, recurse=True):
         content = self.client.RetrieveContent()
 
         if folder is None:
             folder = content.rootFolder
 
-        object = None
         container = content.viewManager.CreateContainerView(folder, type, recurse)
 
         return container.view
@@ -65,7 +67,9 @@ class VSphereClient(object):
             raise RuntimeError("Managed Object " + name + " not found.")
         return object
 
-    # taken from: https://github.com/vmware/pyvmomi-community-samples/blob/master/samples/tools/tasks.py
+    # taken from: https://github.com/vmware/
+    # pyvmomi-community-samples/blob/master/
+    # samples/tools/tasks.py
     def wait_for_tasks(self, tasks):
         """Given the service instance and tasks, it returns after all the
         tasks are complete"""
