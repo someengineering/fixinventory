@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Any
 
 import cloudkeeper.logging
 from cloudkeeper.args import ArgumentParser
@@ -27,7 +26,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         """
         return VSphereCluster(ArgumentParser.args.vsphere_host, {})
 
-    def get_keymap_from_vmlist(self, list_vm: Any) -> VSphereCluster:
+    def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
         """
         resolve custom key ID into a dict with its name
         """
@@ -37,7 +36,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         return keyMap
 
-    def get_custom_attributes(self, vm, keymap: dict[int, str]) -> dict[str, str]:
+    def get_custom_attributes(self, vm, keymap):
         """
         use custom attribute keymap to resolve key IDs into a dict and
         assign custom value.
