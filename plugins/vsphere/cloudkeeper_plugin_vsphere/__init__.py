@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 import cloudkeeper.logging
 from cloudkeeper.args import ArgumentParser
@@ -21,16 +22,26 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         self.vsphere_client = new_vsphere_client()
 
     def get_cluster(self) -> VSphereCluster:
+        """
+        use --vsphere-host as the clustername
+        """
         return VSphereCluster(ArgumentParser.args.vsphere_host, {})
 
-    def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
+    def get_keymap_from_vmlist(self, list_vm: list[Any]) -> VSphereCluster:
+        """
+        resolve custom key ID into a dict with its name
+        """
         keyMap = {}
         for key in list_vm[0].availableField:
             keyMap[key.key] = key.name
 
         return keyMap
 
-    def get_custom_attributes(self, vm, keymap):
+    def get_custom_attributes(self, vm, keymap: dict[int, str]) -> dict[str, str]:
+        """
+        use custom attribute keymap to resolve key IDs into a dict and
+        assign custom value.
+        """
         attr = {}
         for value in vm.value:
             attr[str(keymap[value.key])] = str(value.value)
@@ -38,6 +49,9 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         return attr
 
     def add_instances(self, parent: BaseResource) -> None:
+        """
+        loop over VMs and add them as VSphereInstance to parent
+        """
         content = self.vsphere_client.client.RetrieveContent()
 
         container = content.rootFolder  # starting point to look into
@@ -51,6 +65,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         keys = self.get_keymap_from_vmlist(VMs)
 
+        # loop over the list of VMs
         for list_vm in VMs:
             tags = self.get_custom_attributes(list_vm, keys)
             # get TS and create clean datetime
