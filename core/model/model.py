@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
-from re import compile
 from typing import List, Union, Dict, Any, Optional, Set, Callable, Type
 
 from dateutil.parser import parse
@@ -103,7 +102,7 @@ class Kind(ABC):
                 p = js.get("pattern")
                 e = js.get("enum")
                 return StringKind(fqn, minimum, maximum, p, e)
-            elif rk == "int32" or rk == "int64" or rk == "float" or rk == "double":
+            elif rk in ("int32", "int64", "float", "double"):
                 minimum = js.get("minimum")
                 maximum = js.get("maximum")
                 e = js.get("enum")
@@ -125,7 +124,6 @@ class SimpleKind(Kind, ABC):
         self.fqn = fqn
         super().__init__(fqn)
         self.runtime_kind = runtime_kind
-        self.__runtime_type: type = self.Kind_to_type[runtime_kind]
 
     Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
         "string": str,
@@ -163,7 +161,7 @@ class StringKind(SimpleKind):
         self.min_length = min_length
         self.max_length = max_length
         self.pattern = pattern
-        self.pattern_compiled = if_set(pattern, lambda x: compile(x))
+        self.pattern_compiled = if_set(pattern, re.compile)
         self.enum = enum
         self.valid_fn = validate_fn(
             check_type_fn(str, "string"),
@@ -218,7 +216,7 @@ class NumberKind(SimpleKind):
 
     @staticmethod
     def check_float(obj: Any) -> ValidationResult:
-        if isinstance(obj, float) or isinstance(obj, int):
+        if isinstance(obj, (int, float)):
             return None
         else:
             raise AttributeError(f"Expected number but got {obj}")
@@ -227,7 +225,7 @@ class NumberKind(SimpleKind):
         return self.valid_fn(obj)
 
     def coerce(self, value: object) -> object:
-        if isinstance(value, int) or isinstance(value, float):
+        if isinstance(value, (int, float)):
             return value
         else:
             return float(value)  # type: ignore
@@ -299,8 +297,8 @@ class DateTimeKind(SimpleKind):
             else:
                 dt = datetime.fromtimestamp(parse(value).timestamp(), timezone.utc)
                 return dt.strftime(DateTimeKind.Format)
-        except Exception:
-            raise AttributeError(f"Expected datetime but got: >{value}<")
+        except Exception as ex:
+            raise AttributeError(f"Expected datetime but got: >{value}<") from ex
 
 
 class DateKind(SimpleKind):
@@ -330,8 +328,8 @@ class DateKind(SimpleKind):
                 return at.isoformat()
             else:
                 return parse(value).date().strftime(DateKind.Format)
-        except Exception:
-            raise AttributeError(f"Expected date but got: >{value}<")
+        except Exception as ex:
+            raise AttributeError(f"Expected date but got: >{value}<") from ex
 
 
 class Array(Kind):
@@ -368,7 +366,6 @@ class ComplexBase(Kind):
         self.allow_unknown_props = allow_unknown_props
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
-        self.__resolved_base: Optional[Kind] = None
         self.__resolved_kinds: Dict[str, Kind] = dict()
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: List[str] = [fqn]
@@ -395,7 +392,6 @@ class ComplexBase(Kind):
                 if isinstance(base, StringDict):
                     raise TypeError("Can not inherit from simple dictionary!")
                 elif isinstance(base, ComplexBase):
-                    self.__resolved_base = base
                     self.__resolved_kinds |= base.__resolved_kinds
                     self.__all_props += base.__all_props
                     self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
@@ -404,21 +400,21 @@ class ComplexBase(Kind):
         self.__resolved = True
 
     def __resolve_property_paths(self, from_path: str = "") -> Dict[str, SimpleKind]:
-        def path_for(kind: Kind, path: str, array: bool = False) -> Dict[str, SimpleKind]:
+        def path_for(prop: Property, kind: Kind, path: str, array: bool = False) -> Dict[str, SimpleKind]:
             root = "" if path == "" else f"{path}."
             arr = "[]" if array else ""
             if isinstance(kind, SimpleKind):
-                return {f"{root}{x.name}{arr}": kind}
+                return {f"{root}{prop.name}{arr}": kind}
             elif isinstance(kind, Array):
-                return path_for(kind.inner, root, True)
+                return path_for(prop, kind.inner, root, True)
             elif isinstance(kind, ComplexBase):
-                return kind.__resolve_property_paths(f"{root}{x.name}{arr}")
+                return kind.__resolve_property_paths(f"{root}{prop.name}{arr}")
             else:
                 return {}
 
         result: Dict[str, SimpleKind] = {}
         for x in self.properties:
-            result |= path_for(self.__resolved_kinds[x.name], from_path)
+            result |= path_for(x, self.__resolved_kinds[x.name], from_path)
 
         return result
 
@@ -450,7 +446,8 @@ class ComplexBase(Kind):
                         has_coerced |= coerced is not None
                         result[name] = coerced if coerced is not None else value
                     except AttributeError as at:
-                        raise AttributeError(f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}")
+                        raise AttributeError(
+                            f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}") from at
                 elif not self.allow_unknown_props:
                     raise AttributeError(f"Kind:{self.fqn} Property:{name} is not defined in model!")
             if not kwargs.get('ignore_missing'):
@@ -544,9 +541,9 @@ class Model:
         try:
             kind: Kind = self[js["kind"]]
             return kind.check_valid(js, **kwargs)
-        except KeyError:
+        except KeyError as ex:
             raise AttributeError(f'No kind definition found for {js["kind"]}' if "kind" in js
-                                 else f'No attribute kind found in {js}')
+                                 else f'No attribute kind found in {js}') from ex
 
     def graph(self) -> DiGraph:
         graph = DiGraph()
@@ -565,10 +562,11 @@ class Model:
         def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
             def hint() -> str:
                 return f"Update {from_kind.fqn}"
+
             # Allowed changes: The update
             # - does not change it's type (e.g. going from SimpleKind to ComplexKind)
             # - no required property is removed or marked as not required
-            if type(from_kind) != type(to_kind):
+            if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
             elif isinstance(from_kind, ComplexBase) and isinstance(to_kind, ComplexBase):
                 for prop in from_kind.properties:

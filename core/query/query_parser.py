@@ -79,8 +79,8 @@ def function_term() -> Parser:
     return FunctionTerm(fn, name, args)
 
 
-isinstance_term = lexeme(string("isinstance") >> lparenP >> quotedP << rparenP).map(lambda kind: IsInstanceTerm(kind))
-id_term = lexeme(string("id") >> lparenP >> quotedP << rparenP).map(lambda kind: IdTerm(kind))
+isinstance_term = lexeme(string("isinstance") >> lparenP >> quotedP << rparenP).map(IsInstanceTerm)
+id_term = lexeme(string("id") >> lparenP >> quotedP << rparenP).map(IdTerm)
 
 leafTermP = isinstance_term | id_term | predicate_term | function_term
 
@@ -122,7 +122,7 @@ outP = lexeme(string(">") >> (range_parser | direct) << string(">")).map(lambda 
 inP = lexeme(string("<") >> (range_parser | direct) << string("<")).map(lambda nav: Navigation(nav[0], nav[1], "in"))
 navigation_parser = outP | inP
 
-pin_parser = lexeme(string("+")).optional().map(lambda x: False if x is None else True)
+pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 
 
 @make_parser

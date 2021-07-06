@@ -104,15 +104,15 @@ def test_db() -> StandardDatabase:
     client = ArangoClient(hosts="http://localhost:8529")
 
     # create test database: assumption is the root user with empty password
-    system = client.db("_system", username="root", password="")
+    system = client.db("_system", username="root", password="root")
     if not system.has_user("test"):
-        system.create_user("test")
+        system.create_user("test", "test", True)
 
     if not system.has_database("test"):
-        system.create_database("test", [{"username": "test", "password": "", "active": True}])
+        system.create_database("test", [{"username": "test", "password": "test", "active": True}])
 
     # Connect to "test" database as "test" user.
-    return client.db("test", username="test", password="")
+    return client.db("test", username="test", password="test")
 
 
 @pytest.fixture

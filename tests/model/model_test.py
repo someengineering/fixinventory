@@ -68,9 +68,11 @@ def test_datetime() -> None:
     assert a.coerce("2021-06-08T08:56:15Z") == "2021-06-08T08:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000+00:00") == "2021-06-08T08:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000+0000") == "2021-06-08T08:56:15Z"
-    # note: test output depends on local time zone and might fail
-    assert a.coerce("2021-06-08 08:56:15") == "2021-06-08T06:56:15Z"
-    assert a.coerce("08:56:15") == datetime.today().replace(hour=6, minute=56, second=15).strftime(DateTimeKind.Format)
+    assert a.coerce("2021-06-08 08:56:15").startswith("2021-06-08T")
+    assert a.coerce("2021-06-08 08:56:15").endswith(":56:15Z")  # ignore the hours, time zone dependant
+    today = datetime.today().replace(hour=6, minute=56, second=15).strftime(DateTimeKind.Format)
+    assert a.coerce("08:56:15").startswith(today[0:11])
+    assert a.coerce("08:56:15").endswith(":56:15Z")  # ignore the hours, time zone dependant
     assert a.coerce("-12d").startswith("20")
     assert a.coerce("12w").startswith("20")
     with pytest.raises(AttributeError) as no_date:

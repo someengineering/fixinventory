@@ -1,12 +1,12 @@
 import logging
 from typing import List, Tuple, Optional
 
-from core.async_extensions import run_async
-from core.model.model import Model, Kind, ComplexBase
 from plantuml import PlantUML
 
-from core.util import exist
+from core.async_extensions import run_async
 from core.db.modeldb import ModelDB
+from core.model.model import Model, Kind, ComplexBase
+from core.util import exist
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ class ModelHandler:
         kinds = [kind async for kind in self.db.get_kinds()]
         return Model.from_kinds(list(kinds))
 
-    async def uml_image(self, show_packages: Optional[List[str]] = None, format: str = "svg") -> bytes:
-        assert format == "svg" or format == "png", "Only svg and png is supported!"
+    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
+        assert output in ("svg", "png"), "Only svg and png is supported!"
         model = await self.load_model()
         graph = model.graph()
 
@@ -31,8 +31,7 @@ class ModelHandler:
                 return True
             else:
                 k: Kind = graph.nodes[key]["data"]
-                res = True if exist(lambda s: k.fqn.startswith(s), show_packages) else False
-                return res
+                return exist(k.fqn.startswith, show_packages)
 
         def edge_visible(edge: Tuple[str, str]) -> bool:
             return node_visible(edge[0]) and node_visible(edge[1])
@@ -46,7 +45,7 @@ class ModelHandler:
 
         nodes = "\n".join([class_node(graph.nodes[node]["data"]) for node in graph.nodes() if node_visible(node)])
         edges = "\n".join([class_inheritance(edge) for edge in graph.edges() if edge_visible(edge)])
-        puml = PlantUML(f"{self.plantuml_server}/{format}/")
+        puml = PlantUML(f"{self.plantuml_server}/{output}/")
         return await run_async(puml.processes, f"@startuml\n{nodes}\n{edges}\n@enduml")  # type: ignore
 
     async def update_model(self, kinds: List[Kind]) -> Model:

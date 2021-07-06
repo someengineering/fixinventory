@@ -34,7 +34,7 @@ class ArangoModelDB(ModelDB):
         self.db = db
         self.model = model
 
-    async def get_kinds(self) -> AsyncGenerator[Kind, None]:
+    async def get_kinds(self) -> AsyncGenerator[Kind, None]:  # pylint: disable=invalid-overridden-method
         with await self.db.all(self.model) as cursor:
             for kind in cursor:
                 yield from_js(kind, Kind)  # type: ignore

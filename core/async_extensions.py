@@ -5,7 +5,7 @@ from functools import partial
 # global unbounded thread pool to bridge sync io with asyncio
 from typing import Any
 
-GlobalAsyncPool = ThreadPoolExecutor(None, "global_async")
+GlobalAsyncPool = ThreadPoolExecutor(None, "global_async")  # pylint: disable=consider-using-with
 
 
 async def run_async(sync_func, *args: Any, **kwargs: Any) -> Any:  # type: ignore

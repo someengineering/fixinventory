@@ -16,8 +16,7 @@ class ArangoHTTPClient(DefaultHTTPClient):  # type: ignore
         self.timeout = timeout
         self.verify = verify
 
-    """ Override only to extend the request timeout """
-
+    # Override only to extend the request timeout
     def send_request(
         self,
         session: Session,

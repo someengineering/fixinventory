@@ -1,15 +1,15 @@
-import json
-import jsons
 import hashlib
-
+import json
 from datetime import datetime, timezone
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
+import jsons
+from networkx import DiGraph
+
 from core import feature
 from core.model.model import Model
-from core.types import Json
-from networkx import DiGraph
 from core.model.typed_model import to_js
+from core.types import Json
 
 
 class GraphBuilder:

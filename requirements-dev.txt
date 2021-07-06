@@ -14,3 +14,4 @@ tox==3.23.1
 coverage==5.5
 twine==3.4.1
 setuptools==57.0.0
+pylint==2.9.3

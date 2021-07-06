@@ -371,8 +371,7 @@ class Api:
                 return web.HTTPNotFound(text=message)
             except Exception as e:
                 kind = type(e).__name__
-                content = e.message if hasattr(e, 'message') else str(e)  # type: ignore
-                message = f"Error: {kind}\nMessage: {content}"
+                message = f"Error: {kind}\nMessage: {str(e)}"
                 log.warning(f'Request {request} has failed with exception: {message}', exc_info=e)
                 return web.HTTPBadRequest(text=message)
 

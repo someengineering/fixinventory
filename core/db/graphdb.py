@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 class GraphDB(ABC):
 
     @abstractmethod
-    async def get_node(self, resource_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
+    async def get_node(self, node_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
         pass
 
     @abstractmethod
@@ -38,7 +38,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def update_node(self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str,
-                          data: Json) -> Json:
+                          patch: Json) -> Json:
         pass
 
     @abstractmethod
@@ -109,7 +109,7 @@ class ArangoGraphDB(GraphDB):
         self.in_progress = f"{snapshot[1]}_in_progress"
         self.db = db
 
-    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
+    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:  # noqa: E501 pylint: disable=invalid-overridden-method
         bind = {'tokens': tokens, 'limit': limit}
         trafo = self.document_to_instance_fn("reported")
         with await self.db.aql(query=self.query_search_token(), bind_vars=bind) as cursor:
@@ -137,7 +137,7 @@ class ArangoGraphDB(GraphDB):
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
             node["data"] = node["reported"]
-            node_id, js, sha, kinds, flat = GraphAccess.dump(node_id, node)
+            node_id, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
             update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
             result = await self.db.update(self.current_nodes, update, return_new=True)
             trafo = self.document_to_instance_fn(result_section)
@@ -159,7 +159,7 @@ class ArangoGraphDB(GraphDB):
         with await self.db.aql(query=self.query_node_by_id(), bind_vars={'rid': node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
-    async def query_list(self, query: QueryModel) -> AsyncGenerator[Json, None]:
+    async def query_list(self, query: QueryModel) -> AsyncGenerator[Json, None]:  # noqa: E501 pylint: disable=invalid-overridden-method
         q_string, bind = self.to_query(query)
         trafo = self.document_to_instance_fn(query.return_section)
         visited = set()
@@ -169,7 +169,7 @@ class ArangoGraphDB(GraphDB):
                     visited.add(element["_id"])
                     yield trafo(element)
 
-    async def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
+    async def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:  # noqa: E501 pylint: disable=invalid-overridden-method
         query_string, bind = self.to_query(query, all_edges=True)
         trafo = self.document_to_instance_fn(query.return_section)
         visited_node = {}
@@ -224,11 +224,11 @@ class ArangoGraphDB(GraphDB):
 
     async def list_in_progress_batch_updates(self) -> List[Json]:
         with await self.db.aql(self.query_active_batches()) as cursor:
-            return [change for change in cursor]
+            return list(cursor)
 
     # Intentionally no async method: a cursor is provided and all changes are returned.
     def __update_sub_graph_prepare(self, access: GraphAccess, under_node_id: str, node_cursor: Cursor) -> Tuple[
-      GraphUpdate, List[Json],  List[Json],  List[Json], List[Json], List[Json]]:
+      GraphUpdate, List[Json], List[Json], List[Json], List[Json], List[Json]]:
         sub_graph_root = access.root()
         assert sub_graph_root != under_node_id, f"Subgraph root has the same id as the parent node: {under_node_id}"
         info = GraphUpdate()
@@ -365,7 +365,7 @@ class ArangoGraphDB(GraphDB):
                 "is_batch": is_batch,
                 "change_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))
             }
-                           )
+                         )
             await tx.commit_transaction()
         except Exception as ex:
             await tx.abort_transaction()
@@ -388,9 +388,9 @@ class ArangoGraphDB(GraphDB):
         async def execute_many_async(async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json]) -> None:
             if array:
                 result = await async_fn(name, array)
-                ex = first(lambda x: isinstance(x, Exception), result)
+                ex: Optional[Exception] = first(lambda x: isinstance(x, Exception), result)
                 if ex:
-                    raise ex
+                    raise ex  # pylint: disable=raising-bad-type
 
         async def transform_and_execute_many_async(async_fn: Callable[[str, List[Json]], Any], name: str,
                                                    array: List[Json], action: str) -> None:
@@ -440,7 +440,6 @@ class ArangoGraphDB(GraphDB):
                     await self.move_temp_to_proper(change_id, temp.name)
                 finally:
                     await self.db.delete_collection(temp.name)
-                    pass
 
             async def update_batch() -> None:
                 temp_table = await self.get_tmp_collection(change_id)
@@ -695,8 +694,8 @@ class EventGraphDB(GraphDB):
         self.event_bus = event_bus
         self.graph_name = real.current_graph
 
-    async def get_node(self, resource_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
-        return await self.real.get_node(resource_id, result_section)
+    async def get_node(self, node_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
+        return await self.real.get_node(node_id, result_section)
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
@@ -704,8 +703,8 @@ class EventGraphDB(GraphDB):
         return result
 
     async def update_node(self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str,
-                          data: Json) -> Json:
-        result = await self.real.update_node(model, section, result_section, node_id, data)
+                          patch: Json) -> Json:
+        result = await self.real.update_node(model, section, result_section, node_id, patch)
         await self.event_bus.emit(Event.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section})
         return result
 
