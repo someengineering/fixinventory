@@ -15,7 +15,7 @@ class DatabaseError(DomainError):
 
 
 class InvalidBatchUpdate(DatabaseError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('The same batch can not update the same subgraph or any parent node!')
 
 

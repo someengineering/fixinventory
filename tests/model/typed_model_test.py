@@ -8,7 +8,7 @@ from core.model.typed_model import to_js, from_js
 
 
 class ModelBase(abc.ABC):
-    def __init__(self, identity):
+    def __init__(self, identity: int):
         self.identity = identity
 
 
@@ -26,7 +26,7 @@ class ModelBar(ModelFoo):
         self.bla = bla
 
 
-def test_json_marshalling_works():
+def test_json_marshalling_works() -> None:
     m = ModelFoo(1, "some foo", 23)
     js = to_js(m)
     js["identity"] = 1
@@ -37,15 +37,15 @@ def test_json_marshalling_works():
     assert len(d) == 0
 
 
-def test_ignore_private_properties():
+def test_ignore_private_properties() -> None:
     m = ModelFoo(1, "some foo", 23)
-    m.__some_private_prop = 23
-    m.__some_other_dunder = "foo"
+    m.__some_private_prop = 23  # type: ignore
+    m.__some_other_dunder = "foo"  # type: ignore
     js = to_js(m)
     assert len(js) == 3
 
 
-def test_marshal_query():
+def test_marshal_query() -> None:
     q = Query.by("ec2", P("foo") > 23, P("test") >= "bummer", P("das") < "set")
     js = to_js(q)
     again = from_js(js, Query)

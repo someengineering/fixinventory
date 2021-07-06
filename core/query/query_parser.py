@@ -1,11 +1,17 @@
 from functools import reduce
+from typing import Callable
+
 from parsy import string, regex, digit, generate, success, Parser
 from core.query.model import Predicate, CombinedTerm, IsInstanceTerm, Part, Navigation, Query, FunctionTerm, IdTerm
 
-whitespace = regex(r'\s*')
+whitespace: Parser = regex(r'\s*')
 
 
-def lexeme(p):
+def make_parser(fn: Callable[[], Parser]) -> Parser:
+    return generate(fn)
+
+
+def lexeme(p: Parser) -> Parser:
     return whitespace >> p << whitespace
 
 
@@ -44,8 +50,8 @@ string_esc = string('\\') >> (
 quotedP = lexeme(string('"') >> (string_part | string_esc).many().concat() << string('"'))
 
 
-@generate
-def array_parser():
+@make_parser
+def array_parser() -> Parser:
     yield lbrackP
     elements = yield valueP.sep_by(commaP)
     yield rbrackP
@@ -55,16 +61,16 @@ def array_parser():
 valueP = quotedP | floatP | integerP | array_parser | trueP | falseP | nullP
 
 
-@generate
-def predicate_term():
+@make_parser
+def predicate_term() -> Parser:
     name = yield variableP
     op = yield operationP
     value = yield valueP
     return Predicate(name, op, value, {})
 
 
-@generate
-def function_term():
+@make_parser
+def function_term() -> Parser:
     fn = yield functionP
     yield lparenP
     name = yield variableP
@@ -81,8 +87,8 @@ leafTermP = isinstance_term | id_term | predicate_term | function_term
 boolOpP = lexeme(string("and") | string("or"))
 
 
-@generate
-def combined_term():
+@make_parser
+def combined_term() -> Parser:
     left = yield simpleTermP
     result = left
     while True:
@@ -100,8 +106,8 @@ simpleTermP = (lparenP >> combined_term << rparenP) | leafTermP
 term_parser = combined_term | simpleTermP
 
 
-@generate
-def range_parser():
+@make_parser
+def range_parser() -> Parser:
     yield lbrackP
     start = yield integerP
     has_end = yield colonP.optional()
@@ -119,8 +125,8 @@ navigation_parser = outP | inP
 pin_parser = lexeme(string("+")).optional().map(lambda x: False if x is None else True)
 
 
-@generate
-def part_parser():
+@make_parser
+def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
     nav = yield navigation_parser | success(None)
@@ -132,4 +138,4 @@ query_parser: Parser = part_parser.many().map(lambda parts: Query(parts[::-1]))
 
 
 def parse_query(query: str) -> Query:
-    return query_parser.parse(query)
+    return query_parser.parse(query)  # type: ignore

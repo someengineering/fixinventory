@@ -21,7 +21,7 @@ class ModelHandler:
         kinds = [kind async for kind in self.db.get_kinds()]
         return Model.from_kinds(list(kinds))
 
-    async def uml_image(self, show_packages: Optional[List[str]] = None, format: str = "svg"):
+    async def uml_image(self, show_packages: Optional[List[str]] = None, format: str = "svg") -> bytes:
         assert format == "svg" or format == "png", "Only svg and png is supported!"
         model = await self.load_model()
         graph = model.graph()
@@ -37,17 +37,17 @@ class ModelHandler:
         def edge_visible(edge: Tuple[str, str]) -> bool:
             return node_visible(edge[0]) and node_visible(edge[1])
 
-        def class_node(cpx: ComplexBase):
+        def class_node(cpx: ComplexBase) -> str:
             props = "\n".join([f"+ {p.name}: {p.kind}" for p in cpx.properties])
             return f"class {cpx.fqn} {{\n{props}\n}}"
 
-        def class_inheritance(edge: Tuple[str, str]):
+        def class_inheritance(edge: Tuple[str, str]) -> str:
             return f"{edge[1]} <|--- {edge[0]}"
 
         nodes = "\n".join([class_node(graph.nodes[node]["data"]) for node in graph.nodes() if node_visible(node)])
         edges = "\n".join([class_inheritance(edge) for edge in graph.edges() if edge_visible(edge)])
         puml = PlantUML(f"{self.plantuml_server}/{format}/")
-        return await run_async(puml.processes, f"@startuml\n{nodes}\n{edges}\n@enduml")
+        return await run_async(puml.processes, f"@startuml\n{nodes}\n{edges}\n@enduml")  # type: ignore
 
     async def update_model(self, kinds: List[Kind]) -> Model:
         # load existing model

@@ -2,6 +2,7 @@ import logging
 from argparse import ArgumentParser, Namespace
 
 from aiohttp import web
+from aiohttp.web_app import Application
 from arango import ArangoClient
 
 from core.db.arangodb_extensions import ArangoHTTPClient
@@ -45,7 +46,7 @@ def main() -> None:
     model = ModelHandler(db.get_model_db(), args.plantuml_server)
     api = Api(db, model, event_bus)
 
-    async def async_initializer():
+    async def async_initializer() -> Application:
         await db.start()
         return api.app
 

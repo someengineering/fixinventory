@@ -7,7 +7,7 @@ from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
 from re import compile
-from typing import List, Union, Dict, Any, Optional, Set, Callable
+from typing import List, Union, Dict, Any, Optional, Set, Callable, Type
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -16,16 +16,12 @@ from jsons import set_deserializer, set_serializer
 from networkx import DiGraph
 
 from core.model.typed_model import from_js
+from core.types import Json, JsonElement, ValidationResult, ValidationFn
 from core.util import if_set
-
-Json = Dict[str, Any]
-
-ValidationResult = Optional[Any]
-ValidationFn = Callable[[Any], ValidationResult]
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
-    def check_type(x) -> ValidationResult:
+    def check_type(x: Any) -> ValidationResult:
         if isinstance(x, t):
             return None
         else:
@@ -34,8 +30,8 @@ def check_type_fn(t: type, type_name: str) -> ValidationFn:
     return check_type
 
 
-def check_fn(x: Optional[Any], func: Callable[[Any, Any], Optional[Any]], message: str):
-    def check_single(value) -> ValidationResult:
+def check_fn(x: Optional[Any], func: Callable[[Any, Any], Optional[Any]], message: str) -> Optional[ValidationFn]:
+    def check_single(value: Any) -> ValidationResult:
         if func(x, value):
             return None
         else:
@@ -47,12 +43,12 @@ def check_fn(x: Optional[Any], func: Callable[[Any, Any], Optional[Any]], messag
 def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
     defined = list(filter(lambda x: x is not None, fns))
 
-    def always_valid(_):
+    def always_valid(_: Any) -> ValidationResult:
         return None
 
-    def check_defined(value):
+    def check_defined(value: Any) -> ValidationResult:
         for fn in defined:
-            res = fn(value)
+            res = fn(value)  # type: ignore
             if res is not None:
                 return res
         return None
@@ -61,7 +57,7 @@ def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
 
 
 class Property:
-    def __init__(self, name: str, kind: str, required: bool = False, description: str = None):
+    def __init__(self, name: str, kind: str, required: bool = False, description: Optional[str] = None):
         self.name = name
         self.kind = kind
         self.required = required
@@ -77,10 +73,10 @@ class Kind(ABC):
         self.fqn = fqn
 
     @abstractmethod
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         pass
 
-    def resolve(self, model: dict):
+    def resolve(self, model: Dict[str, Kind]) -> None:
         pass
 
     def kind_hierarchy(self) -> List[str]:
@@ -91,9 +87,9 @@ class Kind(ABC):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def from_json(js: dict, _: type = object, **kwargs):
+    def from_json(js: Json, _: type = object, **kwargs: object) -> Kind:
         if "fqn" in js and "properties" in js:
-            props = list(map(lambda prop: from_js(prop, Property), js["properties"]))
+            props: List[Property] = list(map(lambda prop: from_js(prop, Property), js["properties"]))  # type: ignore
             return Complex(js["fqn"], js.get("base"), props)
         elif "inner" in js:
             inner = Kind.from_json(js["inner"])
@@ -131,7 +127,7 @@ class SimpleKind(Kind, ABC):
         self.runtime_kind = runtime_kind
         self.__runtime_type: type = self.Kind_to_type[runtime_kind]
 
-    Kind_to_type = {
+    Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
         "string": str,
         "int32": int,
         "int64": int,
@@ -143,7 +139,7 @@ class SimpleKind(Kind, ABC):
     }
 
     # noinspection PyMethodMayBeStatic
-    def coerce(self, value) -> object:
+    def coerce(self, value: object) -> object:
         return value
 
     def as_json(self) -> Json:
@@ -151,7 +147,7 @@ class SimpleKind(Kind, ABC):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def to_json(obj, **kw_args):
+    def to_json(obj: SimpleKind, **kw_args: object) -> Json:
         return obj.as_json()
 
 
@@ -178,10 +174,10 @@ class StringKind(SimpleKind):
             check_fn(self.max_length, lambda x, obj: len(obj) <= x, f"is too long! Allowed: {self.max_length}")
         )
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value) -> object:
+    def coerce(self, value: Any) -> object:
         if isinstance(value, str):
             return value
         else:
@@ -221,20 +217,20 @@ class NumberKind(SimpleKind):
         )
 
     @staticmethod
-    def check_float(obj):
+    def check_float(obj: Any) -> ValidationResult:
         if isinstance(obj, float) or isinstance(obj, int):
             return None
         else:
             raise AttributeError(f"Expected number but got {obj}")
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value) -> object:
+    def coerce(self, value: object) -> object:
         if isinstance(value, int) or isinstance(value, float):
             return value
         else:
-            return float(value)
+            return float(value)  # type: ignore
 
     def as_json(self) -> Json:
         js = super().as_json()
@@ -252,10 +248,10 @@ class BooleanKind(SimpleKind):
         super().__init__(fqn, "boolean")
         self.valid_fn = check_type_fn(bool, "boolean")
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value) -> object:
+    def coerce(self, value: Any) -> object:
         if isinstance(value, bool):
             return value
         else:
@@ -282,18 +278,18 @@ class DateTimeKind(SimpleKind):
             return None
 
     @staticmethod
-    def check_datetime(obj) -> ValidationResult:
-        def parse_datetime():
+    def check_datetime(obj: Any) -> ValidationResult:
+        def parse_datetime() -> str:
             parsed = datetime.fromisoformat(str(obj))
             utc_parsed = datetime.fromtimestamp(parsed.timestamp(), tz=timezone.utc)
             return utc_parsed.strftime(DateTimeKind.Format)
 
         return None if DateTimeKind.DateTimeRe.fullmatch(obj) else parse_datetime()
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value) -> str:
+    def coerce(self, value: Any) -> str:
         try:
             if self.DurationRe.fullmatch(value):
                 # in case of duration, compute the timestamp as: now + duration
@@ -319,13 +315,13 @@ class DateKind(SimpleKind):
         )
 
     @staticmethod
-    def check_date(obj) -> ValidationResult:
+    def check_date(obj: Any) -> ValidationResult:
         return None if DateKind.DateRe.fullmatch(obj) else date.fromisoformat(obj)
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value) -> str:
+    def coerce(self, value: Any) -> str:
         try:
             if DateTimeKind.DurationRe.fullmatch(value):
                 # in case of duration, compute the timestamp as: today + duration
@@ -343,14 +339,15 @@ class Array(Kind):
         super().__init__(f"{inner.fqn}[]")
         self.inner = inner
 
-    def resolve(self, model):
+    def resolve(self, model: Dict[str, Kind]) -> None:
         self.inner.resolve(model)
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if not isinstance(obj, list):
             raise AttributeError("Expected property is not an array!")
+        has_coerced = False
 
-        def check(item):
+        def check(item: Any) -> ValidationResult:
             nonlocal has_coerced
             res = self.inner.check_valid(item, **kwargs)
             if res is None:
@@ -359,7 +356,6 @@ class Array(Kind):
                 has_coerced = True
                 return res.value
 
-        has_coerced = False
         mapped = [check(elem) for elem in obj]
         return mapped if has_coerced else None
 
@@ -374,11 +370,11 @@ class ComplexBase(Kind):
         self.__resolved = False
         self.__resolved_base: Optional[Kind] = None
         self.__resolved_kinds: Dict[str, Kind] = dict()
-        self.__all_props = list(self.properties)
-        self.__resolved_hierarchy = [fqn]
+        self.__all_props: List[Property] = list(self.properties)
+        self.__resolved_hierarchy: List[str] = [fqn]
         self.__properties_kind_by_path: Dict[str, SimpleKind] = dict()
 
-    def resolve(self, model: Dict[str, Kind]):
+    def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
             # resolve properties
             for prop in self.properties:
@@ -408,7 +404,7 @@ class ComplexBase(Kind):
         self.__resolved = True
 
     def __resolve_property_paths(self, from_path: str = "") -> Dict[str, SimpleKind]:
-        def path_for(kind, path, array: bool = False) -> Dict[str, SimpleKind]:
+        def path_for(kind: Kind, path: str, array: bool = False) -> Dict[str, SimpleKind]:
             root = "" if path == "" else f"{path}."
             arr = "[]" if array else ""
             if isinstance(kind, SimpleKind):
@@ -426,10 +422,10 @@ class ComplexBase(Kind):
 
         return result
 
-    def __contains__(self, name):
+    def __contains__(self, name: str) -> bool:
         return name in self.__prop_by_name
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Property:
         return self.__prop_by_name[name]
 
     def is_root(self) -> bool:
@@ -443,20 +439,20 @@ class ComplexBase(Kind):
             raise AttributeError(f"property_kind_by_path {self.fqn}: References are not resolved yet!")
         return self.__properties_kind_by_path
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
             result = {}
             has_coerced = False
-            for prop, value in obj.items():
-                if prop in self.__resolved_kinds:
+            for name, value in obj.items():
+                if name in self.__resolved_kinds:
                     try:
-                        coerced = self.__resolved_kinds[prop].check_valid(value, **kwargs)
+                        coerced = self.__resolved_kinds[name].check_valid(value, **kwargs)
                         has_coerced |= coerced is not None
-                        result[prop] = coerced if coerced is not None else value
+                        result[name] = coerced if coerced is not None else value
                     except AttributeError as at:
-                        raise AttributeError(f"Kind:{self.fqn} Property:{prop} is not valid: {at}: {json.dumps(obj)}")
+                        raise AttributeError(f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}")
                 elif not self.allow_unknown_props:
-                    raise AttributeError(f"Kind:{self.fqn} Property:{prop} is not defined in model!")
+                    raise AttributeError(f"Kind:{self.fqn} Property:{name} is not defined in model!")
             if not kwargs.get('ignore_missing'):
                 for prop in self.__all_props:
                     if prop.required and prop.name not in obj:
@@ -476,7 +472,7 @@ class StringDict(ComplexBase, Internal):
     def __init__(self, fqn: str):
         super().__init__(fqn, None, [], True)
 
-    def check_valid(self, obj, **kwargs) -> ValidationResult:
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
             for prop, value in obj.items():
                 if not isinstance(prop, str) or not isinstance(value, str):
@@ -506,11 +502,11 @@ predefined_kinds = [
 class Model:
 
     @staticmethod
-    def empty():
+    def empty() -> Model:
         return Model({})
 
     @staticmethod
-    def from_kinds(kinds: List[Kind]):
+    def from_kinds(kinds: List[Kind]) -> Model:
         all_kinds = kinds + predefined_kinds
         kind_dict = {kind.fqn: kind for kind in all_kinds}
         for kind in all_kinds:
@@ -523,7 +519,7 @@ class Model:
         paths: Dict[str, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
         self.property_kind_by_path = paths
 
-    def __contains__(self, name_or_object: Union[str, Json]):
+    def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
             return name_or_object in self.kinds
         elif isinstance(name_or_object, dict) and "kind" in name_or_object:
@@ -539,14 +535,14 @@ class Model:
         else:
             raise KeyError(f"Expected string or json with a 'kind' property as key but got: {name_or_object}")
 
-    def kind_by_path(self, path: str):
+    def kind_by_path(self, path: str) -> SimpleKind:
         if path not in self.property_kind_by_path:
             raise AttributeError(f"Query contains a predicate path {path} which is not defined in the model!")
         return self.property_kind_by_path[path]
 
-    def check_valid(self, js: Json, **kwargs) -> ValidationResult:
+    def check_valid(self, js: Json, **kwargs: bool) -> ValidationResult:
         try:
-            kind = self[js["kind"]]
+            kind: Kind = self[js["kind"]]
             return kind.check_valid(js, **kwargs)
         except KeyError:
             raise AttributeError(f'No kind definition found for {js["kind"]}' if "kind" in js
@@ -555,7 +551,7 @@ class Model:
     def graph(self) -> DiGraph:
         graph = DiGraph()
 
-        def handle_complex(base: ComplexBase):
+        def handle_complex(base: ComplexBase) -> None:
             graph.add_node(base.fqn, data=base)
             if not base.is_root():
                 graph.add_edge(base.fqn, base.base)
@@ -566,8 +562,8 @@ class Model:
         return graph
 
     def update_kinds(self, kinds: List[Kind]) -> Model:
-        def update_is_valid(from_kind: Kind, to_kind: Kind):
-            def hint():
+        def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
+            def hint() -> str:
                 return f"Update {from_kind.fqn}"
             # Allowed changes: The update
             # - does not change it's type (e.g. going from SimpleKind to ComplexKind)
@@ -592,7 +588,7 @@ class Model:
             update_is_valid(self.kinds[name], updates[name])
 
         # check if no property path is overlapping
-        def check(all_paths: dict, kind: Kind):
+        def check(all_paths: Dict[str, SimpleKind], kind: Kind) -> Dict[str, SimpleKind]:
             if isinstance(kind, ComplexBase):
                 paths = kind.property_kind_by_path()
                 intersect = paths.keys() & all_paths.keys()
@@ -606,7 +602,7 @@ class Model:
             else:
                 return all_paths
 
-        reduce(check, updates.values(), reduce(check, self.kinds.values(), {}))
+        reduce(check, updates.values(), reduce(check, self.kinds.values(), {}))  # type: ignore
 
         return Model(updated)
 

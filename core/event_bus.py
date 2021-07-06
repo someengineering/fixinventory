@@ -3,7 +3,7 @@ from asyncio import Queue
 from contextlib import contextmanager
 from typing import Dict, List, Generator, Any, Optional
 
-from core.model.model import Json
+from core.types import Json
 
 log = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ class EventBus:
     Every subscriber is context managed and gets its own queue of events.
     """
 
-    def __init__(self):
-        self.listeners: Dict[str, List[Queue]] = {}
+    def __init__(self) -> None:
+        self.listeners: Dict[str, List[Queue[Json]]] = {}
 
     @contextmanager
-    def subscribe(self, channels: Optional[List[str]] = None, queue_size: int = 0) -> Generator[Queue, Any, None]:
+    def subscribe(self, channels: Optional[List[str]] = None, queue_size: int = 0) -> Generator[Queue[Json], Any, None]:
         """
         Subscribe to a list of event channels.
         All events that match the channel will be written to this queue.
@@ -61,15 +61,15 @@ class EventBus:
         :param queue_size: the size of elements that can be buffered in the queue.
         :return: the context managed queue.
         """
-        queue: Queue = Queue(queue_size)
+        queue: Queue[Json] = Queue(queue_size)
 
-        def add_listener(name: str):
+        def add_listener(name: str) -> None:
             if name not in self.listeners:
                 self.listeners[name] = [queue]
             else:
                 self.listeners[name].append(queue)
 
-        def remove_listener(name: str):
+        def remove_listener(name: str) -> None:
             self.listeners[name].remove(queue)
             if len(self.listeners[name]) == 0:
                 del self.listeners[name]
@@ -84,8 +84,8 @@ class EventBus:
             for channel in ch_list:
                 remove_listener(channel)
 
-    async def emit(self, event_name: str, event: Json):
-        async def emit_by(name: str):
+    async def emit(self, event_name: str, event: Json) -> None:
+        async def emit_by(name: str) -> None:
             for listener in self.listeners.get(name, []):
                 await listener.put({"name": event_name, "event": event})
 

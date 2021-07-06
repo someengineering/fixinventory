@@ -5,7 +5,7 @@ from abc import ABC
 from asyncio import AbstractEventLoop
 from datetime import date, datetime, timezone
 from random import SystemRandom
-from typing import List
+from typing import List, Optional
 
 import pytest
 from arango import ArangoClient
@@ -14,12 +14,14 @@ from arango.typings import Json
 from networkx import DiGraph
 
 from core.db.async_arangodb import AsyncArangoDB
-from core.db.graphdb import ArangoGraphDB, GraphUpdate, QueryModel, GraphDB, EventGraphDB
+from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
+# noinspection PyUnresolvedReferences
+from core.db.model import QueryModel, GraphUpdate
 # noinspection PyUnresolvedReferences
 from tests.event_bus_test import event_bus, all_events
 
@@ -37,7 +39,7 @@ class BaseResource(ABC):
 
 
 class Foo(BaseResource):
-    def __init__(self, identifier: str, name: str = None, some_int: int = 0, some_string: str = "hello",
+    def __init__(self, identifier: str, name: Optional[str] = None, some_int: int = 0, some_string: str = "hello",
                  now_is: datetime = datetime.now(tz=timezone.utc)) -> None:
         super().__init__(identifier)
         self.name = name
@@ -50,7 +52,7 @@ class Foo(BaseResource):
 
 
 class Bla(BaseResource):
-    def __init__(self, identifier: str, name: str = None, now: date = date.today(), f: int = 23, g=None) -> None:
+    def __init__(self, identifier: str, name: Optional[str] = None, now: date = date.today(), f: int = 23, g: Optional[List[int]] = None) -> None:
         super().__init__(identifier)
         self.name = name
         self.now = now
@@ -61,7 +63,7 @@ class Bla(BaseResource):
         return "bla"
 
 
-def create_graph(bla_text: str, width: int = 10):
+def create_graph(bla_text: str, width: int = 10) -> DiGraph:
     graph = DiGraph()
     graph.add_node("sub_root", data=to_json(Foo("sub_root")))
     for o in range(0, width):
@@ -141,7 +143,7 @@ async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> Di
 
 
 @pytest.mark.asyncio
-async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase):
+async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase) -> None:
     md = foo_model
     await graph_db.wipe()
     batch_id = ''.join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
@@ -166,7 +168,7 @@ async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Mode
 
 
 @pytest.mark.asyncio
-async def test_update_sub_graph(graph_db: ArangoGraphDB, foo_model: Model):
+async def test_update_sub_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     md = foo_model
     await graph_db.wipe()
 
@@ -185,7 +187,7 @@ async def test_update_sub_graph(graph_db: ArangoGraphDB, foo_model: Model):
 
 
 @pytest.mark.asyncio
-async def test_mark_update(filled_graph_db: ArangoGraphDB):
+async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     db = filled_graph_db
     # make sure all changes are empty
     await db.db.truncate(db.in_progress)
@@ -204,7 +206,7 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB):
 
 
 @pytest.mark.asyncio
-async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model):
+async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
     gen = filled_graph_db.query_list(QueryModel(blas, foo_model, "reported"))
     result = [from_js(x, Bla) async for x in gen]
@@ -213,14 +215,14 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model):
 
 
 @pytest.mark.asyncio
-async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model):
+async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     graph = await load_graph(filled_graph_db, foo_model)
     assert len(graph.edges) == 110
     assert len(graph.nodes.values()) == 111
 
 
 @pytest.mark.asyncio
-async def test_get_node(filled_graph_db: ArangoGraphDB):
+async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
     root = from_js(await filled_graph_db.get_node("sub_root", "reported"), Foo)
     assert root is not None
     assert isinstance(root, Foo)
@@ -233,22 +235,22 @@ async def test_get_node(filled_graph_db: ArangoGraphDB):
 
 
 @pytest.mark.asyncio
-async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model):
+async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     json = await graph_db.create_node(foo_model, "some_new_id", to_json(Foo("some_new_id", "name")), "root")
-    assert from_js(json, Foo).identifier == "some_new_id"
-    assert from_js(await graph_db.get_node("some_new_id", "reported"), Foo).identifier == "some_new_id"
+    assert to_foo(json).identifier == "some_new_id"
+    assert to_foo(await graph_db.get_node("some_new_id", "reported")).identifier == "some_new_id"
 
 
 @pytest.mark.asyncio
-async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model):
+async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     json = await graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
-    assert from_js(json, Foo).name == "bla"
-    assert from_js(await graph_db.get_node("some_other", "reported"), Foo).name == "bla"
+    assert to_foo(json).name == "bla"
+    assert to_foo(await graph_db.get_node("some_other", "reported")).name == "bla"
 
 
 @pytest.mark.asyncio
-async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model):
+async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, "sub_root", to_json(Foo("sub_root", "foo")), "root")
     await graph_db.create_node(foo_model, "some_other_child", to_json(Foo("some_other_child", "foo")), "sub_root")
     await graph_db.create_node(foo_model, "born_to_die", to_json(Foo("born_to_die", "foo")), "sub_root")
@@ -260,7 +262,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model):
 
 
 @pytest.mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[dict]):
+async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Json]) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
     await event_graph_db.delete_node("some_other")
@@ -286,3 +288,7 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
 
 def to_json(obj: BaseResource) -> Json:
     return to_js(obj) | {"kind": obj.kind()}
+
+
+def to_foo(json: Json) -> Foo:
+    return from_js(json, Foo)  # type: ignore

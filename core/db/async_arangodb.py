@@ -1,12 +1,12 @@
+from __future__ import annotations
 from numbers import Number
-from typing import Optional, MutableMapping, Sequence, Union, Any, List
+from typing import Optional, MutableMapping, Sequence, Union, Any, List, Dict
 
 from arango import ArangoServerError
-from arango.collection import StandardCollection
+from arango.collection import StandardCollection, VertexCollection, EdgeCollection
 from arango.cursor import Cursor
 from arango.database import StandardDatabase, Database, TransactionDatabase
 from arango.graph import Graph
-from arango.result import Result
 from arango.typings import Json, Jsons
 from core.async_extensions import run_async
 
@@ -20,7 +20,7 @@ class AsyncArangoDBBase:
                   count: bool = False,
                   batch_size: Optional[int] = None,
                   ttl: Optional[Number] = None,
-                  bind_vars: Optional[dict] = None,
+                  bind_vars: Optional[Dict[str, Any]] = None,
                   full_count: Optional[bool] = None,
                   max_plans: Optional[int] = None,
                   optimizer_rules: Optional[Sequence[str]] = None,
@@ -81,7 +81,7 @@ class AsyncArangoDBBase:
                      overwrite_mode: Optional[str] = None,
                      keep_none: Optional[bool] = None,
                      merge: Optional[bool] = None,
-                     ):
+                     ) -> Union[bool, Json]:
         return await run_async(self.db.insert_document, collection, document, return_new, sync, silent,
                                overwrite, return_old, overwrite_mode, keep_none, merge)
 
@@ -96,7 +96,7 @@ class AsyncArangoDBBase:
         return_old: bool = False,
         sync: Optional[bool] = None,
         silent: bool = False,
-    ) -> Result[Union[bool, Json]]:
+    ) -> Json:
         return await run_async(self.db.collection(collection).update, document, check_rev, merge, keep_none,
                                return_new, return_old, sync, silent)
 
@@ -110,11 +110,11 @@ class AsyncArangoDBBase:
         return_old: bool = False,
         sync: Optional[bool] = None,
         silent: bool = False,
-    ):
+    ) -> Union[bool, Json]:
         return await run_async(self.db.collection(collection).delete, document, rev, check_rev, ignore_missing,
                                return_old, sync, silent)
 
-    async def all(self, collection: str, skip: Optional[int] = None, limit: Optional[int] = None):
+    async def all(self, collection: str, skip: Optional[int] = None, limit: Optional[int] = None) -> Cursor:
         return await run_async(self.db.collection(collection).all, skip, limit)
 
     async def insert_many(self,
@@ -126,8 +126,8 @@ class AsyncArangoDBBase:
                           overwrite: bool = False,
                           return_old: bool = False,
                           ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
-        return await run_async(self.db.collection(collection).insert_many, documents, return_new, sync, silent,
-                               overwrite, return_old)
+        fn = self.db.collection(collection).insert_many
+        return await run_async(fn, documents, return_new, sync, silent, overwrite, return_old)  # type: ignore
 
     async def update_many(self,
                           collection: str,
@@ -140,7 +140,8 @@ class AsyncArangoDBBase:
                           sync: Optional[bool] = None,
                           silent: bool = False,
                           ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
-        return await run_async(self.db.collection(collection).update_many, documents, check_rev, merge, keep_none,
+        fn = self.db.collection(collection).update_many
+        return await run_async(fn, documents, check_rev, merge, keep_none,  # type: ignore
                                return_new, return_old, sync, silent)
 
     async def delete_many(self,
@@ -151,11 +152,11 @@ class AsyncArangoDBBase:
                           sync: Optional[bool] = None,
                           silent: bool = False,
                           ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
-        return await run_async(self.db.collection(collection).delete_many, documents, return_old, check_rev, sync,
-                               silent)
+        fn = self.db.collection(collection).delete_many
+        return await run_async(fn, documents, return_old, check_rev, sync, silent)  # type: ignore
 
-    async def has_collection(self, name: str):
-        return await run_async(self.db.has_collection, name)
+    async def has_collection(self, name: str) -> bool:
+        return await run_async(self.db.has_collection, name)  # type: ignore
 
     async def create_collection(
         self,
@@ -184,13 +185,13 @@ class AsyncArangoDBBase:
                                smart_join_attribute, write_concern, schema)
 
     async def delete_collection(self, name: str, ignore_missing: bool = False, system: Optional[bool] = None) -> bool:
-        return await run_async(self.db.delete_collection, name, ignore_missing, system)
+        return await run_async(self.db.delete_collection, name, ignore_missing, system)  # type: ignore
 
     def collection(self, name: str) -> StandardCollection:
         return self.db.collection(name)
 
     async def truncate(self, collection: str) -> bool:
-        return await run_async(self.db.collection(collection).truncate)
+        return await run_async(self.db.collection(collection).truncate)  # type: ignore
 
     async def delete_vertex(self,
                             graph: str,
@@ -199,11 +200,11 @@ class AsyncArangoDBBase:
                             check_rev: bool = True,
                             ignore_missing: bool = False,
                             sync: Optional[bool] = None,
-                            ):
+                            ) -> Union[bool, Json]:
         return await run_async(self.db.graph(graph).delete_vertex, vertex, rev, check_rev, ignore_missing, sync)
 
-    async def has_graph(self, name: str):
-        return await run_async(self.db.has_graph, name)
+    async def has_graph(self, name: str) -> bool:
+        return await run_async(self.db.has_graph, name)  # type: ignore
 
     async def create_graph(self,
                            name: str,
@@ -212,31 +213,31 @@ class AsyncArangoDBBase:
                            smart: Optional[bool] = None,
                            smart_field: Optional[str] = None,
                            shard_count: Optional[int] = None,
-                           ):
+                           ) -> Graph:
         return await run_async(self.db.create_graph, name, edge_definitions, orphan_collections, smart, smart_field,
                                shard_count)
 
     def graph(self, name: str) -> Graph:
         return self.db.graph(name)
 
-    async def has_vertex_collection(self, graph: str, name: str):
-        return await run_async(self.db.graph(graph).has_vertex_collection, name)
+    async def has_vertex_collection(self, graph: str, name: str) -> bool:
+        return await run_async(self.db.graph(graph).has_vertex_collection, name)  # type: ignore
 
-    async def create_vertex_collection(self, graph: str, name: str):
+    async def create_vertex_collection(self, graph: str, name: str) -> VertexCollection:
         return await run_async(self.db.graph(graph).create_vertex_collection, name)
 
-    async def has_edge_definition(self, graph: str, name: str):
-        return await run_async(self.db.graph(graph).has_edge_definition, name)
+    async def has_edge_definition(self, graph: str, name: str) -> bool:
+        return await run_async(self.db.graph(graph).has_edge_definition, name)  # type: ignore
 
     async def create_edge_definition(self, graph: str, edge_collection: str, from_vertex_collections: Sequence[str],
-                                     to_vertex_collections: Sequence[str]):
+                                     to_vertex_collections: Sequence[str]) -> EdgeCollection:
         return await run_async(self.db.graph(graph).create_edge_definition, edge_collection,
                                from_vertex_collections, to_vertex_collections)
 
     async def views(self) -> Jsons:
         return await run_async(self.db.views)
 
-    async def create_view(self, name: str, view_type: str, properties: Optional[Json]):
+    async def create_view(self, name: str, view_type: str, properties: Optional[Json]) -> Json:
         return await run_async(self.db.create_view(name, view_type, properties))
 
 
@@ -254,7 +255,7 @@ class AsyncArangoDB(AsyncArangoDBBase):
         allow_implicit: Optional[bool] = None,
         lock_timeout: Optional[int] = None,
         max_size: Optional[int] = None,
-    ):
+    ) -> AsyncArangoTransactionDB:
         tx = await run_async(self.db.begin_transaction, read, write, exclusive, sync, allow_implicit,
                              lock_timeout, max_size)
         return AsyncArangoTransactionDB(tx)
@@ -266,7 +267,7 @@ class AsyncArangoTransactionDB(AsyncArangoDBBase):
         self.db: TransactionDatabase = db
 
     async def commit_transaction(self) -> bool:
-        return await run_async(self.db.commit_transaction)
+        return await run_async(self.db.commit_transaction)  # type: ignore
 
     async def abort_transaction(self) -> bool:
-        return await run_async(self.db.abort_transaction)
+        return await run_async(self.db.abort_transaction)  # type: ignore

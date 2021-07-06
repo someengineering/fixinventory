@@ -12,6 +12,7 @@ from core.model.model import Complex, Property, StringKind, NumberKind, BooleanK
 from tests.event_bus_test import event_bus, all_events
 # noinspection PyUnresolvedReferences
 from tests.db.graphdb_test import test_db
+from core.types import Json
 
 
 @pytest.fixture
@@ -53,14 +54,14 @@ def event_db(model_db: ModelDB, event_bus: EventBus) -> EventModelDB:
 
 
 @pytest.mark.asyncio
-async def test_load(model_db: ModelDB, test_model: List[Kind]):
+async def test_load(model_db: ModelDB, test_model: List[Kind]) -> None:
     await model_db.update_kinds(test_model)
     loaded = [kind async for kind in model_db.get_kinds()]
     assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_update(model_db: ModelDB, test_model: List[Kind]):
+async def test_update(model_db: ModelDB, test_model: List[Kind]) -> None:
     # multiple updates should work as expected
     await model_db.update_kinds(test_model)
     await model_db.update_kinds(test_model)
@@ -70,7 +71,7 @@ async def test_update(model_db: ModelDB, test_model: List[Kind]):
 
 
 @pytest.mark.asyncio
-async def test_delete(model_db: ModelDB, test_model: List[Kind]):
+async def test_delete(model_db: ModelDB, test_model: List[Kind]) -> None:
     await model_db.update_kinds(test_model)
     remaining = list(test_model)
     for _ in test_model:
@@ -82,7 +83,7 @@ async def test_delete(model_db: ModelDB, test_model: List[Kind]):
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events: List[dict]):
+async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events: List[Json]) -> None:
     # 2 times update
     await event_db.update_kinds(test_model)
     await event_db.update_kinds(test_model)

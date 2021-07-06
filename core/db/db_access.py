@@ -67,7 +67,7 @@ class DbAccess(ABC):
     def get_model_db(self) -> ModelDB:
         return self.model_event_db
 
-    async def check_outdated_batches(self):
+    async def check_outdated_batches(self) -> None:
         now = datetime.now(timezone.utc)
         for db in self.graph_dbs.values():
             for batch in await db.list_in_progress_batch_updates():

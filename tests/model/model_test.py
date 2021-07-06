@@ -1,13 +1,18 @@
-from typing import Type
+import json
+from typing import Type, Any, Union, List
 
 import pytest
 from deepdiff import DeepDiff
 
-from core.model.model import *
+from datetime import datetime
 from core.model.typed_model import to_js, from_js
+from networkx import DiGraph
+
+from core.model.model import StringKind, Kind, NumberKind, BooleanKind, DateKind, DateTimeKind, Array, Property, Complex, \
+    Model
 
 
-def test_json_marshalling():
+def test_json_marshalling() -> None:
     roundtrip(StringKind("string"), Kind)
     roundtrip(StringKind("string", 5, 13, "foo.*bla"), Kind)
     roundtrip(StringKind("string", enum={"foo", "bla"}), Kind)
@@ -26,7 +31,7 @@ def test_json_marshalling():
     ]), Kind)
 
 
-def test_string():
+def test_string() -> None:
     a = StringKind("string", 5, 13, "foo.*bla")
     assert expect_error(a, "foo") == ">foo< does not conform to regex: foo.*bla"
     assert expect_error(a, "fooooo") == ">fooooo< does not conform to regex: foo.*bla"
@@ -37,7 +42,7 @@ def test_string():
     assert expect_error(b, "baz").startswith(">baz< should be one of")
 
 
-def test_number():
+def test_number() -> None:
     a = NumberKind("cores", "int32", 1, 8)
     assert a.check_valid(1) is None
     assert a.check_valid(8) is None
@@ -48,14 +53,14 @@ def test_number():
     assert expect_error(b, 3) == ">3< should be one of: {1, 2, 4}"
 
 
-def test_boolean():
+def test_boolean() -> None:
     a = BooleanKind("question")
     assert a.check_valid(True) is None
     assert a.check_valid(False) is None
     assert expect_error(a, "test").startswith("Expected type boolean but got")
 
 
-def test_datetime():
+def test_datetime() -> None:
     a = DateTimeKind("dt")
     assert a.check_valid("2021-06-08T08:56:15Z") is None
     assert a.check_valid("2021-06-08T08:56:15+00:00") == "2021-06-08T08:56:15Z"
@@ -73,7 +78,7 @@ def test_datetime():
     assert str(no_date.value) == f"Expected datetime but got: >simply no date<"
 
 
-def test_date():
+def test_date() -> None:
     a = DateKind("d")
     assert a.check_valid("2021-06-08") is None
     assert expect_error(a, True) == "Expected type date but got bool"
@@ -86,7 +91,7 @@ def test_date():
     assert str(no_date.value) == f"Expected date but got: >simply no date<"
 
 
-def test_dictionary():
+def test_dictionary() -> None:
     address = Complex("Foo", None, [Property("tags", "dictionary"), Property("kind", "string")])
     model = Model.from_kinds([address])
     assert model.check_valid({"kind": "Foo", "tags": {"a": "b", "b": "c"}}) is None
@@ -94,7 +99,7 @@ def test_dictionary():
     assert expect_error(model, {"kind": "Foo", "tags": {"a": 1, "b": "c"}}) == expected
 
 
-def test_model_checking(person_model):
+def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "tags": ["one", "two"]}) is None
     expected = 'Kind:Base Property:tags is not valid: Expected type string but got int: {"kind": "Base", "id": "32", "tags": [1, 2]}'
@@ -115,14 +120,12 @@ def test_model_checking(person_model):
     nested = {"id": "batman", "kind": "Person", "name": "batman", "address": {"kind": "Address", "city": "gotham"}}
     expected = 'Kind:Person Property:address is not valid: Kind:Address Property:id is required and missing in {"kind": "Address", "city": "gotham"}: {"id": "batman", "kind": "Person", "name": "batman", "address": {"kind": "Address", "city": "gotham"}}'
     assert expect_error(person_model, nested) == expected
-    assert person_model.check_valid({"kind": "Base", "id": "32", "mtime":"2008-09-03T20:56:35+20:00"})["mtime"] =="2008-09-03T00:56:35Z"
+    assert person_model.check_valid({"kind": "Base", "id": "32", "mtime": "2008-09-03T20:56:35+20:00"})["mtime"] == "2008-09-03T00:56:35Z"  # type: ignore
 
 
-
-
-def test_property_path(person_model):
+def test_property_path(person_model: Model) -> None:
     # complex based property path
-    person_path = person_model["Person"].property_kind_by_path()
+    person_path = person_model["Person"].property_kind_by_path()  # type: ignore
     assert len(person_path) == 7
     assert person_path["name"] == person_model["string"]
     assert person_path["tags[]"] == person_model["string"]
@@ -135,7 +138,7 @@ def test_property_path(person_model):
     assert person_model.property_kind_by_path["address.zip"] == person_model["zip"]
 
 
-def test_update(person_model):
+def test_update(person_model: Model) -> None:
     with pytest.raises(AttributeError) as not_allowed:  # update city is removed
         person_model.update_kinds([Complex("Address", "Base", [])])
     assert str(not_allowed.value) == "Update Address existing required property city cannot be removed!"
@@ -144,7 +147,8 @@ def test_update(person_model):
     assert str(not_allowed.value) == "Update Address existing required property city marked as not required!"
     with pytest.raises(AttributeError) as not_allowed:  # update city with different type
         person_model.update_kinds([Complex("Address", "Base", [Property("city", "int32", required=True), ])])
-    assert str(not_allowed.value) == "Update not possible. Following properties would be non unique having the same path but different type: city"
+    assert str(
+        not_allowed.value) == "Update not possible. Following properties would be non unique having the same path but different type: city"
 
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
@@ -157,25 +161,26 @@ def test_update(person_model):
         duplicate.value) == "Update not possible. Following properties would be non unique having the same path but different type: id"
 
 
-def test_load(model_json):
-    model = Model.from_kinds([from_js(a, Kind) for a in json.loads(model_json)])
+def test_load(model_json: str) -> None:
+    kinds: List[Kind] = [from_js(a, Kind) for a in json.loads(model_json)]  # type: ignore
+    model = Model.from_kinds(kinds)
     assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32}) is None
     assert model["test.EC2"].kind_hierarchy() == ["test.Compound", "test.BaseResource", "test.EC2"]
 
 
-def test_graph(person_model):
+def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 4
     assert len(graph.edges()) == 2
 
 
-def roundtrip(obj, clazz: Type[object]):
+def roundtrip(obj: Any, clazz: Type[object]) -> None:
     js = to_js(obj)
     again = from_js(js, clazz)
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"
 
 
-def expect_error(kind: Union[Kind, Model], obj: Any):
+def expect_error(kind: Union[Kind, Model], obj: Any) -> str:
     try:
         kind.check_valid(obj)
         raise Exception("Expected an error but got a result!")
@@ -184,7 +189,7 @@ def expect_error(kind: Union[Kind, Model], obj: Any):
 
 
 @pytest.fixture
-def person_model():
+def person_model() -> Model:
     zip = StringKind("zip")
     base = Complex("Base", None, [
         Property("id", "string", required=True),
@@ -204,7 +209,7 @@ def person_model():
 
 
 @pytest.fixture
-def model_json():
+def model_json() -> str:
     return """
     [
       {

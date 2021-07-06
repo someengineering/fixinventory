@@ -54,7 +54,7 @@ clean-env: ## remove environment
 
 lint: ## check style with flake8
 	flake8 core
-	mypy core tests
+	mypy --strict core tests
 
 test: env ## run tests quickly with the default Python
 	pytest

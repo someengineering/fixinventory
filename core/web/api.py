@@ -4,12 +4,14 @@ import logging
 import string
 from functools import partial
 from random import SystemRandom
-from typing import List, Union, AsyncGenerator
+from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any
 
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
 from aiohttp.web_request import Request
+from aiohttp.web_response import StreamResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
+from networkx import DiGraph
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -19,11 +21,14 @@ from core.error import NotFoundError
 from core.event_bus import EventBus
 from core.model.graph_access import GraphBuilder
 from core.model.model import Kind, Model
+from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js
 from core.query.query_parser import parse_query
 
 log = logging.getLogger(__name__)
+Section = Union[str, List[str]]
+RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
 class Api:
@@ -76,21 +81,21 @@ class Api:
             web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
             web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
             # Event operations
-            web.get("/events", self.handle_events),
+            web.get("/events", self.handle_events),  # type: ignore
             # Serve static filed
             web.get("", self.redirect_to_ui),
             web.static('/static', './static/'),
         ])
 
-    async def redirect_to_ui(self, request: Request):
+    async def redirect_to_ui(self, request: Request) -> StreamResponse:
         raise web.HTTPFound('/static/index.html')
 
-    async def handle_events(self, request: Request):
+    async def handle_events(self, request: Request) -> None:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
-        async def receive():
+        async def receive() -> None:
             async for msg in ws:
                 try:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
@@ -100,23 +105,23 @@ class Api:
                             await self.event_bus.emit(js["name"], js["event"])
                         else:
                             raise AttributeError(f"Expected event but got: {msg}")
-                except object:
+                except BaseException:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     await ws.close()
 
-        async def send():
+        async def send() -> None:
             try:
                 with self.event_bus.subscribe(show) as events:
                     while True:
                         event = await events.get()
                         await ws.send_str(json.dumps(event) + "\n")
-            except object:
+            except BaseException:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 await ws.close()
 
         await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
 
-    async def model_uml(self, request: Request):
+    async def model_uml(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else None
         result = await self.model_handler.uml_image(show)
         response = web.StreamResponse()
@@ -125,17 +130,17 @@ class Api:
         await response.write_eof(result)
         return response
 
-    async def get_model(self, _: Request):
+    async def get_model(self, _: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
         return web.json_response(to_js(md))
 
-    async def update_model(self, request: Request):
+    async def update_model(self, request: Request) -> StreamResponse:
         js = await request.json()
-        kinds = from_js(js, List[Kind])
+        kinds: List[Kind] = from_js(js, List[Kind])  # type: ignore
         model = await self.model_handler.update_model(kinds)
         return web.json_response(to_js(model))
 
-    async def get_node(self, section: str, request: Request):
+    async def get_node(self, section: str, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         node_id = request.match_info.get('node_id', 'root')
         graph = self.db.get_graph_db(graph_id)
@@ -145,7 +150,7 @@ class Api:
         else:
             return web.json_response(node)
 
-    async def create_node(self, request: Request):
+    async def create_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         node_id = request.match_info.get('node_id', 'some_existing')
         parent_node_id = request.match_info.get('parent_node_id', 'root')
@@ -155,7 +160,7 @@ class Api:
         node = await graph.create_node(md, node_id, item, parent_node_id)
         return web.json_response(node)
 
-    async def update_node(self, section: str, result_section: Union[str, List[str]], request: Request):
+    async def update_node(self, section: str, result_section: Section, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         node_id = request.match_info.get('node_id', 'some_existing')
         graph = self.db.get_graph_db(graph_id)
@@ -164,7 +169,7 @@ class Api:
         node = await graph.update_node(md, section, result_section, node_id, patch)
         return web.json_response(node)
 
-    async def delete_node(self, request: Request):
+    async def delete_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         node_id = request.match_info.get('node_id', 'some_existing')
         if node_id == "root":
@@ -173,16 +178,16 @@ class Api:
         await graph.delete_node(node_id)
         return web.HTTPNoContent()
 
-    async def list_graphs(self, _: Request):
+    async def list_graphs(self, _: Request) -> StreamResponse:
         return web.json_response(await self.db.list_graphs())
 
-    async def create_graph(self, request: Request):
+    async def create_graph(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         graph = await self.db.create_graph(graph_id)
         root = await graph.get_node("root", "reported")
         return web.json_response(root)
 
-    async def update_sub_graph(self, request: Request):
+    async def update_sub_graph(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph request")
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
@@ -191,7 +196,7 @@ class Api:
         info = await graph_db.update_sub_graph(md, graph, under_node_id)
         return web.json_response(to_js(info))
 
-    async def update_sub_graph_batch(self, request: Request):
+    async def update_sub_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
@@ -202,24 +207,24 @@ class Api:
         info = await graph_db.update_sub_graph(md, graph, under_node_id, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
-    async def list_batches(self, request: Request):
+    async def list_batches(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         batch_updates = await graph_db.list_in_progress_batch_updates()
         return web.json_response(batch_updates)
 
-    async def commit_batch(self, request: Request):
+    async def commit_batch(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         batch_id = request.match_info.get('batch_id', 'some_existing')
         await graph_db.commit_batch_update(batch_id)
         return web.HTTPOk(body="Batch committed.")
 
-    async def abort_batch(self, request: Request):
+    async def abort_batch(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         batch_id = request.match_info.get('batch_id', 'some_existing')
         await graph_db.abort_batch_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
-    async def raw(self, query_section: str, request: Request):
+    async def raw(self, query_section: str, request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         m = await self.model_handler.load_model()
@@ -227,7 +232,7 @@ class Api:
         query, bind_vars = graph_db.to_query(QueryModel(q, m, query_section))
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
-    async def explain(self, query_section: str, request: Request):
+    async def explain(self, query_section: str, request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         q = parse_query(query_string)
@@ -235,7 +240,7 @@ class Api:
         result = await graph_db.explain(QueryModel(q, m, query_section))
         return web.json_response(result)
 
-    async def search_graph(self, request: Request):
+    async def search_graph(self, request: Request) -> StreamResponse:
         if not feature.DB_SEARCH:
             raise AttributeError("This feature is not enabled!")
         if "term" not in request.query:
@@ -247,7 +252,7 @@ class Api:
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
-    async def query_list(self, query_section: str, result_section: Union[str, List[str]], request: Request):
+    async def query_list(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         q = parse_query(query_string)
@@ -256,7 +261,7 @@ class Api:
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
-    async def cytoscape(self, query_section: str, result_section: Union[str, List[str]], request: Request):
+    async def cytoscape(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
         q = parse_query(query_string)
@@ -265,7 +270,7 @@ class Api:
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
-    async def query_graph_stream(self, query_section: str, result_section: Union[str, List[str]], request: Request):
+    async def query_graph_stream(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
@@ -274,17 +279,17 @@ class Api:
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (item async for _, item in gen))
 
-    def query(self, query_section: str, result_section: Union[str, List[str]], request: Request):
+    async def query(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         if request.headers.get("format") == "cytoscape":
-            return self.cytoscape(query_section, result_section, request)
+            return await self.cytoscape(query_section, result_section, request)
         if request.headers.get("format") == "graph":
-            return self.query_graph_stream(query_section, result_section, request)
+            return await self.query_graph_stream(query_section, result_section, request)
         elif request.headers.get("format") == "list":
-            return self.query_list(query_section, result_section, request)
+            return await self.query_list(query_section, result_section, request)
         else:
             return web.HTTPPreconditionFailed(text="Define format header. `format: [graph|list|cytoscape]`")
 
-    async def wipe(self, request: Request):
+    async def wipe(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get('graph_id', 'ns')
         if "truncate" in request.query:
             await self.db.get_graph_db(graph_id).wipe()
@@ -294,8 +299,8 @@ class Api:
             return web.HTTPOk(body="Graph deleted.")
 
     @staticmethod
-    async def read_graph(request: Request, md: Model):
-        async def stream_to_graph():
+    async def read_graph(request: Request, md: Model) -> DiGraph:
+        async def stream_to_graph() -> DiGraph:
             builder = GraphBuilder(md)
             async for line in request.content:
                 if len(line.strip()) == 0:
@@ -304,7 +309,7 @@ class Api:
             log.info("Graph read into memory")
             return builder.graph
 
-        async def json_to_graph():
+        async def json_to_graph() -> DiGraph:
             json_array = await request.json()
             log.info("Json read into memory")
             builder = GraphBuilder(md)
@@ -322,8 +327,8 @@ class Api:
             raise AttributeError("Can not read graph. Currently supported formats: json and ndjson!")
 
     @staticmethod
-    def stream_response_from_gen(request: Request, gen: AsyncGenerator[dict, None]):
-        async def respond_json():
+    async def stream_response_from_gen(request: Request, gen: AsyncGenerator[Json, None]) -> StreamResponse:
+        async def respond_json() -> StreamResponse:
             response = web.StreamResponse(status=200, headers={'Content-Type': 'application/json'})
             await response.prepare(request)
             await response.write("[".encode("utf-8"))
@@ -336,7 +341,7 @@ class Api:
             await response.write_eof("]".encode("utf-8"))
             return response
 
-        async def respond_ndjson():
+        async def respond_ndjson() -> StreamResponse:
             response = web.StreamResponse(status=200, headers={'Content-Type': 'application/x-ndjson'})
             await response.prepare(request)
             async for item in gen:
@@ -346,13 +351,13 @@ class Api:
             return response
 
         if request.headers.get("accept") == "application/x-ndjson":
-            return respond_ndjson()
+            return await respond_ndjson()
         else:
-            return respond_json()
+            return await respond_json()
 
     @staticmethod
-    async def error_handler(_, handler):
-        async def middleware_handler(request):
+    async def error_handler(_: Any, handler: RequestHandler) -> RequestHandler:
+        async def middleware_handler(request: Request) -> StreamResponse:
             try:
                 response = await handler(request)
                 return response
@@ -361,13 +366,12 @@ class Api:
                 raise e
             except NotFoundError as e:
                 kind = type(e).__name__
-                content = e.message if hasattr(e, 'message') else str(e)
-                message = f"Error: {kind}\nMessage: {content}"
+                message = f"Error: {kind}\nMessage: {str(e)}"
                 log.info(f'Request {request} has failed with exception: {message}', exc_info=e)
                 return web.HTTPNotFound(text=message)
             except Exception as e:
                 kind = type(e).__name__
-                content = e.message if hasattr(e, 'message') else str(e)
+                content = e.message if hasattr(e, 'message') else str(e)  # type: ignore
                 message = f"Error: {kind}\nMessage: {content}"
                 log.warning(f'Request {request} has failed with exception: {message}', exc_info=e)
                 return web.HTTPBadRequest(text=message)

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 
 from core.model.model import Model
 from core.query.model import Query
@@ -15,8 +15,8 @@ class QueryModel(ABC):
 
 
 class GraphUpdate(ABC):
-    def __init__(self, nodes_created=0, nodes_updates=0, nodes_deleted=0,
-                 edges_created=0, edges_updated=0, edges_deleted=0):
+    def __init__(self, nodes_created: int = 0, nodes_updates: int = 0, nodes_deleted: int = 0,
+                 edges_created: int = 0, edges_updated: int = 0, edges_deleted: int = 0):
         self.nodes_created = nodes_created
         self.nodes_updated = nodes_updates
         self.nodes_deleted = nodes_deleted
@@ -28,11 +28,10 @@ class GraphUpdate(ABC):
         return self.nodes_created + self.nodes_updated + self.nodes_deleted + \
                self.edges_created + self.edges_updated + self.edges_deleted
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"[[{self.nodes_created},{self.nodes_updated}," \
                f"{self.nodes_deleted}],[{self.edges_created}," \
                f"{self.edges_updated},{self.edges_deleted}]]"
 
-    def __eq__(self, other):
-        if isinstance(other, GraphUpdate):
-            return self.__dict__ == other.__dict__
+    def __eq__(self, other: Any) -> bool:
+        return self.__dict__ == other.__dict__ if isinstance(other, GraphUpdate) else False

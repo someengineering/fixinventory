@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from asyncio import Task
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta
@@ -8,7 +9,7 @@ from typing import Any, Callable, Optional, Awaitable
 log = logging.getLogger(__name__)
 
 
-def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:
+def exist(f: Callable[[Any], bool], iterable: Iterable[Any]) -> bool:
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.
@@ -22,14 +23,14 @@ def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:
     return False
 
 
-def first(f: Callable[[Any], bool], iterable: Iterable) -> Optional[Any]:
+def first(f: Callable[[Any], bool], iterable: Iterable[Any]) -> Optional[Any]:
     for a in iterable:
         if f(a):
             return a
     return None
 
 
-def if_set(x: Optional[Any], func, if_not=None):
+def if_set(x: Optional[Any], func: Callable[[Any], Any], if_not: Any = None) -> Any:
     """
     Conditional execute based if the option is defined.
     :param x: the value to check.
@@ -48,25 +49,22 @@ class Periodic:
         self.name = name
         self.func = func
         self.frequency = frequency
-        self.is_started = False
-        self._task = None
+        self._task: Optional[Task[Any]] = None
 
-    async def start(self):
-        if not self.is_started:
-            self.is_started = True
+    async def start(self) -> None:
+        if self._task is None:
             # Start task to call func periodically:
             self._task = asyncio.ensure_future(self._run())
             log.info(f"Periodic task {self.name} has been started.")
 
-    async def stop(self):
-        if self.is_started:
-            self.is_started = False
-            # Stop task and await it stopped:
+    async def stop(self) -> None:
+        # Stop task and await it stopped:
+        if self._task is not None:
             self._task.cancel()
             with suppress(asyncio.CancelledError):
                 await self._task
 
-    async def _run(self):
+    async def _run(self) -> None:
         while True:
             await asyncio.sleep(self.frequency.seconds)
             log.debug(f"Execute periodic task {self.name}.")

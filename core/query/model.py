@@ -2,82 +2,82 @@ from __future__ import annotations
 import abc
 import sys
 from functools import reduce
-from typing import List
+from typing import List, Mapping, Union, Optional
 
 from jsons import set_deserializer
 
 
 class P:
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, **kwargs: object):
         self.name = name
         self.args = kwargs
 
     @staticmethod
-    def single(name: str):
+    def single(name: str) -> P:
         return P(name)
 
     @staticmethod
-    def array(name: str):
+    def array(name: str) -> PArray:
         return PArray(name)
 
     @staticmethod
-    def with_id(uid: str):
+    def with_id(uid: str) -> Term:
         return IdTerm(uid)
 
     @staticmethod
-    def of_kind(name: str):
+    def of_kind(name: str) -> Term:
         return IsInstanceTerm(name)
 
     @staticmethod
-    def function(fn: str):
+    def function(fn: str) -> PFunction:
         return PFunction(fn)
 
-    def __gt__(self, other: object):
+    def __gt__(self, other: object) -> Predicate:
         return self.gt(other)
 
-    def __ge__(self, other: object):
+    def __ge__(self, other: object) -> Predicate:
         return self.ge(other)
 
-    def __lt__(self, other: object):
+    def __lt__(self, other: object) -> Predicate:
         return self.lt(other)
 
-    def __le__(self, other: object):
+    def __le__(self, other: object) -> Predicate:
         return self.le(other)
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> Predicate:  # type: ignore
         return self.eq(other)
 
-    def __ne__(self, other: object):
+    def __ne__(self, other: object) -> Predicate:  # type: ignore
         return self.ne(other)
 
-    def gt(self, other: object):
+    def gt(self, other: object) -> Predicate:
         return Predicate(self.name, ">", other, self.args)
 
-    def ge(self, other: object):
+    def ge(self, other: object) -> Predicate:
         return Predicate(self.name, ">=", other, self.args)
 
-    def lt(self, other: object):
+    def lt(self, other: object) -> Predicate:
         return Predicate(self.name, "<", other, self.args)
 
-    def le(self, other: object):
+    def le(self, other: object) -> Predicate:
         return Predicate(self.name, "<=", other, self.args)
 
-    def eq(self, other: object):
+    def eq(self, other: object) -> Predicate:
         return Predicate(self.name, "==", other, self.args)
 
-    def ne(self, other: object):
+    def ne(self, other: object) -> Predicate:
         return Predicate(self.name, "!=", other, self.args)
 
-    def matches(self, regex: str):
+    def matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "=~", regex, self.args)
 
-    def not_matches(self, regex: str):
+    def not_matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "!~", regex, self.args)
 
-    def is_in(self, other: List[object]):
+    def is_in(self, other: List[object]) -> Predicate:
         return Predicate(self.name, "in", other, self.args)
 
-    def is_not_in(self, other: List[object]):
+    def is_not_in(self, other: List[object]) -> Predicate:
         return Predicate(self.name, "not in", other, self.args)
 
 
@@ -85,7 +85,7 @@ class PFunction:
     def __init__(self, fn: str):
         self.fn = fn
 
-    def on(self, name: str, *args):
+    def on(self, name: str, *args: object) -> FunctionTerm:
         return FunctionTerm(self.fn, name, list(args))
 
 
@@ -93,35 +93,34 @@ class PArray:
     def __init__(self, name: str):
         self.name = name
 
-    def for_any(self):
+    def for_any(self) -> P:
         return P(self.name, array=True, filter='any')
 
-    def for_none(self):
+    def for_none(self) -> P:
         return P(self.name, array=True, filter='none')
 
-    def for_all(self):
+    def for_all(self) -> P:
         return P(self.name, array=True, filter='all')
 
 
 class Term(abc.ABC):
 
-    def __or__(self, other):
+    def __or__(self, other: Term) -> Term:
         return self.or_term(other)
 
-    def __and__(self, other):
+    def __and__(self, other: Term) -> Term:
         return self.and_term(other)
 
-    def __eq__(self, other):
-        if isinstance(other, Term):
-            return self.__dict__ == other.__dict__
+    def __eq__(self, other: object) -> bool:
+        return self.__dict__ == other.__dict__ if isinstance(other, Term) else False
 
-    def or_term(self, other):
+    def or_term(self, other: Term) -> CombinedTerm:
         if not isinstance(other, Term):
             raise AttributeError(f"Expected Term but got {other}")
         else:
             return CombinedTerm(self, "or", other)
 
-    def and_term(self, other):
+    def and_term(self, other: Term) -> CombinedTerm:
         if not isinstance(other, Term):
             raise AttributeError(f"Expected Term but got {other}")
         else:
@@ -129,7 +128,7 @@ class Term(abc.ABC):
 
     # noinspection PyTypeChecker
     @staticmethod
-    def from_json(json: dict[str, object], _: type = object, **kwargs) -> Term:
+    def from_json(json: dict[str, object], _: type = object, **kwargs: object) -> Term:
         if isinstance(json.get("left"), dict) and isinstance(json.get("right"), dict) \
           and isinstance(json.get("op"), str):
             left = Term.from_json(json["left"])  # type: ignore
@@ -150,17 +149,17 @@ class Term(abc.ABC):
 
 
 class Predicate(Term):
-    def __init__(self, name: str, op: str, value: object, args: dict[str, object]):
+    def __init__(self, name: str, op: str, value: object, args: Mapping[str, object]):
         self.name = name
         self.op = op
         self.value = value
         self.args = args
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} {self.op} {self.value_str_rep(self.value)}"
 
     @staticmethod
-    def value_str_rep(value) -> str:
+    def value_str_rep(value: object) -> str:
         """
         This method is used to get a string representation of a value.
         :param value: the value to be represented.
@@ -182,7 +181,7 @@ class CombinedTerm(Term):
         self.op = op
         self.right = right
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"({self.left} {self.op} {self.right})"
 
 
@@ -190,7 +189,7 @@ class IdTerm(Term):
     def __init__(self, uid: str):
         self.id = uid
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'id("{self.id}")'
 
 
@@ -198,17 +197,17 @@ class IsInstanceTerm(Term):
     def __init__(self, kind: str):
         self.kind = kind
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'isinstance("{self.kind}")'
 
 
 class FunctionTerm(Term):
-    def __init__(self, fn: str, property_path: str, args: list):
+    def __init__(self, fn: str, property_path: str, args: List[object]):
         self.fn = fn
         self.property_path = property_path
         self.args = args
 
-    def __str__(self):
+    def __str__(self) -> str:
         args = ", ".join((Predicate.value_str_rep(a) for a in self.args))
         sep = ", " if args else ""
         return f"{self.fn}({self.property_path}{sep}{args})"
@@ -229,7 +228,7 @@ class Navigation:
     def is_in(self) -> bool:
         return self.direction == "in"
 
-    def __str__(self):
+    def __str__(self) -> str:
         d = "<" if self.is_in() else ">"
         if self.start == self.until:
             return d * 3 if self.start == 1 and self.until == 1 else f"{d}[{self.start}]{d}"
@@ -238,34 +237,34 @@ class Navigation:
 
 
 class Part:
-    def __init__(self, term: Term, pinned: bool = False, navigation: Navigation = None):
+    def __init__(self, term: Term, pinned: bool = False, navigation: Optional[Navigation] = None):
         self.term = term
         self.navigation = navigation
         self.pinned = pinned
 
-    def __str__(self):
+    def __str__(self) -> str:
         nav = f" {self.navigation}" if self.navigation is not None else ""
         pin = "+" if self.pinned else ""
         return f"{self.term}{nav}{pin}"
 
 
 class Query:
-    def __init__(self, parts: List[Part] = None):
+    def __init__(self, parts: Optional[List[Part]] = None):
         if parts is None or len(parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {parts}")
         self.parts = parts
 
     @staticmethod
-    def by(term, *terms):
-        res = Query.mk_term(term, terms)
+    def by(term: Union[str, Term], *terms: Union[str, Term]) -> Query:
+        res = Query.mk_term(term, *terms)
         return Query([Part(res)])
 
-    def __str__(self):
+    def __str__(self) -> str:
         or_terms = [str(a) for a in reversed(self.parts)]
         return " ".join(or_terms)
 
-    def filter(self, term, *terms):
-        res = Query.mk_term(term, terms)
+    def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
+        res = Query.mk_term(term, *terms)
         parts = self.parts.copy()
         first = parts[0]
         if first.navigation is None:
@@ -276,23 +275,20 @@ class Query:
             parts.insert(0, Part(res))
         return Query(parts)
 
-    def traverse_out(self, start: int = 1, until: int = 1):
+    def traverse_out(self, start: int = 1, until: int = 1) -> Query:
         return self.traverse(start, until, "out")
 
-    def traverse_in(self, start: int = 1, until: int = 1):
+    def traverse_in(self, start: int = 1, until: int = 1) -> Query:
         return self.traverse(start, until, "out")
 
-    def traverse(self, start: int, until: int, direction: str = "out"):
+    def traverse(self, start: int, until: int, direction: str = "out") -> Query:
         parts = self.parts.copy()
         parts[0] = Part(parts[0].term, False, Navigation(start, until, direction))
         return Query(parts)
 
-    def out_until_leaf(self):
-        return self.traverse_out(1, 100)
-
     @staticmethod
-    def mk_term(term, args: tuple) -> Term:
-        def make_term(t):
+    def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:
+        def make_term(t: Union[str, Term]) -> Term:
             if isinstance(t, Term):
                 return t
             elif isinstance(t, str):
