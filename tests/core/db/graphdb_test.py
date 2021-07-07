@@ -23,7 +23,7 @@ from core.query.model import Query, P, Navigation
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
 # noinspection PyUnresolvedReferences
-from tests.event_bus_test import event_bus, all_events
+from tests.core.event_bus_test import event_bus, all_events
 
 
 class BaseResource(ABC):

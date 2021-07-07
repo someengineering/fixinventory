@@ -9,9 +9,9 @@ from core.db.modeldb import ModelDB, ArangoModelDB, EventModelDB
 from core.event_bus import EventBus
 from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
 # noinspection PyUnresolvedReferences
-from tests.event_bus_test import event_bus, all_events
+from tests.core.event_bus_test import event_bus, all_events
 # noinspection PyUnresolvedReferences
-from tests.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db
 from core.types import Json
 
 

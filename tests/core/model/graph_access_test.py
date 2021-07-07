@@ -6,7 +6,7 @@ import jsons
 from networkx import DiGraph
 from deepdiff import DeepDiff
 from core.model.graph_access import GraphAccess, GraphBuilder
-from tests.db.graphdb_test import Foo
+from tests.core.db.graphdb_test import Foo
 from core.types import Json
 from pytest import fixture
 
