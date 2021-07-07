@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 
 
 class ModelHandler:
-
     def __init__(self, db: ModelDB, plantuml_server: str):
         self.db = db
         self.plantuml_server = plantuml_server

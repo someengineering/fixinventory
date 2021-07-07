@@ -37,6 +37,8 @@ jobs:
                   pip install -r requirements.txt
                   mypy core tests > /dev/null 2>&1 || true
                   mypy --install-types --non-interactive || true
+            - name: Check Formatting
+              run: black --line-length 120 --check core tests
             - name: Lint
               run: |
                 flake8 core

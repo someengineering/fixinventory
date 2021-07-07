@@ -30,7 +30,7 @@ class Event:
         BatchUpdateAborted,
         GraphDBWiped,
         ModelUpdated,
-        ModelDeleted
+        ModelDeleted,
     }
 
 

@@ -32,7 +32,6 @@ RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
 class Api:
-
     def __init__(self, db: DbAccess, model_handler: ModelHandler, event_bus: EventBus):
         self.db = db
         self.model_handler = model_handler
@@ -46,49 +45,51 @@ class Api:
             spec_file="./static/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
-        self.app.add_routes([
-            # Model operations
-            web.get("/model", self.get_model),
-            web.get("/model/uml", self.model_uml),
-            web.patch("/model", self.update_model),
-            # CRUD Graph operations
-            web.get("/graph", self.list_graphs),
-            web.get("/graph/{graph_id}", partial(self.get_node, r)),
-            web.post("/graph/{graph_id}", self.create_graph),
-            web.delete("/graph/{graph_id}", self.wipe),
-            # Reported section of the graph
-            web.get("/graph/{graph_id}/reported/search", self.search_graph),
-            web.post("/graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}", self.create_node),
-            web.get("/graph/{graph_id}/reported/node/{node_id}", partial(self.get_node, r)),
-            web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r, r)),
-            web.delete("/graph/{graph_id}/reported/node/{node_id}", self.delete_node),
-            web.put("/graph/{graph_id}/reported/sub_graph/{parent_node_id}", self.update_sub_graph),
-            web.post("/graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}", self.update_sub_graph_batch),
-            web.get("/graph/{graph_id}/reported/batch", self.list_batches),
-            web.post("/graph/{graph_id}/reported/batch/{batch_id}", self.commit_batch),
-            web.delete("/graph/{graph_id}/reported/batch/{batch_id}", self.abort_batch),
-            web.post("/graph/{graph_id}/reported/query", partial(self.query, r, r)),
-            web.post("/graph/{graph_id}/reported/query/raw", partial(self.raw, r, r)),
-            web.post("/graph/{graph_id}/reported/query/explain", partial(self.explain, r)),
-            web.post("/graph/{graph_id}/reported/query/list", partial(self.query_list, r, r)),
-            web.post("/graph/{graph_id}/reported/query/graph", partial(self.query_graph_stream, r, r)),
-            # Desired section of the graph
-            web.get("/graph/{graph_id}/desired/node/{node_id}", partial(self.get_node, rd)),
-            web.patch("/graph/{graph_id}/desired/node/{node_id}", partial(self.update_node, d, rd)),
-            web.post("/graph/{graph_id}/desired/query", partial(self.query, d, rd)),
-            web.post("/graph/{graph_id}/desired/query/raw", partial(self.raw, d, rd)),
-            web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d, rd)),
-            web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
-            web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
-            # Event operations
-            web.get("/events", self.handle_events),  # type: ignore
-            # Serve static filed
-            web.get("", self.redirect_to_ui),
-            web.static('/static', './static/'),
-        ])
+        self.app.add_routes(
+            [
+                # Model operations
+                web.get("/model", self.get_model),
+                web.get("/model/uml", self.model_uml),
+                web.patch("/model", self.update_model),
+                # CRUD Graph operations
+                web.get("/graph", self.list_graphs),
+                web.get("/graph/{graph_id}", partial(self.get_node, r)),
+                web.post("/graph/{graph_id}", self.create_graph),
+                web.delete("/graph/{graph_id}", self.wipe),
+                # Reported section of the graph
+                web.get("/graph/{graph_id}/reported/search", self.search_graph),
+                web.post("/graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}", self.create_node),
+                web.get("/graph/{graph_id}/reported/node/{node_id}", partial(self.get_node, r)),
+                web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r, r)),
+                web.delete("/graph/{graph_id}/reported/node/{node_id}", self.delete_node),
+                web.put("/graph/{graph_id}/reported/sub_graph/{parent_node_id}", self.update_sub_graph),
+                web.post("/graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}", self.update_sub_graph_batch),
+                web.get("/graph/{graph_id}/reported/batch", self.list_batches),
+                web.post("/graph/{graph_id}/reported/batch/{batch_id}", self.commit_batch),
+                web.delete("/graph/{graph_id}/reported/batch/{batch_id}", self.abort_batch),
+                web.post("/graph/{graph_id}/reported/query", partial(self.query, r, r)),
+                web.post("/graph/{graph_id}/reported/query/raw", partial(self.raw, r, r)),
+                web.post("/graph/{graph_id}/reported/query/explain", partial(self.explain, r)),
+                web.post("/graph/{graph_id}/reported/query/list", partial(self.query_list, r, r)),
+                web.post("/graph/{graph_id}/reported/query/graph", partial(self.query_graph_stream, r, r)),
+                # Desired section of the graph
+                web.get("/graph/{graph_id}/desired/node/{node_id}", partial(self.get_node, rd)),
+                web.patch("/graph/{graph_id}/desired/node/{node_id}", partial(self.update_node, d, rd)),
+                web.post("/graph/{graph_id}/desired/query", partial(self.query, d, rd)),
+                web.post("/graph/{graph_id}/desired/query/raw", partial(self.raw, d, rd)),
+                web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d, rd)),
+                web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
+                web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
+                # Event operations
+                web.get("/events", self.handle_events),  # type: ignore
+                # Serve static filed
+                web.get("", self.redirect_to_ui),
+                web.static("/static", "./static/"),
+            ]
+        )
 
     async def redirect_to_ui(self, request: Request) -> StreamResponse:
-        raise web.HTTPFound('/static/index.html')
+        raise web.HTTPFound("/static/index.html")
 
     async def handle_events(self, request: Request) -> None:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
@@ -125,7 +126,7 @@ class Api:
         show = request.query["show"].split(",") if "show" in request.query else None
         result = await self.model_handler.uml_image(show)
         response = web.StreamResponse()
-        response.headers['Content-Type'] = 'image/svg+xml'
+        response.headers["Content-Type"] = "image/svg+xml"
         await response.prepare(request)
         await response.write_eof(result)
         return response
@@ -141,8 +142,8 @@ class Api:
         return web.json_response(to_js(model))
 
     async def get_node(self, section: str, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
-        node_id = request.match_info.get('node_id', 'root')
+        graph_id = request.match_info.get("graph_id", "ns")
+        node_id = request.match_info.get("node_id", "root")
         graph = self.db.get_graph_db(graph_id)
         node = await graph.get_node(node_id, section)
         if node is None:
@@ -151,9 +152,9 @@ class Api:
             return web.json_response(node)
 
     async def create_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
-        node_id = request.match_info.get('node_id', 'some_existing')
-        parent_node_id = request.match_info.get('parent_node_id', 'root')
+        graph_id = request.match_info.get("graph_id", "ns")
+        node_id = request.match_info.get("node_id", "some_existing")
+        parent_node_id = request.match_info.get("parent_node_id", "root")
         graph = self.db.get_graph_db(graph_id)
         item = await request.json()
         md = await self.model_handler.load_model()
@@ -161,8 +162,8 @@ class Api:
         return web.json_response(node)
 
     async def update_node(self, section: str, result_section: Section, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
-        node_id = request.match_info.get('node_id', 'some_existing')
+        graph_id = request.match_info.get("graph_id", "ns")
+        node_id = request.match_info.get("node_id", "some_existing")
         graph = self.db.get_graph_db(graph_id)
         patch = await request.json()
         md = await self.model_handler.load_model()
@@ -170,8 +171,8 @@ class Api:
         return web.json_response(node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
-        node_id = request.match_info.get('node_id', 'some_existing')
+        graph_id = request.match_info.get("graph_id", "ns")
+        node_id = request.match_info.get("node_id", "some_existing")
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
         graph = self.db.get_graph_db(graph_id)
@@ -182,7 +183,7 @@ class Api:
         return web.json_response(await self.db.list_graphs())
 
     async def create_graph(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
+        graph_id = request.match_info.get("graph_id", "ns")
         graph = await self.db.create_graph(graph_id)
         root = await graph.get_node("root", "reported")
         return web.json_response(root)
@@ -191,8 +192,8 @@ class Api:
         log.info("Received put_sub_graph request")
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
-        under_node_id = request.match_info.get('parent_node_id', 'root')
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        under_node_id = request.match_info.get("parent_node_id", "root")
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         info = await graph_db.update_sub_graph(md, graph, under_node_id)
         return web.json_response(to_js(info))
 
@@ -200,33 +201,33 @@ class Api:
         log.info("Received put_sub_graph_batch request")
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
-        under_node_id = request.match_info.get('parent_node_id', 'root')
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
-        rnd = ''.join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
-        batch_id = request.query.get('batch_id', rnd)
+        under_node_id = request.match_info.get("parent_node_id", "root")
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
+        batch_id = request.query.get("batch_id", rnd)
         info = await graph_db.update_sub_graph(md, graph, under_node_id, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         batch_updates = await graph_db.list_in_progress_batch_updates()
         return web.json_response(batch_updates)
 
     async def commit_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
-        batch_id = request.match_info.get('batch_id', 'some_existing')
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.commit_batch_update(batch_id)
         return web.HTTPOk(body="Batch committed.")
 
     async def abort_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
-        batch_id = request.match_info.get('batch_id', 'some_existing')
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.abort_batch_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
     async def raw(self, query_section: str, request: Request) -> StreamResponse:
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         m = await self.model_handler.load_model()
         q = parse_query(query_string)
         query, bind_vars = graph_db.to_query(QueryModel(q, m, query_section))
@@ -234,7 +235,7 @@ class Api:
 
     async def explain(self, query_section: str, request: Request) -> StreamResponse:
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         result = await graph_db.explain(QueryModel(q, m, query_section))
@@ -247,14 +248,14 @@ class Api:
             raise AttributeError("Expect query parameter term to be defined!")
         query_string = request.query.get("term", "")
         limit = int(request.query.get("limit", "10"))
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         result = graph_db.search(query_string, limit)
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
     async def query_list(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         result = graph_db.query_list(QueryModel(q, m, query_section, result_section))
@@ -263,7 +264,7 @@ class Api:
 
     async def cytoscape(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         result = await graph_db.query_graph(QueryModel(q, m, query_section, result_section))
@@ -274,7 +275,7 @@ class Api:
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get('graph_id', 'ns'))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         gen = graph_db.query_graph_gen(QueryModel(q, m, query_section, result_section))
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (item async for _, item in gen))
@@ -290,7 +291,7 @@ class Api:
             return web.HTTPPreconditionFailed(text="Define format header. `format: [graph|list|cytoscape]`")
 
     async def wipe(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get('graph_id', 'ns')
+        graph_id = request.match_info.get("graph_id", "ns")
         if "truncate" in request.query:
             await self.db.get_graph_db(graph_id).wipe()
             return web.HTTPOk(body="Graph truncated.")
@@ -329,7 +330,7 @@ class Api:
     @staticmethod
     async def stream_response_from_gen(request: Request, gen: AsyncGenerator[Json, None]) -> StreamResponse:
         async def respond_json() -> StreamResponse:
-            response = web.StreamResponse(status=200, headers={'Content-Type': 'application/json'})
+            response = web.StreamResponse(status=200, headers={"Content-Type": "application/json"})
             await response.prepare(request)
             await response.write("[".encode("utf-8"))
             first = True
@@ -342,7 +343,7 @@ class Api:
             return response
 
         async def respond_ndjson() -> StreamResponse:
-            response = web.StreamResponse(status=200, headers={'Content-Type': 'application/x-ndjson'})
+            response = web.StreamResponse(status=200, headers={"Content-Type": "application/x-ndjson"})
             await response.prepare(request)
             async for item in gen:
                 js = json.dumps(to_js(item))
@@ -367,12 +368,12 @@ class Api:
             except NotFoundError as e:
                 kind = type(e).__name__
                 message = f"Error: {kind}\nMessage: {str(e)}"
-                log.info(f'Request {request} has failed with exception: {message}', exc_info=e)
+                log.info(f"Request {request} has failed with exception: {message}", exc_info=e)
                 return web.HTTPNotFound(text=message)
             except Exception as e:
                 kind = type(e).__name__
                 message = f"Error: {kind}\nMessage: {str(e)}"
-                log.warning(f'Request {request} has failed with exception: {message}', exc_info=e)
+                log.warning(f"Request {request} has failed with exception: {message}", exc_info=e)
                 return web.HTTPBadRequest(text=message)
 
         return middleware_handler

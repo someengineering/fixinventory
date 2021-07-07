@@ -133,7 +133,7 @@ class SimpleKind(Kind, ABC):
         "double": float,
         "boolean": bool,
         "date": str,
-        "datetime": str
+        "datetime": str,
     }
 
     # noinspection PyMethodMayBeStatic
@@ -150,13 +150,14 @@ class SimpleKind(Kind, ABC):
 
 
 class StringKind(SimpleKind):
-    def __init__(self,
-                 fqn: str,
-                 min_length: Optional[int] = None,
-                 max_length: Optional[int] = None,
-                 pattern: Optional[str] = None,
-                 enum: Optional[Set[str]] = None
-                 ):
+    def __init__(
+        self,
+        fqn: str,
+        min_length: Optional[int] = None,
+        max_length: Optional[int] = None,
+        pattern: Optional[str] = None,
+        enum: Optional[Set[str]] = None,
+    ):
         super().__init__(fqn, "string")
         self.min_length = min_length
         self.max_length = max_length
@@ -165,11 +166,14 @@ class StringKind(SimpleKind):
         self.enum = enum
         self.valid_fn = validate_fn(
             check_type_fn(str, "string"),
-            check_fn(self.pattern_compiled, lambda p, obj: p.fullmatch(obj) is not None,
-                     f"does not conform to regex: {self.pattern}"),
+            check_fn(
+                self.pattern_compiled,
+                lambda p, obj: p.fullmatch(obj) is not None,
+                f"does not conform to regex: {self.pattern}",
+            ),
             check_fn(self.enum, lambda x, obj: obj in x, f"should be one of: {self.enum}"),
             check_fn(self.min_length, lambda x, obj: len(obj) >= x, f"does not have minimal length: {self.min_length}"),
-            check_fn(self.max_length, lambda x, obj: len(obj) <= x, f"is too long! Allowed: {self.max_length}")
+            check_fn(self.max_length, lambda x, obj: len(obj) <= x, f"is too long! Allowed: {self.max_length}"),
         )
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
@@ -195,14 +199,14 @@ class StringKind(SimpleKind):
 
 
 class NumberKind(SimpleKind):
-
-    def __init__(self,
-                 fqn: str,
-                 runtime_kind: str,
-                 minimum: Union[None, float, int] = None,
-                 maximum: Union[None, float, int] = None,
-                 enum: Optional[Set[Union[float, int]]] = None
-                 ):
+    def __init__(
+        self,
+        fqn: str,
+        runtime_kind: str,
+        minimum: Union[None, float, int] = None,
+        maximum: Union[None, float, int] = None,
+        enum: Optional[Set[Union[float, int]]] = None,
+    ):
         super().__init__(fqn, runtime_kind)
         self.minimum = minimum
         self.maximum = maximum
@@ -211,7 +215,7 @@ class NumberKind(SimpleKind):
             check_type_fn(int, "int") if runtime_kind == "int" else self.check_float,
             check_fn(self.enum, lambda x, obj: obj in x, f"should be one of: {self.enum}"),
             check_fn(self.minimum, lambda x, obj: obj >= x, f"should be greater or equals than: {self.minimum}"),
-            check_fn(self.maximum, lambda x, obj: obj <= x, f"should be smaller or equals than: {self.maximum}")
+            check_fn(self.maximum, lambda x, obj: obj <= x, f"should be smaller or equals than: {self.maximum}"),
         )
 
     @staticmethod
@@ -257,16 +261,13 @@ class BooleanKind(SimpleKind):
 
 
 class DateTimeKind(SimpleKind):
-    Format = '%Y-%m-%dT%H:%M:%SZ'
-    DateTimeRe = re.compile('\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z')
-    DurationRe = re.compile('^[+-]?[\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?$')
+    Format = "%Y-%m-%dT%H:%M:%SZ"
+    DateTimeRe = re.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z")
+    DurationRe = re.compile("^[+-]?[\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?$")
 
     def __init__(self, fqn: str):
         super().__init__(fqn, "datetime")
-        self.valid_fn = validate_fn(
-            check_type_fn(str, "datetime"),
-            self.check_datetime
-        )
+        self.valid_fn = validate_fn(check_type_fn(str, "datetime"), self.check_datetime)
 
     @staticmethod
     def parse_datetime(date_string: str) -> Optional[datetime]:
@@ -302,15 +303,12 @@ class DateTimeKind(SimpleKind):
 
 
 class DateKind(SimpleKind):
-    Format = '%Y-%m-%d'
-    DateRe = re.compile('\\d{4}-\\d{2}-\\d{2}')
+    Format = "%Y-%m-%d"
+    DateRe = re.compile("\\d{4}-\\d{2}-\\d{2}")
 
     def __init__(self, fqn: str):
         super().__init__(fqn, "date")
-        self.valid_fn = validate_fn(
-            check_type_fn(str, "date"),
-            self.check_date
-        )
+        self.valid_fn = validate_fn(check_type_fn(str, "date"), self.check_date)
 
     @staticmethod
     def check_date(obj: Any) -> ValidationResult:
@@ -447,14 +445,16 @@ class ComplexBase(Kind):
                         result[name] = coerced if coerced is not None else value
                     except AttributeError as at:
                         raise AttributeError(
-                            f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}") from at
+                            f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}"
+                        ) from at
                 elif not self.allow_unknown_props:
                     raise AttributeError(f"Kind:{self.fqn} Property:{name} is not defined in model!")
-            if not kwargs.get('ignore_missing'):
+            if not kwargs.get("ignore_missing"):
                 for prop in self.__all_props:
                     if prop.required and prop.name not in obj:
                         raise AttributeError(
-                            f"Kind:{self.fqn} Property:{prop.name} is required and missing in {json.dumps(obj)}")
+                            f"Kind:{self.fqn} Property:{prop.name} is required and missing in {json.dumps(obj)}"
+                        )
             return result if has_coerced else None
         else:
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
@@ -487,17 +487,20 @@ predefined_kinds = [
     DateKind("date"),
     DateTimeKind("datetime"),
     StringDict("dictionary"),
-    Complex("graph_root", None, [
-        Property("kind", "string", True, "Kind of this node."),
-        Property("name", "string", False, "The name of this node."),
-        Property("label", "string", False, "The label of this node."),
-        Property("tags", "dictionary", False, "All attached tags of this node.")
-    ])
+    Complex(
+        "graph_root",
+        None,
+        [
+            Property("kind", "string", True, "Kind of this node."),
+            Property("name", "string", False, "The name of this node."),
+            Property("label", "string", False, "The label of this node."),
+            Property("tags", "dictionary", False, "All attached tags of this node."),
+        ],
+    ),
 ]
 
 
 class Model:
-
     @staticmethod
     def empty() -> Model:
         return Model({})
@@ -542,8 +545,9 @@ class Model:
             kind: Kind = self[js["kind"]]
             return kind.check_valid(js, **kwargs)
         except KeyError as ex:
-            raise AttributeError(f'No kind definition found for {js["kind"]}' if "kind" in js
-                                 else f'No attribute kind found in {js}') from ex
+            raise AttributeError(
+                f'No kind definition found for {js["kind"]}' if "kind" in js else f"No attribute kind found in {js}"
+            ) from ex
 
     def graph(self) -> DiGraph:
         graph = DiGraph()
@@ -594,8 +598,10 @@ class Model:
                 non_unique = list(filter(lambda k: paths[k].fqn != all_paths[k].fqn, intersect))
                 if non_unique:
                     message = ", ".join(non_unique)
-                    raise AttributeError(f"Update not possible. Following properties would be non unique having "
-                                         f"the same path but different type: {message}")
+                    raise AttributeError(
+                        f"Update not possible. Following properties would be non unique having "
+                        f"the same path but different type: {message}"
+                    )
                 return paths | all_paths
             else:
                 return all_paths

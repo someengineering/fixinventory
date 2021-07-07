@@ -16,13 +16,13 @@ log = logging.getLogger(__name__)
 
 
 class DbAccess(ABC):
-
-    def __init__(self,
-                 arango_database: StandardDatabase,
-                 event_bus: EventBus,
-                 model_name: str = "model",
-                 batch_outdated: timedelta = timedelta(minutes=30)
-                 ):
+    def __init__(
+        self,
+        arango_database: StandardDatabase,
+        event_bus: EventBus,
+        model_name: str = "model",
+        batch_outdated: timedelta = timedelta(minutes=30),
+    ):
         self.event_bus = event_bus
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)

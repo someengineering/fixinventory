@@ -10,9 +10,11 @@ from tests.core.db.graphdb_test import Foo
 from core.types import Json
 from pytest import fixture
 
-FooTuple = collections.namedtuple("FooTuple", ["a", "b", "c", "d", "e", "f", "g"],
-                                  defaults=["", 0, [], "foo", {"a": 12, "b": 32}, date.fromisoformat('2021-03-29'),
-                                            1.234567])
+FooTuple = collections.namedtuple(
+    "FooTuple",
+    ["a", "b", "c", "d", "e", "f", "g"],
+    defaults=["", 0, [], "foo", {"a": 12, "b": 32}, date.fromisoformat("2021-03-29"), 1.234567],
+)
 
 
 # noinspection PyArgumentList
@@ -37,8 +39,8 @@ def test_access_node() -> None:
     g.add_node("1", data=FooTuple(a="1"))
     access: GraphAccess = GraphAccess(g)
     _, json, sha, _, _ = node(access, "1")
-    assert sha == 'ae15ce169cbf1048cf1da6bd537eb0259437c630d45b82ce2fb2321d0b3059cd'
-    assert json == {'a': '1', 'b': 0, 'c': [], 'd': 'foo', 'e': {'a': 12, 'b': 32}, 'f': '2021-03-29', 'g': 1.234567}
+    assert sha == "ae15ce169cbf1048cf1da6bd537eb0259437c630d45b82ce2fb2321d0b3059cd"
+    assert json == {"a": "1", "b": 0, "c": [], "d": "foo", "e": {"a": 12, "b": 32}, "f": "2021-03-29", "g": 1.234567}
     assert access.node("2") is None
 
 
@@ -48,7 +50,7 @@ def test_marshal_unmarshal() -> None:
     clazz = globals()[name]
     js = jsons.dumps(foo)
     again = jsons.loads(js, cls=clazz)
-    assert DeepDiff(foo, again, truncate_datetime='second') == {}
+    assert DeepDiff(foo, again, truncate_datetime="second") == {}
     assert 4 == 4
 
 

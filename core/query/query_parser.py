@@ -4,7 +4,7 @@ from typing import Callable
 from parsy import string, regex, digit, generate, success, Parser
 from core.query.model import Predicate, CombinedTerm, IsInstanceTerm, Part, Navigation, Query, FunctionTerm, IdTerm
 
-whitespace: Parser = regex(r'\s*')
+whitespace: Parser = regex(r"\s*")
 
 
 def make_parser(fn: Callable[[], Parser]) -> Parser:
@@ -15,37 +15,38 @@ def lexeme(p: Parser) -> Parser:
     return whitespace >> p << whitespace
 
 
-operationP = reduce(lambda x, y: x | y,
-                    [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]])
+operationP = reduce(
+    lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+)
 
 functionP = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
-lparenP = lexeme(string('('))
-rparenP = lexeme(string(')'))
-lbrackP = lexeme(string('['))
-rbrackP = lexeme(string(']'))
-gtP = lexeme(string('>'))
-ltP = lexeme(string('<'))
-colonP = lexeme(string(':'))
-commaP = lexeme(string(','))
-trueP = lexeme(string('true')).result(True)
-falseP = lexeme(string('false')).result(False)
-nullP = lexeme(string('null')).result(None)
+lparenP = lexeme(string("("))
+rparenP = lexeme(string(")"))
+lbrackP = lexeme(string("["))
+rbrackP = lexeme(string("]"))
+gtP = lexeme(string(">"))
+ltP = lexeme(string("<"))
+colonP = lexeme(string(":"))
+commaP = lexeme(string(","))
+trueP = lexeme(string("true")).result(True)
+falseP = lexeme(string("false")).result(False)
+nullP = lexeme(string("null")).result(None)
 integerP = digit.at_least(1).concat().map(int)
-floatP = (digit.many() + string('.').result(['.']) + digit.many()).concat().map(float)
+floatP = (digit.many() + string(".").result(["."]) + digit.many()).concat().map(float)
 variableP = lexeme(regex("[A-z0-9.*\\[\\]]+"))
 
 string_part = regex(r'[^"\\]+')
-string_esc = string('\\') >> (
-    string('\\')
-    | string('/')
+string_esc = string("\\") >> (
+    string("\\")
+    | string("/")
     | string('"')
-    | string('b').result('\b')
-    | string('f').result('\f')
-    | string('n').result('\n')
-    | string('r').result('\r')
-    | string('t').result('\t')
-    | regex(r'u[0-9a-fA-F]{4}').map(lambda s: chr(int(s[1:], 16)))
+    | string("b").result("\b")
+    | string("f").result("\f")
+    | string("n").result("\n")
+    | string("r").result("\r")
+    | string("t").result("\t")
+    | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
 )
 quotedP = lexeme(string('"') >> (string_part | string_esc).many().concat() << string('"'))
 

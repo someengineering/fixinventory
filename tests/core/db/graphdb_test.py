@@ -20,8 +20,10 @@ from core.event_bus import EventBus
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
+
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
+
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus, all_events
 
@@ -39,8 +41,14 @@ class BaseResource(ABC):
 
 
 class Foo(BaseResource):
-    def __init__(self, identifier: str, name: Optional[str] = None, some_int: int = 0, some_string: str = "hello",
-                 now_is: datetime = datetime.now(tz=timezone.utc)) -> None:
+    def __init__(
+        self,
+        identifier: str,
+        name: Optional[str] = None,
+        some_int: int = 0,
+        some_string: str = "hello",
+        now_is: datetime = datetime.now(tz=timezone.utc),
+    ) -> None:
         super().__init__(identifier)
         self.name = name
         self.some_int = some_int
@@ -52,7 +60,14 @@ class Foo(BaseResource):
 
 
 class Bla(BaseResource):
-    def __init__(self, identifier: str, name: Optional[str] = None, now: date = date.today(), f: int = 23, g: Optional[List[int]] = None) -> None:
+    def __init__(
+        self,
+        identifier: str,
+        name: Optional[str] = None,
+        now: date = date.today(),
+        f: int = 23,
+        g: Optional[List[int]] = None,
+    ) -> None:
         super().__init__(identifier)
         self.name = name
         self.now = now
@@ -79,22 +94,34 @@ def create_graph(bla_text: str, width: int = 10) -> DiGraph:
 
 @pytest.fixture
 def foo_model() -> Model:
-    base = Complex("base", None, [
-        Property("identifier", "string", required=True),
-        Property("kind", "string", required=True),
-    ])
-    foo = Complex("foo", "base", [
-        Property("name", "string"),
-        Property("some_int", "int32"),
-        Property("some_string", "string"),
-        Property("now_is", "datetime"),
-    ])
-    bla = Complex("bla", "base", [
-        Property("name", "string"),
-        Property("now", "date"),
-        Property("f", "int32"),
-        Property("g", "int32[]"),
-    ])
+    base = Complex(
+        "base",
+        None,
+        [
+            Property("identifier", "string", required=True),
+            Property("kind", "string", required=True),
+        ],
+    )
+    foo = Complex(
+        "foo",
+        "base",
+        [
+            Property("name", "string"),
+            Property("some_int", "int32"),
+            Property("some_string", "string"),
+            Property("now_is", "datetime"),
+        ],
+    )
+    bla = Complex(
+        "bla",
+        "base",
+        [
+            Property("name", "string"),
+            Property("now", "date"),
+            Property("f", "int32"),
+            Property("g", "int32[]"),
+        ],
+    )
     return Model.from_kinds([base, foo, bla])
 
 
@@ -146,11 +173,12 @@ async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> Di
 async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase) -> None:
     md = foo_model
     await graph_db.wipe()
-    batch_id = ''.join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
+    batch_id = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.update_sub_graph(md, create_graph("yes or no"), "root", batch_id) == GraphUpdate(111, 0, 0,
-                                                                                                           111, 0, 0)
+    assert await graph_db.update_sub_graph(md, create_graph("yes or no"), "root", batch_id) == GraphUpdate(
+        111, 0, 0, 111, 0, 0
+    )
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
     with pytest.raises(NoSuchBatchError):
@@ -275,14 +303,14 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
     assert [a["name"] for a in all_events] == [
-        'node-created',
-        'node-updated',
-        'node-deleted',
-        'subgraph-updated',
-        'batch-update-subgraph-added',
-        'batch-update-committed',
-        'batch-update-subgraph-added',
-        'batch-update-committed',
+        "node-created",
+        "node-updated",
+        "node-deleted",
+        "subgraph-updated",
+        "batch-update-subgraph-added",
+        "batch-update-committed",
+        "batch-update-subgraph-added",
+        "batch-update-committed",
     ]
 
 

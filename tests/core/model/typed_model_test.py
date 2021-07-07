@@ -20,7 +20,7 @@ class ModelFoo(ModelBase):
 
 
 class ModelBar(ModelFoo):
-    def __init__(self, identity: int, a: str, b: int,  foo: str, bla: datetime):
+    def __init__(self, identity: int, a: str, b: int, foo: str, bla: datetime):
         super().__init__(identity, a, b)
         self.foo = foo
         self.bla = bla
@@ -33,7 +33,7 @@ def test_json_marshalling_works() -> None:
     js["a"] = "some foo"
     js["b"] = 23
     again = from_js(js, ModelFoo)
-    d = DeepDiff(m, again, truncate_datetime='second')
+    d = DeepDiff(m, again, truncate_datetime="second")
     assert len(d) == 0
 
 

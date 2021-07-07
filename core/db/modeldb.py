@@ -27,10 +27,7 @@ class ModelDB(ABC):
 
 
 class ArangoModelDB(ModelDB):
-
-    def __init__(self,
-                 db: AsyncArangoDB,
-                 model: str):
+    def __init__(self, db: AsyncArangoDB, model: str):
         self.db = db
         self.model = model
 
@@ -61,7 +58,6 @@ class ArangoModelDB(ModelDB):
 
 
 class EventModelDB(ModelDB):
-
     def __init__(self, db: ModelDB, event_bus: EventBus):
         self.db = db
         self.event_bus = event_bus

@@ -8,8 +8,10 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.modeldb import ModelDB, ArangoModelDB, EventModelDB
 from core.event_bus import EventBus
 from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
+
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus, all_events
+
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
 from core.types import Json
@@ -20,22 +22,34 @@ def test_model() -> List[Kind]:
     string_kind = StringKind("some.string", 0, 3, "\\w+")
     int_kind = NumberKind("some.int", "int32", 0, 100)
     bool_kind = BooleanKind("some.bool")
-    base = Complex("base", None, [
-        Property("identifier", "string", required=True),
-        Property("kind", "string", required=True),
-    ])
-    foo = Complex("foo", "base", [
-        Property("name", "string"),
-        Property("some_int", "some.int"),
-        Property("some_string", "some.string"),
-        Property("now_is", "datetime"),
-    ])
-    bla = Complex("bla", "base", [
-        Property("name", "string"),
-        Property("now", "date"),
-        Property("f", "int32"),
-        Property("g", "int32[]"),
-    ])
+    base = Complex(
+        "base",
+        None,
+        [
+            Property("identifier", "string", required=True),
+            Property("kind", "string", required=True),
+        ],
+    )
+    foo = Complex(
+        "foo",
+        "base",
+        [
+            Property("name", "string"),
+            Property("some_int", "some.int"),
+            Property("some_string", "some.string"),
+            Property("now_is", "datetime"),
+        ],
+    )
+    bla = Complex(
+        "bla",
+        "base",
+        [
+            Property("name", "string"),
+            Property("now", "date"),
+            Property("f", "int32"),
+            Property("g", "int32[]"),
+        ],
+    )
     return [string_kind, int_kind, bool_kind, base, foo, bla]
 
 

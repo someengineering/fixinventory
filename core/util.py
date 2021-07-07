@@ -45,6 +45,7 @@ class Periodic:
     """
     Periodic execution of a function based on a defined frequency that can be started and stopped.
     """
+
     def __init__(self, name: str, func: Callable[[], Any], frequency: timedelta):
         self.name = name
         self.func = func

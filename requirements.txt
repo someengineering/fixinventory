@@ -5,6 +5,7 @@ jsons==1.4.2
 networkx==2.5.1
 aiohttp[speedups]==3.7.4.post0
 aiohttp-swagger3==0.6.0
+aiohttp_cors==0.7.0
 parsy==1.3.0
 toolz==0.11.1
 plantuml==0.3.0

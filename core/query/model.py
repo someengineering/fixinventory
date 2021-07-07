@@ -94,17 +94,16 @@ class PArray:
         self.name = name
 
     def for_any(self) -> P:
-        return P(self.name, array=True, filter='any')
+        return P(self.name, array=True, filter="any")
 
     def for_none(self) -> P:
-        return P(self.name, array=True, filter='none')
+        return P(self.name, array=True, filter="none")
 
     def for_all(self) -> P:
-        return P(self.name, array=True, filter='all')
+        return P(self.name, array=True, filter="all")
 
 
 class Term(abc.ABC):
-
     def __or__(self, other: Term) -> Term:
         return self.or_term(other)
 
@@ -129,8 +128,11 @@ class Term(abc.ABC):
     # noinspection PyTypeChecker
     @staticmethod
     def from_json(json: dict[str, object], _: type = object, **kwargs: object) -> Term:
-        if isinstance(json.get("left"), dict) and isinstance(json.get("right"), dict) \
-          and isinstance(json.get("op"), str):
+        if (
+            isinstance(json.get("left"), dict)
+            and isinstance(json.get("right"), dict)
+            and isinstance(json.get("op"), str)
+        ):
             left = Term.from_json(json["left"])  # type: ignore
             right = Term.from_json(json["right"])  # type: ignore
             return CombinedTerm(left, json["op"], right)  # type: ignore

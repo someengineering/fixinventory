@@ -53,6 +53,7 @@ clean-env: ## remove environment
 	rm -fr env
 
 lint: ## check style with flake8
+	black --line-length 120 --check core tests
 	flake8 core
 	pylint core
 	mypy --strict core tests

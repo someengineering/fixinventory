@@ -8,7 +8,6 @@ local = threading.local()
 
 
 class SecurityManager(ABC):
-
     @abstractmethod
     def allowed_to_view(self, clazz: type, prop: Any) -> bool:
         pass
@@ -29,5 +28,6 @@ class NoSensitiveData(SecurityManager):
     """
     Dummy implementation to test
     """
+
     def allowed_to_view(self, clazz: type, prop: Any) -> bool:
         return not prop.sensitive

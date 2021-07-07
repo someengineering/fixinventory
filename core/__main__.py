@@ -15,10 +15,7 @@ log = logging.getLogger(__name__)
 
 
 def parse_args() -> Namespace:
-    parser = ArgumentParser(
-        description="Maintains graphs of documents of any shape.",
-        epilog="Keeps all the things."
-    )
+    parser = ArgumentParser(description="Maintains graphs of documents of any shape.", epilog="Keeps all the things.")
     parser.add_argument("--log-level", default="debug", help="The threshold log level for the application log.")
     parser.add_argument("-s", "--arango-server", default="http://localhost:8529", help="The server to connect to.")
     parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="The database to connect to.")
@@ -26,8 +23,11 @@ def parse_args() -> Namespace:
     parser.add_argument("-p", "--arango-password", default="", help="The password the database.")
     parser.add_argument("--arango-no-ssl-verify", action="store_true", help="If the connection should be verified.")
     parser.add_argument("--arango-request-timeout", type=int, default=900, help="Request timeout in seconds.")
-    parser.add_argument("--plantuml-server", default="https://www.plantuml.com/plantuml",
-                        help="The plantuml server to use to render plantuml images")
+    parser.add_argument(
+        "--plantuml-server",
+        default="https://www.plantuml.com/plantuml",
+        help="The plantuml server to use to render plantuml images",
+    )
     return parser.parse_args()
 
 

@@ -6,8 +6,9 @@ from core.query.model import Query
 
 
 class QueryModel(ABC):
-    def __init__(self, query: Query, model: Model, query_section: str,
-                 return_section: Optional[Union[str, List[str]]] = None):
+    def __init__(
+        self, query: Query, model: Model, query_section: str, return_section: Optional[Union[str, List[str]]] = None
+    ):
         self.query = query
         self.model = model
         self.query_section = query_section
@@ -15,8 +16,15 @@ class QueryModel(ABC):
 
 
 class GraphUpdate(ABC):
-    def __init__(self, nodes_created: int = 0, nodes_updates: int = 0, nodes_deleted: int = 0,
-                 edges_created: int = 0, edges_updated: int = 0, edges_deleted: int = 0):
+    def __init__(
+        self,
+        nodes_created: int = 0,
+        nodes_updates: int = 0,
+        nodes_deleted: int = 0,
+        edges_created: int = 0,
+        edges_updated: int = 0,
+        edges_deleted: int = 0,
+    ):
         self.nodes_created = nodes_created
         self.nodes_updated = nodes_updates
         self.nodes_deleted = nodes_deleted
@@ -25,13 +33,21 @@ class GraphUpdate(ABC):
         self.edges_deleted = edges_deleted
 
     def all_changes(self) -> int:
-        return self.nodes_created + self.nodes_updated + self.nodes_deleted + \
-               self.edges_created + self.edges_updated + self.edges_deleted
+        return (
+            self.nodes_created
+            + self.nodes_updated
+            + self.nodes_deleted
+            + self.edges_created
+            + self.edges_updated
+            + self.edges_deleted
+        )
 
     def __repr__(self) -> str:
-        return f"[[{self.nodes_created},{self.nodes_updated}," \
-               f"{self.nodes_deleted}],[{self.edges_created}," \
-               f"{self.edges_updated},{self.edges_deleted}]]"
+        return (
+            f"[[{self.nodes_created},{self.nodes_updated},"
+            f"{self.nodes_deleted}],[{self.edges_created},"
+            f"{self.edges_updated},{self.edges_deleted}]]"
+        )
 
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, GraphUpdate) else False

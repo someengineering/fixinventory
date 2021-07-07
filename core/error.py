@@ -16,12 +16,12 @@ class DatabaseError(DomainError):
 
 class InvalidBatchUpdate(DatabaseError):
     def __init__(self) -> None:
-        super().__init__('The same batch can not update the same subgraph or any parent node!')
+        super().__init__("The same batch can not update the same subgraph or any parent node!")
 
 
 class ConflictingChangeInProgress(DatabaseError):
     def __init__(self, other_change_id: str):
-        super().__init__(f'Conflicting change in progress: {other_change_id}!')
+        super().__init__(f"Conflicting change in progress: {other_change_id}!")
         self.other_change_id = other_change_id
 
 

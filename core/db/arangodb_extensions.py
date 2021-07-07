@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 
 
 class ArangoHTTPClient(DefaultHTTPClient):  # type: ignore
-
     def __init__(self, timeout: int, verify: bool):
         log.info(f"Create ArangoHTTPClient with timeout={timeout} and verify={verify}")
         self.timeout = timeout
@@ -27,6 +26,7 @@ class ArangoHTTPClient(DefaultHTTPClient):  # type: ignore
         data: Union[str, MultipartEncoder, None] = None,
         auth: Optional[Tuple[str, str]] = None,
     ) -> Response:
-        response = session.request(method, url, params, data, headers,
-                                   auth=auth, timeout=self.timeout, verify=self.verify)
+        response = session.request(
+            method, url, params, data, headers, auth=auth, timeout=self.timeout, verify=self.verify
+        )
         return Response(method, response.url, response.headers, response.status_code, response.reason, response.text)

@@ -7,8 +7,10 @@ from core.query.model import FunctionTerm
 
 
 def has_desired_change(cursor: str, fn: FunctionTerm) -> str:
-    return f"{cursor}.desired.{fn.property_path}!=null && " + \
-           f"{cursor}.reported.{fn.property_path}!={cursor}.desired.{fn.property_path}"
+    return (
+        f"{cursor}.desired.{fn.property_path}!=null && "
+        + f"{cursor}.reported.{fn.property_path}!={cursor}.desired.{fn.property_path}"
+    )
 
 
 def in_subnet(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:

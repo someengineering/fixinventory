@@ -13,7 +13,6 @@ from core.types import Json
 
 
 class GraphBuilder:
-
     def __init__(self, model: Model, with_flatten: bool = feature.DB_SEARCH):
         self.model = model
         self.graph = DiGraph()
@@ -81,7 +80,6 @@ class GraphBuilder:
 
 
 class GraphAccess:
-
     def __init__(self, sub: DiGraph):
         super().__init__()
         self.g = sub
@@ -114,8 +112,15 @@ class GraphAccess:
         js: Json = to_js(node["data"])
         sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(js)
         flat = node["flat"] if "flat" in node else GraphBuilder.flatten(js)
-        kinds = node["kind"].kind_hierarchy() if "kind" in node else [js["kind"]] if "kind" in js else [
-            node.kind()] if hasattr(node, "kind") else []  # type: ignore
+        kinds = (
+            node["kind"].kind_hierarchy()
+            if "kind" in node
+            else [js["kind"]]
+            if "kind" in js
+            else [node.kind()]  # type: ignore
+            if hasattr(node, "kind")
+            else []
+        )
         return node_id, js, sha256, kinds, flat
 
     def not_visited_nodes(self) -> Generator[Tuple[str, Dict[str, Any], str, List[str], str], None, None]:

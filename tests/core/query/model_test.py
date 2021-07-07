@@ -37,12 +37,16 @@ def simple_reference() -> None:
 
 
 def test_simple_query() -> None:
-    a = Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59)) \
-        .traverse_out() \
-        .filter(P("some.int.value") < 1, P("some.other") == 23) \
-        .traverse_out() \
+    a = (
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        .traverse_out()
+        .filter(P("some.int.value") < 1, P("some.other") == 23)
+        .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/32"))
+    )
 
-    assert str(a) == '((isinstance("ec2") and cpu > 4) and (mem < 23 or mem < 59)) >>> ' \
-                     '(some.int.value < 1 and some.other == 23) >>> ' \
-                     '(active == 12 and in_subnet(ip, "1.2.3.4/32"))'
+    assert (
+        str(a) == '((isinstance("ec2") and cpu > 4) and (mem < 23 or mem < 59)) >>> '
+        "(some.int.value < 1 and some.other == 23) >>> "
+        '(active == 12 and in_subnet(ip, "1.2.3.4/32"))'
+    )

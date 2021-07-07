@@ -67,11 +67,13 @@ def test_part() -> None:
 
 
 def test_query() -> None:
-    query = Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59)) \
-        .traverse_out() \
-        .filter(P("some.int.value") < 1, P("some.other") == 23) \
-        .traverse_out() \
+    query = (
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        .traverse_out()
+        .filter(P("some.int.value") < 1, P("some.other") == 23)
+        .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
+    )
     assert_round_trip(query_parser, query)
 
 

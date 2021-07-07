@@ -20,7 +20,7 @@ def class_fqn(obj: Any) -> str:
 @functools.lru_cache(maxsize=1024)
 def type_fqn(tpe: type) -> str:
     module = tpe.__module__
-    return tpe.__name__ if module is None or module == str.__class__.__module__ else module + '.' + tpe.__name__
+    return tpe.__name__ if module is None or module == str.__class__.__module__ else module + "." + tpe.__name__
 
 
 def from_js(json: Optional[Any], clazz: Type[object]) -> object:

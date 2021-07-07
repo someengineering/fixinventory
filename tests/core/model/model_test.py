@@ -8,8 +8,18 @@ from datetime import datetime
 from core.model.typed_model import to_js, from_js
 from networkx import DiGraph
 
-from core.model.model import StringKind, Kind, NumberKind, BooleanKind, DateKind, DateTimeKind, Array, Property, Complex, \
-    Model
+from core.model.model import (
+    StringKind,
+    Kind,
+    NumberKind,
+    BooleanKind,
+    DateKind,
+    DateTimeKind,
+    Array,
+    Property,
+    Complex,
+    Model,
+)
 
 
 def test_json_marshalling() -> None:
@@ -23,12 +33,19 @@ def test_json_marshalling() -> None:
     roundtrip(DateTimeKind("d"), Kind)
     roundtrip(Array(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
-    roundtrip(Complex("Test", "Base", [
-        Property("array", "string[]"),
-        Property("s", "float"),
-        Property("i", "int32"),
-        Property("other", "SomeComposite"),
-    ]), Kind)
+    roundtrip(
+        Complex(
+            "Test",
+            "Base",
+            [
+                Property("array", "string[]"),
+                Property("s", "float"),
+                Property("i", "int32"),
+                Property("other", "SomeComposite"),
+            ],
+        ),
+        Kind,
+    )
 
 
 def test_string() -> None:
@@ -112,12 +129,18 @@ def test_model_checking(person_model: Model) -> None:
     assert expect_error(person_model, {"kind": "Base", "id": 32}) == expected
     expected = 'Kind:Base Property:id is required and missing in {"kind": "Base"}'
     assert expect_error(person_model, {"kind": "Base"}) == expected
-    expected = 'Kind:Base Property:unknown is not defined in model!'
+    expected = "Kind:Base Property:unknown is not defined in model!"
     assert expect_error(person_model, {"kind": "Base", "id": "bla", "unknown": 1}) == expected
-    expected = 'Kind:Address Property:id is required and missing in {"kind": "Address", "zip": "12345", "city": "gotham"}'
+    expected = (
+        'Kind:Address Property:id is required and missing in {"kind": "Address", "zip": "12345", "city": "gotham"}'
+    )
     assert expect_error(person_model, {"kind": "Address", "zip": "12345", "city": "gotham"}) == expected
-    nested = {"id": "batman", "kind": "Person", "name": "batman",
-              "address": {"kind": "Address", "id": "foo", "city": "gotham"}}
+    nested = {
+        "id": "batman",
+        "kind": "Person",
+        "name": "batman",
+        "address": {"kind": "Address", "id": "foo", "city": "gotham"},
+    }
     assert person_model.check_valid(nested) is None
     nested = {"id": "batman", "kind": "Person", "name": "batman", "address": {"kind": "Address", "city": "gotham"}}
     expected = 'Kind:Person Property:address is not valid: Kind:Address Property:id is required and missing in {"kind": "Address", "city": "gotham"}: {"id": "batman", "kind": "Person", "name": "batman", "address": {"kind": "Address", "city": "gotham"}}'
@@ -145,12 +168,34 @@ def test_update(person_model: Model) -> None:
         person_model.update_kinds([Complex("Address", "Base", [])])
     assert str(not_allowed.value) == "Update Address existing required property city cannot be removed!"
     with pytest.raises(AttributeError) as not_allowed:  # update city as not required
-        person_model.update_kinds([Complex("Address", "Base", [Property("city", "string"), ])])
+        person_model.update_kinds(
+            [
+                Complex(
+                    "Address",
+                    "Base",
+                    [
+                        Property("city", "string"),
+                    ],
+                )
+            ]
+        )
     assert str(not_allowed.value) == "Update Address existing required property city marked as not required!"
     with pytest.raises(AttributeError) as not_allowed:  # update city with different type
-        person_model.update_kinds([Complex("Address", "Base", [Property("city", "int32", required=True), ])])
-    assert str(
-        not_allowed.value) == "Update not possible. Following properties would be non unique having the same path but different type: city"
+        person_model.update_kinds(
+            [
+                Complex(
+                    "Address",
+                    "Base",
+                    [
+                        Property("city", "int32", required=True),
+                    ],
+                )
+            ]
+        )
+    assert (
+        str(not_allowed.value)
+        == "Update not possible. Following properties would be non unique having the same path but different type: city"
+    )
 
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
@@ -159,8 +204,10 @@ def test_update(person_model: Model) -> None:
     assert str(simple.value) == "Update Foo changes an existing property type Foo"
     with pytest.raises(AttributeError) as duplicate:
         updated.update_kinds([Complex("Bla", None, [Property("id", "int32")])])
-    assert str(
-        duplicate.value) == "Update not possible. Following properties would be non unique having the same path but different type: id"
+    assert (
+        str(duplicate.value)
+        == "Update not possible. Following properties would be non unique having the same path but different type: id"
+    )
 
 
 def test_load(model_json: str) -> None:
@@ -193,20 +240,32 @@ def expect_error(kind: Union[Kind, Model], obj: Any) -> str:
 @pytest.fixture
 def person_model() -> Model:
     zip = StringKind("zip")
-    base = Complex("Base", None, [
-        Property("id", "string", required=True),
-        Property("kind", "string", required=True),
-        Property("tags", "string[]"),
-        Property("mtime", "datetime")
-    ])
-    address = Complex("Address", "Base", [
-        Property("zip", "zip"),
-        Property("city", "string", required=True),
-    ])
-    person = Complex("Person", "Base", [
-        Property("name", "string"),
-        Property("address", "Address"),
-    ])
+    base = Complex(
+        "Base",
+        None,
+        [
+            Property("id", "string", required=True),
+            Property("kind", "string", required=True),
+            Property("tags", "string[]"),
+            Property("mtime", "datetime"),
+        ],
+    )
+    address = Complex(
+        "Address",
+        "Base",
+        [
+            Property("zip", "zip"),
+            Property("city", "string", required=True),
+        ],
+    )
+    person = Complex(
+        "Person",
+        "Base",
+        [
+            Property("name", "string"),
+            Property("address", "Address"),
+        ],
+    )
     return Model.from_kinds([zip, person, address, base])
 
 
