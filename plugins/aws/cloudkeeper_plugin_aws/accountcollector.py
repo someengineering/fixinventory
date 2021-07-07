@@ -2387,7 +2387,7 @@ class AWSAccountCollector:
                 terms = price.get("terms")
                 # attr_volume_type = attributes.get("volumeType")
                 attr_volume_api_name = attributes.get("volumeApiName")
-                if volume_type!= attr_volume_api_name:
+                if volume_type != attr_volume_api_name:
                     log.error(
                         (
                             f"Error in pricing API call, returned volume type {attr_volume_api_name} "
