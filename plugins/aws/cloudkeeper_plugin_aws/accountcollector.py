@@ -43,6 +43,7 @@ PRICING_TO_EC2_TENANCY = {"Shared": "default", "Host": "host", "Dedicated": "ded
 EBS_TO_PRICING_NAMES = {
     "standard": "Magnetic",
     "gp2": "General Purpose",
+    "gp3": "General Purpose",
     "io1": "Provisioned IOPS",
     "st1": "Throughput Optimized HDD",
     "sc1": "Cold HDD",
@@ -597,9 +598,15 @@ class AWSAccountCollector:
                 )
                 graph.add_resource(region, v)
                 volumes.append(v)
-                volume_type_info = self.get_volume_type_info(
-                    region, graph, v.volume_type
-                )
+                try:
+                    volume_type_info = self.get_volume_type_info(
+                        region, graph, v.volume_type
+                    )
+                except Exception:
+                    log.exception(
+                        f"Unable to retrieve volume type info for {v.rtdname}"
+                    )
+                    volume_type_info = None
                 if volume_type_info:
                     graph.add_edge(volume_type_info, v)
                 for attachment in volume.attachments:
@@ -2356,6 +2363,11 @@ class AWSAccountCollector:
                 },
                 {
                     "Type": "TERM_MATCH",
+                    "Field": "volumeApiName",
+                    "Value": volume_type,
+                },
+                {
+                    "Type": "TERM_MATCH",
                     "Field": "location",
                     "Value": EC2_TO_PRICING_REGIONS[region.id],
                 },
@@ -2368,18 +2380,18 @@ class AWSAccountCollector:
                 )
             )
             price_list = self.get_price_info(service, search_filter)
-
             price_info = 0.0
 
             for price in price_list:
                 attributes = price.get("product", {}).get("attributes")
                 terms = price.get("terms")
-                attr_volume_type = attributes.get("volumeType")
-                if EBS_TO_PRICING_NAMES[volume_type] != attr_volume_type:
+                # attr_volume_type = attributes.get("volumeType")
+                attr_volume_api_name = attributes.get("volumeApiName")
+                if volume_type!= attr_volume_api_name:
                     log.error(
                         (
-                            f"Error in pricing API call, returned volume type {attr_volume_type} "
-                            f"doesn't match requested volume type {EBS_TO_PRICING_NAMES[volume_type]}"
+                            f"Error in pricing API call, returned volume type {attr_volume_api_name} "
+                            f"doesn't match requested volume type {volume_type}"
                         )
                     )
                     return None
