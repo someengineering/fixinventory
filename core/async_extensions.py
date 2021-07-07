@@ -1,11 +1,11 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-
-# global unbounded thread pool to bridge sync io with asyncio
 from typing import Any
 
-GlobalAsyncPool = ThreadPoolExecutor(None, "global_async")  # pylint: disable=consider-using-with
+# Global bounded thread pool to bridge sync io with asyncio.
+# The maximum number of threads is defined explicitly here, since the default is very limited.
+GlobalAsyncPool = ThreadPoolExecutor(1024, "global_async")  # pylint: disable=consider-using-with
 
 
 async def run_async(sync_func, *args: Any, **kwargs: Any) -> Any:  # type: ignore
