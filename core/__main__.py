@@ -23,6 +23,7 @@ def parse_args() -> Namespace:
     parser.add_argument("-p", "--arango-password", default="", help="The password the database.")
     parser.add_argument("--arango-no-ssl-verify", action="store_true", help="If the connection should be verified.")
     parser.add_argument("--arango-request-timeout", type=int, default=900, help="Request timeout in seconds.")
+    parser.add_argument("--port", type=int, default=8080, help="TCP Port to bind on.")
     parser.add_argument(
         "--plantuml-server",
         default="https://www.plantuml.com/plantuml",
@@ -50,7 +51,7 @@ def main() -> None:
         await db.start()
         return api.app
 
-    web.run_app(async_initializer())
+    web.run_app(async_initializer(), port=args.port)
 
 
 if __name__ == "__main__":
