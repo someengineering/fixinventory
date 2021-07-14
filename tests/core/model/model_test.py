@@ -118,6 +118,36 @@ def test_dictionary() -> None:
     assert expect_error(model, {"kind": "Foo", "tags": {"a": 1, "b": "c"}}) == expected
 
 
+def test_array() -> None:
+    foo = Complex("Foo", None, [Property("tags", "dictionary"), Property("kind", "string")])
+    complex_kind = Complex(
+        "TestArray",
+        None,
+        [
+            Property("kind", "string"),
+            Property("los", "string[]"),
+            Property("lod", "dictionary[]"),
+            Property("foos", "Foo[]"),
+            Property("los_los", "string[][]"),
+            Property("los_los_los", "string[][][]"),
+        ],
+    )
+    model = Model.from_kinds([foo, complex_kind])
+    assert (
+        model.check_valid(
+            {
+                "kind": "TestArray",
+                "los": ["a", "b", "c"],
+                "lod": [{"a": "b"}, {"b": "c"}],
+                "foos": [{"kind": "Foo", "tags": {"a": "b"}}, {"kind": "Foo", "tags": {"b": "c"}}],
+                "los_los": [["a", "b"], ["c"], ["d", "e"]],
+                "los_los_los": [[["a", "b"], ["c"]], [["d", "e"], ["f"]]],
+            }
+        )
+        is None
+    )
+
+
 def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "tags": ["one", "two"]}) is None

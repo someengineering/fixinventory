@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
-from typing import List, Union, Dict, Any, Optional, Set, Callable, Type
+from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Tuple
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -355,6 +355,20 @@ class Array(Kind):
         mapped = [check(elem) for elem in obj]
         return mapped if has_coerced else None
 
+    RE = re.compile("([^\\[]+)((\\[])+)")
+
+    @staticmethod
+    def test_array(name: str) -> Tuple[str, bool, int]:
+        m = Array.RE.fullmatch(name)
+        if m:
+            return m.group(1), True, len(m.group(2)) // 2
+        else:
+            return name, False, 0
+
+    @staticmethod
+    def mk_array(kind: Kind, depth: int) -> Kind:
+        return kind if depth == 0 else Array(Array.mk_array(kind, depth - 1))
+
 
 class ComplexBase(Kind):
     def __init__(self, fqn: str, base: Union[str, None], properties: List[Property], allow_unknown_props: bool):
@@ -373,12 +387,12 @@ class ComplexBase(Kind):
         if not self.__resolved:
             # resolve properties
             for prop in self.properties:
-                kind_name, is_array = (prop.kind[:-2], True) if prop.kind.endswith("[]") else (prop.kind, False)
+                kind_name, is_array, depth = Array.test_array(prop.kind)
                 if kind_name not in model:
                     raise AttributeError(f"Property kind is not known: {kind_name}. Have you registered it?")
                 kind = model[kind_name]
                 kind.resolve(model)
-                self.__resolved_kinds[prop.name] = Array(kind) if is_array else kind
+                self.__resolved_kinds[prop.name] = Array.mk_array(kind, depth) if is_array else kind
 
             # property path -> kind
             self.__properties_kind_by_path = self.__resolve_property_paths()
