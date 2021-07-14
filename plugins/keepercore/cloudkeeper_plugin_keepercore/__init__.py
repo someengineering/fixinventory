@@ -1,4 +1,4 @@
-from typing import Iterable, List, Dict, Union
+from typing import List, Dict, Union
 from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
 import threading
@@ -12,7 +12,6 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 from datetime import date, datetime, timezone, timedelta
-from functools import partial
 import requests
 import json
 
@@ -47,9 +46,6 @@ class KeepercorePlugin(BasePlugin):
         graph: Graph = event.data
         log.info("Keepercore Event Handler called")
         model = get_model_from_graph(graph)
-        from pprint import pformat
-
-        log.debug(pformat(model))
         model_uri = f"{ArgumentParser.args.keepercore_uri}/model"
         graph_uri = f"{ArgumentParser.args.keepercore_uri}/graph/ck/reported/batch/sub_graph/root"
         r = requests.patch(model_uri, data=json.dumps(model))
@@ -76,14 +72,21 @@ class KeepercorePlugin(BasePlugin):
 
 
 def get_model_from_graph(graph: Graph) -> List:
-    model = []
-
+    models = {}
     with graph.lock.read_access:
         for node in graph.nodes:
             node_models = get_models_from_node(node)
             for node_model in node_models:
-                if not any(node_model.get("fqn") == d.get("fqn") for d in model):
-                    model.append(node_model)
+                if not node_model.get("fqn") in models:
+                    models[node_model.get("fqn")] = node_model
+                else:
+                    existing_properties = models[node_model.get("fqn")].get(
+                        "properties", []
+                    )
+                    for new_property in node_model.get("properties", []):
+                        if new_property not in existing_properties:
+                            existing_properties.append(new_property)
+    model = [m for m in models.values()]
     return model
 
 
@@ -109,6 +112,7 @@ resource_attributes_blacklist = [
     "uuid",
     "dname",
     "rtdname",
+    "pricing_info",
 ]
 
 
@@ -202,8 +206,9 @@ def python_type_to_keepercore(value) -> str:
         value_value_type = type(value[0])
     map = {
         str: "string",
-        int: "int64",
+        int: "float",
         float: "float",
+        complex: "float",
         bool: "boolean",
         date: "date",
         datetime: "datetime",
@@ -237,8 +242,9 @@ class GraphIterator:
                 node_json = {"id": node_id, "data": node_attributes}
                 attributes_json = json.dumps(node_json) + "\n"
                 yield (attributes_json.encode())
-                for predecessor in node.predecessors(self.graph):
-                    predecessor_id = predecessor.sha256
-                    link = {"from": predecessor_id, "to": node_id}
+            for node in self.graph.nodes:
+                for successor in node.successors(self.graph):
+                    successor_id = successor.sha256
+                    link = {"from": node_id, "to": successor_id}
                     link_json = json.dumps(link) + "\n"
                     yield (link_json.encode())
