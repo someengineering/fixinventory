@@ -3,12 +3,17 @@ from datetime import date
 from typing import Tuple, List
 
 import jsons
+import pytest
 from networkx import DiGraph
 from deepdiff import DeepDiff
 from core.model.graph_access import GraphAccess, GraphBuilder
+from core.model.model import Model
 from tests.core.db.graphdb_test import Foo
 from core.types import Json
 from pytest import fixture
+
+# noinspection PyUnresolvedReferences
+from tests.core.model.model_test import person_model
 
 FooTuple = collections.namedtuple(
     "FooTuple",
@@ -99,3 +104,20 @@ def node(access: GraphAccess, node_id: str) -> Tuple[str, Json, str, List[str], 
         return res
     else:
         raise AttributeError(f"Expected {node_id} to be defined!")
+
+
+def test_builder(person_model: Model) -> None:
+    max_m = {"id": "max", "kind": "Person", "name": "Max"}
+    builder = GraphBuilder(person_model)
+    builder.add_node({"id": "1", "data": max_m})
+    builder.add_node({"from": "1", "to": "2"})
+    with pytest.raises(AssertionError) as no_node:
+        builder.check_complete()
+    assert str(no_node.value) == "Vertex 2 was used in an edge definition but not provided as vertex!"
+    builder.add_node({"id": "2", "data": max_m})
+    builder.add_node({"id": "3", "data": max_m})
+    with pytest.raises(AssertionError) as no_node:
+        builder.check_complete()
+    assert str(no_node.value) == "Given subgraph has more than one root: ['1', '3']"
+    builder.add_node({"from": "1", "to": "3"})
+    builder.check_complete()

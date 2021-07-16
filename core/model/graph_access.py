@@ -17,7 +17,6 @@ class GraphBuilder:
         self.model = model
         self.graph = DiGraph()
         self.with_flatten = with_flatten
-        self.visited_ids: Set[str] = set()
 
     def add_node(self, js: Json) -> None:
         if "id" in js and "data" in js:
@@ -30,13 +29,9 @@ class GraphBuilder:
             sha = GraphBuilder.content_hash(item)
             # flat all properties into a single string for search
             flat = GraphBuilder.flatten(item) if self.with_flatten else None
-            self.visited_ids.add(did)
             self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat)
         elif "from" in js and "to" in js:
-            if js["from"] in self.visited_ids and js["to"] in self.visited_ids:
-                self.graph.add_edge(js["from"], js["to"])
-            else:
-                raise AttributeError(f'Received edge: {js["from"]}->{js["to"]} but not related vertexes.')
+            self.graph.add_edge(js["from"], js["to"])
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
@@ -71,6 +66,14 @@ class GraphBuilder:
 
         dispatch(js)
         return result[1::]
+
+    def check_complete(self) -> None:
+        # check that all vertices are given, that were defined in any edge definition
+        # note: DiGraph will create an empty vertex node automatically
+        for node_id, node in self.graph.nodes(data=True):
+            assert node.get("data"), f"Vertex {node_id} was used in an edge definition but not provided as vertex!"
+        # make sure there is only one root node
+        GraphAccess.root_id(self.graph)
 
     @staticmethod
     def graph_from_single_item(model: Model, node_id: str, data: Json) -> DiGraph:

@@ -308,6 +308,7 @@ class Api:
                     continue
                 builder.add_node(json.loads(line))
             log.info("Graph read into memory")
+            builder.check_complete()
             return builder.graph
 
         async def json_to_graph() -> DiGraph:
@@ -318,6 +319,7 @@ class Api:
                 for doc in json_array:
                     builder.add_node(doc)
             log.info("Graph read into memory")
+            builder.check_complete()
             return builder.graph
 
         if request.content_type == "application/json":
