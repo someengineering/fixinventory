@@ -17,7 +17,7 @@ from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
-from core.event_bus import EventBus, Event
+from core.event_bus import EventBus, CoreEvent
 from core.model.graph_access import GraphAccess, GraphBuilder
 from core.model.model import Model
 from core.query.model import Predicate, IsInstanceTerm, Part, Term, CombinedTerm, FunctionTerm, Navigation, IdTerm
@@ -746,19 +746,23 @@ class EventGraphDB(GraphDB):
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
-        await self.event_bus.emit(Event.NodeCreated, {"graph": self.graph_name, "id": node_id, "parent": under_node_id})
+        await self.event_bus.emit_event(
+            CoreEvent.NodeCreated, {"graph": self.graph_name, "id": node_id, "parent": under_node_id}
+        )
         return result
 
     async def update_node(
         self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str, patch: Json
     ) -> Json:
         result = await self.real.update_node(model, section, result_section, node_id, patch)
-        await self.event_bus.emit(Event.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section})
+        await self.event_bus.emit_event(
+            CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
+        )
         return result
 
     async def delete_node(self, node_id: str) -> None:
         result = await self.real.delete_node(node_id)
-        await self.event_bus.emit(Event.NodeDeleted, {"graph": self.graph_name, "id": node_id})
+        await self.event_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
         return result
 
     def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
@@ -770,9 +774,9 @@ class EventGraphDB(GraphDB):
         result = await self.real.update_sub_graph(model, sub, under_node_id, maybe_batch)
         even_data = {"graph": self.graph_name, "id": GraphAccess.root_id(sub), "parent": under_node_id}
         if maybe_batch:
-            await self.event_bus.emit(Event.BatchUpdateSubGraphAdded, even_data)
+            await self.event_bus.emit_event(CoreEvent.BatchUpdateSubGraphAdded, even_data)
         else:
-            await self.event_bus.emit(Event.SubGraphUpdated, even_data)
+            await self.event_bus.emit_event(CoreEvent.SubGraphUpdated, even_data)
         return result
 
     async def list_in_progress_batch_updates(self) -> List[Json]:
@@ -781,12 +785,12 @@ class EventGraphDB(GraphDB):
     async def commit_batch_update(self, batch_id: str) -> None:
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_batch_updates())  # type: ignore
         await self.real.commit_batch_update(batch_id)
-        await self.event_bus.emit(Event.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
+        await self.event_bus.emit_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
 
     async def abort_batch_update(self, batch_id: str) -> None:
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_batch_updates())  # type: ignore
         await self.real.abort_batch_update(batch_id)
-        await self.event_bus.emit(Event.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
+        await self.event_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
     def query_list(self, query: QueryModel) -> AsyncGenerator[Json, None]:
         return self.real.query_list(query)
@@ -802,7 +806,7 @@ class EventGraphDB(GraphDB):
 
     async def wipe(self) -> None:
         result = await self.real.wipe()
-        await self.event_bus.emit(Event.GraphDBWiped, {"graph": self.graph_name})
+        await self.event_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
     def to_query(

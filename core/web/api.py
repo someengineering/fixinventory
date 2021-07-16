@@ -2,9 +2,11 @@ import asyncio
 import json
 import logging
 import string
+import uuid
+from datetime import timedelta
 from functools import partial
 from random import SystemRandom
-from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any
+from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any, Optional
 
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
@@ -18,13 +20,15 @@ from core import feature
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
-from core.event_bus import EventBus
+from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
 from core.model.graph_access import GraphBuilder
 from core.model.model import Kind, Model
 from core.types import Json
 from core.model.model_handler import ModelHandler
-from core.model.typed_model import to_js, from_js
+from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
+from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.workflows import WorkflowHandler
 
 log = logging.getLogger(__name__)
 Section = Union[str, List[str]]
@@ -32,9 +36,18 @@ RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
 class Api:
-    def __init__(self, db: DbAccess, model_handler: ModelHandler, event_bus: EventBus):
+    def __init__(
+        self,
+        db: DbAccess,
+        model_handler: ModelHandler,
+        subscription_handler: SubscriptionHandler,
+        workflow_handler: WorkflowHandler,
+        event_bus: EventBus,
+    ):
         self.db = db
         self.model_handler = model_handler
+        self.subscription_handler = subscription_handler
+        self.workflow_handler = workflow_handler
         self.event_bus = event_bus
         self.app = web.Application(middlewares=[self.error_handler])
         r = "reported"
@@ -80,19 +93,73 @@ class Api:
                 web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d, rd)),
                 web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
                 web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
+                # Subscriptions
+                web.get("/subscriptions", self.list_all_subscriptions),
+                web.get("/subscriptions/for/{event_type}", self.list_subscription_for_event),
+                # Subscription
+                web.get("/subscription/{subscriber_id}", self.list_subscriptions),
+                web.post("/subscription/{subscriber_id}/{event_type}", self.add_subscription),
+                web.delete("/subscription/{subscriber_id}/{event_type}", self.delete_subscription),
+                web.get("/subscription/{subscriber_id}/handle", self.handle_subscribed),
                 # Event operations
-                web.get("/events", self.handle_events),  # type: ignore
+                web.get("/events", self.handle_events),
                 # Serve static filed
                 web.get("", self.redirect_to_ui),
                 web.static("/static", "./static/"),
             ]
         )
 
+    async def list_all_subscriptions(self, _: Request) -> StreamResponse:
+        subscribers = await self.subscription_handler.all_subscribers()
+        return web.json_response(to_js(subscribers))
+
+    async def list_subscriptions(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
+        return self.optional_json(subscriber, f"No subscriber with id {subscriber_id}")
+
+    async def list_subscription_for_event(self, request: Request) -> StreamResponse:
+        event_type = request.match_info["event_type"]
+        subscribers = await self.subscription_handler.list_subscriber_for(event_type)
+        return web.json_response(to_js(subscribers))
+
+    async def add_subscription(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        event_type = request.match_info["event_type"]
+        timeout = timedelta(seconds=int(request.query.get("timeout", "600")))
+        wait_for_completion = request.query.get("wait_for_completion", "true").lower() != "false"
+        sub = await self.subscription_handler.add_subscription(subscriber_id, event_type, wait_for_completion, timeout)
+        return web.json_response(to_js(sub))
+
+    async def delete_subscription(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        event_type = request.match_info["event_type"]
+        sub = await self.subscription_handler.remove_subscription(subscriber_id, event_type)
+        return web.json_response(to_js(sub))
+
+    async def handle_subscribed(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
+        if subscriber and subscriber.subscriptions:
+            pending = await self.workflow_handler.list_all_pending_actions_for(subscriber)
+            return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
+        else:
+            return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
+
     async def redirect_to_ui(self, request: Request) -> StreamResponse:
         raise web.HTTPFound("/static/index.html")
 
-    async def handle_events(self, request: Request) -> None:
+    async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
+        return await self.listen_to_events(request, str(uuid.uuid1()), show)
+
+    async def listen_to_events(
+        self,
+        request: Request,
+        listener_id: str,
+        event_types: List[str],
+        initial_messages: Optional[List[Message]] = None,
+    ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
@@ -102,25 +169,37 @@ class Api:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
                         log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                         js = json.loads(msg.data)
-                        if "name" in js and "event" in js:
-                            await self.event_bus.emit(js["name"], js["event"])
+                        js["subscriber_id"] = listener_id
+                        message: Message = from_js(js, Message)  # type: ignore
+                        if isinstance(message, Action):
+                            raise AttributeError("Actors should not emit action messages. ")
+                        elif isinstance(message, ActionDone):
+                            await self.workflow_handler.handle_action_done(message)
+                        elif isinstance(message, ActionError):
+                            await self.workflow_handler.handle_action_error(message)
                         else:
-                            raise AttributeError(f"Expected event but got: {msg}")
-                except BaseException:
+                            await self.event_bus.emit(message)
+                except BaseException as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
+                    log.info(f"Got an exception for event listener: {listener_id}. Hang up. {ex}")
                     await ws.close()
 
         async def send() -> None:
             try:
-                with self.event_bus.subscribe(show) as events:
+                with self.event_bus.subscribe(listener_id, event_types) as events:
                     while True:
                         event = await events.get()
-                        await ws.send_str(json.dumps(event) + "\n")
-            except BaseException:
+                        await ws.send_str(to_js_str(event) + "\n")
+            except BaseException as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
+                log.info(f"Got an exception for event sender: {listener_id}. Hang up. {ex}")
                 await ws.close()
 
+        if initial_messages:
+            for msg in initial_messages:
+                await ws.send_str(to_js_str(msg) + "\n")
         await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        return ws
 
     async def model_uml(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else None
@@ -328,6 +407,13 @@ class Api:
             return await stream_to_graph()
         else:
             raise AttributeError("Can not read graph. Currently supported formats: json and ndjson!")
+
+    @staticmethod
+    def optional_json(o: Any, hint: str) -> StreamResponse:
+        if o:
+            return web.json_response(to_js(o))
+        else:
+            return web.HTTPNotFound(text=hint)
 
     @staticmethod
     async def stream_response_from_gen(request: Request, gen: AsyncGenerator[Json, None]) -> StreamResponse:

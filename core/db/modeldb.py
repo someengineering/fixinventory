@@ -5,7 +5,7 @@ from typing import List, AsyncGenerator, Dict
 from arango.collection import StandardCollection
 
 from core.db.async_arangodb import AsyncArangoDB
-from core.event_bus import EventBus, Event
+from core.event_bus import EventBus, CoreEvent
 from core.model.model import Kind
 from core.model.typed_model import from_js, to_js
 
@@ -67,10 +67,10 @@ class EventModelDB(ModelDB):
 
     async def update_kinds(self, model: List[Kind]) -> None:
         result = await self.db.update_kinds(model)
-        await self.event_bus.emit(Event.ModelUpdated, {"updated": [to_js(kind) for kind in model]})
+        await self.event_bus.emit_event(CoreEvent.ModelUpdated, {"updated": [to_js(kind) for kind in model]})
         return result
 
     async def delete_kind(self, model: Kind) -> None:
         result = await self.db.delete_kind(model)
-        await self.event_bus.emit(Event.ModelDeleted, to_js(model))
+        await self.event_bus.emit_event(CoreEvent.ModelDeleted, to_js(model))
         return result

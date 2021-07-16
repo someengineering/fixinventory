@@ -6,7 +6,7 @@ from arango.database import StandardDatabase
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.modeldb import ModelDB, ArangoModelDB, EventModelDB
-from core.event_bus import EventBus
+from core.event_bus import EventBus, Message
 from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
 
 # noinspection PyUnresolvedReferences
@@ -14,7 +14,6 @@ from tests.core.event_bus_test import event_bus, all_events
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
-from core.types import Json
 
 
 @pytest.fixture
@@ -97,7 +96,7 @@ async def test_delete(model_db: ModelDB, test_model: List[Kind]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events: List[Json]) -> None:
+async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events: List[Message]) -> None:
     # 2 times update
     await event_db.update_kinds(test_model)
     await event_db.update_kinds(test_model)
@@ -107,7 +106,7 @@ async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a["name"] for a in all_events] == ["model-updated"] * 2 + ["model-deleted"] * 6
+    assert [a.message_type for a in all_events] == ["model-updated"] * 2 + ["model-deleted"] * 6
 
 
 def fqn(kind: Kind) -> str:

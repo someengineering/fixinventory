@@ -41,3 +41,7 @@ def to_js(node: object) -> Json:
     if isinstance(node, dict):
         return node
     return jsons.dump(node, strip_privates=True)  # type: ignore
+
+
+def to_js_str(node: object) -> str:
+    return jsons.dumps(node, strip_privates=True)  # type: ignore

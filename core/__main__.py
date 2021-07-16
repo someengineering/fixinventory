@@ -10,13 +10,16 @@ from core.db.db_access import DbAccess
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandler
 from core.web.api import Api
+from core.workflow.scheduler import Scheduler
+from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.workflows import WorkflowHandler
 
 log = logging.getLogger(__name__)
 
 
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="Maintains graphs of documents of any shape.", epilog="Keeps all the things.")
-    parser.add_argument("--log-level", default="debug", help="The threshold log level for the application log.")
+    parser.add_argument("--log-level", default="info", help="The threshold log level for the application log.")
     parser.add_argument("-s", "--arango-server", default="http://localhost:8529", help="The server to connect to.")
     parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="The database to connect to.")
     parser.add_argument("-u", "--arango-username", default="cloudkeeper", help="The username of the database.")
@@ -39,16 +42,25 @@ def main() -> None:
     log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
     logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
 
+    scheduler = Scheduler()
     event_bus = EventBus()
     http_client = ArangoHTTPClient(args.arango_request_timeout, not args.arango_no_ssl_verify)
     client = ArangoClient(hosts=args.arango_server, http_client=http_client)
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
     db = DbAccess(database, event_bus)
     model = ModelHandler(db.get_model_db(), args.plantuml_server)
-    api = Api(db, model, event_bus)
+
+    subscriptions = SubscriptionHandler()
+    workflow_handler = WorkflowHandler(event_bus, subscriptions, scheduler)
+
+    api = Api(db, model, subscriptions, workflow_handler, event_bus)
 
     async def async_initializer() -> Application:
         await db.start()
+        await subscriptions.start()
+        await workflow_handler.start()
+        await scheduler.start()
+        log.info("Initialization done. Starting API.")
         return api.app
 
     web.run_app(async_initializer(), port=args.port)

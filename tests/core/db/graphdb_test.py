@@ -16,7 +16,7 @@ from networkx import DiGraph
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError
-from core.event_bus import EventBus
+from core.event_bus import EventBus, Message
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
@@ -290,7 +290,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Json]) -> None:
+async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Message]) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
     await event_graph_db.delete_node("some_other")
@@ -302,7 +302,7 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a["name"] for a in all_events] == [
+    assert [a.message_type for a in all_events] == [
         "node-created",
         "node-updated",
         "node-deleted",
