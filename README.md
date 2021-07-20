@@ -386,6 +386,7 @@ If you find a bug or have a question about something please create a Github issu
 [https://github.com/nccgroup/ScoutSuite](https://github.com/nccgroup/ScoutSuite)  
 [https://github.com/RiotGames/cloud-inquisitor](https://github.com/RiotGames/cloud-inquisitor)  
 [https://github.com/turnerlabs/antiope](https://github.com/turnerlabs/antiope)  
+[https://github.com/cloudquery/cloudquery](https://github.com/cloudquery/cloudquery)  
 
 
 ## Attribution
