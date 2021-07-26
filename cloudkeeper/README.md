@@ -3,7 +3,7 @@ Houskeeping for Clouds
 
 ## Development Setup
 ```
-$ git clone https://github.com/mesosphere/cloudkeeper.git
+$ git clone https://github.com/someengineering/cloudkeeper.git
 $ cd cloudkeeper
 $ python3.8 -m venv venv
 $ source venv/bin/activate
