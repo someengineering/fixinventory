@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
 
 Housekeeping for Clouds
 
@@ -32,7 +32,7 @@ It can however be used without any programming experience just using the include
 
 ## tl;dr - show me something worthwhile
 ```
-$ docker run -it mesosphere/cloudkeeper --verbose \
+$ docker run -it ghcr.io/someengineering/cloudkeeper --verbose \
     --cleanup --no-cli --one-shot --interval 0 \
     --collector aws \
     --aws-access-key-id AKIAIO5FODNN7EXAMPLE \
@@ -69,7 +69,7 @@ In the [TODO](#todo) section below you will find a list of the most immediate op
 
 
 ## Metrics
-![Cloudkeeper Metrics](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_dash.png "Cloudkeeper Metrics")
+![Cloudkeeper Metrics](https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_dash.png "Cloudkeeper Metrics")
 As a by-product of our resource collection we are able to export Prometheus metrics at the /metrics endpoint.  
 The default listening port (`--web-port`) is 8000.  
 Custom metric labels based on resource tags can be defined using the `--tag-as-metrics-label` arg.  
@@ -87,7 +87,7 @@ Because of the way metrics are collected resources currently only expose `Gauge`
 
 
 ## Docker Image
-A Docker image is available as [`mesosphere/cloudkeeper`](https://hub.docker.com/repository/docker/mesosphere/cloudkeeper) or by building the included Dockerfile.
+A Docker image is available as [`ghcr.io/someengineering/cloudkeeper`](https://github.com/someengineering/cloudkeeper/pkgs/container/cloudkeeper) or by building the included Dockerfile.
 
 
 ## Development Setup
@@ -109,7 +109,7 @@ CentOS 8
 ```
 ### Option 1) Installing Cloudkeeper for local development
 ```
-$ git clone https://github.com/mesosphere/cloudkeeper.git
+$ git clone https://github.com/someengineering/cloudkeeper.git
 $ cd cloudkeeper
 $ python3 -m venv venv   # ensure Python 3.8 or later is installed
 $ source venv/bin/activate
@@ -123,7 +123,7 @@ reflected when running `cloudkeeper`.
 ### Option 2) Building binary wheels
 ```
 $ mkdir ~/packages
-$ git clone https://github.com/mesosphere/cloudkeeper.git
+$ git clone https://github.com/someengineering/cloudkeeper.git
 $ cd cloudkeeper
 $ python3 -m venv venv   # ensure Python 3.8 or later is installed
 $ source venv/bin/activate
@@ -214,12 +214,12 @@ When doing a resource cleanup selection for the first time it is good practice t
 
 
 ## Data Structure
-![Cloudkeeper Graph](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
+![Cloudkeeper Graph](https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_graph.png "Cloudkeeper Graph")
 Internally Cloudkeeper stores all resources inside a directed acyclic graph (DAG). Each node (resource) that is added to the graph must inherit [BaseResource](cloudkeeper/cloudkeeper/baseresources.py). Dependencies within the graph are used to determine the order of resource cleanup. Meaning a resource likely can not be deleted if it has children (successors).
 During collection a new staging graph is created in parallel to the current live graph and its branches are being built up as collector plugins return their own local graphs. Once all collectors finish their work the old live graph is swapped with the staging graph making it the new live graph. This means that when querying metrics or performing CLI queries you're always working on a complete picture of all cloud resources.
 
 Using the endoints mentioned in [Distributed Instances](#distributed-instances) this also gives you the ability to export the graph in various formats (GraphML, GEXF, JSON, etc.) and take a look at and explore your "Cloud".
-![Cloudkeeper Cloud](https://raw.githubusercontent.com/mesosphere/cloudkeeper/master/misc/cloudkeeper_cloud.png "Cloudkeeper Cloud")
+![Cloudkeeper Cloud](https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_cloud.png "Cloudkeeper Cloud")
 
 
 ## Plugins
