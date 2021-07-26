@@ -58,9 +58,15 @@ class KeepercorePlugin(BasePlugin):
             log.error(r.content)
         graph_iterator = GraphIterator(graph)
         log.debug(f"Sending subgraph via {report_uri}")
-        r = requests.put(report_uri, data=graph_iterator, headers={"Content-Type": "application/x-ndjson"})
+        r = requests.put(
+            report_uri,
+            data=graph_iterator,
+            headers={"Content-Type": "application/x-ndjson"},
+        )
         log.debug(r.content.decode())
-        log.debug(f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore")
+        log.debug(
+            f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore"
+        )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

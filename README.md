@@ -2,9 +2,22 @@
 
 Housekeeping for Clouds
 
-
 ## Introduction
 Cloudkeeper is a standalone CLI tool that periodically collects a list of resources in cloud accounts, provides metrics about them, and can clean them up.
+
+If you ever
+* had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
+* wanted to find all the places an expired certificate is used in
+* had to change the tags of thousands of EC2 instances at once
+* needed to delete all unused EBS volumes that had no I/O in the past month
+* wished for a god view that lets you explore all cloud usage across all clouds
+* reported the cost of a project across different accounts or even across clouds
+* cleaned up orphaned load balancers that had no active backends
+* wanted to automate any of the above
+
+Those are the kinds of situations Cloudkeeper was built for.  
+
+Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).  
 
 Resource collection is performed in intervals (`--interval`) for each activated collector plugin (`--collector`).
 When resource collection is finished a resource cleanup can be performed (`--cleanup`). By default nothing will be cleaned!
