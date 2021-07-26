@@ -50,12 +50,7 @@ class OnpremInstance(BaseInstance, OnpremResource):
     resource_type = "onprem_instance"
 
     instance_status_map = {
-        "pending": InstanceStatus.BUSY,
         "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "stopped": InstanceStatus.STOPPED,
     }
 
     def delete(self, graph: Graph) -> bool:

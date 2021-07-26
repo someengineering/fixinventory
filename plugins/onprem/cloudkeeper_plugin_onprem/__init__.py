@@ -1,10 +1,11 @@
 import cloudkeeper.logging
+import socket
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
 from .resources import OnpremLocation, OnpremRegion, OnpremNetwork, OnpremInstance
-
-from paramiko import SSHClient
+from .ssh import instance_from_ssh
+from paramiko import ssh_exception
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -15,26 +16,61 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: collecting on-prem resources")
 
-        account = OnpremLocation("Onprem Location", {})
-        self.graph.add_resource(self.graph.root, account)
+        default_location = OnpremLocation("Default location", {})
+        self.graph.add_resource(self.graph.root, default_location)
 
-        region = OnpremRegion("onprem-region", {"Some Tag": "Some Value"})
-        self.graph.add_resource(account, region)
+        default_region = OnpremRegion("Default region", {})
+        self.graph.add_resource(default_location, default_region)
 
+        servers = []
         if len(ArgumentParser.args.onprem_server) > 0:
             for server in ArgumentParser.args.onprem_server:
-                log.debug(f"onprem: collecting {server}")
-                client = SSHClient()
-                client.load_system_host_keys()
-                client.connect(server)
-                stdin, stdout, stderr = client.exec_command("ls -al /")
-                out = stdout.read().decode().strip()
-                err = stderr.read().decode().strip()
-                client.close()
+                location = region = network = None
+                srv = {}
+                if "%" in server:
+                    server_location, server = server.split("%", 1)
+                    location = self.graph.search_first_all(
+                        {"id": server_location, "resource_type": "onprem_location"}
+                    )
+                    if location is None:
+                        location = OnpremLocation(server_location, {})
+                        self.graph.add_resource(self.graph.root, location)
+                        srv.update({"location": location})
+                    log.debug(f"Location for {server} is {location.rtdname}")
+                if "%" in server:
+                    server_region, server = server.split("%", 1)
+                    region = self.graph.search_first_all(
+                        {"id": server_region, "resource_type": "onprem_region"}
+                    )
+                    if region is None:
+                        region = OnpremRegion(server_region, {})
+                        self.graph.add_resource(location, region)
+                        srv.update({"region": region})
+                    log.debug(f"Region for {server} is {region.rtdname}")
+                if "%" in server:
+                    server_network, server = server.split("%", 1)
+                    network = self.graph.search_first_all(
+                        {"id": server_network, "resource_type": "onprem_network"}
+                    )
+                    if network is None:
+                        network = OnpremNetwork(server_network, {})
+                        self.graph.add_resource(region, network)
+                        srv.update({"network": network})
+                    log.debug(f"Network for {server} is {network.rtdname}")
+                srv.update({"hostname": server})
+                servers.append(srv)
 
-                log.debug(f"OUT: {out} {err}")
-                s = OnpremInstance(server, {})
-                self.graph.add_resource(region, s)
+        for srv in servers:
+            try:
+                s = instance_from_ssh(srv.get("hostname"))
+                src = srv.get(
+                    "network", srv.get("region", srv.get("location", default_region))
+                )
+            except (socket.timeout, ssh_exception.PasswordRequiredException):
+                log.exception(f'Failed to collect {srv.get("hostname")}')
+            else:
+                log.debug(f"onprem: collected {s.rtdname}")
+                self.graph.add_resource(src, s)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
