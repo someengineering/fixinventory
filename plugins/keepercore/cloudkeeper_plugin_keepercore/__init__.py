@@ -39,21 +39,28 @@ class KeepercorePlugin(BasePlugin):
     def keepercore_event_handler(event: Event):
         if not ArgumentParser.args.keepercore_uri:
             return
-        ArgumentParser.args.keepercore_uri = ArgumentParser.args.keepercore_uri.strip(
-            "/"
-        )
 
         graph: Graph = event.data
         log.info("Keepercore Event Handler called")
         model = get_model_from_graph(graph)
-        model_uri = f"{ArgumentParser.args.keepercore_uri}/model"
-        graph_uri = f"{ArgumentParser.args.keepercore_uri}/graph/ck/reported/batch/sub_graph/root"
+        base_uri = ArgumentParser.args.keepercore_uri.strip("/")
+        keepercore_graph = ArgumentParser.args.keepercore_graph
+        model_uri = f"{base_uri}/model"
+        graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+        report_uri = f"{graph_uri}/reported/sub_graph/root"
+        log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
+        r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
+        if r.status_code != 200:
+            log.error(r.content)
+        log.debug(f"Updating model via {model_uri}")
         r = requests.patch(model_uri, data=json.dumps(model))
-        log.debug(r.content)
-        h = {"Content-Type": "application/x-ndjson"}
-        f = GraphIterator(graph)
-        r = requests.post(graph_uri, data=f, headers=h)
-        log.debug(r.content)
+        if r.status_code != 200:
+            log.error(r.content)
+        graph_iterator = GraphIterator(graph)
+        log.debug(f"Sending subgraph via {report_uri}")
+        r = requests.put(report_uri, data=graph_iterator, headers={"Content-Type": "application/x-ndjson"})
+        log.debug(r.content.decode())
+        log.debug(f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -62,6 +69,12 @@ class KeepercorePlugin(BasePlugin):
             help="Keepercore URI",
             default=None,
             dest="keepercore_uri",
+        )
+        arg_parser.add_argument(
+            "--keepercore-graph",
+            help="Keepercore graph name",
+            default="ck",
+            dest="keepercore_graph",
         )
 
     def shutdown(self, event: Event):
@@ -233,6 +246,8 @@ def python_type_to_keepercore(value) -> str:
 class GraphIterator:
     def __init__(self, graph: Graph):
         self.graph = graph
+        self.nodes_sent = 0
+        self.edges_sent = 0
 
     def __iter__(self):
         with self.graph.lock.read_access:
@@ -241,10 +256,12 @@ class GraphIterator:
                 node_id = node.sha256
                 node_json = {"id": node_id, "data": node_attributes}
                 attributes_json = json.dumps(node_json) + "\n"
+                self.nodes_sent += 1
                 yield (attributes_json.encode())
             for node in self.graph.nodes:
                 for successor in node.successors(self.graph):
                     successor_id = successor.sha256
                     link = {"from": node_id, "to": successor_id}
                     link_json = json.dumps(link) + "\n"
+                    self.edges_sent += 1
                     yield (link_json.encode())
