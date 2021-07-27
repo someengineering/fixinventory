@@ -2201,11 +2201,13 @@ class AWSAccountCollector:
                 ctime=cloudwatch_alarm.get("CreatedTime"),
             )
             cwa.arn = cloudwatch_alarm.get("AlarmArn")
+            cwa.ctime = cloudwatch_alarm.get("AlarmConfigurationUpdatedTimestamp")
+            cwa.mtime = cwa.ctime
             cwa.actions_enabled = cloudwatch_alarm.get("ActionsEnabled")
             cwa.alarm_description = cloudwatch_alarm.get("AlarmDescription")
             cwa.alarm_actions = cloudwatch_alarm.get("AlarmActions")
             cwa.comparison_operator = cloudwatch_alarm.get("ComparisonOperator")
-            cwa.dimensions = cloudwatch_alarm.get("Dimensions")
+            cwa.dimensions = cloudwatch_alarm.get("Dimensions", [])
             cwa.evaluation_periods = cloudwatch_alarm.get("EvaluationPeriods")
             cwa.insufficient_data_actions = cloudwatch_alarm.get(
                 "InsufficientDataActions"
@@ -2218,6 +2220,13 @@ class AWSAccountCollector:
             cwa.statistic = cloudwatch_alarm.get("Statistic")
             cwa.threshold = cloudwatch_alarm.get("Threshold")
             graph.add_resource(region, cwa)
+            for dimension in cwa.dimensions:
+                if dimension.get("Name") == "InstanceId":
+                    instance_id = dimension.get("Value")
+                    i = graph.search_first_all(
+                        {"resource_type": "aws_ec2_instance", "id": instance_id}
+                    )
+                    graph.add_edge(cwa, i)
 
     def account_alias(self) -> Optional[str]:
         session = aws_session(self.account.id, self.account.role)
