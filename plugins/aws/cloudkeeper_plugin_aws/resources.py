@@ -1051,3 +1051,63 @@ class AWSAutoScalingGroup(AWSResource, BaseAutoScalingGroup):
             ]
         )
         return True
+
+
+class AWSCloudwatchAlarm(AWSResource, BaseResource):
+    resource_type = "aws_cloudwatch_alarm"
+
+    metrics_description = {
+        "aws_cloudwatch_alarms_total": {
+            "help": "Number of AWS Cloudwatch Alarms",
+            "labels": ["cloud", "account", "region", "state"],
+        },
+        "cleaned_aws_cloudwatch_alarms_total": {
+            "help": "Cleaned number of AWS Cloudwatch Alarms",
+            "labels": ["cloud", "account", "region", "state"],
+        },
+    }
+
+    def __init__(self, *args, role: str = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.actions_enabled = False
+        self.alarm_description = ""
+        self.alarm_actions = []
+        self.comparison_operator = ""
+        self.dimensions = []
+        self.evaluation_periods = 0
+        self.insufficient_data_actions = []
+        self.metric_name = ""
+        self.namespace = ""
+        self.ok_actions = []
+        self.period = 0
+        self.state_value = ""
+        self.statistic = ""
+        self.threshold = 0.0
+
+    def metrics(self, graph) -> Dict:
+        metrics_keys = (
+            self.cloud(graph).name,
+            self.account(graph).dname,
+            self.region(graph).name,
+            self.state_value,
+        )
+        self._metrics["aws_cloudwatch_alarms_total"][metrics_keys] = 1
+        if self._cleaned:
+            self._metrics["cleaned_aws_cloudwatch_alarms_total"][metrics_keys] = 1
+        return self._metrics
+
+    def delete(self, graph: Graph) -> bool:
+        cloudwatch = aws_resource(self, "cloudwatch", graph)
+        alarm = cloudwatch.Alarm(self.name)
+        alarm.delete()
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        client = aws_client(self, "cloudwatch")
+        client.tag_resource(ResourceARN=self.arn, Tags=[{"Key": key, "Value": value}])
+        return True
+
+    def delete_tag(self, key) -> bool:
+        client = aws_client(self, "cloudwatch")
+        client.untag_resource(ResourceARN=self.arn, TagKeys=[key])
+        return True

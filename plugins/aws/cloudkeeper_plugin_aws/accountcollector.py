@@ -231,6 +231,10 @@ metrics_get_eks_nodegroups = Summary(
     "cloudkeeper_plugin_aws_get_eks_nodegroups_seconds",
     "Time it took the get_eks_nodegroups() method",
 )
+metrics_collect_cloudwatch_alarms = Summary(
+    "cloudkeeper_plugin_aws_collect_cloudwatch_alarms_seconds",
+    "Time it took the collect_cloudwatch_alarms() method",
+)
 
 
 def retry_on_request_limit_exceeded(e):
@@ -289,6 +293,7 @@ class AWSAccountCollector:
             "vpc_peering_connections": self.collect_vpc_peering_connections,
             "vpc_endpoints": self.collect_vpc_endpoints,
             "elastic_ips": self.collect_elastic_ips,
+            "cloudwatch_alarms": self.collect_cloudwatch_alarms,
         }
         self.collector_set = set(self.global_collectors.keys()).union(
             set(self.region_collectors.keys())
@@ -2169,6 +2174,50 @@ class AWSAccountCollector:
                 )
                 if asg:
                     graph.add_edge(asg, n)
+
+    @metrics_collect_cloudwatch_alarms.time()
+    def collect_cloudwatch_alarms(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(
+            (
+                f"Collecting AWS Cloudwatch Alarms in account {self.account.dname},"
+                f" region {region.id}"
+            )
+        )
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("cloudwatch", region_name=region.id)
+        tag_client = session.client("cloudwatch", region_name=region.id)
+        for cloudwatch_alarm in paginate(client.describe_alarms):
+            name = cloudwatch_alarm["AlarmName"]
+            tag_response = tag_client.list_tags_for_resource(
+                ResourceARN=cloudwatch_alarm.get("AlarmArn")
+            )
+            tags = self.tags_as_dict(tag_response.get("Tags", []))
+            log.debug(f"Found Cloudwatch Alarm {name}")
+            cwa = AWSCloudwatchAlarm(
+                name,
+                tags,
+                account=self.account,
+                region=region,
+                ctime=cloudwatch_alarm.get("CreatedTime"),
+            )
+            cwa.arn = cloudwatch_alarm.get("AlarmArn")
+            cwa.actions_enabled = cloudwatch_alarm.get("ActionsEnabled")
+            cwa.alarm_description = cloudwatch_alarm.get("AlarmDescription")
+            cwa.alarm_actions = cloudwatch_alarm.get("AlarmActions")
+            cwa.comparison_operator = cloudwatch_alarm.get("ComparisonOperator")
+            cwa.dimensions = cloudwatch_alarm.get("Dimensions")
+            cwa.evaluation_periods = cloudwatch_alarm.get("EvaluationPeriods")
+            cwa.insufficient_data_actions = cloudwatch_alarm.get(
+                "InsufficientDataActions"
+            )
+            cwa.metric_name = cloudwatch_alarm.get("MetricName")
+            cwa.namespace = cloudwatch_alarm.get("Namespace")
+            cwa.ok_actions = cloudwatch_alarm.get("OKActions")
+            cwa.period = cloudwatch_alarm.get("Period")
+            cwa.state_value = cloudwatch_alarm.get("StateValue")
+            cwa.statistic = cloudwatch_alarm.get("Statistic")
+            cwa.threshold = cloudwatch_alarm.get("Threshold")
+            graph.add_resource(region, cwa)
 
     def account_alias(self) -> Optional[str]:
         session = aws_session(self.account.id, self.account.role)
