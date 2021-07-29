@@ -1,5 +1,3 @@
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
-
 Housekeeping for Clouds
 
 ## Introduction
