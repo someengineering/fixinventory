@@ -18,13 +18,15 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.vsphere_client = new_vsphere_client()
+        if ArgumentParser.args.vsphere_host:
+            self.vsphere_client = new_vsphere_client()
 
     def get_cluster(self) -> VSphereCluster:
         """
         use --vsphere-host as the clustername
         """
-        return VSphereCluster(ArgumentParser.args.vsphere_host, {})
+        if ArgumentParser.args.vsphere_host:
+            return VSphereCluster(ArgumentParser.args.vsphere_host, {})
 
     def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
         """
@@ -84,6 +86,10 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
+
+        if not ArgumentParser.args.vsphere_host:
+            log.debug("no VSphere host given - skipping collection")
+            return
 
         cluster = self.get_cluster()
         dc1 = VSphereDataCenter("dc1", tags={})
