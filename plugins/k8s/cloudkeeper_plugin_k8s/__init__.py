@@ -82,6 +82,13 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         try:
             kc = KubernetesCollector(cluster, cluster_config)
             kc.collect()
+        except client.exceptions.ApiException as e:
+            if e.reason == "Unauthorized":
+                log.error(f"Unable to authenticate with {cluster.rtdname}")
+            else:
+                log.exception(
+                    f"An unhandled error occurred while collecting {cluster.rtdname}"
+                )
         except Exception:
             log.exception(
                 f"An unhandled error occurred while collecting {cluster.rtdname}"
