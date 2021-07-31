@@ -2,7 +2,7 @@ import cloudkeeper.logging
 import threading
 import os
 import time
-import slack
+import slack_sdk
 from typing import List
 from retrying import retry
 from .resources import (
@@ -27,7 +27,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 def retry_on_request_limit_exceeded(e):
-    if isinstance(e, slack.errors.SlackApiError):
+    if isinstance(e, slack_sdk.errors.SlackApiError):
         if (
             not e.response.data.get("ok", False)
             and e.response.data.get("error") == "ratelimited"
@@ -54,7 +54,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             return
 
         log.info("Slack Collector Plugin: collecting Slack resources")
-        self.client = slack.WebClient(token=ArgumentParser.args.slack_bot_token)
+        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
 
         response = self.client.team_info()
         if not response.data.get("ok", False):
@@ -97,26 +97,71 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Found Slack {conversation_type}{c.name}")
             self.graph.add_resource(conversations, c)
 
+            members = self.list_conversation_members(c)
+            for member_id in members:
+                m = self.graph.search_first_all(
+                    {"resource_type": "slack_user", "id": member_id}
+                )
+                self.graph.add_edge(m, c)
+
     @retry(
         stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
     )
     def list_conversations(self) -> List:
         log.debug("Fetching list of Slack Conversations")
+        channel_types = "public_channel,private_channel"
+        channel_limit = 100
+        exclude_archived = not ArgumentParser.args.slack_include_archived
         response = self.client.conversations_list(
-            exclude_archived="true", types="public_channel,private_channel", limit=100
+            exclude_archived=exclude_archived, types=channel_types, limit=channel_limit
         )
         conversations = response.data.get("channels", [])
         while response.data.get("response_metadata", {}).get("next_cursor", "") != "":
-            time.sleep(2)
             response = self.client.conversations_list(
                 cursor=response.data["response_metadata"]["next_cursor"],
-                exclude_archived="true",
-                types="public_channel,private_channel",
-                limit=100,
+                exclude_archived=exclude_archived,
+                types=channel_types,
+                limit=channel_limit,
             )
             log.debug("Fetching more Slack conversations")
             conversations.extend(response.data.get("channels", []))
         return conversations
+
+    @retry(
+        stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
+    )
+    def list_conversation_members(self, conversation) -> List:
+        log.debug(
+            f"Fetching list of Slack Conversation members for {conversation.rtdname}"
+        )
+        members = []
+        try:
+            response = self.client.conversations_members(channel=conversation.id)
+            members = response.data.get("members", [])
+            while (
+                response.data.get("response_metadata", {}).get("next_cursor", "") != ""
+            ):
+                response = self.client.conversations_list(
+                    channel=conversation.id,
+                    cursor=response.data["response_metadata"]["next_cursor"],
+                )
+                log.debug("Fetching more Slack conversation members")
+                members.extend(response.data.get("members", []))
+        except slack_sdk.errors.SlackApiError as e:
+            if (
+                not e.response.data.get("ok", False)
+                and e.response.data.get("error") == "internal_error"
+            ):
+                log.error(
+                    (
+                        "Slack responded with an internal error - "
+                        f"skipping members list for {conversation.rtdname}"
+                    )
+                )
+                return []
+            else:
+                raise
+        return members
 
     @retry(
         stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
@@ -136,7 +181,6 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         response = self.client.users_list()
         members = response.data.get("members", [])
         while response.data.get("response_metadata", {}).get("next_cursor", "") != "":
-            time.sleep(2)
             response = self.client.users_list(
                 cursor=response.data["response_metadata"]["next_cursor"]
             )
@@ -156,7 +200,7 @@ class SlackBotPlugin(BasePlugin):
         if not ArgumentParser.args.slack_bot_token:
             return
 
-        self.client = slack.WebClient(token=ArgumentParser.args.slack_bot_token)
+        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
         self.exit = threading.Event()
         self.users2id = {}
         self.emails2id = {}
@@ -276,6 +320,13 @@ class SlackBotPlugin(BasePlugin):
             default=os.environ.get("SLACK_BOT_TOKEN"),
             dest="slack_bot_token",
             type=str,
+        )
+        arg_parser.add_argument(
+            "--slack-include-archived",
+            help="Include archived slack channels",
+            dest="slack_include_archived",
+            action="store_true",
+            default=False,
         )
 
     def shutdown(self, event: Event):
