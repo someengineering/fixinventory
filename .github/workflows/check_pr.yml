@@ -7,7 +7,7 @@ jobs:
         runs-on: ubuntu-latest
         services:
             arangodb:
-                image: arangodb:3.7
+                image: arangodb:3.8
                 env:
                     ARANGO_ROOT_PASSWORD: root
                 ports:
