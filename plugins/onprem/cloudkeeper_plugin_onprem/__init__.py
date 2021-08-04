@@ -1,9 +1,8 @@
 import cloudkeeper.logging
 import socket
 from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
-from .resources import OnpremLocation, OnpremRegion, OnpremNetwork, OnpremInstance
+from .resources import OnpremLocation, OnpremRegion, OnpremNetwork
 from .ssh import instance_from_ssh
 from paramiko import ssh_exception
 

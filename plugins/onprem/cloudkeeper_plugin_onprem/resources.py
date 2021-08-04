@@ -1,7 +1,6 @@
 import cloudkeeper.logging
 
 from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import (
     BaseAccount,
     BaseRegion,
