@@ -64,7 +64,8 @@ def get_proc_meminfo(client: SSHClient):
     if err:
         raise RuntimeError(f"Error while executing {cmd}: {err}")
     meminfo = {
-        i[0].rstrip(":"): int(i[1]) for i in [l.split() for l in str(out).splitlines()]
+        i[0].rstrip(":"): int(i[1])
+        for i in [line.split() for line in str(out).splitlines()]
     }
     return meminfo
 
@@ -76,10 +77,10 @@ def get_proc_cpuinfo(client: SSHClient):
         raise RuntimeError(f"Error while executing {cmd}: {err}")
     cpuinfo = defaultdict(dict)
     num_core = "0"
-    for l in str(out).splitlines():
-        if len(l) == 0:
+    for line in str(out).splitlines():
+        if len(line) == 0:
             continue
-        k, v = l.split(":", 1)
+        k, v = line.split(":", 1)
         k = k.strip()
         v = v.strip()
         if k == "processor":
@@ -102,12 +103,12 @@ def get_ipv4_info(client: SSHClient):
             log.error(f"Error while executing {cmd}: {err}")
             continue
         src = None
-        for l in str(out).splitlines():
-            l = l.strip()
-            if l.startswith(dst) and "dev" in l and "src" in l:
-                l = l.split()
-                dev = l[l.index("dev") + 1]
-                src = l[l.index("src") + 1]
+        for line in str(out).splitlines():
+            line = line.strip()
+            if line.startswith(dst) and "dev" in line and "src" in line:
+                line = line.split()
+                dev = line[line.index("dev") + 1]
+                src = line[line.index("src") + 1]
                 break
         if dev is None or src is None:
             raise RuntimeError("Unable to determine IPv4 interface")
@@ -116,11 +117,11 @@ def get_ipv4_info(client: SSHClient):
         if err:
             raise RuntimeError(f"Error while executing {cmd}: {err}")
         ip = None
-        for l in str(out).splitlines():
-            l = l.strip()
-            if l.startswith("inet") and src in l:
-                l = l.split()
-                ip = l[1]
+        for line in str(out).splitlines():
+            line = line.strip()
+            if line.startswith("inet") and src in line:
+                line = line.split()
+                ip = line[1]
                 break
         if ip is None:
             raise RuntimeError("Unable to determine IP address")
@@ -134,7 +135,7 @@ def get_ipv4_info(client: SSHClient):
 
 
 def client_exec(client: SSHClient, command: str, timeout: float = None):
-    stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
+    _, stdout, stderr = client.exec_command(command, timeout=timeout)
     out = stdout.read().decode().strip()
     err = stderr.read().decode().strip()
     return (out, err)
