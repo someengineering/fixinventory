@@ -78,8 +78,8 @@ class Kind(ABC):
     def resolve(self, model: Dict[str, Kind]) -> None:
         pass
 
-    def kind_hierarchy(self) -> List[str]:
-        return [self.fqn]
+    def kind_hierarchy(self) -> Set[str]:
+        return {self.fqn}
 
     def package(self) -> Optional[str]:
         return self.fqn.rsplit(".", 1)[0] if "." in self.fqn else None
@@ -89,7 +89,8 @@ class Kind(ABC):
     def from_json(js: Json, _: type = object, **kwargs: object) -> Kind:
         if "fqn" in js and "properties" in js:
             props: List[Property] = list(map(lambda prop: from_js(prop, Property), js["properties"]))  # type: ignore
-            return Complex(js["fqn"], js.get("base"), props)
+            bases: List[str] = js.get("bases")  # type: ignore
+            return Complex(js["fqn"], bases, props)
         elif "inner" in js:
             inner = Kind.from_json(js["inner"])
             return Array(inner)
@@ -371,16 +372,16 @@ class Array(Kind):
 
 
 class ComplexBase(Kind):
-    def __init__(self, fqn: str, base: Union[str, None], properties: List[Property], allow_unknown_props: bool):
+    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool):
         super().__init__(fqn)
-        self.base = base
+        self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Kind] = dict()
         self.__all_props: List[Property] = list(self.properties)
-        self.__resolved_hierarchy: List[str] = [fqn]
+        self.__resolved_hierarchy: Set[str] = {fqn}
         self.__properties_kind_by_path: Dict[str, SimpleKind] = dict()
 
     def resolve(self, model: Dict[str, Kind]) -> None:
@@ -398,17 +399,18 @@ class ComplexBase(Kind):
             self.__properties_kind_by_path = self.__resolve_property_paths()
 
             # resolve the hierarchy
-            if self.base is not None and not self.is_root():
-                base: Kind = model[self.base]
-                base.resolve(model)
-                if isinstance(base, StringDict):
-                    raise TypeError("Can not inherit from simple dictionary!")
-                elif isinstance(base, ComplexBase):
-                    self.__resolved_kinds |= base.__resolved_kinds
-                    self.__all_props += base.__all_props
-                    self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
-                    self.__resolved_hierarchy = base.__resolved_hierarchy + [self.fqn]
-                    self.__properties_kind_by_path |= base.__properties_kind_by_path
+            if not self.is_root():
+                for base_name in self.bases:
+                    base: Kind = model[base_name]
+                    base.resolve(model)
+                    if isinstance(base, StringDict):
+                        raise TypeError("Can not inherit from simple dictionary!")
+                    elif isinstance(base, ComplexBase):
+                        self.__resolved_kinds |= base.__resolved_kinds
+                        self.__all_props += base.__all_props
+                        self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
+                        self.__resolved_hierarchy |= base.__resolved_hierarchy
+                        self.__properties_kind_by_path |= base.__properties_kind_by_path
         self.__resolved = True
 
     def __resolve_property_paths(self, from_path: str = "") -> Dict[str, SimpleKind]:
@@ -437,9 +439,9 @@ class ComplexBase(Kind):
         return self.__prop_by_name[name]
 
     def is_root(self) -> bool:
-        return self.base is None or self.base == self.fqn
+        return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
-    def kind_hierarchy(self) -> List[str]:
+    def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
     def property_kind_by_path(self) -> Dict[str, SimpleKind]:
@@ -475,13 +477,13 @@ class ComplexBase(Kind):
 
 
 class Complex(ComplexBase):
-    def __init__(self, fqn: str, base: Union[str, None], properties: List[Property]):
-        super().__init__(fqn, base, properties, False)
+    def __init__(self, fqn: str, bases: List[str], properties: List[Property]):
+        super().__init__(fqn, bases, properties, False)
 
 
 class StringDict(ComplexBase, Internal):
     def __init__(self, fqn: str):
-        super().__init__(fqn, None, [], True)
+        super().__init__(fqn, [], [], True)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
@@ -503,7 +505,7 @@ predefined_kinds = [
     StringDict("dictionary"),
     Complex(
         "graph_root",
-        None,
+        [],
         [
             Property("kind", "string", True, "Kind of this node."),
             Property("name", "string", False, "The name of this node."),
@@ -566,10 +568,11 @@ class Model:
     def graph(self) -> DiGraph:
         graph = DiGraph()
 
-        def handle_complex(base: ComplexBase) -> None:
-            graph.add_node(base.fqn, data=base)
-            if not base.is_root():
-                graph.add_edge(base.fqn, base.base)
+        def handle_complex(cx: ComplexBase) -> None:
+            graph.add_node(cx.fqn, data=cx)
+            if not cx.is_root():
+                for base in cx.bases:
+                    graph.add_edge(cx.fqn, base)
 
         for kind in self.kinds.values():
             if isinstance(kind, ComplexBase) and not isinstance(kind, Internal):

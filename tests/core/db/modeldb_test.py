@@ -23,7 +23,7 @@ def test_model() -> List[Kind]:
     bool_kind = BooleanKind("some.bool")
     base = Complex(
         "base",
-        None,
+        [],
         [
             Property("identifier", "string", required=True),
             Property("kind", "string", required=True),
@@ -31,7 +31,7 @@ def test_model() -> List[Kind]:
     )
     foo = Complex(
         "foo",
-        "base",
+        ["base"],
         [
             Property("name", "string"),
             Property("some_int", "some.int"),
@@ -41,7 +41,7 @@ def test_model() -> List[Kind]:
     )
     bla = Complex(
         "bla",
-        "base",
+        ["base"],
         [
             Property("name", "string"),
             Property("now", "date"),

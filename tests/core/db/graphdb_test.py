@@ -96,7 +96,7 @@ def create_graph(bla_text: str, width: int = 10) -> DiGraph:
 def foo_model() -> Model:
     base = Complex(
         "base",
-        None,
+        [],
         [
             Property("identifier", "string", required=True),
             Property("kind", "string", required=True),
@@ -104,7 +104,7 @@ def foo_model() -> Model:
     )
     foo = Complex(
         "foo",
-        "base",
+        ["base"],
         [
             Property("name", "string"),
             Property("some_int", "int32"),
@@ -114,7 +114,7 @@ def foo_model() -> Model:
     )
     bla = Complex(
         "bla",
-        "base",
+        ["base"],
         [
             Property("name", "string"),
             Property("now", "date"),

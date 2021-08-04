@@ -36,7 +36,7 @@ def test_json_marshalling() -> None:
     roundtrip(
         Complex(
             "Test",
-            "Base",
+            ["Base"],
             [
                 Property("array", "string[]"),
                 Property("s", "float"),
@@ -111,7 +111,7 @@ def test_date() -> None:
 
 
 def test_dictionary() -> None:
-    address = Complex("Foo", None, [Property("tags", "dictionary"), Property("kind", "string")])
+    address = Complex("Foo", [], [Property("tags", "dictionary"), Property("kind", "string")])
     model = Model.from_kinds([address])
     assert model.check_valid({"kind": "Foo", "tags": {"a": "b", "b": "c"}}) is None
     expected = 'Kind:Foo Property:tags is not valid: dictionary allows for simple key/value strings, but got a:1: {"kind": "Foo", "tags": {"a": 1, "b": "c"}}'
@@ -119,10 +119,10 @@ def test_dictionary() -> None:
 
 
 def test_array() -> None:
-    foo = Complex("Foo", None, [Property("tags", "dictionary"), Property("kind", "string")])
+    foo = Complex("Foo", [], [Property("tags", "dictionary"), Property("kind", "string")])
     complex_kind = Complex(
         "TestArray",
-        None,
+        [],
         [
             Property("kind", "string"),
             Property("los", "string[]"),
@@ -195,14 +195,14 @@ def test_property_path(person_model: Model) -> None:
 
 def test_update(person_model: Model) -> None:
     with pytest.raises(AttributeError) as not_allowed:  # update city is removed
-        person_model.update_kinds([Complex("Address", "Base", [])])
+        person_model.update_kinds([Complex("Address", ["Base"], [])])
     assert str(not_allowed.value) == "Update Address existing required property city cannot be removed!"
     with pytest.raises(AttributeError) as not_allowed:  # update city as not required
         person_model.update_kinds(
             [
                 Complex(
                     "Address",
-                    "Base",
+                    ["Base"],
                     [
                         Property("city", "string"),
                     ],
@@ -215,7 +215,7 @@ def test_update(person_model: Model) -> None:
             [
                 Complex(
                     "Address",
-                    "Base",
+                    ["Base"],
                     [
                         Property("city", "int32", required=True),
                     ],
@@ -230,10 +230,10 @@ def test_update(person_model: Model) -> None:
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
     with pytest.raises(AttributeError) as simple:
-        updated.update_kinds([Complex("Foo", None, [])])
+        updated.update_kinds([Complex("Foo", [], [])])
     assert str(simple.value) == "Update Foo changes an existing property type Foo"
     with pytest.raises(AttributeError) as duplicate:
-        updated.update_kinds([Complex("Bla", None, [Property("id", "int32")])])
+        updated.update_kinds([Complex("Bla", [], [Property("id", "int32")])])
     assert (
         str(duplicate.value)
         == "Update not possible. Following properties would be non unique having the same path but different type: id"
@@ -243,8 +243,8 @@ def test_update(person_model: Model) -> None:
 def test_load(model_json: str) -> None:
     kinds: List[Kind] = [from_js(a, Kind) for a in json.loads(model_json)]  # type: ignore
     model = Model.from_kinds(kinds)
-    assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32}) is None
-    assert model["test.EC2"].kind_hierarchy() == ["test.Compound", "test.BaseResource", "test.EC2"]
+    assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32, "tags": {}}) is None
+    assert model["test.EC2"].kind_hierarchy() == {"test.Compound", "test.BaseResource", "test.Base", "test.EC2"}
 
 
 def test_graph(person_model: Model) -> None:
@@ -272,7 +272,7 @@ def person_model() -> Model:
     zip = StringKind("zip")
     base = Complex(
         "Base",
-        None,
+        [],
         [
             Property("id", "string", required=True),
             Property("kind", "string", required=True),
@@ -282,7 +282,7 @@ def person_model() -> Model:
     )
     address = Complex(
         "Address",
-        "Base",
+        ["Base"],
         [
             Property("zip", "zip"),
             Property("city", "string", required=True),
@@ -290,7 +290,7 @@ def person_model() -> Model:
     )
     person = Complex(
         "Person",
-        "Base",
+        ["Base"],
         [
             Property("name", "string"),
             Property("address", "Address"),
@@ -309,16 +309,21 @@ def model_json() -> str:
           { "name": "kind", "kind": "string", "required": true, "description": "The kind of this compound type." }
         ]
       },
-      { "fqn" :  "test.BaseResource",
-        "base": "test.Compound",
+      {
+        "fqn": "test.Base",
         "properties": [
-          { "name": "id", "kind": "string", "description": "The identifier of this resource", "required": true },
-          { "name": "name", "kind": "string", "description": "The name of the resource.", "required": true },
           { "name": "tags", "kind": "dictionary", "description": "Tags that describe the resource.", "required": false }
         ]
       },
+      { "fqn" :  "test.BaseResource",
+        "bases": ["test.Compound", "test.Base"],
+        "properties": [
+          { "name": "id", "kind": "string", "description": "The identifier of this resource", "required": true },
+          { "name": "name", "kind": "string", "description": "The name of the resource.", "required": true }
+        ]
+      },
       { "fqn" :  "test.EC2",
-        "base": "test.BaseResource",
+        "bases": ["test.BaseResource"],
         "properties": [
           { "name": "mem", "kind": "int32", "description": "The amount of bytes", "required": true },
           { "name": "cores", "kind": "int32", "description": "The amount of cores", "required": true }

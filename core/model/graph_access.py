@@ -116,7 +116,7 @@ class GraphAccess:
         sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(js)
         flat = node["flat"] if "flat" in node else GraphBuilder.flatten(js)
         kinds = (
-            node["kind"].kind_hierarchy()
+            list(node["kind"].kind_hierarchy())
             if "kind" in node
             else [js["kind"]]
             if "kind" in js
