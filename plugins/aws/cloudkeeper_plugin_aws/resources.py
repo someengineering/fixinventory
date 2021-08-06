@@ -57,7 +57,7 @@ class AWSEC2InstanceQuota(AWSResource, BaseInstanceQuota):
 class AWSEC2Instance(AWSResource, BaseInstance):
     resource_type: ClassVar[str] = "aws_ec2_instance"
 
-    instance_status_map = {
+    instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "pending": InstanceStatus.BUSY,
         "running": InstanceStatus.RUNNING,
         "shutting-down": InstanceStatus.BUSY,
