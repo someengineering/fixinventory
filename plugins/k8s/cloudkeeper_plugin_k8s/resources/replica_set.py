@@ -3,15 +3,15 @@ from .common import KubernetesResource
 from cloudkeeper.baseresources import (
     BaseResource,
 )
+from typing import ClassVar, Dict
+from dataclasses import dataclass
 
 
+@dataclass(eq=False)
 class KubernetesReplicaSet(KubernetesResource, BaseResource):
-    resource_type = "kubernetes_replica_set"
-    api = client.AppsV1Api
-    list_method = "list_replica_set_for_all_namespaces"
+    resource_type: ClassVar[str] = "kubernetes_replica_set"
+    api: ClassVar[object] = client.AppsV1Api
+    list_method: ClassVar[str] = "list_replica_set_for_all_namespaces"
+    attr_map: ClassVar[Dict] = {"replicas": lambda r: r.spec.replicas}
 
-    attr_map = {"replicas": lambda r: r.spec.replicas}
-
-    def __init__(self, *args, replicas: int = 0, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.replicas = int(replicas)
+    replicas: int = 0

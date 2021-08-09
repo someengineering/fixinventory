@@ -5,7 +5,6 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.graph import Graph
 from cloudkeeper.utils import RWLock
 import cloudkeeper.logging
-import dataclasses
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError as GoogleApiClientHttpError

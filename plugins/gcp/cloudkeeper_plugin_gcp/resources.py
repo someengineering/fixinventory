@@ -28,7 +28,6 @@ from cloudkeeper.baseresources import (
     BaseBucket,
     BaseDatabase,
 )
-from networkx.generators.random_graphs import fast_gnp_random_graph
 from .utils import (
     gcp_service,
     paginate,

@@ -813,9 +813,10 @@ class GCPProjectCollector:
                 try:
                     if resource.region(graph).name not in sku.geo_taxonomy_regions:
                         continue
-                except TypeError as e:
+                except TypeError:
                     log.exception(
-                        f"Problem accessing geo_taxonomy_regions in {sku.rtdname}: {type(sku.geo_taxonomy_regions)}"
+                        f"Problem accessing geo_taxonomy_regions in {sku.rtdname}:"
+                        f" {type(sku.geo_taxonomy_regions)}"
                     )
                 if resource.name == "pd-balanced" and not sku.name.startswith(
                     "Balanced"

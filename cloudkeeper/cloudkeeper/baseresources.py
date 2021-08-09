@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
-from dataclasses import dataclass, InitVar, field
+from dataclasses import dataclass, field
 
 
 log = cloudkeeper.logging.getLogger(__name__)
