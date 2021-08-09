@@ -635,8 +635,13 @@ class PhantomBaseResource(BaseResource):
 
 @dataclass(eq=False)
 class BaseQuota(PhantomBaseResource):
-    quota: int = -1
-    usage: int = 0
+    quota: float = -1.0
+    usage: float = 0.0
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.quota = float(self.quota)
+        self.usage = float(self.usage)
 
     @property
     def usage_percentage(self) -> float:
@@ -981,7 +986,7 @@ class BaseSnapshot(BaseResource):
     volume_id: Optional[str] = None
     volume_size: int = 0
     encrypted: bool = False
-    owner_id: Optional[int] = None
+    owner_id: Optional[str] = None
     owner_alias: str = ""
 
     def metrics(self, graph) -> Dict:

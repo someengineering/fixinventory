@@ -19,8 +19,8 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 @dataclass(eq=False)
 class AWSAccount(BaseAccount):
     resource_type: ClassVar[str] = "aws_account"
-    account_alias: str = ""
-    role: str = None
+    account_alias: Optional[str] = ""
+    role: Optional[str] = None
 
     def delete(self, graph) -> bool:
         return False
@@ -37,7 +37,7 @@ class AWSRegion(BaseRegion):
 
 @dataclass(eq=False)
 class AWSResource:
-    arn: str = None
+    arn: Optional[str] = None
 
     def delete(self, graph) -> bool:
         return False
@@ -262,14 +262,14 @@ class AWSEC2Subnet(AWSResource, BaseSubnet):
 @dataclass(eq=False)
 class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
     resource_type: ClassVar[str] = "aws_ec2_elastic_ip"
-    instance_id: str = None
-    public_ip: str = None
-    allocation_id: str = None
-    association_id: str = None
-    domain: str = None
-    network_interface_id: str = None
-    network_interface_owner_id: str = None
-    private_ip_address: str = None
+    instance_id: Optional[str] = None
+    public_ip: Optional[str] = None
+    allocation_id: Optional[str] = None
+    association_id: Optional[str] = None
+    domain: Optional[str] = None
+    network_interface_id: Optional[str] = None
+    network_interface_owner_id: Optional[str] = None
+    private_ip_address: Optional[str] = None
     release_on_delete: bool = False
 
     def pre_delete(self, graph: Graph) -> bool:
@@ -825,7 +825,7 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
 @dataclass(eq=False)
 class AWSIAMAccessKey(AWSResource, BaseAccessKey):
     resource_type: ClassVar[str] = "aws_iam_access_key"
-    user_name: str = None
+    user_name: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
@@ -1074,8 +1074,8 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
     dimensions: List = field(default_factory=list)
     evaluation_periods: int = 0
     insufficient_data_actions: List = field(default_factory=list)
-    metric_name: int = ""
-    namespace: int = ""
+    metric_name: str = ""
+    namespace: str = ""
     ok_actions: List = field(default_factory=list)
     period: int = 0
     state_value: str = ""

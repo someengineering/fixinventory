@@ -1,5 +1,5 @@
 import time
-from typing import Dict, ClassVar, List
+from typing import Dict, ClassVar, List, Optional
 from datetime import datetime
 from cloudkeeper.baseresources import (
     BaseAccount,
@@ -45,13 +45,13 @@ class SlackRegion(SlackResource, BaseRegion):
 class SlackUser(SlackResource, BaseUser):
     resource_type: ClassVar[str] = "slack_user"
 
-    real_name: str = None
-    team_id: str = None
+    real_name: Optional[str] = None
+    team_id: Optional[str] = None
     deleted: bool = None
-    color: str = None
-    tz: str = None
-    tz_label: str = None
-    tz_offset: str = None
+    color: Optional[str] = None
+    tz: Optional[str] = None
+    tz_label: Optional[str] = None
+    tz_offset: Optional[int] = None
     is_admin: bool = None
     is_app_user: bool = None
     is_bot: bool = None
@@ -59,26 +59,26 @@ class SlackUser(SlackResource, BaseUser):
     is_primary_owner: bool = None
     is_restricted: bool = None
     is_ultra_restricted: bool = None
-    email: str = None
-    phone: str = None
-    status_emoji: str = None
-    status_expiration: int = None
-    status_text: str = None
-    status_text_canonical: str = None
-    title: str = None
-    guest_invited_by: str = None
-    first_name: str = None
-    last_name: str = None
-    skype: str = None
-    display_name: str = None
-    display_name_normalized: str = None
-    image_24: str = None
-    image_32: str = None
-    image_48: str = None
-    image_72: str = None
-    image_192: str = None
-    image_512: str = None
-    real_name_normalized: str = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    status_emoji: Optional[str] = None
+    status_expiration: Optional[int] = None
+    status_text: Optional[str] = None
+    status_text_canonical: Optional[str] = None
+    title: Optional[str] = None
+    guest_invited_by: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    skype: Optional[str] = None
+    display_name: Optional[str] = None
+    display_name_normalized: Optional[str] = None
+    image_24: Optional[str] = None
+    image_32: Optional[str] = None
+    image_48: Optional[str] = None
+    image_72: Optional[str] = None
+    image_192: Optional[str] = None
+    image_512: Optional[str] = None
+    real_name_normalized: Optional[str] = None
 
     @staticmethod
     def new(member: Dict) -> BaseUser:
@@ -132,18 +132,18 @@ class SlackUser(SlackResource, BaseUser):
 class SlackUsergroup(SlackResource, BaseGroup):
     resource_type: ClassVar[str] = "slack_usergroup"
 
-    auto_provision: str = None
-    auto_type: str = None
-    created_by: str = None
-    description: str = None
-    enterprise_subteam_id: str = None
-    handle: str = None
+    auto_provision: bool = None
+    auto_type: Optional[str] = None
+    created_by: Optional[str] = None
+    description: Optional[str] = None
+    enterprise_subteam_id: Optional[str] = None
+    handle: Optional[str] = None
     is_external: bool = None
     is_subteam: bool = None
     is_usergroup: bool = None
-    team_id: str = None
-    updated_by: str = None
-    user_count: int = None
+    team_id: Optional[str] = None
+    updated_by: Optional[str] = None
+    user_count: Optional[int] = None
     _users: List = field(default_factory=list, repr=False)
     _channels: List = field(default_factory=list, repr=False)
     _groups: List = field(default_factory=list, repr=False)
@@ -154,7 +154,7 @@ class SlackUsergroup(SlackResource, BaseGroup):
         return SlackUsergroup(
             id=usergroup.get("id"),
             name=usergroup.get("name"),
-            auto_provision=usergroup.get("auto_provision"),
+            auto_provision=usergroup.get("auto_provision", False),
             auto_type=usergroup.get("auto_type"),
             created_by=usergroup.get("created_by"),
             description=usergroup.get("description"),
@@ -178,33 +178,33 @@ class SlackUsergroup(SlackResource, BaseGroup):
 class SlackConversation(SlackResource, BaseResource):
     resource_type: ClassVar[str] = "slack_conversation"
 
-    creator: str = None
-    is_archived: str = None
-    is_channel: str = None
-    is_ext_shared: str = None
-    is_general: str = None
-    is_group: str = None
-    is_im: str = None
-    is_member: str = None
-    is_mpim: str = None
-    is_org_shared: str = None
-    is_pending_ext_shared: str = None
-    is_private: str = None
-    is_shared: str = None
-    name_normalized: str = None
-    num_members: str = None
-    parent_conversation: str = None
-    pending_connected_team_ids: str = None
+    creator: Optional[str] = None
+    is_archived: bool = None
+    is_channel: bool = None
+    is_ext_shared: bool = None
+    is_general: bool = None
+    is_group: bool = None
+    is_im: bool = None
+    is_member: bool = None
+    is_mpim: bool = None
+    is_org_shared: bool = None
+    is_pending_ext_shared: bool = None
+    is_private: bool = None
+    is_shared: bool = None
+    name_normalized: Optional[str] = None
+    num_members: Optional[int] = None
+    parent_conversation: Optional[str] = None
+    pending_connected_team_ids: List[str] = None
     pending_shared: List[str] = field(default_factory=list)
     previous_names: List[str] = field(default_factory=list)
     shared_team_ids: List[str] = field(default_factory=list)
-    unlinked: str = None
-    topic: str = None
-    topic_creator: str = None
-    topic_last_set: int = None
-    purpose: str = None
-    purpose_creator: str = None
-    purpose_last_set: int = None
+    unlinked: Optional[int] = None
+    topic: Optional[str] = None
+    topic_creator: Optional[str] = None
+    topic_last_set: Optional[int] = None
+    purpose: Optional[str] = None
+    purpose_creator: Optional[str] = None
+    purpose_last_set: Optional[int] = None
 
     @staticmethod
     def new(channel: Dict) -> BaseResource:

@@ -9,7 +9,7 @@ from cloudkeeper.utils import make_valid_timestamp
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
 from cloudkeeper.graph import Graph
 from dataclasses import dataclass
-from typing import ClassVar, List
+from typing import ClassVar, Optional, Dict, List
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -33,46 +33,46 @@ class OneLoginRegion(OneLoginResource, BaseRegion):
 @dataclass(eq=False)
 class OneLoginUser(OneLoginResource, BaseUser):
     resource_type: ClassVar[str] = "onelogin_user"
-    user_id: str = None
-    external_id: str = None
-    email: str = None
-    username: str = None
-    firstname: str = None
-    lastname: str = None
-    distinguished_name: str = None
-    phone: str = None
-    company: str = None
-    department: str = None
-    title: str = None
-    status: int = None
-    member_of: str = None
-    samaccountname: str = None
-    userprincipalname: str = None
-    group_id: int = None
-    role_ids: int = None
-    custom_attributes: List = None
-    openid_name: str = None
-    locale_code: str = None
-    comment: str = None
-    directory_id: int = None
-    manager_ad_id: int = None
-    trusted_idp_id: int = None
-    manager_user_id: str = None
-    activated_at: datetime = None
-    created_at: datetime = None
-    updated_at: datetime = None
-    password_changed_at: datetime = None
-    invitation_sent_at: datetime = None
-    invalid_login_attempts: int = None
-    last_login: datetime = None
-    locked_until: datetime = None
-    state: int = None
-    password_age: timedelta = None
+    user_id: Optional[int] = None
+    external_id: Optional[str] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    distinguished_name: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    department: Optional[str] = None
+    title: Optional[str] = None
+    status: Optional[int] = None
+    member_of: Optional[str] = None
+    samaccountname: Optional[str] = None
+    userprincipalname: Optional[str] = None
+    group_id: Optional[int] = None
+    role_ids: Optional[List[int]] = None
+    custom_attributes: Optional[Dict[str, str]] = None
+    openid_name: Optional[str] = None
+    locale_code: Optional[str] = None
+    comment: Optional[str] = None
+    directory_id: Optional[int] = None
+    manager_ad_id: Optional[int] = None
+    trusted_idp_id: Optional[int] = None
+    manager_user_id: Optional[str] = None
+    activated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    password_changed_at: Optional[datetime] = None
+    invitation_sent_at: Optional[datetime] = None
+    invalid_login_attempts: Optional[int] = None
+    last_login: Optional[datetime] = None
+    locked_until: Optional[datetime] = None
+    state: Optional[int] = None
+    password_age: Optional[timedelta] = None
 
     @staticmethod
     def new(user: User) -> BaseUser:
         return OneLoginUser(
-            id=user.id,
+            id=str(user.id),
             tags={},
             name=user.username,
             user_id=user.id,
