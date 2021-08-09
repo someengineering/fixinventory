@@ -6,17 +6,18 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
-from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Tuple
+from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Sequence
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from durations_nlp import Duration
 from jsons import set_deserializer, set_serializer
 from networkx import DiGraph
+from parsy import regex, string, Parser
 
 from core.model.typed_model import from_js
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
-from core.util import if_set
+from core.util import if_set, make_parser
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -62,14 +63,82 @@ class Property:
         self.required = required
         self.description = description
 
+    def resolve(self, model: Dict[str, Kind]) -> Kind:
+        return Property.parse_kind(self.kind, model)
 
-class Internal:
-    pass
+    @staticmethod
+    def parse_kind(name: str, model: Dict[str, Kind]) -> Kind:
+        def kind_by_name(kind_name: str) -> Kind:
+            if kind_name not in model:
+                raise AttributeError(f"Property kind is not known: {kind_name}. Have you registered it?")
+            return model[kind_name]
+
+        simple_kind_parser = regex("[A-Za-z][A-Za-z0-9]*").map(kind_by_name)
+        bracket_parser = string("[]")
+        dict_string_parser = string("dictionary[")
+        comma_parser = regex("\\s*,\\s*")
+        bracket_r = string("]")
+
+        @make_parser
+        def array_parser() -> Parser:
+            inner = yield dictionary_parser | simple_kind_parser
+            brackets = yield bracket_parser.times(1, float("inf"))
+            return ArrayKind.mk_array(inner, len(brackets))
+
+        @make_parser
+        def dictionary_parser() -> Parser:
+            yield dict_string_parser
+            key_kind: Kind = yield simple_kind_parser
+            yield comma_parser
+            value_kind = yield array_parser | dictionary_parser | simple_kind_parser
+            yield bracket_r
+            return Dictionary(key_kind, value_kind)
+
+        return (array_parser | dictionary_parser | simple_kind_parser).parse(name)  # type: ignore
+
+
+class PropertyPath:
+    @staticmethod
+    def from_path(path: str) -> PropertyPath:
+        return PropertyPath(path.split("."))
+
+    def __init__(self, path: Sequence[Optional[str]]):
+        self.path = path
+
+    @property
+    def root(self) -> bool:
+        return not bool(self.path)
+
+    def child(self, part: Optional[str]) -> PropertyPath:
+        update = list(self.path)
+        update.append(part)
+        return PropertyPath(update)
+
+    def __repr__(self) -> str:
+        return ".".join(a if a else "" for a in self.path)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, PropertyPath) and len(other.path) == len(self.path):
+            for left, right in zip(self.path, other.path):
+                if left is not None and right is not None and left != right:
+                    return False
+            return True
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return len(self.path)
+
+
+EmptyPath = PropertyPath([])
 
 
 class Kind(ABC):
     def __init__(self, fqn: str):
         self.fqn = fqn
+
+    def __eq__(self, other: object) -> bool:
+        return self.__dict__ == other.__dict__ if isinstance(other, Kind) else False
 
     @abstractmethod
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
@@ -87,13 +156,9 @@ class Kind(ABC):
     # noinspection PyUnusedLocal
     @staticmethod
     def from_json(js: Json, _: type = object, **kwargs: object) -> Kind:
-        if "fqn" in js and "properties" in js:
-            props: List[Property] = list(map(lambda prop: from_js(prop, Property), js["properties"]))  # type: ignore
-            bases: List[str] = js.get("bases")  # type: ignore
-            return Complex(js["fqn"], bases, props)
-        elif "inner" in js:
+        if "inner" in js:
             inner = Kind.from_json(js["inner"])
-            return Array(inner)
+            return ArrayKind(inner)
         elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in SimpleKind.Kind_to_type:
             fqn = js["fqn"]
             rk = js["runtime_kind"]
@@ -116,8 +181,18 @@ class Kind(ABC):
                 return BooleanKind(fqn)
             else:
                 raise TypeError(f"Unhandled runtime kind: {rk}")
+        elif "fqn" in js and ("properties" in js or "bases" in js):
+            props: List[Property] = list(map(lambda p: from_js(p, Property), js.get("properties", [])))  # type: ignore
+            bases: List[str] = js.get("bases")  # type: ignore
+            allow_unknown_props = js.get("allow_unknown_props", False)
+            return Complex(js["fqn"], bases, props, allow_unknown_props)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
+
+
+class AnyKind(Kind):
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        return None
 
 
 class SimpleKind(Kind, ABC):
@@ -331,7 +406,7 @@ class DateKind(SimpleKind):
             raise AttributeError(f"Expected date but got: >{value}<") from ex
 
 
-class Array(Kind):
+class ArrayKind(Kind):
     def __init__(self, inner: Kind):
         super().__init__(f"{inner.fqn}[]")
         self.inner = inner
@@ -356,23 +431,38 @@ class Array(Kind):
         mapped = [check(elem) for elem in obj]
         return mapped if has_coerced else None
 
-    RE = re.compile("([^\\[]+)((\\[])+)")
-
-    @staticmethod
-    def test_array(name: str) -> Tuple[str, bool, int]:
-        m = Array.RE.fullmatch(name)
-        if m:
-            return m.group(1), True, len(m.group(2)) // 2
-        else:
-            return name, False, 0
-
     @staticmethod
     def mk_array(kind: Kind, depth: int) -> Kind:
-        return kind if depth == 0 else Array(Array.mk_array(kind, depth - 1))
+        return kind if depth == 0 else ArrayKind(ArrayKind.mk_array(kind, depth - 1))
 
 
-class ComplexBase(Kind):
-    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool):
+class Dictionary(Kind):
+    def __init__(self, key_kind: Kind, value_kind: Kind):
+        super().__init__(f"dictionary[{key_kind.fqn}, {value_kind.fqn}]")
+        self.key_kind = key_kind
+        self.value_kind = value_kind
+
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        if isinstance(obj, dict):
+            for prop, value in obj.items():
+                part = "key"
+                try:
+                    self.key_kind.check_valid(prop)
+                    part = "value"
+                    self.value_kind.check_valid(value)
+                except Exception as at:
+                    raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
+            return None
+        else:
+            raise AttributeError(f"dictionary requires a json object, but got this: {obj}")
+
+    def resolve(self, model: Dict[str, Kind]) -> None:
+        self.key_kind.resolve(model)
+        self.value_kind.resolve(model)
+
+
+class Complex(Kind):
+    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool = False):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
@@ -382,18 +472,15 @@ class ComplexBase(Kind):
         self.__resolved_kinds: Dict[str, Kind] = dict()
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__properties_kind_by_path: Dict[str, SimpleKind] = dict()
+        self.__properties_kind_by_path: Dict[PropertyPath, SimpleKind] = dict()
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
             # resolve properties
             for prop in self.properties:
-                kind_name, is_array, depth = Array.test_array(prop.kind)
-                if kind_name not in model:
-                    raise AttributeError(f"Property kind is not known: {kind_name}. Have you registered it?")
-                kind = model[kind_name]
+                kind = prop.resolve(model)
                 kind.resolve(model)
-                self.__resolved_kinds[prop.name] = Array.mk_array(kind, depth) if is_array else kind
+                self.__resolved_kinds[prop.name] = kind
 
             # property path -> kind
             self.__properties_kind_by_path = self.__resolve_property_paths()
@@ -403,9 +490,7 @@ class ComplexBase(Kind):
                 for base_name in self.bases:
                     base: Kind = model[base_name]
                     base.resolve(model)
-                    if isinstance(base, StringDict):
-                        raise TypeError("Can not inherit from simple dictionary!")
-                    elif isinstance(base, ComplexBase):
+                    if isinstance(base, Complex):
                         self.__resolved_kinds |= base.__resolved_kinds
                         self.__all_props += base.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
@@ -413,20 +498,24 @@ class ComplexBase(Kind):
                         self.__properties_kind_by_path |= base.__properties_kind_by_path
         self.__resolved = True
 
-    def __resolve_property_paths(self, from_path: str = "") -> Dict[str, SimpleKind]:
-        def path_for(prop: Property, kind: Kind, path: str, array: bool = False) -> Dict[str, SimpleKind]:
-            root = "" if path == "" else f"{path}."
+    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, SimpleKind]:
+        def path_for(
+            prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
+        ) -> Dict[PropertyPath, SimpleKind]:
             arr = "[]" if array else ""
+            relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
-                return {f"{root}{prop.name}{arr}": kind}
-            elif isinstance(kind, Array):
-                return path_for(prop, kind.inner, root, True)
-            elif isinstance(kind, ComplexBase):
-                return kind.__resolve_property_paths(f"{root}{prop.name}{arr}")
+                return {relative if add_prop_to_path else path: kind}
+            elif isinstance(kind, ArrayKind):
+                return path_for(prop, kind.inner, path, True)
+            elif isinstance(kind, Dictionary):
+                return path_for(prop, kind.value_kind, relative.child(None), add_prop_to_path=False)
+            elif isinstance(kind, Complex):
+                return kind.__resolve_property_paths(relative)
             else:
                 return {}
 
-        result: Dict[str, SimpleKind] = {}
+        result: Dict[PropertyPath, SimpleKind] = {}
         for x in self.properties:
             result |= path_for(x, self.__resolved_kinds[x.name], from_path)
 
@@ -444,7 +533,7 @@ class ComplexBase(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    def property_kind_by_path(self) -> Dict[str, SimpleKind]:
+    def property_kind_by_path(self) -> Dict[PropertyPath, SimpleKind]:
         if not self.__resolved:
             raise AttributeError(f"property_kind_by_path {self.fqn}: References are not resolved yet!")
         return self.__properties_kind_by_path
@@ -463,6 +552,9 @@ class ComplexBase(Kind):
                         raise AttributeError(
                             f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}"
                         ) from at
+                elif name == "kind":
+                    # ok since kind is the type discriminator
+                    pass
                 elif not self.allow_unknown_props:
                     raise AttributeError(f"Kind:{self.fqn} Property:{name} is not defined in model!")
             if not kwargs.get("ignore_missing"):
@@ -476,23 +568,6 @@ class ComplexBase(Kind):
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
 
-class Complex(ComplexBase):
-    def __init__(self, fqn: str, bases: List[str], properties: List[Property]):
-        super().__init__(fqn, bases, properties, False)
-
-
-class StringDict(ComplexBase, Internal):
-    def __init__(self, fqn: str):
-        super().__init__(fqn, [], [], True)
-
-    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        if isinstance(obj, dict):
-            for prop, value in obj.items():
-                if not isinstance(prop, str) or not isinstance(value, str):
-                    raise AttributeError(f"dictionary allows for simple key/value strings, but got {prop}:{value}")
-        return None
-
-
 predefined_kinds = [
     StringKind("string"),
     NumberKind("int32", "int32"),
@@ -502,7 +577,7 @@ predefined_kinds = [
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
-    StringDict("dictionary"),
+    AnyKind("any"),
     Complex(
         "graph_root",
         [],
@@ -510,7 +585,7 @@ predefined_kinds = [
             Property("kind", "string", True, "Kind of this node."),
             Property("name", "string", False, "The name of this node."),
             Property("label", "string", False, "The label of this node."),
-            Property("tags", "dictionary", False, "All attached tags of this node."),
+            Property("tags", "dictionary[string, string]", False, "All attached tags of this node."),
         ],
     ),
 ]
@@ -531,9 +606,9 @@ class Model:
 
     def __init__(self, kinds: Dict[str, Kind]):
         self.kinds = kinds
-        complexes = (k for k in kinds.values() if isinstance(k, ComplexBase))
-        paths: Dict[str, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
-        self.property_kind_by_path = paths
+        complexes = (k for k in kinds.values() if isinstance(k, Complex))
+        paths: Dict[PropertyPath, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
+        self.__property_kind_by_path = paths
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
@@ -551,10 +626,11 @@ class Model:
         else:
             raise KeyError(f"Expected string or json with a 'kind' property as key but got: {name_or_object}")
 
-    def kind_by_path(self, path: str) -> SimpleKind:
-        if path not in self.property_kind_by_path:
+    def kind_by_path(self, path_: str) -> SimpleKind:
+        path = PropertyPath.from_path(path_)
+        if path not in self.__property_kind_by_path:
             raise AttributeError(f"Query contains a predicate path {path} which is not defined in the model!")
-        return self.property_kind_by_path[path]
+        return self.__property_kind_by_path[path]
 
     def check_valid(self, js: Json, **kwargs: bool) -> ValidationResult:
         try:
@@ -568,15 +644,20 @@ class Model:
     def graph(self) -> DiGraph:
         graph = DiGraph()
 
-        def handle_complex(cx: ComplexBase) -> None:
+        def handle_complex(cx: Complex) -> None:
             graph.add_node(cx.fqn, data=cx)
             if not cx.is_root():
                 for base in cx.bases:
                     graph.add_edge(cx.fqn, base)
 
         for kind in self.kinds.values():
-            if isinstance(kind, ComplexBase) and not isinstance(kind, Internal):
+            if isinstance(kind, Complex):
                 handle_complex(kind)
+            elif isinstance(kind, ArrayKind) and isinstance(kind.inner, Complex):
+                handle_complex(kind.inner)
+            elif isinstance(kind, Dictionary) and isinstance(kind.value_kind, Complex):
+                handle_complex(kind.value_kind)
+
         return graph
 
     def update_kinds(self, kinds: List[Kind]) -> Model:
@@ -589,7 +670,7 @@ class Model:
             # - no required property is removed or marked as not required
             if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
-            elif isinstance(from_kind, ComplexBase) and isinstance(to_kind, ComplexBase):
+            elif isinstance(from_kind, Complex) and isinstance(to_kind, Complex):
                 for prop in from_kind.properties:
                     if prop.required and (prop.name not in to_kind):
                         raise AttributeError(f"{hint()} existing required property {prop.name} cannot be removed!")
@@ -607,14 +688,14 @@ class Model:
             update_is_valid(self.kinds[name], updates[name])
 
         # check if no property path is overlapping
-        def check(all_paths: Dict[str, SimpleKind], kind: Kind) -> Dict[str, SimpleKind]:
-            if isinstance(kind, ComplexBase):
+        def check(all_paths: Dict[PropertyPath, SimpleKind], kind: Kind) -> Dict[PropertyPath, SimpleKind]:
+            if isinstance(kind, Complex):
                 paths = kind.property_kind_by_path()
                 intersect = paths.keys() & all_paths.keys()
                 # Filter out duplicates that have the same kind
                 non_unique = list(filter(lambda k: paths[k].fqn != all_paths[k].fqn, intersect))
                 if non_unique:
-                    message = ", ".join(non_unique)
+                    message = ", ".join(repr(a) for a in non_unique)
                     raise AttributeError(
                         f"Update not possible. Following properties would be non unique having "
                         f"the same path but different type: {message}"

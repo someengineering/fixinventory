@@ -1,16 +1,12 @@
 from functools import reduce
-from typing import Callable
 
-from parsy import string, regex, digit, generate, success, Parser
+from parsy import string, regex, digit, success, Parser
 
 from core.model.graph_access import EdgeType
 from core.query.model import Predicate, CombinedTerm, IsInstanceTerm, Part, Navigation, Query, FunctionTerm, IdTerm
+from core.util import make_parser
 
 whitespace: Parser = regex(r"\s*")
-
-
-def make_parser(fn: Callable[[], Parser]) -> Parser:
-    return generate(fn)
 
 
 def lexeme(p: Parser) -> Parser:

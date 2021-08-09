@@ -392,7 +392,6 @@ class ArangoGraphDB(GraphDB):
         def update_edge(edge: Json) -> None:
             from_node = edge["_from"].split("/")[1]  # vertex/id
             to_node = edge["_to"].split("/")[1]  # vertex/id
-            print(f"test for {from_node}->{to_node}")
             if not access.has_edge(from_node, to_node, edge_type):
                 edges_deletes.append(edge)
                 info.edges_deleted += 1
@@ -401,7 +400,6 @@ class ArangoGraphDB(GraphDB):
             update_edge(doc)
 
         for edge_from, edge_to in access.not_visited_edges(edge_type):
-            print(f"Have not visited: {edge_from} -> {edge_to}")
             insert_edge(edge_from, edge_to)
 
         return info, edges_inserts, edges_deletes

@@ -15,10 +15,13 @@ from core.model.model import (
     BooleanKind,
     DateKind,
     DateTimeKind,
-    Array,
+    ArrayKind,
     Property,
     Complex,
     Model,
+    Dictionary,
+    predefined_kinds,
+    PropertyPath,
 )
 
 
@@ -31,7 +34,7 @@ def test_json_marshalling() -> None:
     roundtrip(BooleanKind("b"), Kind)
     roundtrip(DateKind("d"), Kind)
     roundtrip(DateTimeKind("d"), Kind)
-    roundtrip(Array(StringKind("string")), Kind)
+    roundtrip(ArrayKind(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
     roundtrip(
         Complex(
@@ -111,22 +114,41 @@ def test_date() -> None:
 
 
 def test_dictionary() -> None:
-    address = Complex("Foo", [], [Property("tags", "dictionary"), Property("kind", "string")])
-    model = Model.from_kinds([address])
-    assert model.check_valid({"kind": "Foo", "tags": {"a": "b", "b": "c"}}) is None
-    expected = 'Kind:Foo Property:tags is not valid: dictionary allows for simple key/value strings, but got a:1: {"kind": "Foo", "tags": {"a": 1, "b": "c"}}'
-    assert expect_error(model, {"kind": "Foo", "tags": {"a": 1, "b": "c"}}) == expected
+    model = {k.fqn: k for k in predefined_kinds}
+    result = Property.parse_kind("dictionary[string, string]", model)
+    assert isinstance(result, Dictionary)
+    assert result.key_kind is model["string"]
+    assert result.value_kind is model["string"]
+    result = Property.parse_kind("dictionary[string, dictionary[string, float]]", model)
+    assert isinstance(result, Dictionary)
+    assert result.key_kind is model["string"]
+    assert result.value_kind == Dictionary(model["string"], model["float"])
+    address = Complex(
+        "Foo", [], [Property("tags", "dictionary[string, string]"), Property("anything", "dictionary[string, any]")]
+    )
+    address_model = Model.from_kinds([address])
+    assert address_model.check_valid({"kind": "Foo", "tags": {"a": "b", "b": "c"}}) is None
+    expected = 'Kind:Foo Property:tags is not valid: value of dictionary[string, string] is not valid: Expected type string but got int: {"kind": "Foo", "tags": {"a": 1, "b": "c"}}'
+    assert expect_error(address_model, {"kind": "Foo", "tags": {"a": 1, "b": "c"}}) == expected
+    assert address_model.check_valid({"kind": "Foo", "anything": {"a": 1, "b": "c", "c": True}}) is None
+    expected = 'Kind:Foo Property:anything is not valid: dictionary requires a json object, but got this: 1: {"kind": "Foo", "anything": 1}'
+    assert expect_error(address_model, {"kind": "Foo", "anything": 1}) == expected
+
+
+def test_any() -> None:
+    model = Model.from_kinds(predefined_kinds)
+    assert model.check_valid({"kind": "any", "a": True, "b": 12, "c": [], "d": {"a": "b"}}) is None
 
 
 def test_array() -> None:
-    foo = Complex("Foo", [], [Property("tags", "dictionary"), Property("kind", "string")])
+    foo = Complex("Foo", [], [Property("tags", "dictionary[string, string]"), Property("kind", "string")])
     complex_kind = Complex(
         "TestArray",
         [],
         [
             Property("kind", "string"),
             Property("los", "string[]"),
-            Property("lod", "dictionary[]"),
+            Property("lod", "dictionary[string, string][]"),
             Property("foos", "Foo[]"),
             Property("los_los", "string[][]"),
             Property("los_los_los", "string[][][]"),
@@ -150,11 +172,11 @@ def test_array() -> None:
 
 def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
-    assert person_model.check_valid({"kind": "Base", "id": "32", "tags": ["one", "two"]}) is None
-    expected = 'Kind:Base Property:tags is not valid: Expected type string but got int: {"kind": "Base", "id": "32", "tags": [1, 2]}'
-    assert expect_error(person_model, {"kind": "Base", "id": "32", "tags": [1, 2]}) == expected
-    expected = 'Kind:Base Property:tags is not valid: Expected property is not an array!: {"kind": "Base", "id": "32", "tags": "not iterable"}'
-    assert expect_error(person_model, {"kind": "Base", "id": "32", "tags": "not iterable"}) == expected
+    assert person_model.check_valid({"kind": "Base", "id": "32", "list": ["one", "two"]}) is None
+    expected = 'Kind:Base Property:list is not valid: Expected type string but got int: {"kind": "Base", "id": "32", "list": [1, 2]}'
+    assert expect_error(person_model, {"kind": "Base", "id": "32", "list": [1, 2]}) == expected
+    expected = 'Kind:Base Property:list is not valid: Expected property is not an array!: {"kind": "Base", "id": "32", "list": "not iterable"}'
+    assert expect_error(person_model, {"kind": "Base", "id": "32", "list": "not iterable"}) == expected
     expected = 'Kind:Base Property:id is not valid: Expected type string but got int: {"kind": "Base", "id": 32}'
     assert expect_error(person_model, {"kind": "Base", "id": 32}) == expected
     expected = 'Kind:Base Property:id is required and missing in {"kind": "Base"}'
@@ -176,21 +198,42 @@ def test_model_checking(person_model: Model) -> None:
     expected = 'Kind:Person Property:address is not valid: Kind:Address Property:id is required and missing in {"kind": "Address", "city": "gotham"}: {"id": "batman", "kind": "Person", "name": "batman", "address": {"kind": "Address", "city": "gotham"}}'
     assert expect_error(person_model, nested) == expected
     assert person_model.check_valid({"kind": "Base", "id": "32", "mtime": "2008-09-03T20:56:35+20:00"})["mtime"] == "2008-09-03T00:56:35Z"  # type: ignore
+    anything = {"kind": "any", "some": [1, 2, 3], "not": "defined", "props": True}
+    assert person_model.check_valid(anything) is None
+    any_foo = {"kind": "any_foo", "id": "foo", "foo": {"a": [1, 2, 3]}, "test": "hallo"}
+    assert person_model.check_valid(any_foo) is None
 
 
-def test_property_path(person_model: Model) -> None:
+def test_property_path() -> None:
+    p1 = PropertyPath(["a", None, "c", None])
+    p2 = PropertyPath(["a", "b", "c", "d"])
+    p3 = PropertyPath(["a", "b"])
+    p4 = p3.child("c").child("d")
+    assert p1 == p2
+    assert hash(p1) == hash(p2)
+    assert p2 == p1
+    assert p1 != p3
+    assert p2 == p4
+
+
+def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person_path = person_model["Person"].property_kind_by_path()  # type: ignore
-    assert len(person_path) == 7
-    assert person_path["name"] == person_model["string"]
-    assert person_path["tags[]"] == person_model["string"]
-    assert person_path["address.zip"] == person_model["zip"]
+    assert len(person_path) == 10
+    assert person_path[PropertyPath(["name"])] == person_model["string"]
+    assert person_path[PropertyPath(["list[]"])] == person_model["string"]
+    assert person_path[PropertyPath(["tags", None])] == person_model["string"]
+    assert person_path[PropertyPath(["address", "zip"])] == person_model["zip"]
+    with pytest.raises(KeyError):
+        _ = person_path[PropertyPath(["anything"])]
 
     # model based property path
-    assert len(person_model.property_kind_by_path) == 10
-    assert person_model.property_kind_by_path["name"] == person_model["string"]
-    assert person_model.property_kind_by_path["tags[]"] == person_model["string"]
-    assert person_model.property_kind_by_path["address.zip"] == person_model["zip"]
+    assert person_model.kind_by_path("name") == person_model["string"]
+    assert person_model.kind_by_path("list[]") == person_model["string"]
+    assert person_model.kind_by_path("tags.foo") == person_model["string"]
+    assert person_model.kind_by_path("tags.bla") == person_model["string"]
+    assert person_model.kind_by_path("other_addresses.bla.zip") == person_model["zip"]
+    assert person_model.kind_by_path("address.zip") == person_model["zip"]
 
 
 def test_update(person_model: Model) -> None:
@@ -244,13 +287,18 @@ def test_load(model_json: str) -> None:
     kinds: List[Kind] = [from_js(a, Kind) for a in json.loads(model_json)]  # type: ignore
     model = Model.from_kinds(kinds)
     assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32, "tags": {}}) is None
-    assert model["test.EC2"].kind_hierarchy() == {"test.Compound", "test.BaseResource", "test.Base", "test.EC2"}
+
+    base: Complex = model["test.Base"]  # type: ignore
+    ec2: Complex = model["test.EC2"]  # type: ignore
+    assert ec2.kind_hierarchy() == {"test.Compound", "test.BaseResource", "test.Base", "test.EC2"}
+    assert ec2.allow_unknown_props is True
+    assert base.allow_unknown_props is False
 
 
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
-    assert len(graph.nodes()) == 4
-    assert len(graph.edges()) == 2
+    assert len(graph.nodes()) == 5
+    assert len(graph.edges()) == 3
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
@@ -276,7 +324,8 @@ def person_model() -> Model:
         [
             Property("id", "string", required=True),
             Property("kind", "string", required=True),
-            Property("tags", "string[]"),
+            Property("list", "string[]"),
+            Property("tags", "dictionary[string, string]"),
             Property("mtime", "datetime"),
         ],
     )
@@ -294,9 +343,19 @@ def person_model() -> Model:
         [
             Property("name", "string"),
             Property("address", "Address"),
+            Property("other_addresses", "dictionary[string, Address]"),
+            Property("any", "any"),
         ],
     )
-    return Model.from_kinds([zip, person, address, base])
+    any_foo = Complex(
+        "any_foo",
+        ["Base"],
+        [
+            Property("foo", "any"),
+            Property("test", "string"),
+        ],
+    )
+    return Model.from_kinds([zip, person, address, base, any_foo])
 
 
 @pytest.fixture
@@ -312,7 +371,7 @@ def model_json() -> str:
       {
         "fqn": "test.Base",
         "properties": [
-          { "name": "tags", "kind": "dictionary", "description": "Tags that describe the resource.", "required": false }
+          { "name": "tags", "kind": "dictionary[string, string]", "description": "Tags that describe the resource.", "required": false }
         ]
       },
       { "fqn" :  "test.BaseResource",
@@ -324,6 +383,7 @@ def model_json() -> str:
       },
       { "fqn" :  "test.EC2",
         "bases": ["test.BaseResource"],
+        "allow_unknown_props": true,
         "properties": [
           { "name": "mem", "kind": "int32", "description": "The amount of bytes", "required": true },
           { "name": "cores", "kind": "int32", "description": "The amount of cores", "required": true }
