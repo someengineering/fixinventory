@@ -1,4 +1,3 @@
-from __future__ import annotations
 import time
 from typing import Dict, ClassVar, List
 from datetime import datetime
@@ -26,7 +25,7 @@ class SlackTeam(SlackResource, BaseAccount):
     icon: str = None
 
     @staticmethod
-    def new(team: Dict) -> SlackTeam:
+    def new(team: Dict) -> BaseAccount:
         return SlackTeam(
             id=team.get("id"),
             tags={},
@@ -82,7 +81,7 @@ class SlackUser(SlackResource, BaseUser):
     real_name_normalized: str = None
 
     @staticmethod
-    def new(member: Dict) -> SlackUser:
+    def new(member: Dict) -> BaseUser:
         profile = member.get("profile", {})
         mtime = datetime.fromtimestamp(member.get("updated", time.time()))
         display_name = profile.get("display_name")
@@ -150,7 +149,7 @@ class SlackUsergroup(SlackResource, BaseGroup):
     _groups: List = field(default_factory=list, repr=False)
 
     @staticmethod
-    def new(usergroup: Dict) -> SlackUsergroup:
+    def new(usergroup: Dict) -> BaseGroup:
         prefs = usergroup.get("prefs", {})
         return SlackUsergroup(
             id=usergroup.get("id"),
@@ -208,7 +207,7 @@ class SlackConversation(SlackResource, BaseResource):
     purpose_last_set: int = None
 
     @staticmethod
-    def new(channel: Dict) -> SlackConversation:
+    def new(channel: Dict) -> BaseResource:
         topic = channel.get("topic", {})
         purpose = channel.get("purpose", {})
         return SlackConversation(

@@ -1,4 +1,3 @@
-from __future__ import annotations
 import cloudkeeper.logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -71,7 +70,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
     password_age: timedelta = None
 
     @staticmethod
-    def new(user: User) -> OneLoginUser:
+    def new(user: User) -> BaseUser:
         return OneLoginUser(
             id=user.id,
             tags={},

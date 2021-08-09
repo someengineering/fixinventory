@@ -1,4 +1,3 @@
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import wraps
 from datetime import datetime, timezone, timedelta
@@ -95,20 +94,18 @@ class BaseResource(ABC):
 
     id: str
     tags: Dict = None
-    name: InitVar[str] = None
-    _cloud: BaseCloud = field(default=None, repr=False)
-    _account: BaseAccount = field(default=None, repr=False)
-    _region: BaseRegion = field(default=None, repr=False)
-    _zone: BaseZone = field(default=None, repr=False)
+    name: str = None
+    _cloud: object = field(default=None, repr=False)
+    _account: object = field(default=None, repr=False)
+    _region: object = field(default=None, repr=False)
+    _zone: object = field(default=None, repr=False)
     ctime: datetime = None
     mtime: datetime = None
     atime: datetime = None
 
-    def __post_init__(
-        self,
-        name: str = None,
-    ) -> None:
-        self.name: str = name if name else self.id
+    def __post_init__(self) -> None:
+        if self.name is None:
+            self.name = self.id
         self.uuid = uuid.uuid4().hex
         self._clean: bool = False
         self._cleaned: bool = False
@@ -689,7 +686,7 @@ class BaseInstanceType(BaseType):
             "labels": ["cloud", "account", "region", "type"],
         },
     }
-    instance_type: str = None
+    instance_type: Optional[str] = None
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     ondemand_cost: float = 0.0
@@ -981,10 +978,10 @@ class BaseSnapshot(BaseResource):
 
     snapshot_status: str = ""
     description: str = ""
-    volume_id: str = None
+    volume_id: Optional[str] = None
     volume_size: int = 0
     encrypted: bool = False
-    owner_id: int = None
+    owner_id: Optional[int] = None
     owner_alias: str = ""
 
     def metrics(self, graph) -> Dict:
@@ -1656,7 +1653,7 @@ class BaseCertificate(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-    expires: datetime = None
+    expires: Optional[datetime] = None
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
