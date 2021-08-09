@@ -58,8 +58,7 @@ class DbAccess(ABC):
         else:
             if not no_check and not self.database.has_graph(name):
                 raise AttributeError(f"No graph with this name: {name}")
-            current = name, name, f"{name}_deps"
-            graph_db = ArangoGraphDB(self.db, current)
+            graph_db = ArangoGraphDB(self.db, name)
             event_db = EventGraphDB(graph_db, self.event_bus)
             self.graph_dbs[name] = event_db
             return event_db

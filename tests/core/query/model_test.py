@@ -46,7 +46,7 @@ def test_simple_query() -> None:
     )
 
     assert (
-        str(a) == '((isinstance("ec2") and cpu > 4) and (mem < 23 or mem < 59)) >>> '
-        "(some.int.value < 1 and some.other == 23) >>> "
+        str(a) == '((isinstance("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
+        "(some.int.value < 1 and some.other == 23) --> "
         '(active == 12 and in_subnet(ip, "1.2.3.4/32"))'
     )

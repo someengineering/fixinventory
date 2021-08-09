@@ -13,7 +13,7 @@ from aiohttp.web_exceptions import HTTPRedirection
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
-from networkx import DiGraph
+from networkx import MultiDiGraph
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -263,6 +263,8 @@ class Api:
 
     async def create_graph(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
+        if "_" in graph_id:
+            raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
         root = await graph.get_node("root", "reported")
         return web.json_response(root)
@@ -379,8 +381,8 @@ class Api:
             return web.HTTPOk(body="Graph deleted.")
 
     @staticmethod
-    async def read_graph(request: Request, md: Model) -> DiGraph:
-        async def stream_to_graph() -> DiGraph:
+    async def read_graph(request: Request, md: Model) -> MultiDiGraph:
+        async def stream_to_graph() -> MultiDiGraph:
             builder = GraphBuilder(md)
             async for line in request.content:
                 if len(line.strip()) == 0:
@@ -390,7 +392,7 @@ class Api:
             builder.check_complete()
             return builder.graph
 
-        async def json_to_graph() -> DiGraph:
+        async def json_to_graph() -> MultiDiGraph:
             json_array = await request.json()
             log.info("Json read into memory")
             builder = GraphBuilder(md)

@@ -4,9 +4,9 @@ from typing import Tuple, List
 
 import jsons
 import pytest
-from networkx import DiGraph
+from networkx import MultiDiGraph
 from deepdiff import DeepDiff
-from core.model.graph_access import GraphAccess, GraphBuilder
+from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
 from tests.core.db.graphdb_test import Foo
 from core.types import Json
@@ -25,22 +25,25 @@ FooTuple = collections.namedtuple(
 # noinspection PyArgumentList
 @fixture
 def graph_access() -> GraphAccess:
-    g = DiGraph()
+    g = MultiDiGraph()
     g.add_node("1", data=FooTuple("1"))
     g.add_node("2", data=FooTuple("2"))
     g.add_node("3", data=FooTuple("3"))
     g.add_node("4", data=FooTuple("4"))
-    g.add_edge("1", "2")
-    g.add_edge("1", "3")
-    g.add_edge("2", "3")
-    g.add_edge("2", "4")
-    g.add_edge("3", "4")
+    g.add_edge("1", "2", "1_2_dependency", edge_type=EdgeType.dependency)
+    g.add_edge("1", "3", "1_3_dependency", edge_type=EdgeType.dependency)
+    g.add_edge("2", "3", "2_3_dependency", edge_type=EdgeType.dependency)
+    g.add_edge("2", "4", "2_4_dependency", edge_type=EdgeType.dependency)
+    g.add_edge("3", "4", "3_4_dependency", edge_type=EdgeType.dependency)
+    g.add_edge("1", "2", "1_2_delete", edge_type=EdgeType.delete)
+    g.add_edge("1", "3", "1_3_delete", edge_type=EdgeType.delete)
+    g.add_edge("1", "4", "1_4_delete", edge_type=EdgeType.delete)
     return GraphAccess(g)
 
 
 # noinspection PyArgumentList
 def test_access_node() -> None:
-    g = DiGraph()
+    g = MultiDiGraph()
     g.add_node("1", data=FooTuple(a="1"))
     access: GraphAccess = GraphAccess(g)
     _, json, sha, _, _ = node(access, "1")
@@ -61,7 +64,7 @@ def test_marshal_unmarshal() -> None:
 
 def test_content_hash() -> None:
     # the order of properties should not matter for the content hash
-    g = DiGraph()
+    g = MultiDiGraph()
     g.add_node("1", data={"a": {"a": 1, "c": 2, "b": 3}, "c": 2, "b": 3, "d": "foo", "z": True})
     g.add_node("2", data={"z": True, "c": 2, "b": 3, "a": {"b": 3, "c": 2, "a": 1}, "d": "foo"})  # change the order
 
@@ -75,6 +78,10 @@ def test_root(graph_access: GraphAccess) -> None:
     assert graph_access.root() == "1"
 
 
+def test_edge_types(graph_access: GraphAccess) -> None:
+    assert graph_access.edge_types == EdgeType.allowed_edge_types
+
+
 def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("1")
     graph_access.node("3")
@@ -85,11 +92,11 @@ def test_not_visited(graph_access: GraphAccess) -> None:
 
 
 def test_edges(graph_access: GraphAccess) -> None:
-    assert list(graph_access.edges) == [("1", "2"), ("1", "3"), ("2", "3"), ("2", "4"), ("3", "4")]
-    assert graph_access.has_edge("1", "2")
-    assert not graph_access.has_edge("1", "9")
-    assert graph_access.has_edge("2", "3")
-    assert list(graph_access.not_visited_edges()) == [("1", "3"), ("2", "4"), ("3", "4")]
+    assert graph_access.has_edge("1", "2", EdgeType.dependency)
+    assert not graph_access.has_edge("1", "9", EdgeType.dependency)
+    assert graph_access.has_edge("2", "3", EdgeType.dependency)
+    assert list(graph_access.not_visited_edges(EdgeType.dependency)) == [("1", "3"), ("2", "4"), ("3", "4")]
+    assert list(graph_access.not_visited_edges(EdgeType.delete)) == [("1", "2"), ("1", "3"), ("1", "4")]
 
 
 def test_flatten() -> None:

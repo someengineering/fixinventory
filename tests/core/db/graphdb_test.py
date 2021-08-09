@@ -11,12 +11,13 @@ import pytest
 from arango import ArangoClient
 from arango.database import StandardDatabase
 from arango.typings import Json
-from networkx import DiGraph
+from networkx import DiGraph, MultiDiGraph
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus, Message
+from core.model.graph_access import GraphAccess
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
@@ -78,17 +79,17 @@ class Bla(BaseResource):
         return "bla"
 
 
-def create_graph(bla_text: str, width: int = 10) -> DiGraph:
-    graph = DiGraph()
+def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
+    graph = MultiDiGraph()
     graph.add_node("sub_root", data=to_json(Foo("sub_root")))
     for o in range(0, width):
         oid = str(o)
         graph.add_node(oid, data=to_json(Foo(oid)))
-        graph.add_edge("sub_root", oid)
+        graph.add_edge("sub_root", oid, GraphAccess.edge_key("sub_root", oid, "dependency"), edge_type="dependency")
         for i in range(0, width):
             iid = f"{o}_{i}"
             graph.add_node(iid, data=to_json(Bla(iid, name=bla_text)))
-            graph.add_edge(oid, iid)
+            graph.add_edge(oid, iid, GraphAccess.edge_key(oid, iid, "dependency"), edge_type="dependency")
     return graph
 
 
@@ -144,9 +145,8 @@ def test_db() -> StandardDatabase:
 
 @pytest.fixture
 async def graph_db(event_loop: AbstractEventLoop, test_db: StandardDatabase) -> ArangoGraphDB:
-    current = "ns", "ns", "ns_deps"
     async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, current)
+    graph_db = ArangoGraphDB(async_db, "ns")
     await graph_db.create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db
@@ -220,15 +220,15 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     # make sure all changes are empty
     await db.db.truncate(db.in_progress)
     # change on 00 is allowed
-    assert await db.mark_update("00", "0", "update under node 00", False) is None
+    assert await db.mark_update("00", "0", "update under node 00", False, set()) is None
     # change on 01 is allowed
-    assert await db.mark_update("01", "0", "update under node 01", False) is None
+    assert await db.mark_update("01", "0", "update under node 01", False, set()) is None
     # change on 0 is rejected, since there are changes "below" this node
     with pytest.raises(ConflictingChangeInProgress):
-        await db.mark_update("0", "sub_root", "update under node 0", False)
+        await db.mark_update("0", "sub_root", "update under node 0", False, set())
     # change on sub_root is rejected, since there are changes "below" this node
     with pytest.raises(ConflictingChangeInProgress):
-        await db.mark_update("sub_root", "root", "update under node sub_root", False)
+        await db.mark_update("sub_root", "root", "update under node sub_root", False, set())
     # clean up for later tests
     await db.db.truncate(db.in_progress)
 
@@ -264,6 +264,7 @@ async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
 
 @pytest.mark.asyncio
 async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
     json = await graph_db.create_node(foo_model, "some_new_id", to_json(Foo("some_new_id", "name")), "root")
     assert to_foo(json).identifier == "some_new_id"
     assert to_foo(await graph_db.get_node("some_new_id", "reported")).identifier == "some_new_id"
@@ -271,6 +272,7 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 @pytest.mark.asyncio
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     json = await graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
     assert to_foo(json).name == "bla"
@@ -279,6 +281,7 @@ async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 @pytest.mark.asyncio
 async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
     await graph_db.create_node(foo_model, "sub_root", to_json(Foo("sub_root", "foo")), "root")
     await graph_db.create_node(foo_model, "some_other_child", to_json(Foo("some_other_child", "foo")), "sub_root")
     await graph_db.create_node(foo_model, "born_to_die", to_json(Foo("born_to_die", "foo")), "sub_root")

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
 import jsons
-from networkx import DiGraph
+from networkx import DiGraph, MultiDiGraph
 
 from core import feature
 from core.model.model import Model
@@ -12,10 +12,28 @@ from core.model.typed_model import to_js
 from core.types import Json
 
 
+class EdgeType:
+    # This edge type defines logical dependencies between resources.
+    # It is the main edge type and is assumed, if no edge type is given.
+    dependency = "dependency"
+
+    # This edge type defines the order of delete operations.
+    # A resource can be deleted, if all outgoing resources are deleted.
+    delete = "delete"
+
+    # The default edge type, that is used as fallback if no edge type is given.
+    # The related graph is also used as source of truth for graph updates.
+    default = dependency
+
+    # The list of all allowed edge types.
+    # Note: the database schema has to be adapted to support additional edge types.
+    allowed_edge_types = {dependency, delete}
+
+
 class GraphBuilder:
     def __init__(self, model: Model, with_flatten: bool = feature.DB_SEARCH):
         self.model = model
-        self.graph = DiGraph()
+        self.graph = MultiDiGraph()
         self.with_flatten = with_flatten
 
     def add_node(self, js: Json) -> None:
@@ -31,7 +49,11 @@ class GraphBuilder:
             flat = GraphBuilder.flatten(item) if self.with_flatten else None
             self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat)
         elif "from" in js and "to" in js:
-            self.graph.add_edge(js["from"], js["to"])
+            from_node = js["from"]
+            to_node = js["to"]
+            edge_type = js.get("edge_type", EdgeType.default)
+            key = GraphAccess.edge_key(from_node, to_node, edge_type)
+            self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
@@ -72,24 +94,28 @@ class GraphBuilder:
         # note: DiGraph will create an empty vertex node automatically
         for node_id, node in self.graph.nodes(data=True):
             assert node.get("data"), f"Vertex {node_id} was used in an edge definition but not provided as vertex!"
+
+        edge_types = {edge[2] for edge in self.graph.edges(data="edge_type")}
+        al = EdgeType.allowed_edge_types
+        assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
         GraphAccess.root_id(self.graph)
 
     @staticmethod
-    def graph_from_single_item(model: Model, node_id: str, data: Json) -> DiGraph:
+    def graph_from_single_item(model: Model, node_id: str, data: Json) -> MultiDiGraph:
         builder = GraphBuilder(model)
         builder.add_node({"id": node_id, "data": data})
         return builder.graph
 
 
 class GraphAccess:
-    def __init__(self, sub: DiGraph):
+    def __init__(self, sub: MultiDiGraph):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.edges = [e[:2] for e in sub.edges.data()]
         self.visited_nodes: Set[object] = set()
-        self.visited_edges: Set[object] = set()
+        self.visited_edges: Set[Tuple[object, object, str]] = set()
+        self.edge_types: Set[str] = {edge[2] for edge in sub.edges(data="edge_type")}
         self.at = datetime.now(timezone.utc)
         self.at_json = jsons.dump(self.at)
 
@@ -104,10 +130,13 @@ class GraphAccess:
         else:
             return None
 
-    def has_edge(self, from_id: object, to_id: object) -> bool:
-        result: bool = self.g.has_edge(from_id, to_id)
+    def has_edges(self) -> bool:
+        return bool(self.edge_types)
+
+    def has_edge(self, from_id: object, to_id: object, edge_type: str) -> bool:
+        result: bool = self.g.has_edge(from_id, to_id, self.edge_key(from_id, to_id, edge_type))
         if result:
-            self.visited_edges.add((from_id, to_id))
+            self.visited_edges.add((from_id, to_id, edge_type))
         return result
 
     @staticmethod
@@ -129,8 +158,14 @@ class GraphAccess:
     def not_visited_nodes(self) -> Generator[Tuple[str, Dict[str, Any], str, List[str], str], None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
-    def not_visited_edges(self) -> Generator[Tuple[str, str], None, None]:
-        return (edge for edge in self.edges if edge not in self.visited_edges)
+    def not_visited_edges(self, edge_type: str) -> Generator[Tuple[str, str], None, None]:
+        # edge collection with (from, to, type): filter and drop type -> (from, to)
+        edges = self.g.edges(data="edge_type")
+        return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
+
+    @staticmethod
+    def edge_key(from_node: object, to_node: object, edge_type: str) -> str:
+        return f"{from_node}_{to_node}_{edge_type}"
 
     @staticmethod
     def root_id(graph: DiGraph) -> str:

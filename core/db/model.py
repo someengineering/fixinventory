@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC
 from typing import Optional, List, Union, Any
 
@@ -40,6 +41,16 @@ class GraphUpdate(ABC):
             + self.edges_created
             + self.edges_updated
             + self.edges_deleted
+        )
+
+    def __add__(self, other: GraphUpdate) -> GraphUpdate:
+        return GraphUpdate(
+            self.nodes_created + other.nodes_created,
+            self.nodes_updated + other.nodes_updated,
+            self.nodes_deleted + other.nodes_deleted,
+            self.edges_created + other.edges_created,
+            self.edges_updated + other.edges_updated,
+            self.edges_deleted + other.edges_deleted,
         )
 
     def __repr__(self) -> str:

@@ -6,6 +6,8 @@ from typing import List, Mapping, Union, Optional
 
 from jsons import set_deserializer
 
+from core.model.graph_access import EdgeType
+
 
 class P:
     def __init__(self, name: str, **kwargs: object):
@@ -219,9 +221,10 @@ class Navigation:
     # Define the maximum level of navigation
     Max = sys.maxsize
 
-    def __init__(self, start: int = 0, until: int = 0, direction: str = "out"):
+    def __init__(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default, direction: str = "out"):
         self.start = start
         self.until = until
+        self.edge_type = edge_type
         self.direction = direction
 
     def is_out(self) -> bool:
@@ -231,11 +234,15 @@ class Navigation:
         return self.direction == "in"
 
     def __str__(self) -> str:
-        d = "<" if self.is_in() else ">"
-        if self.start == self.until:
-            return d * 3 if self.start == 1 and self.until == 1 else f"{d}[{self.start}]{d}"
+        until = "" if self.until == Navigation.Max else self.until
+        depth = "" if self.start == 1 else f"[{self.start}]" if self.start == self.until else f"[{self.start}:{until}]"
+        nav = depth if self.edge_type == EdgeType.default else f"{self.edge_type} {depth}"
+        if self.direction == "out":
+            return f"-{nav}->"
+        elif self.direction == "in":
+            return f"<-{nav}-"
         else:
-            return f"{d}[{self.start}:]{d}" if self.until == Navigation.Max else f"{d}[{self.start}:{self.until}]{d}"
+            return f"-{nav}-"
 
 
 class Part:
@@ -277,15 +284,15 @@ class Query:
             parts.insert(0, Part(res))
         return Query(parts)
 
-    def traverse_out(self, start: int = 1, until: int = 1) -> Query:
-        return self.traverse(start, until, "out")
+    def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+        return self.traverse(start, until, edge_type, "out")
 
-    def traverse_in(self, start: int = 1, until: int = 1) -> Query:
-        return self.traverse(start, until, "out")
+    def traverse_in(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+        return self.traverse(start, until, edge_type, "in")
 
-    def traverse(self, start: int, until: int, direction: str = "out") -> Query:
+    def traverse(self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = "out") -> Query:
         parts = self.parts.copy()
-        parts[0] = Part(parts[0].term, False, Navigation(start, until, direction))
+        parts[0] = Part(parts[0].term, False, Navigation(start, until, edge_type, direction))
         return Query(parts)
 
     @staticmethod
