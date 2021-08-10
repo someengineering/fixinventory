@@ -62,8 +62,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             return
 
         team = response.data.get("team", {})
-        team_id = team.get("id")
-        team = SlackTeam(team_id, {}, team)
+        team = SlackTeam.new(team)
         self.graph.add_resource(self.root, team)
 
         members = SlackRegion("members", {})
@@ -74,14 +73,14 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         self.graph.add_resource(team, conversations)
 
         for member in self.list_members():
-            u = SlackUser(member["id"], {}, member)
+            u = SlackUser.new(member)
             log.debug(
                 f"Found Slack User {u.name}: {u.real_name} ({u.email}) - {u.mtime}"
             )
             self.graph.add_resource(members, u)
 
         for usergroup in self.list_usergroups():
-            ug = SlackUsergroup(usergroup["id"], {}, usergroup)
+            ug = SlackUsergroup.new(usergroup)
             log.debug(f"Found Slack Usergroup {ug.name}")
             self.graph.add_resource(usergroups, ug)
             for user_id in ug._users:
@@ -90,7 +89,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
                     self.graph.add_edge(ug, u)
 
         for conversation in self.list_conversations():
-            c = SlackConversation(conversation["id"], {}, conversation)
+            c = SlackConversation.new(conversation)
             conversation_type = "Conversation "
             if c.is_channel:
                 conversation_type = "Channel #"

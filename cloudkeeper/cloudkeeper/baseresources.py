@@ -8,9 +8,10 @@ import weakref
 import networkx.algorithms.dag
 import cloudkeeper.logging
 from enum import Enum
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
 from cloudkeeper.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
+from dataclasses import dataclass, field
 
 
 log = cloudkeeper.logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def unless_protected(f):
     return wrapper
 
 
+@dataclass(eq=False)
 class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
@@ -86,46 +88,34 @@ class BaseResource(ABC):
     instances of this type and in this cloud, account and region.
     """
 
-    resource_type = NotImplemented
-    phantom = False
-    metrics_description = {}
+    resource_type: ClassVar[str] = "base_resource"
+    phantom: ClassVar[bool] = False
+    metrics_description: ClassVar[Dict] = {}
 
-    def __init__(
-        self,
-        identifier: str,
-        tags: dict,
-        name: str = None,
-        cloud=None,
-        account=None,
-        region=None,
-        zone=None,
-        ctime: datetime = None,
-        mtime: datetime = None,
-        atime: datetime = None,
-    ) -> None:
-        self.tags = tags
-        self.id = str(identifier)
-        self.name = name if name else self.id
+    id: str
+    tags: Dict = None
+    name: str = None
+    _cloud: object = field(default=None, repr=False)
+    _account: object = field(default=None, repr=False)
+    _region: object = field(default=None, repr=False)
+    _zone: object = field(default=None, repr=False)
+    ctime: datetime = None
+    mtime: datetime = None
+    atime: datetime = None
+
+    def __post_init__(self) -> None:
+        if self.name is None:
+            self.name = self.id
         self.uuid = uuid.uuid4().hex
-        self._cloud = cloud
-        self._account = account
-        self._region = region
-        self._zone = zone
-        self._ctime = None
-        self._mtime = None
-        self._atime = None
-        self.ctime = ctime
-        self.mtime = mtime
-        self.atime = atime
-        self._clean = False
-        self._cleaned = False
-        self._metrics = {}
-        self._deferred_connections = []
+        self._clean: bool = False
+        self._cleaned: bool = False
+        self._metrics: Dict = {}
+        self._deferred_connections: List = []
         self.__graph = None
-        self.__log = []
-        self.__protected = False
-        self.__custom_metrics = False
-        self.max_graph_depth = 0
+        self.__log: List = []
+        self.__protected: bool = False
+        self.__custom_metrics: bool = False
+        self.max_graph_depth: int = 0
         for metric in self.metrics_description.keys():
             self._metrics[metric] = {}
 
@@ -166,12 +156,12 @@ class BaseResource(ABC):
     def rtdname(self) -> str:
         return f"{self.resource_type} {self.dname}"
 
-    @property
-    def tags(self) -> Dict:
+    def _tags_getter(self) -> Dict:
         return self._tags
 
-    @tags.setter
-    def tags(self, value: Dict) -> None:
+    def _tags_setter(self, value: Dict) -> None:
+        if value is None:
+            value = {}
         self._tags = ResourceTagsDict(dict(value), parent_resource=self)
 
     def log(self, msg: str, data=None, exception=None) -> None:
@@ -213,8 +203,7 @@ class BaseResource(ABC):
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         return now - self.mtime
 
-    @property
-    def ctime(self) -> datetime:
+    def _ctime_getter(self) -> datetime:
         if "cloudkeeper:ctime" in self.tags:
             ctime = self.tags["cloudkeeper:ctime"]
             try:
@@ -225,29 +214,24 @@ class BaseResource(ABC):
                 return ctime
         return self._ctime
 
-    @property
-    def atime(self) -> datetime:
+    def _ctime_setter(self, value: datetime) -> None:
+        self._ctime = make_valid_timestamp(value)
+
+    def _atime_getter(self) -> datetime:
         return self._atime
 
-    @property
-    def mtime(self) -> datetime:
+    def _atime_setter(self, value: datetime) -> None:
+        self._atime = make_valid_timestamp(value)
+
+    def _mtime_getter(self) -> datetime:
         return self._mtime
+
+    def _mtime_setter(self, value: datetime) -> None:
+        self._mtime = make_valid_timestamp(value)
 
     @property
     def clean(self) -> bool:
         return self._clean
-
-    @ctime.setter
-    def ctime(self, value: datetime) -> None:
-        self._ctime = make_valid_timestamp(value)
-
-    @mtime.setter
-    def mtime(self, value: datetime) -> None:
-        self._mtime = make_valid_timestamp(value)
-
-    @atime.setter
-    def atime(self, value: datetime) -> None:
-        self._atime = make_valid_timestamp(value)
 
     @clean.setter
     @unless_protected
@@ -548,6 +532,12 @@ class BaseResource(ABC):
         self.__dict__.update(state)
 
 
+BaseResource.tags = property(BaseResource._tags_getter, BaseResource._tags_setter)
+BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)
+BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)
+BaseResource.atime = property(BaseResource._atime_getter, BaseResource._atime_setter)
+
+
 class ResourceTagsDict(dict):
     def __init__(self, *args, parent_resource=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -632,8 +622,9 @@ class ResourceTagsDict(dict):
         return super().__reduce__()
 
 
+@dataclass(eq=False)
 class PhantomBaseResource(BaseResource):
-    phantom = True
+    phantom: ClassVar[bool] = True
 
     def cleanup(self, graph=None) -> bool:
         log.error(
@@ -642,11 +633,15 @@ class PhantomBaseResource(BaseResource):
         return False
 
 
+@dataclass(eq=False)
 class BaseQuota(PhantomBaseResource):
-    def __init__(self, *args, quota: int = -1, usage: int = 0, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.quota = quota
-        self.usage = usage
+    quota: float = -1.0
+    usage: float = 0.0
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.quota = float(self.quota)
+        self.usage = float(self.usage)
 
     @property
     def usage_percentage(self) -> float:
@@ -656,20 +651,22 @@ class BaseQuota(PhantomBaseResource):
             return 0.0
 
 
+@dataclass(eq=False)
 class BaseType(BaseQuota):
     pass
 
 
+@dataclass(eq=False)
 class BaseInstanceQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "instances_quotas_total": {
             "help": "Quotas of Instances",
             "labels": ["cloud", "account", "region", "type", "quota_type"],
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, *args, **kwargs) -> None:
+        super().__post_init__(*args, **kwargs)
         self.instance_type = self.id
         self.quota_type = "standard"
 
@@ -686,30 +683,28 @@ class BaseInstanceQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseInstanceType(BaseType):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "reserved_instances_total": {
             "help": "Number of Reserved Instances",
             "labels": ["cloud", "account", "region", "type"],
         },
     }
+    instance_type: Optional[str] = None
+    instance_cores: float = 0.0
+    instance_memory: float = 0.0
+    ondemand_cost: float = 0.0
+    reservations: int = 0
 
-    def __init__(
+    def __post_init__(
         self,
         *args,
-        instance_type: str = None,
-        instance_cores: float = 0.0,
-        instance_memory: float = 0.0,
-        ondemand_cost: float = 0.0,
-        reservations: int = 0,
         **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
-        self.instance_type = instance_type if instance_type else self.id
-        self.instance_cores = float(instance_cores)
-        self.instance_memory = float(instance_memory)
-        self.ondemand_cost = float(ondemand_cost)
-        self.reservations = int(reservations)
+        super().__post_init__(*args, **kwargs)
+        if self.instance_type is None:
+            self.instance_type = self.id
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -723,13 +718,15 @@ class BaseInstanceType(BaseType):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseCloud(BaseResource):
     def cloud(self, graph=None):
         return self
 
 
+@dataclass(eq=False)
 class BaseAccount(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
     }
 
@@ -741,11 +738,13 @@ class BaseAccount(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseRegion(BaseResource):
     def region(self, graph=None):
         return self
 
 
+@dataclass(eq=False)
 class BaseZone(BaseResource):
     def zone(self, graph=None):
         return self
@@ -759,8 +758,9 @@ class InstanceStatus(Enum):
     UNKNOWN = "unknown"
 
 
+@dataclass(eq=False)
 class BaseInstance(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "instances_total": {
             "help": "Number of Instances",
             "labels": ["cloud", "account", "region", "type", "status"],
@@ -794,33 +794,19 @@ class BaseInstance(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
         },
     }
-
-    def __init__(
-        self,
-        *args,
-        instance_cores: float = 0.0,
-        instance_memory: float = 0.0,
-        instance_type: str = "",
-        instance_status: str = "",
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.instance_cores = float(instance_cores)
-        self.instance_memory = float(instance_memory)
-        self.instance_type = instance_type
-        self._instance_status = InstanceStatus.UNKNOWN
-        self.instance_status = instance_status
+    instance_cores: float = 0.0
+    instance_memory: float = 0.0
+    instance_type: str = ""
+    instance_status: str = ""
 
     def instance_type_info(self, graph) -> BaseInstanceType:
         return graph.search_first_parent_class(self, BaseInstanceType)
 
-    @property
-    def instance_status(self) -> str:
+    def _instance_status_getter(self) -> str:
         return self._instance_status.value
 
-    @instance_status.setter
     @abstractmethod
-    def instance_status(self, value: str) -> None:
+    def _instance_status_setter(self, value: str) -> None:
         raise NotImplementedError
 
     def metrics(self, graph) -> Dict:
@@ -859,16 +845,22 @@ class BaseInstance(BaseResource):
         return self._metrics
 
 
+BaseInstance.instance_status = property(
+    BaseInstance._instance_status_getter, BaseInstance._instance_status_setter
+)
+
+
+@dataclass(eq=False)
 class BaseVolumeType(BaseType):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "volumes_quotas_bytes": {
             "help": "Quotas of Volumes in bytes",
             "labels": ["cloud", "account", "region", "type"],
         },
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, *args, **kwargs) -> None:
+        super().__post_init__(*args, **kwargs)
         self.volume_type = self.id
         self.ondemand_cost = 0.0
 
@@ -893,8 +885,9 @@ class VolumeStatus(Enum):
     UNKNOWN = "unknown"
 
 
+@dataclass(eq=False)
 class BaseVolume(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "volumes_total": {
             "help": "Number of Volumes",
             "labels": ["cloud", "account", "region", "type", "status"],
@@ -920,30 +913,16 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
         },
     }
+    volume_size: int = 0
+    volume_type: str = ""
+    volume_status: str = ""
+    snapshot_before_delete: bool = False
 
-    def __init__(
-        self,
-        *args,
-        volume_size: int = 0,
-        volume_type: str = "",
-        volume_status: str = "",
-        snapshot_before_delete: bool = False,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.volume_size = int(volume_size)
-        self.volume_type = volume_type
-        self._volume_status = VolumeStatus.UNKNOWN
-        self.volume_status = volume_status
-        self.snapshot_before_delete = snapshot_before_delete
-
-    @property
-    def volume_status(self) -> str:
+    def _volume_status_getter(self) -> str:
         return self._volume_status.value
 
-    @volume_status.setter
     @abstractmethod
-    def volume_status(self, value: str) -> None:
+    def _volume_status_setter(self, value: str) -> None:
         raise NotImplementedError
 
     def volume_type_info(self, graph) -> BaseVolumeType:
@@ -976,8 +955,14 @@ class BaseVolume(BaseResource):
         return self._metrics
 
 
+BaseVolume.volume_status = property(
+    BaseVolume._volume_status_getter, BaseVolume._volume_status_setter
+)
+
+
+@dataclass(eq=False)
 class BaseSnapshot(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "snapshots_total": {
             "help": "Number of Snapshots",
             "labels": ["cloud", "account", "region", "status"],
@@ -996,26 +981,13 @@ class BaseSnapshot(BaseResource):
         },
     }
 
-    def __init__(
-        self,
-        *args,
-        snapshot_status: str = "",
-        description: str = "",
-        volume_id: str = None,
-        volume_size: int = 0,
-        encrypted: bool = False,
-        owner_id=None,
-        owner_alias="",
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.snapshot_status = snapshot_status
-        self.description = description
-        self.volume_id = volume_id
-        self.volume_size = int(volume_size)
-        self.encrypted = encrypted
-        self.owner_id = owner_id
-        self.owner_alias = owner_alias
+    snapshot_status: str = ""
+    description: str = ""
+    volume_id: Optional[str] = None
+    volume_size: int = 0
+    encrypted: bool = False
+    owner_id: Optional[str] = None
+    owner_alias: str = ""
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1036,22 +1008,25 @@ class BaseSnapshot(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class Cloud(BaseCloud):
-    resource_type = "cloud"
+    resource_type: ClassVar[str] = "cloud"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class GraphRoot(PhantomBaseResource):
-    resource_type = "graph_root"
+    resource_type: ClassVar[str] = "graph_root"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class BaseBucket(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "buckets_total": {
             "help": "Number of Storage Buckets",
             "labels": ["cloud", "account", "region"],
@@ -1074,8 +1049,9 @@ class BaseBucket(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseKeyPair(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "keypairs_total": {
             "help": "Number of Key Pairs",
             "labels": ["cloud", "account", "region"],
@@ -1085,10 +1061,7 @@ class BaseKeyPair(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.fingerprint = ""
+    fingerprint: str = ""
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1102,8 +1075,9 @@ class BaseKeyPair(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseBucketQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "buckets_quotas_total": {
             "help": "Quotas of Storage Buckets",
             "labels": ["cloud", "account", "region"],
@@ -1121,8 +1095,9 @@ class BaseBucketQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseNetwork(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "networks_total": {
             "help": "Number of Networks",
             "labels": ["cloud", "account", "region"],
@@ -1145,8 +1120,9 @@ class BaseNetwork(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseNetworkQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "networks_quotas_total": {
             "help": "Quotas of Networks",
             "labels": ["cloud", "account", "region"],
@@ -1164,8 +1140,9 @@ class BaseNetworkQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseDatabase(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "databases_total": {
             "help": "Number of Databases",
             "labels": ["cloud", "account", "region", "type", "instance_type"],
@@ -1183,25 +1160,12 @@ class BaseDatabase(BaseResource):
             "labels": ["cloud", "account", "region", "type", "instance_type"],
         },
     }
-
-    def __init__(
-        self,
-        *args,
-        db_type: str = "",
-        db_status: str = "",
-        db_endpoint: str = "",
-        instance_type: str = "",
-        volume_size: int = -1,
-        volume_iops: int = -1,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.db_type = db_type
-        self.db_status = db_status
-        self.db_endpoint = db_endpoint
-        self.instance_type = instance_type
-        self.volume_size = int(volume_size)
-        self.volume_iops = int(volume_iops)
+    db_type: str = ""
+    db_status: str = ""
+    db_endpoint: str = ""
+    instance_type: str = ""
+    volume_size: int = -1
+    volume_iops: int = -1
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1221,8 +1185,9 @@ class BaseDatabase(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseLoadBalancer(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "load_balancers_total": {
             "help": "Number of Load Balancers",
             "labels": ["cloud", "account", "region", "type"],
@@ -1232,20 +1197,8 @@ class BaseLoadBalancer(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
         },
     }
-
-    def __init__(
-        self,
-        *args,
-        lb_type: str = "",
-        backends: List = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.lb_type = lb_type
-        if backends is None:
-            self.backends = []
-        else:
-            self.backends = backends
+    lb_type: str = ""
+    backends: List[str] = field(default_factory=list)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1260,8 +1213,9 @@ class BaseLoadBalancer(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseLoadBalancerQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "load_balancers_quotas_total": {
             "help": "Quotas of Load Balancers",
             "labels": ["cloud", "account", "region"],
@@ -1279,8 +1233,9 @@ class BaseLoadBalancerQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseSubnet(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "subnets_total": {
             "help": "Number of Subnets",
             "labels": ["cloud", "account", "region"],
@@ -1303,8 +1258,9 @@ class BaseSubnet(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseGateway(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "gateways_total": {
             "help": "Number of Gateways",
             "labels": ["cloud", "account", "region"],
@@ -1327,8 +1283,9 @@ class BaseGateway(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseTunnel(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "tunnels_total": {
             "help": "Number of Tunnels",
             "labels": ["cloud", "account", "region"],
@@ -1351,8 +1308,9 @@ class BaseTunnel(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseGatewayQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "gateways_quotas_total": {
             "help": "Quotas of Gateways",
             "labels": ["cloud", "account", "region"],
@@ -1370,8 +1328,9 @@ class BaseGatewayQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseSecurityGroup(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "security_groups_total": {
             "help": "Number of Security Groups",
             "labels": ["cloud", "account", "region"],
@@ -1394,8 +1353,9 @@ class BaseSecurityGroup(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseRoutingTable(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "routing_tables_total": {
             "help": "Number of Routing Tables",
             "labels": ["cloud", "account", "region"],
@@ -1418,8 +1378,9 @@ class BaseRoutingTable(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseNetworkAcl(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "network_acls_total": {
             "help": "Number of Network ACLs",
             "labels": ["cloud", "account", "region"],
@@ -1442,8 +1403,9 @@ class BaseNetworkAcl(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BasePeeringConnection(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "peering_connections_total": {
             "help": "Number of Peering Connections",
             "labels": ["cloud", "account", "region"],
@@ -1466,8 +1428,9 @@ class BasePeeringConnection(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseEndpoint(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "endpoints_total": {
             "help": "Number of Endpoints",
             "labels": ["cloud", "account", "region"],
@@ -1490,8 +1453,9 @@ class BaseEndpoint(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseNetworkInterface(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "network_interfaces_total": {
             "help": "Number of Network Interfaces",
             "labels": ["cloud", "account", "region", "status"],
@@ -1501,16 +1465,13 @@ class BaseNetworkInterface(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
         },
     }
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.network_interface_status = ""
-        self.network_interface_type = ""
-        self.mac = ""
-        self.private_ips = []
-        self.public_ips = []
-        self.v6_ips = []
-        self.description = ""
+    network_interface_status: str = ""
+    network_interface_type: str = ""
+    mac: str = ""
+    private_ips: List[str] = field(default_factory=list)
+    public_ips: List[str] = field(default_factory=list)
+    v6_ips: List[str] = field(default_factory=list)
+    description: str = ""
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1525,8 +1486,9 @@ class BaseNetworkInterface(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseUser(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "users_total": {
             "help": "Number of Users",
             "labels": ["cloud", "account", "region"],
@@ -1549,8 +1511,9 @@ class BaseUser(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseGroup(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "groups_total": {
             "help": "Number of Groups",
             "labels": ["cloud", "account", "region"],
@@ -1573,8 +1536,9 @@ class BaseGroup(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BasePolicy(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "policies_total": {
             "help": "Number of Policies",
             "labels": ["cloud", "account", "region"],
@@ -1597,8 +1561,9 @@ class BasePolicy(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseRole(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "roles_total": {
             "help": "Number of Roles",
             "labels": ["cloud", "account", "region"],
@@ -1621,8 +1586,9 @@ class BaseRole(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseInstanceProfile(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "instance_profiles_total": {
             "help": "Number of Instance Profiles",
             "labels": ["cloud", "account", "region"],
@@ -1645,8 +1611,9 @@ class BaseInstanceProfile(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseAccessKey(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "access_keys_total": {
             "help": "Number of Access Keys",
             "labels": ["cloud", "account", "region", "status"],
@@ -1656,10 +1623,7 @@ class BaseAccessKey(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
         },
     }
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.access_key_status = ""
+    access_key_status: str = ""
 
     def metrics(self, graph) -> Dict:
         self._metrics["access_keys_total"][
@@ -1682,8 +1646,9 @@ class BaseAccessKey(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseCertificate(BaseResource):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "certificates_total": {
             "help": "Number of Certificates",
             "labels": ["cloud", "account", "region"],
@@ -1693,10 +1658,7 @@ class BaseCertificate(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.expires = None
+    expires: Optional[datetime] = None
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1710,8 +1672,9 @@ class BaseCertificate(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseCertificateQuota(BaseQuota):
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "certificates_quotas_total": {
             "help": "Quotas of Certificates",
             "labels": ["cloud", "account", "region"],
@@ -1729,14 +1692,9 @@ class BaseCertificateQuota(BaseQuota):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseStack(BaseResource):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.stack_status = ""
-        self.stack_status_reason = ""
-        self.stack_parameters = {}
-
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "stacks_total": {
             "help": "Number of Stacks",
             "labels": ["cloud", "account", "region"],
@@ -1746,6 +1704,9 @@ class BaseStack(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
+    stack_status: str = ""
+    stack_status_reason: str = ""
+    stack_parameters: Dict = field(default_factory=dict)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1759,13 +1720,9 @@ class BaseStack(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseAutoScalingGroup(BaseResource):
-    def __init__(self, *args, min_size: int = -1, max_size: int = -1, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.min_size = int(min_size)
-        self.max_size = int(max_size)
-
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "autoscaling_groups_total": {
             "help": "Number of Autoscaling Groups",
             "labels": ["cloud", "account", "region"],
@@ -1775,6 +1732,8 @@ class BaseAutoScalingGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
+    min_size: int = -1
+    max_size: int = -1
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1788,13 +1747,9 @@ class BaseAutoScalingGroup(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseIPAddress(BaseResource):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.ip_address = ""
-        self.ip_address_family = ""
-
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "ip_addresses_total": {
             "help": "Number of IP Addresses",
             "labels": ["cloud", "account", "region"],
@@ -1804,6 +1759,8 @@ class BaseIPAddress(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
+    ip_address: str = ""
+    ip_address_family: str = ""
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1817,25 +1774,9 @@ class BaseIPAddress(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class BaseHealthCheck(BaseResource):
-    def __init__(
-        self,
-        *args,
-        check_interval: int = -1,
-        healthy_threshold: int = -1,
-        unhealthy_threshold: int = -1,
-        timeout: int = -1,
-        health_check_type: str = "",
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.check_interval = int(check_interval)
-        self.healthy_threshold = int(healthy_threshold)
-        self.unhealthy_threshold = int(unhealthy_threshold)
-        self.timeout = int(timeout)
-        self.health_check_type = health_check_type
-
-    metrics_description = {
+    metrics_description: ClassVar[Dict] = {
         "health_checks_total": {
             "help": "Number of Health Checks",
             "labels": ["cloud", "account", "region"],
@@ -1845,6 +1786,11 @@ class BaseHealthCheck(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
+    check_interval: int = -1
+    healthy_threshold: int = -1
+    unhealthy_threshold: int = -1
+    timeout: int = -1
+    health_check_type: str = ""
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
@@ -1858,36 +1804,41 @@ class BaseHealthCheck(BaseResource):
         return self._metrics
 
 
+@dataclass(eq=False)
 class UnknownCloud(BaseCloud):
-    resource_type = "unknown_cloud"
+    resource_type: ClassVar[str] = "unknown_cloud"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class UnknownAccount(BaseAccount):
-    resource_type = "unknown_account"
+    resource_type: ClassVar[str] = "unknown_account"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class UnknownRegion(BaseRegion):
-    resource_type = "unknown_region"
+    resource_type: ClassVar[str] = "unknown_region"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class UnknownZone(BaseZone):
-    resource_type = "unknown_zone"
+    resource_type: ClassVar[str] = "unknown_zone"
 
     def delete(self, graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class UnknownLocation(BaseResource):
-    resource_type = "unknown_location"
+    resource_type: ClassVar[str] = "unknown_location"
 
     def delete(self, graph) -> bool:
         return False

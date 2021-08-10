@@ -1,13 +1,12 @@
-import cloudkeeper.logging
 from kubernetes import client
 from .common import KubernetesResource
 from cloudkeeper.baseresources import BaseResource
+from typing import ClassVar
+from dataclasses import dataclass
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
-
-
+@dataclass(eq=False)
 class KubernetesNode(KubernetesResource, BaseResource):
-    resource_type = "kubernetes_node"
-    api = client.CoreV1Api
-    list_method = "list_node"
+    resource_type: ClassVar[str] = "kubernetes_node"
+    api: ClassVar[object] = client.CoreV1Api
+    list_method: ClassVar[str] = "list_node"

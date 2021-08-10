@@ -132,7 +132,7 @@ class BaseCliPlugin(ABC):
 
     plugin_type = PluginType.CLI
 
-    def __init__(self, graph, scheduler, clipboard) -> None:
+    def __init__(self, graph: Graph, scheduler, clipboard) -> None:
         super().__init__()
         self.graph = graph
         self.scheduler = scheduler

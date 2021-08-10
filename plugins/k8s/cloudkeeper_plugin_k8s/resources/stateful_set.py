@@ -3,9 +3,12 @@ from .common import KubernetesResource
 from cloudkeeper.baseresources import (
     BaseResource,
 )
+from typing import ClassVar
+from dataclasses import dataclass
 
 
+@dataclass(eq=False)
 class KubernetesStatefulSet(KubernetesResource, BaseResource):
-    resource_type = "kubernetes_stateful_set"
-    api = client.AppsV1Api
-    list_method = "list_stateful_set_for_all_namespaces"
+    resource_type: ClassVar[str] = "kubernetes_stateful_set"
+    api: ClassVar[object] = client.AppsV1Api
+    list_method: ClassVar[str] = "list_stateful_set_for_all_namespaces"

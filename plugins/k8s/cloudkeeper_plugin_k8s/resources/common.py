@@ -2,17 +2,18 @@ import cloudkeeper.logging
 from cloudkeeper.graph import Graph
 from pprint import pformat
 from kubernetes import client
-from typing import Iterable, Dict, Union, Callable, Any
-
+from typing import ClassVar, Iterable, Dict, Union, Callable, Any, List, Optional
+from dataclasses import dataclass, field
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
+@dataclass(eq=False)
 class KubernetesResource:
-    api = NotImplemented
-    list_method = NotImplemented
-    attr_map = {}
-    search_map = {
+    api: ClassVar[object] = NotImplemented
+    list_method: ClassVar[str] = NotImplemented
+    attr_map: ClassVar[Dict] = {}
+    search_map: ClassVar[Dict] = {
         "_owner": [
             "id",
             (
@@ -22,13 +23,11 @@ class KubernetesResource:
             ),
         ]
     }
-    predecessor_names = ["_owner"]
-    successor_names = []
+    predecessor_names: ClassVar[List[str]] = ["_owner"]
+    successor_names: ClassVar[List[str]] = []
 
-    def __init__(self, *args, api_response=None, self_link: str = None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._api_response = pformat(api_response)
-        self.self_link = self_link
+    self_link: Optional[str] = None
+    _api_response: Optional[str] = field(repr=False, default=None)
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -114,12 +113,12 @@ def default_attributes(
     response, attr_map: Dict, search_map: Dict, graph: Graph
 ) -> Dict:
     kwargs = {
-        "identifier": response.metadata.uid,
+        "id": response.metadata.uid,
         "name": response.metadata.name,
         "ctime": response.metadata.creation_timestamp,
         "self_link": response.metadata.self_link,
         "tags": response.metadata.labels if response.metadata.labels else {},
-        "api_response": response,
+        "_api_response": pformat(response),
     }
     search_results = {}
     for map_to, map_from in attr_map.items():

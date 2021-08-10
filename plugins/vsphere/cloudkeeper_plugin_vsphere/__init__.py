@@ -5,7 +5,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.baseresources import BaseResource
 
-from .vsphere_client import new_vsphere_client
+from .vsphere_client import get_vsphere_client
 from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
 
 from pyVmomi import vim
@@ -19,7 +19,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if ArgumentParser.args.vsphere_host:
-            self.vsphere_client = new_vsphere_client()
+            self.vsphere_client = get_vsphere_client()
 
     def get_cluster(self) -> VSphereCluster:
         """
@@ -79,8 +79,8 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                 instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
                 tags=tags,
                 ctime=ctime,
+                instance_status=list_vm.guest.guestState,
             )
-            vm.instance_status = list_vm.guest.guestState
 
             self.graph.add_resource(parent, vm)
 

@@ -401,7 +401,7 @@ class GCPProjectCollector:
             search_map:
             {
                 "volume_type": ["link", "type"],
-                "_users": ["link", "users"],
+                "__users": ["link", "users"],
             }
             ```
             This would create
@@ -436,13 +436,13 @@ class GCPProjectCollector:
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
         kwargs = {
-            "identifier": result.get("id", result.get("name", result.get("selfLink"))),
+            "id": result.get("id", result.get("name", result.get("selfLink"))),
             "tags": result.get("labels", {}),
             "name": result.get("name"),
             "ctime": iso2datetime(result.get("creationTimestamp")),
             "link": result.get("selfLink"),
             "label_fingerprint": result.get("labelFingerprint"),
-            "account": self.project,
+            "_account": self.project,
         }
 
         if attr_map is not None:
@@ -455,7 +455,7 @@ class GCPProjectCollector:
                 kwargs[map_to] = data
 
         # By default we search for a resources region and/or zone
-        default_search_map = {"region": ["link", "region"], "zone": ["link", "zone"]}
+        default_search_map = {"_region": ["link", "region"], "_zone": ["link", "zone"]}
         search_results = {}
         if search_map is None:
             search_map = dict(default_search_map)
@@ -483,7 +483,7 @@ class GCPProjectCollector:
             if (
                 map_to not in kwargs
                 and map_to in search_results
-                and not str(map_to).startswith("_")
+                and not str(map_to).startswith("__")
             ):
                 search_result = search_results[map_to]
                 if len(search_result) == 1:
@@ -496,15 +496,15 @@ class GCPProjectCollector:
         # E.g. if we know a disk is in zone us-central1-a then we can find
         # the region us-central1 from that.
         if (
-            "zone" in kwargs
-            and "region" not in kwargs
-            and isinstance(kwargs["zone"], BaseResource)
+            "_zone" in kwargs
+            and "_region" not in kwargs
+            and isinstance(kwargs["_zone"], BaseResource)
         ):
-            region = kwargs["zone"].region(self.graph)
+            region = kwargs["_zone"].region(self.graph)
             if region:
-                kwargs["region"] = region
-                if "region" in search_map.keys() and "region" not in search_results:
-                    search_results["region"] = region
+                kwargs["_region"] = region
+                if "_region" in search_map.keys() and "_region" not in search_results:
+                    search_results["_region"] = region
 
         return kwargs, search_results
 
@@ -602,7 +602,7 @@ class GCPProjectCollector:
                 log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
 
             if not isinstance(pr, BaseResource):
-                pr = kwargs.get("zone", kwargs.get("region", self.graph.root))
+                pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
                 log.debug(
                     f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
                 )
@@ -659,9 +659,9 @@ class GCPProjectCollector:
                         {},
                         quota=quota["limit"],
                         usage=quota["usage"],
-                        region=resource.region(),
-                        account=resource.account(),
-                        zone=resource.zone(),
+                        _region=resource.region(),
+                        _account=resource.account(),
+                        _zone=resource.zone(),
                         ctime=resource.ctime,
                     )
                     graph.add_resource(resource, q)
@@ -693,10 +693,10 @@ class GCPProjectCollector:
             resource_class=GCPDisk,
             search_map={
                 "volume_type": ["link", "type"],
-                "_users": ["link", "users"],
+                "__users": ["link", "users"],
             },
             attr_map={
-                "volume_size": "sizeGb",
+                "volume_size": (lambda r: int(r.get("sizeGb"))),
                 "volume_status": volume_status,
                 "last_attach_timestamp": (
                     lambda r: iso2datetime(
@@ -710,7 +710,7 @@ class GCPProjectCollector:
                 ),
             },
             predecessors=["volume_type"],
-            successors=["_users"],
+            successors=["__users"],
         )
 
     @metrics_collect_instances.time()
@@ -731,8 +731,8 @@ class GCPProjectCollector:
                 machine_type = GCPMachineType(
                     resource._machine_type_link.split("/")[-1],
                     {},
-                    region=resource.region(graph),
-                    account=resource.account(graph),
+                    _region=resource.region(graph),
+                    _account=resource.account(graph),
                     link=resource._machine_type_link,
                 )
                 resource._machine_type_link = None
@@ -748,14 +748,14 @@ class GCPProjectCollector:
                 graph.add_resource(machine_type.zone(graph), machine_type)
                 graph.add_edge(machine_type, resource)
                 self.post_process_machine_type(machine_type, graph)
-                resource.instance_type = machine_type
+                resource._machine_type = machine_type
 
         self.collect_something(
             paginate_method_name="aggregatedList",
             resource_class=GCPInstance,
             post_process=post_process,
             search_map={
-                "_network": [
+                "__network": [
                     "link",
                     (
                         lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
@@ -763,7 +763,7 @@ class GCPProjectCollector:
                         )
                     ),
                 ],
-                "_subnetwork": [
+                "__subnetwork": [
                     "link",
                     (
                         lambda r: next(iter(r.get("networkInterfaces", [])), {}).get(
@@ -771,13 +771,13 @@ class GCPProjectCollector:
                         )
                     ),
                 ],
-                "instance_type": ["link", "machineType"],
+                "machine_type": ["link", "machineType"],
             },
             attr_map={
                 "instance_status": "status",
                 "machine_type_link": "machineType",
             },
-            predecessors=["_network", "_subnetwork", "instance_type"],
+            predecessors=["__network", "__subnetwork", "machine_type"],
         )
 
     @metrics_collect_disk_types.time()
@@ -810,8 +810,14 @@ class GCPProjectCollector:
                     "resource_group": resource_group,
                 }
             ):
-                if resource.region(graph).name not in sku.geo_taxonomy_regions:
-                    continue
+                try:
+                    if resource.region(graph).name not in sku.geo_taxonomy_regions:
+                        continue
+                except TypeError:
+                    log.exception(
+                        f"Problem accessing geo_taxonomy_regions in {sku.rtdname}:"
+                        f" {type(sku.geo_taxonomy_regions)}"
+                    )
                 if resource.name == "pd-balanced" and not sku.name.startswith(
                     "Balanced"
                 ):
@@ -854,9 +860,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPSubnetwork,
             search_map={
-                "_network": ["link", "network"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network"],
+            predecessors=["__network"],
         )
 
     @metrics_collect_vpn_tunnels.time()
@@ -865,10 +871,10 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPVPNTunnel,
             search_map={
-                "_vpn_gateway": ["link", "vpnGateway"],
-                "_target_vpn_gateway": ["link", "targetVpnGateway"],
+                "__vpn_gateway": ["link", "vpnGateway"],
+                "__target_vpn_gateway": ["link", "targetVpnGateway"],
             },
-            successors=["_target_vpn_gateway", "_vpn_gateway"],
+            successors=["__target_vpn_gateway", "__vpn_gateway"],
         )
 
     @metrics_collect_vpn_gateways.time()
@@ -877,9 +883,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPVPNGateway,
             search_map={
-                "_network": ["link", "network"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network"],
+            predecessors=["__network"],
         )
 
     @metrics_collect_target_vpn_gateways.time()
@@ -888,9 +894,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPTargetVPNGateway,
             search_map={
-                "_network": ["link", "network"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network"],
+            predecessors=["__network"],
         )
 
     @metrics_collect_routers.time()
@@ -899,9 +905,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPRouter,
             search_map={
-                "_network": ["link", "network"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network"],
+            predecessors=["__network"],
         )
 
     @metrics_collect_routes.time()
@@ -909,9 +915,9 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPRoute,
             search_map={
-                "_network": ["link", "network"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network"],
+            predecessors=["__network"],
         )
 
     @metrics_collect_security_policies.time()
@@ -937,9 +943,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             resource_class=GCPSSLCertificate,
             search_map={
-                "_user": ["link", "user"],
+                "__user": ["link", "user"],
             },
-            successors=["_user"],
+            successors=["__user"],
         )
 
     @staticmethod
@@ -1060,11 +1066,11 @@ class GCPProjectCollector:
             resource_class=GCPMachineType,
             paginate_method_name="aggregatedList",
             search_map={
-                "zone": ["name", "zone"],
+                "_zone": ["name", "zone"],
             },
             attr_map={
-                "instance_cores": "guestCpus",
-                "instance_memory": lambda r: r.get("memoryMb", 0) / 1024,
+                "instance_cores": lambda r: float(r.get("guestCpus", 0)),
+                "instance_memory": lambda r: float(r.get("memoryMb", 0) / 1024),
             },
             post_process=self.post_process_machine_type,
         )
@@ -1075,14 +1081,14 @@ class GCPProjectCollector:
             resource_class=GCPNetworkEndpointGroup,
             paginate_method_name="aggregatedList",
             search_map={
-                "_subnetwork": ["link", "subnetwork"],
-                "_network": ["link", "network"],
+                "__subnetwork": ["link", "subnetwork"],
+                "__network": ["link", "network"],
             },
             attr_map={
                 "default_port": "defaultPort",
                 "neg_type": "networkEndpointType",
             },
-            predecessors=["_network", "_subnetwork"],
+            predecessors=["__network", "__subnetwork"],
         )
 
     @metrics_collect_global_network_endpoint_groups.time()
@@ -1090,14 +1096,14 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPGlobalNetworkEndpointGroup,
             search_map={
-                "_subnetwork": ["link", "subnetwork"],
-                "_network": ["link", "network"],
+                "__subnetwork": ["link", "subnetwork"],
+                "__network": ["link", "network"],
             },
             attr_map={
                 "default_port": "defaultPort",
                 "neg_type": "networkEndpointType",
             },
-            predecessors=["_network", "_subnetwork"],
+            predecessors=["__network", "__subnetwork"],
         )
 
     @metrics_collect_instance_groups.time()
@@ -1120,10 +1126,10 @@ class GCPProjectCollector:
             resource_class=GCPInstanceGroup,
             paginate_method_name="aggregatedList",
             search_map={
-                "_subnetwork": ["link", "subnetwork"],
-                "_network": ["link", "network"],
+                "__subnetwork": ["link", "subnetwork"],
+                "__network": ["link", "network"],
             },
-            predecessors=["_network", "_subnetwork"],
+            predecessors=["__network", "__subnetwork"],
             post_process=post_process,
         )
 
@@ -1133,8 +1139,8 @@ class GCPProjectCollector:
             resource_class=GCPInstanceGroupManager,
             paginate_method_name="aggregatedList",
             search_map={
-                "_instance_group": ["link", "instanceGroup"],
-                "_health_checks": [
+                "__instance_group": ["link", "instanceGroup"],
+                "__health_checks": [
                     "link",
                     (
                         lambda r: [
@@ -1144,7 +1150,7 @@ class GCPProjectCollector:
                     ),
                 ],
             },
-            predecessors=["_instance_group", "_health_checks"],
+            predecessors=["__instance_group", "__health_checks"],
         )
 
     @metrics_collect_autoscalers.time()
@@ -1153,7 +1159,7 @@ class GCPProjectCollector:
             resource_class=GCPAutoscaler,
             paginate_method_name="aggregatedList",
             search_map={
-                "_instance_group_manager": ["link", "target"],
+                "__instance_group_manager": ["link", "target"],
             },
             attr_map={
                 "min_size": (
@@ -1163,7 +1169,7 @@ class GCPProjectCollector:
                     lambda r: r.get("autoscalingPolicy", {}).get("maxNumReplicas", -1)
                 ),
             },
-            successors=["_instance_group_manager"],
+            successors=["__instance_group_manager"],
         )
 
     @metrics_collect_health_checks.time()
@@ -1217,9 +1223,9 @@ class GCPProjectCollector:
             resource_class=GCPUrlMap,
             paginate_method_name="aggregatedList",
             search_map={
-                "_default_service": ["link", "defaultService"],
+                "__default_service": ["link", "defaultService"],
             },
-            successors=["_default_service"],
+            successors=["__default_service"],
         )
 
     @metrics_collect_target_pools.time()
@@ -1228,14 +1234,14 @@ class GCPProjectCollector:
             resource_class=GCPTargetPool,
             paginate_method_name="aggregatedList",
             search_map={
-                "_health_checks": ["link", "healthChecks"],
-                "_instances": ["link", "instances"],
+                "__health_checks": ["link", "healthChecks"],
+                "__instances": ["link", "instances"],
             },
             attr_map={
                 "session_affinity": "sessionAffinity",
                 "failover_ratio": "failoverRatio",
             },
-            predecessors=["_instances", "_health_checks"],
+            predecessors=["__instances", "__health_checks"],
         )
 
     @metrics_collect_target_instances.time()
@@ -1244,9 +1250,9 @@ class GCPProjectCollector:
             resource_class=GCPTargetInstance,
             paginate_method_name="aggregatedList",
             search_map={
-                "_instance": ["link", "instance"],
+                "__instance": ["link", "instance"],
             },
-            predecessors=["_instance"],
+            predecessors=["__instance"],
         )
 
     @metrics_collect_target_http_proxies.time()
@@ -1255,9 +1261,9 @@ class GCPProjectCollector:
             resource_class=GCPTargetHttpProxy,
             paginate_method_name="aggregatedList",
             search_map={
-                "_url_map": ["link", "urlMap"],
+                "__url_map": ["link", "urlMap"],
             },
-            predecessors=["_url_map"],
+            predecessors=["__url_map"],
         )
 
     @metrics_collect_target_https_proxies.time()
@@ -1266,9 +1272,9 @@ class GCPProjectCollector:
             resource_class=GCPTargetHttpsProxy,
             paginate_method_name="aggregatedList",
             search_map={
-                "_url_map": ["link", "urlMap"],
+                "__url_map": ["link", "urlMap"],
             },
-            predecessors=["_url_map"],
+            predecessors=["__url_map"],
         )
 
     @metrics_collect_target_ssl_proxies.time()
@@ -1276,9 +1282,9 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPTargetSslProxy,
             search_map={
-                "_service": ["link", "service"],
+                "__service": ["link", "service"],
             },
-            predecessors=["_service"],
+            predecessors=["__service"],
         )
 
     @metrics_collect_target_tcp_proxies.time()
@@ -1286,9 +1292,9 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPTargetTcpProxy,
             search_map={
-                "_service": ["link", "service"],
+                "__service": ["link", "service"],
             },
-            predecessors=["_service"],
+            predecessors=["__service"],
         )
 
     @metrics_collect_target_grpc_proxies.time()
@@ -1296,9 +1302,9 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPTargetGrpcProxy,
             search_map={
-                "_url_map": ["link", "urlMap"],
+                "__url_map": ["link", "urlMap"],
             },
-            predecessors=["_url_map"],
+            predecessors=["__url_map"],
         )
 
     @metrics_collect_backend_services.time()
@@ -1307,13 +1313,13 @@ class GCPProjectCollector:
             resource_class=GCPBackendService,
             paginate_method_name="aggregatedList",
             search_map={
-                "_health_checks": ["link", "healthChecks"],
-                "_backends": [
+                "__health_checks": ["link", "healthChecks"],
+                "__backends": [
                     "link",
                     (lambda r: [g.get("group", "") for g in r.get("backends", [])]),
                 ],
             },
-            predecessors=["_health_checks", "_backends"],
+            predecessors=["__health_checks", "__backends"],
         )
 
     @metrics_collect_forwarding_rules.time()
@@ -1336,9 +1342,9 @@ class GCPProjectCollector:
                 "port_range": "portRange",
             },
             search_map={
-                "_target": ["link", "target"],
+                "__target": ["link", "target"],
             },
-            predecessors=["_target"],
+            predecessors=["__target"],
             post_process=post_process,
         )
 
@@ -1354,9 +1360,9 @@ class GCPProjectCollector:
                 "port_range": "portRange",
             },
             search_map={
-                "_target": ["link", "target"],
+                "__target": ["link", "target"],
             },
-            predecessors=["_target"],
+            predecessors=["__target"],
         )
 
     @metrics_collect_buckets.time()
@@ -1395,8 +1401,8 @@ class GCPProjectCollector:
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={
-                "region": ["name", "region"],
-                "zone": ["name", "gceZone"],
+                "_region": ["name", "region"],
+                "_zone": ["name", "gceZone"],
             },
         )
 
@@ -1430,9 +1436,9 @@ class GCPProjectCollector:
                         f"https://{service.client}.googleapis.com/"
                         f"{service.api_version}/{r.get('name')}"
                     ),
-                    account=service.account(graph),
-                    region=service.region(graph),
-                    zone=service.zone(graph),
+                    _account=service.account(graph),
+                    _region=service.region(graph),
+                    _zone=service.zone(graph),
                 )
                 graph.add_resource(service, sku)
 
@@ -1441,7 +1447,7 @@ class GCPProjectCollector:
             paginate_method_name="list",
             paginate_items_name="services",
             attr_map={
-                "identifier": "serviceId",
+                "id": "serviceId",
                 "name": "displayName",
             },
             post_process=post_process,
@@ -1452,7 +1458,7 @@ class GCPProjectCollector:
         self.collect_something(
             resource_class=GCPInstanceTemplate,
             search_map={
-                "_machine_type": ["link", "machineType"],
+                "__machine_type": ["link", "machineType"],
             },
-            predecessors=["_machine_type"],
+            predecessors=["__machine_type"],
         )

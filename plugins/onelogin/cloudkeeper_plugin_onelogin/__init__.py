@@ -1,77 +1,120 @@
 import cloudkeeper.logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import make_valid_timestamp
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
+from cloudkeeper.graph import Graph
+from dataclasses import dataclass
+from typing import ClassVar, Optional, Dict, List
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
+@dataclass(eq=False)
 class OneLoginResource:
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Graph) -> bool:
         return False
 
 
+@dataclass(eq=False)
 class OneLoginAccount(OneLoginResource, BaseAccount):
-    resource_type = "onelogin_account"
+    resource_type: ClassVar[str] = "onelogin_account"
 
 
+@dataclass(eq=False)
 class OneLoginRegion(OneLoginResource, BaseRegion):
-    resource_type = "onelogin_region"
+    resource_type: ClassVar[str] = "onelogin_region"
 
 
+@dataclass(eq=False)
 class OneLoginUser(OneLoginResource, BaseUser):
-    resource_type = "onelogin_user"
+    resource_type: ClassVar[str] = "onelogin_user"
+    user_id: Optional[int] = None
+    external_id: Optional[str] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    distinguished_name: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    department: Optional[str] = None
+    title: Optional[str] = None
+    status: Optional[int] = None
+    member_of: Optional[str] = None
+    samaccountname: Optional[str] = None
+    userprincipalname: Optional[str] = None
+    group_id: Optional[int] = None
+    role_ids: Optional[List[int]] = None
+    custom_attributes: Optional[Dict[str, str]] = None
+    openid_name: Optional[str] = None
+    locale_code: Optional[str] = None
+    comment: Optional[str] = None
+    directory_id: Optional[int] = None
+    manager_ad_id: Optional[int] = None
+    trusted_idp_id: Optional[int] = None
+    manager_user_id: Optional[str] = None
+    activated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    password_changed_at: Optional[datetime] = None
+    invitation_sent_at: Optional[datetime] = None
+    invalid_login_attempts: Optional[int] = None
+    last_login: Optional[datetime] = None
+    locked_until: Optional[datetime] = None
+    state: Optional[int] = None
+    password_age: Optional[timedelta] = None
 
-    def __init__(self, identifier, tags, user: User):
-        super().__init__(identifier, tags)
-        self.user_id = user.id
-        self.external_id = user.external_id
-        self.email = user.email
-        self.username = user.username
-        self.firstname = user.firstname
-        self.lastname = user.lastname
-        self.distinguished_name = user.distinguished_name
-        self.phone = user.phone
-        self.company = user.company
-        self.department = user.department
-        self.title = user.title
-        self.status = user.status
-        self.member_of = user.member_of
-        self.samaccountname = user.samaccountname
-        self.userprincipalname = user.userprincipalname
-        self.group_id = user.group_id
-        self.role_ids = user.role_ids
-        self.custom_attributes = user.custom_attributes
-        self.openid_name = user.openid_name
-        self.locale_code = user.locale_code
-        self.comment = user.comment
-        self.directory_id = user.directory_id
-        self.manager_ad_id = user.manager_ad_id
-        self.trusted_idp_id = user.trusted_idp_id
-        self.manager_user_id = user.manager_user_id
-        self.activated_at = user.activated_at
-        self.created_at = user.created_at
-        self.updated_at = user.updated_at
-        self.password_changed_at = user.password_changed_at
-        self.invitation_sent_at = user.invitation_sent_at
-        self.invalid_login_attempts = user.invalid_login_attempts
-        self.last_login = user.last_login
-        self.locked_until = user.locked_until
-        self.state = user.state
-        self.ctime = self.created_at
-        self.atime = self.last_login
-        self.mtime = self.updated_at
-        self.password_age = datetime.utcnow().replace(
-            tzinfo=timezone.utc
-        ) - make_valid_timestamp(self.password_changed_at)
-
-    def delete(self, graph) -> bool:
-        return NotImplemented
+    @staticmethod
+    def new(user: User) -> BaseUser:
+        return OneLoginUser(
+            id=str(user.id),
+            tags={},
+            name=user.username,
+            user_id=user.id,
+            external_id=user.external_id,
+            email=user.email,
+            username=user.username,
+            firstname=user.firstname,
+            lastname=user.lastname,
+            distinguished_name=user.distinguished_name,
+            phone=user.phone,
+            company=user.company,
+            department=user.department,
+            title=user.title,
+            status=user.status,
+            member_of=user.member_of,
+            samaccountname=user.samaccountname,
+            userprincipalname=user.userprincipalname,
+            group_id=user.group_id,
+            role_ids=user.role_ids,
+            custom_attributes=user.custom_attributes,
+            openid_name=user.openid_name,
+            locale_code=user.locale_code,
+            comment=user.comment,
+            directory_id=user.directory_id,
+            manager_ad_id=user.manager_ad_id,
+            trusted_idp_id=user.trusted_idp_id,
+            manager_user_id=user.manager_user_id,
+            activated_at=user.activated_at,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            password_changed_at=user.password_changed_at,
+            invitation_sent_at=user.invitation_sent_at,
+            invalid_login_attempts=user.invalid_login_attempts,
+            last_login=user.last_login,
+            locked_until=user.locked_until,
+            state=user.state,
+            ctime=user.created_at,
+            atime=user.last_login,
+            mtime=user.updated_at,
+            password_age=datetime.utcnow().replace(tzinfo=timezone.utc)
+            - make_valid_timestamp(user.password_changed_at),
+        )
 
 
 class OneLoginPlugin(BaseCollectorPlugin):
@@ -106,7 +149,7 @@ class OneLoginPlugin(BaseCollectorPlugin):
 
         for user in users:
             log.debug(f"OneLogin: found user {user.email} ({user.id})")
-            user = OneLoginUser(user.id, {}, user=user)
+            user = OneLoginUser.new(user)
             self.graph.add_resource(region, user)
 
     @staticmethod

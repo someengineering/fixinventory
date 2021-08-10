@@ -17,6 +17,8 @@ from cloudkeeper.event import (
 from prometheus_client import Summary
 from typing import Dict
 from io import BytesIO
+from dataclasses import fields
+from typeguard import check_type
 
 log = cloudkeeper.logging.getLogger(__name__)
 
@@ -517,6 +519,25 @@ def graph2pajek(graph):
     return "\n".join(networkx.generate_pajek(new_graph)) + "\n"
 
 
+def validate_dataclass(node: BaseResource):
+    for field in fields(node):
+        value = getattr(node, field.name)
+        try:
+            check_type(str(value), value, field.type)
+        except TypeError:
+            log.exception(
+                f"In {node.rtdname} expected {field.name}"
+                f" type {field.type} ({type(field.type)})"
+                f" for value {value} ({type(value)})"
+            )
+
+
+def validate_graph_dataclasses(graph: Graph) -> None:
+    for node in graph.nodes:
+        if isinstance(node, BaseResource):
+            validate_dataclass(node)
+
+
 def update_graph_ref(graph: Graph) -> None:
     for node in graph.nodes:
         if isinstance(node, BaseResource):
@@ -596,3 +617,4 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     graph.resolve_deferred_connections()
     update_graph_ref(graph)
     set_max_depth(graph, root)
+    validate_graph_dataclasses(graph)

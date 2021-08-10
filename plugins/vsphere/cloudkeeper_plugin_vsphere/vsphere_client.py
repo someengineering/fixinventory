@@ -4,11 +4,8 @@ from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect
 
 
-class VSphereClient(object):
-    """docstring for VSphereClient."""
-
+class VSphereClient:
     def __init__(self, host, user, pwd, port=443, insecure=False):
-        super(VSphereClient, self).__init__()
         self.host = host
         self.user = user
         self.pwd = pwd
@@ -118,7 +115,7 @@ class VSphereClient(object):
                 pcfilter.Destroy()
 
 
-def new_vsphere_client() -> VSphereClient:
+def get_vsphere_client() -> VSphereClient:
     return VSphereClient(
         host=ArgumentParser.args.vsphere_host,
         user=ArgumentParser.args.vsphere_user,
