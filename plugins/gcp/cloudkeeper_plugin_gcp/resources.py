@@ -470,15 +470,6 @@ class GCPQuota(GCPResource, BaseQuota):
     resource_type: ClassVar[str] = "gcp_quota"
     api_identifier: ClassVar[str] = "dummy"
 
-    usage: int = 0
-
-    @property
-    def usage_percentage(self) -> float:
-        if self.quota > 0:
-            return self.usage / self.quota * 100
-        else:
-            return 0.0
-
 
 @dataclass(eq=False)
 class GCPBackendService(GCPResource, BaseResource):
