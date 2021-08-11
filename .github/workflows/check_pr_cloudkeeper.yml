@@ -1,8 +1,14 @@
 name: Check Pull Request
-
-anchors:
-  checkout_test_steps: &checkout_test_steps
-    steps:
+on:
+  - push
+jobs:
+  cloudkeeper:
+    name: "cloudkeeper"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./cloudkeeper
+    steps: &checkout_test_steps
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Python
@@ -27,21 +33,10 @@ anchors:
       - name: Run tests
         run: tox
 
-on:
-  - push
-jobs:
-  cloudkeeper:
-    name: "cloudkeeper"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./cloudkeeper
-    <<: *checkout_test_steps
-
   aws:
     name: "aws"
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./plugins/aws
-    <<: *checkout_test_steps
+    *checkout_test_steps
