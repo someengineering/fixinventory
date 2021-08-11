@@ -37,6 +37,6 @@ jobs:
       - name: Install all plugins
         run: find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
       - name: Run tests
-        working-directory: ./cloudkeeper
+        working-directory: ./plugins/aws
         run: tox
 
