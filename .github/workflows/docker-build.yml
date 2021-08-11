@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # disable tests defined in dockerfile. all of them will run separately.
-      TESTS=false
+      TESTS: false
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
