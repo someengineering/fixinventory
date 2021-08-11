@@ -1,6 +1,8 @@
 import cloudkeeper.logging
 import cloudkeeper.signal
+import socket
 from pprint import pformat
+from retrying import retry
 from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
@@ -222,6 +224,13 @@ metrics_collect_instance_templates = Summary(
 )
 
 
+def retry_on_error(e):
+    if isinstance(e, socket.timeout):
+        log.debug("Got socket timeout - retrying")
+        return True
+    return False
+
+
 class GCPProjectCollector:
     """Collects a single GCP project.
 
@@ -303,11 +312,18 @@ class GCPProjectCollector:
         self.all_collectors.update(self.zone_collectors)
         self.collector_set = set(self.all_collectors.keys())
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
     def collect(self) -> None:
         """Runs the actual resource collection across all resource collectors.
 
         Resource collectors add their resources to the local `self.graph` graph.
         """
+        self.graph = Graph(root=self.project)
         collectors = set(self.collector_set)
         if len(ArgumentParser.args.gcp_collect) > 0:
             collectors = set(ArgumentParser.args.gcp_collect).intersection(collectors)
@@ -1397,7 +1413,9 @@ class GCPProjectCollector:
                     None,
                 ),
                 "instance_type": lambda r: r.get("settings", {}).get("tier"),
-                "volume_size": lambda r: int(r.get("settings", {}).get("dataDiskSizeGb", -1)),
+                "volume_size": lambda r: int(
+                    r.get("settings", {}).get("dataDiskSizeGb", -1)
+                ),
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={
