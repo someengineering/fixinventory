@@ -1,6 +1,12 @@
 import os
 
+# This script generates a github action workflow to build and check every plugin and core in parallel.
+# Note: once github actions support anchors or repeated job definitions, we can get rid of this approach...
+
 head = """
+# Note: this workflow is automatically generated via the `create_pr` script in the same folder.
+# Please do not change the file, but the script!
+
 name: Check Pull Request
 on:
   - push
