@@ -2,7 +2,7 @@ name: Check Pull Request
 on:
   - push
 jobs:
-  build:
+  cloudkeeper:
     name: "cloudkeeper"
     runs-on: ubuntu-latest
     steps:
@@ -34,9 +34,79 @@ jobs:
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
-      - name: Install all plugins
-        run: find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
+      - name: Run tests
+        working-directory: ./cloudkeeper
+        run: tox
+
+  aws:
+    name: "aws"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{runner.os}}-pip-${{hashFiles('setup.py')}}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
       - name: Run tests
         working-directory: ./plugins/aws
+        run: tox
+
+  cleanup_aws_vpcs:
+    name: "aws"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{runner.os}}-pip-${{hashFiles('setup.py')}}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+      - name: Run tests
+        working-directory: ./plugins/cleanup_aws_vpcs
         run: tox
 
