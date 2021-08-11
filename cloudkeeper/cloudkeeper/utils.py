@@ -1,7 +1,6 @@
 import threading
 import re
 import os
-import socket
 import gc as garbage_collector
 import sys
 
