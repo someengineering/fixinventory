@@ -29,7 +29,7 @@ jobs:
         working-directory: ./cloudkeeper
         run: |
           sudo rm -fr /build
-          sudo mkdir -p /build
+          sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
       - name: Install aws
         working-directory: ./plugins/aws
