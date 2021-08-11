@@ -53,8 +53,8 @@ print(install.replace("@name@", "cloudkeeper").replace("@directory@", f"cloudkee
 dir = "/Users/matthias/Documents/Work/someeng/cloudkeeper/plugins"
 for plugin in os.listdir(dir):
     if os.path.isdir(os.path.join(dir, plugin)):
-        print(install.replace("@name@", plugin).replace("@directory@", f"./plugins/{plugin}"))
+        print(install.replace("@name@", plugin))
         # aws is a dependency that needs to be installed for all aws related plugins.
         if "aws" in plugin and "aws" != plugin:
             print(step_aws)
-        print(step_run_test)
+        print(step_run_test.replace("@directory@", f"./plugins/{plugin}"))

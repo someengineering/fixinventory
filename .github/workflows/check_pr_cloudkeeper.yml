@@ -66,7 +66,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/example_cli
         run: tox
 
   cli_edgestats:
@@ -100,7 +100,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cli_edgestats
         run: tox
 
   cleanup_aws_loadbalancers:
@@ -138,7 +138,7 @@ jobs:
         run: pip wheel -w /build -f /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_aws_loadbalancers
         run: tox
 
   tag_aws_ctime:
@@ -176,7 +176,7 @@ jobs:
         run: pip wheel -w /build -f /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/tag_aws_ctime
         run: tox
 
   vsphere:
@@ -210,7 +210,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/vsphere
         run: tox
 
   cli_debug:
@@ -244,7 +244,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cli_debug
         run: tox
 
   onprem:
@@ -278,7 +278,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/onprem
         run: tox
 
   cleanup_volumes:
@@ -312,7 +312,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_volumes
         run: tox
 
   k8s:
@@ -346,7 +346,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/k8s
         run: tox
 
   cleanup_aws_alarms:
@@ -384,7 +384,7 @@ jobs:
         run: pip wheel -w /build -f /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_aws_alarms
         run: tox
 
   cleanup_expired:
@@ -418,7 +418,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_expired
         run: tox
 
   cleanup_untagged:
@@ -452,7 +452,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_untagged
         run: tox
 
   gcp:
@@ -486,7 +486,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/gcp
         run: tox
 
   onelogin:
@@ -520,7 +520,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/onelogin
         run: tox
 
   remote_event_callback:
@@ -554,7 +554,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/remote_event_callback
         run: tox
 
   keepercore:
@@ -588,7 +588,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/keepercore
         run: tox
 
   tagvalidator:
@@ -622,7 +622,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/tagvalidator
         run: tox
 
   metrics_age_range:
@@ -656,7 +656,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/metrics_age_range
         run: tox
 
   example_collector:
@@ -690,7 +690,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/example_collector
         run: tox
 
   logdump:
@@ -724,7 +724,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/logdump
         run: tox
 
   slack:
@@ -758,7 +758,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/slack
         run: tox
 
   aws:
@@ -792,7 +792,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/aws
         run: tox
 
   cleanup_aws_vpcs:
@@ -830,7 +830,7 @@ jobs:
         run: pip wheel -w /build -f /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cleanup_aws_vpcs
         run: tox
 
   example_persistent:
@@ -864,7 +864,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/example_persistent
         run: tox
 
   backup:
@@ -898,7 +898,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/backup
         run: tox
 
   cli_jq:
@@ -932,7 +932,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/cli_jq
         run: tox
 
   report_cleanups:
@@ -966,7 +966,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/report_cleanups
         run: tox
 
   protect_snowflakes:
@@ -1000,7 +1000,7 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/protect_snowflakes
         run: tox
 
   remote:
@@ -1034,5 +1034,5 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: @directory@
+        working-directory: ./plugins/remote
         run: tox
