@@ -15,10 +15,10 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: collecting on-prem resources")
 
-        default_location = OnpremLocation("Default location", {})
+        default_location = OnpremLocation(ArgumentParser.args.onprem_location)
         self.graph.add_resource(self.graph.root, default_location)
 
-        default_region = OnpremRegion("Default region", {})
+        default_region = OnpremRegion(ArgumentParser.args.onprem_region)
         self.graph.add_resource(default_location, default_region)
 
         servers = []
@@ -79,24 +79,22 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
             "--onprem-location",
-            help="On-Prem Location",
+            help="On-Prem default location",
             dest="onprem_location",
             type=str,
-            default=None,
-            nargs="+",
+            default="Default location",
         )
         arg_parser.add_argument(
-            "--onprem-subnet",
-            help="On-Prem Subnet",
-            dest="onprem_subnet",
+            "--onprem-region",
+            help="On-Prem default region",
+            dest="onprem_region",
             type=str,
-            default=None,
-            nargs="+",
+            default="Default region",
         )
         arg_parser.add_argument(
-            "--onprem-user",
-            help="On-Prem User",
-            dest="onprem_user",
+            "--onprem-ssh-user",
+            help="On-Prem SSH User",
+            dest="onprem_ssh_user",
             type=str,
             default="root",
         )
