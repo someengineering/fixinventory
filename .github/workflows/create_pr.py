@@ -49,4 +49,4 @@ print(tpl.replace("@name@", "cloudkeeper").replace("@directory@", f"cloudkeeper"
 dir = "/Users/matthias/Documents/Work/someeng/cloudkeeper/plugins"
 for plugin in os.listdir(dir):
     if os.path.isdir(os.path.join(dir, plugin)):
-        print(tpl.replace("@name@", plugin).replace("@directory@", f"plugin/{plugin}"))
+        print(tpl.replace("@name@", plugin).replace("@directory@", f"./plugins/{plugin}"))

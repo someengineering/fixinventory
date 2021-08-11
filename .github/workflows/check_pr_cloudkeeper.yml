@@ -75,7 +75,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/example_cli
+        working-directory: ./plugins/example_cli
         run: tox
 
 
@@ -112,7 +112,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cli_edgestats
+        working-directory: ./plugins/cli_edgestats
         run: tox
 
 
@@ -149,7 +149,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_aws_loadbalancers
+        working-directory: ./plugins/cleanup_aws_loadbalancers
         run: tox
 
 
@@ -186,7 +186,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/tag_aws_ctime
+        working-directory: ./plugins/tag_aws_ctime
         run: tox
 
 
@@ -223,7 +223,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/vsphere
+        working-directory: ./plugins/vsphere
         run: tox
 
 
@@ -260,7 +260,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cli_debug
+        working-directory: ./plugins/cli_debug
         run: tox
 
 
@@ -297,7 +297,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/onprem
+        working-directory: ./plugins/onprem
         run: tox
 
 
@@ -334,7 +334,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_volumes
+        working-directory: ./plugins/cleanup_volumes
         run: tox
 
 
@@ -371,7 +371,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/k8s
+        working-directory: ./plugins/k8s
         run: tox
 
 
@@ -408,7 +408,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_aws_alarms
+        working-directory: ./plugins/cleanup_aws_alarms
         run: tox
 
 
@@ -445,7 +445,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_expired
+        working-directory: ./plugins/cleanup_expired
         run: tox
 
 
@@ -482,7 +482,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_untagged
+        working-directory: ./plugins/cleanup_untagged
         run: tox
 
 
@@ -519,7 +519,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/gcp
+        working-directory: ./plugins/gcp
         run: tox
 
 
@@ -556,7 +556,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/onelogin
+        working-directory: ./plugins/onelogin
         run: tox
 
 
@@ -593,7 +593,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/remote_event_callback
+        working-directory: ./plugins/remote_event_callback
         run: tox
 
 
@@ -630,7 +630,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/keepercore
+        working-directory: ./plugins/keepercore
         run: tox
 
 
@@ -667,7 +667,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/tagvalidator
+        working-directory: ./plugins/tagvalidator
         run: tox
 
 
@@ -704,7 +704,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/metrics_age_range
+        working-directory: ./plugins/metrics_age_range
         run: tox
 
 
@@ -741,7 +741,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/example_collector
+        working-directory: ./plugins/example_collector
         run: tox
 
 
@@ -778,7 +778,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/logdump
+        working-directory: ./plugins/logdump
         run: tox
 
 
@@ -815,7 +815,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/slack
+        working-directory: ./plugins/slack
         run: tox
 
 
@@ -852,7 +852,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/aws
+        working-directory: ./plugins/aws
         run: tox
 
 
@@ -889,7 +889,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cleanup_aws_vpcs
+        working-directory: ./plugins/cleanup_aws_vpcs
         run: tox
 
 
@@ -926,7 +926,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/example_persistent
+        working-directory: ./plugins/example_persistent
         run: tox
 
 
@@ -963,7 +963,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/backup
+        working-directory: ./plugins/backup
         run: tox
 
 
@@ -1000,7 +1000,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/cli_jq
+        working-directory: ./plugins/cli_jq
         run: tox
 
 
@@ -1037,7 +1037,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/report_cleanups
+        working-directory: ./plugins/report_cleanups
         run: tox
 
 
@@ -1074,7 +1074,7 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/protect_snowflakes
+        working-directory: ./plugins/protect_snowflakes
         run: tox
 
 
@@ -1111,6 +1111,6 @@ jobs:
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
       - name: Run tests
-        working-directory: plugin/remote
+        working-directory: ./plugins/remote
         run: tox
 
