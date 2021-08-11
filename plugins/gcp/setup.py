@@ -24,6 +24,7 @@ setup(
         "oauth2client",
         "prometheus_client",
         "retrying",
+        "tenacity",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],

@@ -13,6 +13,7 @@ from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
 from google.oauth2 import service_account
 from datetime import datetime
 from retrying import retry
+from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
@@ -164,7 +165,13 @@ def paginate(
     method = getattr(gcp_resource, method_name)
     request = method(**kwargs)
     while request is not None:
-        result = request.execute()
+        for attempt in Retrying(
+            reraise=True,
+            stop=stop_after_attempt(10),
+            retry=retry_if_exception_type(socket.timeout),
+        ):
+            with attempt:
+                result = request.execute()
         if items_name in result:
             items = result[items_name]
             if isinstance(items, dict):
