@@ -932,8 +932,8 @@ class GCPProjectCollector:
                 "volume_id": ["link", "sourceDisk"],
             },
             attr_map={
-                "volume_size": "diskSizeGb",
-                "storage_bytes": "storageBytes",
+                "volume_size": lambda r: int(r.get("diskSizeGb", -1)),
+                "storage_bytes": lambda r: int(r.get("storageBytes", -1)),
             },
         )
 
