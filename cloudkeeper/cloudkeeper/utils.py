@@ -1,6 +1,7 @@
 import threading
 import re
 import os
+import socket
 import gc as garbage_collector
 import sys
 
@@ -12,7 +13,7 @@ import cloudkeeper.logging
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
 
 
@@ -463,19 +464,29 @@ def log_runtime(f):
     return timer
 
 
-def except_log_and_pass(f):
-    @wraps(f)
-    def catch_and_log(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception:
-            args_str = ", ".join([repr(arg) for arg in args])
-            kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
-            if len(args) > 0 and len(kwargs) > 0:
-                args_str += ", "
-            log.exception(f"Caught exception in {f.__name__}({args_str}{kwargs_str})")
+def except_log_and_pass(do_raise: Optional[Tuple] = None):
+    if do_raise is None:
+        do_raise = ()
 
-    return catch_and_log
+    def acallable(f):
+        @wraps(f)
+        def catch_and_log(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except do_raise:
+                raise
+            except Exception:
+                args_str = ", ".join([repr(arg) for arg in args])
+                kwargs_str = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()])
+                if len(args) > 0 and len(kwargs) > 0:
+                    args_str += ", "
+                log.exception(
+                    f"Caught exception in {f.__name__}({args_str}{kwargs_str})"
+                )
+
+        return catch_and_log
+
+    return acallable
 
 
 def fmt_json(value) -> str:

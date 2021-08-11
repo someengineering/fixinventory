@@ -2,7 +2,7 @@ import cloudkeeper.logging
 import cloudkeeper.signal
 import socket
 from pprint import pformat
-from retrying import retry
+from tenacity import retry
 from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
@@ -61,6 +61,7 @@ from .utils import (
     iso2datetime,
     get_result_data,
     common_resource_kwargs,
+    retry_on_error,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -222,13 +223,6 @@ metrics_collect_instance_templates = Summary(
     "cloudkeeper_plugin_gcp_collect_instance_templates_seconds",
     "Time it took the collect_instance_templates() method",
 )
-
-
-def retry_on_error(e):
-    if isinstance(e, socket.timeout):
-        log.debug("Got socket timeout - retrying")
-        return True
-    return False
 
 
 class GCPProjectCollector:
@@ -524,7 +518,7 @@ class GCPProjectCollector:
 
         return kwargs, search_results
 
-    @except_log_and_pass
+    @except_log_and_pass(do_raise=socket.timeout)
     def collect_something(
         self,
         resource_class: Type[BaseResource],

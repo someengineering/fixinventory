@@ -4,7 +4,7 @@ import os
 import time
 import slack_sdk
 from typing import List
-from retrying import retry
+from tenacity import retry
 from .resources import (
     SlackRegion,
     SlackTeam,

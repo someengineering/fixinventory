@@ -16,7 +16,7 @@ from .resources import *
 from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
-from retrying import retry
+from tenacity import retry
 from pprint import pformat
 
 
