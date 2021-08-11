@@ -61,7 +61,11 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
 
         for srv in servers:
             try:
-                s = instance_from_ssh(srv.get("hostname"))
+                s = instance_from_ssh(
+                    srv.get("hostname"),
+                    key_filename=ArgumentParser.args.onprem_ssh_key,
+                    passphrase=ArgumentParser.args.onprem_ssh_key_pass,
+                )
                 src = srv.get(
                     "network", srv.get("region", srv.get("location", default_region))
                 )
@@ -101,7 +105,14 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             help="On-Prem SSH Key",
             dest="onprem_ssh_key",
             type=str,
-            default="~/.ssh/id_rsa",
+            default=None,
+        )
+        arg_parser.add_argument(
+            "--onprem-ssh-key-pass",
+            help="On-Prem SSH Key Passphrase",
+            dest="onprem_ssh_key_pass",
+            type=str,
+            default=None,
         )
         arg_parser.add_argument(
             "--onprem-server",

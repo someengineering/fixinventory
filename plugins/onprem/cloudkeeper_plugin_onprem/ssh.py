@@ -41,20 +41,18 @@ def instance_from_ssh(
     )
     meminfo = get_proc_meminfo(client)
     cpuinfo = get_proc_cpuinfo(client)
-    netdev, ip4, ip6 = get_ipv4_info(client)
+    netdev, ip4, ip6 = get_net_info(client)
     client.close()
-    s = OnpremInstance(hostname, {})
-    s.instance_cores = len(cpuinfo)
-    s.instance_memory = round(meminfo.get("MemTotal", 0) / 1024 ** 2)
-    s.instance_status = "running"
-    if netdev:
-        s.network_device = netdev
-    if ip4:
-        s.network_ip4 = ip4
-    if ip6:
-        s.network_ip6 = ip6
-    if s.instance_cores > 0:
-        s.instance_type = cpuinfo.get("0", {}).get("model name")
+    s = OnpremInstance(
+        id=hostname,
+        instance_cores=len(cpuinfo),
+        instance_memory=round(meminfo.get("MemTotal", 0) / 1024 ** 2),
+        instance_status="running",
+        instance_type=cpuinfo.get("0", {}).get("model name"),
+        network_device=netdev,
+        network_ip4=ip4,
+        network_ip6=ip6,
+    )
     return s
 
 
@@ -90,7 +88,7 @@ def get_proc_cpuinfo(client: SSHClient):
     return dict(cpuinfo)
 
 
-def get_ipv4_info(client: SSHClient):
+def get_net_info(client: SSHClient):
     dst4 = "8.8.8.8"
     dst6 = "2001:4860:4860::8888"
     ip4 = None
@@ -111,7 +109,7 @@ def get_ipv4_info(client: SSHClient):
                 src = line[line.index("src") + 1]
                 break
         if dev is None or src is None:
-            raise RuntimeError("Unable to determine IPv4 interface")
+            raise RuntimeError("Unable to determine IP interface")
         cmd = f"ip a s dev {dev}"
         out, err = client_exec(client, cmd)
         if err:

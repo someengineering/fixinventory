@@ -1,10 +1,10 @@
 import cloudkeeper.logging
-
+from dataclasses import dataclass
+from typing import Optional, ClassVar
 from cloudkeeper.graph import Graph
 from cloudkeeper.baseresources import (
     BaseAccount,
     BaseRegion,
-    BaseResource,
     BaseInstance,
     BaseNetwork,
     InstanceStatus,
@@ -13,23 +13,24 @@ from cloudkeeper.baseresources import (
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
+@dataclass(eq=False)
 class OnpremLocation(BaseAccount):
-    resource_type = "onprem_location"
+    resource_type: ClassVar[str] = "onprem_location"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
 
+@dataclass(eq=False)
 class OnpremRegion(BaseRegion):
-    resource_type = "onprem_region"
+    resource_type: ClassVar[str] = "onprem_region"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
 
-class OnpremResource(BaseResource):
-    resource_type = "onprem_resource"
-
+@dataclass(eq=False)
+class OnpremResource:
     def delete(self, graph: Graph) -> bool:
         log.debug(
             f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
@@ -45,31 +46,28 @@ class OnpremResource(BaseResource):
         return True
 
 
-class OnpremInstance(BaseInstance, OnpremResource):
-    resource_type = "onprem_instance"
+@dataclass(eq=False)
+class OnpremInstance(OnpremResource, BaseInstance):
+    resource_type: ClassVar[str] = "onprem_instance"
+    network_device: Optional[str] = None
+    network_ip4: Optional[str] = None
+    network_ip6: Optional[str] = None
 
     instance_status_map = {
         "running": InstanceStatus.RUNNING,
     }
 
-    def delete(self, graph: Graph) -> bool:
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
-        return True
-
-    @BaseInstance.instance_status.setter
-    def instance_status(self, value: str) -> None:
+    def _instance_status_setter(self, value: str) -> None:
         self._instance_status = self.instance_status_map.get(
             value, InstanceStatus.UNKNOWN
         )
 
 
-class OnpremNetwork(BaseNetwork, OnpremResource):
-    resource_type = "onprem_network"
+OnpremInstance.instance_status = property(
+    OnpremInstance._instance_status_getter, OnpremInstance._instance_status_setter
+)
 
-    def delete(self, graph: Graph) -> bool:
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
-        return True
+
+@dataclass(eq=False)
+class OnpremNetwork(OnpremResource, BaseNetwork):
+    resource_type: ClassVar[str] = "onprem_network"
