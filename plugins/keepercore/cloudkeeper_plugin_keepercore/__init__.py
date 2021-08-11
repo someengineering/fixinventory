@@ -24,16 +24,22 @@ class KeepercorePlugin(BasePlugin):
         self.name = "keepercore"
         self.exit = threading.Event()
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-        add_event_listener(
-            EventType.COLLECT_FINISH, self.keepercore_event_handler, blocking=False
-        )
+
+        if ArgumentParser.args.keepercore_uri:
+            add_event_listener(
+                EventType.COLLECT_FINISH, self.keepercore_event_handler, blocking=False
+            )
 
     def __del__(self):
-        remove_event_listener(EventType.COLLECT_FINISH, self.keepercore_event_handler)
+        if ArgumentParser.args.keepercore_uri:
+            remove_event_listener(
+                EventType.COLLECT_FINISH, self.keepercore_event_handler
+            )
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):
-        self.exit.wait()
+        if ArgumentParser.args.keepercore_uri:
+            self.exit.wait()
 
     @staticmethod
     def keepercore_event_handler(event: Event):

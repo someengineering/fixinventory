@@ -1,6 +1,6 @@
 FROM python:3.8-alpine AS build-env
 ARG TESTS
-RUN apk add --no-cache build-base findutils linux-headers libtool automake autoconf
+RUN apk add --no-cache build-base findutils linux-headers libtool automake autoconf libffi-dev openssl-dev cargo
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
@@ -14,7 +14,7 @@ RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -
 
 FROM python:3.8-alpine
 WORKDIR /
-RUN apk add --no-cache dumb-init dnsmasq dcron dateutils
+RUN apk add --no-cache dumb-init dnsmasq dcron dateutils libffi openssl
 COPY --from=build-env /build /build
 COPY docker/startup /usr/local/bin/startup
 COPY docker/dnsmasq.conf /etc/dnsmasq.d/cloudkeeper.conf
