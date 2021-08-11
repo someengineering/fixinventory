@@ -1397,7 +1397,7 @@ class GCPProjectCollector:
                     None,
                 ),
                 "instance_type": lambda r: r.get("settings", {}).get("tier"),
-                "volume_size": lambda r: r.get("settings", {}).get("dataDiskSizeGb"),
+                "volume_size": lambda r: int(r.get("settings", {}).get("dataDiskSizeGb", -1)),
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={
