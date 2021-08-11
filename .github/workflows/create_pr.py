@@ -6,7 +6,7 @@ on:
   - push
 jobs:
 """
-tpl = """
+install = """
   @name@:
     name: "@name@"
     runs-on: ubuntu-latest
@@ -35,18 +35,26 @@ tpl = """
         run: |
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
-          pip wheel -w /build .
+          pip wheel -w /build ."""
+
+step_aws = """
       - name: Install aws
         working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
+        run: pip wheel -w /build -f /build ."""
+
+step_run_test = """
       - name: Run tests
         working-directory: @directory@
-        run: tox
-"""
+        run: tox"""
+
 
 print(head)
-print(tpl.replace("@name@", "cloudkeeper").replace("@directory@", f"cloudkeeper"))
+print(install.replace("@name@", "cloudkeeper").replace("@directory@", f"cloudkeeper"))
 dir = "/Users/matthias/Documents/Work/someeng/cloudkeeper/plugins"
 for plugin in os.listdir(dir):
     if os.path.isdir(os.path.join(dir, plugin)):
-        print(tpl.replace("@name@", plugin).replace("@directory@", f"./plugins/{plugin}"))
+        print(install.replace("@name@", plugin).replace("@directory@", f"./plugins/{plugin}"))
+        # aws is a dependency that needs to be installed for all aws related plugins.
+        if "aws" in plugin and "aws" != plugin:
+            print(step_aws)
+        print(step_run_test)

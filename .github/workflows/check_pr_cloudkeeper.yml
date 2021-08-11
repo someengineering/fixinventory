@@ -34,13 +34,6 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: cloudkeeper
-        run: tox
-
 
   example_cli:
     name: "example_cli"
@@ -71,13 +64,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/example_cli
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cli_edgestats:
     name: "cli_edgestats"
@@ -108,13 +98,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cli_edgestats
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_aws_loadbalancers:
     name: "cleanup_aws_loadbalancers"
@@ -145,13 +132,14 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
+
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_aws_loadbalancers
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   tag_aws_ctime:
     name: "tag_aws_ctime"
@@ -182,13 +170,14 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
+
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/tag_aws_ctime
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   vsphere:
     name: "vsphere"
@@ -219,13 +208,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/vsphere
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cli_debug:
     name: "cli_debug"
@@ -256,13 +242,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cli_debug
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   onprem:
     name: "onprem"
@@ -293,13 +276,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/onprem
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_volumes:
     name: "cleanup_volumes"
@@ -330,13 +310,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_volumes
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   k8s:
     name: "k8s"
@@ -367,13 +344,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/k8s
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_aws_alarms:
     name: "cleanup_aws_alarms"
@@ -404,13 +378,14 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
+
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_aws_alarms
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_expired:
     name: "cleanup_expired"
@@ -441,13 +416,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_expired
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_untagged:
     name: "cleanup_untagged"
@@ -478,13 +450,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_untagged
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   gcp:
     name: "gcp"
@@ -515,13 +484,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/gcp
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   onelogin:
     name: "onelogin"
@@ -552,13 +518,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/onelogin
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   remote_event_callback:
     name: "remote_event_callback"
@@ -589,13 +552,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/remote_event_callback
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   keepercore:
     name: "keepercore"
@@ -626,13 +586,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/keepercore
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   tagvalidator:
     name: "tagvalidator"
@@ -663,13 +620,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/tagvalidator
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   metrics_age_range:
     name: "metrics_age_range"
@@ -700,13 +654,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/metrics_age_range
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   example_collector:
     name: "example_collector"
@@ -737,13 +688,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/example_collector
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   logdump:
     name: "logdump"
@@ -774,13 +722,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/logdump
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   slack:
     name: "slack"
@@ -811,13 +756,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/slack
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   aws:
     name: "aws"
@@ -848,13 +790,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/aws
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cleanup_aws_vpcs:
     name: "cleanup_aws_vpcs"
@@ -885,13 +824,14 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
+
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cleanup_aws_vpcs
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   example_persistent:
     name: "example_persistent"
@@ -922,13 +862,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/example_persistent
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   backup:
     name: "backup"
@@ -959,13 +896,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/backup
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   cli_jq:
     name: "cli_jq"
@@ -996,13 +930,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/cli_jq
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   report_cleanups:
     name: "report_cleanups"
@@ -1033,13 +964,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/report_cleanups
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   protect_snowflakes:
     name: "protect_snowflakes"
@@ -1070,13 +998,10 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/protect_snowflakes
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
 
   remote:
     name: "remote"
@@ -1107,10 +1032,7 @@ jobs:
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
-      - name: Install aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-      - name: Run tests
-        working-directory: ./plugins/remote
-        run: tox
 
+      - name: Run tests
+        working-directory: @directory@
+        run: tox
