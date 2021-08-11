@@ -37,41 +37,6 @@ jobs:
       - name: Install all plugins
         run: find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
       - name: Run tests
+        working-directory: ./cloudkeeper
         run: tox
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifact
-          path: /build
-          retention-days: 1
 
-  aws:
-    needs:
-      - build
-    name: "aws"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./plugins/aws
-    steps:
-      - name: Download a single artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifact
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-          architecture: 'x64'
-      - name: Restore dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{runner.os}}-pip-${{hashFiles('setup.py')}}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install Dependencies
-        run: |
-          pip wheel -w /build -f /build .
-      - name: Run tests
-        run: tox
