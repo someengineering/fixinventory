@@ -21,6 +21,7 @@ from core.model.graph_access import GraphAccess
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
+from core.query.query_parser import parse_query
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -247,6 +248,13 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     graph = await load_graph(filled_graph_db, foo_model)
     assert len(graph.edges) == 110
     assert len(graph.nodes.values()) == 111
+
+
+@pytest.mark.asyncio
+async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    agg_query = parse_query('aggregate(kind: count(identifier) as instances): isinstance("foo")')
+    gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
+    assert [x async for x in gen] == [{"kind": "foo", "instances": 11}]
 
 
 @pytest.mark.asyncio

@@ -81,10 +81,11 @@ class Api:
                 web.post("/graph/{graph_id}/reported/batch/{batch_id}", self.commit_batch),
                 web.delete("/graph/{graph_id}/reported/batch/{batch_id}", self.abort_batch),
                 web.post("/graph/{graph_id}/reported/query", partial(self.query, r, r)),
-                web.post("/graph/{graph_id}/reported/query/raw", partial(self.raw, r, r)),
+                web.post("/graph/{graph_id}/reported/query/raw", partial(self.raw, r)),
                 web.post("/graph/{graph_id}/reported/query/explain", partial(self.explain, r)),
                 web.post("/graph/{graph_id}/reported/query/list", partial(self.query_list, r, r)),
                 web.post("/graph/{graph_id}/reported/query/graph", partial(self.query_graph_stream, r, r)),
+                web.post("/graph/{graph_id}/reported/query/aggregate", partial(self.query_aggregation, r)),
                 # Desired section of the graph
                 web.get("/graph/{graph_id}/desired/node/{node_id}", partial(self.get_node, rd)),
                 web.patch("/graph/{graph_id}/desired/node/{node_id}", partial(self.update_node, d, rd)),
@@ -93,6 +94,7 @@ class Api:
                 web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d, rd)),
                 web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
                 web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
+                web.post("/graph/{graph_id}/desired/query/aggregate", partial(self.query_aggregation, d)),
                 # Subscriptions
                 web.get("/subscriptions", self.list_all_subscriptions),
                 web.get("/subscriptions/for/{event_type}", self.list_subscription_for_event),
@@ -360,6 +362,15 @@ class Api:
         gen = graph_db.query_graph_gen(QueryModel(q, m, query_section, result_section))
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (item async for _, item in gen))
+
+    async def query_aggregation(self, query_section: str, request: Request) -> StreamResponse:
+        query_string = await request.text()
+        q = parse_query(query_string)
+        m = await self.model_handler.load_model()
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        gen = graph_db.query_aggregation(QueryModel(q, m, query_section))
+        # noinspection PyTypeChecker
+        return await self.stream_response_from_gen(request, gen)
 
     async def query(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
         if request.headers.get("format") == "cytoscape":

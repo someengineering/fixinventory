@@ -257,11 +257,50 @@ class Part:
         return f"{self.term}{nav}{pin}"
 
 
+class AggregateVariable:
+    def __init__(self, name: str, as_name: Optional[str] = None):
+        self.name = name
+        self.as_name = as_name
+
+    def __str__(self) -> str:
+        with_as = f" as {self.as_name}" if self.as_name else ""
+        return f"{self.name}{with_as}"
+
+    def get_as_name(self) -> str:
+        return self.as_name if self.as_name else self.name
+
+
+class AggregateFunction:
+    def __init__(self, function: str, name: str, as_name: Optional[str] = None):
+        self.function = function
+        self.name = name
+        self.as_name = as_name
+
+    def __str__(self) -> str:
+        with_as = f" as {self.as_name}" if self.as_name else ""
+        return f"{self.function}({self.name}){with_as}"
+
+    def get_as_name(self) -> str:
+        return self.as_name if self.as_name else self.name
+
+
+class Aggregate:
+    def __init__(self, group_by: List[AggregateVariable], group_func: List[AggregateFunction]):
+        self.group_by = group_by
+        self.group_func = group_func
+
+    def __str__(self) -> str:
+        group_by = ", ".join(str(a) for a in self.group_by)
+        funcs = ", ".join(str(a) for a in self.group_func)
+        return f"aggregate({group_by}: {funcs})"
+
+
 class Query:
-    def __init__(self, parts: Optional[List[Part]] = None):
+    def __init__(self, parts: List[Part], aggregate: Optional[Aggregate] = None):
         if parts is None or len(parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {parts}")
         self.parts = parts
+        self.aggregate = aggregate
 
     @staticmethod
     def by(term: Union[str, Term], *terms: Union[str, Term]) -> Query:
@@ -269,8 +308,9 @@ class Query:
         return Query([Part(res)])
 
     def __str__(self) -> str:
-        or_terms = [str(a) for a in reversed(self.parts)]
-        return " ".join(or_terms)
+        agg = f"{self.aggregate}: " if self.aggregate else ""
+        parts = " ".join(str(a) for a in reversed(self.parts))
+        return f"{agg}{parts}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
@@ -282,7 +322,7 @@ class Query:
         else:
             # put to the start
             parts.insert(0, Part(res))
-        return Query(parts)
+        return Query(parts, self.aggregate)
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "out")
@@ -293,7 +333,11 @@ class Query:
     def traverse(self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = "out") -> Query:
         parts = self.parts.copy()
         parts[0] = Part(parts[0].term, False, Navigation(start, until, edge_type, direction))
-        return Query(parts)
+        return Query(parts, self.aggregate)
+
+    def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
+        aggregate = Aggregate(group_by, funs)
+        return Query(self.parts, aggregate)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

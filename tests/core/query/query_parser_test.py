@@ -1,6 +1,6 @@
 from typing import Callable, Optional, Any
 
-from core.query.model import Navigation, Part, Query, P
+from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction
 from core.model.graph_access import EdgeType
 from parsy import Parser
 from core.query.query_parser import (
@@ -12,7 +12,11 @@ from core.query.query_parser import (
     navigation_parser,
     part_parser,
     query_parser,
-    preambleP,
+    preamble_parser,
+    preamble_tags_parser,
+    aggregate_group_variable_parser,
+    aggregate_group_function_parser,
+    aggregate_parser,
 )
 
 
@@ -87,18 +91,59 @@ def test_query() -> None:
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
+        .group_by([AggregateVariable("foo")], [AggregateFunction("sum", "cpu")])
     )
     assert_round_trip(query_parser, query)
 
 
 def test_query_with_preamble() -> None:
-    query = query_parser.parse('edge_type=delete: id("root") -[0:1]->')
+    query_parser.parse('id("root")')  # no preamble
+    query_parser.parse('match: id("root")')  # match preamble
+    query_parser.parse('match(): id("root")')  # match preamble
+    query = query_parser.parse('{edge_type=delete}: id("root") -[0:1]->')
     assert query.parts[0].navigation.edge_type == "delete"
+    query = query_parser.parse('aggregate(region: sum(cpu)){edge_type=delete}: id("root") -[0:1]->')
+    assert query.aggregate.group_by[0].name == "region"
+    assert query.aggregate.group_func[0].name == "cpu"
 
 
-def test_preamble() -> None:
-    assert preambleP.parse("edge_type=foo:") == {"edge_type": "foo"}
-    assert preambleP.parse('edge_type="!@#*(&$({{:::":') == {"edge_type": "!@#*(&$({{:::"}
+def test_preamble_tags() -> None:
+    assert preamble_tags_parser.parse("{edge_type=foo}") == {"edge_type": "foo"}
+    assert preamble_tags_parser.parse('{edge_type="!@#*(&$({{:::"}') == {"edge_type": "!@#*(&$({{:::"}
+    assert preamble_parser.parse("") == (None, {})
+
+
+def test_aggregate_group_variable() -> None:
+    foo = aggregate_group_variable_parser.parse("foo")
+    assert foo.name == "foo"
+    assert foo.as_name is None
+    bla = aggregate_group_variable_parser.parse("bla as bar")
+    assert bla.name == "bla"
+    assert bla.as_name == "bar"
+
+
+def test_aggregate_group_function() -> None:
+    foo = aggregate_group_function_parser.parse("sum(foo)")
+    assert foo.function == "sum"
+    assert foo.name == "foo"
+    assert foo.as_name is None
+    bla = aggregate_group_function_parser.parse("sum(bla) as bar")
+    assert foo.function == "sum"
+    assert bla.name == "bla"
+    assert bla.as_name == "bar"
+
+
+def test_aggregate() -> None:
+    agg: Aggregate = aggregate_parser.parse("aggregate(region: sum(cpu) as cpus, count(id) as instances)")
+    assert len(agg.group_by) == 1
+    assert agg.group_by[0].name == "region"
+    assert len(agg.group_func) == 2
+    assert agg.group_func[0].function == "sum"
+    assert agg.group_func[0].name == "cpu"
+    assert agg.group_func[0].as_name == "cpus"
+    assert agg.group_func[1].function == "count"
+    assert agg.group_func[1].name == "id"
+    assert agg.group_func[1].as_name == "instances"
 
 
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:

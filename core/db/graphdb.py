@@ -10,6 +10,7 @@ from arango.collection import VertexCollection, StandardCollection, EdgeCollecti
 from arango.cursor import Cursor
 from arango.graph import Graph
 from arango.typings import Json
+from itertools import chain
 from networkx import MultiDiGraph, DiGraph
 from toolz import last
 
@@ -21,7 +22,17 @@ from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBa
 from core.event_bus import EventBus, CoreEvent
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
-from core.query.model import Predicate, IsInstanceTerm, Part, Term, CombinedTerm, FunctionTerm, Navigation, IdTerm
+from core.query.model import (
+    Predicate,
+    IsInstanceTerm,
+    Part,
+    Term,
+    CombinedTerm,
+    FunctionTerm,
+    Navigation,
+    IdTerm,
+    Aggregate,
+)
 from core.util import first
 
 log = logging.getLogger(__name__)
@@ -78,6 +89,10 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def query_graph(self, query: QueryModel) -> DiGraph:
+        pass
+
+    @abstractmethod
+    def query_aggregation(self, query: QueryModel) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
@@ -166,6 +181,7 @@ class ArangoGraphDB(GraphDB):
     async def query_list(  # noqa: E501 pylint: disable=invalid-overridden-method
         self, query: QueryModel
     ) -> AsyncGenerator[Json, None]:
+        assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
         trafo = self.document_to_instance_fn(query.return_section)
         visited = set()
@@ -178,6 +194,7 @@ class ArangoGraphDB(GraphDB):
     async def query_graph_gen(  # noqa: E501 pylint: disable=invalid-overridden-method
         self, query: QueryModel
     ) -> AsyncGenerator[Tuple[str, Json], None]:
+        assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, all_edges=True)
         trafo = self.document_to_instance_fn(query.return_section)
         visited_node = {}
@@ -210,6 +227,15 @@ class ArangoGraphDB(GraphDB):
             elif kind == "edge":
                 graph.add_edge(item["from"], item["to"])
         return graph
+
+    async def query_aggregation(  # noqa: E501 pylint: disable=invalid-overridden-method
+        self, query: QueryModel
+    ) -> AsyncGenerator[Json, None]:
+        q_string, bind = self.to_query(query)
+        assert query.query.aggregate is not None, "Given query has no aggregation section"
+        with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
+            for element in cursor:
+                yield element
 
     async def explain(self, query: QueryModel) -> Json:
         q_string, bind = self.to_query(query, all_edges=True)
@@ -544,7 +570,14 @@ class ArangoGraphDB(GraphDB):
     ) -> Tuple[str, Json]:
         query = query_model.query
         model = query_model.model
+        section = query_model.query_section
         bind_vars: Json = {}
+
+        def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
+            variables = ", ".join(f"{v.get_as_name()}={cursor}.{section}.{v.name}" for v in a.group_by)
+            funcs = ", ".join(f"{v.get_as_name()}={v.function}({cursor}.{section}.{v.name})" for v in a.group_func)
+            agg = ", ".join(chain((v.get_as_name() for v in a.group_by), (f.get_as_name() for f in a.group_func)))
+            return f"collect {variables} aggregate {funcs}", f"{{{agg}}}"
 
         def predicate(cursor: str, p: Predicate) -> str:
             extra = ""
@@ -562,7 +595,7 @@ class ArangoGraphDB(GraphDB):
             # key of the predicate is the len of the dict as string
             length = str(len(bind_vars))
             bind_vars[length] = model.kind_by_path(path).coerce(p.value)
-            return f"{cursor}.{query_model.query_section}.{p.name}{extra} {p.op} @{length}"
+            return f"{cursor}.{section}.{p.name}{extra} {p.op} @{length}"
 
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
@@ -616,11 +649,15 @@ class ArangoGraphDB(GraphDB):
 
         parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
         all_parts = " ".join(p[3] for p in parts)
-        # return all pinned parts (last result is "pinned" automatically)
-        pinned = set(map(lambda x: x[2], filter(lambda x: x[0].pinned, parts)))
-        results = f'UNION({",".join(pinned)},{last(parts)[2]})' if pinned else last(parts)[2]
         limited = f" LIMIT {limit} " if limit else ""
-        return f"""{all_parts} FOR r in {results}{limited} RETURN r""", bind_vars
+        if query.aggregate:  # return aggregate
+            group_by, return_spec = aggregate("r", query.aggregate)
+            return f"""{all_parts} FOR r in {last(parts)[2]} {group_by}{limited} RETURN {return_spec}""", bind_vars
+        else:  # return results
+            # return all pinned parts (last result is "pinned" automatically)
+            pinned = set(map(lambda x: x[2], filter(lambda x: x[0].pinned, parts)))
+            result = f'UNION({",".join(pinned)},{last(parts)[2]})' if pinned else last(parts)[2]
+            return f"""{all_parts} FOR r in {result}{limited} RETURN r""", bind_vars
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
@@ -839,6 +876,9 @@ class EventGraphDB(GraphDB):
 
     def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
         return self.real.query_graph_gen(query)
+
+    def query_aggregation(self, query: QueryModel) -> AsyncGenerator[Json, None]:
+        return self.real.query_aggregation(query)
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
         return await self.real.query_graph(query)

@@ -483,7 +483,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" >[0:1]>
+                            example: kind(graph_root) and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -518,7 +518,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" >[0:1]>
+                            example: kind(graph_root) and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "Returns the query as performed by the database."
@@ -544,7 +544,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" >[0:1]>
+                            example: kind(graph_root) and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -575,7 +575,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" >[0:1]>
+                            example: kind(graph_root) and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -588,6 +588,36 @@ paths:
                                 oneOf:
                                     - $ref: "#/components/schemas/NodeInGraph"
                                     - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/reported/query/aggregate:
+        post:
+            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The aggregation query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: |
+                                aggregate(kind: count(id) as nodes): isinstance("node")
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
     /graph/{graph_id}/reported/query/explain:
         post:
             summary: "Explain the query execution plan"
@@ -607,7 +637,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" >[0:1]>
+                            example: kind(graph_root) and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The execution plan of the database"
@@ -707,7 +737,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" >[0:1]>
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -742,7 +772,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" >[0:1]>
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "Returns the query as performed by the database."
@@ -768,7 +798,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" >[0:1]>
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -799,7 +829,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" >[0:1]>
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -812,6 +842,36 @@ paths:
                                 oneOf:
                                     - $ref: "#/components/schemas/NodeInGraph"
                                     - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/desired/query/aggregate:
+        post:
+            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The aggregation query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: |
+                                aggregate(kind: count(id) as nodes): isinstance("node")
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
     /graph/{graph_id}/desired/query/explain:
         post:
             summary: "Explain the query execution plan"
@@ -830,7 +890,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" >[0:1]>
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The execution plan of the database"
@@ -866,6 +926,15 @@ paths:
 
 components:
     schemas:
+        Aggregated:
+            description: "The result of the aggregation. The properties depend on the aggregation function."
+            type: object
+            additionalProperties: true
+            example: |
+                [
+                    { "count": 60, "kind": "aws_ec2_instance_type", "mem_avg": 28.45, "mem_max": 64, "mem_min": 1, "mem_total": 1707 },
+                    { "count": 105686, "kind": "gcp_machine_type", "mem_avg": 213.57744392143945, "mem_max": 3844, "mem_min": 0.599609375, "mem_total": 22572145.73828125 }
+                ]
         BatchUpdate:
             type: object
             properties:

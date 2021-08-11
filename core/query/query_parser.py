@@ -3,7 +3,19 @@ from functools import reduce
 from parsy import string, regex, digit, success, Parser
 
 from core.model.graph_access import EdgeType
-from core.query.model import Predicate, CombinedTerm, IsInstanceTerm, Part, Navigation, Query, FunctionTerm, IdTerm
+from core.query.model import (
+    Predicate,
+    CombinedTerm,
+    IsInstanceTerm,
+    Part,
+    Navigation,
+    Query,
+    FunctionTerm,
+    IdTerm,
+    AggregateVariable,
+    AggregateFunction,
+    Aggregate,
+)
 from core.util import make_parser
 
 whitespace: Parser = regex(r"\s*")
@@ -19,12 +31,15 @@ operationP = reduce(
 
 functionP = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
+
 preamblePropP = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type"]])
 
 lparenP = lexeme(string("("))
 rparenP = lexeme(string(")"))
 lbrackP = lexeme(string("["))
 rbrackP = lexeme(string("]"))
+lcurlyP = lexeme(string("{"))
+rcurlyP = lexeme(string("}"))
 gtP = lexeme(string(">"))
 ltP = lexeme(string("<"))
 colonP = lexeme(string(":"))
@@ -36,8 +51,8 @@ falseP = lexeme(string("false")).result(False)
 nullP = lexeme(string("null")).result(None)
 integerP = digit.at_least(1).concat().map(int)
 floatP = (digit.many() + string(".").result(["."]) + digit.many()).concat().map(float)
-variableP = lexeme(regex("[A-Za-z][A-Za-z0-9.*\\[\\]]*"))
-literalP = lexeme(regex("[A-Za-z][A-Za-z0-9]*"))
+variableP = lexeme(regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*"))
+literalP = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
 
 string_part = regex(r'[^"\\]+')
 string_esc = string("\\") >> (
@@ -150,28 +165,90 @@ def part_parser() -> Parser:
 
 
 @make_parser
-def preamble_value_parser() -> Parser:
+def key_value_parser() -> Parser:
     key = yield preamblePropP
     yield equalsP
     value = yield quotedStringP | literalP
     return key, value
 
 
-preambleP: Parser = (preamble_value_parser.sep_by(commaP) << colonP).map(dict)
+@make_parser
+def preamble_tags_parser() -> Parser:
+    yield lcurlyP
+    key_values = yield key_value_parser.sep_by(commaP)
+    yield rcurlyP
+    return dict(key_values)
+
+
+asP = lexeme(string("as"))
+aggreateP = lexeme(string("aggregate"))
+aggregateFuncP = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg"]])
+matchP = lexeme(string("match"))
+
+
+@make_parser
+def aggregate_group_variable_parser() -> Parser:
+    name = yield variableP
+    with_as = yield asP.optional()
+    as_name = None
+    if with_as:
+        as_name = yield literalP
+    return AggregateVariable(name, as_name)
+
+
+@make_parser
+def aggregate_group_function_parser() -> Parser:
+    func = yield aggregateFuncP
+    yield lparenP
+    name = yield variableP
+    yield rparenP
+    with_as = yield asP.optional()
+    as_name = None
+    if with_as:
+        as_name = yield literalP
+    return AggregateFunction(func, name, as_name)
+
+
+@make_parser
+def aggregate_parser() -> Parser:
+    yield aggreateP
+    yield lparenP
+    group_vars = yield aggregate_group_variable_parser.sep_by(commaP, min=1)
+    yield colonP
+    group_function_vars = yield aggregate_group_function_parser.sep_by(commaP, min=1)
+    yield rparenP
+    return Aggregate(group_vars, group_function_vars)
+
+
+@make_parser
+def match_parser() -> Parser:
+    yield matchP
+    yield lparenP.optional()
+    yield rparenP.optional()
+    # a preamble of match() is the default query behaviour and only here for syntactic sugar
+    return None
+
+
+@make_parser
+def preamble_parser() -> Parser:
+    maybe_aggegate = yield (aggregate_parser | match_parser).optional()
+    maybe_preamble = yield preamble_tags_parser.optional()
+    preamble = maybe_preamble if maybe_preamble else dict()
+    yield colonP if maybe_aggegate or maybe_preamble else colonP.optional()
+    return maybe_aggegate, preamble
 
 
 @make_parser
 def query_parser() -> Parser:
-    maybe_preamble = yield preambleP.optional()
-    preamble = maybe_preamble if maybe_preamble else dict()
-    parts = yield part_parser.many()
+    maybe_aggregate, preamble = yield preamble_parser
+    parts = yield part_parser.at_least(1)
     edge_type = preamble.get("edge_type", EdgeType.default)
     if edge_type not in EdgeType.allowed_edge_types:
         raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.allowed_edge_types}")
     for part in parts:
         if part.navigation and not part.navigation.edge_type:
             part.navigation.edge_type = edge_type
-    return Query(parts[::-1])
+    return Query(parts[::-1], maybe_aggregate)
 
 
 def parse_query(query: str) -> Query:
