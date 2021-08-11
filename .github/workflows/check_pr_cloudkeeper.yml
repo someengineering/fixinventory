@@ -2,12 +2,9 @@ name: Check Pull Request
 on:
   - push
 jobs:
-  cloudkeeper:
+  build:
     name: "cloudkeeper"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./cloudkeeper
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,30 +16,45 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          # This path is specific to Ubuntu
           path: ~/.cache/pip
-          # Look to see if there is a cache hit for the corresponding requirements file
           key: ${{runner.os}}-pip-${{hashFiles('setup.py')}}
           restore-keys: |
             ${{ runner.os }}-pip-
-            ${{ runner.os }}-
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade --editable ./
-          pip install tox
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: pip wheel -w /build .
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+      - name: Install all plugins
+        run: find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
       - name: Run tests
         run: tox
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifact
+          path: /build
+          retention-days: 1
 
   aws:
+    needs:
+      - build
     name: "aws"
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./plugins/aws
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -51,17 +63,12 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          # This path is specific to Ubuntu
           path: ~/.cache/pip
-          # Look to see if there is a cache hit for the corresponding requirements file
           key: ${{runner.os}}-pip-${{hashFiles('setup.py')}}
           restore-keys: |
             ${{ runner.os }}-pip-
-            ${{ runner.os }}-
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade --editable ./
-          pip install tox
+          pip wheel -w /build -f /build .
       - name: Run tests
         run: tox
