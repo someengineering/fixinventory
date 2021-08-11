@@ -27,7 +27,10 @@ jobs:
           pip install tox wheel flake8
       - name: Install cloudkeeper
         working-directory: ./cloudkeeper
-        run: pip wheel -w /build .
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build
+          pip wheel -w /build .
       - name: Install aws
         working-directory: ./plugins/aws
         run: pip wheel -w /build -f /build .
