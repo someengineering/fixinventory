@@ -19,7 +19,7 @@ setup(
             "slack_collector = cloudkeeper_plugin_slack:SlackCollectorPlugin",
         ]
     },
-    install_requires=["cloudkeeper", "slack_sdk", "tenacity"],
+    install_requires=["cloudkeeper", "slack_sdk", "retrying"],
     include_package_data=True,
     zip_safe=False,
     setup_requires=["pytest-runner"],

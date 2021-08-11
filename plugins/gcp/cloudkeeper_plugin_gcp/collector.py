@@ -2,7 +2,7 @@ import cloudkeeper.logging
 import cloudkeeper.signal
 import socket
 from pprint import pformat
-from tenacity import retry
+from retrying import retry
 from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph

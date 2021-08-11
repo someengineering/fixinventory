@@ -24,7 +24,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "cloudkeeper",
-        "tenacity",
+        "retrying",
         "sqlalchemy",
         "prometheus_client",
         "boto3",
