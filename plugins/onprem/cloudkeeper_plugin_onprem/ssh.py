@@ -87,7 +87,7 @@ def get_proc_cpuinfo(client: SSHClient):
 
 
 def get_net_info(client: SSHClient):
-    log.debug(f"Getting network information")
+    log.debug("Getting network information")
     dst4 = "8.8.8.8"
     dst6 = "2001:4860:4860::8888"
     ip4 = None

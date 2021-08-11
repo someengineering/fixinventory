@@ -18,7 +18,7 @@ class OnpremLocation(BaseAccount):
     resource_type: ClassVar[str] = "onprem_location"
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+        return False
 
 
 @dataclass(eq=False)
@@ -26,24 +26,19 @@ class OnpremRegion(BaseRegion):
     resource_type: ClassVar[str] = "onprem_region"
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+        return False
 
 
 @dataclass(eq=False)
 class OnpremResource:
     def delete(self, graph: Graph) -> bool:
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
-        return True
+        return False
 
     def update_tag(self, key, value) -> bool:
-        log.debug(f"Updating or setting tag {key}: {value} on resource {self.id}")
-        return True
+        return False
 
     def delete_tag(self, key) -> bool:
-        log.debug(f"Deleting tag {key} on resource {self.id}")
-        return True
+        return False
 
 
 @dataclass(eq=False)
