@@ -1,2 +1,2 @@
-include requirements.txt
 include requirements-dev.txt
+include requirements.txt
