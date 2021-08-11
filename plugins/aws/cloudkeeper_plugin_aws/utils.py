@@ -5,7 +5,7 @@ from typing import Iterable
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
-from tenacity import retry
+from retrying import retry
 from prometheus_client import Counter
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 
