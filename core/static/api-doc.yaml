@@ -1,0 +1,1271 @@
+openapi: 3.0.0
+servers:
+    - url: ../
+      description: current system
+info:
+    description: API provided by keeper-core
+    version: V1
+    title: keeper-core REST API
+tags:
+    - name: model
+      description: Endpoints to maintain the schema and model of the entities inside a graph.
+    - name: graph
+      description: Create wipe or delete a complete graph.
+    - name: graph_reported
+      description: Endpoints to manipulate the reported data in the graph.
+    - name: graph_desired
+      description: Endpoints to manipulate the desired data in the graph.
+    - name: system
+      description: Endpoints to get information about the system.
+    - name: debug
+      description: Endpoints to debug the system
+
+paths:
+    /model:
+        get:
+            summary: "Get the currently defined model."
+            tags:
+                - model
+            responses:
+                "200":
+                    description: "The list of all kinds."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+        patch:
+            summary: "Add or update the current defined model."
+            tags:
+                - model
+            requestBody:
+                description: "Complete model or part of the model."
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Kind"
+            responses:
+                "200":
+                    description: "OK if the model is updated successfully"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+                "400":
+                    description: "Message that explains the error"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+    /model/uml:
+        get:
+            summary: "Get the currently defined model as svg uml image."
+            tags:
+                - model
+            responses:
+                "200":
+                    description: "Returns the model as uml diagram in svg format"
+
+
+    /graph:
+        get:
+            summary: "List all graphs"
+            tags:
+                - graph
+            responses:
+                "200":
+                    description: "The names of all graphs"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: string
+                                example: [ "main", "test" ]
+    /graph/{graph_id}:
+        get:
+            summary: "Get root of a specific graph"
+            tags:
+                - graph
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "The graph with the root node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+                "404":
+                    description: "The graph does not exist"
+        post:
+            summary: "Create a new graph"
+            tags:
+                - graph
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "The created graph with the root node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+        delete:
+            summary: "Delete an existing graph"
+            tags:
+                - graph
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: truncate
+                  in: query
+                  schema:
+                      type: boolean
+                  description: "If this parameter is set, leave the graph definition, but wipe the data."
+            responses:
+                "200":
+                    description: "Ok when the delete operation was successful"
+                    content:
+                        text/plain:
+                            example: "Graph deleted."
+    /graph/{graph_id}/reported/search:
+        get:
+            summary: "Search the graph"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: term
+                  in: query
+                  description: "The term to search for"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "All matching documents"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}:
+        post:
+            summary: "Create a new node under the given parent node"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+                - name: parent_node_id
+                  in: path
+                  description: "The identifier of the parent node"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The node document to create."
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Node"
+            responses:
+                "200":
+                    description: "Return the created node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/reported/node/{node_id}:
+        get:
+            summary: "Get a node with the given node id"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "Return the defined node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+
+        patch:
+            summary: "Update a node with the given node id"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The partial object data to patch."
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: "Return the patched node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+        delete:
+            summary: "Delete a node with the given node id."
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "204":
+                    description: "Node is deleted"
+    /graph/{graph_id}/reported/sub_graph/{parent_node_id}:
+        put:
+            summary: "Replace a given subgraph which lives under the given parent node id"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: parent_node_id
+                  in: path
+                  description: "The identifier of the parent node"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description:
+                    "The subgraph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
+                required: true
+                content:
+                    application/x-ndjson:
+                        schema:
+                            oneOf:
+                                - $ref: "#/components/schemas/NodeInGraph"
+                                - $ref: "#/components/schemas/Edge"
+                        example:
+                          # TODO: is there a way to show ndjson instead of json?
+                          [
+                              { "id": "a", "data": { "kind": "loadbalancer", "ip": "1.2.3.4", "mathod": "roundrobin" } },
+                              { "id": "b", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
+                              { "from": "a", "to": "b" },
+                              { "id": "c", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
+                              { "from": "a", "to": "c" }
+                          ]
+            responses:
+                "200":
+                    description: "Return a summary of actions that has been applied."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/GraphUpdate"
+
+    /graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}:
+        post:
+            summary: "Replace a given subgraph which lives under the given parent node id in a batch"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: parent_node_id
+                  in: path
+                  description: "The identifier of the parent node"
+                  required: true
+                  schema:
+                      type: string
+                - name: batch_id
+                  in: query
+                  description: >
+                      A batch identifier is a string that uniquely identifies the batch update.
+                      If this parameter is omitted, a new batch identifier is created automatically.
+                      The resulting batch identifier can be retrieved via the response message.
+                  required: false
+                  schema:
+                      default: null
+                      type: string
+            requestBody:
+                description:
+                    "The subgraph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
+                required: true
+                content:
+                    application/x-ndjson:
+                        schema:
+                            oneOf:
+                                - $ref: "#/components/schemas/NodeInGraph"
+                                - $ref: "#/components/schemas/Edge"
+                        example:
+                          # TODO: is there a way to show ndjson instead of json?
+                          [
+                              { "id": "a", "data": { "kind": "loadbalancer", "ip": "1.2.3.4", "mathod": "roundrobin" } },
+                              { "id": "b", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
+                              { "from": "a", "to": "b" },
+                              { "id": "c", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
+                              { "from": "a", "to": "c" }
+                          ]
+            responses:
+                "200":
+                    description: "Return a summary of actions that has been applied."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/GraphUpdate"
+    /graph/{graph_id}/reported/batch:
+        get:
+            summary: "Get a list of all running batch updates"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "Ok message"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/BatchUpdate"
+    /graph/{graph_id}/reported/batch/{batch_id}:
+        post:
+            summary: "Commit a batch update"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: batch_id
+                  in: path
+                  description: "A batch identifier is a string that uniquely identifies the batch update."
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "Ok message"
+                    content:
+                        application/json:
+                            schema:
+                                type: string
+                                example: "Batch committed."
+        delete:
+            summary: "Abort a batch update"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: batch_id
+                  in: path
+                  description: "A batch identifier is a string that uniquely identifies the batch update."
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "Ok message"
+                    content:
+                        application/json:
+                            schema:
+                                type: string
+                                example: "Batch aborted."
+    /graph/{graph_id}/reported/query:
+        post:
+            summary: "Query this graph"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: format
+                  in: header
+                  description: "The format of the result to return"
+                  required: true
+                  schema:
+                      type: string
+                      enum:
+                          - graph
+                          - list
+                          - cytoscape
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/Graph"
+                                    - type: array
+                                      items:
+                                          $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/reported/query/raw:
+        post:
+            summary: "Transform the query into the raw database query"
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "Returns the query as performed by the database."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/RawQuery"
+    /graph/{graph_id}/reported/query/list:
+        post:
+            summary: "Query the graph and return all nodes as list (this will not contain any edges)"
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/reported/query/graph:
+        post:
+            summary: "Query the graph and return the resulting graph."
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Graph"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/reported/query/aggregate:
+        post:
+            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            tags:
+                - graph_reported
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The aggregation query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: |
+                                aggregate(kind: count(id) as nodes): isinstance("node")
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+    /graph/{graph_id}/reported/query/explain:
+        post:
+            summary: "Explain the query execution plan"
+
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The execution plan of the database"
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+
+    /graph/{graph_id}/desired/node/{node_id}:
+        get:
+            summary: "Get the node and desired content with the given node id"
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "Return the defined desired node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/DesiredNode"
+
+        patch:
+            summary: "Update a node with the given node id"
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: node_id
+                  in: path
+                  description: "The identifier of the node"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The partial object data to patch."
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+                            example:
+                              {
+                                  "name": "Batman"
+                              }
+            responses:
+                "200":
+                    description: "Return the patched node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/DesiredNode"
+
+    /graph/{graph_id}/desired/query:
+        post:
+            summary: "Query this graph in the desired section"
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: format
+                  in: header
+                  description: "The format of the result to return"
+                  required: true
+                  schema:
+                      type: string
+                      enum:
+                          - graph
+                          - list
+                          - cytoscape
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/Graph"
+                                    - type: array
+                                      items:
+                                          $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/desired/query/raw:
+        post:
+            summary: "Transform the query into the raw database query"
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
+            responses:
+                "200":
+                    description: "Returns the query as performed by the database."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/RawQuery"
+    /graph/{graph_id}/desired/query/list:
+        post:
+            summary: "Query the graph in the desired section and return a list."
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/desired/query/graph:
+        post:
+            summary: "Query the graph in the desired section and return a graph."
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Graph"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/desired/query/aggregate:
+        post:
+            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            tags:
+                - graph_desired
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The aggregation query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: |
+                                aggregate(kind: count(id) as nodes): isinstance("node")
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+    /graph/{graph_id}/desired/query/explain:
+        post:
+            summary: "Explain the query execution plan"
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: kind(graph_root) and name=="Batman" -[0:1]->
+            responses:
+                "200":
+                    description: "The execution plan of the database"
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+
+
+    /events:
+        get:
+            summary: "Register as event listener and receive all events."
+            description:
+                This establishes a websocket. The client needs to send all the required headers for a ws connection
+                and has to handle the websocket protocol.<br/>
+                **Note this can not be tested from within swagger!**
+
+            parameters:
+                - name: show
+                  in: query
+                  description: "All events to show as a comma separated list"
+                  required: false
+                  explode: false
+                  schema:
+                      type: string
+            tags:
+                - system
+            responses:
+                default:
+                    description: ""
+
+
+components:
+    schemas:
+        Aggregated:
+            description: "The result of the aggregation. The properties depend on the aggregation function."
+            type: object
+            additionalProperties: true
+            example: |
+                [
+                    { "count": 60, "kind": "aws_ec2_instance_type", "mem_avg": 28.45, "mem_max": 64, "mem_min": 1, "mem_total": 1707 },
+                    { "count": 105686, "kind": "gcp_machine_type", "mem_avg": 213.57744392143945, "mem_max": 3844, "mem_min": 0.599609375, "mem_total": 22572145.73828125 }
+                ]
+        BatchUpdate:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: "the id of the change."
+                created:
+                    type: string
+                    description: "datetime in utc, when the batch update has been created"
+                affected_nodes:
+                    type: array
+                    items:
+                        type: string
+                    description: "The root nodes of the subgraphs that will be changed during the update"
+            example:
+              [
+                  {
+                      "id": "XYQaijCNJUVc",
+                      "created": "2021-06-29T13:53:39.329Z",
+                      "affected_nodes": [ "sub_graph_root_1", "sub_graph_root_2" ]
+                  }
+              ]
+        Node:
+            type: object
+            additionalProperties:  true
+            properties:
+                kind:
+                    type: string
+                    description: "The kind of this node."
+            example:
+              {
+                  "kind": "test.person",
+                  "name": "Batman",
+                  "city": "Gotham"
+              }
+        NodeInGraph:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: "The identifier of this node."
+                data:
+                    $ref: "#/components/schemas/Node"
+            example:
+              {
+                  "type": "node",
+                  "id": "id-in-graph",
+                  "data": {
+                      "kind": "test.person",
+                      "name": "Batman",
+                      "city": "Gotham"
+                  }
+              }
+        DesiredNode:
+            type: object
+            properties:
+                reported:
+                    $ref: "#/components/schemas/Node"
+                desired:
+                    type: object
+                    description: "The desired section does not contain a complete node, but only the desired changes."
+                    additionalProperties: true
+            example:
+              {
+                  "reported": {
+                      "kind": "test.person",
+                      "name": "Batman",
+                      "city": "Gotham"
+                  },
+                  "desired": {
+                      "name": "Superman"
+                  }
+              }
+        Edge:
+            type: object
+            properties:
+                from:
+                    description: "The id of node to start from"
+                    type: string
+                to:
+                    description: "The id of the node to go to"
+                    type: string
+            example:
+              {
+                  "type": "edge",
+                  "from": "node_id_of_a_in_graph",
+                  "to": "node_id_of_b_in_graph"
+              }
+        Graph:
+            description: "A graph is just an array of nodes and edges"
+            type: array
+            items:
+                discriminator:
+                    propertyName: "type"
+                    mapping:
+                        "node": "#/components/schemas/NodeInGraph"
+                        "edge": "#/components/schemas/Edge"
+                oneOf:
+                    - $ref: "#/components/schemas/NodeInGraph"
+                    - $ref: "#/components/schemas/Edge"
+        GraphUpdate:
+            description: "Summary of an update subgraph action"
+            type: object
+            properties:
+                nodes_created:
+                    description: "The number of nodes that have been created."
+                    type: integer
+                nodes_updates:
+                    description: "The number of nodes that have been updated."
+                    type: integer
+                nodes_deleted:
+                    description: "The number of nodes that have been deleted."
+                    type: integer
+                edges_created:
+                    description: "The number of edges that have been created."
+                    type: integer
+                edges_updated:
+                    description: "The number of edges that have been updated."
+                    type: integer
+                edges_deleted:
+                    description: "The number of edges that have been deleted."
+                    type: integer
+
+        Kind:
+            description: "Definition of a kind"
+            type: array
+            items:
+                oneOf:
+                    -   $ref: '#/components/schemas/StringKind'
+                    -   $ref: '#/components/schemas/NumberKind'
+                    -   $ref: '#/components/schemas/BooleanKind'
+                    -   $ref: '#/components/schemas/DateTimeKind'
+                    -   $ref: '#/components/schemas/ArrayKind'
+                    -   $ref: '#/components/schemas/DateKind'
+                    -   $ref: '#/components/schemas/ComplexKind'
+                    -   $ref: '#/components/schemas/StringDictKind'
+            example:
+              [
+                  {
+                      "fqn": "test.dice",
+                      "runtime_kind": "int32",
+                      "description": "A dice has 6 sides.",
+                      "minimum": 1,
+                      "maximum": 6
+                  },
+                  {
+                      "fqn": "test.social_security_number",
+                      "runtime_kind": "string",
+                      "description": "A dice has 6 sides.",
+                      "pattern": "^(?!666|000|9\\d{2})\\d{3}-(?!00)\\d{2}-(?!0{4})\\d{4}$"
+                  },
+                  {
+                      "fqn": "test.base",
+                      "properties": [
+                          {
+                              "name": "kind",
+                              "kind": "string",
+                              "required": true,
+                              "description": "The kind of this compound type."
+                          },
+                          {
+                              "name": "name",
+                              "kind": "string",
+                              "description": "The name of the resource.",
+                              "required": true
+                          },
+                          {
+                              "name": "tags",
+                              "kind": "dictionary",
+                              "description": "Tags that describe the resource.",
+                              "required": false
+                          }
+                      ]
+                  },
+                  {
+                      "fqn": "test.person",
+                      "properties": [
+                          {
+                              "name": "fortune",
+                              "kind": "test.dice",
+                              "description": "The current dice value.",
+                              "required": true
+                          },
+                          {
+                              "name": "ssn",
+                              "kind": "test.social_security_number",
+                              "description": "The social security number of this person.",
+                              "required": true
+                          }
+                      ]
+                  }
+              ]
+        KindBase:
+            type: object
+            properties:
+                fqn:
+                    type: string
+                    description: "The fully qualified name of the kind"
+        SimpleKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/KindBase'
+            discriminator:
+                propertyName: runtime_kind
+                mapping:
+                    string: "#/components/schemas/StringKind"
+                    int32: "#/components/schemas/NumberKind"
+                    int64: "#/components/schemas/NumberKind"
+                    float: "#/components/schemas/NumberKind"
+                    double: "#/components/schemas/NumberKind"
+                    boolean: "#/components/schemas/BooleanKind"
+                    date: "#/components/schemas/DateKind"
+                    datetime: "#/components/schemas/DateTimeKind"
+
+            properties:
+                runtime_kind:
+                    type: string
+                    enum:
+                        - string
+                        - int32
+                        - int64
+                        - float
+                        - double
+                        - boolean
+                        - date
+                        - datetime
+                    description: "The runtime kind of this kind"
+        StringKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/SimpleKind'
+            properties:
+                min_length:
+                    type: string
+                    description: "The minimal length of this string"
+                max_length:
+                    type: string
+                    description: "The maximal length of this string"
+                pattern:
+                    type: string
+                    description: "The regexp pattern, that this string has to adhere to"
+                enum:
+                    type: array
+                    items:
+                        type: string
+                    description: "The allowed values of this string enumerated here"
+        NumberKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/SimpleKind'
+            properties:
+                minimum:
+                    oneOf:
+                        - type: integer
+                        - type: number
+                    description: "The minimal value of this number"
+                maximum:
+                    oneOf:
+                        - type: integer
+                        - type: number
+                    description: "The maximum value of this number"
+                enum:
+                    type: array
+                    items:
+                        type: integer
+                    description: "The allowed values of this number enumerated here"
+        BooleanKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/SimpleKind'
+        DateTimeKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/SimpleKind'
+        DateKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/SimpleKind'
+        ArrayKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/KindBase'
+            properties:
+                inner:
+                    $ref: "#/components/schemas/KindBase"
+        Property:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: "The name of this property"
+                kind:
+                    type: string
+                    description: "The fully qualified kind of this property"
+                required:
+                    type: boolean
+                    description: "Defines if this property is required or not"
+                    default: false
+                description:
+                    type: string
+                    description: "Some human readable description of this property"
+        ComplexKind:
+            type: object
+            allOf:
+                - $ref: '#/components/schemas/KindBase'
+            properties:
+                base:
+                    type: string
+                    description: "In case of inheritance, this defines the base kind."
+                properties:
+                    type: array
+                    description: "Defines all properties of this complex kind"
+                    items:
+                        $ref: '#/components/schemas/Property'
+        StringDictKind:
+            type: object
+            description: "A simple dictionary where all keys and values are strings"
+            allOf:
+                - $ref: '#/components/schemas/KindBase'
+
+        RawQuery:
+            type: object
+            description: "The raw query as performed by the database"
+            properties:
+                query:
+                    type: string
+                    description: "The string representation of the query"
+                bind_vars:
+                    type: object
+                    description: "All binding variables for this query"
+                    additionalProperties: true
+
+
+
