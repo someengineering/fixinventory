@@ -19,11 +19,7 @@ def instance_from_ssh(
     look_for_keys: bool = True,
     passphrase: str = None,
 ):
-    if "@" in hostname:
-        username, hostname = hostname.split("@", 1)
-    if ":" in hostname:
-        hostname, port = hostname.split(":", 1)
-
+    log.debug(f"Establishing SSH connection to {hostname}")
     client = SSHClient()
     client.load_system_host_keys()
     client.connect(
@@ -57,6 +53,7 @@ def instance_from_ssh(
 
 
 def get_proc_meminfo(client: SSHClient):
+    log.debug("Getting memory information")
     cmd = "cat /proc/meminfo"
     out, err = client_exec(client, cmd)
     if err:
@@ -69,6 +66,7 @@ def get_proc_meminfo(client: SSHClient):
 
 
 def get_proc_cpuinfo(client: SSHClient):
+    log.debug("Getting CPU information")
     cmd = "cat /proc/cpuinfo"
     out, err = client_exec(client, cmd)
     if err:
@@ -89,6 +87,7 @@ def get_proc_cpuinfo(client: SSHClient):
 
 
 def get_net_info(client: SSHClient):
+    log.debug(f"Getting network information")
     dst4 = "8.8.8.8"
     dst6 = "2001:4860:4860::8888"
     ip4 = None
