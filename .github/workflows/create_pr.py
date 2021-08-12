@@ -7,9 +7,13 @@ head = """
 # Note: this workflow is automatically generated via the `create_pr` script in the same folder.
 # Please do not change the file, but the script!
 
-name: Check Pull Request
+name: Check Pull Request (cloudkeeper + plugins)
 on:
-  - push
+  push:
+    paths:
+      - 'cloudkeeper/**'
+      - 'plugins/**'
+
 jobs:
 """
 install = """

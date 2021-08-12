@@ -1,6 +1,8 @@
-name: Check Pull Request
+name: Check Pull Request (keepercore)
 on:
-    - push
+    push:
+        paths:
+            - 'keepercore/**'
 jobs:
     lint-and-test:
         name: "Checkout, Lint and Test"
