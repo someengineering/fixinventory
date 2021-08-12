@@ -1,0 +1,1045 @@
+
+# Note: this workflow is automatically generated via the `create_pr` script in the same folder.
+# Please do not change the file, but the script!
+
+name: Check Pull Request (cloudkeeper + plugins)
+on:
+  push:
+    paths:
+      - 'cloudkeeper/**'
+      - 'plugins/**'
+
+jobs:
+
+
+  cloudkeeper:
+    name: "cloudkeeper"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+  example_cli:
+    name: "example_cli"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/example_cli
+        run: tox
+
+  cli_edgestats:
+    name: "cli_edgestats"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cli_edgestats
+        run: tox
+
+  cleanup_aws_loadbalancers:
+    name: "cleanup_aws_loadbalancers"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_aws_loadbalancers
+        run: tox
+
+  tag_aws_ctime:
+    name: "tag_aws_ctime"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+
+      - name: Run tests
+        working-directory: ./plugins/tag_aws_ctime
+        run: tox
+
+  vsphere:
+    name: "vsphere"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/vsphere
+        run: tox
+
+  cli_debug:
+    name: "cli_debug"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cli_debug
+        run: tox
+
+  onprem:
+    name: "onprem"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/onprem
+        run: tox
+
+  cleanup_volumes:
+    name: "cleanup_volumes"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_volumes
+        run: tox
+
+  k8s:
+    name: "k8s"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/k8s
+        run: tox
+
+  cleanup_aws_alarms:
+    name: "cleanup_aws_alarms"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_aws_alarms
+        run: tox
+
+  cleanup_expired:
+    name: "cleanup_expired"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_expired
+        run: tox
+
+  cleanup_untagged:
+    name: "cleanup_untagged"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_untagged
+        run: tox
+
+  gcp:
+    name: "gcp"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/gcp
+        run: tox
+
+  onelogin:
+    name: "onelogin"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/onelogin
+        run: tox
+
+  remote_event_callback:
+    name: "remote_event_callback"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/remote_event_callback
+        run: tox
+
+  keepercore:
+    name: "keepercore"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/keepercore
+        run: tox
+
+  tagvalidator:
+    name: "tagvalidator"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/tagvalidator
+        run: tox
+
+  metrics_age_range:
+    name: "metrics_age_range"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/metrics_age_range
+        run: tox
+
+  example_collector:
+    name: "example_collector"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/example_collector
+        run: tox
+
+  logdump:
+    name: "logdump"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/logdump
+        run: tox
+
+  slack:
+    name: "slack"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/slack
+        run: tox
+
+  aws:
+    name: "aws"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/aws
+        run: tox
+
+  cleanup_aws_vpcs:
+    name: "cleanup_aws_vpcs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Install aws
+        working-directory: ./plugins/aws
+        run: pip wheel -w /build -f /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cleanup_aws_vpcs
+        run: tox
+
+  example_persistent:
+    name: "example_persistent"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/example_persistent
+        run: tox
+
+  backup:
+    name: "backup"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/backup
+        run: tox
+
+  cli_jq:
+    name: "cli_jq"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/cli_jq
+        run: tox
+
+  report_cleanups:
+    name: "report_cleanups"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/report_cleanups
+        run: tox
+
+  protect_snowflakes:
+    name: "protect_snowflakes"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/protect_snowflakes
+        run: tox
+
+  remote:
+    name: "remote"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable cloudkeeper/
+          pip install tox wheel flake8
+      - name: Install cloudkeeper
+        working-directory: ./cloudkeeper
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./plugins/remote
+        run: tox

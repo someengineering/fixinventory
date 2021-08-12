@@ -1068,19 +1068,19 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
         },
     }
     actions_enabled: bool = False
-    alarm_description: str = ""
-    alarm_actions: List = field(default_factory=list)
-    comparison_operator: str = ""
-    dimensions: List = field(default_factory=list)
-    evaluation_periods: int = 0
-    insufficient_data_actions: List = field(default_factory=list)
-    metric_name: str = ""
-    namespace: str = ""
-    ok_actions: List = field(default_factory=list)
-    period: int = 0
-    state_value: str = ""
-    statistic: str = ""
-    threshold: float = 0.0
+    alarm_description: Optional[str] = None
+    alarm_actions: Optional[List] = field(default_factory=list)
+    comparison_operator: Optional[str] = None
+    dimensions: Optional[List] = field(default_factory=list)
+    evaluation_periods: Optional[int] = 0
+    insufficient_data_actions: Optional[List] = field(default_factory=list)
+    metric_name: Optional[str] = None
+    namespace: Optional[str] = None
+    ok_actions: Optional[List] = field(default_factory=list)
+    period: Optional[int] = 0
+    state_value: Optional[str] = None
+    statistic: Optional[str] = None
+    threshold: Optional[float] = 0.0
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
