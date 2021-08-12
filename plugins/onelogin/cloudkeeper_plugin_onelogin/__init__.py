@@ -8,7 +8,7 @@ from cloudkeeper.args import ArgumentParser
 from cloudkeeper.utils import make_valid_timestamp
 from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
 from cloudkeeper.graph import Graph
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Dict, List
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -16,6 +16,8 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class OneLoginResource:
+    resource_type: ClassVar[str] = "onelogin_resource"
+
     def delete(self, graph: Graph) -> bool:
         return False
 
@@ -33,7 +35,7 @@ class OneLoginRegion(OneLoginResource, BaseRegion):
 @dataclass(eq=False)
 class OneLoginUser(OneLoginResource, BaseUser):
     resource_type: ClassVar[str] = "onelogin_user"
-    user_id: Optional[int] = None
+    user_id: Optional[int] = field(default=None, metadata={"description": "User ID"})
     external_id: Optional[str] = None
     email: Optional[str] = None
     username: Optional[str] = None

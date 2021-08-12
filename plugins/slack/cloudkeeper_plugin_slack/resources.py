@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 
 @dataclass(eq=False)
 class SlackResource:
+    resource_type: ClassVar[str] = "slack_resource"
+
     def delete(self, graph) -> bool:
         return False
 

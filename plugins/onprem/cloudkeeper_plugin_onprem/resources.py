@@ -31,6 +31,8 @@ class OnpremRegion(BaseRegion):
 
 @dataclass(eq=False)
 class OnpremResource:
+    resource_type: ClassVar[str] = "onprem_resource"
+
     def delete(self, graph: Graph) -> bool:
         return False
 

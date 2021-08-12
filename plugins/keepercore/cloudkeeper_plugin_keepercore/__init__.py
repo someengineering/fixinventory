@@ -47,6 +47,7 @@ class KeepercorePlugin(BasePlugin):
         if not ArgumentParser.args.keepercore_uri:
             return
 
+        log.warn("LATEST CODE 123")
         graph: Graph = event.data
         log.info("Keepercore Event Handler called")
         model = get_model_from_graph(graph)
@@ -60,7 +61,9 @@ class KeepercorePlugin(BasePlugin):
         if r.status_code != 200:
             log.error(r.content)
         log.debug(f"Updating model via {model_uri}")
-        r = requests.patch(model_uri, data=json.dumps(model))
+        model_json = json.dumps(model, indent=4)
+        print(model_json)
+        r = requests.patch(model_uri, data=model_json)
         if r.status_code != 200:
             log.error(r.content)
 
