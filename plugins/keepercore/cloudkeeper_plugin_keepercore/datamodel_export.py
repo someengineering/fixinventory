@@ -105,6 +105,11 @@ def model_name(clazz: type) -> str:
         return "any"
 
 
+# define if a field should be exported or not. Use python default: hide props starting with underscore.
+def should_export(field: Field) -> bool:
+    return not field.name.startswith("_")
+
+
 def export_dataclasses(classes: List[type]) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model definition as understood by keepercore.
@@ -134,7 +139,11 @@ def export_dataclasses(classes: List[type]) -> List[Json]:
         base_props: Set[Field] = reduce(
             lambda result, base: result | set(fields(base)), bases, set()
         )
-        props = [prop(field) for field in fields(clazz) if field not in base_props]
+        props = [
+            prop(field)
+            for field in fields(clazz)
+            if field not in base_props and should_export(field)
+        ]
         model.append(
             {"fqn": model_name(clazz), "bases": base_names, "properties": props}
         )

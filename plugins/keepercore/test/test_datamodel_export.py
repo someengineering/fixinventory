@@ -17,6 +17,8 @@ from cloudkeeper_plugin_keepercore.datamodel_export import (
 class DataClassBase:
     resource_type: ClassVar[str] = "base"
     tags: Dict[str, str]
+    _private_prop: dict
+    __dunder_prop: list
 
 
 @dataclass
