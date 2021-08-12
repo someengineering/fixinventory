@@ -1,6 +1,8 @@
 import cloudkeeper.logging
 import cloudkeeper.signal
+import socket
 from pprint import pformat
+from retrying import retry
 from typing import Callable, List, Dict, Type, Union
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.graph import Graph
@@ -59,6 +61,7 @@ from .utils import (
     iso2datetime,
     get_result_data,
     common_resource_kwargs,
+    retry_on_error,
 )
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
@@ -303,11 +306,18 @@ class GCPProjectCollector:
         self.all_collectors.update(self.zone_collectors)
         self.collector_set = set(self.all_collectors.keys())
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
     def collect(self) -> None:
         """Runs the actual resource collection across all resource collectors.
 
         Resource collectors add their resources to the local `self.graph` graph.
         """
+        self.graph = Graph(root=self.project)
         collectors = set(self.collector_set)
         if len(ArgumentParser.args.gcp_collect) > 0:
             collectors = set(ArgumentParser.args.gcp_collect).intersection(collectors)
@@ -508,7 +518,7 @@ class GCPProjectCollector:
 
         return kwargs, search_results
 
-    @except_log_and_pass
+    @except_log_and_pass(do_raise=socket.timeout)
     def collect_something(
         self,
         resource_class: Type[BaseResource],
@@ -932,8 +942,8 @@ class GCPProjectCollector:
                 "volume_id": ["link", "sourceDisk"],
             },
             attr_map={
-                "volume_size": "diskSizeGb",
-                "storage_bytes": "storageBytes",
+                "volume_size": lambda r: int(r.get("diskSizeGb", -1)),
+                "storage_bytes": lambda r: int(r.get("storageBytes", -1)),
             },
         )
 
@@ -1397,7 +1407,9 @@ class GCPProjectCollector:
                     None,
                 ),
                 "instance_type": lambda r: r.get("settings", {}).get("tier"),
-                "volume_size": lambda r: r.get("settings", {}).get("dataDiskSizeGb"),
+                "volume_size": lambda r: int(
+                    r.get("settings", {}).get("dataDiskSizeGb", -1)
+                ),
                 "tags": lambda r: r.get("settings", {}).get("userLabels", {}),
             },
             search_map={

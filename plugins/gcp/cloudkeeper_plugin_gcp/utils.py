@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.graph import Graph
@@ -11,6 +12,8 @@ from googleapiclient.errors import HttpError as GoogleApiClientHttpError
 from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
 from google.oauth2 import service_account
 from datetime import datetime
+from retrying import retry
+from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
@@ -19,6 +22,13 @@ cloudkeeper.logging.getLogger("googleapiclient").setLevel(cloudkeeper.logging.ER
 
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
+
+
+def retry_on_error(e):
+    if isinstance(e, socket.timeout):
+        log.debug("Got socket timeout - retrying")
+        return True
+    return False
 
 
 class MemoryCache(GoogleApiClientCache):
@@ -76,6 +86,12 @@ def load_credentials(sa_data: str):
         )
 
 
+@retry(
+    stop_max_attempt_number=10,
+    wait_exponential_multiplier=3000,
+    wait_exponential_max=300000,
+    retry_on_exception=retry_on_error,
+)
 def gcp_client(service: str, version: str, credentials: str):
     client = discovery.build(
         service, version, credentials=credentials, cache=MemoryCache()
@@ -149,7 +165,13 @@ def paginate(
     method = getattr(gcp_resource, method_name)
     request = method(**kwargs)
     while request is not None:
-        result = request.execute()
+        for attempt in Retrying(
+            reraise=True,
+            stop=stop_after_attempt(10),
+            retry=retry_if_exception_type(socket.timeout),
+        ):
+            with attempt:
+                result = request.execute()
         if items_name in result:
             items = result[items_name]
             if isinstance(items, dict):

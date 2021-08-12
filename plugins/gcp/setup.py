@@ -23,6 +23,8 @@ setup(
         "google-api-python-client",
         "oauth2client",
         "prometheus_client",
+        "retrying",
+        "tenacity",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
