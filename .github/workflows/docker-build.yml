@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -44,7 +41,9 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
-          build-args: SOURCE_COMMIT=${{ github.sha }}
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            TESTS=false
           tags: |
             ghcr.io/someengineering/cloudkeeper:latest
             ghcr.io/someengineering/cloudkeeper:${{ github.sha }}
