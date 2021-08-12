@@ -43,7 +43,7 @@ def dict_types(clazz: type) -> Tuple[type, type]:
     return (args[0], args[1]) if args and len(args) == 2 else (object, object)
 
 
-# walk class hierarchy, as well as all properties to find transient data classes
+# walk class hierarchy, as well as all properties to find transitive data classes
 def transitive_dataclasses(classes: List[type]) -> Set[type]:
     all_classes: MutableSet[type] = set()
 
