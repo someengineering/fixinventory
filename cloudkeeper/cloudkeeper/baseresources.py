@@ -130,12 +130,12 @@ class BaseResource(ABC):
     def _keys(self):
         return (
             self.resource_type,
+            self.cloud().id,
             self.account().id,
             self.region().id,
             self.zone().id,
             self.id,
             self.name,
-            self.ctime,
         )
 
     #    def __hash__(self):
@@ -145,6 +145,9 @@ class BaseResource(ABC):
     #        if isinstance(other, type(self)):
     #            return self._keys() == other._keys()
     #        return NotImplemented
+    @property
+    def kind(self) -> str:
+        return self.resource_type
 
     @property
     def dname(self) -> str:

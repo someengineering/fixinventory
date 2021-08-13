@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Any
 from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
 import threading
@@ -15,6 +15,7 @@ from cloudkeeper.event import (
 from datetime import date, datetime, timezone, timedelta
 import requests
 import json
+from dataclasses import is_dataclass, fields
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -47,7 +48,6 @@ class KeepercorePlugin(BasePlugin):
         if not ArgumentParser.args.keepercore_uri:
             return
 
-        log.warn("LATEST CODE 123")
         graph: Graph = event.data
         log.info("Keepercore Event Handler called")
         model = get_model_from_graph(graph)
@@ -62,12 +62,10 @@ class KeepercorePlugin(BasePlugin):
             log.error(r.content)
         log.debug(f"Updating model via {model_uri}")
         model_json = json.dumps(model, indent=4)
-        print(model_json)
         r = requests.patch(model_uri, data=model_json)
         if r.status_code != 200:
             log.error(r.content)
 
-        return
         graph_iterator = GraphIterator(graph)
         log.debug(f"Sending subgraph via {report_uri}")
         r = requests.put(
@@ -110,11 +108,33 @@ def get_model_from_graph(graph: Graph) -> List:
             if cls not in classes:
                 classes.append(cls)
     model = dataclasses_to_keepercore_model(classes)
+    for resource_model in model:
+        if resource_model.get("fqn") == "base_resource":
+            resource_model.get("properties", []).append(
+                {"name": "kind", "kind": "string", "required": True, "description": ""}
+            )
     return model
 
 
+def format_value_for_export(value: Any) -> Any:
+    if isinstance(value, (date, datetime, timedelta, timezone)):
+        return str(value)
+    return value
+
+
 def get_node_attributes(node: BaseResource) -> Dict:
-    return {}
+    attributes: Dict = {"kind": node.kind}
+    if not is_dataclass(node):
+        raise ValueError(f"Node {node.rtdname} is no dataclass")
+    for field in fields(node):
+        if field.name.startswith("_"):
+            continue
+        value = getattr(node, field.name, None)
+        if value is None:
+            continue
+        value = format_value_for_export(value)
+        attributes.update({field.name: value})
+    return attributes
 
 
 class GraphIterator:
@@ -132,10 +152,15 @@ class GraphIterator:
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
                 yield (attributes_json.encode())
-            for node in self.graph.nodes:
-                for successor in node.successors(self.graph):
-                    successor_id = successor.sha256
-                    link = {"from": node_id, "to": successor_id}
-                    link_json = json.dumps(link) + "\n"
-                    self.edges_sent += 1
-                    yield (link_json.encode())
+            for edge in self.graph.edges:
+                from_node = edge[0]
+                to_node = edge[1]
+                if not isinstance(from_node, BaseResource) or not isinstance(
+                    to_node, BaseResource
+                ):
+                    log.error(f"One of {from_node} and {to_node} is no base resource")
+                    continue
+                link = {"from": from_node.sha256, "to": to_node.sha256}
+                link_json = json.dumps(link) + "\n"
+                self.edges_sent += 1
+                yield (link_json.encode())
