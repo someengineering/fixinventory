@@ -7,10 +7,11 @@ deepdiff==5.5.0
 
 # development
 mypy==0.910
-pip==21.2.2
+pip==21.2.4
 bump2version==1.0.1
 wheel==0.36.2
 flake8==3.9.2
+pep8-naming==0.12.1
 tox==3.24.1
 coverage==5.5
 twine==3.4.2
