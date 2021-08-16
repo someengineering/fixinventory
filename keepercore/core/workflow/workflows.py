@@ -138,8 +138,8 @@ class Workflow:
         self,
         uid: str,
         name: str,
-        steps: List[Step],
-        triggers: List[Trigger],
+        steps: Sequence[Step],
+        triggers: Sequence[Trigger],
         on_surpass: WorkflowSurpassBehaviour = WorkflowSurpassBehaviour.Skip,
     ):
         self.id = uid
@@ -376,7 +376,7 @@ class WorkflowInstance:
             try:
                 # this method is defined dynamically by transitions
                 last_state = self.current_state
-                result: bool = self._next_state()  # type: ignore
+                result: bool = self._next_state()  # type: ignore # pylint: disable=no-member
                 # safe guard: if state transition does not change the state
                 if result and self.current_state is last_state:
                     return False
@@ -391,7 +391,7 @@ class WorkflowInstance:
 
     @property
     def current_state(self) -> StepState:
-        return self.machine.get_state(self.state)  # type: ignore
+        return self.machine.get_state(self.state)  # type: ignore # pylint: disable=no-member
 
     @property
     def current_step(self) -> Step:
@@ -441,7 +441,7 @@ class WorkflowInstance:
         Use this method to abort a workflow instance.
         """
         self.is_error = True
-        self._to_err()  # type: ignore
+        self._to_err()  # type: ignore # pylint: disable=no-member
 
     def ack_for(self, message_type: str, subscriber: Subscriber) -> Optional[Message]:
         """

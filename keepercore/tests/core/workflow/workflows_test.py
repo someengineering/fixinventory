@@ -4,6 +4,7 @@ from typing import Tuple, Dict, List
 from pytest import fixture
 
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
+from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler, Subscriber, Subscription
 from core.workflow.workflows import (
     WorkflowHandler,
@@ -31,7 +32,7 @@ async def subscription_handler() -> SubscriptionHandler:
 
 @fixture
 async def workflow_handler(event_bus: EventBus, subscription_handler: SubscriptionHandler) -> WorkflowHandler:
-    result = WorkflowHandler(event_bus, subscription_handler)
+    result = WorkflowHandler(event_bus, subscription_handler, Scheduler())
     return result
 
 

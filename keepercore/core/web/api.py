@@ -7,7 +7,7 @@ import os
 from datetime import timedelta
 from functools import partial
 from random import SystemRandom
-from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any, Optional
+from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
 
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
@@ -162,7 +162,7 @@ class Api:
         request: Request,
         listener_id: str,
         event_types: List[str],
-        initial_messages: Optional[List[Message]] = None,
+        initial_messages: Optional[Sequence[Message]] = None,
     ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
