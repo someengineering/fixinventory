@@ -24,10 +24,10 @@ RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -
 FROM debian:stable-slim
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /
-#RUN apk add --no-cache dumb-init dnsmasq dcron dateutils libffi openssl
-RUN apt-get update || true
-RUN apt-get -y --no-install-recommends install apt-utils
-RUN apt-get -y --no-install-recommends install dumb-init dnsmasq libffi7 openssl dateutils
+RUN apt-get update || true \
+    && apt-get -y --no-install-recommends install apt-utils \
+    && apt-get -y dist-upgrade \
+    && apt-get -y --no-install-recommends install python3 python3-pip dumb-init dnsmasq libffi7 openssl dateutils
 COPY --from=build-env /build /build
 COPY docker/startup /usr/local/bin/startup
 COPY docker/dnsmasq.conf /etc/dnsmasq.d/cloudkeeper.conf
