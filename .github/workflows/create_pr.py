@@ -13,6 +13,7 @@ on:
     paths:
       - 'cloudkeeper/**'
       - 'plugins/**'
+      - '.github/**'
 
 jobs:
 """
