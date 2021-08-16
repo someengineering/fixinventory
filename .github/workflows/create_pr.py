@@ -26,7 +26,7 @@ install = """
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
           architecture: 'x64'
       - name: Restore dependency cache
         uses: actions/cache@v2
@@ -60,7 +60,7 @@ step_run_test = """
 
 print(head)
 print(install.replace("@name@", "cloudkeeper").replace("@directory@", f"cloudkeeper"))
-dir = "/Users/matthias/Documents/Work/someeng/cloudkeeper/plugins"
+dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../plugins")
 for plugin in os.listdir(dir):
     if os.path.isdir(os.path.join(dir, plugin)):
         print(install.replace("@name@", plugin))
