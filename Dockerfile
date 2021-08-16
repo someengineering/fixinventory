@@ -1,9 +1,12 @@
-FROM python:3.8-alpine AS build-env
+FROM python:3.9-alpine AS build-env
 ARG TESTS
 RUN apk add --no-cache build-base findutils linux-headers libtool automake autoconf libffi-dev openssl-dev cargo
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
+WORKDIR /usr/src/cloudkeeper/keepercore
+#RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build .
 WORKDIR /usr/src/cloudkeeper/cloudkeeper
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build .
@@ -12,7 +15,7 @@ RUN cd plugins/aws/ && pip wheel -w /build -f /build . && cd -
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
 RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
 
-FROM python:3.8-alpine
+FROM python:3.9-alpine
 WORKDIR /
 RUN apk add --no-cache dumb-init dnsmasq dcron dateutils libffi openssl
 COPY --from=build-env /build /build

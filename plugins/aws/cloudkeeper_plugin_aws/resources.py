@@ -37,6 +37,7 @@ class AWSRegion(BaseRegion):
 
 @dataclass(eq=False)
 class AWSResource:
+    resource_type: ClassVar[str] = "aws_resource"
     arn: Optional[str] = None
 
     def delete(self, graph) -> bool:

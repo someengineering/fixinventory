@@ -1,7 +1,8 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Any
 from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
 import threading
+from .datamodel_export import dataclasses_to_keepercore_model
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
@@ -14,6 +15,7 @@ from cloudkeeper.event import (
 from datetime import date, datetime, timezone, timedelta
 import requests
 import json
+from dataclasses import is_dataclass, fields
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -59,9 +61,11 @@ class KeepercorePlugin(BasePlugin):
         if r.status_code != 200:
             log.error(r.content)
         log.debug(f"Updating model via {model_uri}")
-        r = requests.patch(model_uri, data=json.dumps(model))
+        model_json = json.dumps(model, indent=4)
+        r = requests.patch(model_uri, data=model_json)
         if r.status_code != 200:
             log.error(r.content)
+
         graph_iterator = GraphIterator(graph)
         log.debug(f"Sending subgraph via {report_uri}")
         r = requests.put(
@@ -72,6 +76,9 @@ class KeepercorePlugin(BasePlugin):
         log.debug(r.content.decode())
         log.debug(
             f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore"
+        )
+        log.debug(
+            f"Nodes seen {len(graph_iterator.nodes_seen)} Edges seen {len(graph_iterator.edges_seen)}"
         )
 
     @staticmethod
@@ -97,162 +104,40 @@ class KeepercorePlugin(BasePlugin):
 
 
 def get_model_from_graph(graph: Graph) -> List:
-    models = {}
+    classes = []
     with graph.lock.read_access:
         for node in graph.nodes:
-            node_models = get_models_from_node(node)
-            for node_model in node_models:
-                if not node_model.get("fqn") in models:
-                    models[node_model.get("fqn")] = node_model
-                else:
-                    existing_properties = models[node_model.get("fqn")].get(
-                        "properties", []
-                    )
-                    for new_property in node_model.get("properties", []):
-                        if new_property not in existing_properties:
-                            existing_properties.append(new_property)
-    model = [m for m in models.values()]
+            cls = type(node)
+            if cls not in classes:
+                classes.append(cls)
+    model = dataclasses_to_keepercore_model(classes)
+    for resource_model in model:
+        if resource_model.get("fqn") == "base_resource":
+            resource_model.get("properties", []).append(
+                {"name": "kind", "kind": "string", "required": True, "description": ""}
+            )
     return model
 
 
-def get_models_from_node(node: BaseResource) -> List:
-    models = []
-    model = {}
-    resource_type = node.resource_type
-    if resource_type == "graph_root":
-        resource_type = "cloudkeeper_graph_root"
-    if type(resource_type) is str:
-        model["fqn"] = resource_type
-    else:
-        model["fqn"] = node.__class__
-    model["properties"], attribute_models = get_node_attributes(node, get_model=True)
-    models.append(model)
-    models.extend(attribute_models)
-    return models
+def format_value_for_export(value: Any) -> Any:
+    if isinstance(value, (date, datetime, timedelta, timezone)):
+        return str(value)
+    return value
 
 
-resource_attributes_blacklist = [
-    "metrics_description",
-    "event_log",
-    "uuid",
-    "dname",
-    "rtdname",
-    "pricing_info",
-]
-
-
-def get_node_attributes(
-    resource: BaseResource, get_model: bool = False
-) -> Union[List, Dict]:
-    attributes_list = []
-    attributes_models = []
-    attributes = dict(resource.__dict__)
-
-    for attr_name in dir(resource):
-        if attr_name.startswith("_"):
+def get_node_attributes(node: BaseResource) -> Dict:
+    attributes: Dict = {"kind": node.kind}
+    if not is_dataclass(node):
+        raise ValueError(f"Node {node.rtdname} is no dataclass")
+    for field in fields(node):
+        if field.name.startswith("_"):
             continue
-        attr_type = getattr(type(resource), attr_name, None)
-        if isinstance(attr_type, property):
-            try:
-                attributes[attr_name] = getattr(resource, attr_name, None)
-            except Exception:
-                pass
-    attributes["tags"] = dict(attributes.pop("_tags"))
-    resource_type = resource.resource_type
-    if resource_type == "graph_root":
-        resource_type = "cloudkeeper_graph_root"
-    attributes["kind"] = resource_type
-
-    remove_keys = []
-    add_keys = {}
-
-    for key, value in attributes.items():
-        if str(key).startswith("_") or str(key) in resource_attributes_blacklist:
-            remove_keys.append(key)
-        elif not isinstance(
-            value,
-            (
-                str,
-                int,
-                float,
-                complex,
-                list,
-                tuple,
-                range,
-                dict,
-                set,
-                frozenset,
-                bool,
-                bytes,
-                bytearray,
-                memoryview,
-                date,
-                datetime,
-                timezone,
-                timedelta,
-            ),
-        ):
-            remove_keys.append(key)
-
-    for key in remove_keys:
-        attributes.pop(key)
-    attributes.update(add_keys)
-
-    for key, value in attributes.items():
-        python_type = type(value)
-        keepercore_type = python_type_to_keepercore(value)
-        if keepercore_type is None:
-            keepercore_type = str(python_type.__name__)
-            attributes_models.append({"fqn": keepercore_type, "runtime_kind": "string"})
-        required = False
-        if key in ("kind", "id", "tags"):
-            required = True
-        entry = {
-            "name": key,
-            "kind": keepercore_type,
-            "description": "",
-            "required": required,
-        }
-        attributes_list.append(entry)
-
-        if isinstance(value, (date, datetime, timedelta, timezone)):
-            attributes[key] = str(value)
-
-    if get_model:
-        return attributes_list, attributes_models
-    else:
-        return attributes
-
-
-def python_type_to_keepercore(value) -> str:
-    value_type = type(value)
-    value_value_type = None
-    if value_type in (list, set, frozenset) and len(value) > 0:
-        value_value_type = type(value[0])
-    map = {
-        str: "string",
-        int: "float",
-        float: "float",
-        complex: "float",
-        bool: "boolean",
-        date: "date",
-        datetime: "datetime",
-        dict: "dictionary",
-        list: "string[]",
-        tuple: "string[]",
-        set: "string[]",
-        frozenset: "string[]",
-    }
-    if value_value_type is not None:
-        map.update(
-            {
-                list: f"{map.get(value_value_type)}[]",
-                tuple: f"{map.get(value_value_type)}[]",
-                set: f"{map.get(value_value_type)}[]",
-                frozenset: f"{map.get(value_value_type)}[]",
-            }
-        )
-    return map.get(value_type)
+        value = getattr(node, field.name, None)
+        if value is None:
+            continue
+        value = format_value_for_export(value)
+        attributes.update({field.name: value})
+    return attributes
 
 
 class GraphIterator:
@@ -260,6 +145,8 @@ class GraphIterator:
         self.graph = graph
         self.nodes_sent = 0
         self.edges_sent = 0
+        self.nodes_seen = []
+        self.edges_seen = []
 
     def __iter__(self):
         with self.graph.lock.read_access:
@@ -269,11 +156,30 @@ class GraphIterator:
                 node_json = {"id": node_id, "data": node_attributes}
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
+
+                if node_id in self.nodes_seen:
+                    log.error(f"Node {node} with id {node_id} is a duplicate")
+                    raise RuntimeError(f"Node {node} with id {node_id} is a duplicate")
+                self.nodes_seen.append(node_id)
+
                 yield (attributes_json.encode())
-            for node in self.graph.nodes:
-                for successor in node.successors(self.graph):
-                    successor_id = successor.sha256
-                    link = {"from": node_id, "to": successor_id}
-                    link_json = json.dumps(link) + "\n"
-                    self.edges_sent += 1
-                    yield (link_json.encode())
+            for edge in self.graph.edges:
+                from_node = edge[0]
+                to_node = edge[1]
+                if not isinstance(from_node, BaseResource) or not isinstance(
+                    to_node, BaseResource
+                ):
+                    log.error(f"One of {from_node} and {to_node} is no base resource")
+                    continue
+                link = {"from": from_node.sha256, "to": to_node.sha256}
+                link_json = json.dumps(link) + "\n"
+                self.edges_sent += 1
+
+                edge_id = from_node.sha256 + to_node.sha256
+                if edge_id in self.edges_seen:
+                    log.error(
+                        f"Edge from {from_node} to {to_node} with id {edge_id} is a duplicate"
+                    )
+                self.edges_seen.append(edge_id)
+
+                yield (link_json.encode())

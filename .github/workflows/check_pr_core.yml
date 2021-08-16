@@ -3,6 +3,7 @@ on:
     push:
         paths:
             - 'keepercore/**'
+            - '.github/**'
 jobs:
     lint-and-test:
         name: "Checkout, Lint and Test"

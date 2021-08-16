@@ -110,7 +110,7 @@ def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
-def export_dataclasses(classes: List[type]) -> List[Json]:
+def dataclasses_to_keepercore_model(classes: List[type]) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model definition as understood by keepercore.
     A plain python dataclass defines the model structure and should be used to create json in the same format.

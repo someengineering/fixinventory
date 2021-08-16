@@ -8,7 +8,7 @@ from cloudkeeper_plugin_keepercore.datamodel_export import (
     is_dict,
     dict_types,
     transitive_dataclasses,
-    export_dataclasses,
+    dataclasses_to_keepercore_model,
     model_name,
 )
 
@@ -86,8 +86,8 @@ def test_model_name() -> None:
     )
 
 
-def test_export_dataclasses() -> None:
-    result = export_dataclasses([DataClassExample])
+def test_dataclasses_to_keepercore_model() -> None:
+    result = dataclasses_to_keepercore_model([DataClassExample])
     assert len(result) == 3
     for r in result:
         props = {p["name"]: p for p in r["properties"]}

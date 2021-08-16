@@ -62,6 +62,7 @@ regional_resources = (
 
 @dataclass(eq=False)
 class GCPResource:
+    resource_type: ClassVar[str] = "gcp_resource"
     api_identifier: ClassVar[str] = NotImplemented
     client: ClassVar[str] = "compute"
     api_version: ClassVar[str] = "v1"

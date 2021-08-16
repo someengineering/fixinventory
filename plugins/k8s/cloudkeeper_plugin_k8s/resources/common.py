@@ -10,6 +10,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class KubernetesResource:
+    resource_type: ClassVar[str] = "kubernetes_resource"
     api: ClassVar[object] = NotImplemented
     list_method: ClassVar[str] = NotImplemented
     attr_map: ClassVar[Dict] = {}
