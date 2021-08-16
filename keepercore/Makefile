@@ -1,6 +1,6 @@
 .PHONY: clean clean-test clean-pyc clean-build clean-env docs help setup
 .DEFAULT_GOAL := help
-.SILENT: clean clean-build clean-pyc clean-test setup env
+.SILENT: clean clean-build clean-pyc clean-test setup venv
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
@@ -50,7 +50,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 clean-env: ## remove environment
-	rm -fr env
+	rm -fr venv
 
 lint: ## check style with flake8
 	black --line-length 120 --check core tests
@@ -58,10 +58,10 @@ lint: ## check style with flake8
 	pylint core
 	mypy --strict core tests
 
-test: env ## run tests quickly with the default Python
+test: venv ## run tests quickly with the default Python
 	pytest
 
-test-all: env ## run tests on every Python version with tox
+test-all: venv ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
@@ -81,18 +81,18 @@ dist: clean ## builds source and wheel package
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
-env:
-	python3 -m venv env
-	./env/bin/pip install -r requirements-dev.txt
-	./env/bin/pip install -r requirements.txt
-	./env/bin/mypy core tests > /dev/null 2>&1 || true
+venv:
+	python3 -m venv venv
+	./venv/bin/pip install -r requirements-dev.txt
+	./venv/bin/pip install -r requirements.txt
+	./venv/bin/mypy core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packacges..."
-	./env/bin/mypy --install-types --non-interactive || true
-	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource env/bin/activate\n\n"
+	./venv/bin/mypy --install-types --non-interactive || true
+	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
 
-setup: clean clean-env env
+setup: clean clean-env venv
 
-install-latest: env
+install-latest: venv
 	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
 
 

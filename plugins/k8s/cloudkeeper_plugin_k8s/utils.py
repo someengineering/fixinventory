@@ -38,43 +38,47 @@ def k8s_config() -> Dict:
         )
         raise RuntimeError(log_msg)
 
-    contexts, active_context = config.list_kube_config_contexts(
-        config_file=ArgumentParser.args.k8s_config
-    )
-    if contexts:
-        if (
-            len(ArgumentParser.args.k8s_context) == 0
-            and len(ArgumentParser.args.k8s_cluster) == 0
-        ):
-            active_context = active_context["name"]
-            log.debug(
-                (
-                    "no --k8s-context or --k8s-cluster specified, defaulting to"
-                    f" active context {active_context}"
-                )
-            )
-        else:
-            active_context = None
-
-        contexts = [context["name"] for context in contexts]
-        for context in contexts:
+    try:
+        contexts, active_context = config.list_kube_config_contexts(
+            config_file=ArgumentParser.args.k8s_config
+        )
+    except config.config_exception.ConfigException as e:
+        log.error(e)
+    else:
+        if contexts:
             if (
-                context not in ArgumentParser.args.k8s_context
-                and context != active_context
+                len(ArgumentParser.args.k8s_context) == 0
+                and len(ArgumentParser.args.k8s_cluster) == 0
             ):
+                active_context = active_context["name"]
                 log.debug(
-                    f"skipping context {context} as it is not specified"
-                    " in --k8s-context"
+                    (
+                        "no --k8s-context or --k8s-cluster specified, defaulting to"
+                        f" active context {active_context}"
+                    )
                 )
-                continue
-            log.debug(f"loading context {context}")
-            k8s_cfg = client.Configuration()
-            config.load_kube_config(
-                context=context,
-                client_configuration=k8s_cfg,
-                config_file=ArgumentParser.args.k8s_config,
-            )
-            cfg[context] = k8s_cfg
+            else:
+                active_context = None
+
+            contexts = [context["name"] for context in contexts]
+            for context in contexts:
+                if (
+                    context not in ArgumentParser.args.k8s_context
+                    and context != active_context
+                ):
+                    log.debug(
+                        f"skipping context {context} as it is not specified"
+                        " in --k8s-context"
+                    )
+                    continue
+                log.debug(f"loading context {context}")
+                k8s_cfg = client.Configuration()
+                config.load_kube_config(
+                    context=context,
+                    client_configuration=k8s_cfg,
+                    config_file=ArgumentParser.args.k8s_config,
+                )
+                cfg[context] = k8s_cfg
 
     for idx, cluster in enumerate(ArgumentParser.args.k8s_cluster):
         k8s_cfg = client.Configuration()

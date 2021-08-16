@@ -1,13 +1,12 @@
+from datetime import datetime
 from typing import Callable, List, Any
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.job import Job
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
-from datetime import datetime
-from pytz import utc
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from pytz import utc
 
 
 class Scheduler:

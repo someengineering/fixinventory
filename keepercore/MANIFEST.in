@@ -1,2 +1,3 @@
 include requirements-dev.txt
 include requirements.txt
+include core/static/*

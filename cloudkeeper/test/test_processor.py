@@ -4,6 +4,7 @@ from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import Event, EventType, add_args as event_add_args
+from cloudkeeper.cleaner import Cleaner
 import cloudkeeper.logging as logging
 import time
 import random
@@ -45,6 +46,7 @@ def test_processor():
     arg_parser = get_arg_parser()
     Processor.add_args(arg_parser)
     GraphContainer.add_args(arg_parser)
+    Cleaner.add_args(arg_parser)
     event_add_args(arg_parser)
     arg_parser.parse_args()
 
