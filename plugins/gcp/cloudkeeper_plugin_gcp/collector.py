@@ -968,6 +968,11 @@ class GCPProjectCollector:
             resource.region(graph).name == "undefined"
             and resource.zone(graph).name == "undefined"
         ):
+            log.error(
+                f"Resource {resource.rtdname} has no region or zone"
+                " - removing from graph"
+            )
+            graph.remove_node(resource)
             return
 
         log.debug(
