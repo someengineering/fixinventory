@@ -3,10 +3,21 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 RUN apt-get update || true
 RUN apt-get -y install apt-utils
-RUN apt-get -y install build-essential \
-    curl python3 python3-pip rustc shellcheck \
-    findutils libtool automake autoconf \
-    libffi-dev libssl-dev cargo linux-headers-5.10.0-8-amd64
+RUN apt-get -y install \
+        build-essential \
+        curl \
+        python3 \
+        python3-pip \
+        rustc \
+        shellcheck \
+        findutils \
+        libtool \
+        automake \
+        autoconf \
+        libffi-dev \
+        libssl-dev \
+        cargo \
+        linux-headers-5.10.0-8-amd64
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
@@ -23,17 +34,43 @@ RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -
 
 FROM debian:stable-slim
 ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /
-RUN apt-get update || true \
-    && apt-get -y --no-install-recommends install apt-utils \
-    && apt-get -y dist-upgrade \
-    && apt-get -y --no-install-recommends install python3 python3-pip dumb-init dnsmasq libffi7 openssl dateutils
+ARG ARANGODB_VERSION=3.8.0-1
 COPY --from=build-env /build /build
 COPY docker/startup /usr/local/bin/startup
 COPY docker/dnsmasq.conf /etc/dnsmasq.d/cloudkeeper.conf
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-RUN pip install --upgrade pip \
+WORKDIR /
+RUN apt-get update || true \
+    && apt-get -y --no-install-recommends install apt-utils \
+    && apt-get -y dist-upgrade \
+    && apt-get -y --no-install-recommends install \
+        python3-minimal \
+        python3-pip \
+        dumb-init \
+        dnsmasq \
+        libffi7 \
+        openssl \
+        procps \
+        dateutils \
+        curl \
+        jq \
+        cron \
+        ca-certificates \
+        openssh-client \
+        locales \
+        unzip \
+    && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
+    && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+    && rm -f /bin/sh \
+    && ln -s /bin/bash /bin/sh \
+    && locale-gen \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
+    && mkdir -p /var/spool/cron/crontabs \
+    && pip install --upgrade pip \
     && pip install -f /build /build/*.whl \
+    && curl -L -o /build/arangodb.deb https://download.arangodb.com/arangodb38/Community/Linux/arangodb3_${ARANGODB_VERSION}_amd64.deb \
+    && dpkg -i /build/arangodb.deb \
     && chmod +x /usr/local/bin/startup \
-    && rm -rf /build
+    && apt-get clean \
+    && rm -rf /build /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ENTRYPOINT ["/usr/bin/dumb-init", "--",  "startup"]

@@ -3,6 +3,7 @@ import json
 import logging
 import string
 import uuid
+import os
 from datetime import timedelta
 from functools import partial
 from random import SystemRandom
@@ -50,12 +51,13 @@ class Api:
         self.workflow_handler = workflow_handler
         self.event_bus = event_bus
         self.app = web.Application(middlewares=[self.error_handler])
+        static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         r = "reported"
         d = "desired"
         rd = [r, d]
         SwaggerFile(
             self.app,
-            spec_file="./static/api-doc.yaml",
+            spec_file=f"{static_path}/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
         self.app.add_routes(
@@ -107,7 +109,7 @@ class Api:
                 web.get("/events", self.handle_events),
                 # Serve static filed
                 web.get("", self.redirect_to_ui),
-                web.static("/static", "./static/"),
+                web.static("/static", static_path),
             ]
         )
 
