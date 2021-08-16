@@ -77,6 +77,9 @@ class KeepercorePlugin(BasePlugin):
         log.debug(
             f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore"
         )
+        log.debug(
+            f"Nodes seen {len(graph_iterator.nodes_seen)} Edges seen {len(graph_iterator.edges_seen)}"
+        )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -142,6 +145,8 @@ class GraphIterator:
         self.graph = graph
         self.nodes_sent = 0
         self.edges_sent = 0
+        self.nodes_seen = []
+        self.edges_seen = []
 
     def __iter__(self):
         with self.graph.lock.read_access:
@@ -151,6 +156,12 @@ class GraphIterator:
                 node_json = {"id": node_id, "data": node_attributes}
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
+
+                if node_id in self.nodes_seen:
+                    log.error(f"Node {node} with id {node_id} is a duplicate")
+                    raise RuntimeError(f"Node {node} with id {node_id} is a duplicate")
+                self.nodes_seen.append(node_id)
+
                 yield (attributes_json.encode())
             for edge in self.graph.edges:
                 from_node = edge[0]
@@ -163,4 +174,12 @@ class GraphIterator:
                 link = {"from": from_node.sha256, "to": to_node.sha256}
                 link_json = json.dumps(link) + "\n"
                 self.edges_sent += 1
+
+                edge_id = from_node.sha256 + to_node.sha256
+                if edge_id in self.edges_seen:
+                    log.error(
+                        f"Edge from {from_node} to {to_node} with id {edge_id} is a duplicate"
+                    )
+                self.edges_seen.append(edge_id)
+
                 yield (link_json.encode())
