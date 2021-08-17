@@ -1,4 +1,6 @@
-# `cloudkeeper` Housekeeping for Clouds!
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/master/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
+
+# Housekeeping for Clouds!
 
 ## Introduction
 Cloudkeeper is a standalone CLI tool that periodically collects a list of resources in cloud accounts, provides metrics about them, and can clean them up.
