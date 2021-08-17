@@ -13,6 +13,7 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 from datetime import date, datetime, timezone, timedelta
+from time import time
 import requests
 import json
 from dataclasses import is_dataclass, fields
@@ -76,9 +77,6 @@ class KeepercorePlugin(BasePlugin):
         log.debug(r.content.decode())
         log.debug(
             f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore"
-        )
-        log.debug(
-            f"Nodes seen {len(graph_iterator.nodes_seen)} Edges seen {len(graph_iterator.edges_seen)}"
         )
 
     @staticmethod
@@ -145,8 +143,12 @@ class GraphIterator:
         self.graph = graph
         self.nodes_sent = 0
         self.edges_sent = 0
-        self.nodes_seen = []
-        self.edges_seen = []
+        report_every_percent = 10
+        self.nodes_total = self.graph.number_of_nodes()
+        self.edges_total = self.graph.number_of_edges()
+        self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
+        self.report_every_n_edges = round(self.edges_total / report_every_percent)
+        self.last_sent = time()
 
     def __iter__(self):
         with self.graph.lock.read_access:
@@ -156,11 +158,13 @@ class GraphIterator:
                 node_json = {"id": node_id, "data": node_attributes}
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
-
-                if node_id in self.nodes_seen:
-                    log.error(f"Node {node} with id {node_id} is a duplicate")
-                    raise RuntimeError(f"Node {node} with id {node_id} is a duplicate")
-                self.nodes_seen.append(node_id)
+                if self.nodes_sent % self.report_every_n_nodes == 0:
+                    percent = round(self.nodes_sent / self.nodes_total * 100)
+                    elapsed = time() - self.last_sent
+                    log.debug(
+                        f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
+                    )
+                    self.last_sent = time()
 
                 yield (attributes_json.encode())
             for edge in self.graph.edges:
@@ -174,12 +178,12 @@ class GraphIterator:
                 link = {"from": from_node.sha256, "to": to_node.sha256}
                 link_json = json.dumps(link) + "\n"
                 self.edges_sent += 1
-
-                edge_id = from_node.sha256 + to_node.sha256
-                if edge_id in self.edges_seen:
-                    log.error(
-                        f"Edge from {from_node} to {to_node} with id {edge_id} is a duplicate"
+                if self.edges_sent % self.report_every_n_edges == 0:
+                    percent = round(self.edges_sent / self.edges_total * 100)
+                    elapsed = time() - self.last_sent
+                    log.debug(
+                        f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
                     )
-                self.edges_seen.append(edge_id)
+                    self.last_sent = time()
 
                 yield (link_json.encode())
