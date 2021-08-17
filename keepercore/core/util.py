@@ -7,8 +7,6 @@ from contextlib import suppress
 from datetime import timedelta
 from typing import Any, Callable, Optional, Awaitable, Dict, TypeVar, List, Tuple
 
-from parsy import Parser, generate
-
 log = logging.getLogger(__name__)
 
 AnyT = TypeVar("AnyT")
@@ -80,13 +78,6 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     :return: the result of the function or if_not
     """
     return func(x) if x is not None else if_not
-
-
-def make_parser(fn: Callable[[], Parser]) -> Parser:
-    """
-    Make typed parser (required for mypy).
-    """
-    return generate(fn)
 
 
 def split_esc(s: str, delim: str) -> List[str]:

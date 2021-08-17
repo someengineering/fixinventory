@@ -5,6 +5,8 @@ from aiohttp import web
 from aiohttp.web_app import Application
 from arango import ArangoClient
 
+from core.cli.cli import CLIDependencies, CLI
+from core.cli.command import all_parts
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
@@ -49,11 +51,13 @@ def main() -> None:
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
     db = DbAccess(database, event_bus)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
+    cli_deps = CLIDependencies(event_bus, db, model)
+    cli = CLI(cli_deps, all_parts(cli_deps))
 
     subscriptions = SubscriptionHandler()
     workflow_handler = WorkflowHandler(event_bus, subscriptions, scheduler)
 
-    api = Api(db, model, subscriptions, workflow_handler, event_bus)
+    api = Api(db, model, subscriptions, workflow_handler, event_bus, cli)
 
     async def async_initializer() -> Application:
         await db.start()

@@ -5,14 +5,12 @@ from typing import List, Optional, Any, Tuple, AsyncGenerator, Union, Hashable
 
 from aiostream import stream
 from aiostream.core import Stream
-from parsy import Parser
 
-from core.cli.cli import CLISource, CLISink, Sink, Source, CLICommand, Flow, CLIDependencies, CLIPart
+from core.cli.cli import CLISource, CLISink, Sink, Source, CLICommand, Flow, CLIDependencies, CLIPart, key_values_parser
 from core.db.model import QueryModel
 from core.error import CLIParseError
-from core.query.query_parser import parse_query, value_p, equals_p, literal_p, comma_p
-from core.types import Json
-from core.util import make_parser
+from core.query.query_parser import parse_query
+from core.types import Json, JsonElement
 
 
 class EchoSource(CLISource):  # type: ignore
@@ -50,6 +48,15 @@ class MatchSource(CLISource):  # type: ignore
         return db.query_list(QueryModel(query, model, query_section), with_system_props=True)
 
 
+class EnvSource(CLISource):  # type: ignore
+    @property
+    def name(self) -> str:
+        return "env"
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        return stream.just(env)
+
+
 class CountCommand(CLICommand):  # type: ignore
     @property
     def name(self) -> str:
@@ -70,7 +77,7 @@ class CountCommand(CLICommand):  # type: ignore
 
         fn = inc_prop if arg else inc_identity
 
-        async def count_in_stream(content: Stream) -> AsyncGenerator[Json, None]:
+        async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
             counter = 0
             no_match = 0
 
@@ -143,22 +150,11 @@ class SetDesiredState(CLICommand, ABC):  # type: ignore
 
     async def set_desired(
         self, graph_name: str, patch: Json, result_section: Union[str, List[str]], items: List[Json]
-    ) -> AsyncGenerator[Json, None]:
+    ) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = [a["_id"] for a in items if "_id" in a]
         async for update in db.update_nodes_desired(patch, node_ids, result_section):
             yield update
-
-
-@make_parser
-def key_value_parser() -> Parser:
-    key = yield literal_p
-    yield equals_p
-    value = yield value_p
-    return key, value
-
-
-key_values_parser = key_value_parser.sep_by(comma_p).map(dict)
 
 
 class DesireCommand(SetDesiredState):
@@ -182,35 +178,21 @@ class MarkDeleteCommand(SetDesiredState):
         return {"delete": True}
 
 
-class ConsoleSink(CLISink):  # type: ignore
-    @property
-    def name(self) -> str:
-        return "out"
-
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[None]:
-        async def out(flow: Stream) -> None:
-            async with flow.stream() as ctx:
-                async for item in ctx:
-                    print(item)
-
-        return out
-
-
 class ListSink(CLISink):  # type: ignore
     @property
     def name(self) -> str:
         return "out"
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[Json]]:
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[JsonElement]]:
         return lambda in_stream: stream.list(in_stream)
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), MatchSource(d)]
+    return [EchoSource(d), EnvSource(d), MatchSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:
-    return [ConsoleSink(d), ListSink(d)]
+    return [ListSink(d)]
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:

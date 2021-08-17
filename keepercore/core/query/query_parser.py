@@ -1,8 +1,33 @@
 from functools import reduce
 
-from parsy import string, regex, digit, success, Parser
+from parsy import success, string, Parser
 
 from core.model.graph_access import EdgeType
+from core.parse_util import (
+    lparen_dp,
+    lexeme,
+    rparen_dp,
+    l_bracket_dp,
+    r_bracket_dp,
+    l_curly_dp,
+    r_curly_dp,
+    gt_dp,
+    lt_dp,
+    colon_dp,
+    comma_dp,
+    equals_dp,
+    true_dp,
+    false_dp,
+    dot_dot_dp,
+    null_dp,
+    float_dp,
+    integer_dp,
+    variable_dp,
+    literal_dp,
+    string_dp,
+    make_parser,
+    whitespace,
+)
 from core.query.model import (
     Predicate,
     CombinedTerm,
@@ -16,14 +41,6 @@ from core.query.model import (
     AggregateFunction,
     Aggregate,
 )
-from core.util import make_parser
-
-whitespace: Parser = regex(r"\s*")
-
-
-def lexeme(p: Parser) -> Parser:
-    return whitespace >> p << whitespace
-
 
 operation_p = reduce(
     lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
@@ -34,40 +51,26 @@ function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet"
 
 preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type"]])
 
-lparen_p = lexeme(string("("))
-rparen_p = lexeme(string(")"))
-l_bracket_p = lexeme(string("["))
-r_bracket_p = lexeme(string("]"))
-l_curly_p = lexeme(string("{"))
-r_curly_p = lexeme(string("}"))
-gt_p = lexeme(string(">"))
-lt_p = lexeme(string("<"))
-colon_p = lexeme(string(":"))
-comma_p = lexeme(string(","))
-dot_dot_p = lexeme(string(".."))
-equals_p = lexeme(string("="))
-true_p = lexeme(string("true")).result(True)
-false_p = lexeme(string("false")).result(False)
-null_p = lexeme(string("null")).result(None)
-integer_p = digit.at_least(1).concat().map(int)
-float_p = (digit.many() + string(".").result(["."]) + digit.many()).concat().map(float)
-variable_p = lexeme(regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*"))
-literal_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
-
-string_part = regex(r'[^"\\]+')
-string_esc = string("\\") >> (
-    string("\\")
-    | string("/")
-    | string('"')
-    | string("b").result("\b")
-    | string("f").result("\f")
-    | string("n").result("\n")
-    | string("r").result("\r")
-    | string("t").result("\t")
-    | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
-)
-string_p = (string_part | string_esc).many().concat()
-quoted_string_p = lexeme(string('"') >> string_p << string('"'))
+lparen_p = lexeme(lparen_dp)
+rparen_p = lexeme(rparen_dp)
+l_bracket_p = lexeme(l_bracket_dp)
+r_bracket_p = lexeme(r_bracket_dp)
+l_curly_p = lexeme(l_curly_dp)
+r_curly_p = lexeme(r_curly_dp)
+gt_p = lexeme(gt_dp)
+lt_p = lexeme(lt_dp)
+colon_p = lexeme(colon_dp)
+comma_p = lexeme(comma_dp)
+dot_dot_p = lexeme(dot_dot_dp)
+equals_p = lexeme(equals_dp)
+true_p = lexeme(true_dp)
+false_p = lexeme(false_dp)
+null_p = lexeme(null_dp)
+float_p = lexeme(float_dp)
+integer_p = lexeme(integer_dp)
+variable_p = lexeme(variable_dp)
+literal_p = lexeme(literal_dp)
+quoted_string_p = lexeme(string('"') >> string_dp << string('"'))
 
 
 @make_parser

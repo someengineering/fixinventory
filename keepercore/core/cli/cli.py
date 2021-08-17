@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import inspect
 from abc import ABC, abstractmethod
@@ -6,12 +7,14 @@ from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, Asy
 
 from aiostream import stream
 from aiostream.core import Stream
+from parsy import Parser
 
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandler
-from core.types import Json
+from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
+from core.types import JsonElement
 from core.util import identity, split_esc
 
 T = TypeVar("T")
@@ -22,9 +25,9 @@ Result = Union[T, Coroutine[Any, Any, T]]
 # If None is returned, the value is discarded
 FlowFunction = Callable[[T], Result[Optional[T]]]
 # A source provides a stream of objects
-Source = AsyncGenerator[Json, None]
+Source = AsyncGenerator[JsonElement, None]
 # Every Command will return a function that takes a stream and returns a stream of objects.
-Flow = Callable[[Stream], AsyncGenerator[Json, None]]
+Flow = Callable[[Stream], AsyncGenerator[JsonElement, None]]
 # A sink function takes a stream and creates a result
 Sink = Callable[[Stream], Coroutine[Any, Any, T]]
 
@@ -89,12 +92,12 @@ class CLICommand(CLIPart, ABC):
         single_function = await self.process_single(arg)
         return self.flow_from_function(single_function)
 
-    async def process_single(self, arg: Optional[str] = None) -> FlowFunction[Json]:
+    async def process_single(self, arg: Optional[str] = None) -> FlowFunction[JsonElement]:
         return identity
 
     @staticmethod
-    def flow_from_function(fn: FlowFunction[Json]) -> Flow:
-        def process(content: Stream) -> AsyncGenerator[Json, None]:
+    def flow_from_function(fn: FlowFunction[JsonElement]) -> Flow:
+        def process(content: Stream) -> AsyncGenerator[JsonElement, None]:
             return stream.filter(stream.map(content, fn), lambda x: x is not None)  # type: ignore
 
         return process
@@ -147,11 +150,38 @@ class HelpCommand(CLISource):
 
 @dataclass
 class ParsedCommandLine:
+    """
+    The parsed command line holds:
+    - env: the resulting environment coming from the parsed environment + the provided environment
+    - parts: all parts this command is defined from
+    - generator: this generator can be used in order to execute the command line
+    """
+
+    env: JsonElement
     parts: List[CLIPart]
-    generator: AsyncGenerator[Json, None]
+    generator: AsyncGenerator[JsonElement, None]
+
+    async def to_sink(self, sink: Sink[T]) -> T:
+        return await sink(self.generator)
+
+
+@make_parser
+def key_value_parser() -> Parser:
+    key = yield literal_dp
+    yield equals_dp
+    value = yield value_dp
+    return key, value
+
+
+key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
 
 
 class CLI:
+    """
+    The CLI has a defined set of dependencies and knows a list if commands.
+    A string can parsed into a command line that can be executed based on the list of available commands.
+    """
+
     def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart]):
         help_cmd = HelpCommand(dependencies, parts)
         self.parts = {p.name: p for p in parts + [help_cmd]}
@@ -171,34 +201,32 @@ class CLI:
             else:
                 raise CLIParseError(f"Command >{part_str}< is not known. typo?")
 
-        async def parse_arg(part: CLIPart, args_str: str) -> Any:
+        async def parse_arg(part: CLIPart, args_str: str, **resulting_env: str) -> Any:
             try:
-                fn = part.parse(args_str, **env)
+                fn = part.parse(args_str, **resulting_env)
                 return await fn if asyncio.iscoroutine(fn) else fn
             except Exception as ex:
                 kind = type(ex).__name__
                 raise CLIParseError(f"{part.name}: can not parse: {args_str}: {kind}: {str(ex)}") from ex
 
         async def parse_line(line: str) -> ParsedCommandLine:
-            parts_with_args = [parse_single_command(idx, cmd) for idx, cmd in enumerate(split_esc(line, "|"))]
+            parsed_env, rest = key_values_parser.parse_partial(line)
+            resulting_env = env | parsed_env
+            parts_with_args = [parse_single_command(idx, cmd) for idx, cmd in enumerate(split_esc(rest, "|"))]
             parts = [part for part, _ in parts_with_args]
             if parts_with_args:
                 source, source_arg = parts_with_args[0]
-                flow = await parse_arg(source, source_arg)
+                flow = await parse_arg(source, source_arg, **resulting_env)
                 flow = flow if isinstance(flow, Stream) else stream.iterate(flow)
                 for command, arg in parts_with_args[1:]:
-                    flow_fn: Flow = await parse_arg(command, arg)
+                    flow_fn: Flow = await parse_arg(command, arg, **resulting_env)
                     flow = flow_fn(flow)
                     flow = flow if isinstance(flow, Stream) else stream.iterate(flow)
-                return ParsedCommandLine(parts, flow)
+                return ParsedCommandLine(resulting_env, parts, flow)
             else:
-                return ParsedCommandLine([], CLISource.empty())
+                return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
         return [await parse_line(cmd_line) for cmd_line in split_esc(cli_input, ";")]
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[T]:
-        results: List[T] = []
-        for parsed in await self.evaluate_cli_command(cli_input, **env):
-            to_sink = sink(parsed.generator)
-            results.append(await to_sink)
-        return results
+        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]

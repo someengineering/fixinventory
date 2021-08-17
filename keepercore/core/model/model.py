@@ -17,7 +17,8 @@ from parsy import regex, string, Parser
 
 from core.model.typed_model import from_js
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
-from core.util import if_set, make_parser
+from core.util import if_set
+from core.parse_util import make_parser
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:

@@ -19,7 +19,7 @@ from core.db.graphdb import ArangoGraphDB
 from core.error import CLIParseError
 from core.event_bus import EventBus
 from core.model.model import Model
-from core.types import Json
+from core.types import JsonElement
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
@@ -42,7 +42,7 @@ def cli(cli_deps: CLIDependencies) -> CLI:
 
 
 @fixture
-async def sink(cli_deps: CLIDependencies) -> Sink[List[Json]]:
+async def sink(cli_deps: CLIDependencies) -> Sink[List[JsonElement]]:
     return await ListSink(cli_deps).parse()
 
 
@@ -113,11 +113,18 @@ async def test_order_of_commands(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_help(cli: CLI, sink: Sink[List[Json]]) -> None:
+async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command("help", sink)
     assert len(result[0]) == 1
     print(result)
 
     result = await cli.execute_cli_command("help count", sink)
     assert len(result[0]) == 1
+    print(result)
+
+
+@pytest.mark.asyncio
+async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+    result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
+    assert result[0] == [{"test": "foo", "bla": "bar", "d": True}]
     print(result)
