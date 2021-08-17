@@ -532,10 +532,17 @@ def validate_dataclass(node: BaseResource):
             )
 
 
-def validate_graph_dataclasses(graph: Graph) -> None:
+def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
+    node_sha256s = {}
     for node in graph.nodes:
         if isinstance(node, BaseResource):
             validate_dataclass(node)
+            if node.sha256 not in node_sha256s:
+                node_sha256s[node.sha256] = node
+            else:
+                log.error(
+                    f"Duplicate checksum {node.sha256} for node {node.rtdname} in graph"
+                )
 
 
 def update_graph_ref(graph: Graph) -> None:
@@ -617,4 +624,4 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     graph.resolve_deferred_connections()
     update_graph_ref(graph)
     set_max_depth(graph, root)
-    validate_graph_dataclasses(graph)
+    validate_graph_dataclasses_and_nodes(graph)
