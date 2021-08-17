@@ -54,12 +54,18 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
+    async def update_nodes_desired(
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+    ) -> AsyncGenerator[Json, None]:
+        yield {}  # only here for mypy type check (detects coroutine otherwise)
+
+    @abstractmethod
     async def delete_node(self, node_id: str) -> None:
         pass
 
     @abstractmethod
-    def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        pass
+    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
+        yield {}  # only here for mypy type check (detects coroutine otherwise)
 
     @abstractmethod
     async def update_sub_graph(
@@ -80,7 +86,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def query_list(self, query: QueryModel) -> AsyncGenerator[Json, None]:
+    def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
@@ -162,6 +168,15 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(result_section)
             return trafo(result["new"])
 
+    async def update_nodes_desired(
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+    ) -> AsyncGenerator[Json, None]:
+        bind_var = {"desired": patch, "node_ids": node_ids}
+        trafo = self.document_to_instance_fn(result_section)
+        with await self.db.aql(query=self.query_update_desired_many(), bind_vars=bind_var) as cursor:
+            for element in cursor:
+                yield trafo(element)
+
     async def delete_node(self, node_id: str) -> None:
         with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
             count = cursor.next()
@@ -179,11 +194,11 @@ class ArangoGraphDB(GraphDB):
             return cursor.next() if not cursor.empty() else None
 
     async def query_list(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, query: QueryModel
+        self, query: QueryModel, **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn(query.return_section)
+        trafo = self.document_to_instance_fn(query.return_section, **kwargs)
         visited = set()
         with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
             for element in cursor:
@@ -247,15 +262,29 @@ class ArangoGraphDB(GraphDB):
             await self.db.truncate(self.edge_collection(edge_type))
         await self.insert_genesis_data()
 
+    default_system_props = {"_key": "_id", "_rev": "_rev"}
+
     @staticmethod
-    def document_to_instance_fn(section: Union[str, List[str]]) -> Callable[[Json], Optional[Json]]:
+    def document_to_instance_fn(section: Union[str, List[str]], **kwargs: Any) -> Callable[[Json], Optional[Json]]:
         def single_prop(doc: Json) -> Optional[Json]:
             return doc[section] if section in doc else None
 
         def multi_prop(doc: Json) -> Optional[Json]:
             return {prop: doc[prop] if prop in doc else {} for prop in section}
 
-        return single_prop if isinstance(section, str) else multi_prop
+        fn = single_prop if isinstance(section, str) else multi_prop
+
+        def default_props(doc: Json) -> Optional[Json]:
+            result = fn(doc)
+            if result:
+                for prop, name in ArangoGraphDB.default_system_props.items():
+                    value = doc.get(prop)
+                    if value:
+                        result[name] = value
+            return result
+
+        with_system_props = kwargs.get("with_system_props", False)
+        return default_props if with_system_props else fn
 
     async def list_in_progress_batch_updates(self) -> List[Json]:
         with await self.db.aql(self.query_active_batches()) as cursor:
@@ -767,6 +796,14 @@ class ArangoGraphDB(GraphDB):
         RETURN true
         """
 
+    def query_update_desired_many(self) -> str:
+        return f"""
+        FOR a IN {self.vertex_name}
+        FILTER a._key in @node_ids
+        UPDATE a with {{ "desired": @desired }} IN {self.vertex_name}
+        RETURN {{"reported": NEW.reported, "desired": NEW.desired }}
+        """
+
     def query_count_direct_children(self) -> str:
         return f"""
         FOR pn in {self.vertex_name} FILTER pn.id==@rid LIMIT 1
@@ -844,8 +881,19 @@ class EventGraphDB(GraphDB):
         await self.event_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
         return result
 
-    def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        return self.real.search(tokens, limit)
+    async def update_nodes_desired(
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+    ) -> AsyncGenerator[Json, None]:
+        result = self.real.update_nodes_desired(patch, node_ids, result_section)
+        await self.event_bus.emit_event(
+            CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
+        )
+        async for a in result:
+            yield a
+
+    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
+        async for elem in self.real.search(tokens, limit):
+            yield elem
 
     async def update_sub_graph(
         self, model: Model, sub: MultiDiGraph, under_node_id: str, maybe_batch: Optional[str] = None
@@ -871,8 +919,8 @@ class EventGraphDB(GraphDB):
         await self.real.abort_batch_update(batch_id)
         await self.event_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
-    def query_list(self, query: QueryModel) -> AsyncGenerator[Json, None]:
-        return self.real.query_list(query)
+    def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
+        return self.real.query_list(query, **kwargs)
 
     def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
         return self.real.query_graph_gen(query)

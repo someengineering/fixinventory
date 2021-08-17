@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional
 
 from plantuml import PlantUML
@@ -11,7 +12,21 @@ from core.util import exist
 log = logging.getLogger(__name__)
 
 
-class ModelHandler:
+class ModelHandler(ABC):
+    @abstractmethod
+    async def load_model(self) -> Model:
+        pass
+
+    @abstractmethod
+    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
+        pass
+
+    @abstractmethod
+    async def update_model(self, kinds: List[Kind]) -> Model:
+        pass
+
+
+class ModelHandlerDB(ModelHandler):
     def __init__(self, db: ModelDB, plantuml_server: str):
         self.db = db
         self.plantuml_server = plantuml_server

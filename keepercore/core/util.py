@@ -15,6 +15,10 @@ AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
 
 
+def identity(o: AnyT) -> AnyT:
+    return o
+
+
 def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:
     """
     Group iterable by key provided by given key function.
@@ -83,6 +87,29 @@ def make_parser(fn: Callable[[], Parser]) -> Parser:
     Make typed parser (required for mypy).
     """
     return generate(fn)
+
+
+def split_esc(s: str, delim: str) -> List[str]:
+    """Split with support for delimiter escaping
+
+    Via: https://stackoverflow.com/a/29107566
+    """
+    i = 0
+    res: List[str] = []
+    buf = ""
+    while True:
+        j, e = s.find(delim, i), 0
+        if j < 0:  # end reached
+            return res + [buf + s[i:]]  # add remainder
+        while j - e and s[j - e - 1] == "\\":
+            e += 1  # number of escapes
+        d = e // 2  # number of double escapes
+        if e != d * 2:  # odd number of escapes
+            buf += s[i : j - d - 1] + s[j]  # noqa: E203 add the escaped char.
+            i = j + 1  # and skip it
+            continue  # add more to buf
+        res.append(buf + s[i : j - d])  # noqa: E203
+        i, buf = j + len(delim), ""  # start after delim
 
 
 class Periodic:

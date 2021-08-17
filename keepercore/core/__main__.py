@@ -8,7 +8,7 @@ from arango import ArangoClient
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
-from core.model.model_handler import ModelHandler
+from core.model.model_handler import ModelHandlerDB
 from core.web.api import Api
 from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler
@@ -48,7 +48,7 @@ def main() -> None:
     client = ArangoClient(hosts=args.arango_server, http_client=http_client)
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
     db = DbAccess(database, event_bus)
-    model = ModelHandler(db.get_model_db(), args.plantuml_server)
+    model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
 
     subscriptions = SubscriptionHandler()
     workflow_handler = WorkflowHandler(event_bus, subscriptions, scheduler)
