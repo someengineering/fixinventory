@@ -5,6 +5,7 @@ name: Check PR (Plugin k8s)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/k8s/**'
       - '.github/**'
 

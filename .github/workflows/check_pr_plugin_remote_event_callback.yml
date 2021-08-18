@@ -5,6 +5,7 @@ name: Check PR (Plugin remote_event_callback)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/remote_event_callback/**'
       - '.github/**'
 

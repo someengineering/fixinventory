@@ -5,6 +5,7 @@ name: Check PR (Plugin metrics_age_range)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/metrics_age_range/**'
       - '.github/**'
 

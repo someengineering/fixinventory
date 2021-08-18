@@ -5,6 +5,7 @@ name: Check PR (Plugin protect_snowflakes)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/protect_snowflakes/**'
       - '.github/**'
 

@@ -5,6 +5,7 @@ name: Check PR (Plugin tag_aws_ctime)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/tag_aws_ctime/**'
       - '.github/**'
 

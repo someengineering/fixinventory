@@ -5,6 +5,7 @@ name: Check PR (Plugin logdump)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/logdump/**'
       - '.github/**'
 
