@@ -1,4 +1,3 @@
-from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
 import threading
 from cloudkeeper.baseplugin import BasePlugin

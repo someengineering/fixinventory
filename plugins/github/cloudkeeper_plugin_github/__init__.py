@@ -1,12 +1,8 @@
-from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
-import multiprocessing
 import cloudkeeper.signal
-from concurrent import futures
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.args import ArgumentParser
 from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo
-from typing import Dict
 from github import Github
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
