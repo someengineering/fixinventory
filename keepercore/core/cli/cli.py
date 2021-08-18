@@ -25,15 +25,11 @@ from core.event_bus import EventBus
 from core.model.model_handler import ModelHandler
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
 from core.types import JsonElement
-from core.util import identity, split_esc, utc_str, utc
+from core.util import split_esc, utc_str, utc
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Coroutine[Any, Any, T]]
-# A flow function receives a t
-# When a t is returned, it will be passed to the next function
-# If None is returned, the value is discarded
-FlowFunction = Callable[[T], Result[Optional[T]]]
 # A source provides a stream of objects
 Source = AsyncGenerator[JsonElement, None]
 # Every Command will return a function that takes a stream and returns a stream of objects.
@@ -103,18 +99,7 @@ class CLICommand(CLIPart, ABC):
     """
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        single_function = await self.process_single(arg)
-        return self.flow_from_function(single_function)
-
-    async def process_single(self, arg: Optional[str] = None) -> FlowFunction[JsonElement]:
-        return identity
-
-    @staticmethod
-    def flow_from_function(fn: FlowFunction[JsonElement]) -> Flow:
-        def process(content: Stream) -> AsyncGenerator[JsonElement, None]:
-            return stream.filter(stream.map(content, fn), lambda x: x is not None)  # type: ignore
-
-        return process
+        pass
 
 
 class CLISink(CLIPart):
