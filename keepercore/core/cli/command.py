@@ -88,7 +88,9 @@ class MatchSource(CLISource):  # type: ignore
         query = parse_query(arg)
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
-        return db.query_list(QueryModel(query, model, query_section), with_system_props=True)
+        query_model = QueryModel(query, model, query_section)
+        db.to_query(query_model)  # only here to validate the query itself (can throw)
+        return db.query_list(query_model, with_system_props=True)
 
 
 class EnvSource(CLISource):  # type: ignore
