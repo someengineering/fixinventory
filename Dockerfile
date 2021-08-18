@@ -1,6 +1,7 @@
 FROM debian:stable-slim as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
+ARG ARANGODB_VERSION=3.8.0-1
 RUN apt-get update || true
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
@@ -18,6 +19,9 @@ RUN apt-get -y install \
         libssl-dev \
         cargo \
         linux-headers-5.10.0-8-amd64
+RUN mkdir -p /build \
+    && curl -L -o /build/arangodb.deb https://download.arangodb.com/arangodb38/Community/Linux/arangodb3_${ARANGODB_VERSION}_amd64.deb \
+    && dpkg -i /build/arangodb.deb
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 COPY ./ /usr/src/cloudkeeper
@@ -34,7 +38,6 @@ RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -
 
 FROM debian:stable-slim
 ENV DEBIAN_FRONTEND=noninteractive
-ARG ARANGODB_VERSION=3.8.0-1
 COPY --from=build-env /build /build
 COPY docker/startup /usr/local/bin/startup
 COPY docker/dnsmasq.conf /etc/dnsmasq.d/cloudkeeper.conf
@@ -68,7 +71,6 @@ RUN apt-get update || true \
     && mkdir -p /var/spool/cron/crontabs \
     && pip install --upgrade pip \
     && pip install -f /build /build/*.whl \
-    && curl -L -o /build/arangodb.deb https://download.arangodb.com/arangodb38/Community/Linux/arangodb3_${ARANGODB_VERSION}_amd64.deb \
     && dpkg -i /build/arangodb.deb \
     && chmod +x /usr/local/bin/startup \
     && apt-get clean \
