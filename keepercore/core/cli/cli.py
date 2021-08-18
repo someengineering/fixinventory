@@ -1,9 +1,19 @@
 from __future__ import annotations
+
 import asyncio
+import calendar
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from functools import reduce
 from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, AsyncGenerator, Tuple, Dict
+
+try:
+    # noinspection PyUnresolvedReferences
+    from tzlocal import get_localzone
+except ImportError:
+    pass
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -15,7 +25,7 @@ from core.event_bus import EventBus
 from core.model.model_handler import ModelHandler
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
 from core.types import JsonElement
-from core.util import identity, split_esc
+from core.util import identity, split_esc, utc_str, utc
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
@@ -59,6 +69,10 @@ class CLIPart(ABC):
         # if not defined in subclass, fallback to inline doc
         doc = inspect.getdoc(type(self))
         return doc if doc else f"{self.name}: no help available."
+
+    @abstractmethod
+    def info(self) -> str:
+        pass
 
     async def parse(self, arg: Optional[str], **env: str) -> Union[Source, Flow, Sink[Any]]:
         pass
@@ -134,19 +148,23 @@ class HelpCommand(CLISource):
     def name(self) -> str:
         return "help"
 
+    def info(self) -> str:
+        return "Shows available commands, as well as help for any specific command."
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         if not arg:
-            available = "\n".join(
-                f" -{cmd}" for cmd, part in self.parts.items() if isinstance(part, (CLISource, CLICommand))
-            )
+            parts = (p for p in self.parts.values() if isinstance(p, (CLISource, CLICommand)))
+            available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
+            replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
             result = (
-                f"{self.help()}\n\nAvailable Commands:\n{available}\n\n"
+                f"Valid placeholder string:\n{replacements}\n\n"
+                f"Available Commands:\n{available}\n\n"
                 f"Note that you can pipe commands using the pipe character (|)\n"
                 f"and chain multiple commands using the semicolon (;)."
             )
         elif arg and arg in self.parts:
             cmd = self.parts[arg]
-            result = cmd.help()
+            result = f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
         else:
             result = f"No command found with this name: {arg}"
 
@@ -232,7 +250,44 @@ class CLI:
             else:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
-        return [await parse_line(cmd_line) for cmd_line in split_esc(cli_input, ";")]
+        replaced = self.replace_placeholder(cli_input)
+        return [await parse_line(cmd_line) for cmd_line in split_esc(replaced, ";")]
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[T]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]
+
+    @staticmethod
+    def replacements() -> dict[str, str]:
+        ut = utc()
+        t = date.today()
+        try:
+            n = get_localzone().localize(datetime.now())
+        except Exception:
+            n = ut
+        return {
+            "UTC": utc_str(ut),
+            "NOW": utc_str(n),
+            "TODAY": t.strftime("%Y-%m-%d"),
+            "TOMORROW": (t + timedelta(days=1)).isoformat(),
+            "YESTERDAY": (t + timedelta(days=-1)).isoformat(),
+            "YEAR": t.strftime("%Y"),
+            "MONTH": t.strftime("%m"),
+            "DAY": t.strftime("%d"),
+            "TIME": n.strftime("%H:%M:%S"),
+            "HOUR": n.strftime("%H"),
+            "MINUTE": n.strftime("%M"),
+            "SECOND": n.strftime("%S"),
+            "TZ_OFFSET": n.strftime("%z"),
+            "TZ": n.strftime("%Z"),
+            "MONDAY": (t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat(),
+            "TUESDAY": (t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat(),
+            "WEDNESDAY": (t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat(),
+            "THURSDAY": (t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat(),
+            "FRIDAY": (t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat(),
+            "SATURDAY": (t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat(),
+            "SUNDAY": (t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat(),
+        }
+
+    @staticmethod
+    def replace_placeholder(cli_input: str) -> str:
+        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements().items(), cli_input)

@@ -109,3 +109,18 @@ async def test_flat_sink(cli: CLI) -> None:
     parsed = await cli.evaluate_cli_command("echo [1,2,3]; echo [4,5,6]; echo [7,8,9]")
     result = await stream.list(stream.concat(stream.iterate(p.generator for p in parsed)))
     assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+
+@pytest.mark.asyncio
+async def test_format(cli: CLI, sink: Sink[List[str]]) -> None:
+    # access properties by name and path
+    result = await cli.execute_cli_command('echo {"a":"b", "b": {"c":"d"}} | format a:{a} b:{b.c} na:{fuerty}', sink)
+    assert result[0] == ["a:b b:d na:null"]
+    # access deeply nested properties with dict and array
+    result = await cli.execute_cli_command(
+        'echo {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', sink
+    )
+    assert result[0] == ["will be an >f<"]
+    # make sure any path that is not available leads to the null value
+    result = await cli.execute_cli_command("echo {} | format {a}:{b.c.d}:{foo.bla[23].test}", sink)
+    assert result[0] == ["null:null:null"]

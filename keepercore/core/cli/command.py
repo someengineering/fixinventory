@@ -7,11 +7,22 @@ from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 
-from core.cli.cli import CLISource, CLISink, Sink, Source, CLICommand, Flow, CLIDependencies, CLIPart, key_values_parser
+from core.cli.cli import (
+    CLISource,
+    CLISink,
+    Sink,
+    Source,
+    CLICommand,
+    Flow,
+    CLIDependencies,
+    CLIPart,
+    key_values_parser,
+)
 from core.db.model import QueryModel
 from core.error import CLIParseError
 from core.query.query_parser import parse_query
 from core.types import Json, JsonElement
+from core.util import AccessJson
 
 
 class EchoSource(CLISource):  # type: ignore
@@ -29,6 +40,9 @@ class EchoSource(CLISource):  # type: ignore
     @property
     def name(self) -> str:
         return "echo"
+
+    def info(self) -> str:
+        return "Parse json and pass parsed objects to the output stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         js = json.loads(arg if arg else "")
@@ -62,6 +76,9 @@ class MatchSource(CLISource):  # type: ignore
     def name(self) -> str:
         return "match"
 
+    def info(self) -> str:
+        return "Query the database and pass the results to the output stream."
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         # db name and section is coming from the env
         graph_name = env["graph"]
@@ -89,6 +106,9 @@ class EnvSource(CLISource):  # type: ignore
     def name(self) -> str:
         return "env"
 
+    def info(self) -> str:
+        return "Retrieve the environment and pass it to the output stream."
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         return stream.just(env)
 
@@ -112,6 +132,9 @@ class CountCommand(CLICommand):  # type: ignore
     @property
     def name(self) -> str:
         return "count"
+
+    def info(self) -> str:
+        return "Count incoming elements or sum defined property."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         def inc_prop(o: Any) -> Tuple[int, int]:
@@ -164,6 +187,9 @@ class ChunkCommand(CLICommand):  # type: ignore
     def name(self) -> str:
         return "chunk"
 
+    def info(self) -> str:
+        return "Chunk incoming elements in batches."
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         size = int(arg) if arg else 100
         return lambda in_stream: stream.chunks(in_stream, size)
@@ -189,6 +215,9 @@ class FlattenCommand(CLICommand):  # type: ignore
     def name(self) -> str:
         return "flatten"
 
+    def info(self) -> str:
+        return "Take incoming batches of elements and flattens them to a stream of single elements."
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
@@ -212,6 +241,9 @@ class UniqCommand(CLICommand):  # type: ignore
     @property
     def name(self) -> str:
         return "uniq"
+
+    def info(self) -> str:
+        return "Remove all duplicated objects from the stream"
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         visited = set()
@@ -305,6 +337,9 @@ class DesireCommand(SetDesiredState):
     def name(self) -> str:
         return "desire"
 
+    def info(self) -> str:
+        return "Allows to set arbitrary properties as desired for all incoming database objects."
+
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
@@ -349,14 +384,55 @@ class MarkDeleteCommand(SetDesiredState):
     def name(self) -> str:
         return "mark_delete"
 
+    def info(self) -> str:
+        return "Mark all incoming database objects for deletion."
+
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         return {"delete": True}
+
+
+class FormatCommand(CLICommand):  # type: ignore
+    """
+    Usage: format <format string>
+
+    This command creates a string from the json input based on the format string.
+    The format string might contain placeholders in curly braces that access properties of the json object.
+    If a property is not available, it will result in the string `null`.
+
+    Parameter:
+        format_string [mandatory]: a string with any content with placeholders to be filled by the object.
+
+    Example:
+        echo {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
+        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        echo {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
+    """
+
+    @property
+    def name(self) -> str:
+        return "format"
+
+    def info(self) -> str:
+        return "Transform incoming objects as string with a defined format."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        def fmt(elem: Any) -> str:
+            # wrap the object to account for non existent values.
+            # if a format value is not existent, render is as null (json conform).
+            wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
+            return arg.format_map(wrapped)  # type: ignore
+
+        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
 
 
 class ListSink(CLISink):  # type: ignore
     @property
     def name(self) -> str:
         return "out"
+
+    def info(self) -> str:
+        return "Creates a list of results."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[JsonElement]]:
         return lambda in_stream: stream.list(in_stream)
@@ -371,7 +447,15 @@ def all_sinks(d: CLIDependencies) -> List[CLISink]:
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
-    return [ChunkCommand(d), FlattenCommand(d), CountCommand(d), DesireCommand(d), MarkDeleteCommand(d), UniqCommand(d)]
+    return [
+        ChunkCommand(d),
+        FlattenCommand(d),
+        CountCommand(d),
+        DesireCommand(d),
+        FormatCommand(d),
+        MarkDeleteCommand(d),
+        UniqCommand(d),
+    ]
 
 
 def all_parts(d: CLIDependencies) -> List[CLIPart]:
