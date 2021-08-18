@@ -1,3 +1,4 @@
+from __future__ import annotations
 import networkx
 import threading
 import pickle
@@ -8,6 +9,10 @@ from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
 from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
+from cloudkeeper.graph.export import (
+    get_node_attributes,
+    dataclasses_to_keepercore_model,
+)
 from cloudkeeper.event import (
     Event,
     EventType,
@@ -15,10 +20,11 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict
+from typing import Dict, List
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
+from time import time
 
 log = cloudkeeper.logging.getLogger(__name__)
 
@@ -271,6 +277,30 @@ class Graph(networkx.DiGraph):
         log.debug("Resolving deferred graph connections")
         for node in self.nodes:
             node.resolve_deferred_connections(self)
+
+    def export_model(self) -> List:
+        """Return the graph node dataclass model in keepercore format"""
+        classes = set()
+        with self.lock.read_access:
+            for node in self.nodes:
+                classes.add(type(node))
+        model = dataclasses_to_keepercore_model(classes)
+
+        # fixme: workaround to report kind
+        for resource_model in model:
+            if resource_model.get("fqn") == "base_resource":
+                resource_model.get("properties", []).append(
+                    {
+                        "name": "kind",
+                        "kind": "string",
+                        "required": True,
+                        "description": "",
+                    }
+                )
+        return model
+
+    def export_iterator(self) -> GraphExportIterator:
+        return GraphExportIterator(self)
 
     # We can't pickle a Lock() so we're removing it before pickling
     # and recreating a fresh instance when unpickling
@@ -625,3 +655,53 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     update_graph_ref(graph)
     set_max_depth(graph, root)
     validate_graph_dataclasses_and_nodes(graph)
+
+
+class GraphExportIterator:
+    def __init__(self, graph: Graph):
+        self.graph = graph
+        self.nodes_sent = 0
+        self.edges_sent = 0
+        report_every_percent = 10
+        self.nodes_total = self.graph.number_of_nodes()
+        self.edges_total = self.graph.number_of_edges()
+        self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
+        self.report_every_n_edges = round(self.edges_total / report_every_percent)
+        self.last_sent = time()
+
+    def __iter__(self):
+        with self.graph.lock.read_access:
+            for node in self.graph.nodes:
+                node_attributes = get_node_attributes(node)
+                node_json = {"id": node.sha256, "data": node_attributes}
+                attributes_json = json.dumps(node_json) + "\n"
+                self.nodes_sent += 1
+                if self.nodes_sent % self.report_every_n_nodes == 0:
+                    percent = round(self.nodes_sent / self.nodes_total * 100)
+                    elapsed = time() - self.last_sent
+                    log.debug(
+                        f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
+                    )
+                    self.last_sent = time()
+
+                yield (attributes_json.encode())
+            for edge in self.graph.edges:
+                from_node = edge[0]
+                to_node = edge[1]
+                if not isinstance(from_node, BaseResource) or not isinstance(
+                    to_node, BaseResource
+                ):
+                    log.error(f"One of {from_node} and {to_node} is no base resource")
+                    continue
+                link = {"from": from_node.sha256, "to": to_node.sha256}
+                link_json = json.dumps(link) + "\n"
+                self.edges_sent += 1
+                if self.edges_sent % self.report_every_n_edges == 0:
+                    percent = round(self.edges_sent / self.edges_total * 100)
+                    elapsed = time() - self.last_sent
+                    log.debug(
+                        f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
+                    )
+                    self.last_sent = time()
+
+                yield (link_json.encode())

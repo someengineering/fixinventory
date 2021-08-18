@@ -1,8 +1,6 @@
-from typing import List, Dict, Any
 from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging
 import threading
-from .datamodel_export import dataclasses_to_keepercore_model
 from cloudkeeper.baseplugin import BasePlugin
 from cloudkeeper.graph import Graph
 from cloudkeeper.args import ArgumentParser
@@ -12,11 +10,8 @@ from cloudkeeper.event import (
     add_event_listener,
     remove_event_listener,
 )
-from datetime import date, datetime, timezone, timedelta
-from time import time
 import requests
 import json
-from dataclasses import is_dataclass, fields
 
 log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
@@ -51,7 +46,6 @@ class KeepercorePlugin(BasePlugin):
 
         graph: Graph = event.data
         log.info("Keepercore Event Handler called")
-        model = get_model_from_graph(graph)
         base_uri = ArgumentParser.args.keepercore_uri.strip("/")
         keepercore_graph = ArgumentParser.args.keepercore_graph
         model_uri = f"{base_uri}/model"
@@ -62,21 +56,21 @@ class KeepercorePlugin(BasePlugin):
         if r.status_code != 200:
             log.error(r.content)
         log.debug(f"Updating model via {model_uri}")
-        model_json = json.dumps(model, indent=4)
+        model_json = json.dumps(graph.export_model(), indent=4)
         r = requests.patch(model_uri, data=model_json)
         if r.status_code != 200:
             log.error(r.content)
 
-        graph_iterator = GraphIterator(graph)
+        graph_export_iterator = graph.export_iterator()
         log.debug(f"Sending subgraph via {report_uri}")
         r = requests.put(
             report_uri,
-            data=graph_iterator,
+            data=graph.export_iterator(),
             headers={"Content-Type": "application/x-ndjson"},
         )
         log.debug(r.content.decode())
         log.debug(
-            f"Sent {graph_iterator.nodes_sent} nodes and {graph_iterator.edges_sent} edges to keepercore"
+            f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
         )
 
     @staticmethod
@@ -99,91 +93,3 @@ class KeepercorePlugin(BasePlugin):
             f"Received event {event.event_type} - shutting down keepercore plugin"
         )
         self.exit.set()
-
-
-def get_model_from_graph(graph: Graph) -> List:
-    classes = []
-    with graph.lock.read_access:
-        for node in graph.nodes:
-            cls = type(node)
-            if cls not in classes:
-                classes.append(cls)
-    model = dataclasses_to_keepercore_model(classes)
-    for resource_model in model:
-        if resource_model.get("fqn") == "base_resource":
-            resource_model.get("properties", []).append(
-                {"name": "kind", "kind": "string", "required": True, "description": ""}
-            )
-    return model
-
-
-def format_value_for_export(value: Any) -> Any:
-    if isinstance(value, (date, datetime, timedelta, timezone)):
-        return str(value)
-    return value
-
-
-def get_node_attributes(node: BaseResource) -> Dict:
-    attributes: Dict = {"kind": node.kind}
-    if not is_dataclass(node):
-        raise ValueError(f"Node {node.rtdname} is no dataclass")
-    for field in fields(node):
-        if field.name.startswith("_"):
-            continue
-        value = getattr(node, field.name, None)
-        if value is None:
-            continue
-        value = format_value_for_export(value)
-        attributes.update({field.name: value})
-    return attributes
-
-
-class GraphIterator:
-    def __init__(self, graph: Graph):
-        self.graph = graph
-        self.nodes_sent = 0
-        self.edges_sent = 0
-        report_every_percent = 10
-        self.nodes_total = self.graph.number_of_nodes()
-        self.edges_total = self.graph.number_of_edges()
-        self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
-        self.report_every_n_edges = round(self.edges_total / report_every_percent)
-        self.last_sent = time()
-
-    def __iter__(self):
-        with self.graph.lock.read_access:
-            for node in self.graph.nodes:
-                node_attributes = get_node_attributes(node)
-                node_id = node.sha256
-                node_json = {"id": node_id, "data": node_attributes}
-                attributes_json = json.dumps(node_json) + "\n"
-                self.nodes_sent += 1
-                if self.nodes_sent % self.report_every_n_nodes == 0:
-                    percent = round(self.nodes_sent / self.nodes_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-
-                yield (attributes_json.encode())
-            for edge in self.graph.edges:
-                from_node = edge[0]
-                to_node = edge[1]
-                if not isinstance(from_node, BaseResource) or not isinstance(
-                    to_node, BaseResource
-                ):
-                    log.error(f"One of {from_node} and {to_node} is no base resource")
-                    continue
-                link = {"from": from_node.sha256, "to": to_node.sha256}
-                link_json = json.dumps(link) + "\n"
-                self.edges_sent += 1
-                if self.edges_sent % self.report_every_n_edges == 0:
-                    percent = round(self.edges_sent / self.edges_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-
-                yield (link_json.encode())
