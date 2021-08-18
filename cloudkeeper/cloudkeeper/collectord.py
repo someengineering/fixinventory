@@ -68,7 +68,7 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    graph_container = GraphContainer()
+    graph_container = GraphContainer(cache_graph=False)
     all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
     collect(graph_container.graph, all_collector_plugins)
 

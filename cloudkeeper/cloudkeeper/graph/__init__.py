@@ -674,6 +674,9 @@ class GraphExportIterator:
             for node in self.graph.nodes:
                 node_attributes = get_node_attributes(node)
                 node_json = {"id": node.sha256, "data": node_attributes}
+                if getattr(node, "_merge", None):
+                    log.debug(f"Merging graph above {node.rtdname}")
+                    node_json.update({"merge": True})
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
                 if self.nodes_sent % self.report_every_n_nodes == 0:
