@@ -118,9 +118,12 @@ class CLISink(CLIPart):
 
 class HelpCommand(CLISource):
     """
-    Usage: help <command>
+    Usage: help [command]
 
-    Show help text for a command.
+    Parameter:
+        command [optional]: if given shows the help for a specific command
+
+    Show help text for a command or general help information.
     """
 
     def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart]):
@@ -133,7 +136,9 @@ class HelpCommand(CLISource):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         if not arg:
-            available = "\n".join(f" -{cmd}" for cmd in self.parts.keys())
+            available = "\n".join(
+                f" -{cmd}" for cmd, part in self.parts.items() if isinstance(part, (CLISource, CLICommand))
+            )
             result = (
                 f"{self.help()}\n\nAvailable Commands:\n{available}\n\n"
                 f"Note that you can pipe commands using the pipe character (|)\n"
@@ -182,9 +187,10 @@ class CLI:
     A string can parsed into a command line that can be executed based on the list of available commands.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart]):
+    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any]):
         help_cmd = HelpCommand(dependencies, parts)
         self.parts = {p.name: p for p in parts + [help_cmd]}
+        self.cli_env = env
 
     async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:
         def parse_single_command(index: int, command: str) -> Tuple[CLIPart, str]:
@@ -211,7 +217,7 @@ class CLI:
 
         async def parse_line(line: str) -> ParsedCommandLine:
             parsed_env, rest = key_values_parser.parse_partial(line)
-            resulting_env = env | parsed_env
+            resulting_env = self.cli_env | env | parsed_env
             parts_with_args = [parse_single_command(idx, cmd) for idx, cmd in enumerate(split_esc(rest, "|"))]
             parts = [part for part, _ in parts_with_args]
             if parts_with_args:

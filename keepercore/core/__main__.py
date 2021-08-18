@@ -1,4 +1,5 @@
 import logging
+import os
 from argparse import ArgumentParser, Namespace
 
 from aiohttp import web
@@ -32,7 +33,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--plantuml-server",
         default="https://www.plantuml.com/plantuml",
-        help="The plantuml server to use to render plantuml images",
+        help="The plantuml server to render plantuml images",
     )
     return parser.parse_args()
 
@@ -52,7 +53,7 @@ def main() -> None:
     db = DbAccess(database, event_bus)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies(event_bus, db, model)
-    cli = CLI(cli_deps, all_parts(cli_deps))
+    cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ))
 
     subscriptions = SubscriptionHandler()
     workflow_handler = WorkflowHandler(event_bus, subscriptions, scheduler)

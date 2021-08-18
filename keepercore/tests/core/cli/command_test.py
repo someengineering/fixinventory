@@ -39,8 +39,7 @@ async def test_echo_source(cli: CLI, sink: Sink[List[str]]) -> None:
 
 @pytest.mark.asyncio
 async def test_match_source(cli: CLI, sink: Sink[List[str]]) -> None:
-    env = {"graphdb": "ns"}
-    result = await cli.execute_cli_command('match isinstance("foo") and some_int==0 --> identifier=~"9_"', sink, **env)
+    result = await cli.execute_cli_command('match isinstance("foo") and some_int==0 --> identifier=~"9_"', sink)
     assert len(result[0]) == 10
 
 
@@ -84,8 +83,7 @@ async def test_uniq_command(cli: CLI, sink: Sink[List[str]], echo_source: str) -
 
 @pytest.mark.asyncio
 async def test_desire_command(cli: CLI, sink: Sink[List[str]]) -> None:
-    env = {"graphdb": "ns"}
-    result = await cli.execute_cli_command('match isinstance("foo") | desire a="test" b=1 c=true', sink, **env)
+    result = await cli.execute_cli_command('match isinstance("foo") | desire a="test" b=1 c=true', sink)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert elem["desired"] == {"a": "test", "b": 1, "c": True}
@@ -93,8 +91,7 @@ async def test_desire_command(cli: CLI, sink: Sink[List[str]]) -> None:
 
 @pytest.mark.asyncio
 async def test_mark_delete_command(cli: CLI, sink: Sink[List[str]]) -> None:
-    env = {"graphdb": "ns"}
-    result = await cli.execute_cli_command('match isinstance("foo") | mark_delete', sink, **env)
+    result = await cli.execute_cli_command('match isinstance("foo") | mark_delete', sink)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert elem["desired"] == {"delete": True}

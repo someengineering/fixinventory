@@ -55,7 +55,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         yield {}  # only here for mypy type check (detects coroutine otherwise)
 
@@ -169,10 +169,10 @@ class ArangoGraphDB(GraphDB):
             return trafo(result["new"])
 
     async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         bind_var = {"desired": patch, "node_ids": node_ids}
-        trafo = self.document_to_instance_fn(result_section)
+        trafo = self.document_to_instance_fn(result_section, **kwargs)
         with await self.db.aql(query=self.query_update_desired_many(), bind_vars=bind_var) as cursor:
             for element in cursor:
                 yield trafo(element)
@@ -801,7 +801,7 @@ class ArangoGraphDB(GraphDB):
         FOR a IN {self.vertex_name}
         FILTER a._key in @node_ids
         UPDATE a with {{ "desired": @desired }} IN {self.vertex_name}
-        RETURN {{"reported": NEW.reported, "desired": NEW.desired }}
+        RETURN {{"_key": NEW._key, "reported": NEW.reported, "desired": NEW.desired }}
         """
 
     def query_count_direct_children(self) -> str:
@@ -882,9 +882,9 @@ class EventGraphDB(GraphDB):
         return result
 
     async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]]
+        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
-        result = self.real.update_nodes_desired(patch, node_ids, result_section)
+        result = self.real.update_nodes_desired(patch, node_ids, result_section, **kwargs)
         await self.event_bus.emit_event(
             CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
         )

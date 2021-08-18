@@ -38,7 +38,8 @@ def cli_deps(filled_graph_db: ArangoGraphDB, event_bus: EventBus, foo_model: Mod
 
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
-    return CLI(cli_deps, all_parts(cli_deps))
+    env = {"graph": "ns"}
+    return CLI(cli_deps, all_parts(cli_deps), env)
 
 
 @fixture
@@ -75,11 +76,10 @@ async def test_multi_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_database(cli: CLI) -> None:
-    env = {"graphdb": "ns"}
     query = 'match isinstance("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
     count = "count f"
     commands = "|".join([query, count])
-    result = await cli.evaluate_cli_command(commands, **env)
+    result = await cli.evaluate_cli_command(commands)
     assert len(result) == 1
     line1 = result[0]
     assert len(line1.parts) == 2
@@ -88,10 +88,11 @@ async def test_query_database(cli: CLI) -> None:
     assert isinstance(p2, CountCommand)
 
     with pytest.raises(CLIParseError):
-        await cli.evaluate_cli_command("match this is not a query", **env)  # command is un-parsable
+        await cli.evaluate_cli_command("match this is not a query")  # command is un-parsable
 
     with pytest.raises(CLIParseError):
-        await cli.evaluate_cli_command("match id==3")  # no graphdb specified
+        cli.cli_env = {}  # delete the env
+        await cli.evaluate_cli_command("match id==3")  # no graph specified
 
 
 @pytest.mark.asyncio
@@ -116,15 +117,13 @@ async def test_order_of_commands(cli: CLI) -> None:
 async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command("help", sink)
     assert len(result[0]) == 1
-    print(result)
 
     result = await cli.execute_cli_command("help count", sink)
     assert len(result[0]) == 1
-    print(result)
 
 
 @pytest.mark.asyncio
 async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
-    assert result[0] == [{"test": "foo", "bla": "bar", "d": True}]
-    print(result)
+    # the env is allowed to have more items. Check only for this subset.
+    assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()

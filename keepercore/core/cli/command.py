@@ -1,9 +1,10 @@
 import json
 from abc import abstractmethod, ABC
 from functools import partial
-from typing import List, Optional, Any, Tuple, AsyncGenerator, Union, Hashable
+from typing import List, Optional, Any, Tuple, AsyncGenerator, Union, Hashable, Iterable
 
 from aiostream import stream
+from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 
 from core.cli.cli import CLISource, CLISink, Sink, Source, CLICommand, Flow, CLIDependencies, CLIPart, key_values_parser
@@ -14,6 +15,17 @@ from core.types import Json, JsonElement
 
 
 class EchoSource(CLISource):  # type: ignore
+    """
+    Usage: echo <json>
+
+    The defined json will be parsed and written to the out stream.
+    If the defined element is a json array, each element will be send downstream.
+
+    Example:
+        echo "test"              # will result in ["test"]
+        echo [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
+    """
+
     @property
     def name(self) -> str:
         return "echo"
@@ -32,23 +44,47 @@ class EchoSource(CLISource):  # type: ignore
 
 
 class MatchSource(CLISource):  # type: ignore
+    """
+    Usage: match <query>
+
+    A query is performed against the graph database and all resulting elements will be emitted.
+    To learn more about the query, visit todo: link is missing.
+
+    Example:
+        match isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+        section [optional, defaults to "reported"]: on which section the query is performed
+    """
+
     @property
     def name(self) -> str:
         return "match"
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         # db name and section is coming from the env
-        db_name = env["graphdb"]
+        graph_name = env["graph"]
         query_section = env.get("section", "reported")
         if not arg:
             raise CLIParseError("match command needs a query to execute, but nothing was given!")
         query = parse_query(arg)
         model = await self.dependencies.model_handler.load_model()
-        db = self.dependencies.db_access.get_graph_db(db_name)
+        db = self.dependencies.db_access.get_graph_db(graph_name)
         return db.query_list(QueryModel(query, model, query_section), with_system_props=True)
 
 
 class EnvSource(CLISource):  # type: ignore
+    """
+    Usage: env
+
+    Emits the provided environment.
+    This is useful to inspect the environment given to the CLI interpreter.
+
+    Example:
+        env  # will result in a json object representing the env. E.g.: [{ "env_var1": "test", "env_var2": "foo" }]
+    """
+
     @property
     def name(self) -> str:
         return "env"
@@ -58,6 +94,21 @@ class EnvSource(CLISource):  # type: ignore
 
 
 class CountCommand(CLICommand):  # type: ignore
+    """
+    Usage: count [arg]
+
+    In case no arg is given: it counts the number of instances provided to count.
+    In case of arg: it pulls the property with the name of arg, translates it to a number and sums it.
+
+    Parameter:
+        arg [optional]: Instead of counting the instances, sum the property of all objects with this name.
+
+    Example:
+        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
+        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
+        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
+    """
+
     @property
     def name(self) -> str:
         return "count"
@@ -92,6 +143,23 @@ class CountCommand(CLICommand):  # type: ignore
 
 
 class ChunkCommand(CLICommand):  # type: ignore
+    """
+    Usage: chunk [num]
+
+    Take <num> number of elements from the input stream, put them in a list and send a stream of list downstream.
+    The last chunk might have a lower size than the defined chunk size.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to put into a chunk.
+
+    Example:
+         echo [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
+         echo [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
+
+    See:
+        flatten for the reverse operation.
+    """
+
     @property
     def name(self) -> str:
         return "chunk"
@@ -102,15 +170,45 @@ class ChunkCommand(CLICommand):  # type: ignore
 
 
 class FlattenCommand(CLICommand):  # type: ignore
+    """
+    Usage: flatten
+
+    Take array elements from the input stream and put them to the output stream one after the other,
+    while preserving the original order.
+
+    Example:
+         echo [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
+         echo [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
+         echo [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
+
+    See:
+        chunk which is able to put incoming elements into chunks
+    """
+
     @property
     def name(self) -> str:
         return "flatten"
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        return lambda in_stream: stream.flatmap(in_stream, stream.iterate)
+        def iterate(it: Any) -> Stream:
+            return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
+
+        return lambda in_stream: stream.flatmap(in_stream, iterate)
 
 
 class UniqCommand(CLICommand):  # type: ignore
+    """
+    Usage: uniq
+
+    All elements flowing through the uniq command are analyzed and all duplicates get removed.
+    Note: a hash value is computed from json objects, which is ignorant of the order of properties,
+    so that {"a": 1, "b": 2} is declared equal to {"b": 2, "a": 1}
+
+    Example:
+        echo [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
+        echo [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
+    """
+
     @property
     def name(self) -> str:
         return "uniq"
@@ -145,19 +243,64 @@ class SetDesiredState(CLICommand, ABC):  # type: ignore
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         buffer_size = 1000
         result_section = env["result_section"].split(",") if "result_section" in env else ["reported", "desired"]
-        func = partial(self.set_desired, env["graphdb"], self.patch(arg, **env), result_section)
+        func = partial(self.set_desired, env["graph"], self.patch(arg, **env), result_section)
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
     async def set_desired(
         self, graph_name: str, patch: Json, result_section: Union[str, List[str]], items: List[Json]
     ) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
-        node_ids = [a["_id"] for a in items if "_id" in a]
-        async for update in db.update_nodes_desired(patch, node_ids, result_section):
+        node_ids = []
+        for item in items:
+            if "_id" in item:
+                node_ids.append(item["_id"])
+            elif isinstance(item, str):
+                node_ids.append(item)
+        async for update in db.update_nodes_desired(patch, node_ids, result_section, with_system_props=True):
             yield update
 
 
 class DesireCommand(SetDesiredState):
+    """
+    Usage: desire [property]=[value]
+
+    Set one or more desired properties for every database node that is received on the input channel.
+    The desired state of each node in the database is merged with this new desired state, so that
+    existing desired state not defined in this command is not touched.
+
+    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
+    All objects coming from a query will have a property `_id`.
+
+    The result of this command will emit the complete object with desired and reported state:
+    { "_id": "..", "desired": { .. }, "reported": { .. } }
+
+    Parameter:
+       One or more parameters of form [property]=[value] separated by a space.
+       [property] is the name of the property to set.
+       [value] is a json primitive type: string, int, number, boolean or null.
+       Quotation marks for strings are optional.
+
+
+    Example:
+        match isinstance("ec2") | desire a=b b="c" num=2   # will result in
+            [
+                { "_id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
+                .
+                .
+                { "_id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
+            ]
+        echo [{"_id": "id1"}, {"_id": "id2"}] | desire a=b
+            [
+                { "_id": "id1", "desired": { "a": b }, "reported": { .. } },
+                { "_id": "id2", "desired": { "a": b }, "reported": { .. } },
+            ]
+        echo ["id1", "id2"] | desire a=b
+            [
+                { "_id": "id1", "desired": { "a": b }, "reported": { .. } },
+                { "_id": "id2", "desired": { "a": b }, "reported": { .. } },
+            ]
+    """
+
     @property
     def name(self) -> str:
         return "desire"
@@ -170,6 +313,38 @@ class DesireCommand(SetDesiredState):
 
 
 class MarkDeleteCommand(SetDesiredState):
+    """
+    Usage: mark_delete
+
+    Mark incoming objects for deletion.
+    All objects marked as such will be finally deleted in the next delete run.
+
+    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
+    All objects coming from a query will have a property `_id`.
+
+    The result of this command will emit the complete object with desired and reported state:
+    { "_id": "..", "desired": { .. }, "reported": { .. } }
+
+    Example:
+        match isinstance("ec2") and atime<"-2d" | mark_delete
+            [
+                { "_id": "abc" "desired": { "delete": true }, "reported": { .. } },
+                .
+                .
+                { "_id": "xyz" "desired": { "delete": true }, "reported": { .. } },
+            ]
+        echo [{"_id": "id1"}, {"_id": "id2"}] | mark_delete
+            [
+                { "_id": "id1", "desired": { "delete": true }, "reported": { .. } },
+                { "_id": "id2", "desired": { "delete": true }, "reported": { .. } },
+            ]
+        echo ["id1", "id2"] | mark_delete
+            [
+                { "_id": "id1", "desired": { "delete": true }, "reported": { .. } },
+                { "_id": "id2", "desired": { "delete": true }, "reported": { .. } },
+            ]
+    """
+
     @property
     def name(self) -> str:
         return "mark_delete"
