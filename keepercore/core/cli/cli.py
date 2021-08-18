@@ -232,7 +232,8 @@ class CLI:
                 for command, arg in parts_with_args[1:]:
                     flow_fn: Flow = await parse_arg(command, arg, **resulting_env)
                     flow = make_stream(flow_fn(flow))
-                return ParsedCommandLine(resulting_env, parts, flow)  # type: ignore
+                # noinspection PyTypeChecker
+                return ParsedCommandLine(resulting_env, parts, flow)
             else:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
