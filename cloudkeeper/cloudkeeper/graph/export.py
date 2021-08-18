@@ -1,7 +1,8 @@
 from dataclasses import is_dataclass, fields, Field
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from functools import reduce
 from typing import List, MutableSet, get_args, get_origin, Union, Tuple, Dict, Set, Any
+from cloudkeeper.baseresources import BaseResource
 
 Json = Dict[str, Any]
 
@@ -44,7 +45,7 @@ def dict_types(clazz: type) -> Tuple[type, type]:
 
 
 # walk class hierarchy, as well as all properties to find transitive data classes
-def transitive_dataclasses(classes: List[type]) -> Set[type]:
+def transitive_dataclasses(classes: Set[type]) -> Set[type]:
     all_classes: MutableSet[type] = set()
 
     def check(to_check: type) -> None:
@@ -110,7 +111,7 @@ def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
-def dataclasses_to_keepercore_model(classes: List[type]) -> List[Json]:
+def dataclasses_to_keepercore_model(classes: Set[type]) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model definition as understood by keepercore.
     A plain python dataclass defines the model structure and should be used to create json in the same format.
@@ -148,3 +149,24 @@ def dataclasses_to_keepercore_model(classes: List[type]) -> List[Json]:
             {"fqn": model_name(clazz), "bases": base_names, "properties": props}
         )
     return model
+
+
+def format_value_for_export(value: Any) -> Any:
+    if isinstance(value, (date, datetime, timedelta, timezone)):
+        return str(value)
+    return value
+
+
+def get_node_attributes(node: BaseResource) -> Dict:
+    attributes: Dict = {"kind": node.kind}
+    if not is_dataclass(node):
+        raise ValueError(f"Node {node.rtdname} is no dataclass")
+    for field in fields(node):
+        if field.name.startswith("_"):
+            continue
+        value = getattr(node, field.name, None)
+        if value is None:
+            continue
+        value = format_value_for_export(value)
+        attributes.update({field.name: value})
+    return attributes
