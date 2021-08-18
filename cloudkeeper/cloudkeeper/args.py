@@ -63,8 +63,10 @@ class ArgumentParser(argparse.ArgumentParser):
         return ret
 
 
-def get_arg_parser() -> ArgumentParser:
-    arg_parser = ArgumentParser(description="Cloudkeeper - Housekeeping for Clouds")
+def get_arg_parser(add_help: bool = True) -> ArgumentParser:
+    arg_parser = ArgumentParser(
+        description="Cloudkeeper - Housekeeping for Clouds", add_help=add_help
+    )
     arg_parser.add_argument(
         "--verbose",
         "-v",

@@ -1,18 +1,22 @@
 import time
 import os
 import threading
+import multiprocessing
+from concurrent import futures
+from networkx.algorithms.dag import is_directed_acyclic_graph
+import requests
+import json
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
-from cloudkeeper.graph import GraphContainer
+from typing import List, Optional
+from cloudkeeper.graph import GraphContainer, Graph, sanitize
 from cloudkeeper.pluginloader import PluginLoader
-from cloudkeeper.baseplugin import PluginType
+from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
-from cloudkeeper.processor import Processor
-from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.utils import log_stats, increase_limits
+from cloudkeeper.args import ArgumentParser
 from cloudkeeper.event import (
     add_event_listener,
-    dispatch_event,
     Event,
     EventType,
     add_args as event_add_args,
@@ -37,17 +41,20 @@ def main() -> None:
     cloudkeeper.signal.parent_pid = os.getpid()
 
     # Add cli args
-    arg_parser = get_arg_parser()
+    collector_arg_parser = get_arg_parser(add_help=False)
+    PluginLoader.add_args(collector_arg_parser)
+    (args, _) = collector_arg_parser.parse_known_args()
+    ArgumentParser.args = args
 
+    arg_parser = get_arg_parser()
     logging.add_args(arg_parser)
-    Processor.add_args(arg_parser)
-    Cleaner.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     GraphContainer.add_args(arg_parser)
     event_add_args(arg_parser)
+    add_args(arg_parser)
 
     # Find cloudkeeper Plugins in the cloudkeeper.plugins module
-    plugin_loader = PluginLoader()
+    plugin_loader = PluginLoader(PluginType.COLLECTOR)
     plugin_loader.add_plugin_args(arg_parser)
 
     # At this point the CLI, all Plugins as well as the WebServer have
@@ -61,18 +68,9 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    # We're using a GraphContainer() to contain the graph which gets replaced
-    # at runtime. This way we're not losing the context in other places like
-    # the webserver when the graph gets reassigned.
     graph_container = GraphContainer()
     all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
-
-    processor = Processor(graph_container, all_collector_plugins)
-    processor.daemon = True
-    processor.start()
-
-    # Dispatch the STARTUP event
-    dispatch_event(Event(EventType.STARTUP))
+    collect(graph_container.graph, all_collector_plugins)
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
@@ -83,6 +81,146 @@ def main() -> None:
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     quit()
+
+
+def collect_plugin_graph(
+    collector_plugin: BaseCollectorPlugin, args=None
+) -> Optional[Graph]:
+    collector: BaseCollectorPlugin = collector_plugin()
+    collector_name = f"collector_{collector.cloud}"
+    cloudkeeper.signal.set_thread_name(collector_name)
+
+    if args is not None:
+        ArgumentParser.args = args
+
+    log.debug(f"Starting new collect process for {collector.cloud}")
+    collector.start()
+    collector.join(ArgumentParser.args.timeout)
+    if not collector.is_alive():  # The plugin has finished its work
+        if not collector.finished:
+            log.error(
+                (
+                    f"Plugin {collector.cloud} did not finish collection"
+                    " - ignoring plugin results"
+                )
+            )
+            return
+        if not is_directed_acyclic_graph(collector.graph):
+            log.error(
+                (
+                    f"Graph of plugin {collector.cloud} is not acyclic"
+                    " - ignoring plugin results"
+                )
+            )
+            return
+        log.info(f"Collector of plugin {collector.cloud} finished")
+        return collector.graph
+    else:
+        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
+
+
+def collect(graph: Graph, collectors: List[BaseCollectorPlugin]):
+    max_workers = (
+        len(collectors)
+        if len(collectors) < ArgumentParser.args.pool_size
+        else ArgumentParser.args.pool_size
+    )
+    pool_args = {"max_workers": max_workers}
+    if ArgumentParser.args.fork:
+        pool_args["mp_context"] = multiprocessing.get_context("spawn")
+        pool_args["initializer"] = cloudkeeper.signal.initializer
+        pool_executor = futures.ProcessPoolExecutor
+        collect_args = {"args": ArgumentParser.args}
+    else:
+        pool_executor = futures.ThreadPoolExecutor
+        collect_args = {}
+
+    with pool_executor(**pool_args) as executor:
+        wait_for = [
+            executor.submit(
+                collect_plugin_graph,
+                collector,
+                **collect_args,
+            )
+            for collector in collectors
+        ]
+        for future in futures.as_completed(wait_for):
+            cluster_graph = future.result()
+            if not isinstance(cluster_graph, Graph):
+                log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                continue
+            graph.merge(cluster_graph)
+    sanitize(graph)
+    send_to_keepercore(graph)
+
+
+def send_to_keepercore(graph: Graph):
+    if not ArgumentParser.args.keepercore_uri:
+        return
+
+    log.info("Keepercore Event Handler called")
+    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
+    keepercore_graph = ArgumentParser.args.keepercore_graph
+    model_uri = f"{base_uri}/model"
+    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    report_uri = f"{graph_uri}/reported/sub_graph/root"
+    log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
+    r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
+    if r.status_code != 200:
+        log.error(r.content)
+    log.debug(f"Updating model via {model_uri}")
+    model_json = json.dumps(graph.export_model(), indent=4)
+    r = requests.patch(model_uri, data=model_json)
+    if r.status_code != 200:
+        log.error(r.content)
+
+    graph_export_iterator = graph.export_iterator()
+    log.debug(f"Sending subgraph via {report_uri}")
+    r = requests.put(
+        report_uri,
+        data=graph.export_iterator(),
+        headers={"Content-Type": "application/x-ndjson"},
+    )
+    log.debug(r.content.decode())
+    log.debug(
+        f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
+    )
+
+
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--keepercore-uri",
+        help="Keepercore URI",
+        default=None,
+        dest="keepercore_uri",
+        required=True,
+    )
+    arg_parser.add_argument(
+        "--keepercore-graph",
+        help="Keepercore graph name",
+        default="ck",
+        dest="keepercore_graph",
+    )
+    arg_parser.add_argument(
+        "--pool-size",
+        help="Collector Thread/Process Pool Size (default: 5)",
+        dest="pool_size",
+        default=5,
+        type=int,
+    )
+    arg_parser.add_argument(
+        "--fork",
+        help="Use forked process instead of threads (default: False)",
+        dest="fork",
+        action="store_true",
+    )
+    arg_parser.add_argument(
+        "--timeout",
+        help="Collection Timeout in seconds (default: 10800)",
+        default=10800,
+        dest="timeout",
+        type=int,
+    )
 
 
 def shutdown(event: Event) -> None:
