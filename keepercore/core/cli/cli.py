@@ -219,19 +219,20 @@ class CLI:
                 raise CLIParseError(f"{part.name}: can not parse: {args_str}: {kind}: {str(ex)}") from ex
 
         async def parse_line(line: str) -> ParsedCommandLine:
+            def make_stream(in_stream: Union[Stream, AsyncGenerator[JsonElement, None]]) -> Stream:
+                return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
+
             parsed_env, rest = key_values_parser.parse_partial(line)
             resulting_env = self.cli_env | env | parsed_env
             parts_with_args = [parse_single_command(idx, cmd) for idx, cmd in enumerate(split_esc(rest, "|"))]
             parts = [part for part, _ in parts_with_args]
             if parts_with_args:
                 source, source_arg = parts_with_args[0]
-                flow = await parse_arg(source, source_arg, **resulting_env)
-                flow = flow if isinstance(flow, Stream) else stream.iterate(flow)
+                flow = make_stream(await parse_arg(source, source_arg, **resulting_env))
                 for command, arg in parts_with_args[1:]:
                     flow_fn: Flow = await parse_arg(command, arg, **resulting_env)
-                    flow = flow_fn(flow)
-                    flow = flow if isinstance(flow, Stream) else stream.iterate(flow)
-                return ParsedCommandLine(resulting_env, parts, flow)
+                    flow = make_stream(flow_fn(flow))
+                return ParsedCommandLine(resulting_env, parts, flow)  # type: ignore
             else:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
