@@ -6,14 +6,10 @@ import cloudkeeper.signal
 from cloudkeeper.graph import GraphContainer
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import PluginType
-from cloudkeeper.web import WebServer, CloudkeeperWebApp
-from cloudkeeper.scheduler import Scheduler
 from cloudkeeper.args import get_arg_parser
 from cloudkeeper.processor import Processor
 from cloudkeeper.cleaner import Cleaner
-from cloudkeeper.metrics import GraphCollector
 from cloudkeeper.utils import log_stats, increase_limits
-from cloudkeeper.cli import Cli
 from cloudkeeper.event import (
     add_event_listener,
     dispatch_event,
@@ -21,7 +17,6 @@ from cloudkeeper.event import (
     EventType,
     add_args as event_add_args,
 )
-from prometheus_client import REGISTRY
 
 
 log = logging.getLogger(__name__)
@@ -31,7 +26,7 @@ shutdown_event = threading.Event()
 
 
 def main() -> None:
-    log.info("Cloudkeeper initializing")
+    log.info("Cloudkeeper collectord initializing")
     # Try to run in a new process group and
     # ignore if not possible for whatever reason
     try:
@@ -45,9 +40,6 @@ def main() -> None:
     arg_parser = get_arg_parser()
 
     logging.add_args(arg_parser)
-    Cli.add_args(arg_parser)
-    WebServer.add_args(arg_parser)
-    Scheduler.add_args(arg_parser)
     Processor.add_args(arg_parser)
     Cleaner.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
@@ -73,39 +65,9 @@ def main() -> None:
     # at runtime. This way we're not losing the context in other places like
     # the webserver when the graph gets reassigned.
     graph_container = GraphContainer()
+    all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
 
-    # GraphCollector() is a custom Prometheus Collector that
-    # takes a graph and yields its metrics
-    graph_collector = GraphCollector(graph_container)
-    REGISTRY.register(graph_collector)
-
-    # Scheduler() starts an APScheduler instance
-    scheduler = Scheduler(graph_container)
-    scheduler.daemon = True
-    scheduler.start()
-
-    # Cli() is the CLI Thread
-    cli = Cli(graph_container, scheduler)
-    cli.daemon = True
-    cli.start()
-
-    # WebServer is handed the graph container context so it can e.g. produce graphml
-    # from it. The webserver serves Prometheus Metrics as well as different graph
-    # endpoints.
-    web_server = WebServer(CloudkeeperWebApp(graph_container))
-    web_server.daemon = True
-    web_server.start()
-
-    for Plugin in plugin_loader.plugins(PluginType.PERSISTENT):
-        try:
-            log.debug(f"Starting persistent Plugin {Plugin}")
-            plugin = Plugin()
-            plugin.daemon = True
-            plugin.start()
-        except Exception as e:
-            log.exception(f"Caught unhandled persistent Plugin exception {e}")
-
-    processor = Processor(graph_container, plugin_loader.plugins(PluginType.COLLECTOR))
+    processor = Processor(graph_container, all_collector_plugins)
     processor.daemon = True
     processor.start()
 
