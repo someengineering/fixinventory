@@ -110,7 +110,8 @@ class Api:
                 web.delete("/subscription/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get("/subscription/{subscriber_id}/handle", self.handle_subscribed),
                 # CLI
-                web.post("/execute", self.execute),
+                web.post("/cli/evaluate", self.evaluate),
+                web.post("/cli/execute", self.execute),
                 # Event operations
                 web.get("/events", self.handle_events),
                 # Serve static filed
@@ -398,6 +399,15 @@ class Api:
         else:
             await self.db.delete_graph(graph_id)
             return web.HTTPOk(body="Graph deleted.")
+
+    async def evaluate(self, request: Request) -> StreamResponse:
+        # all query parameter become the env of this command
+        env = request.query
+        command = await request.text()
+        parsed = await self.cli.evaluate_cli_command(command, **env)
+        # simply return the structure: outer array lines, inner array commands
+        # if the structure is returned, it means the command could be evaluated.
+        return web.json_response([[p.name for p in line.parts] for line in parsed])
 
     async def execute(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command

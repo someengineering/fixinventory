@@ -142,6 +142,7 @@ class HelpCommand(CLISource):
             available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
             replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
             result = (
+                f"\nkeepercore CLI\n\n\n"
                 f"Valid placeholder string:\n{replacements}\n\n"
                 f"Available Commands:\n{available}\n\n"
                 f"Note that you can pipe commands using the pipe character (|)\n"
