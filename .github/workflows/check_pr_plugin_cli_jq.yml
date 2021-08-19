@@ -5,6 +5,7 @@ name: Check PR (Plugin cli_jq)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/cli_jq/**'
       - '.github/**'
 

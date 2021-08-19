@@ -5,6 +5,7 @@ name: Check PR (Plugin slack)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/slack/**'
       - '.github/**'
 

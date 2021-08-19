@@ -144,7 +144,7 @@ class OneLoginPlugin(BaseCollectorPlugin):
         log.info(f"Collecting OneLogin users in region {region.id}")
         client = onelogin_client()
 
-        users = client.get_users()
+        users = client.get_users(max_results=1000000)
         if not users or len(users) == 0:
             log.error("OneLogin returned empty list of users, check auth credentials")
             return

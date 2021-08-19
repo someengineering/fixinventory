@@ -5,6 +5,7 @@ name: Check PR (Plugin example_collector)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/example_collector/**'
       - '.github/**'
 

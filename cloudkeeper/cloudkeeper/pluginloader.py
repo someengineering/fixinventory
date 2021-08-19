@@ -1,7 +1,7 @@
 import pkg_resources
 import inspect
 import cloudkeeper.logging
-from typing import List
+from typing import List, Optional
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseplugin import BasePlugin, BaseCliPlugin, PluginType
 
@@ -15,7 +15,7 @@ initialized = False
 class PluginLoader:
     """Cloudkeeper Plugin Loader"""
 
-    def __init__(self) -> None:
+    def __init__(self, plugin_type: Optional[PluginType] = None) -> None:
         # self.__plugins is a dict with key PluginType and value List
         # The List will hold all the Plugins of a PluginType
         # Current PluginTypes are COLLECTOR, CLI and PERSISTENT. So the Dict could look
@@ -27,9 +27,14 @@ class PluginLoader:
         # }
         global plugins
 
-        for plugin_type in PluginType:
-            if plugin_type not in plugins:
-                plugins[plugin_type] = []
+        if plugin_type is not None:
+            log.debug(f"Only loading plugins of type {plugin_type}")
+            plugins[plugin_type] = []
+        else:
+            for plugin_type in PluginType:
+                if plugin_type not in plugins:
+                    log.debug(f"Loading plugins of type {plugin_type}")
+                    plugins[plugin_type] = []
 
     def find_plugins(self) -> None:
         """Finds Cloudkeeper Plugins
@@ -53,7 +58,15 @@ class PluginLoader:
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
             and issubclass(plugin, (BasePlugin, BaseCliPlugin))
+            and plugin.plugin_type in plugins
         ):
+            if plugin.plugin_type == PluginType.COLLECTOR:
+                if (
+                    ArgumentParser.args.collector
+                    and plugin.cloud not in ArgumentParser.args.collector
+                ):
+                    return False
+
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
             if plugin not in plugins[plugin.plugin_type]:
                 plugins[plugin.plugin_type].append(plugin)
@@ -63,19 +76,7 @@ class PluginLoader:
         """Returns the list of Plugins of a certain PluginType"""
         if not initialized:
             self.find_plugins()
-        selected_plugins = []
-        for Plugin in plugins[plugin_type]:
-            if plugin_type == PluginType.COLLECTOR:
-                if (
-                    not ArgumentParser.args.collector
-                    or Plugin.cloud in ArgumentParser.args.collector
-                ):
-                    selected_plugins.append(Plugin)
-                else:
-                    log.debug(f"Plugin {Plugin} not in plugin list - skipping")
-            else:
-                selected_plugins.append(Plugin)
-        return selected_plugins
+        return plugins.get(plugin_type, [])
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

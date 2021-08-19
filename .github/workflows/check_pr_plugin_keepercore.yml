@@ -5,6 +5,7 @@ name: Check PR (Plugin keepercore)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/keepercore/**'
       - '.github/**'
 

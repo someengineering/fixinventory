@@ -119,6 +119,8 @@ class ExampleResource:
     delete() must be implemented. update_tag() and delete_tag() are optional.
     """
 
+    resource_type: ClassVar[str] = "example_resource"
+
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
         log.debug(

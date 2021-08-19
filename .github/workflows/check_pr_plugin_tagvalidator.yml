@@ -5,6 +5,7 @@ name: Check PR (Plugin tagvalidator)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/tagvalidator/**'
       - '.github/**'
 

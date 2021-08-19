@@ -10,6 +10,7 @@ name: Check PR (Plugin @name@)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/@name@/**'
       - '.github/**'
 
