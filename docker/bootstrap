@@ -15,6 +15,9 @@ main() {
     else
         setup_syslog
         setup_supervisor_http_server
+        setup_arangodb
+        setup_keepercore
+        setup_collectord
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
     fi
 }
@@ -98,5 +101,36 @@ EOF
     fi
 }
 
+setup_arangodb() {
+    rm -f "$supervisor_arangodb_conf"
+    if [ "$START_ARANGODB" = true ]; then
+        sed -e "s/@ARANGODB_SERVER_ENDPOINT@/$ARANGODB_SERVER_ENDPOINT/" \
+            -e "s/@ARANGODB_ROOT_PASSWORD@/$ARANGODB_ROOT_PASSWORD/" \
+            "$supervisor_arangodb_conf_in" > "$supervisor_arangodb_conf"
+    fi
+}
+
+setup_keepercore() {
+    rm -f "$supervisor_keepercore_conf"
+    if [ "$START_KEEPERCORE" = true ]; then
+        sed -e "s/@KEEPERCORE_ARANGODB_SERVER@/$KEEPERCORE_ARANGODB_SERVER/" \
+            -e "s/@KEEPERCORE_ARANGODB_DATABASE@/$KEEPERCORE_ARANGODB_DATABASE/" \
+            -e "s/@KEEPERCORE_ARANGODB_LOGIN@/$KEEPERCORE_ARANGODB_LOGIN/" \
+            -e "s/@KEEPERCORE_ARANGODB_PASSWORD@/$KEEPERCORE_ARANGODB_PASSWORD/" \
+            "$supervisor_keepercore_conf_in" > "$supervisor_keepercore_conf"
+    fi
+}
+
+setup_collectord() {
+    rm -f "$supervisor_collectord_conf"
+    if [ "$START_COLLECTORD" = true ]; then
+        sed -e "s/@COLLECTORD_KEEPERCORE_URI@/$COLLECTORD_KEEPERCORE_URI/" \
+            "$supervisor_collectord_conf_in" > "$supervisor_collectord_conf"
+    fi
+}
 
 main "$@"
+
+#supervisor_arangodb_conf=/usr/local/etc/supervisor/conf.d/arangodb.conf
+#supervisor_keepercore_conf=/usr/local/etc/supervisor/conf.d/keepercore.conf
+#supervisor_colletord_conf=/usr/local/etc/supervisor/conf.d/collectord.conf

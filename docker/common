@@ -7,6 +7,16 @@ cmd_supervisorctl=/usr/local/bin/supervisorctl
 # Syslog supervisor config file
 supervisor_syslog_conf=/usr/local/etc/supervisor/conf.d/syslog.conf
 
+# Service configs
+# Input templates
+supervisor_arangodb_conf_in=/usr/local/etc/supervisor.conf.in/arangodb.conf
+supervisor_keepercore_conf_in=/usr/local/etc/supervisor.conf.in/keepercore.conf
+supervisor_collectord_conf_in=/usr/local/etc/supervisor.conf.in/collectord.conf
+# Output files
+supervisor_arangodb_conf=/usr/local/etc/supervisor/conf.d/arangodb.conf
+supervisor_keepercore_conf=/usr/local/etc/supervisor/conf.d/keepercore.conf
+supervisor_collectord_conf=/usr/local/etc/supervisor/conf.d/collectord.conf
+
 
 # log levels
 debug=50

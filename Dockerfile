@@ -71,6 +71,7 @@ RUN pip install -f /build /build/*.whl
 
 # Copy image config and startup files
 WORKDIR /usr/src/cloudkeeper
+COPY docker/supervisor.conf.in /usr/local/etc/supervisor.conf.in
 COPY docker/defaults /usr/local/etc/cloudkeeper/defaults
 COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/bootstrap /usr/local/sbin/bootstrap
