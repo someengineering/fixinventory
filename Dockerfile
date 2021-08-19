@@ -76,6 +76,12 @@ COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/bootstrap /usr/local/sbin/bootstrap
 COPY docker/startup /usr/local/bin/startup
 RUN chmod 755 /usr/local/bin/startup /usr/local/sbin/bootstrap
+RUN if [ "${TESTS:-true}" = true ]; then \
+        shellcheck -a -x -s bash -e SC2034 \
+            /usr/local/sbin/bootstrap \
+            /usr/local/bin/startup \
+        ; \
+    fi
 RUN mkdir -p /usr/local/etc/dnsmasq.d
 COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.d/cloudkeeper.conf
 COPY docker/supervisord.conf /usr/local/etc/supervisord.conf

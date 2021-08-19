@@ -8,10 +8,10 @@ if [ "${USE_DNS_CACHE-}" = true ]; then
     echo "nameserver 127.0.0.1" > /etc/resolv.conf
 fi
 if [ -n "${CRONTAB-}" ]; then
-    echo -e "$CRONTAB" > /etc/crontabs/$(whoami)
+    echo -e "$CRONTAB" > "/etc/crontabs/$(whoami)"
 fi
 if [ "${USE_CROND-}" = true ]; then
-    : ${LOGFILE:=/var/log/cloudkeeper.log}
+    : "${LOGFILE:=/var/log/cloudkeeper.log}"
     touch "$LOGFILE"
     crond
     exec tail -F "$LOGFILE"
