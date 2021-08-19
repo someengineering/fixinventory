@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -6,7 +7,7 @@ from functools import reduce
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
 import jsons
-from networkx import DiGraph, MultiDiGraph, bfs_successors, bfs_edges
+from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
 from core import feature
 from core.model.model import Model
@@ -179,17 +180,43 @@ class GraphAccess:
         return roots[0]
 
     @staticmethod
-    def access_from_merge_graph(graph: MultiDiGraph) -> Generator[Tuple[str, GraphAccess, GraphAccess], None, None]:
+    def merge_sub_graph_roots(graph: DiGraph) -> list[str]:
+        graph_root = GraphAccess.root_id(graph)
         merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
-        sub_graph_roots: list[str] = reduce(lambda res, node_id: res + list(graph.successors(node_id)), merge_nodes, [])
-        all_predecessors: Set[str] = set()
-        for root in sub_graph_roots:
-            predecessors = {t for f, t in bfs_edges(graph, root, reverse=True)}
-            successors: set[str] = reduce(lambda r, kv: r | {kv[0]} | set(kv[1]), bfs_successors(graph, root), set())
-            all_predecessors |= predecessors
-            predecessors = predecessors - successors  # safe guard in case there are cyclic references
-            if root in all_predecessors:
-                raise AttributeError(f"Update on {root} is not self contained (there are cycles!)")
+        result = []
+        for node in merge_nodes:
+            # compute the shortest path from root to here and sort out all successors that are also predecessors
+            predecessors = reduce(lambda res, path: res | set(path), all_shortest_paths(graph, graph_root, node), set())
+            result += [a for a in graph.successors(node) if a not in predecessors]
+        return result
+
+    @staticmethod
+    def sub_graph(graph: DiGraph, from_node: str, parents: set[str]) -> set[str]:
+        to_visit = [from_node]
+        visited: set[str] = {from_node}
+
+        def succ(node) -> list[str]:
+            return [a for a in graph.successors(node) if a not in visited and a not in parents]
+
+        while to_visit:
+            to_visit = reduce(lambda li, node: li + succ(node), to_visit, [])
+            visited = visited.union(to_visit)
+        return visited
+
+    @staticmethod
+    def access_from_roots(
+        graph: DiGraph, roots: list[str]
+    ) -> Generator[Tuple[str, GraphAccess, GraphAccess], None, None]:
+        all_successors: Set[str] = set()
+        graph_root = GraphAccess.root_id(graph)
+        for root in roots:
+            predecessors = reduce(lambda res, path: res | set(path), all_shortest_paths(graph, graph_root, root), set())
+            successors: set[str] = GraphAccess.sub_graph(graph, root, predecessors)
+            # make sure nodes are not "mixed" between different merge nodes
+            overlap = successors & all_successors
+            if overlap:
+                raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
+            all_successors |= successors
             pre = GraphAccess(graph.subgraph(predecessors | {root}))
             sub = GraphAccess(graph.subgraph(successors), root)
             yield root, pre, sub
