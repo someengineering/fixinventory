@@ -1,10 +1,12 @@
+from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
+from functools import reduce
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
 import jsons
-from networkx import DiGraph, MultiDiGraph
+from networkx import DiGraph, MultiDiGraph, bfs_successors, bfs_edges
 
 from core import feature
 from core.model.model import Model
@@ -43,11 +45,12 @@ class GraphBuilder:
             item = js["data"] if coerced is None else coerced
             did = js["id"]  # this is the identifier in the json document
             kind = self.model[item]
+            merge = js.get("merge", None) == "true"
             # create content hash
             sha = GraphBuilder.content_hash(item)
             # flat all properties into a single string for search
             flat = GraphBuilder.flatten(item) if self.with_flatten else None
-            self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat)
+            self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat, merge=merge)
         elif "from" in js and "to" in js:
             from_node = js["from"]
             to_node = js["to"]
@@ -109,7 +112,7 @@ class GraphBuilder:
 
 
 class GraphAccess:
-    def __init__(self, sub: MultiDiGraph):
+    def __init__(self, sub: MultiDiGraph, maybe_root_id: Optional[str] = None):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
@@ -118,9 +121,10 @@ class GraphAccess:
         self.edge_types: Set[str] = {edge[2] for edge in sub.edges(data="edge_type")}
         self.at = datetime.now(timezone.utc)
         self.at_json = jsons.dump(self.at)
+        self.maybe_root_id = maybe_root_id
 
     def root(self) -> str:
-        return GraphAccess.root_id(self.g)
+        return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
 
     def node(self, node_id: str) -> Optional[Tuple[str, Json, str, List[str], str]]:
         self.visited_nodes.add(node_id)
@@ -173,3 +177,19 @@ class GraphAccess:
         roots: List[str] = [n for n, d in graph.in_degree if d == 0]
         assert len(roots) == 1, f"Given subgraph has more than one root: {roots}"
         return roots[0]
+
+    @staticmethod
+    def access_from_merge_graph(graph: MultiDiGraph) -> Generator[Tuple[str, GraphAccess, GraphAccess], None, None]:
+        merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
+        sub_graph_roots: list[str] = reduce(lambda res, node_id: res + list(graph.successors(node_id)), merge_nodes, [])
+        all_predecessors: Set[str] = set()
+        for root in sub_graph_roots:
+            predecessors = {t for f, t in bfs_edges(graph, root, reverse=True)}
+            successors: set[str] = reduce(lambda r, kv: r | {kv[0]} | set(kv[1]), bfs_successors(graph, root), set())
+            all_predecessors |= predecessors
+            predecessors = predecessors - successors  # safe guard in case there are cyclic references
+            if root in all_predecessors:
+                raise AttributeError(f"Update on {root} is not self contained (there are cycles!)")
+            pre = GraphAccess(graph.subgraph(predecessors | {root}))
+            sub = GraphAccess(graph.subgraph(successors), root)
+            yield root, pre, sub
