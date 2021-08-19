@@ -1,0 +1,102 @@
+#!/bin/bash
+# Bootstraps supervisor config
+set -euo pipefail
+
+# Include defaults
+. /usr/local/etc/cloudkeeper/defaults
+. /usr/local/etc/cloudkeeper/common
+
+
+main() {
+    apply_permissions
+    configure_timezone
+    if [ "$LEGACY_STARTUP" = true ]; then
+        exec /usr/local/bin/cloudkeeper "$@"
+    else
+        setup_syslog
+        setup_supervisor_http_server
+        exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
+    fi
+}
+
+
+# Apply user id and group id
+apply_permissions() {
+    info "Setting uid:gid of cloudkeeper to $PUID:$PGID"
+    groupmod -g "${PGID}" -o cloudkeeper
+    #usermod -u "${PUID}" -o -g cloudkeeper cloudkeeper
+    sed -i -E "s/^(cloudkeeper:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+
+    chown -R cloudkeeper:cloudkeeper \
+        /home/cloudkeeper \
+        /var/run/cloudkeeper
+    chgrp cloudkeeper /usr/local/etc/supervisord.conf
+}
+
+
+# Configure timezone
+configure_timezone() {
+    export TZ
+    if [ ! -f "/usr/share/zoneinfo/$TZ" ]; then
+        warn "Unknown timezone $TZ - defaulting to Etc/UTC"
+        TZ="Etc/UTC"
+    fi
+    ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
+    echo "$TZ" > /etc/timezone
+    info "Setting timezone $TZ"
+}
+
+
+# Configure syslog
+setup_syslog() {
+    local SYSLOG_ARGS
+    local log_msg
+    SYSLOG_ARGS="-S -t -O -"
+
+    log_target_msg="stdout"
+    if [ -n "$SYSLOG_REMOTE_HOST" ]; then
+        SYSLOG_ARGS="$SYSLOG_ARGS -R $SYSLOG_REMOTE_HOST:$SYSLOG_REMOTE_PORT"
+        log_target_msg="$SYSLOG_REMOTE_HOST:$SYSLOG_REMOTE_PORT"
+        if [ "$SYSLOG_REMOTE_AND_LOCAL" = true ]; then
+            SYSLOG_ARGS="$SYSLOG_ARGS -L"
+            log_target_msg="$log_target_msg and stdout"
+        fi
+    fi
+    info "Setting up syslogd - logging to $log_target_msg"
+    cat > "$supervisor_syslog_conf" <<EOF
+[program:syslogd]
+user=root
+environment=HOME="/root",USER="root",LANG="en_US.UTF-8",PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+command=/usr/local/sbin/syslogd -n $SYSLOG_ARGS
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autostart=true
+autorestart=true
+priority=10
+EOF
+}
+
+
+# Enable/disable supervisor http server
+setup_supervisor_http_server() {
+    rm -f "$supervisor_http_server_conf"
+    if [ "$SUPERVISOR_HTTP" = true ]; then
+        info "Supervisor http server activated"
+        cat > "$supervisor_http_server_conf" <<EOF
+[inet_http_server]
+port = :$SUPERVISOR_HTTP_PORT
+EOF
+        chmod 600 "$supervisor_http_server_conf"
+        if [ -n "$SUPERVISOR_HTTP_USER" ] && [ -n "$SUPERVISOR_HTTP_PASS" ]; then
+            cat >> "$supervisor_http_server_conf" <<EOF
+username = $SUPERVISOR_HTTP_USER
+password = $SUPERVISOR_HTTP_PASS
+EOF
+        fi
+    fi
+}
+
+
+main "$@"

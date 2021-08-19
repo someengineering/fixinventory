@@ -1,0 +1,95 @@
+# Supervisor config files
+supervisor_http_server_conf=/usr/local/etc/supervisor/conf.d/http_server.conf
+
+# Commands
+cmd_supervisorctl=/usr/local/bin/supervisorctl
+
+# Syslog supervisor config file
+supervisor_syslog_conf=/usr/local/etc/supervisor/conf.d/syslog.conf
+
+
+# log levels
+debug=50
+info=40
+warn=30
+error=20
+critical=10
+fatal=5
+log_level=${log_level:-$debug}
+
+
+debug()    { logstd $debug    "DEBUG - [$$] - $*"; }
+info()     { logstd $info     "INFO - $*"; }
+warn()     { logstd $warn     "WARN - $*"; }
+error()    { logerr $error    "ERROR - $*"; }
+critical() { logerr $critical "CRITIAL - $*"; }
+fatal()    { logerr $fatal    "FATAL - $*"; exit 1; }
+
+
+logstd() {
+    local log_at_level
+    log_at_level="$1"; shift
+    printline "$log_at_level" "$*"
+}
+
+
+logerr() {
+    local log_at_level
+    log_at_level="$1"; shift
+    printline "$log_at_level" "$*" >&2
+}
+
+
+printline() {
+    local log_at_level
+    local log_data
+    log_at_level="$1"; shift
+    log_data="$*"
+
+    if [ "$log_at_level" -le "$log_level" ]; then
+        echo "$log_data"
+    fi
+}
+
+
+error_handler() {
+    local ec
+    local line_no
+    local func_call_line
+    local command
+    local stack
+    ec=$1
+    line_no=$2
+    func_call_line=$3
+    command="$4"
+    stack="$5"
+    error "Error in line $line_no command '$command' exited with code $ec in $stack called in line $func_call_line"
+    return "$ec"
+}
+
+
+iec_size_format() {
+    local byte_size=$1
+    local use_bc=false
+    local float_regex="^([0-9]+\\.?[0-9]*)\$"
+
+    if [ -z "$byte_size" ] || ! [[ "$byte_size" =~ $float_regex ]]; then
+        error "Input $byte_size is no valid float"
+        return 1
+    fi
+    if command -v bc > /dev/null 2>&1; then
+        use_bc=true
+    fi
+    for unit in B KiB MiB GiB TiB PiB EiB ZiB; do
+        if [ "${byte_size%.*}" -lt 1024 ]; then
+            printf "%.2f %s\\n" "$byte_size" "$unit"
+            return
+        fi
+        if [ "$use_bc" = true ]; then
+            byte_size=$(echo "$byte_size/1024" | bc -l)
+        else
+            byte_size=$((byte_size/1024))
+        fi
+    done
+    printf "%.2f YiB\\n" $byte_size
+}

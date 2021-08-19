@@ -1,0 +1,23 @@
+# The following are default values.
+# They can be overridden by supplying the -e VAR=value option to the containerizer.
+
+# The timezone this container is running in
+TZ=${TZ:-Etc/UTC}
+
+# User and group id for the user running valheim-server
+PUID=${PUID:-0}
+PGID=${PGID:-0}
+
+# Supervisor http
+SUPERVISOR_HTTP=${SUPERVISOR_HTTP:-false}
+SUPERVISOR_HTTP_PORT=${SUPERVISOR_HTTP_PORT:-9001}
+SUPERVISOR_HTTP_USER=${SUPERVISOR_HTTP_USER:-admin}
+SUPERVISOR_HTTP_PASS=${SUPERVISOR_HTTP_PASS:-}
+
+# Syslog settings
+SYSLOG_REMOTE_HOST=${SYSLOG_REMOTE_HOST:-}
+SYSLOG_REMOTE_PORT=${SYSLOG_REMOTE_PORT:-514}
+SYSLOG_REMOTE_AND_LOCAL=${SYSLOG_REMOTE_AND_LOCAL:-true}
+
+# Legacy Cloudkeeper startup
+LEGACY_STARTUP=${LEGACY_STARTUP:-true}
