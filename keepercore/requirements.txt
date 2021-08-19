@@ -13,3 +13,5 @@ python-dateutil==2.8.2
 toolz==0.11.1
 transitions==0.8.8
 APScheduler==3.7.0
+aiostream==0.4.3
+tzlocal==2.1

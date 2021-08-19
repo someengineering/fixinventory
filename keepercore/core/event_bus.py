@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 class CoreEvent:
     NodeCreated = "node-created"
     NodeUpdated = "node-updated"
+    NodesDesiredUpdated = "nodes-desired-updated"
     NodeDeleted = "node-deleted"
     SubGraphUpdated = "subgraph-updated"
     BatchUpdateSubGraphAdded = "batch-update-subgraph-added"

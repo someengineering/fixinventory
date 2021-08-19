@@ -14,10 +14,12 @@ from aiohttp.web_exceptions import HTTPRedirection
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
+from aiostream import stream
 from networkx import MultiDiGraph
 from networkx.readwrite import cytoscape_data
 
 from core import feature
+from core.cli.cli import CLI
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
@@ -44,12 +46,14 @@ class Api:
         subscription_handler: SubscriptionHandler,
         workflow_handler: WorkflowHandler,
         event_bus: EventBus,
+        cli: CLI,
     ):
         self.db = db
         self.model_handler = model_handler
         self.subscription_handler = subscription_handler
         self.workflow_handler = workflow_handler
         self.event_bus = event_bus
+        self.cli = cli
         self.app = web.Application(middlewares=[self.error_handler])
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         r = "reported"
@@ -105,6 +109,9 @@ class Api:
                 web.post("/subscription/{subscriber_id}/{event_type}", self.add_subscription),
                 web.delete("/subscription/{subscriber_id}/{event_type}", self.delete_subscription),
                 web.get("/subscription/{subscriber_id}/handle", self.handle_subscribed),
+                # CLI
+                web.post("/cli/evaluate", self.evaluate),
+                web.post("/cli/execute", self.execute),
                 # Event operations
                 web.get("/events", self.handle_events),
                 # Serve static filed
@@ -392,6 +399,25 @@ class Api:
         else:
             await self.db.delete_graph(graph_id)
             return web.HTTPOk(body="Graph deleted.")
+
+    async def evaluate(self, request: Request) -> StreamResponse:
+        # all query parameter become the env of this command
+        env = request.query
+        command = await request.text()
+        parsed = await self.cli.evaluate_cli_command(command, **env)
+        # simply return the structure: outer array lines, inner array commands
+        # if the structure is returned, it means the command could be evaluated.
+        return web.json_response([[p.name for p in line.parts] for line in parsed])
+
+    async def execute(self, request: Request) -> StreamResponse:
+        # all query parameter become the env of this command
+        env = request.query
+        command = await request.text()
+        # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
+        parsed = await self.cli.evaluate_cli_command(command, **env)
+        # flat the results from the different command lines
+        result = stream.concat(stream.iterate(p.generator for p in parsed))
+        return await self.stream_response_from_gen(request, result)
 
     @staticmethod
     async def read_graph(request: Request, md: Model) -> MultiDiGraph:

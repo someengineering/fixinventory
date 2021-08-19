@@ -4,15 +4,28 @@ from asyncio import Task
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
-from datetime import timedelta
-from typing import Any, Callable, Optional, Awaitable, Dict, TypeVar, List, Tuple
-
-from parsy import Parser, generate
+from datetime import timedelta, datetime, timezone
+from typing import Any, Callable, Optional, Awaitable, Dict, TypeVar, List, Tuple, Mapping, MutableSequence
 
 log = logging.getLogger(__name__)
 
 AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
+
+
+def identity(o: AnyT) -> AnyT:
+    return o
+
+
+UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def utc_str(dt: datetime = utc()) -> str:
+    return dt.strftime(UTC_Date_Format)
 
 
 def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:
@@ -78,11 +91,27 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     return func(x) if x is not None else if_not
 
 
-def make_parser(fn: Callable[[], Parser]) -> Parser:
+def split_esc(s: str, delim: str) -> List[str]:
+    """Split with support for delimiter escaping
+
+    Via: https://stackoverflow.com/a/29107566
     """
-    Make typed parser (required for mypy).
-    """
-    return generate(fn)
+    i = 0
+    res: List[str] = []
+    buf = ""
+    while True:
+        j, e = s.find(delim, i), 0
+        if j < 0:  # end reached
+            return res + [buf + s[i:]]  # add remainder
+        while j - e and s[j - e - 1] == "\\":
+            e += 1  # number of escapes
+        d = e // 2  # number of double escapes
+        if e != d * 2:  # odd number of escapes
+            buf += s[i : j - d - 1] + s[j]  # noqa: E203 add the escaped char.
+            i = j + 1  # and skip it
+            continue  # add more to buf
+        res.append(buf + s[i : j - d])  # noqa: E203
+        i, buf = j + len(delim), ""  # start after delim
 
 
 class Periodic:
@@ -119,3 +148,48 @@ class Periodic:
                     await result
             except BaseException as ex:
                 log.warning(f"Periodic function {self.name} caught an exception: {ex}")
+
+
+class AccessNone:
+    def __init__(self, not_existent: Any = None):
+        self.__not_existent = not_existent
+
+    def __getitem__(self, item: Any) -> Any:
+        return self
+
+    def __getattr__(self, name: Any) -> Any:
+        return self
+
+    def __str__(self) -> str:
+        return str(self.__not_existent)
+
+
+class AccessJson(dict[Any, Any]):
+    """
+    Extend dict in order to allow python like property access
+    as well as exception safe access for non existent properties.
+    """
+
+    def __init__(self, mapping: Mapping[Any, Any], not_existent: Any = None) -> None:
+        super().__init__(mapping)
+        self.__not_existent = AccessNone(not_existent)
+
+    def __getitem__(self, item: Any) -> Any:
+        return AccessJson.wrap(super().__getitem__(item), self.__not_existent) if item in self else self.__not_existent
+
+    def __getattr__(self, name: Any) -> Any:
+        return AccessJson.wrap(self[name], self.__not_existent) if name in self else self.__not_existent
+
+    @staticmethod
+    def wrap(obj: Any, not_existent: Any) -> Any:
+        # dict like data structure -> wrap whole element
+        if isinstance(obj, AccessJson):
+            return obj
+        elif isinstance(obj, Mapping):
+            return AccessJson(obj, not_existent)
+        # list like data structure -> wrap all elements
+        elif isinstance(obj, MutableSequence):
+            return [AccessJson.wrap(item, not_existent) for item in obj]
+        # simply return the object
+        else:
+            return obj

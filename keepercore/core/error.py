@@ -29,3 +29,7 @@ class NoSuchBatchError(DatabaseError, NotFoundError):
     def __init__(self, change_id: str):
         super().__init__(f"No batch with given id {change_id}")
         self.change_id = change_id
+
+
+class CLIParseError(DomainError):
+    pass

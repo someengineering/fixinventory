@@ -15,12 +15,16 @@ tags:
       description: Endpoints to manipulate the reported data in the graph.
     - name: graph_desired
       description: Endpoints to manipulate the desired data in the graph.
+    - name: cli
+      description: Endpoints to evaluate and execute cli commands
     - name: system
       description: Endpoints to get information about the system.
     - name: debug
       description: Endpoints to debug the system
 
 paths:
+
+    # region model
     /model:
         get:
             summary: "Get the currently defined model."
@@ -64,8 +68,9 @@ paths:
             responses:
                 "200":
                     description: "Returns the model as uml diagram in svg format"
+    # endregion
 
-
+    # region graph management
     /graph:
         get:
             summary: "List all graphs"
@@ -142,6 +147,9 @@ paths:
                     content:
                         text/plain:
                             example: "Graph deleted."
+    # endregion
+
+    # region graph reported
     /graph/{graph_id}/reported/search:
         get:
             summary: "Search the graph"
@@ -330,7 +338,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/GraphUpdate"
-
     /graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}:
         post:
             summary: "Replace a given subgraph which lives under the given parent node id in a batch"
@@ -646,7 +653,9 @@ paths:
                             schema:
                                 type: object
                                 additionalProperties: true
+    # endregion
 
+    # region graph desired
     /graph/{graph_id}/desired/node/{node_id}:
         get:
             summary: "Get the node and desired content with the given node id"
@@ -708,7 +717,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/DesiredNode"
-
     /graph/{graph_id}/desired/query:
         post:
             summary: "Query this graph in the desired section"
@@ -899,8 +907,9 @@ paths:
                             schema:
                                 type: object
                                 additionalProperties: true
+    # endregion
 
-
+    # region events
     /events:
         get:
             summary: "Register as event listener and receive all events."
@@ -922,7 +931,95 @@ paths:
             responses:
                 default:
                     description: ""
+    # endregion
 
+    # region: cli
+    /cli/evaluate:
+        post:
+            summary: "Evaluate a cli command"
+            description: |
+                This method can be used to analyze if the command can be interpreted without executing it.
+                When this method returns a 200 OK, the command can be parsed and evaluated.
+            parameters:
+                - name: env
+                  description: "All query parameter form the environment passed to the CLI interpreter."
+                  in: query
+                  schema:
+                      type: object
+                      additionalProperties: true
+            requestBody:
+                description: |
+                    The command will be sent as request body.
+                    A command can contain multiple command line separated by semicolon.
+                    Every single line can contain multiple commands that are combined via the pipe operator.
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: echo [1,2,3,4,5,6] | count
+            tags:
+                - cli
+            responses:
+                "200":
+                    description: When the command can be evaluated.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    additionalProperties: true
+                "300":
+                    description: When the command can not be evaluated.
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+
+    /cli/execute:
+        post:
+            summary: "Execute a cli command"
+            description:  |
+                The body defines the command to execute.
+                The command is executed and the result is returned to the client.
+                Request and execution are synchronized: the request is done, when the command is done.
+            parameters:
+                - name: env
+                  description: "All query parameter form the environment passed to the CLI interpreter."
+                  in: query
+                  schema:
+                      type: object
+                      additionalProperties: true
+            requestBody:
+                description: |
+                    The command will be sent as request body.
+                    A command can contain multiple command line separated by semicolon.
+                    Every single line can contain multiple commands that are combined via the pipe operator.
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: echo [1,2,3,4,5,6] | count
+            tags:
+                - cli
+            responses:
+                "200":
+                    description: The result of the command.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    additionalProperties: true
+                        application/x-ndjson:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    additionalProperties: true
+
+    # endregion
 
 components:
     schemas:
