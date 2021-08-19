@@ -12,6 +12,7 @@ from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
 from core.types import Json
 from tests.core.db.graphdb_test import Foo
+
 # noinspection PyUnresolvedReferences
 from tests.core.model.model_test import person_model
 
