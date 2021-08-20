@@ -5,8 +5,9 @@ ARG SOURCE_COMMIT
 ARG SUPERVISOR_VERSION=4.2.2
 ARG BUSYBOX_VERSION=1.32.1
 ARG ARANGODB_VERSION=3.8.0
+ARG PROMETHEUS_VERSION=2.29.1
 
-ENV PATH=/usr/local/arangodb/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
 RUN apt-get update || true
 RUN apt-get -y install apt-utils
@@ -35,12 +36,17 @@ RUN sed -i -e "s/^CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=.*/CONFIG_FEATURE_SYSL
 RUN make
 RUN cp busybox /usr/local/bin/
 
-# Download and install ArangoDB
-WORKDIR /usr/local/arangodb
+# Download and install ArangoDB (graphdb)
+WORKDIR /usr/local/db
 RUN curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
-RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/arangodb
+RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/db
 # Run ArangoDB for keepercore CI tests below
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then /usr/local/arangodb/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root & fi
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then /usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root & fi
+
+# Download and install Prometheus (tsdb)
+WORKDIR /usr/local/tsdb
+RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
 
 # Download and install Python test tools
 RUN pip install --upgrade pip
@@ -77,11 +83,11 @@ COPY docker/supervisor.conf.in /usr/local/etc/supervisor.conf.in
 COPY docker/defaults /usr/local/etc/cloudkeeper/defaults
 COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/bootstrap /usr/local/sbin/bootstrap
-COPY docker/bootstrap-arangodb /usr/local/sbin/bootstrap-arangodb
+COPY docker/bootstrap-graphdb /usr/local/sbin/bootstrap-graphdb
 COPY docker/startup /usr/local/bin/startup
 RUN chmod 755 /usr/local/bin/startup \
     /usr/local/sbin/bootstrap \
-    /usr/local/sbin/bootstrap-arangodb
+    /usr/local/sbin/bootstrap-graphdb
 RUN if [ "${TESTS:-true}" = true ]; then \
         shellcheck -a -x -s bash -e SC2034 \
             /usr/local/sbin/bootstrap \
@@ -100,7 +106,7 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 FROM debian:stable-slim
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=build-env /usr/local /usr/local
-ENV PATH=/usr/local/arangodb/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home cloudkeeper \
