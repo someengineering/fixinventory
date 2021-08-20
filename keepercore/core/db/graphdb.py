@@ -3,6 +3,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import partial
 from typing import Optional, Tuple, List, Union, Callable, AsyncGenerator, Any, Set
 
 from arango import ArangoError
@@ -71,6 +72,10 @@ class GraphDB(ABC):
     async def update_sub_graph(
         self, model: Model, sub: MultiDiGraph, under_node_id: str, maybe_batch: Optional[str] = None
     ) -> GraphUpdate:
+        pass
+
+    @abstractmethod
+    async def update_merge_graphs(self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None) -> GraphUpdate:
         pass
 
     @abstractmethod
@@ -434,7 +439,8 @@ class ArangoGraphDB(GraphDB):
         edges_deletes: List[Json] = []
 
         def insert_edge(from_node: str, to_node: str) -> None:
-            key = str(uuid.uuid1())
+            key = self.db_edge_key(from_node, to_node)
+
             js = {
                 "_key": key,
                 "_from": f"{self.vertex_name}/{from_node}",
@@ -472,31 +478,79 @@ class ArangoGraphDB(GraphDB):
         else:
             return GraphUpdate(), []
 
+    async def update_merge_graphs(self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None) -> GraphUpdate:
+        is_batch = maybe_batch is not None
+        change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
+
+        async def prepare_graph(
+            sub: GraphAccess, node_query: Tuple[str, Json], edge_query: Callable[[str], Tuple[str, Json]]
+        ) -> Tuple[GraphUpdate, list[Json], list[Json], list[Json], dict[str, list[Json]], dict[str, list[Json]]]:
+            graph_info = GraphUpdate()
+            # check all nodes for this subgraph
+            query, bind = node_query
+            with await self.db.aql(query, bind_vars=bind) as node_cursor:
+                node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor)
+                graph_info += node_info
+
+            # check all edges in all relevant edge-collections
+            edge_inserts = defaultdict(list)
+            edge_deletes = defaultdict(list)
+            for edge_type in EdgeType.allowed_edge_types:
+                query, bind = edge_query(edge_type)
+                with await self.db.aql(query, bind_vars=bind) as ec:
+                    edge_info, gei, ged = self.prepare_edges(sub, ec, edge_type)
+                    graph_info += edge_info
+                    edge_inserts[edge_type] = gei
+                    edge_deletes[edge_type] = ged
+            return graph_info, ni, nu, nd, edge_inserts, edge_deletes
+
+        _, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
+
+        def parent_edges(edge_type: str) -> Tuple[str, Json]:
+            edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
+            return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
+
+        def merge_edges(merge_node: str, edge_type: str) -> Tuple[str, Json]:
+            return self.query_update_edges(edge_type), {"update_id": merge_node}
+
+        def combine_dict(left: dict[str, list[Any]], right: dict[str, list[Any]]) -> dict[str, list[Any]]:
+            result = dict(left)
+            for key, right_values in right.items():
+                left_values = left.get(key)
+                result[key] = left_values + right_values if left_values else right_values
+            return result
+
+        try:
+            parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
+            info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
+            for root, graph in graphs:
+                node_query = self.query_update_nodes(), {"update_id": root}
+                edge_query = partial(merge_edges, root)
+
+                i, ni, nu, nd, ei, ed = await prepare_graph(graph, node_query, edge_query)
+                info += i
+                nis += ni
+                nus += nu
+                nds += nd
+                eis = combine_dict(eis, ei)
+                eds = combine_dict(eds, ed)
+
+            return await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
+        except InvalidBatchUpdate as ex:
+            raise ex
+        except Exception as ex:
+            # todo mark delete and delete mark here
+            raise ex
+
     async def update_sub_graph(
         self, model: Model, sub: MultiDiGraph, under_node_id: str, maybe_batch: Optional[str] = None
     ) -> GraphUpdate:
         access = GraphAccess(sub)
+        is_batch = maybe_batch is not None
         change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
 
         async def query(aql: str, bind_vars: Json) -> Cursor:
             return await self.db.aql(query=aql, bind_vars=bind_vars)
-
-        async def execute_many_async(async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json]) -> None:
-            if array:
-                result = await async_fn(name, array)
-                ex: Optional[Exception] = first(lambda x: isinstance(x, Exception), result)
-                if ex:
-                    raise ex  # pylint: disable=raising-bad-type
-
-        async def trafo_many(
-            async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], template: Json
-        ) -> None:
-            # update the array in place to not create another intermediate array
-            for idx, item in enumerate(array):
-                entry = template.copy()
-                entry["data"] = item
-                array[idx] = entry
-            await execute_many_async(async_fn, name, array)
 
         try:
             # mark this update as early as possible to avoid useless double work
@@ -504,7 +558,7 @@ class ArangoGraphDB(GraphDB):
 
             # check all nodes for this subgraph
             with await query(self.query_update_nodes(), {"update_id": access.root()}) as node_cursor:
-                info, resource_inserts, resource_updates, resource_deletes = self.prepare_nodes(access, node_cursor)
+                info, ris, rus, rds = self.prepare_nodes(access, node_cursor)
 
             # check all edges in all relevant edge-collections
             edge_inserts = defaultdict(list)
@@ -523,64 +577,94 @@ class ArangoGraphDB(GraphDB):
                 info += inf
                 edge_inserts[EdgeType.default].extend(links)
 
-            async def update_directly() -> None:
-                edge_collections = [self.edge_collection(a) for a in EdgeType.allowed_edge_types]
-                tx = await self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress])
-                try:
-                    # note: all requests are done sequentially on purpose
-                    # https://www.arangodb.com/docs/stable/http/transaction-stream-transaction.html#concurrent-requests
-                    await execute_many_async(self.db.insert_many, self.vertex_name, resource_inserts)
-                    await execute_many_async(self.db.update_many, self.vertex_name, resource_updates)
-                    await execute_many_async(self.db.delete_many, self.vertex_name, resource_deletes)
-                    for ed_i_type, ed_insert in edge_inserts.items():
-                        await execute_many_async(self.db.insert_many, self.edge_collection(ed_i_type), ed_insert)
-                    for ed_d_type, ed_delete in edge_deletes.items():
-                        await execute_many_async(self.db.delete_many, self.edge_collection(ed_d_type), ed_delete)
-                    await self.delete_marked_update(change_id, tx)
-                    await tx.commit_transaction()
-                except ArangoError as ex:
-                    log.info(f"Could not perform update: {ex}")
-                    await tx.abort_transaction()
-                    raise ex
-
-            async def store_to_tmp_collection(temp: StandardCollection) -> None:
-                tmp = temp.name
-                ri = trafo_many(self.db.insert_many, tmp, resource_inserts, {"action": "node_insert"})
-                ru = trafo_many(self.db.insert_many, tmp, resource_updates, {"action": "node_update"})
-                rd = trafo_many(self.db.insert_many, tmp, resource_deletes, {"action": "node_delete"})
-                edge_i = [
-                    trafo_many(self.db.insert_many, tmp, inserts, {"action": "edge_insert", "edge_type": tpe})
-                    for tpe, inserts in edge_inserts.items()
-                ]
-                edge_u = [
-                    trafo_many(self.db.insert_many, tmp, deletes, {"action": "edge_delete", "edge_type": tpe})
-                    for tpe, deletes in edge_deletes.items()
-                ]
-                await asyncio.gather(*([ri, ru, rd] + edge_i + edge_u))
-
-            async def update_via_temp_collection() -> None:
-                temp = await self.get_tmp_collection(change_id)
-                try:
-                    await store_to_tmp_collection(temp)
-                    await self.move_temp_to_proper(change_id, temp.name)
-                finally:
-                    await self.db.delete_collection(temp.name)
-
-            async def update_batch() -> None:
-                temp_table = await self.get_tmp_collection(change_id)
-                await store_to_tmp_collection(temp_table)
-
-            if maybe_batch is not None:
-                await update_batch()
-            elif info.all_changes() < 100000:  # work around to not run into the 128MB tx limit
-                await update_directly()
-            else:
-                await update_via_temp_collection()
+            return await self.persist_update(change_id, is_batch, info, ris, rus, rds, edge_inserts, edge_deletes)
         except InvalidBatchUpdate as ex:
             raise ex
         except Exception as ex:
             await self.delete_marked_update(change_id)
             raise ex
+
+    async def persist_update(
+        self,
+        change_id: str,
+        is_batch: bool,
+        info: GraphUpdate,
+        resource_inserts: list[Json],
+        resource_updates: list[Json],
+        resource_deletes: list[Json],
+        edge_inserts: dict[str, list[Json]],
+        edge_deletes: dict[str, list[Json]],
+    ) -> GraphUpdate:
+        async def execute_many_async(async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json]) -> None:
+            if array:
+                result = await async_fn(name, array)
+                ex: Optional[Exception] = first(lambda x: isinstance(x, Exception), result)
+                if ex:
+                    raise ex  # pylint: disable=raising-bad-type
+
+        async def trafo_many(
+            async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], template: Json
+        ) -> None:
+            # update the array in place to not create another intermediate array
+            for idx, item in enumerate(array):
+                entry = template.copy()
+                entry["data"] = item
+                array[idx] = entry
+            await execute_many_async(async_fn, name, array)
+
+        async def update_directly() -> None:
+            edge_collections = [self.edge_collection(a) for a in EdgeType.allowed_edge_types]
+            tx = await self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress])
+            try:
+                # note: all requests are done sequentially on purpose
+                # https://www.arangodb.com/docs/stable/http/transaction-stream-transaction.html#concurrent-requests
+                await execute_many_async(self.db.insert_many, self.vertex_name, resource_inserts)
+                await execute_many_async(self.db.update_many, self.vertex_name, resource_updates)
+                await execute_many_async(self.db.delete_many, self.vertex_name, resource_deletes)
+                for ed_i_type, ed_insert in edge_inserts.items():
+                    await execute_many_async(self.db.insert_many, self.edge_collection(ed_i_type), ed_insert)
+                for ed_d_type, ed_delete in edge_deletes.items():
+                    await execute_many_async(self.db.delete_many, self.edge_collection(ed_d_type), ed_delete)
+                await self.delete_marked_update(change_id, tx)
+                await tx.commit_transaction()
+            except ArangoError as ex:
+                log.info(f"Could not perform update: {ex}")
+                await tx.abort_transaction()
+                raise ex
+
+        async def store_to_tmp_collection(temp: StandardCollection) -> None:
+            tmp = temp.name
+            ri = trafo_many(self.db.insert_many, tmp, resource_inserts, {"action": "node_insert"})
+            ru = trafo_many(self.db.insert_many, tmp, resource_updates, {"action": "node_update"})
+            rd = trafo_many(self.db.insert_many, tmp, resource_deletes, {"action": "node_delete"})
+            edge_i = [
+                trafo_many(self.db.insert_many, tmp, inserts, {"action": "edge_insert", "edge_type": tpe})
+                for tpe, inserts in edge_inserts.items()
+            ]
+            edge_u = [
+                trafo_many(self.db.insert_many, tmp, deletes, {"action": "edge_delete", "edge_type": tpe})
+                for tpe, deletes in edge_deletes.items()
+            ]
+            await asyncio.gather(*([ri, ru, rd] + edge_i + edge_u))
+
+        async def update_via_temp_collection() -> None:
+            temp = await self.get_tmp_collection(change_id)
+            try:
+                await store_to_tmp_collection(temp)
+                await self.move_temp_to_proper(change_id, temp.name)
+            finally:
+                await self.db.delete_collection(temp.name)
+
+        async def update_batch() -> None:
+            temp_table = await self.get_tmp_collection(change_id)
+            await store_to_tmp_collection(temp_table)
+
+        if is_batch:
+            await update_batch()
+        elif info.all_changes() < 100000:  # work around to not run into the 128MB tx limit
+            await update_directly()
+        else:
+            await update_via_temp_collection()
 
         return info
 
@@ -755,6 +839,10 @@ class ArangoGraphDB(GraphDB):
             await create_update_views(vertex)
         await self.insert_genesis_data()
 
+    @staticmethod
+    def db_edge_key(from_node: str, to_node: str) -> str:
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{from_node}:{to_node}"))
+
     def query_search_token(self) -> str:
         return f"""
         FOR doc IN search_{self.vertex_name}
@@ -786,6 +874,21 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN {collection}
         FILTER a.update_id==@update_id
+        RETURN {{_key: a._key, _from: a._from, _to: a._to}}
+        """
+
+    def query_update_nodes_by_ids(self) -> str:
+        return f"""
+        FOR a IN {self.vertex_name}
+        FILTER a._key IN @ids
+        RETURN {{_key: a._key, id:a.id, hash:a.hash}}
+        """
+
+    def query_update_edges_by_ids(self, edge_type: str) -> str:
+        collection = self.edge_collection(edge_type)
+        return f"""
+        FOR a IN {collection}
+        FILTER a._key in @ids
         RETURN {{_key: a._key, _from: a._from, _to: a._to}}
         """
 
@@ -905,6 +1008,10 @@ class EventGraphDB(GraphDB):
         else:
             await self.event_bus.emit_event(CoreEvent.SubGraphUpdated, even_data)
         return result
+
+    async def update_merge_graphs(self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None) -> GraphUpdate:
+        # TODO: emit event
+        return await self.real.update_merge_graphs(graph_to_merge, maybe_batch)
 
     async def list_in_progress_batch_updates(self) -> List[Json]:
         return await self.real.list_in_progress_batch_updates()

@@ -46,7 +46,7 @@ class GraphBuilder:
             item = js["data"] if coerced is None else coerced
             did = js["id"]  # this is the identifier in the json document
             kind = self.model[item]
-            merge = js.get("merge", None) == "true"
+            merge = js.get("merge", None) is True
             # create content hash
             sha = GraphBuilder.content_hash(item)
             # flat all properties into a single string for search
@@ -113,12 +113,18 @@ class GraphBuilder:
 
 
 class GraphAccess:
-    def __init__(self, sub: MultiDiGraph, maybe_root_id: Optional[str] = None):
+    def __init__(
+        self,
+        sub: MultiDiGraph,
+        maybe_root_id: Optional[str] = None,
+        visited_nodes: Optional[set[Any]] = None,
+        visited_edges: Optional[Set[Tuple[Any, Any, str]]] = None,
+    ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.visited_nodes: Set[object] = set()
-        self.visited_edges: Set[Tuple[object, object, str]] = set()
+        self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
+        self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
         self.edge_types: Set[str] = {edge[2] for edge in sub.edges(data="edge_type")}
         self.at = datetime.now(timezone.utc)
         self.at_json = jsons.dump(self.at)
@@ -180,7 +186,9 @@ class GraphAccess:
         return roots[0]
 
     @staticmethod
-    def merge_graphs(graph: DiGraph):
+    def merge_graphs(
+        graph: DiGraph,
+    ) -> Tuple[dict[str, set[str]], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
         def merge_roots() -> dict[str, set[str]]:
             graph_root = GraphAccess.root_id(graph)
             merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
@@ -205,23 +213,24 @@ class GraphAccess:
                 visited = visited.union(to_visit)
             return visited
 
-        def merge_parent(merge_roots: dict[str, set[str]]) -> GraphAccess:
-            all_parents: set[str] = reduce(lambda res, ps: res | ps, merge_roots.values(), set())
-            return GraphAccess(graph.subgraph(all_parents), GraphAccess.root_id(graph))
-
-        def merge_sub_graphs(merge_roots: dict[str, set[str]]) -> Generator[Tuple[str, GraphAccess], None, None]:
+        def merge_sub_graphs(
+            roots: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[Tuple[str, str, str]]
+        ) -> Generator[Tuple[str, GraphAccess], None, None]:
             all_successors: Set[str] = set()
-            for root, predecessors in merge_roots.items():
+            for root, predecessors in roots.items():
                 successors: set[str] = sub_graph_nodes(root, predecessors)
                 # make sure nodes are not "mixed" between different merge nodes
                 overlap = successors & all_successors
                 if overlap:
                     raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
                 all_successors |= successors
-                sub = GraphAccess(graph.subgraph(successors), root)
+                # create subgraph with all successors and all parents, where all parents are already marked as visited
+                sub = GraphAccess(graph.subgraph(successors | parent_nodes), root, parent_nodes, parent_edges)
                 yield root, sub
 
-        merge_roots = merge_roots()
-        parent = merge_parent(merge_roots)
-        graphs = merge_sub_graphs(merge_roots)
-        return merge_roots, parent, graphs
+        roots = merge_roots()
+        parents: set[str] = reduce(lambda res, ps: res | ps, roots.values(), set())
+        parent_graph = graph.subgraph(parents)
+        parent_edges = set(parent_graph.edges(data="edge_type"))
+        graphs = merge_sub_graphs(roots, parents, parent_edges)
+        return roots, GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs

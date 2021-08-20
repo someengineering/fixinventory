@@ -77,6 +77,7 @@ class Api:
                 web.delete("/graph/{graph_id}", self.wipe),
                 # Reported section of the graph
                 web.get("/graph/{graph_id}/reported/search", self.search_graph),
+                web.post("/graph/{graph_id}/reported/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}", self.create_node),
                 web.get("/graph/{graph_id}/reported/node/{node_id}", partial(self.get_node, r)),
                 web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r, r)),
@@ -279,6 +280,14 @@ class Api:
         graph = await self.db.create_graph(graph_id)
         root = await graph.get_node("root", "reported")
         return web.json_response(root)
+
+    async def merge_graph(self, request: Request) -> StreamResponse:
+        log.info("Received merge_graph request")
+        md = await self.model_handler.load_model()
+        graph = await self.read_graph(request, md)
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        info = await graph_db.update_merge_graphs(graph)
+        return web.json_response(to_js(info))
 
     async def update_sub_graph(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph request")

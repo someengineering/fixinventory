@@ -180,12 +180,13 @@ def test_sub_graphs_from_graph_collector() -> None:
         assert len(merges[root]) == 2
         assert len(parent.nodes) == 3
         assert succ.root().startswith("account")
-        assert len(succ.nodes) == 79
+        assert len(list(succ.not_visited_nodes())) == 79
+        assert len(succ.nodes) == 82
         # make sure there is no node from another subgraph
-        for node_id in succ.nodes:
-            assert succ.root() in node_id
-        assert len(list(succ.not_visited_edges(EdgeType.default))) == 78
-        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 78
+        for node_id in succ.not_visited_nodes():
+            assert succ.root() in node_id[0]
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 79
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 79
 
 
 def test_sub_graphs_from_graph_account() -> None:
@@ -197,12 +198,13 @@ def test_sub_graphs_from_graph_account() -> None:
         assert len(merges[root]) == 3
         assert len(parent.nodes) == 9  # root + collector + account
         assert succ.root().startswith("region")
-        assert len(succ.nodes) == 13
+        assert len(list(succ.not_visited_nodes())) == 13
+        assert len(succ.nodes) == 22
         # make sure there is no node from another subgraph
-        for node_id in succ.nodes:
-            assert succ.root() in node_id
-        assert len(list(succ.not_visited_edges(EdgeType.default))) == 12
-        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 12
+        for node_id in succ.not_visited_nodes():
+            assert succ.root() in node_id[0]
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 13
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 13
 
 
 def test_sub_graphs_with_cycle() -> None:

@@ -270,19 +270,24 @@ by_idx = {
 }
 
 
-def node(level, identity):
+def node(level, identity, merge: bool = False):
     idjs = {"name": f"name: {identity} at level: {level}", "label": f"{identity}:{level}"}
     num = randint(0, 100) if wild else level
     data = by_idx[num % len(by_idx)] | idjs
-    print(json.dumps({"id": identity, "data": data}))
+    js = {"id": identity, "data": data}
+    js = js | {"merge": True} if merge else js
+    print(json.dumps(js))
 
 
 def edge(from_node, to_node, edge_type):
     print(json.dumps({"from": from_node, "to": to_node, "edge_type": edge_type}))
 
-
+root = f"root"
 collector_root = f"{collector}_root"
-node(0, collector_root)
+node(0, root)
+node(0, collector_root, merge=True)
+edge(root, collector_root, "dependency")
+
 for o in range(0, depth):
     oid = f"{collector}_{o}"
     node(o, oid)

@@ -17,7 +17,7 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus, Message
-from core.model.graph_access import GraphAccess
+from core.model.graph_access import GraphAccess, EdgeType
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
@@ -80,17 +80,69 @@ class Bla(BaseResource):
         return "bla"
 
 
-def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
+def create_graph(bla_text: str, with_merge: bool = False, width: int = 10) -> MultiDiGraph:
     graph = MultiDiGraph()
+
+    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.dependency) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+
     graph.add_node("sub_root", data=to_json(Foo("sub_root")))
+
+    # root -> collector -> sub_root -> **rest
+    if with_merge:
+        graph.add_node("root", data=to_json(Foo("root")))
+        graph.add_node("collector", data=to_json(Foo("root")), merge=True)
+        add_edge("root", "collector")
+        add_edge("collector", "sub_root")
+
     for o in range(0, width):
         oid = str(o)
         graph.add_node(oid, data=to_json(Foo(oid)))
-        graph.add_edge("sub_root", oid, GraphAccess.edge_key("sub_root", oid, "dependency"), edge_type="dependency")
+        add_edge("sub_root", oid)
         for i in range(0, width):
             iid = f"{o}_{i}"
             graph.add_node(iid, data=to_json(Bla(iid, name=bla_text)))
-            graph.add_edge(oid, iid, GraphAccess.edge_key(oid, iid, "dependency"), edge_type="dependency")
+            add_edge(oid, iid)
+    return graph
+
+
+def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
+    graph = MultiDiGraph()
+
+    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.dependency) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+
+    def add_node(node_id: str, merge: bool = False) -> str:
+        graph.add_node(node_id, data=to_json(Foo(node_id)), merge=merge)
+        return node_id
+
+    root = add_node("root")
+    for collector_num in range(0, 2):
+        collector = add_node(f"collector_{collector_num}")
+        add_edge(root, collector)
+        for account_num in range(0, 2):
+            aid = f"{collector_num}:{account_num}"
+            account = add_node(f"account_{aid}", merge=True)
+            add_edge(collector, account)
+            add_edge(account, collector, EdgeType.delete)
+            for region_num in range(0, 2):
+                rid = f"{aid}:{region_num}"
+                region = add_node(f"region_{rid}")
+                add_edge(account, region)
+                add_edge(region, account, EdgeType.delete)
+                for parent_num in range(0, width):
+                    pid = f"{rid}:{parent_num}"
+                    parent = add_node(f"parent_{pid}")
+                    add_edge(region, parent)
+                    add_edge(parent, region, EdgeType.delete)
+                    for child_num in range(0, width):
+                        cid = f"{pid}:{child_num}"
+                        child = add_node(f"child_{cid}")
+                        add_edge(parent, child)
+                        add_edge(child, parent, EdgeType.delete)
+
     return graph
 
 
@@ -208,11 +260,49 @@ async def test_update_sub_graph(graph_db: ArangoGraphDB, foo_model: Model) -> No
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
     assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(0, 100, 0, 0, 0, 0)
     # the width of the graph is reduced: expect nodes and edges to be removed
-    assert await graph_db.update_sub_graph(md, create_graph("maybe", 5), "root") == GraphUpdate(0, 0, 80, 0, 0, 80)
+    assert await graph_db.update_sub_graph(md, create_graph("maybe", width=5), "root") == GraphUpdate(
+        0, 0, 80, 0, 0, 80
+    )
     # going back to the previous graph: the same amount of nodes and edges is inserted
     assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(80, 0, 0, 80, 0, 0)
     # updating with the same data again, does not perform any changes
     assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(0, 0, 0, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_merge_graph(graph_db: ArangoGraphDB) -> None:
+    await graph_db.wipe()
+
+    def create(txt: str, width: int = 10) -> MultiDiGraph:
+        return create_graph(txt, with_merge=True, width=width)
+
+    # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
+    assert await graph_db.update_merge_graphs(create("yes or no")) == GraphUpdate(112, 1, 0, 112, 0, 0)
+    # exactly the same graph is updated: expect no changes
+    assert await graph_db.update_merge_graphs(create("yes or no")) == GraphUpdate(0, 0, 0, 0, 0, 0)
+    # all bla entries have different content: expect 100 node updates, but no inserts or deletions
+    assert await graph_db.update_merge_graphs(create("maybe")) == GraphUpdate(0, 100, 0, 0, 0, 0)
+    # the width of the graph is reduced: expect nodes and edges to be removed
+    assert await graph_db.update_merge_graphs(create("maybe", width=5)) == GraphUpdate(0, 0, 80, 0, 0, 80)
+    # going back to the previous graph: the same amount of nodes and edges is inserted
+    assert await graph_db.update_merge_graphs(create("maybe")) == GraphUpdate(80, 0, 0, 80, 0, 0)
+    # updating with the same data again, does not perform any changes
+    assert await graph_db.update_merge_graphs(create("maybe")) == GraphUpdate(0, 0, 0, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_merge_multi_graph(graph_db: ArangoGraphDB) -> None:
+    await graph_db.wipe()
+
+    graph = create_multi_collector_graph()
+    # nodes:
+    # 2 collectors + 4 accounts + 8 regions + 24 parents + 72 children => 110 nodes to insert
+    # 1 root which changes => 1 node to update
+    # edges:
+    # 110 dependency, 108 delete connections (missing: collector -> root) => 218 edge inserts
+    assert await graph_db.update_merge_graphs(graph) == GraphUpdate(110, 1, 0, 218, 0, 0)
+    # doing the same thing again should do nothing
+    assert await graph_db.update_merge_graphs(graph) == GraphUpdate(0, 0, 0, 0, 0, 0)
 
 
 @pytest.mark.asyncio
