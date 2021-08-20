@@ -106,15 +106,18 @@ def model_name(clazz: type) -> str:
         return "any"
 
 
-# define if a field should be exported or not. Use python default: hide props starting with underscore.
+# define if a field should be exported or not.
+# Use python default: hide props starting with underscore.
 def should_export(field: Field) -> bool:
     return not field.name.startswith("_")
 
 
 def dataclasses_to_keepercore_model(classes: Set[type]) -> List[Json]:
     """
-    Analyze all transitive dataclasses and create the model definition as understood by keepercore.
-    A plain python dataclass defines the model structure and should be used to create json in the same format.
+    Analyze all transitive dataclasses and create the model
+    definition as understood by keepercore.
+    A plain python dataclass defines the model structure and
+    should be used to create json in the same format.
 
     :param classes: all dataclasses to analyze.
     :return: the model definition in the keepercore json format.
