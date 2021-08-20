@@ -180,43 +180,48 @@ class GraphAccess:
         return roots[0]
 
     @staticmethod
-    def merge_sub_graph_roots(graph: DiGraph) -> list[str]:
-        graph_root = GraphAccess.root_id(graph)
-        merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
-        result = []
-        for node in merge_nodes:
-            # compute the shortest path from root to here and sort out all successors that are also predecessors
-            predecessors = reduce(lambda res, path: res | set(path), all_shortest_paths(graph, graph_root, node), set())
-            result += [a for a in graph.successors(node) if a not in predecessors]
-        return result
+    def merge_graphs(graph: DiGraph):
+        def merge_roots() -> dict[str, set[str]]:
+            graph_root = GraphAccess.root_id(graph)
+            merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
+            result: dict[str, set[str]] = {}
+            for node in merge_nodes:
+                # compute the shortest path from root to here and sort out all successors that are also predecessors
+                pres: set[str] = reduce(lambda res, p: res | set(p), all_shortest_paths(graph, graph_root, node), set())
+                for a in graph.successors(node):
+                    if a not in pres:
+                        result[a] = pres
+            return result
 
-    @staticmethod
-    def sub_graph(graph: DiGraph, from_node: str, parents: set[str]) -> set[str]:
-        to_visit = [from_node]
-        visited: set[str] = {from_node}
+        def sub_graph_nodes(from_node: str, parents: set[str]) -> set[str]:
+            to_visit = [from_node]
+            visited: set[str] = {from_node}
 
-        def succ(node) -> list[str]:
-            return [a for a in graph.successors(node) if a not in visited and a not in parents]
+            def succ(node: str) -> list[str]:
+                return [a for a in graph.successors(node) if a not in visited and a not in parents]
 
-        while to_visit:
-            to_visit = reduce(lambda li, node: li + succ(node), to_visit, [])
-            visited = visited.union(to_visit)
-        return visited
+            while to_visit:
+                to_visit = reduce(lambda li, node: li + succ(node), to_visit, [])
+                visited = visited.union(to_visit)
+            return visited
 
-    @staticmethod
-    def access_from_roots(
-        graph: DiGraph, roots: list[str]
-    ) -> Generator[Tuple[str, GraphAccess, GraphAccess], None, None]:
-        all_successors: Set[str] = set()
-        graph_root = GraphAccess.root_id(graph)
-        for root in roots:
-            predecessors = reduce(lambda res, path: res | set(path), all_shortest_paths(graph, graph_root, root), set())
-            successors: set[str] = GraphAccess.sub_graph(graph, root, predecessors)
-            # make sure nodes are not "mixed" between different merge nodes
-            overlap = successors & all_successors
-            if overlap:
-                raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
-            all_successors |= successors
-            pre = GraphAccess(graph.subgraph(predecessors | {root}))
-            sub = GraphAccess(graph.subgraph(successors), root)
-            yield root, pre, sub
+        def merge_parent(merge_roots: dict[str, set[str]]) -> GraphAccess:
+            all_parents: set[str] = reduce(lambda res, ps: res | ps, merge_roots.values(), set())
+            return GraphAccess(graph.subgraph(all_parents), GraphAccess.root_id(graph))
+
+        def merge_sub_graphs(merge_roots: dict[str, set[str]]) -> Generator[Tuple[str, GraphAccess], None, None]:
+            all_successors: Set[str] = set()
+            for root, predecessors in merge_roots.items():
+                successors: set[str] = sub_graph_nodes(root, predecessors)
+                # make sure nodes are not "mixed" between different merge nodes
+                overlap = successors & all_successors
+                if overlap:
+                    raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
+                all_successors |= successors
+                sub = GraphAccess(graph.subgraph(successors), root)
+                yield root, sub
+
+        merge_roots = merge_roots()
+        parent = merge_parent(merge_roots)
+        graphs = merge_sub_graphs(merge_roots)
+        return merge_roots, parent, graphs
