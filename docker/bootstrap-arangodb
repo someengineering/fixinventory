@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+. /usr/local/etc/cloudkeeper/defaults
+. /usr/local/etc/cloudkeeper/common
+
+is_up=false
+
+while [ $is_up = false ]; do
+    echo "Waiting for ArangoDB to start up"
+    sleep 1
+    if arangosh \
+        --console.history false \
+        --server.password "$ARANGODB_ROOT_PASSWORD" \
+        --javascript.execute-string "db._version()" > /dev/null 2>&1
+    then
+        is_up=true
+    fi
+done
+
+echo "Creating $KEEPERCORE_ARANGODB_LOGIN user and $KEEPERCORE_ARANGODB_DATABASE database"
+cat <<EOF | arangosh --console.history false --server.password "$ARANGODB_ROOT_PASSWORD" > /dev/null 2>&1
+const users = require('@arangodb/users');
+users.save('$KEEPERCORE_ARANGODB_LOGIN', '$KEEPERCORE_ARANGODB_PASSWORD');
+db._createDatabase('$KEEPERCORE_ARANGODB_DATABASE');
+users.grantDatabase('$KEEPERCORE_ARANGODB_LOGIN', '$KEEPERCORE_ARANGODB_DATABASE', 'rw');
+EOF
