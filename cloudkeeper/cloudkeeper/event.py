@@ -1,12 +1,15 @@
 import os
 import threading
 import time
+import websocket
+import requests
+import json
 import cloudkeeper.logging
 from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Iterable
+from typing import Callable, Dict, Iterable, Set
 from enum import Enum
 
 log = cloudkeeper.logging.getLogger(__name__)
@@ -198,18 +201,84 @@ def add_args(arg_parser: ArgumentParser) -> None:
 
 
 class KeepercoreEvents(threading.Thread):
-    def __init__(self, keepercore_uri: str) -> None:
+    def __init__(
+        self, identifier: str, keepercore_uri: str, keepercore_ws_uri: str, events: Set
+    ) -> None:
         super().__init__()
+        self.identifier = identifier
         self.keepercore_uri = keepercore_uri
+        self.keepercore_ws_uri = keepercore_ws_uri
+        self.events = events
+        self.ws = None
+
+    def __del__(self):
+        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def run(self) -> None:
+        add_event_listener(EventType.SHUTDOWN, self.shutdown)
         try:
             self.go()
         except Exception:
-            log.exception(f"Caught unhandled plugin exception in {self.name}")
+            log.exception(f"Caught unhandled events exception in {self.name}")
 
     def go(self):
-        pass
+        for event in self.events:
+            self.register(event)
 
-    def connect(self) -> bool:
-        pass
+        ws_uri = f"{self.keepercore_ws_uri}/subscription/{self.identifier}/handle"
+        log.debug(f"{self.identifier} connecting to {ws_uri}")
+        self.ws = websocket.WebSocketApp(
+            ws_uri,
+            on_open=self.on_open,
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+        )
+        self.ws.run_forever()
+
+    def shutdown(self) -> None:
+        if self.ws:
+            self.ws.close()
+        for event in self.events:
+            self.unregister(event)
+
+    def register(self, event: str) -> bool:
+        log.debug(f"{self.identifier} registering for {event} events")
+        return self.registration(event, requests.post)
+
+    def unregister(self, event: str) -> bool:
+        log.debug(f"{self.identifier} unregistering from {event} events")
+        return self.registration(event, requests.delete)
+
+    def registration(self, event: str, client: Callable) -> bool:
+        url = f"{self.keepercore_uri}/subscription/{self.identifier}/{event}"
+        r = client(url, data="", headers={"accept": "application/json"})
+        if r.status_code != 200:
+            log.error(r.content)
+            return False
+        return True
+
+    def dispatch_event(self, message: Dict) -> bool:
+        if self.ws is None:
+            return False
+        ws = websocket.create_connection(f"{self.keepercore_ws_uri}/events")
+        ws.send(json.dumps(message))
+        ws.close()
+        return True
+
+    def on_message(self, ws, message):
+        try:
+            message = json.loads(message)
+        except json.JSONDecodeError:
+            log.exception(f"Unable to decode received message {message}")
+        else:
+            log.debug(f"{self.identifier} received: {message}")
+
+    def on_error(self, ws, error):
+        log.error(f"{self.identifier} {error}")
+
+    def on_close(self, ws, close_status_code, close_msg):
+        log.debug(f"{self.identifier} disconnected: {close_msg}")
+
+    def on_open(self, ws):
+        log.debug(f"{self.identifier} connected")

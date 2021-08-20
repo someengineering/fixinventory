@@ -192,6 +192,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         required=True,
     )
     arg_parser.add_argument(
+        "--keepercore-ws-uri",
+        help="Keepercore Websocket URI",
+        default=None,
+        dest="keepercore_ws_uri",
+        required=True,
+    )
+    arg_parser.add_argument(
         "--keepercore-graph",
         help="Keepercore graph name",
         default="ck",
