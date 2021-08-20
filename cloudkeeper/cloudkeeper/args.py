@@ -1,7 +1,6 @@
 import os
 import ast
 import argparse
-from typing import Tuple
 
 ENV_ARGS_PREFIX = "CLOUDKEEPER_"
 
@@ -17,9 +16,7 @@ class ArgumentParser(argparse.ArgumentParser):
     # attribute.
     args = Namespace()
 
-    def parse_known_args(
-        self, args=None, namespace=None
-    ) -> Tuple[Namespace, list[str]]:
+    def parse_known_args(self, args=None, namespace=None):
         for action in self._actions:
             env_name = None
             for option_string in action.option_strings:
