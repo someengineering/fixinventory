@@ -236,11 +236,15 @@ class KeepercoreEvents(threading.Thread):
         )
         self.ws.run_forever()
 
-    def shutdown(self) -> None:
+    def shutdown(self, event: Event) -> None:
+        log.debug(
+            f"Received event {event.event_type}"
+            " - shutting down keepercore event bus listener"
+        )
         if self.ws:
             self.ws.close()
-        for event in self.events:
-            self.unregister(event)
+        for core_event in self.events:
+            self.unregister(core_event)
 
     def register(self, event: str) -> bool:
         log.debug(f"{self.identifier} registering for {event} events")
