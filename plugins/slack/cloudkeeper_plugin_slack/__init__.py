@@ -229,7 +229,7 @@ class SlackBotPlugin(BasePlugin):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):
-        if not ArgumentParser.args.slack_bot_token:
+        if not hasattr(ArgumentParser.args, "slack_bot_token"):
             return
 
         self.exit.wait()
