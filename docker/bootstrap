@@ -15,7 +15,8 @@ main() {
     else
         setup_syslog
         setup_supervisor_http_server
-        setup_arangodb
+        setup_graphdb
+        setup_tsdb
         setup_keepercore
         setup_collectord
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
@@ -30,9 +31,15 @@ apply_permissions() {
     #usermod -u "${PUID}" -o -g cloudkeeper cloudkeeper
     sed -i -E "s/^(cloudkeeper:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
+    mkdir -p \
+        "$TSDB_DATABASE_DIRECTORY" \
+        "$GRAPHDB_DATABASE_DIRECTORY"
+
     chown -R cloudkeeper:cloudkeeper \
         /home/cloudkeeper \
-        /var/run/cloudkeeper
+        /var/run/cloudkeeper \
+        "$TSDB_DATABASE_DIRECTORY" \
+        "$GRAPHDB_DATABASE_DIRECTORY"
     chgrp cloudkeeper /usr/local/etc/supervisord.conf
 }
 
@@ -101,22 +108,36 @@ EOF
     fi
 }
 
-setup_arangodb() {
-    rm -f "$supervisor_arangodb_conf"
-    if [ "$START_ARANGODB" = true ]; then
-        sed -e "s#@ARANGODB_SERVER_ENDPOINT@#$ARANGODB_SERVER_ENDPOINT#" \
-            -e "s#@ARANGODB_ROOT_PASSWORD@#$ARANGODB_ROOT_PASSWORD#" \
-            "$supervisor_arangodb_conf_in" > "$supervisor_arangodb_conf"
+setup_graphdb() {
+    rm -f "$supervisor_graphdb_conf"
+    if [ "$START_GRAPHDB" = true ]; then
+        info "Graph database activated"
+        sed -e "s#@GRAPHDB_SERVER_ENDPOINT@#$GRAPHDB_SERVER_ENDPOINT#" \
+            -e "s#@GRAPHDB_ROOT_PASSWORD@#$GRAPHDB_ROOT_PASSWORD#" \
+            -e "s#@GRAPHDB_DATABASE_DIRECTORY@#$GRAPHDB_DATABASE_DIRECTORY#" \
+            "$supervisor_graphdb_conf_in" > "$supervisor_graphdb_conf"
+    fi
+}
+
+setup_tsdb() {
+    rm -f "$supervisor_tsdb_conf"
+    if [ "$START_TSDB" = true ]; then
+        info "Time series database activated"
+        sed -e "s#@TSDB_DATABASE_DIRECTORY@#$TSDB_DATABASE_DIRECTORY#" \
+            -e "s#@TSDB_CONFIG_FILE@#$TSDB_CONFIG_FILE#" \
+            -e "s#@TSDB_RETENTION_TIME@#$TSDB_RETENTION_TIME#" \
+            "$supervisor_tsdb_conf_in" > "$supervisor_tsdb_conf"
     fi
 }
 
 setup_keepercore() {
     rm -f "$supervisor_keepercore_conf"
     if [ "$START_KEEPERCORE" = true ]; then
-        sed -e "s#@KEEPERCORE_ARANGODB_SERVER@#$KEEPERCORE_ARANGODB_SERVER#" \
-            -e "s#@KEEPERCORE_ARANGODB_DATABASE@#$KEEPERCORE_ARANGODB_DATABASE#" \
-            -e "s#@KEEPERCORE_ARANGODB_LOGIN@#$KEEPERCORE_ARANGODB_LOGIN#" \
-            -e "s#@KEEPERCORE_ARANGODB_PASSWORD@#$KEEPERCORE_ARANGODB_PASSWORD#" \
+        info "Keepercore activated"
+        sed -e "s#@KEEPERCORE_GRAPHDB_SERVER@#$KEEPERCORE_GRAPHDB_SERVER#" \
+            -e "s#@KEEPERCORE_GRAPHDB_DATABASE@#$KEEPERCORE_GRAPHDB_DATABASE#" \
+            -e "s#@KEEPERCORE_GRAPHDB_LOGIN@#$KEEPERCORE_GRAPHDB_LOGIN#" \
+            -e "s#@KEEPERCORE_GRAPHDB_PASSWORD@#$KEEPERCORE_GRAPHDB_PASSWORD#" \
             "$supervisor_keepercore_conf_in" > "$supervisor_keepercore_conf"
     fi
 }
@@ -124,6 +145,7 @@ setup_keepercore() {
 setup_collectord() {
     rm -f "$supervisor_collectord_conf"
     if [ "$START_COLLECTORD" = true ]; then
+        info "Collectord activated"
         sed -e "s#@COLLECTORD_KEEPERCORE_URI@#$COLLECTORD_KEEPERCORE_URI#" \
             "$supervisor_collectord_conf_in" > "$supervisor_collectord_conf"
     fi
