@@ -142,10 +142,8 @@ def shutdown(event: Event) -> None:
     if reason is None:
         reason = "unknown reason"
     log.info(
-        (
-            f"Received shut down event {event.event_type}:"
-            f" {reason} - killing all threads and child processes"
-        )
+        f"Received shut down event {event.event_type}:"
+        f" {reason} - killing all threads and child processes"
     )
     # Send 'friendly' signal to children to have them shut down
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
@@ -158,10 +156,8 @@ def force_shutdown(delay: int = 10) -> None:
     time.sleep(delay)
     log_stats()
     log.error(
-        (
-            "Some child process or thread timed out during shutdown"
-            " - forcing shutdown completion"
-        )
+        "Some child process or thread timed out during shutdown"
+        " - forcing shutdown completion"
     )
     os._exit(0)
 

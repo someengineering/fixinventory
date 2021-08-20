@@ -99,18 +99,14 @@ def collect_plugin_graph(
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
             log.error(
-                (
-                    f"Plugin {collector.cloud} did not finish collection"
-                    " - ignoring plugin results"
-                )
+                f"Plugin {collector.cloud} did not finish collection"
+                " - ignoring plugin results"
             )
             return
         if not is_directed_acyclic_graph(collector.graph):
             log.error(
-                (
-                    f"Graph of plugin {collector.cloud} is not acyclic"
-                    " - ignoring plugin results"
-                )
+                f"Graph of plugin {collector.cloud} is not acyclic"
+                " - ignoring plugin results"
             )
             return
         log.info(f"Collector of plugin {collector.cloud} finished")

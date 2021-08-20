@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 import cloudkeeper.logging
 from cloudkeeper.utils import RWLock
@@ -64,10 +65,8 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event"""
     waiting_str = "" if blocking else "not "
     log.debug(
-        (
-            f"Dispatching event {event.event_type.name} and {waiting_str}waiting for"
-            " listeners to return"
-        )
+        f"Dispatching event {event.event_type.name} and {waiting_str}waiting for"
+        " listeners to return"
     )
 
     if event.event_type not in _events.keys():
@@ -88,18 +87,14 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
                 blocking=False
             ):
                 log.error(
-                    (
-                        f"Not calling one-shot listener {listener} of type"
-                        f" {type(listener)} - can't acquire lock"
-                    )
+                    f"Not calling one-shot listener {listener} of type"
+                    f" {type(listener)} - can't acquire lock"
                 )
                 continue
 
             log.debug(
-                (
-                    f"Calling listener {listener} of type {type(listener)}"
-                    f" (blocking: {listener_data['blocking']})"
-                )
+                f"Calling listener {listener} of type {type(listener)}"
+                f" (blocking: {listener_data['blocking']})"
             )
             thread_name = (
                 f"{event.event_type.name.lower()}_event"
@@ -114,10 +109,8 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
         finally:
             if listener_data["one-shot"]:
                 log.debug(
-                    (
-                        f"One-shot specified for event {event.event_type.name} "
-                        f"listener {listener} - removing event listener"
-                    )
+                    f"One-shot specified for event {event.event_type.name} "
+                    f"listener {listener} - removing event listener"
                 )
                 remove_event_listener(event.event_type, listener)
                 listener_data["lock"].release()
@@ -146,10 +139,8 @@ def add_event_listener(
     """Add an Event Listener"""
     if not callable(listener):
         log.error(
-            (
-                f"Error registering {listener} of type {type(listener)} with event"
-                f" {event_type.name}"
-            )
+            f"Error registering {listener} of type {type(listener)} with event"
+            f" {event_type.name}"
         )
         return False
 
@@ -157,10 +148,8 @@ def add_event_listener(
         timeout = ArgumentParser.args.event_timeout
 
     log.debug(
-        (
-            f"Registering {listener} with event {event_type.name}"
-            f" (blocking: {blocking}, one-shot: {one_shot})"
-        )
+        f"Registering {listener} with event {event_type.name}"
+        f" (blocking: {blocking}, one-shot: {one_shot})"
     )
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
@@ -206,3 +195,21 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="event_timeout",
         type=int,
     )
+
+
+class KeepercoreEvents(threading.Thread):
+    def __init__(self, keepercore_uri: str) -> None:
+        super().__init__()
+        self.keepercore_uri = keepercore_uri
+
+    def run(self) -> None:
+        try:
+            self.go()
+        except Exception:
+            log.exception(f"Caught unhandled plugin exception in {self.name}")
+
+    def go(self):
+        pass
+
+    def connect(self) -> bool:
+        pass

@@ -399,14 +399,12 @@ def log_stats(graph=None, garbage_collector_stats: bool = False) -> None:
     stats = get_stats(graph)
     try:
         log.debug(
-            (
-                f"Stats: max rss parent: {stats['maxrss_parent_human_readable']},"
-                f" children: {stats['maxrss_children_human_readable']},"
-                f" fds: {stats['num_fds_total']}/"
-                f"{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]}"
-                f" active threads {stats['active_threads']}:"
-                f" {', '.join([thread for thread in stats['thread_names']])}"
-            )
+            f"Stats: max rss parent: {stats['maxrss_parent_human_readable']},"
+            f" children: {stats['maxrss_children_human_readable']},"
+            f" fds: {stats['num_fds_total']}/"
+            f"{stats['process'].get('parent', {}).get('rlimit_nofile', [0])[0]}"
+            f" active threads {stats['active_threads']}:"
+            f" {', '.join([thread for thread in stats['thread_names']])}"
         )
         if graph:
             log.debug(f"Graph Stats: {stats['graph_size_human_readable']}")

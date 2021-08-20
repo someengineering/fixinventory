@@ -25,10 +25,8 @@ class ParallelTagger:
             pt_key = uuid.uuid4().hex
 
         log.debug(
-            (
-                f"Queuing parallel tag update of {key}: {value} for {resource.dname}"
-                f" with pt_key {pt_key}"
-            )
+            f"Queuing parallel tag update of {key}: {value} for {resource.dname}"
+            f" with pt_key {pt_key}"
         )
         self._tag_lists[pt_key].append(
             {"resource": resource, "key": key, "value": value}
@@ -44,9 +42,7 @@ class ParallelTagger:
     def tag(self, tag_list: List):
         for tag_info in tag_list:
             log.debug(
-                (
-                    f"Setting {tag_info['key']}: {tag_info['value']} for"
-                    f" {tag_info['resource']}"
-                )
+                f"Setting {tag_info['key']}: {tag_info['value']} for"
+                f" {tag_info['resource']}"
             )
             tag_info["resource"].tags[tag_info["key"]] = tag_info["value"]

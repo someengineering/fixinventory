@@ -59,11 +59,9 @@ class Scheduler(threading.Thread):
         if str(command).startswith(self._event_prefixes):
             event, cmd = command.split(":", 1)
             log.debug(
-                (
-                    f"Scheduling to register command '{cmd}' for event {event} at"
-                    f" minute={minute}, hour={hour}, day={day}, month={month},"
-                    f" day_of_week={day_of_week}"
-                )
+                f"Scheduling to register command '{cmd}' for event {event} at"
+                f" minute={minute}, hour={hour}, day={day}, month={month},"
+                f" day_of_week={day_of_week}"
             )
             job = self._sched.add_job(
                 register_cli_action,
