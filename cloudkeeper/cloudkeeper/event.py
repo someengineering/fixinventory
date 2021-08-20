@@ -9,7 +9,7 @@ from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Dict, Iterable, Set, Optional
+from typing import Callable, Dict, Iterable, Optional
 from enum import Enum
 
 log = cloudkeeper.logging.getLogger(__name__)
