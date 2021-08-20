@@ -68,10 +68,8 @@ class Processor(threading.Thread):
 
             elapsed = int(time.time() - time_run_start)
             log.info(
-                (
-                    f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in"
-                    f" {elapsed} seconds"
-                )
+                f"Done run {num_run} with {len(self.gc.graph.nodes)} nodes in"
+                f" {elapsed} seconds"
             )
             log_stats(garbage_collector_stats=True)
 
@@ -132,18 +130,14 @@ class Processor(threading.Thread):
             if not plugin.is_alive():  # The plugin has finished its work
                 if not plugin.finished:
                     log.error(
-                        (
-                            f"Plugin {plugin.cloud} did not finish collection"
-                            " - ignoring plugin results"
-                        )
+                        f"Plugin {plugin.cloud} did not finish collection"
+                        " - ignoring plugin results"
                     )
                     continue
                 if not is_directed_acyclic_graph(plugin.graph):
                     log.error(
-                        (
-                            f"Graph of plugin {plugin.cloud} is not acyclic"
-                            " - ignoring plugin results"
-                        )
+                        f"Graph of plugin {plugin.cloud} is not acyclic"
+                        " - ignoring plugin results"
                     )
                     continue
                 log.info(f"Collector of plugin {plugin.cloud} finished")

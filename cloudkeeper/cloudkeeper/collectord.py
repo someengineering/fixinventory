@@ -1,14 +1,16 @@
+from functools import partial
 import time
 import os
 import threading
 import multiprocessing
+import websocket
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
 import requests
 import json
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
-from typing import List, Optional
+from typing import List, Optional, Dict
 from cloudkeeper.graph import GraphContainer, Graph, sanitize
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
@@ -19,6 +21,7 @@ from cloudkeeper.event import (
     add_event_listener,
     Event,
     EventType,
+    KeepercoreEvents,
     add_args as event_add_args,
 )
 
@@ -27,6 +30,7 @@ log = logging.getLogger(__name__)
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
+collect_event = threading.Event()
 
 
 def main() -> None:
@@ -68,9 +72,22 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    graph_container = GraphContainer(cache_graph=False)
     all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
-    collect(graph_container.graph, all_collector_plugins)
+    message_processor = partial(keepercore_message_processor, all_collector_plugins)
+
+    ke = KeepercoreEvents(
+        identifier="collectord",
+        keepercore_uri=ArgumentParser.args.keepercore_uri,
+        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        events={
+            "collect": {
+                "timeout": ArgumentParser.args.timeout,
+                "wait_for_completion": True,
+            }
+        },
+        message_processor=message_processor,
+    )
+    ke.start()
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
@@ -81,6 +98,34 @@ def main() -> None:
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     quit()
+
+
+def keepercore_message_processor(
+    collectors: List[BaseCollectorPlugin], ws: websocket.WebSocketApp, message: Dict
+) -> None:
+    if not isinstance(ws, websocket.WebSocketApp):
+        log.error(f"Invalid websocket: {ws}")
+        return
+    if not isinstance(message, dict):
+        log.error(f"Invalid message: {message}")
+        return
+    kind = message.get("kind")
+    message_type = message.get("message_type")
+    data = message.get("data")
+    if kind == "action" and message_type == "collect":
+        try:
+            collect(collectors)
+        except Exception as e:
+            log.exception(f"Failed to collect: {e}")
+            reply_kind = "action_error"
+        else:
+            reply_kind = "action_done"
+        reply_message = {
+            "kind": reply_kind,
+            "message_type": message_type,
+            "data": data,
+        }
+        ws.send(json.dumps(reply_message))
 
 
 def collect_plugin_graph(
@@ -99,27 +144,26 @@ def collect_plugin_graph(
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
             log.error(
-                (
-                    f"Plugin {collector.cloud} did not finish collection"
-                    " - ignoring plugin results"
-                )
+                f"Plugin {collector.cloud} did not finish collection"
+                " - ignoring plugin results"
             )
-            return
+            return None
         if not is_directed_acyclic_graph(collector.graph):
             log.error(
-                (
-                    f"Graph of plugin {collector.cloud} is not acyclic"
-                    " - ignoring plugin results"
-                )
+                f"Graph of plugin {collector.cloud} is not acyclic"
+                " - ignoring plugin results"
             )
-            return
+            return None
         log.info(f"Collector of plugin {collector.cloud} finished")
         return collector.graph
     else:
         log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
+        return None
 
 
-def collect(graph: Graph, collectors: List[BaseCollectorPlugin]):
+def collect(collectors: List[BaseCollectorPlugin]):
+    graph_container = GraphContainer(cache_graph=False)
+    graph = graph_container.graph
     max_workers = (
         len(collectors)
         if len(collectors) < ArgumentParser.args.pool_size
@@ -193,6 +237,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Keepercore URI",
         default=None,
         dest="keepercore_uri",
+        required=True,
+    )
+    arg_parser.add_argument(
+        "--keepercore-ws-uri",
+        help="Keepercore Websocket URI",
+        default=None,
+        dest="keepercore_ws_uri",
         required=True,
     )
     arg_parser.add_argument(

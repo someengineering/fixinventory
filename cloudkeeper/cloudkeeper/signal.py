@@ -32,10 +32,8 @@ def handler(sig, frame) -> None:
     else:
         reason = f"Received shutdown signal {sig} from parent process"
         log.debug(
-            (
-                f"Child with PID {current_pid} shutting down"
-                " - you might see exceptions from interrupted worker threads"
-            )
+            f"Child with PID {current_pid} shutting down"
+            " - you might see exceptions from interrupted worker threads"
         )
         # Child's threads have 3s to shut down before the following thread will
         # shut them down hard.

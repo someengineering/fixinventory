@@ -1,11 +1,15 @@
 import os
+import threading
 import time
+import websocket
+import requests
+import json
 import cloudkeeper.logging
 from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Iterable
+from typing import Callable, Dict, Iterable, Optional
 from enum import Enum
 
 log = cloudkeeper.logging.getLogger(__name__)
@@ -64,10 +68,8 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
     """Dispatch an Event"""
     waiting_str = "" if blocking else "not "
     log.debug(
-        (
-            f"Dispatching event {event.event_type.name} and {waiting_str}waiting for"
-            " listeners to return"
-        )
+        f"Dispatching event {event.event_type.name} and {waiting_str}waiting for"
+        " listeners to return"
     )
 
     if event.event_type not in _events.keys():
@@ -88,18 +90,14 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
                 blocking=False
             ):
                 log.error(
-                    (
-                        f"Not calling one-shot listener {listener} of type"
-                        f" {type(listener)} - can't acquire lock"
-                    )
+                    f"Not calling one-shot listener {listener} of type"
+                    f" {type(listener)} - can't acquire lock"
                 )
                 continue
 
             log.debug(
-                (
-                    f"Calling listener {listener} of type {type(listener)}"
-                    f" (blocking: {listener_data['blocking']})"
-                )
+                f"Calling listener {listener} of type {type(listener)}"
+                f" (blocking: {listener_data['blocking']})"
             )
             thread_name = (
                 f"{event.event_type.name.lower()}_event"
@@ -114,10 +112,8 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
         finally:
             if listener_data["one-shot"]:
                 log.debug(
-                    (
-                        f"One-shot specified for event {event.event_type.name} "
-                        f"listener {listener} - removing event listener"
-                    )
+                    f"One-shot specified for event {event.event_type.name} "
+                    f"listener {listener} - removing event listener"
                 )
                 remove_event_listener(event.event_type, listener)
                 listener_data["lock"].release()
@@ -146,10 +142,8 @@ def add_event_listener(
     """Add an Event Listener"""
     if not callable(listener):
         log.error(
-            (
-                f"Error registering {listener} of type {type(listener)} with event"
-                f" {event_type.name}"
-            )
+            f"Error registering {listener} of type {type(listener)} with event"
+            f" {event_type.name}"
         )
         return False
 
@@ -157,10 +151,8 @@ def add_event_listener(
         timeout = ArgumentParser.args.event_timeout
 
     log.debug(
-        (
-            f"Registering {listener} with event {event_type.name}"
-            f" (blocking: {blocking}, one-shot: {one_shot})"
-        )
+        f"Registering {listener} with event {event_type.name}"
+        f" (blocking: {blocking}, one-shot: {one_shot})"
     )
     with _events_lock.write_access:
         if not event_listener_registered(event_type, listener):
@@ -206,3 +198,107 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="event_timeout",
         type=int,
     )
+
+
+class KeepercoreEvents(threading.Thread):
+    def __init__(
+        self,
+        identifier: str,
+        keepercore_uri: str,
+        keepercore_ws_uri: str,
+        events: Dict,
+        message_processor: Optional[Callable] = None,
+    ) -> None:
+        super().__init__()
+        self.identifier = identifier
+        self.keepercore_uri = keepercore_uri
+        self.keepercore_ws_uri = keepercore_ws_uri
+        self.events = events
+        self.message_processor = message_processor
+        self.ws = None
+
+    def __del__(self):
+        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
+
+    def run(self) -> None:
+        self.name = self.identifier
+        add_event_listener(EventType.SHUTDOWN, self.shutdown)
+        try:
+            self.go()
+        except Exception:
+            log.exception(f"Caught unhandled events exception in {self.name}")
+
+    def go(self):
+        for event, data in self.events.items():
+            if not isinstance(data, dict):
+                data = None
+            self.register(event, data)
+
+        ws_uri = f"{self.keepercore_ws_uri}/subscription/{self.identifier}/handle"
+        log.debug(f"{self.identifier} connecting to {ws_uri}")
+        self.ws = websocket.WebSocketApp(
+            ws_uri,
+            on_open=self.on_open,
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+        )
+        self.ws.run_forever()
+
+    def shutdown(self, event: Event) -> None:
+        log.debug(
+            f"Received event {event.event_type}"
+            " - shutting down keepercore event bus listener"
+        )
+        if self.ws:
+            self.ws.close()
+        for core_event in self.events.keys():
+            self.unregister(core_event)
+
+    def register(self, event: str, data: Optional[Dict] = None) -> bool:
+        log.debug(f"{self.identifier} registering for {event} events")
+        return self.registration(event, requests.post, data)
+
+    def unregister(self, event: str, data: Optional[Dict] = None) -> bool:
+        log.debug(f"{self.identifier} unregistering from {event} events")
+        return self.registration(event, requests.delete, data)
+
+    def registration(
+        self, event: str, client: Callable, data: Optional[Dict] = None
+    ) -> bool:
+        url = f"{self.keepercore_uri}/subscription/{self.identifier}/{event}"
+        r = client(url, headers={"accept": "application/json"}, json=data)
+        if r.status_code != 200:
+            log.error(r.content)
+            return False
+        return True
+
+    def dispatch_event(self, message: Dict) -> bool:
+        if self.ws is None:
+            return False
+        ws = websocket.create_connection(f"{self.keepercore_ws_uri}/events")
+        ws.send(json.dumps(message))
+        ws.close()
+        return True
+
+    def on_message(self, ws, message):
+        try:
+            message: Dict = json.loads(message)
+        except json.JSONDecodeError:
+            log.exception(f"Unable to decode received message {message}")
+            return
+        log.debug(f"{self.identifier} received: {message}")
+        if self.message_processor is not None and callable(self.message_processor):
+            try:
+                self.message_processor(ws, message)
+            except Exception:
+                log.exception(f"Something went wrong while processing {message}")
+
+    def on_error(self, ws, error):
+        log.error(f"{self.identifier} {error}")
+
+    def on_close(self, ws, close_status_code, close_msg):
+        log.debug(f"{self.identifier} disconnected: {close_msg}")
+
+    def on_open(self, ws):
+        log.debug(f"{self.identifier} connected")
