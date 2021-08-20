@@ -25,7 +25,7 @@ from core.types import Json, JsonElement
 from core.util import AccessJson
 
 
-class EchoSource(CLISource):  # type: ignore
+class EchoSource(CLISource):
     """
     Usage: echo <json>
 
@@ -57,7 +57,7 @@ class EchoSource(CLISource):  # type: ignore
             yield element
 
 
-class MatchSource(CLISource):  # type: ignore
+class MatchSource(CLISource):
     """
     Usage: match <query>
 
@@ -93,7 +93,7 @@ class MatchSource(CLISource):  # type: ignore
         return db.query_list(query_model, with_system_props=True)
 
 
-class EnvSource(CLISource):  # type: ignore
+class EnvSource(CLISource):
     """
     Usage: env
 
@@ -112,10 +112,10 @@ class EnvSource(CLISource):  # type: ignore
         return "Retrieve the environment and pass it to the output stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        return stream.just(env)
+        return stream.just(env)  # type: ignore
 
 
-class CountCommand(CLICommand):  # type: ignore
+class CountCommand(CLICommand):
     """
     Usage: count [arg]
 
@@ -164,10 +164,11 @@ class CountCommand(CLICommand):  # type: ignore
                     no_match += not_matched
             yield {"matched": counter, "not_matched": no_match}
 
+        # noinspection PyTypeChecker
         return count_in_stream
 
 
-class ChunkCommand(CLICommand):  # type: ignore
+class ChunkCommand(CLICommand):
     """
     Usage: chunk [num]
 
@@ -194,10 +195,10 @@ class ChunkCommand(CLICommand):  # type: ignore
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         size = int(arg) if arg else 100
-        return lambda in_stream: stream.chunks(in_stream, size)
+        return lambda in_stream: stream.chunks(in_stream, size)  # type: ignore
 
 
-class FlattenCommand(CLICommand):  # type: ignore
+class FlattenCommand(CLICommand):
     """
     Usage: flatten
 
@@ -224,10 +225,10 @@ class FlattenCommand(CLICommand):  # type: ignore
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
 
-        return lambda in_stream: stream.flatmap(in_stream, iterate)
+        return lambda in_stream: stream.flatmap(in_stream, iterate)  # type: ignore
 
 
-class UniqCommand(CLICommand):  # type: ignore
+class UniqCommand(CLICommand):
     """
     Usage: uniq
 
@@ -265,10 +266,10 @@ class UniqCommand(CLICommand):  # type: ignore
                 visited.add(item)
                 return True
 
-        return lambda in_stream: stream.filter(in_stream, has_not_seen)
+        return lambda in_stream: stream.filter(in_stream, has_not_seen)  # type: ignore
 
 
-class SetDesiredState(CLICommand, ABC):  # type: ignore
+class SetDesiredState(CLICommand, ABC):
     @abstractmethod
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         # deriving classes need to define how to patch
@@ -278,7 +279,7 @@ class SetDesiredState(CLICommand, ABC):  # type: ignore
         buffer_size = 1000
         result_section = env["result_section"].split(",") if "result_section" in env else ["reported", "desired"]
         func = partial(self.set_desired, env["graph"], self.patch(arg, **env), result_section)
-        return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
+        return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)  # type: ignore
 
     async def set_desired(
         self, graph_name: str, patch: Json, result_section: Union[str, List[str]], items: List[Json]
@@ -393,7 +394,7 @@ class MarkDeleteCommand(SetDesiredState):
         return {"delete": True}
 
 
-class FormatCommand(CLICommand):  # type: ignore
+class FormatCommand(CLICommand):
     """
     Usage: format <format string>
 
@@ -425,10 +426,10 @@ class FormatCommand(CLICommand):  # type: ignore
             wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
             return arg.format_map(wrapped)  # type: ignore
 
-        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
+        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)  # type: ignore
 
 
-class ListSink(CLISink):  # type: ignore
+class ListSink(CLISink):
     @property
     def name(self) -> str:
         return "out"
@@ -437,7 +438,7 @@ class ListSink(CLISink):  # type: ignore
         return "Creates a list of results."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[JsonElement]]:
-        return lambda in_stream: stream.list(in_stream)
+        return stream.list  # type: ignore
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
@@ -461,5 +462,8 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 
 def all_parts(d: CLIDependencies) -> List[CLIPart]:
-    # noinspection PyTypeChecker
-    return all_sources(d) + all_commands(d) + all_sinks(d)
+    result: list[CLIPart] = []
+    result.extend(all_sources(d))
+    result.extend(all_commands(d))
+    result.extend(all_sinks(d))
+    return result
