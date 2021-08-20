@@ -9,7 +9,7 @@ from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Dict, Iterable, Set
+from typing import Callable, Dict, Iterable, Set, Optional
 from enum import Enum
 
 log = cloudkeeper.logging.getLogger(__name__)
@@ -202,19 +202,26 @@ def add_args(arg_parser: ArgumentParser) -> None:
 
 class KeepercoreEvents(threading.Thread):
     def __init__(
-        self, identifier: str, keepercore_uri: str, keepercore_ws_uri: str, events: Set
+        self,
+        identifier: str,
+        keepercore_uri: str,
+        keepercore_ws_uri: str,
+        events: Dict,
+        message_processor: Optional[Callable] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
         self.keepercore_uri = keepercore_uri
         self.keepercore_ws_uri = keepercore_ws_uri
         self.events = events
+        self.message_processor = message_processor
         self.ws = None
 
     def __del__(self):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def run(self) -> None:
+        self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         try:
             self.go()
@@ -222,8 +229,10 @@ class KeepercoreEvents(threading.Thread):
             log.exception(f"Caught unhandled events exception in {self.name}")
 
     def go(self):
-        for event in self.events:
-            self.register(event)
+        for event, data in self.events.items():
+            if not isinstance(data, dict):
+                data = None
+            self.register(event, data)
 
         ws_uri = f"{self.keepercore_ws_uri}/subscription/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
@@ -243,20 +252,22 @@ class KeepercoreEvents(threading.Thread):
         )
         if self.ws:
             self.ws.close()
-        for core_event in self.events:
+        for core_event in self.events.keys():
             self.unregister(core_event)
 
-    def register(self, event: str) -> bool:
+    def register(self, event: str, data: Optional[Dict] = None) -> bool:
         log.debug(f"{self.identifier} registering for {event} events")
-        return self.registration(event, requests.post)
+        return self.registration(event, requests.post, data)
 
-    def unregister(self, event: str) -> bool:
+    def unregister(self, event: str, data: Optional[Dict] = None) -> bool:
         log.debug(f"{self.identifier} unregistering from {event} events")
-        return self.registration(event, requests.delete)
+        return self.registration(event, requests.delete, data)
 
-    def registration(self, event: str, client: Callable) -> bool:
+    def registration(
+        self, event: str, client: Callable, data: Optional[Dict] = None
+    ) -> bool:
         url = f"{self.keepercore_uri}/subscription/{self.identifier}/{event}"
-        r = client(url, data="", headers={"accept": "application/json"})
+        r = client(url, headers={"accept": "application/json"}, json=data)
         if r.status_code != 200:
             log.error(r.content)
             return False
@@ -272,11 +283,16 @@ class KeepercoreEvents(threading.Thread):
 
     def on_message(self, ws, message):
         try:
-            message = json.loads(message)
+            message: Dict = json.loads(message)
         except json.JSONDecodeError:
             log.exception(f"Unable to decode received message {message}")
-        else:
-            log.debug(f"{self.identifier} received: {message}")
+            return
+        log.debug(f"{self.identifier} received: {message}")
+        if self.message_processor is not None and callable(self.message_processor):
+            try:
+                self.message_processor(ws, message)
+            except Exception:
+                log.exception(f"Something went wrong while processing {message}")
 
     def on_error(self, ws, error):
         log.error(f"{self.identifier} {error}")
