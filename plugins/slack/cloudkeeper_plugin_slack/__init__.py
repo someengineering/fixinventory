@@ -189,7 +189,20 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        pass
+        arg_parser.add_argument(
+            "--slack-bot-token",
+            help="Slack Bot Token (default env $SLACK_BOT_TOKEN)",
+            default=os.environ.get("SLACK_BOT_TOKEN"),
+            dest="slack_bot_token",
+            type=str,
+        )
+        arg_parser.add_argument(
+            "--slack-include-archived",
+            help="Include archived slack channels",
+            dest="slack_include_archived",
+            action="store_true",
+            default=False,
+        )
 
 
 class SlackBotPlugin(BasePlugin):
@@ -313,20 +326,7 @@ class SlackBotPlugin(BasePlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--slack-bot-token",
-            help="Slack Bot Token (default env $SLACK_BOT_TOKEN)",
-            default=os.environ.get("SLACK_BOT_TOKEN"),
-            dest="slack_bot_token",
-            type=str,
-        )
-        arg_parser.add_argument(
-            "--slack-include-archived",
-            help="Include archived slack channels",
-            dest="slack_include_archived",
-            action="store_true",
-            default=False,
-        )
+        pass
 
     def shutdown(self, event: Event):
         log.debug(f"Received event {event.event_type} - shutting down Slack plugin")

@@ -39,6 +39,8 @@ RUN cp busybox /usr/local/bin/
 WORKDIR /usr/local/arangodb
 RUN curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
 RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/arangodb
+# Run ArangoDB for keepercore CI tests below
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then /usr/local/arangodb/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root & fi
 
 # Download and install Python test tools
 RUN pip install --upgrade pip
@@ -75,8 +77,11 @@ COPY docker/supervisor.conf.in /usr/local/etc/supervisor.conf.in
 COPY docker/defaults /usr/local/etc/cloudkeeper/defaults
 COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/bootstrap /usr/local/sbin/bootstrap
+COPY docker/bootstrap-arangodb /usr/local/sbin/bootstrap-arangodb
 COPY docker/startup /usr/local/bin/startup
-RUN chmod 755 /usr/local/bin/startup /usr/local/sbin/bootstrap
+RUN chmod 755 /usr/local/bin/startup \
+    /usr/local/sbin/bootstrap \
+    /usr/local/sbin/bootstrap-arangodb
 RUN if [ "${TESTS:-true}" = true ]; then \
         shellcheck -a -x -s bash -e SC2034 \
             /usr/local/sbin/bootstrap \

@@ -130,7 +130,3 @@ setup_collectord() {
 }
 
 main "$@"
-
-#supervisor_arangodb_conf=/usr/local/etc/supervisor/conf.d/arangodb.conf
-#supervisor_keepercore_conf=/usr/local/etc/supervisor/conf.d/keepercore.conf
-#supervisor_colletord_conf=/usr/local/etc/supervisor/conf.d/collectord.conf
