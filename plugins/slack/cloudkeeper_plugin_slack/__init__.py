@@ -209,7 +209,7 @@ class SlackBotPlugin(BasePlugin):
     def __init__(self):
         super().__init__()
         self.name = "slack_bot"
-        if not ArgumentParser.args.slack_bot_token:
+        if not hasattr(ArgumentParser.args, "slack_bot_token"):
             return
 
         self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
