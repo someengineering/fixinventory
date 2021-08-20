@@ -146,7 +146,7 @@ class Periodic:
                 result = self.func()
                 if isinstance(result, Awaitable):
                     await result
-            except BaseException as ex:
+            except Exception as ex:
                 log.warning(f"Periodic function {self.name} caught an exception: {ex}")
 
 
