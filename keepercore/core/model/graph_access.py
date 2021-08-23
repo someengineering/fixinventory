@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import hashlib
 import json
 from datetime import datetime, timezone
+from functools import reduce
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
 import jsons
-from networkx import DiGraph, MultiDiGraph
+from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
 from core import feature
 from core.model.model import Model
@@ -35,27 +38,33 @@ class GraphBuilder:
         self.model = model
         self.graph = MultiDiGraph()
         self.with_flatten = with_flatten
+        self.nodes = 0
+        self.edges = 0
 
-    def add_node(self, js: Json) -> None:
+    def add_from_json(self, js: Json) -> None:
         if "id" in js and "data" in js:
-            # validate kind of this data
-            coerced = self.model.check_valid(js["data"])
-            item = js["data"] if coerced is None else coerced
-            did = js["id"]  # this is the identifier in the json document
-            kind = self.model[item]
-            # create content hash
-            sha = GraphBuilder.content_hash(item)
-            # flat all properties into a single string for search
-            flat = GraphBuilder.flatten(item) if self.with_flatten else None
-            self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat)
+            self.add_node(js["id"], js["data"], js.get("merge", None) is True)
         elif "from" in js and "to" in js:
-            from_node = js["from"]
-            to_node = js["to"]
-            edge_type = js.get("edge_type", EdgeType.default)
-            key = GraphAccess.edge_key(from_node, to_node, edge_type)
-            self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+            self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
+
+    def add_node(self, node_id: str, data: Json, merge: bool = False) -> None:
+        self.nodes += 1
+        # validate kind of this data
+        coerced = self.model.check_valid(data)
+        item = data if coerced is None else coerced
+        kind = self.model[item]
+        # create content hash
+        sha = GraphBuilder.content_hash(item)
+        # flat all properties into a single string for search
+        flat = GraphBuilder.flatten(item) if self.with_flatten else None
+        self.graph.add_node(node_id, data=item, hash=sha, kind=kind, flat=flat, merge=merge)
+
+    def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
+        self.edges += 1
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     @staticmethod
     def content_hash(js: Json) -> str:
@@ -101,26 +110,26 @@ class GraphBuilder:
         # make sure there is only one root node
         GraphAccess.root_id(self.graph)
 
-    @staticmethod
-    def graph_from_single_item(model: Model, node_id: str, data: Json) -> MultiDiGraph:
-        builder = GraphBuilder(model)
-        builder.add_node({"id": node_id, "data": data})
-        return builder.graph
-
 
 class GraphAccess:
-    def __init__(self, sub: MultiDiGraph):
+    def __init__(
+        self,
+        sub: MultiDiGraph,
+        maybe_root_id: Optional[str] = None,
+        visited_nodes: Optional[set[Any]] = None,
+        visited_edges: Optional[Set[Tuple[Any, Any, str]]] = None,
+    ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.visited_nodes: Set[object] = set()
-        self.visited_edges: Set[Tuple[object, object, str]] = set()
-        self.edge_types: Set[str] = {edge[2] for edge in sub.edges(data="edge_type")}
+        self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
+        self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
         self.at = datetime.now(timezone.utc)
         self.at_json = jsons.dump(self.at)
+        self.maybe_root_id = maybe_root_id
 
     def root(self) -> str:
-        return GraphAccess.root_id(self.g)
+        return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
 
     def node(self, node_id: str) -> Optional[Tuple[str, Json, str, List[str], str]]:
         self.visited_nodes.add(node_id)
@@ -129,9 +138,6 @@ class GraphAccess:
             return self.dump(node_id, n)
         else:
             return None
-
-    def has_edges(self) -> bool:
-        return bool(self.edge_types)
 
     def has_edge(self, from_id: object, to_id: object, edge_type: str) -> bool:
         result: bool = self.g.has_edge(from_id, to_id, self.edge_key(from_id, to_id, edge_type))
@@ -173,3 +179,85 @@ class GraphAccess:
         roots: List[str] = [n for n, d in graph.in_degree if d == 0]
         assert len(roots) == 1, f"Given subgraph has more than one root: {roots}"
         return roots[0]
+
+    @staticmethod
+    def merge_graphs(
+        graph: DiGraph,
+    ) -> Tuple[list[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
+        """
+        Find all merge graphs in the provided graph.
+        A merge graph is a self contained graph under a node which is marked with merge=true.
+        Such nodes are merged with the merge node in the database.
+        Example:
+        A -> B -> C(merge=true) -> E -> E1 -> E2
+                                -> F -> F1
+               -> D(merge=true) -> G -> G1 -> G2 -> G3 -> G4
+
+        This will result in 3 merge roots:
+            E: [A, B, C]
+            F: [A, B, C]
+            G: [A, B, D]
+
+        Note that all successors of a merge node that is also a predecessor of the merge node is sorted out.
+        Example: A -> B -> C(merge=true) -> A  ==> A is not considered merge root.
+
+        :param graph: the incoming multi graph update.
+        :return: the list of all merge roots, the expected parent graph and all merge root graphs.
+        """
+
+        # Find merge nodes: all nodes that are marked as merge node -> all children (merge roots) should be merged.
+        # This method returns all merge roots as key, with the respective predecessor nodes as value.
+        def merge_roots() -> dict[str, set[str]]:
+            graph_root = GraphAccess.root_id(graph)
+            merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
+            assert len(merge_nodes) > 0, "No merge nodes provided in the graph. Mark at least one node with merge=true!"
+            result: dict[str, set[str]] = {}
+            for node in merge_nodes:
+                # compute the shortest path from root to here and sort out all successors that are also predecessors
+                pres: set[str] = reduce(lambda res, p: res | set(p), all_shortest_paths(graph, graph_root, node), set())
+                for a in graph.successors(node):
+                    if a not in pres:
+                        result[a] = pres
+            return result
+
+        # Walk the graph from given starting node and return all successors.
+        # A successor which is also a predecessor is not followed.
+        def sub_graph_nodes(from_node: str, parent_ids: set[str]) -> set[str]:
+            to_visit = [from_node]
+            visited: set[str] = {from_node}
+
+            def successors(node: str) -> list[str]:
+                return [a for a in graph.successors(node) if a not in visited and a not in parent_ids]
+
+            while to_visit:
+                to_visit = reduce(lambda li, node: li + successors(node), to_visit, [])
+                visited.update(to_visit)
+            return visited
+
+        # Create a generator for all given merge roots by:
+        #   - creating the set of all successors
+        #   - creating a subgraph which contains all predecessors and all succors
+        #   - all predecessors are marked as visited
+        #   - all predecessor edges are marked as visited
+        # This way it is possible to have nodes in the graph that will not be touched by the update
+        # while edges will be created from successors of the merge node to predecessors of the merge node.
+        def merge_sub_graphs(
+            root_nodes: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[Tuple[str, str, str]]
+        ) -> Generator[Tuple[str, GraphAccess], None, None]:
+            all_successors: Set[str] = set()
+            for root, predecessors in root_nodes.items():
+                successors: set[str] = sub_graph_nodes(root, predecessors)
+                # make sure nodes are not "mixed" between different merge nodes
+                overlap = successors & all_successors
+                if overlap:
+                    raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
+                all_successors |= successors
+                # create subgraph with all successors and all parents, where all parents are already marked as visited
+                sub = GraphAccess(graph.subgraph(successors | parent_nodes), root, parent_nodes, parent_edges)
+                yield root, sub
+
+        roots = merge_roots()
+        parents: set[str] = reduce(lambda res, ps: res | ps, roots.values(), set())
+        parent_graph = graph.subgraph(parents)
+        graphs = merge_sub_graphs(roots, parents, set(parent_graph.edges(data="edge_type")))
+        return list(roots.keys()), GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs

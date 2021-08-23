@@ -4,13 +4,14 @@ from typing import Tuple, List
 
 import jsons
 import pytest
-from networkx import MultiDiGraph
 from deepdiff import DeepDiff
+from networkx import MultiDiGraph
+from pytest import fixture
+
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
-from tests.core.db.graphdb_test import Foo
 from core.types import Json
-from pytest import fixture
+from tests.core.db.graphdb_test import Foo
 
 # noinspection PyUnresolvedReferences
 from tests.core.model.model_test import person_model
@@ -78,10 +79,6 @@ def test_root(graph_access: GraphAccess) -> None:
     assert graph_access.root() == "1"
 
 
-def test_edge_types(graph_access: GraphAccess) -> None:
-    assert graph_access.edge_types == EdgeType.allowed_edge_types
-
-
 def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("1")
     graph_access.node("3")
@@ -116,15 +113,99 @@ def node(access: GraphAccess, node_id: str) -> Tuple[str, Json, str, List[str], 
 def test_builder(person_model: Model) -> None:
     max_m = {"id": "max", "kind": "Person", "name": "Max"}
     builder = GraphBuilder(person_model)
-    builder.add_node({"id": "1", "data": max_m})
-    builder.add_node({"from": "1", "to": "2"})
+    builder.add_from_json({"id": "1", "data": max_m})
+    builder.add_from_json({"from": "1", "to": "2"})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
     assert str(no_node.value) == "Vertex 2 was used in an edge definition but not provided as vertex!"
-    builder.add_node({"id": "2", "data": max_m})
-    builder.add_node({"id": "3", "data": max_m})
+    builder.add_from_json({"id": "2", "data": max_m})
+    builder.add_from_json({"id": "3", "data": max_m})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
     assert str(no_node.value) == "Given subgraph has more than one root: ['1', '3']"
-    builder.add_node({"from": "1", "to": "3"})
+    builder.add_from_json({"from": "1", "to": "3"})
     builder.check_complete()
+
+
+def multi_cloud_graph(merge_on: str) -> MultiDiGraph:
+    g = MultiDiGraph()
+    root = "root"
+    g.add_node(root)
+
+    def add_node(node_id: str) -> None:
+        g.add_node(node_id, merge=node_id.startswith(merge_on), data="test")
+
+    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        g.add_edge(from_node, to_node, key, edge_type=edge_type)
+
+    for collector_d in ["aws", "gcp"]:
+        collector = f"collector_{collector_d}"
+        add_node(collector)
+        add_edge(root, collector)
+        for account_d in range(0, 3):
+            account = f"account_{collector}_{account_d}"
+            add_node(account)
+            add_edge(collector, account)
+            add_edge(account, collector, EdgeType.delete)
+            for region_d in ["europe", "america", "asia", "africa", "antarctica", "australia"]:
+                region = f"region_{account}_{region_d}"
+                add_node(region)
+                add_edge(account, region)
+                add_edge(region, account, EdgeType.delete)
+                for parent_d in range(0, 3):
+                    parent = f"parent_{region}_{parent_d}"
+                    add_node(parent)
+                    add_edge(region, parent)
+                    add_edge(parent, region, EdgeType.delete)
+                    for children_d in range(0, 3):
+                        children = f"child_{parent}_{children_d}"
+                        add_node(children)
+                        add_edge(parent, children)
+                        add_edge(children, parent, EdgeType.delete)
+
+    return g
+
+
+def test_sub_graphs_from_graph_collector() -> None:
+    graph = multi_cloud_graph("collector")
+    merges, parent, graph_it = GraphAccess.merge_graphs(graph)
+    graphs = list(graph_it)
+    assert len(graphs) == 6
+    for root, succ in graphs:
+        assert len(parent.nodes) == 3
+        assert succ.root().startswith("account")
+        assert len(list(succ.not_visited_nodes())) == 79
+        assert len(succ.nodes) == 82
+        # make sure there is no node from another subgraph
+        for node_id in succ.not_visited_nodes():
+            assert succ.root() in node_id[0]
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 79
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 79
+
+
+def test_sub_graphs_from_graph_account() -> None:
+    graph = multi_cloud_graph("account")
+    merges, parent, graph_it = GraphAccess.merge_graphs(graph)
+    graphs = list(graph_it)
+    assert len(graphs) == 36
+    for root, succ in graphs:
+        assert len(parent.nodes) == 9  # root + collector + account
+        assert succ.root().startswith("region")
+        assert len(list(succ.not_visited_nodes())) == 13
+        assert len(succ.nodes) == 22
+        # make sure there is no node from another subgraph
+        for node_id in succ.not_visited_nodes():
+            assert succ.root() in node_id[0]
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 13
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 13
+
+
+def test_sub_graphs_with_cycle() -> None:
+    graph = multi_cloud_graph("account")
+    # add an edge from one merge graph to another merge graph
+    graph.add_edge("parent_region_account_collector_aws_0_asia_1", "parent_region_account_collector_aws_0_africa_1")
+    # the cycle should fail creating sub-graphs
+    with pytest.raises(AttributeError):
+        _, _, graph_it = GraphAccess.merge_graphs(graph)
+        list(graph_it)
