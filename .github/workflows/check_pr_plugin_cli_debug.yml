@@ -5,6 +5,7 @@ name: Check PR (Plugin cli_debug)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/cli_debug/**'
       - '.github/**'
 

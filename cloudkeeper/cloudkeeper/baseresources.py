@@ -730,6 +730,8 @@ class BaseInstanceType(BaseType):
 class BaseCloud(BaseResource):
     resource_type: ClassVar[str] = "base_cloud"
 
+    _merge: bool = field(default=False, repr=False)
+
     def cloud(self, graph=None):
         return self
 
@@ -740,6 +742,8 @@ class BaseAccount(BaseResource):
     metrics_description: ClassVar[Dict] = {
         "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
     }
+
+    _merge: bool = field(default=False, repr=False)
 
     def account(self, graph=None):
         return self
@@ -752,6 +756,8 @@ class BaseAccount(BaseResource):
 @dataclass(eq=False)
 class BaseRegion(BaseResource):
     resource_type: ClassVar[str] = "base_region"
+
+    _merge: bool = field(default=False, repr=False)
 
     def region(self, graph=None):
         return self

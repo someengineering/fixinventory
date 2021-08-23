@@ -5,6 +5,7 @@ name: Check PR (Plugin report_cleanups)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/report_cleanups/**'
       - '.github/**'
 

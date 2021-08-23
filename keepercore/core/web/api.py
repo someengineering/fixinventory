@@ -191,7 +191,7 @@ class Api:
                             await self.workflow_handler.handle_action_error(message)
                         else:
                             await self.event_bus.emit(message)
-                except BaseException as ex:
+                except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     log.info(f"Got an exception for event listener: {listener_id}. Hang up. {ex}")
                     await ws.close()
@@ -202,7 +202,7 @@ class Api:
                     while True:
                         event = await events.get()
                         await ws.send_str(to_js_str(event) + "\n")
-            except BaseException as ex:
+            except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Got an exception for event sender: {listener_id}. Hang up. {ex}")
                 await ws.close()

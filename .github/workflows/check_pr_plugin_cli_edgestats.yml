@@ -5,6 +5,7 @@ name: Check PR (Plugin cli_edgestats)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/cli_edgestats/**'
       - '.github/**'
 

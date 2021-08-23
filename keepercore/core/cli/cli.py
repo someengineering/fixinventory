@@ -30,12 +30,13 @@ from core.util import split_esc, utc_str, utc
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Coroutine[Any, Any, T]]
+JsGen = AsyncGenerator[JsonElement, None]
 # A source provides a stream of objects
-Source = AsyncGenerator[JsonElement, None]
-# Every Command will return a function that takes a stream and returns a stream of objects.
-Flow = Callable[[Stream], AsyncGenerator[JsonElement, None]]
+Source = JsGen
+# Every Command will return a function that transforms a JsGen to another JsGen
+Flow = Callable[[JsGen], JsGen]
 # A sink function takes a stream and creates a result
-Sink = Callable[[Stream], Coroutine[Any, Any, T]]
+Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 
 
 @dataclass(frozen=True)
@@ -70,9 +71,6 @@ class CLIPart(ABC):
     def info(self) -> str:
         pass
 
-    async def parse(self, arg: Optional[str], **env: str) -> Union[Source, Flow, Sink[Any]]:
-        pass
-
 
 class CLISource(CLIPart):
     """
@@ -80,8 +78,8 @@ class CLISource(CLIPart):
     """
 
     @abstractmethod
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        pass
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        yield None  # only here for mypy: it detects a coroutine otherwise
 
     @staticmethod
     async def empty() -> Source:
@@ -211,7 +209,7 @@ class CLI:
             else:
                 raise CLIParseError(f"Command >{part_str}< is not known. typo?")
 
-        async def parse_arg(part: CLIPart, args_str: str, **resulting_env: str) -> Any:
+        async def parse_arg(part: Any, args_str: str, **resulting_env: str) -> Any:
             try:
                 fn = part.parse(args_str, **resulting_env)
                 return await fn if asyncio.iscoroutine(fn) else fn
@@ -232,6 +230,7 @@ class CLI:
                 flow = make_stream(await parse_arg(source, source_arg, **resulting_env))
                 for command, arg in parts_with_args[1:]:
                     flow_fn: Flow = await parse_arg(command, arg, **resulting_env)
+                    # noinspection PyTypeChecker
                     flow = make_stream(flow_fn(flow))
                 # noinspection PyTypeChecker
                 return ParsedCommandLine(resulting_env, parts, flow)
@@ -241,7 +240,7 @@ class CLI:
         replaced = self.replace_placeholder(cli_input)
         return [await parse_line(cmd_line) for cmd_line in split_esc(replaced, ";")]
 
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[T]:
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]
 
     @staticmethod

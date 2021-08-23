@@ -5,6 +5,7 @@ name: Check PR (Plugin aws)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/aws/**'
       - '.github/**'
 

@@ -13,7 +13,12 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={"console_scripts": ["cloudkeeper = cloudkeeper.__main__:main"]},
+    entry_points={
+        "console_scripts": [
+            "cloudkeeper = cloudkeeper.__main__:main",
+            "collectord = cloudkeeper.collectord:main",
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
     install_requires=[
@@ -30,6 +35,7 @@ setup(
         "pyyaml",
         "PyJWT",
         "typeguard",
+        "websocket-client",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],

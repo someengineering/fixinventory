@@ -108,7 +108,7 @@ class Graph(networkx.DiGraph):
             )
             self.add_edge(self.root, graph.root)
         else:
-            log.warn("Merging graphs with no valid roots")
+            log.warning("Merging graphs with no valid roots")
 
     def add_resource(self, parent, node_for_adding, **attr):
         """Add a resource node to the graph
@@ -615,37 +615,29 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                 if isinstance(node, Cloud):
                     if node.id in plugin_roots:
                         log.debug(
-                            (
-                                f"Found existing plugin root {node.id}"
-                                " - attaching children and removing plugin root"
-                            )
+                            f"Found existing plugin root {node.id}"
+                            " - attaching children and removing plugin root"
                         )
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
-                                (
-                                    f"Found node {plugin_root_child.id} of type "
-                                    f"{plugin_root_child.resource_type}"
-                                    " - attaching to existing plugin root"
-                                )
+                                f"Found node {plugin_root_child.id} of type "
+                                f"{plugin_root_child.resource_type}"
+                                " - attaching to existing plugin root"
                             )
                             graph.add_edge(plugin_roots[node.id], plugin_root_child)
                             graph.remove_edge(node, plugin_root_child)
                         graph.remove_node(node)
                     else:
                         log.debug(
-                            (
-                                f"Found new plugin root {node.id}"
-                                " - attaching to top level root"
-                            )
+                            f"Found new plugin root {node.id}"
+                            " - attaching to top level root"
                         )
                         graph.add_edge(root, node)
                         graph.remove_edge(graph_root, node)
                 else:
                     log.debug(
-                        (
-                            f"Found unknown node {node.id} of type {node.resource_type}"
-                            " - attaching to top level root"
-                        )
+                        f"Found unknown node {node.id} of type {node.resource_type}"
+                        " - attaching to top level root"
                     )
                     graph.add_edge(root, node)
                     graph.remove_edge(graph_root, node)
@@ -674,6 +666,9 @@ class GraphExportIterator:
             for node in self.graph.nodes:
                 node_attributes = get_node_attributes(node)
                 node_json = {"id": node.sha256, "data": node_attributes}
+                if getattr(node, "_merge", None):
+                    log.debug(f"Merging graph above {node.rtdname}")
+                    node_json.update({"merge": True})
                 attributes_json = json.dumps(node_json) + "\n"
                 self.nodes_sent += 1
                 if self.nodes_sent % self.report_every_n_nodes == 0:

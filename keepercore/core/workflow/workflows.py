@@ -544,7 +544,7 @@ class WorkflowHandler:
                             await self.handle_action(message)
                         elif isinstance(message, (ActionDone, ActionError)):
                             log.info(f"Ignore message via event bus: {message}")
-                    except BaseException as ex:
+                    except Exception as ex:
                         log.error(f"Could not handle event {message} - give up.", ex)
 
         self.running_task = asyncio.create_task(listen_to_event_bus())

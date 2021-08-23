@@ -6,6 +6,8 @@ from pytest import fixture
 
 from core.cli.cli import CLI, Sink, CLIDependencies
 
+from core.types import JsonElement
+
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
 
@@ -26,7 +28,7 @@ def echo_source() -> str:
 
 
 @pytest.mark.asyncio
-async def test_echo_source(cli: CLI, sink: Sink[List[str]]) -> None:
+async def test_echo_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('echo [{"a": 1}, {"b":2}]', sink)
     assert result[0] == [{"a": 1}, {"b": 2}]
 
@@ -38,13 +40,13 @@ async def test_echo_source(cli: CLI, sink: Sink[List[str]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_match_source(cli: CLI, sink: Sink[List[str]]) -> None:
+async def test_match_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('match isinstance("foo") and some_int==0 --> identifier=~"9_"', sink)
     assert len(result[0]) == 10
 
 
 @pytest.mark.asyncio
-async def test_count_command(cli: CLI, sink: Sink[List[str]], echo_source: str) -> None:
+async def test_count_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
     # count instances
     result = await cli.execute_cli_command(f"{echo_source} | count", sink)
     assert len(result[0]) == 1
@@ -62,27 +64,27 @@ async def test_count_command(cli: CLI, sink: Sink[List[str]], echo_source: str) 
 
 
 @pytest.mark.asyncio
-async def test_chunk_command(cli: CLI, sink: Sink[List[str]], echo_source: str) -> None:
-    result = await cli.execute_cli_command(f"{echo_source} | chunk 50", sink)
+async def test_chunk_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
+    result: list[list[str]] = await cli.execute_cli_command(f"{echo_source} | chunk 50", sink)
     assert len(result[0]) == 4  # 200 in chunks of 50
     for a in result[0]:
         assert len(a) == 50
 
 
 @pytest.mark.asyncio
-async def test_flatten_command(cli: CLI, sink: Sink[List[str]], echo_source: str) -> None:
+async def test_flatten_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
     result = await cli.execute_cli_command(f"{echo_source} | chunk 50 | flatten", sink)
     assert len(result[0]) == 200
 
 
 @pytest.mark.asyncio
-async def test_uniq_command(cli: CLI, sink: Sink[List[str]], echo_source: str) -> None:
+async def test_uniq_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
     result = await cli.execute_cli_command(f"{echo_source} | uniq", sink)
     assert len(result[0]) == 100
 
 
 @pytest.mark.asyncio
-async def test_desire_command(cli: CLI, sink: Sink[List[str]]) -> None:
+async def test_desire_command(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('match isinstance("foo") | desire a="test" b=1 c=true', sink)
     assert len(result[0]) == 11
     for elem in result[0]:
@@ -90,7 +92,7 @@ async def test_desire_command(cli: CLI, sink: Sink[List[str]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_mark_delete_command(cli: CLI, sink: Sink[List[str]]) -> None:
+async def test_mark_delete_command(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('match isinstance("foo") | mark_delete', sink)
     assert len(result[0]) == 11
     for elem in result[0]:
@@ -112,7 +114,7 @@ async def test_flat_sink(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_format(cli: CLI, sink: Sink[List[str]]) -> None:
+async def test_format(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     # access properties by name and path
     result = await cli.execute_cli_command('echo {"a":"b", "b": {"c":"d"}} | format a:{a} b:{b.c} na:{fuerty}', sink)
     assert result[0] == ["a:b b:d na:null"]

@@ -5,6 +5,7 @@ name: Check PR (Plugin cleanup_aws_loadbalancers)
 on:
   push:
     paths:
+      - 'cloudkeeper/**'
       - 'plugins/cleanup_aws_loadbalancers/**'
       - '.github/**'
 
