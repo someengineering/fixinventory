@@ -1,7 +1,7 @@
 import sys
 import os
 from logging import *
-from cloudkeeper.args import ArgumentParser
+from cloudkeeper_cli.args import ArgumentParser
 
 
 log_format = "%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s"

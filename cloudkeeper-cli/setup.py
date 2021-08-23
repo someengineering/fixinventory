@@ -1,4 +1,4 @@
-import re
+import cloudkeeper_cli
 from setuptools import setup, find_packages
 
 
@@ -6,25 +6,16 @@ requirements = []
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
-version = ""
-with open("cloudkeeper_cli/__init__.py") as f:
-    version = re.search(
-        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', f.read(), re.MULTILINE
-    ).group(1)
-
-if not version:
-    raise RuntimeError("version is not set")
-
 readme = ""
 with open("README.md") as f:
     readme = f.read()
 
 
 setup(
-    name="cloudkeeper-cli",
-    version=version,
-    description="Cloudkeeper CLI",
-    license="Apache 2.0",
+    name=cloudkeeper_cli.__title__,
+    version=cloudkeeper_cli.__version__,
+    description=cloudkeeper_cli.__description__,
+    license=cloudkeeper_cli.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
