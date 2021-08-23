@@ -207,7 +207,7 @@ def send_to_keepercore(graph: Graph):
     keepercore_graph = ArgumentParser.args.keepercore_graph
     model_uri = f"{base_uri}/model"
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    report_uri = f"{graph_uri}/reported/sub_graph/root"
+    report_uri = f"{graph_uri}/reported/merge"
     log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
     r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
     if r.status_code != 200:
@@ -220,7 +220,7 @@ def send_to_keepercore(graph: Graph):
 
     graph_export_iterator = graph.export_iterator()
     log.debug(f"Sending subgraph via {report_uri}")
-    r = requests.put(
+    r = requests.post(
         report_uri,
         data=graph.export_iterator(),
         headers={"Content-Type": "application/x-ndjson"},
