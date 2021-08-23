@@ -1,0 +1,3 @@
+requests
+prompt_toolkit
+websocket-client
