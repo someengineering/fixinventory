@@ -282,6 +282,7 @@ def node(level, identity, merge: bool = False):
 def edge(from_node, to_node, edge_type):
     print(json.dumps({"from": from_node, "to": to_node, "edge_type": edge_type}))
 
+
 root = f"root"
 collector_root = f"{collector}_root"
 node(0, root)
