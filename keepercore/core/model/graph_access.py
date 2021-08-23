@@ -184,9 +184,33 @@ class GraphAccess:
     def merge_graphs(
         graph: DiGraph,
     ) -> Tuple[list[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
+        """
+        Find all merge graphs in the provided graph.
+        A merge graph is a self contained graph under a node which is marked with merge=true.
+        Such nodes are merged with the merge node in the database.
+        Example:
+        A -> B -> C(merge=true) -> E -> E1 -> E2
+                                -> F -> F1
+               -> D(merge=true) -> G -> G1 -> G2 -> G3 -> G4
+
+        This will result in 3 merge roots:
+            E: [A, B, C]
+            F: [A, B, C]
+            G: [A, B, D]
+
+        Note that all successors of a merge node that is also a predecessor of the merge node is sorted out.
+        Example: A -> B -> C(merge=true) -> A  ==> A is not considered merge root.
+
+        :param graph: the incoming multi graph update.
+        :return: the list of all merge roots, the expected parent graph and all merge root graphs.
+        """
+
+        # Find merge nodes: all nodes that are marked as merge node -> all children (merge roots) should be merged.
+        # This method returns all merge roots as key, with the respective predecessor nodes as value.
         def merge_roots() -> dict[str, set[str]]:
             graph_root = GraphAccess.root_id(graph)
             merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
+            assert len(merge_nodes) > 0, "No merge nodes provided in the graph. Mark at least one node with merge=true!"
             result: dict[str, set[str]] = {}
             for node in merge_nodes:
                 # compute the shortest path from root to here and sort out all successors that are also predecessors
@@ -196,23 +220,32 @@ class GraphAccess:
                         result[a] = pres
             return result
 
-        def sub_graph_nodes(from_node: str, parents: set[str]) -> set[str]:
+        # Walk the graph from given starting node and return all successors.
+        # A successor which is also a predecessor is not followed.
+        def sub_graph_nodes(from_node: str, parent_ids: set[str]) -> set[str]:
             to_visit = [from_node]
             visited: set[str] = {from_node}
 
-            def succ(node: str) -> list[str]:
-                return [a for a in graph.successors(node) if a not in visited and a not in parents]
+            def successors(node: str) -> list[str]:
+                return [a for a in graph.successors(node) if a not in visited and a not in parent_ids]
 
             while to_visit:
-                to_visit = reduce(lambda li, node: li + succ(node), to_visit, [])
-                visited = visited.union(to_visit)
+                to_visit = reduce(lambda li, node: li + successors(node), to_visit, [])
+                visited.update(to_visit)
             return visited
 
+        # Create a generator for all given merge roots by:
+        #   - creating the set of all successors
+        #   - creating a subgraph which contains all predecessors and all succors
+        #   - all predecessors are marked as visited
+        #   - all predecessor edges are marked as visited
+        # This way it is possible to have nodes in the graph that will not be touched by the update
+        # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(
-            roots: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[Tuple[str, str, str]]
+            root_nodes: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[Tuple[str, str, str]]
         ) -> Generator[Tuple[str, GraphAccess], None, None]:
             all_successors: Set[str] = set()
-            for root, predecessors in roots.items():
+            for root, predecessors in root_nodes.items():
                 successors: set[str] = sub_graph_nodes(root, predecessors)
                 # make sure nodes are not "mixed" between different merge nodes
                 overlap = successors & all_successors
