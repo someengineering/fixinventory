@@ -31,8 +31,6 @@ RUN apt-get -y install \
 WORKDIR /usr/local/db
 RUN curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
 RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/db
-# Run ArangoDB for keepercore CI tests below
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; fi
 
 # Build and install Busybox
 WORKDIR /build/busybox
@@ -55,7 +53,7 @@ RUN pip install tox flake8
 # Build keepercore
 COPY keepercore /usr/src/keepercore
 WORKDIR /usr/src/keepercore
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build .
 
 # Build cloudkeeper
