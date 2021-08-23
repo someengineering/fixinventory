@@ -188,7 +188,7 @@ class GraphAccess:
     @staticmethod
     def merge_graphs(
         graph: DiGraph,
-    ) -> Tuple[dict[str, set[str]], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
+    ) -> Tuple[list[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
         def merge_roots() -> dict[str, set[str]]:
             graph_root = GraphAccess.root_id(graph)
             merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
@@ -231,6 +231,5 @@ class GraphAccess:
         roots = merge_roots()
         parents: set[str] = reduce(lambda res, ps: res | ps, roots.values(), set())
         parent_graph = graph.subgraph(parents)
-        parent_edges = set(parent_graph.edges(data="edge_type"))
-        graphs = merge_sub_graphs(roots, parents, parent_edges)
-        return roots, GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs
+        graphs = merge_sub_graphs(roots, parents, set(parent_graph.edges(data="edge_type")))
+        return list(roots.keys()), GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs

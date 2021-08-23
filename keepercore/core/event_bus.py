@@ -18,6 +18,8 @@ class CoreEvent:
     NodesDesiredUpdated = "nodes-desired-updated"
     NodeDeleted = "node-deleted"
     SubGraphUpdated = "subgraph-updated"
+    GraphMerged = "graph-merged"
+    BatchUpdateGraphMerged = "batch-update-graph-merged"
     BatchUpdateSubGraphAdded = "batch-update-subgraph-added"
     BatchUpdateCommitted = "batch-update-committed"
     BatchUpdateAborted = "batch-update-aborted"

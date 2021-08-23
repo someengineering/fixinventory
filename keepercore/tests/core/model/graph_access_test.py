@@ -177,7 +177,6 @@ def test_sub_graphs_from_graph_collector() -> None:
     graphs = list(graph_it)
     assert len(graphs) == 6
     for root, succ in graphs:
-        assert len(merges[root]) == 2
         assert len(parent.nodes) == 3
         assert succ.root().startswith("account")
         assert len(list(succ.not_visited_nodes())) == 79
@@ -195,7 +194,6 @@ def test_sub_graphs_from_graph_account() -> None:
     graphs = list(graph_it)
     assert len(graphs) == 36
     for root, succ in graphs:
-        assert len(merges[root]) == 3
         assert len(parent.nodes) == 9  # root + collector + account
         assert succ.root().startswith("region")
         assert len(list(succ.not_visited_nodes())) == 13
