@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
 jobs:
