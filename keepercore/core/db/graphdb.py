@@ -230,9 +230,9 @@ class ArangoGraphDB(GraphDB):
                     _id = element["_id"]
                     if _id not in visited_node:
                         section = trafo(element)
-                        uid = element["id"]
-                        yield "node", {"type": "node", "id": uid, "data": section}
-                        visited_node[_id] = uid
+                        key = element["_key"]
+                        yield "node", {"type": "node", "id": key, "data": section}
+                        visited_node[_id] = key
                     from_id = element.get("_from")
                     to_id = element.get("_to")
                     if from_id in visited_node and to_id in visited_node:
@@ -382,7 +382,6 @@ class ArangoGraphDB(GraphDB):
         def insert_node(id_string: str, js: Json, hash_string: str, kinds: List[str], flat: str) -> None:
             js_doc: Json = {
                 "_key": id_string,
-                "id": id_string,
                 "hash": hash_string,
                 "reported": js,
                 "kinds": kinds,
@@ -394,9 +393,8 @@ class ArangoGraphDB(GraphDB):
 
         def update_or_delete_node(node: Json) -> None:
             key = node["_key"]
-            rid = node["id"]
             hash_string = node["hash"]
-            elem = access.node(rid)
+            elem = access.node(key)
             if elem is None:
                 # node is in db, but not in the graph any longer: delete node
                 resource_deletes.append({"_key": key})
@@ -406,14 +404,13 @@ class ArangoGraphDB(GraphDB):
                 # node is in db and in the graph, content is different
                 js = {
                     "_key": key,
-                    "id": rid,
                     "hash": current_hash,
                     "reported": js,
                     "kinds": kinds,
                     "flat": flat,
                     "update_id": sub_root_id,
                 }
-                resource_updates.append({"_key": key} | js)
+                resource_updates.append(js)
                 info.nodes_updated += 1
 
         for doc in node_cursor:
@@ -487,6 +484,7 @@ class ArangoGraphDB(GraphDB):
             return graph_info, ni, nu, nd, edge_inserts, edge_deletes
 
         roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
+        logging.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
 
         def parent_edges(edge_type: str) -> Tuple[str, Json]:
             edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
@@ -646,7 +644,7 @@ class ArangoGraphDB(GraphDB):
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
             bind_vars[length] = t.id
-            return f"{cursor}.id == @{length}"
+            return f"{cursor}._key == @{length}"
 
         def is_instance(cursor: str, t: IsInstanceTerm) -> str:
             if t.kind not in model:
@@ -736,13 +734,14 @@ class ArangoGraphDB(GraphDB):
 
         def create_update_indexes(nodes: VertexCollection, progress: StandardCollection) -> None:
             node_idxes = {idx["name"]: idx for idx in nodes.indexes()}
-            if "node_id" not in node_idxes:
-                nodes.add_persistent_index(["id"], unique=True, sparse=False, name="unique_node_id")
+            # this index will hold all the necessary data to query for an update (index only query)
+            if "update_id" not in node_idxes:
+                nodes.add_persistent_index(["_key", "update_id", "hash"], sparse=False, name="update_value")
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
-                progress.add_persistent_index(["parent_nodes[*]"])
+                progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
             if "root_nodes" not in progress_idxes:
-                progress.add_persistent_index(["root_nodes[*]"])
+                progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
 
         async def create_collection(name: str) -> StandardCollection:
             return db.collection(name) if await db.has_collection(name) else await db.create_collection(name)
@@ -790,7 +789,7 @@ class ArangoGraphDB(GraphDB):
     def query_node_by_id(self) -> str:
         return f"""
       FOR resource in {self.vertex_name}
-      FILTER resource.id==@rid
+      FILTER resource._key==@rid
       LIMIT 1
       RETURN resource
       """
@@ -799,7 +798,7 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN {self.vertex_name}
         FILTER a.update_id==@update_id
-        RETURN {{_key: a._key, id:a.id, hash:a.hash}}
+        RETURN {{_key: a._key, hash:a.hash}}
         """
 
     def query_update_edges(self, edge_type: str) -> str:
@@ -814,7 +813,7 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN {self.vertex_name}
         FILTER a._key IN @ids
-        RETURN {{_key: a._key, id:a.id, hash:a.hash}}
+        RETURN {{_key: a._key, hash:a.hash}}
         """
 
     def query_update_edges_by_ids(self, edge_type: str) -> str:
@@ -842,7 +841,7 @@ class ArangoGraphDB(GraphDB):
 
     def query_count_direct_children(self) -> str:
         return f"""
-        FOR pn in {self.vertex_name} FILTER pn.id==@rid LIMIT 1
+        FOR pn in {self.vertex_name} FILTER pn._key==@rid LIMIT 1
         FOR c IN 1..1 OUTBOUND pn {self.edge_collection(EdgeType.default)} COLLECT WITH COUNT INTO length
         RETURN length
         """

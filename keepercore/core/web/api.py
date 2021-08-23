@@ -425,7 +425,7 @@ class Api:
                 if len(line.strip()) == 0:
                     continue
                 builder.add_from_json(json.loads(line))
-            log.info("Graph read into memory")
+            log.info(f"Graph read into memory ({builder.nodes} nodes, {builder.edges} edges)")
             builder.check_complete()
             return builder.graph
 
@@ -436,7 +436,7 @@ class Api:
             if isinstance(json_array, list):
                 for doc in json_array:
                     builder.add_from_json(doc)
-            log.info("Graph read into memory")
+            log.info(f"Graph read into memory ({builder.nodes} nodes, {builder.edges} edges)")
             builder.check_complete()
             return builder.graph
 

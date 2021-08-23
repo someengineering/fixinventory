@@ -38,6 +38,8 @@ class GraphBuilder:
         self.model = model
         self.graph = MultiDiGraph()
         self.with_flatten = with_flatten
+        self.nodes = 0
+        self.edges = 0
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and "data" in js:
@@ -48,6 +50,7 @@ class GraphBuilder:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
     def add_node(self, node_id: str, data: Json, merge: bool = False) -> None:
+        self.nodes += 1
         # validate kind of this data
         coerced = self.model.check_valid(data)
         item = data if coerced is None else coerced
@@ -59,6 +62,7 @@ class GraphBuilder:
         self.graph.add_node(node_id, data=item, hash=sha, kind=kind, flat=flat, merge=merge)
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
+        self.edges += 1
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
@@ -120,7 +124,6 @@ class GraphAccess:
         self.nodes = sub.nodes()
         self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
         self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
-        self.edge_types: Set[str] = {edge[2] for edge in sub.edges(data="edge_type")}
         self.at = datetime.now(timezone.utc)
         self.at_json = jsons.dump(self.at)
         self.maybe_root_id = maybe_root_id
@@ -135,9 +138,6 @@ class GraphAccess:
             return self.dump(node_id, n)
         else:
             return None
-
-    def has_edges(self) -> bool:
-        return bool(self.edge_types)
 
     def has_edge(self, from_id: object, to_id: object, edge_type: str) -> bool:
         result: bool = self.g.has_edge(from_id, to_id, self.edge_key(from_id, to_id, edge_type))

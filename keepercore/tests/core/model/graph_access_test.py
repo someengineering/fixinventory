@@ -79,10 +79,6 @@ def test_root(graph_access: GraphAccess) -> None:
     assert graph_access.root() == "1"
 
 
-def test_edge_types(graph_access: GraphAccess) -> None:
-    assert graph_access.edge_types == EdgeType.allowed_edge_types
-
-
 def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("1")
     graph_access.node("3")
