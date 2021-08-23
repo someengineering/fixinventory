@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 import asyncio
 import string
 from abc import ABC
-from asyncio import AbstractEventLoop
 from datetime import date, datetime, timezone
 from random import SystemRandom
 from typing import List, Optional
@@ -15,7 +13,7 @@ from networkx import DiGraph, MultiDiGraph
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from core.error import ConflictingChangeInProgress, NoSuchBatchError
+from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBatchUpdate
 from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphAccess, EdgeType
 from core.model.model import Model, Complex, Property
@@ -197,7 +195,7 @@ def test_db() -> StandardDatabase:
 
 
 @pytest.fixture
-async def graph_db(event_loop: AbstractEventLoop, test_db: StandardDatabase) -> ArangoGraphDB:
+async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
     async_db = AsyncArangoDB(test_db)
     graph_db = ArangoGraphDB(async_db, "ns")
     await graph_db.create_update_schema()
@@ -311,15 +309,18 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
     # make sure all changes are empty
     await db.db.truncate(db.in_progress)
     # change on 00 is allowed
-    assert await db.mark_update("00", "0", "update under node 00", False, set()) is None
+    assert await db.mark_update(["00"], ["0", "sub_root", "root"], "update 00", False) is None
     # change on 01 is allowed
-    assert await db.mark_update("01", "0", "update under node 01", False, set()) is None
+    assert await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True) is None
+    # same change id which tries to update the same subgraph root
+    with pytest.raises(InvalidBatchUpdate):
+        assert await db.mark_update(["01"], ["0", "sub_root", "root"], "update 01", True) is None
     # change on 0 is rejected, since there are changes "below" this node
     with pytest.raises(ConflictingChangeInProgress):
-        await db.mark_update("0", "sub_root", "update under node 0", False, set())
+        await db.mark_update(["0"], ["sub_root"], "update 0 under node sub_root", False)
     # change on sub_root is rejected, since there are changes "below" this node
     with pytest.raises(ConflictingChangeInProgress):
-        await db.mark_update("sub_root", "root", "update under node sub_root", False, set())
+        await db.mark_update(["sub_root"], ["root"], "update under node sub_root", False)
     # clean up for later tests
     await db.db.truncate(db.in_progress)
 

@@ -4,14 +4,13 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Tuple, List, Union, Callable, AsyncGenerator, Any, Set
+from itertools import chain
+from typing import Optional, Tuple, List, Union, Callable, AsyncGenerator, Any, Iterable
 
-from arango import ArangoError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.cursor import Cursor
 from arango.graph import Graph
 from arango.typings import Json
-from itertools import chain
 from networkx import MultiDiGraph, DiGraph
 from toolz import last
 
@@ -342,35 +341,25 @@ class ArangoGraphDB(GraphDB):
         )
 
     async def mark_update(
-        self, node_id: str, parent_node_id: str, change_id: str, is_batch: bool, edge_types: Set[str]
+        self, root_node_ids_it: Iterable[str], parent_node_ids_it: Iterable[str], change_id: str, is_batch: bool
     ) -> None:
-        tx = await self.db.begin_transaction(
-            read=[self.in_progress, self.vertex_name, self.edge_collection(EdgeType.default)],
-            write=[self.in_progress],
-        )
-        try:
-            existing = next(await tx.aql(self.query_active_change(), bind_vars={"root_node_id": node_id}), None)
+        async with self.db.begin_transaction(read=[self.in_progress], write=[self.in_progress]) as tx:
+            root_node_ids = list(root_node_ids_it)
+            parent_node_ids = list(parent_node_ids_it)
+            existing = next(await tx.aql(self.query_active_change(), bind_vars={"root_node_ids": root_node_ids}), None)
             if existing is not None:
                 other = existing["change"]
-                if change_id == other:
-                    raise InvalidBatchUpdate()
-                else:
-                    raise ConflictingChangeInProgress(other)
-            await tx.aql(
-                self.aql_create_update_change(),
-                bind_vars={
-                    "root_node_id": node_id,
-                    "parent_node_id": parent_node_id,
+                raise InvalidBatchUpdate() if change_id == other else ConflictingChangeInProgress(other)
+            await tx.insert(
+                self.in_progress,
+                {
+                    "root_node_ids": list(root_node_ids),
+                    "parent_node_ids": list(parent_node_ids),
                     "change": change_id,
                     "is_batch": is_batch,
-                    "change_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id)),
-                    "edge_types": list(edge_types),
+                    "_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id)),
                 },
             )
-            await tx.commit_transaction()
-        except Exception as ex:
-            await tx.abort_transaction()
-            raise ex
 
     async def delete_marked_update(self, change_id: str, tx: Optional[AsyncArangoTransactionDB] = None) -> None:
         db = tx if tx else self.db
@@ -504,7 +493,7 @@ class ArangoGraphDB(GraphDB):
                     edge_deletes[edge_type] = ged
             return graph_info, ni, nu, nd, edge_inserts, edge_deletes
 
-        _, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
+        roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
 
         def parent_edges(edge_type: str) -> Tuple[str, Json]:
             edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
@@ -520,6 +509,8 @@ class ArangoGraphDB(GraphDB):
                 result[key] = left_values + right_values if left_values else right_values
             return result
 
+        # this will throw an exception, in case of a conflicting update (--> outside try block)
+        await self.mark_update(roots.keys(), parent.nodes, change_id, is_batch)
         try:
             parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
@@ -536,10 +527,8 @@ class ArangoGraphDB(GraphDB):
                 eds = combine_dict(eds, ed)
 
             return await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
-        except InvalidBatchUpdate as ex:
-            raise ex
         except Exception as ex:
-            # todo mark delete and delete mark here
+            await self.delete_marked_update(change_id)
             raise ex
 
     async def update_sub_graph(
@@ -554,7 +543,7 @@ class ArangoGraphDB(GraphDB):
 
         try:
             # mark this update as early as possible to avoid useless double work
-            await self.mark_update(access.root(), under_node_id, change_id, maybe_batch is not None, access.edge_types)
+            await self.mark_update([access.root()], [under_node_id], change_id, maybe_batch is not None)
 
             # check all nodes for this subgraph
             with await query(self.query_update_nodes(), {"update_id": access.root()}) as node_cursor:
@@ -578,7 +567,7 @@ class ArangoGraphDB(GraphDB):
                 edge_inserts[EdgeType.default].extend(links)
 
             return await self.persist_update(change_id, is_batch, info, ris, rus, rds, edge_inserts, edge_deletes)
-        except InvalidBatchUpdate as ex:
+        except (InvalidBatchUpdate, ConflictingChangeInProgress) as ex:
             raise ex
         except Exception as ex:
             await self.delete_marked_update(change_id)
@@ -614,8 +603,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_directly() -> None:
             edge_collections = [self.edge_collection(a) for a in EdgeType.allowed_edge_types]
-            tx = await self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress])
-            try:
+            async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
                 # note: all requests are done sequentially on purpose
                 # https://www.arangodb.com/docs/stable/http/transaction-stream-transaction.html#concurrent-requests
                 await execute_many_async(self.db.insert_many, self.vertex_name, resource_inserts)
@@ -626,11 +614,6 @@ class ArangoGraphDB(GraphDB):
                 for ed_d_type, ed_delete in edge_deletes.items():
                     await execute_many_async(self.db.delete_many, self.edge_collection(ed_d_type), ed_delete)
                 await self.delete_marked_update(change_id, tx)
-                await tx.commit_transaction()
-            except ArangoError as ex:
-                log.info(f"Could not perform update: {ex}")
-                await tx.abort_transaction()
-                raise ex
 
         async def store_to_tmp_collection(temp: StandardCollection) -> None:
             tmp = temp.name
@@ -923,34 +906,8 @@ class ArangoGraphDB(GraphDB):
     def query_active_change(self) -> str:
         return f"""
         FOR change IN {self.in_progress}
-        FILTER @root_node_id in change.parent_nodes OR @root_node_id in change.root_nodes
+        FILTER @root_node_ids any in change.parent_node_ids OR @root_node_ids any in change.root_node_ids
         RETURN change
-        """
-
-    def aql_create_update_change(self) -> str:
-        return f"""
-        LET parents = (
-        FOR cn in {self.vertex_name} FILTER cn.id == @parent_node_id
-            FOR pn IN 0..{Navigation.Max} INBOUND cn GRAPH {self.name}
-            OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
-            RETURN pn.id
-        )
-        UPSERT {{_key: @change_key}}
-        INSERT {{
-                _key: @change_key,
-                change: @change,
-                root_nodes: [@root_node_id],
-                parent_nodes: parents,
-                batch: @is_batch,
-                edge_types: @edge_types,
-                created: DATE_ISO8601(DATE_NOW())
-               }}
-        UPDATE {{
-                root_nodes: APPEND(OLD.root_nodes, [@root_node_id], true),
-                parent_nodes: APPEND(OLD.parent_nodes, parents, true),
-                edge_types: APPEND(OLD.edge_types, @edge_types, true)
-               }}
-        IN {self.in_progress} OPTIONS {{ exclusive: true }}
         """
 
 

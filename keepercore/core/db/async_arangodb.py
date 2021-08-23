@@ -1,6 +1,8 @@
 from __future__ import annotations
+
+from contextlib import asynccontextmanager
 from numbers import Number
-from typing import Optional, MutableMapping, Sequence, Union, Any, List, Dict
+from typing import Optional, MutableMapping, Sequence, Union, Any, List, Dict, AsyncGenerator
 
 from arango import ArangoServerError
 from arango.collection import StandardCollection, VertexCollection, EdgeCollection
@@ -8,6 +10,7 @@ from arango.cursor import Cursor
 from arango.database import StandardDatabase, Database, TransactionDatabase
 from arango.graph import Graph
 from arango.typings import Json, Jsons
+
 from core.async_extensions import run_async
 
 
@@ -327,6 +330,7 @@ class AsyncArangoDB(AsyncArangoDBBase):
         super().__init__(db)
         self.db: StandardDatabase = db
 
+    @asynccontextmanager
     async def begin_transaction(
         self,
         read: Union[str, Sequence[str], None] = None,
@@ -336,11 +340,17 @@ class AsyncArangoDB(AsyncArangoDBBase):
         allow_implicit: Optional[bool] = None,
         lock_timeout: Optional[int] = None,
         max_size: Optional[int] = None,
-    ) -> AsyncArangoTransactionDB:
+    ) -> AsyncGenerator[AsyncArangoTransactionDB, None]:
         tx = await run_async(
             self.db.begin_transaction, read, write, exclusive, sync, allow_implicit, lock_timeout, max_size
         )
-        return AsyncArangoTransactionDB(tx)
+        atx = AsyncArangoTransactionDB(tx)
+        try:
+            yield atx
+        except Exception as ex:
+            await atx.abort_transaction()
+            raise ex
+        await atx.commit_transaction()
 
 
 class AsyncArangoTransactionDB(AsyncArangoDBBase):
