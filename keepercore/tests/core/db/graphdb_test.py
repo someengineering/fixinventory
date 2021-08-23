@@ -78,21 +78,19 @@ class Bla(BaseResource):
         return "bla"
 
 
-def create_graph(bla_text: str, with_merge: bool = False, width: int = 10) -> MultiDiGraph:
+def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
     graph = MultiDiGraph()
 
     def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.dependency) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    graph.add_node("sub_root", data=to_json(Foo("sub_root")))
-
     # root -> collector -> sub_root -> **rest
-    if with_merge:
-        graph.add_node("root", data=to_json(Foo("root")))
-        graph.add_node("collector", data=to_json(Foo("root")), merge=True)
-        add_edge("root", "collector")
-        add_edge("collector", "sub_root")
+    graph.add_node("root", data=to_json(Foo("root")))
+    graph.add_node("collector", data=to_json(Foo("root")), merge=True)
+    graph.add_node("sub_root", data=to_json(Foo("sub_root")))
+    add_edge("root", "collector")
+    add_edge("collector", "sub_root")
 
     for o in range(0, width):
         oid = str(o)
@@ -206,7 +204,7 @@ async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
 @pytest.fixture
 async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
     await graph_db.wipe()
-    await graph_db.update_sub_graph(foo_model, create_graph("yes or no"), "root")
+    await graph_db.merge_graph(create_graph("yes or no"))
     return graph_db
 
 
@@ -221,15 +219,14 @@ async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> Di
 
 
 @pytest.mark.asyncio
-async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase) -> None:
+async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, test_db: StandardDatabase) -> None:
     md = foo_model
     await graph_db.wipe()
     batch_id = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
+    g = create_graph("yes or no")
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.update_sub_graph(md, create_graph("yes or no"), "root", batch_id) == GraphUpdate(
-        111, 0, 0, 111, 0, 0
-    )
+    assert await graph_db.merge_graph(g, batch_id) == (["sub_root"], GraphUpdate(112, 1, 0, 112, 0, 0))
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
     with pytest.raises(NoSuchBatchError):
@@ -241,30 +238,9 @@ async def test_update_sub_graph_batched(graph_db: ArangoGraphDB, foo_model: Mode
     assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
-    await graph_db.update_sub_graph(md, create_graph("yes or no"), "root", batch_id)
+    await graph_db.merge_graph(g, batch_id)
     await graph_db.abort_batch_update(batch_id)
     assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
-
-
-@pytest.mark.asyncio
-async def test_update_sub_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    md = foo_model
-    await graph_db.wipe()
-
-    # empty database: all nodes and all edges have to be inserted
-    assert await graph_db.update_sub_graph(md, create_graph("yes or no"), "root") == GraphUpdate(111, 0, 0, 111, 0, 0)
-    # exactly the same graph is updated: expect no changes
-    assert await graph_db.update_sub_graph(md, create_graph("yes or no"), "root") == GraphUpdate(0, 0, 0, 0, 0, 0)
-    # all bla entries have different content: expect 100 node updates, but no inserts or deletions
-    assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(0, 100, 0, 0, 0, 0)
-    # the width of the graph is reduced: expect nodes and edges to be removed
-    assert await graph_db.update_sub_graph(md, create_graph("maybe", width=5), "root") == GraphUpdate(
-        0, 0, 80, 0, 0, 80
-    )
-    # going back to the previous graph: the same amount of nodes and edges is inserted
-    assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(80, 0, 0, 80, 0, 0)
-    # updating with the same data again, does not perform any changes
-    assert await graph_db.update_sub_graph(md, create_graph("maybe"), "root") == GraphUpdate(0, 0, 0, 0, 0, 0)
 
 
 @pytest.mark.asyncio
@@ -272,23 +248,21 @@ async def test_merge_graph(graph_db: ArangoGraphDB) -> None:
     await graph_db.wipe()
 
     def create(txt: str, width: int = 10) -> MultiDiGraph:
-        return create_graph(txt, with_merge=True, width=width)
+        return create_graph(txt, width=width)
 
+    p = ["sub_root"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
-    assert await graph_db.update_merge_graphs(create("yes or no")) == (["sub_root"], GraphUpdate(112, 1, 0, 112, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no")) == (p, GraphUpdate(112, 1, 0, 112, 0, 0))
     # exactly the same graph is updated: expect no changes
-    assert await graph_db.update_merge_graphs(create("yes or no")) == (["sub_root"], GraphUpdate(0, 0, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no")) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
-    assert await graph_db.update_merge_graphs(create("maybe")) == (["sub_root"], GraphUpdate(0, 100, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("maybe")) == (p, GraphUpdate(0, 100, 0, 0, 0, 0))
     # the width of the graph is reduced: expect nodes and edges to be removed
-    assert await graph_db.update_merge_graphs(create("maybe", width=5)) == (
-        ["sub_root"],
-        GraphUpdate(0, 0, 80, 0, 0, 80),
-    )
+    assert await graph_db.merge_graph(create("maybe", width=5)) == (p, GraphUpdate(0, 0, 80, 0, 0, 80))
     # going back to the previous graph: the same amount of nodes and edges is inserted
-    assert await graph_db.update_merge_graphs(create("maybe")) == (["sub_root"], GraphUpdate(80, 0, 0, 80, 0, 0))
+    assert await graph_db.merge_graph(create("maybe")) == (p, GraphUpdate(80, 0, 0, 80, 0, 0))
     # updating with the same data again, does not perform any changes
-    assert await graph_db.update_merge_graphs(create("maybe")) == (["sub_root"], GraphUpdate(0, 0, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("maybe")) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
 
 
 @pytest.mark.asyncio
@@ -301,11 +275,11 @@ async def test_merge_multi_graph(graph_db: ArangoGraphDB) -> None:
     # 1 root which changes => 1 node to update
     # edges:
     # 110 dependency, 108 delete connections (missing: collector -> root) => 218 edge inserts
-    nodes, info = await graph_db.update_merge_graphs(graph)
+    nodes, info = await graph_db.merge_graph(graph)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
     # doing the same thing again should do nothing
-    nodes, info = await graph_db.update_merge_graphs(graph)
+    nodes, info = await graph_db.merge_graph(graph)
     assert info == GraphUpdate(0, 0, 0, 0, 0, 0)
     assert len(nodes) == 8
 
@@ -352,7 +326,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query('aggregate(kind: count(identifier) as instances): isinstance("foo")')
     gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
-    assert [x async for x in gen] == [{"kind": "foo", "instances": 11}]
+    assert [x async for x in gen] == [{"kind": "foo", "instances": 13}]
 
 
 @pytest.mark.asyncio
@@ -404,13 +378,8 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
     await event_graph_db.delete_node("some_other")
-    await event_graph_db.update_sub_graph(foo_model, graph, "root")
-    await event_graph_db.update_sub_graph(foo_model, graph, "root", "batch1")
-    await event_graph_db.commit_batch_update("batch1")
-    await event_graph_db.update_sub_graph(foo_model, graph, "root", "batch2")
-    await event_graph_db.commit_batch_update("batch2")
-    await event_graph_db.update_merge_graphs(graph)
-    await event_graph_db.update_merge_graphs(graph, "batch1")
+    await event_graph_db.merge_graph(graph)
+    await event_graph_db.merge_graph(graph, "batch1")
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
@@ -418,11 +387,6 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
         "node-created",
         "node-updated",
         "node-deleted",
-        "subgraph-updated",
-        "batch-update-subgraph-added",
-        "batch-update-committed",
-        "batch-update-subgraph-added",
-        "batch-update-committed",
         "graph-merged",
         "batch-update-graph-merged",
     ]

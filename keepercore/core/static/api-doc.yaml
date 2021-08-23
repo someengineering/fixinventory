@@ -294,9 +294,9 @@ paths:
             responses:
                 "204":
                     description: "Node is deleted"
-    /graph/{graph_id}/reported/sub_graph/{parent_node_id}:
-        put:
-            summary: "Replace a given subgraph which lives under the given parent node id"
+    /graph/{graph_id}/reported/merge:
+        post:
+            summary: "Merge a given graph with the existing graph under marked merge nodes."
             tags:
                 - graph_reported
             parameters:
@@ -306,15 +306,9 @@ paths:
                   required: true
                   schema:
                       type: string
-                - name: parent_node_id
-                  in: path
-                  description: "The identifier of the parent node"
-                  required: true
-                  schema:
-                      type: string
             requestBody:
                 description:
-                    "The subgraph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
+                    "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
                 required: true
                 content:
                     application/x-ndjson:
@@ -338,9 +332,9 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/GraphUpdate"
-    /graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}:
+    /graph/{graph_id}/reported/batch/merge:
         post:
-            summary: "Replace a given subgraph which lives under the given parent node id in a batch"
+            summary: "Merge a given graph with the existing graph under marked merge nodes as batch update."
             tags:
                 - graph_reported
             parameters:
@@ -368,7 +362,7 @@ paths:
                       type: string
             requestBody:
                 description:
-                    "The subgraph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
+                    "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
                 required: true
                 content:
                     application/x-ndjson:
@@ -1133,7 +1127,7 @@ components:
                     - $ref: "#/components/schemas/NodeInGraph"
                     - $ref: "#/components/schemas/Edge"
         GraphUpdate:
-            description: "Summary of an update subgraph action"
+            description: "Summary of a graph change action"
             type: object
             properties:
                 nodes_created:

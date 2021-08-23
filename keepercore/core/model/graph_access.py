@@ -39,27 +39,28 @@ class GraphBuilder:
         self.graph = MultiDiGraph()
         self.with_flatten = with_flatten
 
-    def add_node(self, js: Json) -> None:
+    def add_from_json(self, js: Json) -> None:
         if "id" in js and "data" in js:
-            # validate kind of this data
-            coerced = self.model.check_valid(js["data"])
-            item = js["data"] if coerced is None else coerced
-            did = js["id"]  # this is the identifier in the json document
-            kind = self.model[item]
-            merge = js.get("merge", None) is True
-            # create content hash
-            sha = GraphBuilder.content_hash(item)
-            # flat all properties into a single string for search
-            flat = GraphBuilder.flatten(item) if self.with_flatten else None
-            self.graph.add_node(did, data=item, hash=sha, kind=kind, flat=flat, merge=merge)
+            self.add_node(js["id"], js["data"], js.get("merge", None) is True)
         elif "from" in js and "to" in js:
-            from_node = js["from"]
-            to_node = js["to"]
-            edge_type = js.get("edge_type", EdgeType.default)
-            key = GraphAccess.edge_key(from_node, to_node, edge_type)
-            self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+            self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
+
+    def add_node(self, node_id: str, data: Json, merge: bool = False) -> None:
+        # validate kind of this data
+        coerced = self.model.check_valid(data)
+        item = data if coerced is None else coerced
+        kind = self.model[item]
+        # create content hash
+        sha = GraphBuilder.content_hash(item)
+        # flat all properties into a single string for search
+        flat = GraphBuilder.flatten(item) if self.with_flatten else None
+        self.graph.add_node(node_id, data=item, hash=sha, kind=kind, flat=flat, merge=merge)
+
+    def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     @staticmethod
     def content_hash(js: Json) -> str:
@@ -104,12 +105,6 @@ class GraphBuilder:
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
         GraphAccess.root_id(self.graph)
-
-    @staticmethod
-    def graph_from_single_item(model: Model, node_id: str, data: Json) -> MultiDiGraph:
-        builder = GraphBuilder(model)
-        builder.add_node({"id": node_id, "data": data})
-        return builder.graph
 
 
 class GraphAccess:

@@ -78,12 +78,11 @@ class Api:
                 # Reported section of the graph
                 web.get("/graph/{graph_id}/reported/search", self.search_graph),
                 web.post("/graph/{graph_id}/reported/merge", self.merge_graph),
+                web.post("/graph/{graph_id}/reported/batch/merge", self.update_merge_graph_batch),
                 web.post("/graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}", self.create_node),
                 web.get("/graph/{graph_id}/reported/node/{node_id}", partial(self.get_node, r)),
                 web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r, r)),
                 web.delete("/graph/{graph_id}/reported/node/{node_id}", self.delete_node),
-                web.put("/graph/{graph_id}/reported/sub_graph/{parent_node_id}", self.update_sub_graph),
-                web.post("/graph/{graph_id}/reported/batch/sub_graph/{parent_node_id}", self.update_sub_graph_batch),
                 web.get("/graph/{graph_id}/reported/batch", self.list_batches),
                 web.post("/graph/{graph_id}/reported/batch/{batch_id}", self.commit_batch),
                 web.delete("/graph/{graph_id}/reported/batch/{batch_id}", self.abort_batch),
@@ -286,27 +285,17 @@ class Api:
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        info = await graph_db.update_merge_graphs(graph)
+        info = await graph_db.merge_graph(graph)
         return web.json_response(to_js(info))
 
-    async def update_sub_graph(self, request: Request) -> StreamResponse:
-        log.info("Received put_sub_graph request")
-        md = await self.model_handler.load_model()
-        graph = await self.read_graph(request, md)
-        under_node_id = request.match_info.get("parent_node_id", "root")
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        info = await graph_db.update_sub_graph(md, graph, under_node_id)
-        return web.json_response(to_js(info))
-
-    async def update_sub_graph_batch(self, request: Request) -> StreamResponse:
+    async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
-        under_node_id = request.match_info.get("parent_node_id", "root")
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
-        info = await graph_db.update_sub_graph(md, graph, under_node_id, batch_id)
+        info = await graph_db.merge_graph(graph, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
@@ -435,7 +424,7 @@ class Api:
             async for line in request.content:
                 if len(line.strip()) == 0:
                     continue
-                builder.add_node(json.loads(line))
+                builder.add_from_json(json.loads(line))
             log.info("Graph read into memory")
             builder.check_complete()
             return builder.graph
@@ -446,7 +435,7 @@ class Api:
             builder = GraphBuilder(md)
             if isinstance(json_array, list):
                 for doc in json_array:
-                    builder.add_node(doc)
+                    builder.add_from_json(doc)
             log.info("Graph read into memory")
             builder.check_complete()
             return builder.graph
