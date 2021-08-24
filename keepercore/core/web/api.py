@@ -30,7 +30,8 @@ from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
-from core.workflow.subscribers import SubscriptionHandler, Subscription
+from core.workflow.model import Subscription
+from core.workflow.subscribers import SubscriptionHandler
 from core.workflow.workflows import WorkflowHandler
 
 log = logging.getLogger(__name__)
@@ -172,7 +173,7 @@ class Api:
             return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
 
     async def redirect_to_ui(self, request: Request) -> StreamResponse:
-        raise web.HTTPFound("/static/index.html")
+        raise web.HTTPFound("api-doc")
 
     async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]

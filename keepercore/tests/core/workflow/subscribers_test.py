@@ -4,13 +4,21 @@ from typing import Any
 from deepdiff import DeepDiff
 from pytest import fixture, mark
 
+from core.db.subscriberdb import SubscriberDb
+from tests.core.db.entitydb import InMemoryDb
 from core.model.typed_model import to_js, from_js
-from core.workflow.subscribers import SubscriptionHandler, Subscription, Subscriber
+from core.workflow.model import Subscription, Subscriber
+from core.workflow.subscribers import SubscriptionHandler
 
 
 @fixture
-async def handler() -> SubscriptionHandler:
-    result = SubscriptionHandler()
+def in_mem_db() -> SubscriberDb:
+    return InMemoryDb[Subscriber](Subscriber, lambda x: x.id)
+
+
+@fixture
+async def handler(in_mem_db: SubscriberDb) -> SubscriptionHandler:
+    result = SubscriptionHandler(in_mem_db)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 
@@ -36,24 +44,39 @@ def test_json_marshalling_subscribers() -> None:
 
 
 @mark.asyncio
-async def test_subscribe(handler: SubscriptionHandler) -> None:
+async def test_subscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) -> None:
     # register first time
     result = await handler.add_subscription("foo", "event_bla", True, timedelta(seconds=3))
     assert len(result.subscriptions) == 1
     assert result.subscriptions["event_bla"].message_type == "event_bla"
+    # should be persisted in database as well
+    assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
     # register again is ignored
     result = await handler.add_subscription("foo", "event_bla", True, timedelta(seconds=3))
     assert len(result.subscriptions) == 1
     assert result.subscriptions["event_bla"].message_type == "event_bla"
+    # should be persisted in database as well
+    assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
 
 
 @mark.asyncio
-async def test_unsubscribe(handler: SubscriptionHandler) -> None:
+async def test_unsubscribe(handler: SubscriptionHandler, in_mem_db: SubscriberDb) -> None:
     # register first time
-    result = await handler.add_subscription("foo", "event_bla", True, timedelta(seconds=3))
-    assert len(result.subscriptions) == 1
+    subs = [Subscription("event_bla"), Subscription("event_bar")]
+    result = await handler.update_subscriptions("foo", subs)
+    assert len(result.subscriptions) == 2
     updated = await handler.remove_subscription("foo", "event_bla")
+    assert len(updated.subscriptions) == 1
+    # should be persisted in database as well
+    assert len((await in_mem_db.get("foo")).subscriptions) == 1  # type: ignore
+    # second time should be ignored
+    updated = await handler.remove_subscription("foo", "event_bla")
+    assert len(updated.subscriptions) == 1
+    # last subscription is removed
+    updated = await handler.remove_subscription("foo", "event_bar")
     assert len(updated.subscriptions) == 0
+    # should be persisted in database as well
+    assert await in_mem_db.get("foo") is None
 
 
 @mark.asyncio

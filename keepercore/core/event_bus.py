@@ -22,8 +22,6 @@ class CoreEvent:
     BatchUpdateCommitted = "batch-update-committed"
     BatchUpdateAborted = "batch-update-aborted"
     GraphDBWiped = "graphdb-wiped"
-    ModelUpdated = "model-updated"
-    ModelDeleted = "model-deleted"
     WorkflowFinished = "workflow-finished"
 
 

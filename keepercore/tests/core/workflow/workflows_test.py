@@ -3,9 +3,11 @@ from typing import Tuple, Dict, List
 
 from pytest import fixture
 
+from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
 from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler, Subscriber, Subscription
+from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.model import Subscriber, Subscription
 from core.workflow.workflows import (
     WorkflowHandler,
     Workflow,
@@ -25,7 +27,8 @@ from tests.core.event_bus_test import event_bus
 
 @fixture
 async def subscription_handler() -> SubscriptionHandler:
-    result = SubscriptionHandler()
+    in_mem = InMemoryDb(Subscriber, lambda x: x.id)
+    result = SubscriptionHandler(in_mem)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 

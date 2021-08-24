@@ -5,7 +5,8 @@ import pytest
 from arango.database import StandardDatabase
 
 from core.db.async_arangodb import AsyncArangoDB
-from core.db.modeldb import ModelDB, ArangoModelDB, EventModelDB
+from core.db.modeldb import ArangoModelDB, ModelDb, EventModelDb
+from core.db.entitydb import EventEntityDb
 from core.event_bus import EventBus, Message
 from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
 
@@ -53,7 +54,7 @@ def test_model() -> List[Kind]:
 
 
 @pytest.fixture
-async def model_db(test_db: StandardDatabase) -> ModelDB:
+async def model_db(test_db: StandardDatabase) -> ModelDb:
     async_db = AsyncArangoDB(test_db)
     model_db = ArangoModelDB(async_db, "model")
     await model_db.create_update_schema()
@@ -62,51 +63,51 @@ async def model_db(test_db: StandardDatabase) -> ModelDB:
 
 
 @pytest.fixture
-def event_db(model_db: ModelDB, event_bus: EventBus) -> EventModelDB:
-    return EventModelDB(model_db, event_bus)
+def event_db(model_db: ModelDb, event_bus: EventBus) -> EventModelDb:
+    return EventEntityDb(model_db, event_bus, "model")
 
 
 @pytest.mark.asyncio
-async def test_load(model_db: ModelDB, test_model: List[Kind]) -> None:
-    await model_db.update_kinds(test_model)
-    loaded = [kind async for kind in model_db.get_kinds()]
+async def test_load(model_db: ModelDb, test_model: List[Kind]) -> None:
+    await model_db.update_many(test_model)
+    loaded = [kind async for kind in model_db.all()]
     assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_update(model_db: ModelDB, test_model: List[Kind]) -> None:
+async def test_update(model_db: ModelDb, test_model: List[Kind]) -> None:
     # multiple updates should work as expected
-    await model_db.update_kinds(test_model)
-    await model_db.update_kinds(test_model)
-    await model_db.update_kinds(test_model)
-    loaded = [kind async for kind in model_db.get_kinds()]
+    await model_db.update_many(test_model)
+    await model_db.update_many(test_model)
+    await model_db.update_many(test_model)
+    loaded = [kind async for kind in model_db.all()]
     assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_delete(model_db: ModelDB, test_model: List[Kind]) -> None:
-    await model_db.update_kinds(test_model)
+async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
+    await model_db.update_many(test_model)
     remaining = list(test_model)
     for _ in test_model:
         kind = remaining.pop()
-        await model_db.delete_kind(kind)
-        loaded = [kind async for kind in model_db.get_kinds()]
+        await model_db.delete(kind)
+        loaded = [kind async for kind in model_db.all()]
         assert remaining.sort(key=fqn) == loaded.sort(key=fqn)
-    assert len([kind async for kind in model_db.get_kinds()]) == 0
+    assert len([kind async for kind in model_db.all()]) == 0
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDB, test_model: List[Kind], all_events: List[Message]) -> None:
+async def test_events(event_db: EventModelDb, test_model: List[Kind], all_events: List[Message]) -> None:
     # 2 times update
-    await event_db.update_kinds(test_model)
-    await event_db.update_kinds(test_model)
+    await event_db.update_many(test_model)
+    await event_db.update_many(test_model)
     # 6 times delete
     for kind in test_model:
-        await event_db.delete_kind(kind)
+        await event_db.delete(kind)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a.message_type for a in all_events] == ["model-updated"] * 2 + ["model-deleted"] * 6
+    assert [a.message_type for a in all_events] == ["model-updated-many"] * 2 + ["model-deleted"] * 6
 
 
 def fqn(kind: Kind) -> str:
