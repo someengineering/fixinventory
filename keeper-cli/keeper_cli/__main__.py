@@ -1,14 +1,14 @@
-import cloudkeeper_cli.logging
+import keeper_cli.logging
 import sys
 import pathlib
 import requests
 import json
-from cloudkeeper_cli.args import get_arg_parser, ArgumentParser
+from keeper_cli.args import get_arg_parser, ArgumentParser
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 
 
-log = cloudkeeper_cli.logging.getLogger(__name__)
+log = keeper_cli.logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -17,7 +17,7 @@ def main() -> None:
     arg_parser.parse_args()
 
     session = completer = None
-    history_file = str(pathlib.Path.home() / ".cloudkeeper_history")
+    history_file = str(pathlib.Path.home() / ".keeper_history")
     history = FileHistory(history_file)
     session = PromptSession(history=history)
     evaluate_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/evaluate"

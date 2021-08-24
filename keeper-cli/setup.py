@@ -1,4 +1,4 @@
-import cloudkeeper_cli
+import keeper_cli
 from setuptools import setup, find_packages
 
 
@@ -12,15 +12,15 @@ with open("README.md") as f:
 
 
 setup(
-    name=cloudkeeper_cli.__title__,
-    version=cloudkeeper_cli.__version__,
-    description=cloudkeeper_cli.__description__,
-    license=cloudkeeper_cli.__license__,
+    name=keeper_cli.__title__,
+    version=keeper_cli.__version__,
+    description=keeper_cli.__description__,
+    license=keeper_cli.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "ck = cloudkeeper_cli.__main__:main",
+            "keeper = keeper_cli.__main__:main",
         ]
     },
     include_package_data=True,

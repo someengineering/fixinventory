@@ -2,7 +2,7 @@ import os
 import ast
 import argparse
 
-ENV_ARGS_PREFIX = "CLOUDKEEPER_CLI_"
+ENV_ARGS_PREFIX = "KEEPER_CLI_"
 
 
 class Namespace(argparse.Namespace):

@@ -1,5 +1,5 @@
-from cloudkeeper_cli.args import get_arg_parser, ArgumentParser
-from cloudkeeper_cli.__main__ import add_args
+from keeper_cli.args import get_arg_parser, ArgumentParser
+from keeper_cli.__main__ import add_args
 
 
 def test_args():

@@ -1,2 +1,0 @@
-# cloudkeeper-cli
-Cloudkeeper CLI
