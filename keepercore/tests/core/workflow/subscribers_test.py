@@ -1,8 +1,11 @@
 from datetime import timedelta
+from typing import Any
 
+from deepdiff import DeepDiff
 from pytest import fixture, mark
 
-from core.workflow.subscribers import SubscriptionHandler
+from core.model.typed_model import to_js, from_js
+from core.workflow.subscribers import SubscriptionHandler, Subscription, Subscriber
 
 
 @fixture
@@ -10,6 +13,26 @@ async def handler() -> SubscriptionHandler:
     result = SubscriptionHandler()
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
+
+
+def test_json_marshalling_subscription() -> None:
+    roundtrip(Subscription("test"))
+    roundtrip(Subscription("test", False, timedelta(days=1)))
+    assert from_js({"message_type": "foo"}, Subscription) == Subscription("foo")
+    assert from_js({"message_type": "foo"}, Subscription) == Subscription("foo")
+    assert from_js({"message_type": "a", "timeout": 86400}, Subscription) == Subscription("a", True, timedelta(days=1))
+
+
+def test_json_marshalling_subscribers() -> None:
+    subscriptions = [
+        Subscription("a", True, timedelta(seconds=1)),
+        Subscription("b", True, timedelta(minutes=1)),
+        Subscription("c", True, timedelta(hours=1)),
+        Subscription("d", False, timedelta(days=1)),
+        Subscription("e", False, timedelta(weeks=1)),
+    ]
+    roundtrip(Subscriber.from_list("foo", []))
+    roundtrip(Subscriber.from_list("foo", subscriptions))
 
 
 @mark.asyncio
@@ -47,3 +70,9 @@ async def test_by_event_type(handler: SubscriptionHandler) -> None:
     assert result[0].subscriptions["test"].message_type == "test"
     result2 = await handler.list_subscriber_for("does not exist")
     assert len(result2) == 0
+
+
+def roundtrip(obj: Any) -> None:
+    js = to_js(obj)
+    again = from_js(js, type(obj))
+    assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"

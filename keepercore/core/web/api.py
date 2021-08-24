@@ -30,7 +30,7 @@ from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
-from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.subscribers import SubscriptionHandler, Subscription
 from core.workflow.workflows import WorkflowHandler
 
 log = logging.getLogger(__name__)
@@ -102,13 +102,15 @@ class Api:
                 web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
                 web.post("/graph/{graph_id}/desired/query/aggregate", partial(self.query_aggregation, d)),
                 # Subscriptions
-                web.get("/subscriptions", self.list_all_subscriptions),
-                web.get("/subscriptions/for/{event_type}", self.list_subscription_for_event),
+                web.get("/subscribers", self.list_all_subscriptions),
+                web.get("/subscribers/for/{event_type}", self.list_subscription_for_event),
                 # Subscription
-                web.get("/subscription/{subscriber_id}", self.list_subscriptions),
-                web.post("/subscription/{subscriber_id}/{event_type}", self.add_subscription),
-                web.delete("/subscription/{subscriber_id}/{event_type}", self.delete_subscription),
-                web.get("/subscription/{subscriber_id}/handle", self.handle_subscribed),
+                web.get("/subscriber/{subscriber_id}", self.get_subscriber),
+                web.put("/subscriber/{subscriber_id}", self.update_subscriber),
+                web.delete("/subscriber/{subscriber_id}", self.delete_subscriber),
+                web.post("/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
+                web.delete("/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
+                web.get("/subscriber/{subscriber_id}/handle", self.handle_subscribed),
                 # CLI
                 web.post("/cli/evaluate", self.evaluate),
                 web.post("/cli/execute", self.execute),
@@ -124,7 +126,7 @@ class Api:
         subscribers = await self.subscription_handler.all_subscribers()
         return web.json_response(to_js(subscribers))
 
-    async def list_subscriptions(self, request: Request) -> StreamResponse:
+    async def get_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
         return self.optional_json(subscriber, f"No subscriber with id {subscriber_id}")
@@ -134,10 +136,22 @@ class Api:
         subscribers = await self.subscription_handler.list_subscriber_for(event_type)
         return web.json_response(to_js(subscribers))
 
+    async def update_subscriber(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        body = await request.json()
+        subscriptions = from_js(body, List[Subscription])
+        sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
+        return web.json_response(to_js(sub))
+
+    async def delete_subscriber(self, request: Request) -> StreamResponse:
+        subscriber_id = request.match_info["subscriber_id"]
+        await self.subscription_handler.remove_subscriber(subscriber_id)
+        return web.HTTPNoContent()
+
     async def add_subscription(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         event_type = request.match_info["event_type"]
-        timeout = timedelta(seconds=int(request.query.get("timeout", "600")))
+        timeout = timedelta(seconds=int(request.query.get("timeout", "60")))
         wait_for_completion = request.query.get("wait_for_completion", "true").lower() != "false"
         sub = await self.subscription_handler.add_subscription(subscriber_id, event_type, wait_for_completion, timeout)
         return web.json_response(to_js(sub))
@@ -181,7 +195,7 @@ class Api:
                         log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                         js = json.loads(msg.data)
                         js["subscriber_id"] = listener_id
-                        message: Message = from_js(js, Message)  # type: ignore
+                        message: Message = from_js(js, Message)
                         if isinstance(message, Action):
                             raise AttributeError("Actors should not emit action messages. ")
                         elif isinstance(message, ActionDone):
@@ -227,7 +241,7 @@ class Api:
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await request.json()
-        kinds: List[Kind] = from_js(js, List[Kind])  # type: ignore
+        kinds: List[Kind] = from_js(js, List[Kind])
         model = await self.model_handler.update_model(kinds)
         return web.json_response(to_js(model))
 

@@ -60,8 +60,8 @@ def workflow_instance(
     sub1 = Subscription("start_collect", True, td)
     sub2 = Subscription("collect", True, td)
     sub3 = Subscription("collect_done", True, td)
-    s1 = Subscriber("s1", [sub1, sub2, sub3])
-    s2 = Subscriber("s2", [sub2, sub3])
+    s1 = Subscriber.from_list("s1", [sub1, sub2, sub3])
+    s2 = Subscriber.from_list("s2", [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
     w, _ = WorkflowInstance.empty(test_workflow, subscriptions)
     w.received_messages = [

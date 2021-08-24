@@ -397,4 +397,4 @@ def to_json(obj: BaseResource) -> Json:
 
 
 def to_foo(json: Json) -> Foo:
-    return from_js(json, Foo)  # type: ignore
+    return from_js(json, Foo)

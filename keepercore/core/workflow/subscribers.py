@@ -5,37 +5,37 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import List, Dict, Optional, Iterable
 
+from dataclasses import dataclass, field
 
+
+@dataclass(unsafe_hash=True, frozen=True)
 class Subscription(ABC):
-    def __init__(self, message_type: str, wait_for_completion: bool, timeout: timedelta):
-        self.message_type = message_type
-        self.wait_for_completion = wait_for_completion
-        self.timeout = timeout
+    message_type: str
+    wait_for_completion: bool = field(default=True)
+    timeout: timedelta = field(default=timedelta(seconds=60))
 
 
+@dataclass(unsafe_hash=True, frozen=True)
 class Subscriber(ABC):
-    def __init__(self, uid: str, subscriptions: Optional[List[Subscription]] = None):
-        self.id = uid
-        subs = subscriptions if subscriptions else []
-        self.subscriptions: Dict[str, Subscription] = {sub.message_type: sub for sub in subs}
+    id: str
+    subscriptions: dict[str, Subscription]
+
+    @staticmethod
+    def from_list(uid: str, subscriptions: list[Subscription]) -> Subscriber:
+        return Subscriber(uid, {s.message_type: s for s in subscriptions})
 
     def add_subscription(self, message_type: str, wait_for_completion: bool, timeout: timedelta) -> Subscriber:
+        subscription = Subscription(message_type, wait_for_completion, timeout)
         existing = self.subscriptions.get(message_type)
-        if existing:
+        if existing == subscription:
             return self
         else:
-            subscription = Subscription(message_type, wait_for_completion, timeout)
-            subscriber = Subscriber(self.id, list(self.subscriptions.values()) + [subscription])
-            return subscriber
+            return Subscriber(self.id, self.subscriptions | {subscription.message_type: subscription})
 
     def remove_subscription(self, message_type: str) -> Subscriber:
-        existing = self.subscriptions.get(message_type)
-        if existing:
-            return Subscriber(
-                self.id, list(filter(lambda x: x.message_type != message_type, self.subscriptions.values()))
-            )
-        else:
-            return self
+        subs = self.subscriptions.copy()
+        subs.pop(message_type, None)
+        return Subscriber(self.id, subs)
 
     def __contains__(self, message_type: str) -> bool:
         return message_type in self.subscriptions
@@ -66,18 +66,35 @@ class SubscriptionHandler(ABC):
     async def add_subscription(
         self, subscriber_id: str, event_type: str, wait_for_completion: bool, timeout: timedelta
     ) -> Subscriber:
-        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, []))
+        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.add_subscription(event_type, wait_for_completion, timeout)
-        self.subscribers_by_id[subscriber_id] = updated
-        self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
+        if existing != updated:
+            self.subscribers_by_id[subscriber_id] = updated
+            self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
         return updated
 
     async def remove_subscription(self, subscriber_id: str, event_type: str) -> Subscriber:
-        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, []))
+        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.remove_subscription(event_type)
-        self.subscribers_by_id[subscriber_id] = updated
-        self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
+        if existing != updated:
+            self.subscribers_by_id[subscriber_id] = updated
+            self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
         return updated
+
+    async def update_subscriptions(self, subscriber_id: str, subscriptions: list[Subscription]) -> Subscriber:
+        existing = self.subscribers_by_id.get(subscriber_id, None)
+        updated = Subscriber.from_list(subscriber_id, subscriptions)
+        if existing != updated:
+            self.subscribers_by_id[subscriber_id] = updated
+            self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
+        return updated
+
+    async def remove_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
+        existing = self.subscribers_by_id.get(subscriber_id, None)
+        if existing:
+            self.subscribers_by_id.pop(subscriber_id, None)
+            self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
+        return existing
 
     @staticmethod
     def update_subscriber_by_event(subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
