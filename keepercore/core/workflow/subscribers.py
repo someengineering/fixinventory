@@ -3,25 +3,37 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from collections import defaultdict
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List, Dict, Optional, Iterable
 
 from core.db.subscriberdb import SubscriberDb
+from core.event_bus import EventBus
+from core.util import utc, Periodic
 from core.workflow.model import Subscriber, Subscription
 
 log = logging.getLogger(__name__)
 
 
 class SubscriptionHandler(ABC):
-    def __init__(self, db: SubscriberDb) -> None:
-        # subscriber by subscriber id
+    """
+    SubscriptionHandler maintains all subscriptions in memory and syncs its internal state with the underlying db.
+    Only reason for persistence is recovery of all subscriptions after restart.
+    This handler belongs to the event system, which assumes there is only one instance running in each cluster!
+    """
+
+    def __init__(self, db: SubscriberDb, event_bus: EventBus) -> None:
         self.db = db
+        self.event_bus = event_bus
         self.subscribers_by_id: Dict[str, Subscriber] = {}
         self.subscribers_by_event: Dict[str, List[Subscriber]] = {}
+        self.started_at = utc()
+        self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
+        self.not_connected_since: dict[str, datetime] = {}
 
     async def start(self) -> None:
         await self.__load_from_db()
         log.info(f"Loaded {len(self.subscribers_by_id)} subscribers for {len(self.subscribers_by_event)} events")
+        await self.cleaner.start()
 
     async def all_subscribers(self) -> Iterable[Subscriber]:
         return self.subscribers_by_id.values()
@@ -83,3 +95,29 @@ class SubscriptionHandler(ABC):
             for subscription in subscriber.subscriptions.values():
                 result[subscription.message_type].append(subscriber)
         return result
+
+    async def check_outdated_handler(self) -> None:
+        """
+        Periodically check, if there are subscribers that have subscribed, but are not connected.
+        The subscription will be removed when a dead subscription is detected.
+        """
+        now = utc()
+        # In case the service has just been started/restarted:
+        # do not remove any subscriptions during the first minutes.
+        if (now - self.started_at) > timedelta(minutes=5):
+            expected = set(self.subscribers_by_id.keys())
+            connected = set(self.event_bus.active_listener.keys())
+            # remove all connected subscriber from the not connected map
+            for c in connected:
+                self.not_connected_since.pop(c, None)
+            missing = expected - connected
+            for subscriber in missing:
+                at = self.not_connected_since.get(subscriber)
+                if at and (now - at) > timedelta(minutes=3):
+                    log.warning(f"Subscriber {subscriber} is missing. Remove all subscription.")
+                    await self.remove_subscriber(subscriber)
+                    self.not_connected_since.pop(subscriber, None)
+                elif at:
+                    pass
+                else:
+                    self.not_connected_since[subscriber] = now

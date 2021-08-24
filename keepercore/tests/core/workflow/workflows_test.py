@@ -26,9 +26,9 @@ from tests.core.event_bus_test import event_bus
 
 
 @fixture
-async def subscription_handler() -> SubscriptionHandler:
+async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem)
+    result = SubscriptionHandler(in_mem, event_bus)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 

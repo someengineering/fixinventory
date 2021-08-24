@@ -166,7 +166,10 @@ class Api:
     async def handle_subscribed(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
-        if subscriber and subscriber.subscriptions:
+        if subscriber_id in self.event_bus.active_listener:
+            log.info(f"There is already a listener for subscriber: {subscriber_id}. Reject.")
+            return web.HTTPTooManyRequests(text="Only one connection per subscriber is allowed!")
+        elif subscriber and subscriber.subscriptions:
             pending = await self.workflow_handler.list_all_pending_actions_for(subscriber)
             return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
         else:
