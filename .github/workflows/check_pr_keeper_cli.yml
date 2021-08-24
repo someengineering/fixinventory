@@ -1,0 +1,45 @@
+name: Check PR (keeper-cli)
+on:
+  push:
+    paths:
+      - 'keeper-cli/**'
+      - '.github/**'
+
+jobs:
+  keeper_cli:
+    name: "keeper-cli"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable keeper-cli/
+          pip install tox wheel flake8
+
+      - name: Build Cloudkeeper CLI
+        working-directory: ./keeper-cli
+        run: |
+          sudo rm -fr /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./keeper-cli
+        run: tox
