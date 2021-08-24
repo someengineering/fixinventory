@@ -1,13 +1,13 @@
-name: Check PR (cloudkeeper-cli)
+name: Check PR (keeper-cli)
 on:
   push:
     paths:
-      - 'cloudkeeper-cli/**'
+      - 'keeper-cli/**'
       - '.github/**'
 
 jobs:
-  cloudkeeper_cli:
-    name: "cloudkeeper-cli"
+  keeper_cli:
+    name: "keeper-cli"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,16 +30,16 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable cloudkeeper-cli/
+          pip install --upgrade --editable keeper-cli/
           pip install tox wheel flake8
 
       - name: Build Cloudkeeper CLI
-        working-directory: ./cloudkeeper-cli
+        working-directory: ./keeper-cli
         run: |
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./cloudkeeper-cli
+        working-directory: ./keeper-cli
         run: tox
