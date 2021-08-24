@@ -234,7 +234,7 @@ class KeepercoreEvents(threading.Thread):
                 data = None
             self.register(event, data)
 
-        ws_uri = f"{self.keepercore_ws_uri}/subscription/{self.identifier}/handle"
+        ws_uri = f"{self.keepercore_ws_uri}/subscriber/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
         self.ws = websocket.WebSocketApp(
             ws_uri,
@@ -266,7 +266,7 @@ class KeepercoreEvents(threading.Thread):
     def registration(
         self, event: str, client: Callable, data: Optional[Dict] = None
     ) -> bool:
-        url = f"{self.keepercore_uri}/subscription/{self.identifier}/{event}"
+        url = f"{self.keepercore_uri}/subscriber/{self.identifier}/{event}"
         r = client(url, headers={"accept": "application/json"}, json=data)
         if r.status_code != 200:
             log.error(r.content)
