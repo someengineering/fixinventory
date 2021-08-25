@@ -134,8 +134,12 @@ class AWSEC2VolumeType(AWSResource, BaseVolumeType):
 @dataclass(eq=False)
 class AWSEC2Volume(AWSResource, BaseVolume):
     resource_type: ClassVar[str] = "aws_ec2_volume"
+    volume_kms_key_id: Optional[str] = None
+    volume_multi_attach_enabled: Optional[bool] = None
+    volume_outpost_arn: Optional[str] = None
+    volume_snapshot_id: Optional[str] = None
 
-    volume_status_map = {
+    volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
         "creating": VolumeStatus.BUSY,
         "available": VolumeStatus.AVAILABLE,
         "in-use": VolumeStatus.IN_USE,
@@ -689,6 +693,7 @@ class AWSEC2NetworkInterface(AWSResource, BaseNetworkInterface):
 @dataclass(eq=False)
 class AWSRDSInstance(AWSResource, BaseDatabase):
     resource_type: ClassVar[str] = "aws_rds_instance"
+    volume_kms_key_id: Optional[str] = None
 
 
 @dataclass(eq=False)

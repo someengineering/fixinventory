@@ -598,6 +598,13 @@ class AWSAccountCollector:
                 v.volume_size = volume.size
                 v.volume_type = volume.volume_type
                 v.volume_status = volume.state
+                v.volume_encrypted = volume.encrypted
+                v.volume_throughput = volume.throughput
+                v.volume_iops = volume.iops
+                v.volume_kms_key_id = volume.kms_key_id
+                v.volume_multi_attach_enabled = volume.multi_attach_enabled
+                v.volume_outpost_arn = volume.outpost_arn
+                v.volume_snapshot_id = volume.snapshot_id
                 log.debug(
                     f"Found volume {v.id} of type {v.volume_type} size {v.volume_size} status {v.volume_status}"
                 )
@@ -1559,11 +1566,15 @@ class AWSAccountCollector:
             )
             d.name = db.get("DBInstanceIdentifier", db["DbiResourceId"])
             d.db_type = db.get("Engine")
+            d.db_version = db.get("EngineVersion")
             d.db_status = db.get("DBInstanceStatus")
             d.db_endpoint = f"{db['Endpoint']['Address']}:{db['Endpoint']['Port']}"
+            d.db_publicly_accessible = db.get("PubliclyAccessible")
             d.instance_type = db.get("DBInstanceClass")
-            d.volume_size = int(db.get("AllocatedStorage", 0))
-            d.volume_iops = int(db.get("Iops", 0))
+            d.volume_size = db.get("AllocatedStorage")
+            d.volume_iops = db.get("Iops")
+            d.volume_encrypted = db.get("StorageEncrypted")
+            d.volume_kms_key_id = db.get("KmsKeyId")
             databases.append(d)
             graph.add_resource(region, d)
 
