@@ -3,7 +3,7 @@ from typing import List, AsyncGenerator, Any, Type
 
 from deepdiff import DeepDiff
 from pytest import fixture, mark
-from core.event_bus import EventBus, Message, Event, Action
+from core.event_bus import EventBus, Message, Event, Action, ActionDone, ActionError
 from core.model.typed_model import to_js, from_js
 
 
@@ -63,7 +63,11 @@ async def test_handler(event_bus: EventBus) -> None:
 def test_message_serialization() -> None:
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}), Message)
     roundtrip(Action("test", "123", "step_name"), Message)
-    roundtrip(Action("test", "123", "step_name"), Message)
+    roundtrip(Action("test", "123", "step_name", {"test": 1}), Message)
+    roundtrip(ActionDone("test", "123", "step_name", "sub"), Message)
+    roundtrip(ActionDone("test", "123", "step_name", "sub", {"test": 1}), Message)
+    roundtrip(ActionError("test", "123", "step_name", "sub", "oops"), Message)
+    roundtrip(ActionError("test", "123", "step_name", "sub", "oops", {"test": 23}), Message)
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:

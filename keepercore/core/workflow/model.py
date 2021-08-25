@@ -3,18 +3,16 @@ from dataclasses import dataclass, field
 
 from datetime import timedelta
 
-from abc import ABC
-
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class Subscription(ABC):
+class Subscription:
     message_type: str
     wait_for_completion: bool = field(default=True)
     timeout: timedelta = field(default=timedelta(seconds=60))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class Subscriber(ABC):
+class Subscriber:
     id: str
     subscriptions: dict[str, Subscription]
 

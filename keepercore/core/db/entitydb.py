@@ -51,14 +51,14 @@ class ArangoEntityDb(EntityDb[T], ABC):
                 yield from_js(element, self.t_type)
 
     async def update_many(self, elements: List[T]) -> None:
-        await self.db.insert_many(self.collection_name, [self.__to_doc(kind) for kind in elements], overwrite=True)
+        await self.db.insert_many(self.collection_name, [self.to_doc(e) for e in elements], overwrite=True)
 
     async def get(self, key: str) -> Optional[T]:
         result = await self.db.get(self.collection_name, key)
         return from_js(result, self.t_type) if result else None
 
     async def update(self, t: T) -> T:
-        await self.db.insert(self.collection_name, self.__to_doc(t), overwrite=True)
+        await self.db.insert(self.collection_name, self.to_doc(t), overwrite=True)
         return t
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
@@ -74,9 +74,9 @@ class ArangoEntityDb(EntityDb[T], ABC):
     async def wipe(self) -> bool:
         return await self.db.truncate(self.collection_name)
 
-    def __to_doc(self, t: T) -> Json:
-        js = to_js(t)
-        js["_key"] = self.key_of(t)
+    def to_doc(self, elem: T) -> Json:
+        js = to_js(elem)
+        js["_key"] = self.key_of(elem)
         return js
 
 
