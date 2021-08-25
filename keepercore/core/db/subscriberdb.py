@@ -7,4 +7,4 @@ EventSubscriberDb = EventEntityDb[Subscriber]
 
 
 def subscriber_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[Subscriber]:
-    return ArangoEntityDb(db, collection, Subscriber, lambda k: k.id)  # type: ignore
+    return ArangoEntityDb(db, collection, Subscriber, lambda k: k.id)
