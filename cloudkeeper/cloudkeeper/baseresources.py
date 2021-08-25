@@ -937,9 +937,12 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
         },
     }
-    volume_size: int = 0
+    volume_size: int = -1
     volume_type: str = ""
     volume_status: str = ""
+    volume_iops: Optional[int] = None
+    volume_throughput: Optional[int] = None
+    volume_encrypted: Optional[bool] = None
     snapshot_before_delete: bool = False
 
     def _volume_status_getter(self) -> str:
@@ -1194,9 +1197,12 @@ class BaseDatabase(BaseResource):
     db_type: str = ""
     db_status: str = ""
     db_endpoint: str = ""
+    db_version: Optional[str] = None
+    db_publicly_accessible: Optional[bool] = None
     instance_type: str = ""
     volume_size: int = -1
-    volume_iops: int = -1
+    volume_iops: Optional[int] = None
+    volume_encrypted: Optional[bool] = None
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
