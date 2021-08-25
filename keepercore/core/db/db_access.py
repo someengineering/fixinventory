@@ -7,8 +7,10 @@ from arango.database import StandardDatabase
 from dateutil.parser import parse
 
 from core.db.async_arangodb import AsyncArangoDB
+from core.db.entitydb import EventEntityDb
+from core.db.modeldb import ModelDb, model_db
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from core.db.modeldb import ArangoModelDB, ModelDB, EventModelDB
+from core.db.subscriberdb import subscriber_db
 from core.event_bus import EventBus
 from core.util import Periodic
 
@@ -21,20 +23,21 @@ class DbAccess(ABC):
         arango_database: StandardDatabase,
         event_bus: EventBus,
         model_name: str = "model",
+        subscribers_name: str = "subscriber",
         batch_outdated: timedelta = timedelta(minutes=30),
     ):
         self.event_bus = event_bus
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
-        self.model_name = model_name
-        self.model_db = ArangoModelDB(self.db, model_name)
-        self.model_event_db = EventModelDB(self.model_db, event_bus)
+        self.model_db = EventEntityDb(model_db(self.db, model_name), event_bus, model_name)
+        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscribers_name), event_bus, subscribers_name)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.batch_outdated = batch_outdated
         self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))
 
     async def start(self) -> None:
         await self.model_db.create_update_schema()
+        await self.subscribers_db.create_update_schema()
         await self.cleaner.start()
 
     async def create_graph(self, name: str) -> GraphDB:
@@ -63,8 +66,8 @@ class DbAccess(ABC):
             self.graph_dbs[name] = event_db
             return event_db
 
-    def get_model_db(self) -> ModelDB:
-        return self.model_event_db
+    def get_model_db(self) -> ModelDb:
+        return self.model_db
 
     async def check_outdated_batches(self) -> None:
         now = datetime.now(timezone.utc)

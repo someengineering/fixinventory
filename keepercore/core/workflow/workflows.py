@@ -15,7 +15,8 @@ from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionE
 from core.types import Json
 from core.util import first, Periodic, interleave, empty, exist, group_by
 from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler, Subscriber
+from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.model import Subscriber
 
 log = logging.getLogger(__name__)
 

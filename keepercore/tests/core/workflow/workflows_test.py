@@ -3,9 +3,11 @@ from typing import Tuple, Dict, List
 
 from pytest import fixture
 
+from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
 from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler, Subscriber, Subscription
+from core.workflow.subscribers import SubscriptionHandler
+from core.workflow.model import Subscriber, Subscription
 from core.workflow.workflows import (
     WorkflowHandler,
     Workflow,
@@ -24,8 +26,9 @@ from tests.core.event_bus_test import event_bus
 
 
 @fixture
-async def subscription_handler() -> SubscriptionHandler:
-    result = SubscriptionHandler()
+async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
+    in_mem = InMemoryDb(Subscriber, lambda x: x.id)
+    result = SubscriptionHandler(in_mem, event_bus)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 
@@ -60,8 +63,8 @@ def workflow_instance(
     sub1 = Subscription("start_collect", True, td)
     sub2 = Subscription("collect", True, td)
     sub3 = Subscription("collect_done", True, td)
-    s1 = Subscriber("s1", [sub1, sub2, sub3])
-    s2 = Subscriber("s2", [sub2, sub3])
+    s1 = Subscriber.from_list("s1", [sub1, sub2, sub3])
+    s2 = Subscriber.from_list("s2", [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
     w, _ = WorkflowInstance.empty(test_workflow, subscriptions)
     w.received_messages = [

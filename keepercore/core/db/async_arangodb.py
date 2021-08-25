@@ -102,6 +102,15 @@ class AsyncArangoDBBase:
             intermediate_commit_size,
         )
 
+    async def get(
+        self,
+        collection: str,
+        document: Union[str, Json],
+        rev: Optional[str] = None,
+        check_rev: bool = True,
+    ) -> Optional[Json]:
+        return await run_async(self.db.collection(collection).get, document, rev, check_rev)
+
     async def insert(
         self,
         collection: str,

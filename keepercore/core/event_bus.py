@@ -22,8 +22,6 @@ class CoreEvent:
     BatchUpdateCommitted = "batch-update-committed"
     BatchUpdateAborted = "batch-update-aborted"
     GraphDBWiped = "graphdb-wiped"
-    ModelUpdated = "model-updated"
-    ModelDeleted = "model-deleted"
     WorkflowFinished = "workflow-finished"
 
 
@@ -154,7 +152,10 @@ class EventBus:
     """
 
     def __init__(self) -> None:
+        # key is the channel name, value is the list of queues
         self.listeners: Dict[str, List[Queue[Message]]] = {}
+        # key is the subscriber id, value is the list of queue names
+        self.active_listener: dict[str, list[str]] = {}
 
     @contextmanager
     def subscribe(
@@ -194,6 +195,7 @@ class EventBus:
         if len(ch_list) == 0:
             raise AttributeError("Need at least one channel to subscribe to!")
         try:
+            self.active_listener[subscriber_id] = ch_list
             for channel in ch_list:
                 add_listener(channel)
             log.info(f"Listener {subscriber_id} added to following queues: {ch_list}")
@@ -202,6 +204,7 @@ class EventBus:
             log.info(f"Remove listener: {subscriber_id}")
             for channel in ch_list:
                 remove_listener(channel)
+            self.active_listener.pop(subscriber_id, None)
 
     async def emit_event(self, event_type: str, data: Json) -> None:
         return await self.emit(Event(event_type, data))

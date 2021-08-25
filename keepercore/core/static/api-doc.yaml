@@ -17,6 +17,8 @@ tags:
       description: Endpoints to manipulate the desired data in the graph.
     - name: cli
       description: Endpoints to evaluate and execute cli commands
+    - name: subscriptions
+      description: Endpoints to manipulate event subscriptions
     - name: system
       description: Endpoints to get information about the system.
     - name: debug
@@ -341,12 +343,6 @@ paths:
                 - name: graph_id
                   in: path
                   description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: parent_node_id
-                  in: path
-                  description: "The identifier of the parent node"
                   required: true
                   schema:
                       type: string
@@ -927,7 +923,226 @@ paths:
                     description: ""
     # endregion
 
-    # region: cli
+    # region subscriptions
+
+    /subscribers:
+        get:
+            summary: "List all subscriptions"
+            description: "Get all subscriptions of all subscribers in the system"
+            tags:
+                - subscriptions
+            responses:
+                "200":
+                    description: "The list of all subscribers with all subscriptions"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Subscriber"
+
+    /subscribers/for/{event_type}:
+        get:
+            summary: "List all subscribers for a given event type"
+            description: "Get all subscriptions of registered subscribers"
+            tags:
+                - subscriptions
+            parameters:
+                - name: event_type
+                  in: path
+                  description: "The type of message"
+                  required: true
+                  schema:
+                      type: string
+
+            responses:
+                "200":
+                    description: "The list of all subscribers which are subscribed"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Subscriber"
+
+
+    /subscriber/{subscriber_id}:
+        get:
+            summary: "Get subscriber by id"
+            description: "Get the subscriber with a defined id."
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+
+            responses:
+                "200":
+                    description: "The subscriber"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Subscriber"
+                "404":
+                    description: "No subscriber found"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+                                example: No subscriber with this id
+        put:
+            summary: "Define subscriber with all subscriptions"
+            description: |
+                Define or redefine a subscriber with all subscriptions.
+                In case the subscriber does not exist, it is created.
+                In case the subscriber exist, all subscriptions get replaced.
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The list of all subscriptions."
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                $ref: "#/components/schemas/Subscription"
+            responses:
+                "200":
+                    description: "The subscriber"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Subscriber"
+        delete:
+            summary: "Delete by id"
+            description: "Delete the subscriber with a defined id."
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+
+            responses:
+                "204":
+                    description: "no content"
+
+
+
+    /subscriber/{subscriber_id}/{event_type}:
+        post:
+            summary: "Add subscription to subscriber"
+            description: "Add a specific subscription to a subscriber."
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+                - name: event_type
+                  in: path
+                  description: "The action event type."
+                  required: true
+                  schema:
+                      type: string
+                - name: timeout
+                  in: query
+                  required: false
+                  description: |
+                      This is the duration in seconds this subscriber has time to execute the action.
+                      After this time the sender assumes a failure and rejects the result of this actor.
+                  schema:
+                      type: number
+                      default: 60
+                - name: wait_for_completion
+                  in: query
+                  required: false
+                  description: |
+                      If an action is sent to this subscriber, the event sender should wait until this
+                      subscriber has processed the message and send a done message.
+                      This is the expected behaviour of every actor and defaults to true.
+                  schema:
+                      type: boolean
+                      default: true
+            responses:
+                "200":
+                    description: "The subscriber"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Subscriber"
+        delete:
+            summary: "Delete a specific subscription from the subscriber."
+            description: "Delete a specific subscription from the subscriber."
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+                - name: event_type
+                  in: path
+                  description: "The action event type."
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: "The subscriber"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Subscriber"
+
+    /subscriber/{subscriber_id}/handle:
+        get:
+            summary: "Listen to registered events of given subscriber"
+            description: |
+                This endpoint expects a web-socket connection!
+                The connection to this endpoint will never be closed.
+                All action events of the system this subscriber has registerd will be send to this
+                connection.
+            tags:
+                - subscriptions
+            parameters:
+                - name: subscriber_id
+                  in: path
+                  description: "The identifier of the subscriber"
+                  required: true
+                  schema:
+                      type: string
+
+            responses:
+                "404":
+                    description: "No subscriber found"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+                                example: No subscriber with this id
+    # endregion
+
+    # region cli
     /cli/evaluate:
         post:
             summary: "Evaluate a cli command"
@@ -1017,6 +1232,38 @@ paths:
 
 components:
     schemas:
+        Subscriber:
+            description: "A subscriber has a unique name and a list of subscriptions"
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: "The identifier of this subscriber"
+                subscriptions:
+                    type: object
+                    description: "The dictionary of subscriptions, where the key is the message type"
+                    additionalProperties:
+                        $ref: "#/components/schemas/Subscription"
+        Subscription:
+            description: "The definition of an action subscription"
+            type: object
+            properties:
+                message_type:
+                    type: string
+                    description: "The name of the action to listen to"
+                wait_for_completion:
+                    type: boolean
+                    description: |
+                        If an action is sent to this subscriber, the event sender should wait until this
+                        subscriber has processed the message and send a done message.
+                        This is the expected behaviour of every actor and defaults to true.
+                    default: true
+                timeout:
+                    type: number
+                    description: |
+                        This is the duration in seconds this subscriber has time to execute the action.
+                        After this time the sender assumes a failure and rejects the result of this actor.
+                    default: 60
         Aggregated:
             description: "The result of the aggregation. The properties depend on the aggregation function."
             type: object
@@ -1357,6 +1604,3 @@ components:
                     type: object
                     description: "All binding variables for this query"
                     additionalProperties: true
-
-
-

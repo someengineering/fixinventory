@@ -183,7 +183,7 @@ class Kind(ABC):
             else:
                 raise TypeError(f"Unhandled runtime kind: {rk}")
         elif "fqn" in js and ("properties" in js or "bases" in js):
-            props: List[Property] = list(map(lambda p: from_js(p, Property), js.get("properties", [])))  # type: ignore
+            props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: List[str] = js.get("bases")  # type: ignore
             allow_unknown_props = js.get("allow_unknown_props", False)
             return Complex(js["fqn"], bases, props, allow_unknown_props)

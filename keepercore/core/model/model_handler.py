@@ -5,7 +5,7 @@ from typing import List, Tuple, Optional
 from plantuml import PlantUML
 
 from core.async_extensions import run_async
-from core.db.modeldb import ModelDB
+from core.db.modeldb import ModelDb
 from core.model.model import Model, Kind, Complex
 from core.util import exist
 
@@ -27,12 +27,12 @@ class ModelHandler(ABC):
 
 
 class ModelHandlerDB(ModelHandler):
-    def __init__(self, db: ModelDB, plantuml_server: str):
+    def __init__(self, db: ModelDb, plantuml_server: str):
         self.db = db
         self.plantuml_server = plantuml_server
 
     async def load_model(self) -> Model:
-        kinds = [kind async for kind in self.db.get_kinds()]
+        kinds = [kind async for kind in self.db.all()]
         return Model.from_kinds(list(kinds))
 
     async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
@@ -68,5 +68,5 @@ class ModelHandlerDB(ModelHandler):
         # make sure the update is valid
         updated = model.update_kinds(kinds)
         # store all updated kinds
-        await self.db.update_kinds(kinds)
+        await self.db.update_many(kinds)
         return updated

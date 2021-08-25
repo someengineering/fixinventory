@@ -5,6 +5,7 @@ from typing import Type, Any, Optional
 import jsons
 
 from core.types import Json
+from core.util import AnyT
 
 
 @functools.lru_cache(maxsize=1024)
@@ -23,17 +24,8 @@ def type_fqn(tpe: type) -> str:
     return tpe.__name__ if module is None or module == str.__class__.__module__ else module + "." + tpe.__name__
 
 
-def from_js(json: Optional[Any], clazz: Type[object]) -> object:
-    result = jsons.load(json, cls=clazz) if clazz != dict else json
-    # TODO: filter data that is not allowed to view
-    # try:
-    #     security_manager = SecurityManager.get()
-    #     for prop in properties(clazz).values():
-    #         if not security_manager.allowed_to_view(clazz, prop):
-    #             delattr(result, prop.name)
-    # except AttributeError:
-    #     pass
-    return result
+def from_js(json: Optional[Any], clazz: Type[AnyT]) -> AnyT:
+    return jsons.load(json, cls=clazz) if clazz != dict else json  # type: ignore
 
 
 def to_js(node: object) -> Json:
