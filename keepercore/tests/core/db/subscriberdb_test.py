@@ -2,9 +2,11 @@ import asyncio
 from typing import List
 import pytest
 from arango.database import StandardDatabase
+
+from core.db import subscriberdb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
-from core.db.subscriberdb import SubscriberDb, ArangoSubscriberDb, EventSubscriberDb
+from core.db.subscriberdb import SubscriberDb, EventSubscriberDb
 from core.event_bus import EventBus, Message
 from core.workflow.model import Subscriber, Subscription
 
@@ -18,7 +20,7 @@ from tests.core.db.graphdb_test import test_db
 @pytest.fixture
 async def subscriber_db(test_db: StandardDatabase) -> SubscriberDb:
     async_db = AsyncArangoDB(test_db)
-    subscriber_db = ArangoSubscriberDb(async_db, "subscriber")
+    subscriber_db = subscriberdb.subscriber_db(async_db, "subscriber")
     await subscriber_db.create_update_schema()
     await subscriber_db.wipe()
     return subscriber_db

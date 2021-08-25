@@ -4,8 +4,9 @@ from typing import List
 import pytest
 from arango.database import StandardDatabase
 
+from core.db import modeldb
 from core.db.async_arangodb import AsyncArangoDB
-from core.db.modeldb import ArangoModelDB, ModelDb, EventModelDb
+from core.db.modeldb import ModelDb, EventModelDb
 from core.db.entitydb import EventEntityDb
 from core.event_bus import EventBus, Message
 from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
@@ -56,7 +57,7 @@ def test_model() -> List[Kind]:
 @pytest.fixture
 async def model_db(test_db: StandardDatabase) -> ModelDb:
     async_db = AsyncArangoDB(test_db)
-    model_db = ArangoModelDB(async_db, "model")
+    model_db = modeldb.model_db(async_db, "model")
     await model_db.create_update_schema()
     await model_db.wipe()
     return model_db

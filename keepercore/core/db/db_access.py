@@ -8,9 +8,9 @@ from dateutil.parser import parse
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
-from core.db.modeldb import ArangoModelDB, ModelDb
+from core.db.modeldb import ModelDb, model_db
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from core.db.subscriberdb import ArangoSubscriberDb
+from core.db.subscriberdb import subscriber_db
 from core.event_bus import EventBus
 from core.util import Periodic
 
@@ -29,8 +29,8 @@ class DbAccess(ABC):
         self.event_bus = event_bus
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
-        self.model_db = EventEntityDb(ArangoModelDB(self.db, model_name), event_bus, model_name)
-        self.subscribers_db = EventEntityDb(ArangoSubscriberDb(self.db, subscribers_name), event_bus, subscribers_name)
+        self.model_db = EventEntityDb(model_db(self.db, model_name), event_bus, model_name)
+        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscribers_name), event_bus, subscribers_name)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.batch_outdated = batch_outdated
         self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))

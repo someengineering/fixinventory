@@ -6,6 +6,5 @@ SubscriberDb = EntityDb[Subscriber]
 EventSubscriberDb = EventEntityDb[Subscriber]
 
 
-class ArangoSubscriberDb(ArangoEntityDb[Subscriber]):
-    def __init__(self, db: AsyncArangoDB, collection: str):
-        super().__init__(db, collection, Subscriber, lambda k: k.id)
+def subscriber_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[Subscriber]:
+    return ArangoEntityDb(db, collection, Subscriber, lambda k: k.id)  # type: ignore

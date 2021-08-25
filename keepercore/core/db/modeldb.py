@@ -6,6 +6,5 @@ ModelDb = EntityDb[Kind]
 EventModelDb = EventEntityDb[Kind]
 
 
-class ArangoModelDB(ArangoEntityDb[Kind]):
-    def __init__(self, db: AsyncArangoDB, collection: str):
-        super().__init__(db, collection, Kind, lambda k: k.fqn)  # type: ignore
+def model_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[Kind]:
+    return ArangoEntityDb(db, collection, Kind, lambda k: k.fqn)  # type: ignore
