@@ -29,12 +29,23 @@ def echo_source() -> str:
 
 @pytest.mark.asyncio
 async def test_echo_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+    # no arg passed to echo
+    result = await cli.execute_cli_command("echo", sink)
+    assert result[0] == [""]
+
+    # simple string passed to echo
+    result = await cli.execute_cli_command("echo this is a string", sink)
+    assert result[0] == ["this is a string"]
+
+    # json object passed to echo
+    result = await cli.execute_cli_command('echo {"a": 1}', sink)
+    assert result[0] == [{"a": 1}]
+
+    # json array passed to echo
     result = await cli.execute_cli_command('echo [{"a": 1}, {"b":2}]', sink)
     assert result[0] == [{"a": 1}, {"b": 2}]
 
-    result = await cli.execute_cli_command("echo [1,2,3,4]", sink)
-    assert result[0] == [1, 2, 3, 4]
-
+    # json string passed to echo
     result = await cli.execute_cli_command('echo "foo bla bar"', sink)
     assert result[0] == ["foo bla bar"]
 

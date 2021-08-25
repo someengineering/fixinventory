@@ -45,16 +45,19 @@ class EchoSource(CLISource):
         return "Parse json and pass parsed objects to the output stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        js = json.loads(arg if arg else "")
+        arg_str = arg if arg else ""
+        js_str = arg_str if arg_str.strip() else '""'
+        try:
+            js = json.loads(js_str)
+        except Exception:
+            js = js_str
         if isinstance(js, list):
             elements = js
         elif isinstance(js, (str, int, float, bool, dict)):
             elements = [js]
         else:
             raise AttributeError(f"Echo does not understand {arg}.")
-
-        for element in elements:
-            yield element
+        return stream.iterate(elements)  # type: ignore
 
 
 class MatchSource(CLISource):
