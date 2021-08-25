@@ -33,8 +33,7 @@ class DbAccess(ABC):
         self.db = AsyncArangoDB(arango_database)
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_bus, model_name)
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscribers_name), event_bus, subscribers_name)
-        wi_db = workflow_instance_db(self.db, workflow_instance_name)
-        self.workflow_instance_db = EventEntityDb(wi_db, event_bus, workflow_instance_name)
+        self.workflow_instance_db = workflow_instance_db(self.db, workflow_instance_name)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.batch_outdated = batch_outdated
         self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))

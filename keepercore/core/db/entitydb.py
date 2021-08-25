@@ -2,9 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable
 
+from jsons import JsonsError
+
 from core.db.async_arangodb import AsyncArangoDB
 from core.event_bus import EventBus
-from core.model.typed_model import from_js, to_js
+from core.model.typed_model import from_js, to_js, type_fqn
 from core.types import Json
 
 log = logging.getLogger(__name__)
@@ -37,6 +39,10 @@ class EntityDb(ABC, Generic[T]):
     async def create_update_schema(self) -> None:
         pass
 
+    @abstractmethod
+    async def wipe(self) -> bool:
+        pass
+
 
 class ArangoEntityDb(EntityDb[T], ABC):
     def __init__(self, db: AsyncArangoDB, collection_name: str, t_type: Type[T], key_fn: Callable[[T], str]):
@@ -48,7 +54,10 @@ class ArangoEntityDb(EntityDb[T], ABC):
     async def all(self) -> AsyncGenerator[T, None]:
         with await self.db.all(self.collection_name) as cursor:
             for element in cursor:
-                yield from_js(element, self.t_type)
+                try:
+                    yield from_js(element, self.t_type)
+                except JsonsError:
+                    log.warning(f"Not able to parse {element} into {type_fqn(self.t_type)}. Ignore.")
 
     async def update_many(self, elements: List[T]) -> None:
         await self.db.insert_many(self.collection_name, [self.to_doc(e) for e in elements], overwrite=True)
@@ -109,3 +118,6 @@ class EventEntityDb(EntityDb[T]):
 
     async def create_update_schema(self) -> None:
         return await self.db.create_update_schema()
+
+    async def wipe(self) -> bool:
+        return await self.db.wipe()

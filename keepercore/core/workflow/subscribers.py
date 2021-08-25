@@ -24,30 +24,30 @@ class SubscriptionHandler(ABC):
     def __init__(self, db: SubscriberDb, event_bus: EventBus) -> None:
         self.db = db
         self.event_bus = event_bus
-        self.subscribers_by_id: Dict[str, Subscriber] = {}
-        self.subscribers_by_event: Dict[str, List[Subscriber]] = {}
+        self._subscribers_by_id: Dict[str, Subscriber] = {}
+        self._subscribers_by_event: Dict[str, List[Subscriber]] = {}
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: dict[str, datetime] = {}
 
     async def start(self) -> None:
         await self.__load_from_db()
-        log.info(f"Loaded {len(self.subscribers_by_id)} subscribers for {len(self.subscribers_by_event)} events")
+        log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
 
     async def all_subscribers(self) -> Iterable[Subscriber]:
-        return self.subscribers_by_id.values()
+        return self._subscribers_by_id.values()
 
     async def get_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
-        return self.subscribers_by_id.get(subscriber_id)
+        return self._subscribers_by_id.get(subscriber_id)
 
     async def list_subscriber_for(self, event_type: str) -> List[Subscriber]:
-        return self.subscribers_by_event.get(event_type, [])
+        return self._subscribers_by_event.get(event_type, [])
 
     async def add_subscription(
         self, subscriber_id: str, event_type: str, wait_for_completion: bool, timeout: timedelta
     ) -> Subscriber:
-        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
+        existing = self._subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.add_subscription(event_type, wait_for_completion, timeout)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: add subscription={event_type} ({wait_for_completion}, {timeout})")
@@ -56,7 +56,7 @@ class SubscriptionHandler(ABC):
         return updated
 
     async def remove_subscription(self, subscriber_id: str, event_type: str) -> Subscriber:
-        existing = self.subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
+        existing = self._subscribers_by_id.get(subscriber_id, Subscriber(subscriber_id, {}))
         updated = existing.remove_subscription(event_type)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: remove subscription={event_type}")
@@ -68,7 +68,7 @@ class SubscriptionHandler(ABC):
         return updated
 
     async def update_subscriptions(self, subscriber_id: str, subscriptions: list[Subscription]) -> Subscriber:
-        existing = self.subscribers_by_id.get(subscriber_id, None)
+        existing = self._subscribers_by_id.get(subscriber_id, None)
         updated = Subscriber.from_list(subscriber_id, subscriptions)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: update all subscriptions={subscriptions}")
@@ -77,7 +77,7 @@ class SubscriptionHandler(ABC):
         return updated
 
     async def remove_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
-        existing = self.subscribers_by_id.get(subscriber_id, None)
+        existing = self._subscribers_by_id.get(subscriber_id, None)
         if existing:
             log.info(f"Subscriber {subscriber_id}: remove subscriber")
             await self.db.delete(subscriber_id)
@@ -85,8 +85,11 @@ class SubscriptionHandler(ABC):
         return existing
 
     async def __load_from_db(self) -> None:
-        self.subscribers_by_id = {s.id: s async for s in self.db.all()}
-        self.subscribers_by_event = self.update_subscriber_by_event(self.subscribers_by_id.values())
+        self._subscribers_by_id = {s.id: s async for s in self.db.all()}
+        self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
+
+    def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
+        return self._subscribers_by_event
 
     @staticmethod
     def update_subscriber_by_event(subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
@@ -105,7 +108,7 @@ class SubscriptionHandler(ABC):
         # In case the service has just been started/restarted:
         # do not remove any subscriptions during the first minutes.
         if (now - self.started_at) > timedelta(minutes=5):
-            expected = set(self.subscribers_by_id.keys())
+            expected = set(self._subscribers_by_id.keys())
             connected = set(self.event_bus.active_listener.keys())
             # remove all connected subscriber from the not connected map
             for c in connected:

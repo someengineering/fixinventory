@@ -1,8 +1,9 @@
 import asyncio
-from typing import List, AsyncGenerator, Any, Type
+from typing import List, AsyncGenerator, Any
 
 from deepdiff import DeepDiff
 from pytest import fixture, mark
+
 from core.event_bus import EventBus, Message, Event, Action, ActionDone, ActionError
 from core.model.typed_model import to_js, from_js
 
@@ -61,16 +62,16 @@ async def test_handler(event_bus: EventBus) -> None:
 
 
 def test_message_serialization() -> None:
-    roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}), Message)
-    roundtrip(Action("test", "123", "step_name"), Message)
-    roundtrip(Action("test", "123", "step_name", {"test": 1}), Message)
-    roundtrip(ActionDone("test", "123", "step_name", "sub"), Message)
-    roundtrip(ActionDone("test", "123", "step_name", "sub", {"test": 1}), Message)
-    roundtrip(ActionError("test", "123", "step_name", "sub", "oops"), Message)
-    roundtrip(ActionError("test", "123", "step_name", "sub", "oops", {"test": 23}), Message)
+    roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
+    roundtrip(Action("test", "123", "step_name"))
+    roundtrip(Action("test", "123", "step_name", {"test": 1}))
+    roundtrip(ActionDone("test", "123", "step_name", "sub"))
+    roundtrip(ActionDone("test", "123", "step_name", "sub", {"test": 1}))
+    roundtrip(ActionError("test", "123", "step_name", "sub", "oops"))
+    roundtrip(ActionError("test", "123", "step_name", "sub", "oops", {"test": 23}))
 
 
-def roundtrip(obj: Any, clazz: Type[object]) -> None:
+def roundtrip(obj: Any) -> None:
     js = to_js(obj)
-    again = from_js(js, clazz)
+    again = from_js(js, type(obj))
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"

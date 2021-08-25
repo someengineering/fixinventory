@@ -5,11 +5,9 @@ from pytest import fixture
 
 from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
-from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler
 from core.workflow.model import Subscriber, Subscription
 from core.workflow.workflows import (
-    WorkflowHandler,
     Workflow,
     Step,
     WorkflowInstance,
@@ -30,12 +28,6 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
     result = SubscriptionHandler(in_mem, event_bus)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
-    return result
-
-
-@fixture
-async def workflow_handler(event_bus: EventBus, subscription_handler: SubscriptionHandler) -> WorkflowHandler:
-    result = WorkflowHandler(event_bus, subscription_handler, Scheduler())
     return result
 
 
@@ -66,7 +58,7 @@ def workflow_instance(
     s1 = Subscriber.from_list("s1", [sub1, sub2, sub3])
     s2 = Subscriber.from_list("s2", [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = WorkflowInstance.empty(test_workflow, subscriptions)
+    w, _ = WorkflowInstance.empty(test_workflow, lambda: subscriptions)
     w.received_messages = [
         Action("start_collect", w.id, "start"),
         ActionDone("start_collect", w.id, "start", s1.id),
@@ -107,9 +99,9 @@ def test_pending_action_for(
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # s1 already sent a done message for the current step
-    assert wi.pending_action_for(subscriptions, s1) is None
+    assert wi.pending_action_for(s1) is None
     # s2 is still expected to provide a done message
-    assert wi.pending_action_for(subscriptions, s2) == Action("collect", wi.id, "collect")
+    assert wi.pending_action_for(s2) == Action("collect", wi.id, "collect")
 
 
 def test_handle_done(
@@ -154,7 +146,7 @@ def test_complete_workflow(
 ) -> None:
     init, s1, s2, subscriptions = workflow_instance
     # start new workflow instance
-    wi, events = WorkflowInstance.empty(init.workflow, subscriptions)
+    wi, events = WorkflowInstance.empty(init.workflow, lambda: subscriptions)
     assert wi.current_step.name == "start"
     assert len(events) == 2
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
@@ -183,6 +175,3 @@ def test_complete_workflow(
     events = wi.handle_done(ActionDone("done", wi.id, "done", s2.id))
     assert len(events) == 1
     assert wi.is_active is False
-
-
-# TODO: add tests for workflow handler

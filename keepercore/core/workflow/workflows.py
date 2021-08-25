@@ -1,21 +1,17 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from abc import ABC
-from asyncio import Task
 from datetime import timedelta, datetime, timezone
 from enum import Enum
-from typing import List, Dict, Tuple, Set, Optional, Any, Callable, Union, Sequence
+from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
 from transitions import Machine, State, MachineError
 
-from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
+from core.event_bus import Event, Action, ActionDone, Message, ActionError
 from core.types import Json
-from core.util import first, Periodic, interleave, empty, exist, group_by
-from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler
+from core.util import first, interleave, empty, exist, identity
 from core.workflow.model import Subscriber
 
 log = logging.getLogger(__name__)
@@ -225,6 +221,30 @@ class StepState(State):  # type: ignore
         else:
             raise AttributeError(f"No mapping for {type(step.action).__name__}")
 
+    def step_started(self) -> None:
+        """
+        This method is called when the fsm enters this state.
+        Override in subsequent classes, if action is required in such a scenario.
+        """
+
+    # noinspection PyMethodMayBeStatic
+    def export_state(self) -> Json:
+        """
+        This method is called when the state of the workflow instance need to be persisted.
+        Since each state in the FSM can have it's own schema, we export a generic json blob here,
+        that has to be interpreted during import_state.
+        :return: json representation of this state. empty by default.
+        """
+        return {}
+
+    def import_state(self, js: Json) -> None:
+        """
+        This method is called when the execution of this workflow instance has been interrupted by a restart.
+        The last known state is persisted to some durable storage and imported in the startup phase.
+
+        :param js: the same json that was exported with export_state()
+        """
+
 
 class PerformActionState(StepState):
     """
@@ -235,6 +255,7 @@ class PerformActionState(StepState):
     def __init__(self, perform: PerformAction, step: Step, instance: WorkflowInstance):
         super().__init__(step, instance)
         self.perform = perform
+        self.wait_for = self.instance.subscribers_by_event().get(perform.message_type, [])
 
     def current_step_done(self) -> bool:
         """
@@ -247,7 +268,7 @@ class PerformActionState(StepState):
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name
         }
-        subscriber = self.instance.subscribers_by_event.get(msg_type, [])
+        subscriber = self.wait_for
         missing = {x.id for x in subscriber if x[msg_type].wait_for_completion} - in_step
         return self.timed_out or (not self.instance.is_error and empty(missing))
 
@@ -257,7 +278,7 @@ class PerformActionState(StepState):
         """
         msg_type = self.perform.message_type
         max_timeout = self.step.timeout
-        for subscriber in self.instance.subscribers_by_event.get(msg_type, []):
+        for subscriber in self.instance.subscribers_by_event().get(msg_type, []):
             subscription = subscriber.subscriptions[msg_type]
             to = subscription.timeout
             # only extend the timeout, when the subscriber is blocking and has a longer timeout
@@ -269,6 +290,19 @@ class PerformActionState(StepState):
         When the state is entered, emit the action message and inform all actors.
         """
         return [Action(self.perform.message_type, self.instance.id, self.step.name)]
+
+    def step_started(self) -> None:
+        # refresh the list of subscribers when the step has started
+        self.wait_for = self.instance.subscribers_by_event().get(self.perform.message_type, [])
+
+    def export_state(self) -> Json:
+        return {"wait_for": [a.id for a in self.wait_for]}
+
+    def import_state(self, js: Json) -> None:
+        existing = {s.id: s for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
+        wait_for = js.get("wait_for", [])
+        # filter all existing subscriber from the list of subscribers to wait_for
+        self.wait_for = list(filter(identity, (existing.get(sid) for sid in wait_for)))  # type: ignore
 
 
 class WaitForEventState(StepState):
@@ -344,7 +378,7 @@ class EndState(StepState):
 class WorkflowInstance:
     @staticmethod
     def empty(
-        workflow: Workflow, subscriber_by_event: Dict[str, List[Subscriber]]
+        workflow: Workflow, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
     ) -> Tuple[WorkflowInstance, Sequence[Message]]:
         assert len(workflow.steps) > 0, "Workflow needs at least one step!"
         uid = str(uuid.uuid1())
@@ -352,11 +386,11 @@ class WorkflowInstance:
         messages = [Event("workflow_started", data={"workflow": workflow.name}), *wi.move_to_next_state()]
         return wi, messages
 
-    def __init__(self, uid: str, workflow: Workflow, subscribers_by_event: Dict[str, List[Subscriber]]):
+    def __init__(self, uid: str, workflow: Workflow, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]):
         self.id = uid
         self.is_error = False
         self.workflow = workflow
-        self.received_messages: List[Message] = []
+        self.received_messages: MutableSequence[Message] = []
         self.subscribers_by_event = subscribers_by_event
         self.step_started_at = datetime.now(timezone.utc)
 
@@ -458,9 +492,7 @@ class WorkflowInstance:
 
         return first(relevant_ack, self.received_messages)
 
-    def pending_action_for(
-        self, subscriber_by_event: Dict[str, List[Subscriber]], subscriber: Subscriber
-    ) -> Optional[Action]:
+    def pending_action_for(self, subscriber: Subscriber) -> Optional[Action]:
         """
         In case this workflow is waiting for an action result from the given subscriber,
         the relevant action is returned.
@@ -468,7 +500,7 @@ class WorkflowInstance:
         state = self.current_state
         if isinstance(state, PerformActionState):
             message_type = state.perform.message_type
-            subscriptions = subscriber_by_event.get(message_type, [])
+            subscriptions = state.wait_for
             if subscriber in subscriptions and self.ack_for(message_type, subscriber) is None:
                 return Action(message_type, self.id, state.step.name)
         return None
@@ -477,173 +509,4 @@ class WorkflowInstance:
         log.info(f"Workflow {self.id}: begin step is: {self.current_step.name}")
         # update the step started time, whenever a new state is entered
         self.step_started_at = datetime.now(timezone.utc)
-
-
-class WorkflowHandler:
-    def __init__(self, event_bus: EventBus, subscription_handler: SubscriptionHandler, scheduler: Scheduler):
-        self.event_bus = event_bus
-        self.subscription_handler = subscription_handler
-        self.scheduler = scheduler
-        self.workflows: List[Workflow] = []
-        self.workflow_instances: Dict[str, WorkflowInstance] = {}
-        self.running_task: Optional[Task[Any]] = None
-        self.timeout_watcher = Periodic("workflow_timeout_watcher", self.check_overdue_workflows, timedelta(seconds=10))
-        self.registered_event_trigger: List[Tuple[EventTrigger, Workflow]] = []
-        self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, Workflow]]] = {}
-
-    async def update_trigger(self, workflow: Workflow, register: bool = True) -> None:
-        # safeguard: unregister all event trigger of this workflow
-        for existing in (tup for tup in self.registered_event_trigger if workflow.id == tup[1].id):
-            self.registered_event_trigger.remove(existing)
-        # safeguard: unregister all schedule trigger of this workflow
-        for job in self.scheduler.list_jobs():
-            if str(job.id).startswith(workflow.id):
-                job.remove()
-        # add all triggers
-        if register:
-            for trigger in workflow.triggers:
-                if isinstance(trigger, EventTrigger):
-                    self.registered_event_trigger.append((trigger, workflow))
-                if isinstance(trigger, TimeTrigger):
-                    uid = f"{workflow.id}_{trigger.cron_expression}"
-                    name = f"Trigger for workflow {workflow.id} on cron expression {trigger.cron_expression}"
-                    self.scheduler.cron(uid, name, trigger.cron_expression, self.time_triggered, workflow, trigger)
-        # recompute the lookup table
-        self.registered_event_trigger_by_message_type = group_by(
-            lambda t: t[0].message_type, self.registered_event_trigger
-        )
-
-    async def start(self) -> None:
-        # Step1: define all workflows in code: later it will be persisted in database
-        self.workflows = [
-            Workflow(
-                "test",
-                "test",
-                [
-                    Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-                    Step("act", PerformAction("collect"), timedelta(seconds=10)),
-                    Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
-                ],
-                [EventTrigger("start_test_workflow"), TimeTrigger("5 * * * *")],
-            )
-        ]
-
-        await self.timeout_watcher.start()
-        # TODO: load and keep all workflow instances
-
-        for workflow in self.workflows:
-            await self.update_trigger(workflow)
-
-        async def listen_to_event_bus() -> None:
-            with self.event_bus.subscribe("workflow_manager") as messages:
-                while True:
-                    try:
-                        message = await messages.get()
-                        if isinstance(message, Event):
-                            await self.handle_event(message)
-                        elif isinstance(message, Action):
-                            await self.handle_action(message)
-                        elif isinstance(message, (ActionDone, ActionError)):
-                            log.info(f"Ignore message via event bus: {message}")
-                    except Exception as ex:
-                        log.error(f"Could not handle event {message} - give up.", ex)
-
-        self.running_task = asyncio.create_task(listen_to_event_bus())
-
-    async def time_triggered(self, workflow: Workflow, trigger: TimeTrigger) -> None:
-        log.info(f"Workflow {workflow.name} triggered by time: {trigger.cron_expression}")
-        return await self.start_workflow(workflow)
-
-    async def start_workflow(self, workflow: Workflow) -> None:
-        existing = first(lambda x: x.workflow.id == workflow.id, self.workflow_instances.values())
-        if existing:
-            if workflow.on_surpass == WorkflowSurpassBehaviour.Skip:
-                log.info(
-                    f"Workflow {workflow.name} has been triggered. Since the last job is not finished, "
-                    f"the execution will be skipped, as defined by the workflow"
-                )
-                return None
-            elif workflow.on_surpass == WorkflowSurpassBehaviour.Replace:
-                existing.end()
-                await self.after_handled(existing, [])
-            elif workflow.on_surpass == WorkflowSurpassBehaviour.Parallel:
-                # new workflow instance can be started
-                pass
-            else:
-                raise AttributeError(f"Surpass behaviour not handled: {workflow.on_surpass}")
-
-        wi, messages = WorkflowInstance.empty(workflow, self.subscription_handler.subscribers_by_event)
-        if wi.is_active:
-            self.workflow_instances[wi.id] = wi
-        else:
-            log.info(f"Workflow {workflow.name} was triggered and ran directly to the end. Ignore.")
-
-        for message in messages:
-            await self.event_bus.emit(message)
-
-    async def handle_event(self, event: Event) -> None:
-        # check if any running workflow instance want's to handle this event
-        for wi in self.workflow_instances.values():
-            handled, messages_to_emit = wi.handle_event(event)
-            if handled:
-                await self.after_handled(wi, messages_to_emit)
-                # TODO: state of the wi has changed: store event
-
-        # check if this event triggers any new workflow
-        for trigger, workflow in self.registered_event_trigger_by_message_type.get(event.message_type, []):
-            if event.message_type == trigger.message_type:
-                comp = trigger.filter_data
-                if {key: event.data.get(key) for key in comp} == comp if comp else True:
-                    await self.start_workflow(workflow)
-
-    # noinspection PyMethodMayBeStatic
-    async def handle_action(self, action: Action) -> None:
-        # TODO: maybe we should store this action in database as well
-        log.info(f"Received action: {action.step_name}:{action.message_type} of {action.workflow_instance_id}")
-
-    async def handle_action_result(
-        self,
-        done: Union[ActionDone, ActionError],
-        fn: Callable[[WorkflowInstance], Sequence[Message]],
-    ) -> None:
-        wi = self.workflow_instances.get(done.workflow_instance_id)
-        if wi:
-            messages = fn(wi)
-            return await self.after_handled(wi, messages)
-        else:
-            log.warning(
-                f"Received an ack for an unknown workflow={done.workflow_instance_id} "
-                f"event={done.message_type} from={done.subscriber_id}. Ignore."
-            )
-
-    async def handle_action_done(self, done: ActionDone) -> None:
-        return await self.handle_action_result(done, lambda wi: wi.handle_done(done))
-
-    async def handle_action_error(self, err: ActionError) -> None:
-        log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.workflow_instance_id}")
-        return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
-
-    async def after_handled(self, wi: WorkflowInstance, messages_to_emit: Sequence[Message]) -> None:
-        for event in messages_to_emit:
-            await self.event_bus.emit(event)
-        if not wi.is_active:
-            log.info(f"Workflow instance {wi.id} is done and will be removed.")
-            # TODO: remove from database
-            del self.workflow_instances[wi.id]
-
-    async def list_all_pending_actions_for(self, subscriber: Subscriber) -> List[Action]:
-        subscriptions = self.subscription_handler.subscribers_by_event
-        pending = map(lambda x: x.pending_action_for(subscriptions, subscriber), self.workflow_instances.values())
-        return [x for x in pending if x]
-
-    async def check_overdue_workflows(self) -> None:
-        """
-        Called periodically by the system.
-        In case there is an overdue workflow instance, an action error is injected into the workflow.
-        """
-        for wi in list(self.workflow_instances.values()):
-            if wi.is_active:  # workflow instance is still active
-                if wi.current_state.check_timeout():
-                    messages = wi.move_to_next_state()
-                    await self.after_handled(wi, messages)
-                    # TODO: store data since state has changed
+        self.current_state.step_started()

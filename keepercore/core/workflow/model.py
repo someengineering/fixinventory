@@ -14,7 +14,7 @@ class Subscription:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Subscriber:
     id: str
-    subscriptions: dict[str, Subscription]
+    subscriptions: dict[str, Subscription] = field(default_factory=dict)
 
     @staticmethod
     def from_list(uid: str, subscriptions: list[Subscription]) -> Subscriber:
