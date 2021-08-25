@@ -57,9 +57,7 @@ class EchoSource(CLISource):
             elements = [js]
         else:
             raise AttributeError(f"Echo does not understand {arg}.")
-
-        for element in elements:
-            yield element
+        return stream.iterate(elements)  # type: ignore
 
 
 class MatchSource(CLISource):
