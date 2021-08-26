@@ -18,6 +18,7 @@ from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
 from cloudkeeper.utils import log_stats, increase_limits
 from cloudkeeper.args import ArgumentParser
+from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.event import (
     add_event_listener,
     Event,
@@ -57,6 +58,7 @@ def main() -> None:
     logging.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     GraphContainer.add_args(arg_parser)
+    Cleaner.add_args(arg_parser)
     event_add_args(arg_parser)
     add_args(arg_parser)
 
@@ -153,15 +155,44 @@ def cleanup():
     keepercore_graph = ArgumentParser.args.keepercore_graph
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
     query_uri = f"{graph_uri}/desired/query/graph"
-    query = 'delete==true -[0:]-'
+    query = "delete==true -[0:]-"
     r = requests.post(query_uri, data=query, headers={"accept": "application/x-ndjson"})
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to query graph: {r.content}")
     graph_data = r.content.decode()
+    graph = Graph()
+    node_mapping = {}
     for line in graph_data.splitlines():
         data = json.loads(line)
         log.debug(data)
+        if data.get("type") == "node":
+            node_data = data.get("data", {}).get("reported")
+            node_data_desired = data.get("data", {}).get("desired")
+            node_delete = node_data_desired.get("delete", False)
+            resource_type = node_data.get("kind")
+            if resource_type not in class_mapping:
+                log.error(f"Do not know how to handle {data}")
+                continue
+            del node_data["kind"]
+            node = class_mapping[resource_type](**node_data)
+            node_mapping[data.get("id")] = node
+            if node_delete:
+                node.clean = node_delete
+            graph.add_node(node)
+            if resource_type == "graph_root":
+                log.debug(f"Setting graph root {node}")
+                graph.root = node
+        elif data.get("type") == "edge":
+            node_from = data.get("from")
+            node_to = data.get("to")
+            if node_from not in node_mapping or node_to not in node_mapping:
+                log.error(f"One of {node_from} -> {node_to} unknown")
+                continue
+            graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+    sanitize(graph)
+    cleaner = Cleaner(graph)
+    cleaner.cleanup()
 
 
 def collect_plugin_graph(
