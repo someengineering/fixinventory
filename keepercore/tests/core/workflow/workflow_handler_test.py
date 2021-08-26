@@ -80,11 +80,11 @@ async def test_recover(
         assert len(wf1.workflow_instances) == 1
         # expect a start_collect action message
         a: Action = await wait_for_message("start_collect", Action)
-        await wf1.handle_action_done(ActionDone(a.message_type, a.workflow_instance_id, a.step_name, sub1.id, a.data))
+        await wf1.handle_action_done(ActionDone(a.message_type, a.task_id, a.step_name, sub1.id, a.data))
 
         # expect a collect action message
         b: Action = await wait_for_message("collect", Action)
-        await wf1.handle_action_done(ActionDone(b.message_type, b.workflow_instance_id, b.step_name, sub1.id, b.data))
+        await wf1.handle_action_done(ActionDone(b.message_type, b.task_id, b.step_name, sub1.id, b.data))
 
     # subscriber 3 is also registering for collect
     # since the collect phase is already started, it should not participate in this round
@@ -100,7 +100,7 @@ async def test_recover(
         assert (await wf2.list_all_pending_actions_for(sub3)) == []
         await wf2.handle_action_done(ActionDone("collect", wfi.id, "act", sub2.id, {}))
         # expect an event workflow_end
-        await wait_for_message("workflow_end", Event)
+        await wait_for_message("task_end", Event)
         # all workflow instances are gone
         assert len(wf2.workflow_instances) == 0
 

@@ -12,9 +12,9 @@ from core.util import first, Periodic, group_by
 from core.workflow.model import Subscriber
 from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.workflows import (
+from core.workflow.task_description import (
     Workflow,
-    WorkflowInstance,
+    RunningTask,
     EventTrigger,
     TimeTrigger,
     WorkflowSurpassBehaviour,
@@ -38,7 +38,7 @@ class WorkflowHandler:
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.workflows: List[Workflow] = []
-        self.workflow_instances: Dict[str, WorkflowInstance] = {}
+        self.workflow_instances: Dict[str, RunningTask] = {}
         self.running_task: Optional[Task[Any]] = None
         self.timeout_watcher = Periodic("workflow_timeout_watcher", self.check_overdue_workflows, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, Workflow]] = []
@@ -66,10 +66,10 @@ class WorkflowHandler:
             lambda t: t[0].message_type, self.registered_event_trigger
         )
 
-    async def start_interrupted_workflow_instances(self) -> list[WorkflowInstance]:
+    async def start_interrupted_workflow_instances(self) -> list[RunningTask]:
         workflows = {w.id: w for w in self.workflows}
 
-        def reset_state(wi: WorkflowInstance, data: WorkflowInstanceData) -> WorkflowInstance:
+        def reset_state(wi: RunningTask, data: WorkflowInstanceData) -> RunningTask:
             # reset the received messages
             wi.received_messages = data.received_messages  # type: ignore
             # move the fsm into the last known state
@@ -80,11 +80,11 @@ class WorkflowHandler:
             wi.move_to_next_state()
             return wi
 
-        instances: list[WorkflowInstance] = []
+        instances: list[RunningTask] = []
         async for data in self.workflow_instance_db.all():
             workflow = workflows.get(data.workflow_id)
             if workflow:
-                instance = WorkflowInstance(data.id, workflow, self.subscription_handler.subscribers_by_event)
+                instance = RunningTask(data.id, workflow, self.subscription_handler.subscribers_by_event)
                 instances.append(reset_state(instance, data))
             else:
                 log.warning(f"No workflow with this id found: {data.workflow_id}. Remove instance data.")
@@ -135,7 +135,7 @@ class WorkflowHandler:
         return await self.start_workflow(workflow)
 
     async def start_workflow(self, workflow: Workflow) -> None:
-        existing = first(lambda x: x.workflow.id == workflow.id, self.workflow_instances.values())
+        existing = first(lambda x: x.task.id == workflow.id, self.workflow_instances.values())
         if existing:
             if workflow.on_surpass == WorkflowSurpassBehaviour.Skip:
                 log.info(
@@ -152,7 +152,7 @@ class WorkflowHandler:
             else:
                 raise AttributeError(f"Surpass behaviour not handled: {workflow.on_surpass}")
 
-        wi, messages = WorkflowInstance.empty(workflow, self.subscription_handler.subscribers_by_event)
+        wi, messages = RunningTask.empty(workflow, self.subscription_handler.subscribers_by_event)
         if wi.is_active:
             log.info(f"Start new workflow: {workflow.name} with id {wi.id}")
             # store initial state in database
@@ -181,20 +181,20 @@ class WorkflowHandler:
 
     # noinspection PyMethodMayBeStatic
     async def handle_action(self, action: Action) -> None:
-        log.info(f"Received action: {action.step_name}:{action.message_type} of {action.workflow_instance_id}")
+        log.info(f"Received action: {action.step_name}:{action.message_type} of {action.task_id}")
 
     async def handle_action_result(
         self,
         done: Union[ActionDone, ActionError],
-        fn: Callable[[WorkflowInstance], Sequence[Message]],
+        fn: Callable[[RunningTask], Sequence[Message]],
     ) -> None:
-        wi = self.workflow_instances.get(done.workflow_instance_id)
+        wi = self.workflow_instances.get(done.task_id)
         if wi:
             messages = fn(wi)
             return await self.after_handled(wi, messages, done)
         else:
             log.warning(
-                f"Received an ack for an unknown workflow={done.workflow_instance_id} "
+                f"Received an ack for an unknown workflow={done.task_id} "
                 f"event={done.message_type} from={done.subscriber_id}. Ignore."
             )
 
@@ -202,11 +202,11 @@ class WorkflowHandler:
         return await self.handle_action_result(done, lambda wi: wi.handle_done(done))
 
     async def handle_action_error(self, err: ActionError) -> None:
-        log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.workflow_instance_id}")
+        log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.task_id}")
         return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
 
     async def after_handled(
-        self, wi: WorkflowInstance, messages_to_emit: Sequence[Message], origin_message: Optional[Message] = None
+        self, wi: RunningTask, messages_to_emit: Sequence[Message], origin_message: Optional[Message] = None
     ) -> None:
         for event in messages_to_emit:
             await self.event_bus.emit(event)

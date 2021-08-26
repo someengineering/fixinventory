@@ -10,10 +10,10 @@ from core.event_bus import ActionDone
 from core.util import utc
 from core.workflow.model import Subscriber
 
-from core.workflow.workflows import WorkflowInstance
+from core.workflow.task_description import RunningTask
 
 # noinspection PyUnresolvedReferences
-from tests.core.workflow.workflows_test import workflow_instance, test_workflow
+from tests.core.workflow.task_description_test import workflow_instance, test_workflow
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -72,7 +72,7 @@ async def test_delete(workflow_instance_db: WorkflowInstanceDb, instances: List[
 @pytest.mark.asyncio
 async def test_update_state(
     workflow_instance_db: WorkflowInstanceDb,
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, dict[str, List[Subscriber]]],
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, dict[str, List[Subscriber]]],
 ) -> None:
     wi, _, _, _ = workflow_instance
     first = ActionDone("start_collect", "test", "bla", "sf")

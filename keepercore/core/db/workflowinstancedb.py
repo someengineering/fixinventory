@@ -13,7 +13,7 @@ from core.event_bus import Message
 from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc
-from core.workflow.workflows import WorkflowInstance
+from core.workflow.task_description import RunningTask
 
 log = logging.getLogger(__name__)
 
@@ -36,11 +36,11 @@ class WorkflowInstanceData:
     step_started_at: datetime = field(default_factory=utc)
 
     @staticmethod
-    def data(wi: WorkflowInstance) -> WorkflowInstanceData:
+    def data(wi: RunningTask) -> WorkflowInstanceData:
         return WorkflowInstanceData(
             wi.id,
-            wi.workflow.id,
-            wi.workflow.name,
+            wi.task.id,
+            wi.task.name,
             wi.received_messages,
             wi.current_state.name,
             wi.current_state.export_state(),
@@ -50,11 +50,11 @@ class WorkflowInstanceData:
 
 class WorkflowInstanceDb(EntityDb[WorkflowInstanceData]):
     @abstractmethod
-    async def update_state(self, wi: WorkflowInstance, message: Optional[Message]) -> None:
+    async def update_state(self, wi: RunningTask, message: Optional[Message]) -> None:
         pass
 
     @abstractmethod
-    async def insert(self, workflow_instance: WorkflowInstance) -> WorkflowInstanceData:
+    async def insert(self, workflow_instance: RunningTask) -> WorkflowInstanceData:
         pass
 
 
@@ -62,7 +62,7 @@ class ArangoWorkflowInstanceDb(ArangoEntityDb[WorkflowInstanceData], WorkflowIns
     def __init__(self, db: AsyncArangoDB, collection: str):
         super().__init__(db, collection, WorkflowInstanceData, lambda k: k.id)
 
-    async def update_state(self, wi: WorkflowInstance, message: Optional[Message]) -> None:
+    async def update_state(self, wi: RunningTask, message: Optional[Message]) -> None:
         bind = {
             "id": f"{self.collection_name}/{wi.id}",
             "current_state_name": wi.current_state.name,
@@ -76,7 +76,7 @@ class ArangoWorkflowInstanceDb(ArangoEntityDb[WorkflowInstanceData], WorkflowIns
 
         await self.db.aql(aql, bind_vars=bind)
 
-    async def insert(self, workflow_instance: WorkflowInstance) -> WorkflowInstanceData:
+    async def insert(self, workflow_instance: RunningTask) -> WorkflowInstanceData:
         return await self.update(WorkflowInstanceData.data(workflow_instance))
 
     @staticmethod
