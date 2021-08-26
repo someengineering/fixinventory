@@ -76,7 +76,7 @@ async def test_recover(
 
     async with handler() as wf1:
         # kick off a new workflow
-        await wf1.handle_event(Event("start_test_workflow"))
+        await wf1.handle_event(Event("start_collect_workflow"))
         assert len(wf1.workflow_instances) == 1
         # expect a start_collect action message
         a: Action = await wait_for_message("start_collect", Action)
