@@ -149,6 +149,19 @@ def keepercore_message_processor(
 
 def cleanup():
     log.info("Running cleanup")
+    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
+    keepercore_graph = ArgumentParser.args.keepercore_graph
+    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    query_uri = f"{graph_uri}/desired/query/graph"
+    query = 'delete==true -[0:]-'
+    r = requests.post(query_uri, data=query, headers={"accept": "application/x-ndjson"})
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to query graph: {r.content}")
+    graph_data = r.content.decode()
+    for line in graph_data.splitlines():
+        data = json.loads(line)
+        log.debug(data)
 
 
 def collect_plugin_graph(
