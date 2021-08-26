@@ -256,18 +256,19 @@ class KeepercoreEvents(threading.Thread):
             self.unregister(core_event)
 
     def register(self, event: str, data: Optional[Dict] = None) -> bool:
-        log.debug(f"{self.identifier} registering for {event} events")
+        log.debug(f"{self.identifier} registering for {event} events ({data})")
         return self.registration(event, requests.post, data)
 
     def unregister(self, event: str, data: Optional[Dict] = None) -> bool:
-        log.debug(f"{self.identifier} unregistering from {event} events")
+        log.debug(f"{self.identifier} unregistering from {event} events ({data})")
         return self.registration(event, requests.delete, data)
 
     def registration(
         self, event: str, client: Callable, data: Optional[Dict] = None
     ) -> bool:
         url = f"{self.keepercore_uri}/subscriber/{self.identifier}/{event}"
-        r = client(url, headers={"accept": "application/json"}, json=data)
+        r = client(url, headers={"accept": "application/json"}, params=data)
+        log.debug(f"Calling {r.url}")
         if r.status_code != 200:
             log.error(r.content)
             return False

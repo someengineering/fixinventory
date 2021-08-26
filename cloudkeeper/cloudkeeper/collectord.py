@@ -87,7 +87,7 @@ def main() -> None:
             "cleanup": {
                 "timeout": ArgumentParser.args.timeout,
                 "wait_for_completion": True,
-            }
+            },
         },
         message_processor=message_processor,
     )
@@ -116,6 +116,7 @@ def keepercore_message_processor(
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
+    log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         if message_type == "collect":
             try:
@@ -139,6 +140,7 @@ def keepercore_message_processor(
             "message_type": message_type,
             "data": data,
         }
+        log.debug(f"Sending reply {reply_message}")
         ws.send(json.dumps(reply_message))
 
 
@@ -230,12 +232,13 @@ def send_to_keepercore(graph: Graph):
     r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
     if r.status_code != 200:
         log.error(r.content)
+        raise RuntimeError(f"Failed to create graph: {r.content}")
     log.debug(f"Updating model via {model_uri}")
     model_json = json.dumps(graph.export_model(), indent=4)
     r = requests.patch(model_uri, data=model_json)
     if r.status_code != 200:
         log.error(r.content)
-
+        raise RuntimeError(f"Failed to create model: {r.content}")
     graph_export_iterator = graph.export_iterator()
     log.debug(f"Sending subgraph via {report_uri}")
     r = requests.post(
@@ -243,6 +246,9 @@ def send_to_keepercore(graph: Graph):
         data=graph.export_iterator(),
         headers={"Content-Type": "application/x-ndjson"},
     )
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to send graph: {r.content}")
     log.debug(r.content.decode())
     log.debug(
         f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
@@ -253,16 +259,14 @@ def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--keepercore-uri",
         help="Keepercore URI",
-        default=None,
+        default="http://localhost:8080",
         dest="keepercore_uri",
-        required=True,
     )
     arg_parser.add_argument(
         "--keepercore-ws-uri",
         help="Keepercore Websocket URI",
-        default=None,
+        default="ws://localhost:8080",
         dest="keepercore_ws_uri",
-        required=True,
     )
     arg_parser.add_argument(
         "--keepercore-graph",
