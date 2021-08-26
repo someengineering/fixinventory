@@ -704,8 +704,14 @@ class Model:
             if isinstance(kind, Complex):
                 paths = kind.property_kind_by_path()
                 intersect = paths.keys() & all_paths.keys()
-                # Filter out duplicates that have the same kind
-                non_unique = list(filter(lambda k: paths[k].fqn != all_paths[k].fqn, intersect))
+
+                def simple_kind_incompatible(p: PropertyPath) -> bool:
+                    left = paths[p]
+                    right = all_paths[p]
+                    return (left.fqn != right.fqn) and not (isinstance(left, AnyKind) or isinstance(right, AnyKind))
+
+                # Filter out duplicates that have the same kind or any side is any
+                non_unique = list(filter(simple_kind_incompatible, intersect))
                 if non_unique:
                     message = ", ".join(repr(a) for a in non_unique)
                     raise AttributeError(
