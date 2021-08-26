@@ -127,8 +127,8 @@ class TimeTrigger(Trigger):
 
 
 class TaskDescription(ABC):
-    def __init__(self, id: str, name: str):
-        self.id = id
+    def __init__(self, uid: str, name: str):
+        self.id = uid
         self.name = name
 
     def step_by_name(self, name: str) -> Optional[Step]:
@@ -154,8 +154,8 @@ class TaskDescription(ABC):
 
 
 class Job(TaskDescription):
-    def __init__(self, id: str, name: str, command: ExecuteCommand, triggers: Sequence[Trigger]):
-        super().__init__(id, name)
+    def __init__(self, uid: str, name: str, command: ExecuteCommand, triggers: Sequence[Trigger]):
+        super().__init__(uid, name)
         self.command = command
         self._triggers = triggers
 
@@ -179,13 +179,13 @@ class Workflow(TaskDescription):
 
     def __init__(
         self,
-        id: str,
+        uid: str,
         name: str,
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
         on_surpass: WorkflowSurpassBehaviour = WorkflowSurpassBehaviour.Skip,
     ) -> None:
-        super().__init__(id, name)
+        super().__init__(uid, name)
         self._steps = steps
         self._triggers = triggers
         self._on_surpass = on_surpass

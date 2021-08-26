@@ -3,9 +3,9 @@ from typing import List, Tuple
 import pytest
 from arango.database import StandardDatabase
 
-from core.db import workflowinstancedb
+from core.db import runningtaskdb
 from core.db.async_arangodb import AsyncArangoDB
-from core.db.workflowinstancedb import WorkflowInstanceData, WorkflowInstanceDb
+from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.event_bus import ActionDone
 from core.util import utc
 from core.workflow.model import Subscriber
@@ -23,32 +23,30 @@ from tests.core.event_bus_test import event_bus, all_events
 
 
 @pytest.fixture
-async def workflow_instance_db(test_db: StandardDatabase) -> WorkflowInstanceDb:
+async def workflow_instance_db(test_db: StandardDatabase) -> RunningTaskDb:
     async_db = AsyncArangoDB(test_db)
-    workflow_instance_db = workflowinstancedb.workflow_instance_db(async_db, "workflow_instance")
+    workflow_instance_db = runningtaskdb.running_task_db(async_db, "workflow_instance")
     await workflow_instance_db.create_update_schema()
     await workflow_instance_db.wipe()
     return workflow_instance_db
 
 
 @pytest.fixture
-def instances() -> List[WorkflowInstanceData]:
+def instances() -> List[RunningTaskData]:
     messages = [ActionDone(str(a), "test", "bla", "sf") for a in range(0, 10)]
     state_data = {"test": 1}
-    return [
-        WorkflowInstanceData(str(a), str(a), "workflow_123", messages, "start", state_data, utc()) for a in range(0, 10)
-    ]
+    return [RunningTaskData(str(a), str(a), "workflow_123", messages, "start", state_data, utc()) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio
-async def test_load(workflow_instance_db: WorkflowInstanceDb, instances: List[WorkflowInstanceData]) -> None:
+async def test_load(workflow_instance_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await workflow_instance_db.update_many(instances)
     loaded = [sub async for sub in workflow_instance_db.all()]
     assert instances.sort() == loaded.sort()
 
 
 @pytest.mark.asyncio
-async def test_update(workflow_instance_db: WorkflowInstanceDb, instances: List[WorkflowInstanceData]) -> None:
+async def test_update(workflow_instance_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     # multiple updates should work as expected
     await workflow_instance_db.update_many(instances)
     await workflow_instance_db.update_many(instances)
@@ -58,7 +56,7 @@ async def test_update(workflow_instance_db: WorkflowInstanceDb, instances: List[
 
 
 @pytest.mark.asyncio
-async def test_delete(workflow_instance_db: WorkflowInstanceDb, instances: List[WorkflowInstanceData]) -> None:
+async def test_delete(workflow_instance_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
     await workflow_instance_db.update_many(instances)
     remaining = list(instances)
     for _ in instances:
@@ -71,7 +69,7 @@ async def test_delete(workflow_instance_db: WorkflowInstanceDb, instances: List[
 
 @pytest.mark.asyncio
 async def test_update_state(
-    workflow_instance_db: WorkflowInstanceDb,
+    workflow_instance_db: RunningTaskDb,
     workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, dict[str, List[Subscriber]]],
 ) -> None:
     wi, _, _, _ = workflow_instance
@@ -79,8 +77,8 @@ async def test_update_state(
     second = ActionDone("collect", "test", "bla", "sf")
     third = ActionDone("collect_done", "test", "bla", "sf")
 
-    async def assert_state(current: str, message_count: int) -> WorkflowInstanceData:
-        state: WorkflowInstanceData = await workflow_instance_db.get(wi.id)  # type: ignore
+    async def assert_state(current: str, message_count: int) -> RunningTaskData:
+        state: RunningTaskData = await workflow_instance_db.get(wi.id)  # type: ignore
         assert state.current_state_name == current
         assert len(state.received_messages) == message_count
         return state

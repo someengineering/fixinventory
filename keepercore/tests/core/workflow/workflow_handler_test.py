@@ -6,13 +6,13 @@ from contextlib import asynccontextmanager
 from pytest import fixture
 from typing import Type, AsyncGenerator
 
-from core.db.workflowinstancedb import WorkflowInstanceDb
+from core.db.runningtaskdb import RunningTaskDb
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.util import first, AnyT, utc
 from core.workflow.model import Subscriber
 from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.workflow_handler import WorkflowHandler
+from core.workflow.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
@@ -34,21 +34,21 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 @fixture
 async def workflow_handler(
-    workflow_instance_db: WorkflowInstanceDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
-) -> WorkflowHandler:
-    return WorkflowHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
+    workflow_instance_db: RunningTaskDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
+) -> TaskHandler:
+    return TaskHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
 
 
 @pytest.mark.asyncio
 async def test_recover(
-    workflow_instance_db: WorkflowInstanceDb,
+    workflow_instance_db: RunningTaskDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     all_events: list[Message],
 ) -> None:
     @asynccontextmanager
-    async def handler() -> AsyncGenerator[WorkflowHandler, None]:
-        wfh = WorkflowHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
+    async def handler() -> AsyncGenerator[TaskHandler, None]:
+        wfh = TaskHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
         await wfh.start()
         try:
             yield wfh
@@ -77,7 +77,7 @@ async def test_recover(
     async with handler() as wf1:
         # kick off a new workflow
         await wf1.handle_event(Event("start_collect_workflow"))
-        assert len(wf1.workflow_instances) == 1
+        assert len(wf1.tasks) == 1
         # expect a start_collect action message
         a: Action = await wait_for_message("start_collect", Action)
         await wf1.handle_action_done(ActionDone(a.message_type, a.task_id, a.step_name, sub1.id, a.data))
@@ -92,8 +92,8 @@ async def test_recover(
 
     # simulate a restart, wf1 is stopped and wf2 needs to recover from database
     async with handler() as wf2:
-        assert len(wf2.workflow_instances) == 1
-        wfi = list(wf2.workflow_instances.values())[0]
+        assert len(wf2.tasks) == 1
+        wfi = list(wf2.tasks.values())[0]
         assert wfi.current_state.name == "act"
         assert (await wf2.list_all_pending_actions_for(sub1)) == []
         assert (await wf2.list_all_pending_actions_for(sub2)) == [Action("collect", wfi.id, "act", {})]
@@ -102,8 +102,8 @@ async def test_recover(
         # expect an event workflow_end
         await wait_for_message("task_end", Event)
         # all workflow instances are gone
-        assert len(wf2.workflow_instances) == 0
+        assert len(wf2.tasks) == 0
 
     # simulate a restart, wf3 should start from a clean slate, since all instances are done
     async with handler() as wf3:
-        assert len(wf3.workflow_instances) == 0
+        assert len(wf3.tasks) == 0

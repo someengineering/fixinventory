@@ -15,7 +15,7 @@ from core.model.model_handler import ModelHandlerDB
 from core.web.api import Api
 from core.workflow.scheduler import Scheduler
 from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.workflow_handler import WorkflowHandler
+from core.workflow.task_handler import TaskHandler
 
 log = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def main() -> None:
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ))
 
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
-    workflow_handler = WorkflowHandler(db.workflow_instance_db, event_bus, subscriptions, scheduler)
+    workflow_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler)
 
     api = Api(db, model, subscriptions, workflow_handler, event_bus, cli)
 
