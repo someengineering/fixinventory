@@ -237,13 +237,26 @@ class WorkflowHandler:
     def known_workflows() -> list[Workflow]:
         return [
             Workflow(
-                "test",
-                "test",
+                "collect",
+                "collect",
                 [
                     Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
                     Step("act", PerformAction("collect"), timedelta(seconds=10)),
                     Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
                 ],
-                [EventTrigger("start_test_workflow"), TimeTrigger("5 * * * *")],
-            )
+                [EventTrigger("start_collect_workflow"), TimeTrigger("5 * * * *")],
+            ),
+            Workflow(
+                "cleanup",
+                "cleanup",
+                [
+                    Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
+                    Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
+                    Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
+                    Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
+                    Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
+                    Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
+                ],
+                [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
+            ),
         ]
