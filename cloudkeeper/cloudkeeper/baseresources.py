@@ -93,7 +93,7 @@ class BaseResource(ABC):
     metrics_description: ClassVar[Dict] = {}
 
     id: str
-    tags: Dict = None
+    tags: Dict[str, str] = None
     name: str = None
     _cloud: object = field(default=None, repr=False)
     _account: object = field(default=None, repr=False)
