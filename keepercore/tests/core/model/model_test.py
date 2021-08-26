@@ -219,7 +219,7 @@ def test_property_path() -> None:
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person_path = person_model["Person"].property_kind_by_path()  # type: ignore
-    assert len(person_path) == 10
+    assert len(person_path) == 11
     assert person_path[PropertyPath(["name"])] == person_model["string"]
     assert person_path[PropertyPath(["list[]"])] == person_model["string"]
     assert person_path[PropertyPath(["tags", None])] == person_model["string"]
