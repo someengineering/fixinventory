@@ -123,11 +123,12 @@ class WorkflowHandler:
         for workflow in self.workflows:
             await self.update_trigger(workflow, register=False)
         await self.timeout_watcher.stop()
-        self.running_task.cancel()
-        try:
-            await self.running_task
-        except CancelledError:
-            log.info("task has been cancelled")
+        if self.running_task:
+            self.running_task.cancel()
+            try:
+                await self.running_task
+            except CancelledError:
+                log.info("task has been cancelled")
 
     async def time_triggered(self, workflow: Workflow, trigger: TimeTrigger) -> None:
         log.info(f"Workflow {workflow.name} triggered by time: {trigger.cron_expression}")

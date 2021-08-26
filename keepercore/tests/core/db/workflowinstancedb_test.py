@@ -80,7 +80,7 @@ async def test_update_state(
     third = ActionDone("collect_done", "test", "bla", "sf")
 
     async def assert_state(current: str, message_count: int) -> WorkflowInstanceData:
-        state = await workflow_instance_db.get(wi.id)
+        state: WorkflowInstanceData = await workflow_instance_db.get(wi.id)  # type: ignore
         assert state.current_state_name == current
         assert len(state.received_messages) == message_count
         return state
