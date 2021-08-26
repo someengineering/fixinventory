@@ -434,7 +434,8 @@ class Api:
         parsed = await self.cli.evaluate_cli_command(command, **env)
         # flat the results from the different command lines
         result = stream.concat(stream.iterate(p.generator for p in parsed))
-        return await self.stream_response_from_gen(request, result)
+        async with result.stream() as streamer:
+            return await self.stream_response_from_gen(request, streamer)
 
     @staticmethod
     async def read_graph(request: Request, md: Model) -> MultiDiGraph:
