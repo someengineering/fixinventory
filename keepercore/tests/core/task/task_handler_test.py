@@ -1,14 +1,12 @@
-import asyncio
 from datetime import timedelta
 
 import pytest
 from contextlib import asynccontextmanager
 from pytest import fixture
-from typing import Type, AsyncGenerator
+from typing import AsyncGenerator
 
 from core.db.runningtaskdb import RunningTaskDb
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
-from core.util import first, AnyT, utc
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -19,7 +17,7 @@ from tests.core.db.entitydb import InMemoryDb
 from tests.core.db.graphdb_test import test_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.event_bus_test import event_bus, all_events, wait_for_message
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db
@@ -33,14 +31,27 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 
 @fixture
-async def workflow_handler(
+async def task_handler(
     running_task_db: RunningTaskDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
-) -> TaskHandler:
-    return TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
+) -> AsyncGenerator[TaskHandler, None]:
+    wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
+    await wfh.start()
+    try:
+        yield wfh
+    finally:
+        await wfh.stop()
 
 
 @pytest.mark.asyncio
-async def test_recover(
+async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> None:
+    await task_handler.handle_event(Event("run_job"))
+    started: Event = await wait_for_message(all_events, "task_started", Event)
+    await wait_for_message(all_events, "task_end", Event)
+    assert started.data["task"] == "example-job"
+
+
+@pytest.mark.asyncio
+async def test_recover_workflow(
     running_task_db: RunningTaskDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
@@ -55,21 +66,6 @@ async def test_recover(
         finally:
             await wfh.stop()
 
-    async def wait_for_message(message_type: str, t: Type[AnyT], timeout: timedelta = timedelta(seconds=1)) -> AnyT:
-        stop_at = utc() + timeout
-
-        async def find() -> AnyT:
-            result = first(lambda m: isinstance(m, t) and m.message_type == message_type, all_events)  # type: ignore
-            if result:
-                return result  # type: ignore
-            elif utc() > stop_at:
-                raise TimeoutError()
-            else:
-                await asyncio.sleep(0.1)
-                return await find()
-
-        return await find()
-
     await subscription_handler.add_subscription("sub_1", "start_collect", True, timedelta(seconds=30))
     sub1 = await subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
     sub2 = await subscription_handler.add_subscription("sub_2", "collect", True, timedelta(seconds=30))
@@ -79,11 +75,11 @@ async def test_recover(
         await wf1.handle_event(Event("start_collect_workflow"))
         assert len(wf1.tasks) == 1
         # expect a start_collect action message
-        a: Action = await wait_for_message("start_collect", Action)
+        a: Action = await wait_for_message(all_events, "start_collect", Action)
         await wf1.handle_action_done(ActionDone(a.message_type, a.task_id, a.step_name, sub1.id, a.data))
 
         # expect a collect action message
-        b: Action = await wait_for_message("collect", Action)
+        b: Action = await wait_for_message(all_events, "collect", Action)
         await wf1.handle_action_done(ActionDone(b.message_type, b.task_id, b.step_name, sub1.id, b.data))
 
     # subscriber 3 is also registering for collect
@@ -100,7 +96,7 @@ async def test_recover(
         assert (await wf2.list_all_pending_actions_for(sub3)) == []
         await wf2.handle_action_done(ActionDone("collect", wfi.id, "act", sub2.id, {}))
         # expect an event workflow_end
-        await wait_for_message("task_end", Event)
+        await wait_for_message(all_events, "task_end", Event)
         # all workflow instances are gone
         assert len(wf2.tasks) == 0
 

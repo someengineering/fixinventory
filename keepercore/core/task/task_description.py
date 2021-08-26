@@ -154,14 +154,19 @@ class TaskDescription(ABC):
 
 
 class Job(TaskDescription):
-    def __init__(self, uid: str, name: str, command: ExecuteCommand, triggers: Sequence[Trigger]):
+    def __init__(
+        self, uid: str, name: str, command: ExecuteCommand, trigger: Trigger, wait: Optional[WaitForEvent] = None
+    ):
         super().__init__(uid, name)
         self.command = command
-        self._triggers = triggers
+        self._trigger = trigger
+        self._triggers = [trigger]
+        execute = Step("execute", command)
+        self._steps = [Step("wait", wait), execute] if wait else [execute]
 
     @property
     def steps(self) -> Sequence[Step]:
-        return [Step("execute", self.command)]
+        return self._steps
 
     @property
     def triggers(self) -> Sequence[Trigger]:

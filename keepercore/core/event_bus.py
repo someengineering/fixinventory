@@ -59,9 +59,10 @@ class Message(ABC):
         message_type = json["message_type"]
         data: Json = json.get("data", {})
         if kind == "event":
-            return Event(message_type, data)
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
+            return Event(message_type, res_data)
         elif kind == "action":
-            res_data = pop_keys(data, ["task", "step"])
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
             return Action(message_type, data["task"], data["step"], res_data)
         elif kind == "action_done":
             res_data = pop_keys(data, ["task", "step", "subscriber_id"])

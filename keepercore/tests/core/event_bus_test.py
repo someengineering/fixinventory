@@ -1,11 +1,13 @@
 import asyncio
-from typing import List, AsyncGenerator, Any
+from typing import List, AsyncGenerator, Any, Type
 
+from datetime import timedelta
 from deepdiff import DeepDiff
 from pytest import fixture, mark
 
 from core.event_bus import EventBus, Message, Event, Action, ActionDone, ActionError
 from core.model.typed_model import to_js, from_js
+from core.util import AnyT, utc, first
 
 
 @fixture
@@ -27,6 +29,24 @@ async def all_events(event_bus: EventBus) -> AsyncGenerator[List[Message], None]
         yield events
     finally:
         run_gather.cancel()
+
+
+async def wait_for_message(
+    all_events: List[Message], message_type: str, t: Type[AnyT], timeout: timedelta = timedelta(seconds=1)
+) -> AnyT:
+    stop_at = utc() + timeout
+
+    async def find() -> AnyT:
+        result = first(lambda m: isinstance(m, t) and m.message_type == message_type, all_events)  # type: ignore
+        if result:
+            return result  # type: ignore
+        elif utc() > stop_at:
+            raise TimeoutError()
+        else:
+            await asyncio.sleep(0.1)
+            return await find()
+
+    return await find()
 
 
 @mark.asyncio

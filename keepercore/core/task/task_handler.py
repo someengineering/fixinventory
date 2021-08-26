@@ -8,7 +8,6 @@ from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
 
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
-from core.util import first, Periodic, group_by
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -21,7 +20,10 @@ from core.task.task_description import (
     PerformAction,
     Step,
     TaskDescription,
+    Job,
+    ExecuteCommand,
 )
+from core.util import first, Periodic, group_by
 
 log = logging.getLogger(__name__)
 
@@ -93,8 +95,11 @@ class TaskHandler:
         return instances
 
     async def start(self) -> None:
-        # Step1: define all workflows in code: later it will be persisted in database
-        self.task_descriptions = self.known_workflows()
+        # Step1: define all workflows and jobs in code: later it will be persisted and read from database
+        td: list[TaskDescription] = []
+        td.extend(self.known_workflows())
+        td.extend(self.known_jobs())
+        self.task_descriptions = td
 
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
@@ -235,7 +240,7 @@ class TaskHandler:
                     await self.after_handled(task, messages)
 
     @staticmethod
-    def known_workflows() -> list[Workflow]:
+    def known_workflows() -> Sequence[Workflow]:
         return [
             Workflow(
                 "collect",
@@ -261,3 +266,7 @@ class TaskHandler:
                 [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
             ),
         ]
+
+    @staticmethod
+    def known_jobs() -> Sequence[Job]:
+        return [Job("example-job", "example-job", ExecuteCommand(), EventTrigger("run_job"))]
