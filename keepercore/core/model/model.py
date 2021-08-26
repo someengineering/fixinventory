@@ -191,11 +191,6 @@ class Kind(ABC):
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
 
-class AnyKind(Kind):
-    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        return None
-
-
 class SimpleKind(Kind, ABC):
     def __init__(self, fqn: str, runtime_kind: str):
         self.fqn = fqn
@@ -224,6 +219,22 @@ class SimpleKind(Kind, ABC):
     @staticmethod
     def to_json(obj: SimpleKind, **kw_args: object) -> Json:
         return obj.as_json()
+
+
+class AnyKind(SimpleKind):
+    def __init__(self, fqn: str):
+        super().__init__(fqn, "any")
+
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        return None
+
+    __singleton: Optional[AnyKind] = None
+
+    @classmethod
+    def any(cls) -> AnyKind:
+        if not cls.__singleton:
+            cls.__singleton = cls("any")
+        return cls.__singleton
 
 
 class StringKind(SimpleKind):
@@ -575,10 +586,10 @@ predefined_kinds = [
     NumberKind("int64", "int64"),
     NumberKind("float", "float"),
     NumberKind("double", "double"),
+    AnyKind.any(),
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
-    AnyKind("any"),
     Complex(
         "graph_root",
         [],
@@ -629,7 +640,8 @@ class Model:
     def kind_by_path(self, path_: str) -> SimpleKind:
         path = PropertyPath.from_path(path_)
         if path not in self.__property_kind_by_path:
-            raise AttributeError(f"Query contains a predicate path {path} which is not defined in the model!")
+            # path not known according to known model: it could be anything.
+            return AnyKind.any()
         return self.__property_kind_by_path[path]
 
     def check_valid(self, js: Json, **kwargs: bool) -> ValidationResult:
