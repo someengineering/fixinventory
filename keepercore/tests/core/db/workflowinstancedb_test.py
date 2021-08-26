@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import pytest
 from arango.database import StandardDatabase
@@ -8,6 +8,12 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.workflowinstancedb import WorkflowInstanceData, WorkflowInstanceDb
 from core.event_bus import ActionDone
 from core.util import utc
+from core.workflow.model import Subscriber
+
+from core.workflow.workflows import WorkflowInstance
+
+# noinspection PyUnresolvedReferences
+from tests.core.workflow.workflows_test import workflow_instance
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -64,15 +70,34 @@ async def test_delete(workflow_instance_db: WorkflowInstanceDb, instances: List[
 
 
 @pytest.mark.asyncio
-async def test_append_message(workflow_instance_db: WorkflowInstanceDb, instances: List[WorkflowInstanceData]) -> None:
-    instance = instances[0]
-    await workflow_instance_db.update(instance)
-    first = ActionDone("first", "test", "bla", "sf")
-    second = ActionDone("second", "test", "bla", "sf")
-    third = ActionDone("third", "test", "bla", "sf")
-    await workflow_instance_db.append_message(instance.id, first)
-    await workflow_instance_db.append_message(instance.id, second)
-    await workflow_instance_db.append_message(instance.id, third)
-    updated: WorkflowInstanceData = await workflow_instance_db.get(instance.id)  # type: ignore
-    assert len(updated.received_messages) == (len(instance.received_messages) + 3)
-    assert updated.received_messages[-3:] == [first, second, third]
+async def test_update_state(
+    workflow_instance_db: WorkflowInstanceDb,
+    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, dict[str, List[Subscriber]]],
+) -> None:
+    wi, _, _, _ = workflow_instance
+    first = ActionDone("start_collect", "test", "bla", "sf")
+    second = ActionDone("collect", "test", "bla", "sf")
+    third = ActionDone("collect_done", "test", "bla", "sf")
+
+    async def assert_state(current: str, message_count: int) -> WorkflowInstanceData:
+        state = await workflow_instance_db.get(wi.id)
+        assert state.current_state_name == current
+        assert len(state.received_messages) == message_count
+        return state
+
+    await workflow_instance_db.insert(wi)
+    await assert_state(wi.current_state.name, 6)
+
+    wi.machine.set_state("start")
+    await workflow_instance_db.update_state(wi, first)
+    await assert_state("start", 7)
+
+    wi.machine.set_state("collect")
+    await workflow_instance_db.update_state(wi, second)
+    await assert_state("collect", 8)
+
+    wi.machine.set_state("done")
+    await workflow_instance_db.update_state(wi, third)
+    last = await assert_state("done", 9)
+
+    assert last.received_messages[-3:] == [first, second, third]

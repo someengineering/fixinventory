@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from asyncio import Task
+from asyncio import Task, CancelledError
 from datetime import timedelta
 from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
 
@@ -119,6 +119,16 @@ class WorkflowHandler:
 
         self.running_task = asyncio.create_task(listen_to_event_bus())
 
+    async def stop(self) -> None:
+        for workflow in self.workflows:
+            await self.update_trigger(workflow, register=False)
+        await self.timeout_watcher.stop()
+        self.running_task.cancel()
+        try:
+            await self.running_task
+        except CancelledError:
+            log.info("task has been cancelled")
+
     async def time_triggered(self, workflow: Workflow, trigger: TimeTrigger) -> None:
         log.info(f"Workflow {workflow.name} triggered by time: {trigger.cron_expression}")
         return await self.start_workflow(workflow)
@@ -158,8 +168,7 @@ class WorkflowHandler:
         for wi in self.workflow_instances.values():
             handled, messages_to_emit = wi.handle_event(event)
             if handled:
-                await self.workflow_instance_db.append_message(wi.id, event)
-                await self.after_handled(wi, messages_to_emit)
+                await self.after_handled(wi, messages_to_emit, event)
 
         # check if this event triggers any new workflow
         for trigger, workflow in self.registered_event_trigger_by_message_type.get(event.message_type, []):
@@ -181,8 +190,7 @@ class WorkflowHandler:
         wi = self.workflow_instances.get(done.workflow_instance_id)
         if wi:
             messages = fn(wi)
-            await self.workflow_instance_db.append_message(wi.id, done)
-            return await self.after_handled(wi, messages)
+            return await self.after_handled(wi, messages, done)
         else:
             log.warning(
                 f"Received an ack for an unknown workflow={done.workflow_instance_id} "
@@ -196,14 +204,14 @@ class WorkflowHandler:
         log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.workflow_instance_id}")
         return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
 
-    async def after_handled(self, wi: WorkflowInstance, messages_to_emit: Sequence[Message]) -> None:
+    async def after_handled(
+        self, wi: WorkflowInstance, messages_to_emit: Sequence[Message], origin_message: Optional[Message] = None
+    ) -> None:
         for event in messages_to_emit:
             await self.event_bus.emit(event)
 
         if wi.is_active:
-            # todo: store the current name and state of the workflow instance
-            # consider to combine append and set state
-            pass
+            await self.workflow_instance_db.update_state(wi, origin_message)
         else:
             log.info(f"Workflow instance {wi.id} is done and will be removed.")
             await self.workflow_instance_db.delete(wi.id)

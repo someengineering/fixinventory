@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from typing import Sequence, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -50,7 +50,7 @@ class WorkflowInstanceData:
 
 class WorkflowInstanceDb(EntityDb[WorkflowInstanceData]):
     @abstractmethod
-    async def append_message(self, wi_id: str, message: Message) -> None:
+    async def update_state(self, wi: WorkflowInstance, message: Optional[Message]) -> None:
         pass
 
     @abstractmethod
@@ -62,18 +62,42 @@ class ArangoWorkflowInstanceDb(ArangoEntityDb[WorkflowInstanceData], WorkflowIns
     def __init__(self, db: AsyncArangoDB, collection: str):
         super().__init__(db, collection, WorkflowInstanceData, lambda k: k.id)
 
-    async def append_message(self, wi_id: str, message: Message) -> None:
-        bind = {"id": f"{self.collection_name}/{wi_id}", "message": to_js(message)}
-        await self.db.aql(self.__add_message(), bind_vars=bind)
+    async def update_state(self, wi: WorkflowInstance, message: Optional[Message]) -> None:
+        bind = {
+            "id": f"{self.collection_name}/{wi.id}",
+            "current_state_name": wi.current_state.name,
+            "current_state_snapshot": wi.current_state.export_state(),
+        }
+        if message:
+            bind["message"] = to_js(message)
+            aql = self.__update_state_with_message()
+        else:
+            aql = self.__update_state()
+
+        await self.db.aql(aql, bind_vars=bind)
 
     async def insert(self, workflow_instance: WorkflowInstance) -> WorkflowInstanceData:
         return await self.update(WorkflowInstanceData.data(workflow_instance))
 
     @staticmethod
-    def __add_message() -> str:
+    def __update_state() -> str:
         return """
         LET doc = Document(@id)
-        UPDATE doc WITH {received_messages: APPEND(doc.received_messages, @message)} IN workflow_instance
+        UPDATE doc WITH {
+            current_state_name: @current_state_name,
+            current_state_snapshot: @current_state_snapshot
+        } IN workflow_instance
+        """
+
+    @staticmethod
+    def __update_state_with_message() -> str:
+        return """
+        LET doc = Document(@id)
+        UPDATE doc WITH {
+            current_state_name: @current_state_name,
+            current_state_snapshot: @current_state_snapshot,
+            received_messages: APPEND(doc.received_messages, @message)
+        } IN workflow_instance
         """
 
 
