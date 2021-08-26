@@ -83,6 +83,10 @@ def main() -> None:
             "collect": {
                 "timeout": ArgumentParser.args.timeout,
                 "wait_for_completion": True,
+            },
+            "cleanup": {
+                "timeout": ArgumentParser.args.timeout,
+                "wait_for_completion": True,
             }
         },
         message_processor=message_processor,
@@ -112,20 +116,34 @@ def keepercore_message_processor(
     kind = message.get("kind")
     message_type = message.get("message_type")
     data = message.get("data")
-    if kind == "action" and message_type == "collect":
-        try:
-            collect(collectors)
-        except Exception as e:
-            log.exception(f"Failed to collect: {e}")
-            reply_kind = "action_error"
-        else:
-            reply_kind = "action_done"
+    if kind == "action":
+        if message_type == "collect":
+            try:
+                collect(collectors)
+            except Exception as e:
+                log.exception(f"Failed to collect: {e}")
+                reply_kind = "action_error"
+            else:
+                reply_kind = "action_done"
+        elif message_type == "cleanup":
+            try:
+                cleanup()
+            except Exception as e:
+                log.exception(f"Failed to cleanup: {e}")
+                reply_kind = "action_error"
+            else:
+                reply_kind = "action_done"
+
         reply_message = {
             "kind": reply_kind,
             "message_type": message_type,
             "data": data,
         }
         ws.send(json.dumps(reply_message))
+
+
+def cleanup():
+    log.info("Running cleanup")
 
 
 def collect_plugin_graph(
