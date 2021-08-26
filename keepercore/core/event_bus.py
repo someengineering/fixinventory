@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 from abc import ABC
 from asyncio import Queue
@@ -8,6 +9,7 @@ from typing import Dict, List, Generator, Any, Optional
 from jsons import set_deserializer, set_serializer
 
 from core.types import Json
+from core.util import pop_keys
 
 log = logging.getLogger(__name__)
 
@@ -59,12 +61,15 @@ class Message(ABC):
         if kind == "event":
             return Event(message_type, data)
         elif kind == "action":
-            return Action(message_type, data["workflow"], data["step"], data)
+            res_data = pop_keys(data, ["workflow", "step"])
+            return Action(message_type, data["workflow"], data["step"], res_data)
         elif kind == "action_done":
-            return ActionDone(message_type, data["workflow"], data["step"], json["subscriber_id"], data)
+            res_data = pop_keys(data, ["workflow", "step", "subscriber_id"])
+            return ActionDone(message_type, data["workflow"], data["step"], data["subscriber_id"], res_data)
         elif kind == "action_error":
+            res_data = pop_keys(data, ["workflow", "step", "subscriber_id", "error"])
             return ActionError(
-                json["kind"], data["workflow"], data["step"], json["subscriber_id"], data.get("error", "n/a"), data
+                message_type, data["workflow"], data["step"], data["subscriber_id"], data.get("error", "n/a"), res_data
             )
         else:
             raise AttributeError(f"No handler to parse {kind}")
@@ -78,22 +83,30 @@ class Message(ABC):
                 "data": o.data,
             }
         elif isinstance(o, Action):
+            extra_data = {"workflow": o.workflow_instance_id, "step": o.step_name}
             return {
                 "kind": "action",
                 "message_type": o.message_type,
-                "data": {"workflow": o.workflow_instance_id, "step": o.step_name},
+                "data": o.data | extra_data,
             }
         elif isinstance(o, ActionDone):
+            extra_data = {"workflow": o.workflow_instance_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
             return {
                 "kind": "action_done",
                 "message_type": o.message_type,
-                "data": {"workflow": o.workflow_instance_id, "step": o.step_name},
+                "data": o.data | extra_data,
             }
         elif isinstance(o, ActionError):
+            extra_data = {
+                "workflow": o.workflow_instance_id,
+                "step": o.step_name,
+                "subscriber_id": o.subscriber_id,
+                "error": o.error,
+            }
             return {
                 "kind": "action_error",
                 "message_type": o.message_type,
-                "data": {"workflow": o.workflow_instance_id, "step": o.step_name, "error": o.error},
+                "data": o.data | extra_data,
             }
         else:
             raise AttributeError(f"No handler to marshal {type(o).__name__}")
@@ -106,8 +119,6 @@ class Event(Message):
 
 class ActionMessage(Message):
     def __init__(self, message_type: str, workflow_instance_id: str, step_name: str, data: Optional[Json] = None):
-        if not data:
-            data = {"workflow": workflow_instance_id, "step": step_name}
         super().__init__(message_type, data)
         self.workflow_instance_id = workflow_instance_id
         self.step_name = step_name

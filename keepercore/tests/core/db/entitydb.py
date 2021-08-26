@@ -35,3 +35,7 @@ class InMemoryDb(EntityDb[T]):
 
     async def create_update_schema(self) -> None:
         pass
+
+    async def wipe(self) -> bool:
+        self.items = {}
+        return True

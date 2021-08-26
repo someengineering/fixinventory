@@ -32,7 +32,7 @@ from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
 from core.workflow.model import Subscription
 from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.workflows import WorkflowHandler
+from core.workflow.workflow_handler import WorkflowHandler
 
 log = logging.getLogger(__name__)
 Section = Union[str, List[str]]
@@ -198,7 +198,8 @@ class Api:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
                         log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                         js = json.loads(msg.data)
-                        js["subscriber_id"] = listener_id
+                        if "data" in js:
+                            js["data"]["subscriber_id"] = listener_id
                         message: Message = from_js(js, Message)
                         if isinstance(message, Action):
                             raise AttributeError("Actors should not emit action messages. ")

@@ -17,6 +17,13 @@ def identity(o: AnyT) -> AnyT:
     return o
 
 
+def pop_keys(d: dict[AnyT, AnyR], keys: list[AnyT]) -> dict[AnyT, AnyR]:
+    res = d.copy()
+    for key in keys:
+        res.pop(key, None)  # type: ignore
+    return res
+
+
 UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
 
 

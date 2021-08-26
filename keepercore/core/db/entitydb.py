@@ -2,9 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable
 
+from jsons import JsonsError
+
 from core.db.async_arangodb import AsyncArangoDB
 from core.event_bus import EventBus
-from core.model.typed_model import from_js, to_js
+from core.model.typed_model import from_js, to_js, type_fqn
 from core.types import Json
 
 log = logging.getLogger(__name__)
@@ -37,6 +39,10 @@ class EntityDb(ABC, Generic[T]):
     async def create_update_schema(self) -> None:
         pass
 
+    @abstractmethod
+    async def wipe(self) -> bool:
+        pass
+
 
 class ArangoEntityDb(EntityDb[T], ABC):
     def __init__(self, db: AsyncArangoDB, collection_name: str, t_type: Type[T], key_fn: Callable[[T], str]):
@@ -48,17 +54,20 @@ class ArangoEntityDb(EntityDb[T], ABC):
     async def all(self) -> AsyncGenerator[T, None]:
         with await self.db.all(self.collection_name) as cursor:
             for element in cursor:
-                yield from_js(element, self.t_type)
+                try:
+                    yield from_js(element, self.t_type)
+                except JsonsError:
+                    log.warning(f"Not able to parse {element} into {type_fqn(self.t_type)}. Ignore.")
 
     async def update_many(self, elements: List[T]) -> None:
-        await self.db.insert_many(self.collection_name, [self.__to_doc(kind) for kind in elements], overwrite=True)
+        await self.db.insert_many(self.collection_name, [self.to_doc(e) for e in elements], overwrite=True)
 
     async def get(self, key: str) -> Optional[T]:
         result = await self.db.get(self.collection_name, key)
         return from_js(result, self.t_type) if result else None
 
     async def update(self, t: T) -> T:
-        await self.db.insert(self.collection_name, self.__to_doc(t), overwrite=True)
+        await self.db.insert(self.collection_name, self.to_doc(t), overwrite=True)
         return t
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
@@ -74,9 +83,9 @@ class ArangoEntityDb(EntityDb[T], ABC):
     async def wipe(self) -> bool:
         return await self.db.truncate(self.collection_name)
 
-    def __to_doc(self, t: T) -> Json:
-        js = to_js(t)
-        js["_key"] = self.key_of(t)
+    def to_doc(self, elem: T) -> Json:
+        js = to_js(elem)
+        js["_key"] = self.key_of(elem)
         return js
 
 
@@ -109,3 +118,6 @@ class EventEntityDb(EntityDb[T]):
 
     async def create_update_schema(self) -> None:
         return await self.db.create_update_schema()
+
+    async def wipe(self) -> bool:
+        return await self.db.wipe()
