@@ -13,7 +13,7 @@ from core.workflow.model import Subscriber
 from core.workflow.workflows import WorkflowInstance
 
 # noinspection PyUnresolvedReferences
-from tests.core.workflow.workflows_test import workflow_instance
+from tests.core.workflow.workflows_test import workflow_instance, test_workflow
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
