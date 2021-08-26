@@ -244,7 +244,7 @@ class WorkflowHandler:
                     Step("act", PerformAction("collect"), timedelta(seconds=10)),
                     Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
                 ],
-                [EventTrigger("start_test_workflow"), TimeTrigger("5 * * * *")],
+                [EventTrigger("start_collect_workflow"), TimeTrigger("5 * * * *")],
             ),
             Workflow(
                 "cleanup",
