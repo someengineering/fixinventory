@@ -3,6 +3,7 @@ import time
 import os
 import threading
 import multiprocessing
+from cloudkeeper.baseresources import BaseResource
 import websocket
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
@@ -31,6 +32,8 @@ log = logging.getLogger(__name__)
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
 collect_event = threading.Event()
+
+class_mapping = {}
 
 
 def main() -> None:
@@ -215,7 +218,18 @@ def collect(collectors: List[BaseCollectorPlugin]):
                 continue
             graph.merge(cluster_graph)
     sanitize(graph)
+    update_class_mapping(graph)
     send_to_keepercore(graph)
+
+
+def update_class_mapping(graph: Graph) -> None:
+    for node in graph.nodes:
+        if not isinstance(node, BaseResource):
+            continue
+        node_type = type(node)
+        if node.resource_type not in class_mapping:
+            log.debug(f"Adding class mapping {node.resource_type} -> {node_type}")
+            class_mapping[node.resource_type] = node_type
 
 
 def send_to_keepercore(graph: Graph):

@@ -268,7 +268,6 @@ class KeepercoreEvents(threading.Thread):
     ) -> bool:
         url = f"{self.keepercore_uri}/subscriber/{self.identifier}/{event}"
         r = client(url, headers={"accept": "application/json"}, params=data)
-        log.debug(f"Calling {r.url}")
         if r.status_code != 200:
             log.error(r.content)
             return False
