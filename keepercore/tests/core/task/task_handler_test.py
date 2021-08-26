@@ -9,10 +9,10 @@ from typing import Type, AsyncGenerator
 from core.db.runningtaskdb import RunningTaskDb
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.util import first, AnyT, utc
-from core.workflow.model import Subscriber
-from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.task_handler import TaskHandler
+from core.task.model import Subscriber
+from core.task.scheduler import Scheduler
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences

@@ -8,8 +8,8 @@ from core.db.subscriberdb import SubscriberDb
 from core.event_bus import EventBus
 from tests.core.db.entitydb import InMemoryDb
 from core.model.typed_model import to_js, from_js
-from core.workflow.model import Subscription, Subscriber
-from core.workflow.subscribers import SubscriptionHandler
+from core.task.model import Subscription, Subscriber
+from core.task.subscribers import SubscriptionHandler
 
 
 @fixture

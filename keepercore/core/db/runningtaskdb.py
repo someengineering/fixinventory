@@ -13,7 +13,7 @@ from core.event_bus import Message
 from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc
-from core.workflow.task_description import RunningTask
+from core.task.task_description import RunningTask
 
 log = logging.getLogger(__name__)
 

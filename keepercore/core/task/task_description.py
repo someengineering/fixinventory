@@ -12,7 +12,7 @@ from transitions import Machine, State, MachineError
 from core.event_bus import Event, Action, ActionDone, Message, ActionError
 from core.types import Json
 from core.util import first, interleave, empty, exist, identity
-from core.workflow.model import Subscriber
+from core.task.model import Subscriber
 
 log = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Iterable
 from core.db.subscriberdb import SubscriberDb
 from core.event_bus import EventBus
 from core.util import utc, Periodic
-from core.workflow.model import Subscriber, Subscription
+from core.task.model import Subscriber, Subscription
 
 log = logging.getLogger(__name__)
 

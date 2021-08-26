@@ -9,10 +9,10 @@ from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
 from core.util import first, Periodic, group_by
-from core.workflow.model import Subscriber
-from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.task_description import (
+from core.task.model import Subscriber
+from core.task.scheduler import Scheduler
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_description import (
     Workflow,
     RunningTask,
     EventTrigger,
@@ -41,7 +41,7 @@ class TaskHandler:
         self.task_descriptions: Sequence[TaskDescription] = []
         self.tasks: Dict[str, RunningTask] = {}
         self.event_bus_watcher: Optional[Task[Any]] = None
-        self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_workflows, timedelta(seconds=10))
+        self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
 
@@ -223,7 +223,7 @@ class TaskHandler:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
 
-    async def check_overdue_workflows(self) -> None:
+    async def check_overdue_tasks(self) -> None:
         """
         Called periodically by the system.
         In case there is an overdue task, an action error is injected into the task.

@@ -8,12 +8,12 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.event_bus import ActionDone
 from core.util import utc
-from core.workflow.model import Subscriber
+from core.task.model import Subscriber
 
-from core.workflow.task_description import RunningTask
+from core.task.task_description import RunningTask
 
 # noinspection PyUnresolvedReferences
-from tests.core.workflow.task_description_test import workflow_instance, test_workflow
+from tests.core.task.task_description_test import workflow_instance, test_workflow
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db

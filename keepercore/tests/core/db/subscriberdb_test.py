@@ -8,7 +8,7 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
 from core.db.subscriberdb import SubscriberDb, EventSubscriberDb
 from core.event_bus import EventBus, Message
-from core.workflow.model import Subscriber, Subscription
+from core.task.model import Subscriber, Subscription
 
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus, all_events

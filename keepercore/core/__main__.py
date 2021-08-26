@@ -13,9 +13,9 @@ from core.db.db_access import DbAccess
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandlerDB
 from core.web.api import Api
-from core.workflow.scheduler import Scheduler
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.task_handler import TaskHandler
+from core.task.scheduler import Scheduler
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_handler import TaskHandler
 
 log = logging.getLogger(__name__)
 

@@ -5,9 +5,9 @@ from pytest import fixture
 
 from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.model import Subscriber, Subscription
-from core.workflow.task_description import (
+from core.task.subscribers import SubscriptionHandler
+from core.task.model import Subscriber, Subscription
+from core.task.task_description import (
     Workflow,
     Step,
     RunningTask,
