@@ -22,7 +22,7 @@ from tests.core.db.graphdb_test import test_db
 from tests.core.event_bus_test import event_bus, all_events
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.workflowinstancedb_test import workflow_instance_db
+from tests.core.db.runningtaskdb_test import running_task_db
 
 
 @fixture
@@ -34,21 +34,21 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 @fixture
 async def workflow_handler(
-    workflow_instance_db: RunningTaskDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
+    running_task_db: RunningTaskDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
 ) -> TaskHandler:
-    return TaskHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
+    return TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
 
 
 @pytest.mark.asyncio
 async def test_recover(
-    workflow_instance_db: RunningTaskDb,
+    running_task_db: RunningTaskDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     all_events: list[Message],
 ) -> None:
     @asynccontextmanager
     async def handler() -> AsyncGenerator[TaskHandler, None]:
-        wfh = TaskHandler(workflow_instance_db, event_bus, subscription_handler, Scheduler())
+        wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
         await wfh.start()
         try:
             yield wfh

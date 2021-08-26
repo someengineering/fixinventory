@@ -20,8 +20,8 @@ log = logging.getLogger(__name__)
 class StepErrorBehaviour(Enum):
     """
     This enumeration defines the behaviour of steps in case of an error:
-    - Continue: the response from the actor is ignored and the whole workflow instance continues.
-    - Stop: the workflow instance will be stopped in case of error
+    - Continue: the response from the actor is ignored and the whole task continues.
+    - Stop: the task will be stopped in case of error
     Default is: Continue
     """
 
@@ -29,13 +29,13 @@ class StepErrorBehaviour(Enum):
     Stop = 2
 
 
-class WorkflowSurpassBehaviour(Enum):
+class TaskSurpassBehaviour(Enum):
     """
-    This enumeration defines the behaviour of a spawned workflow instance where the previous workflow instance
-    of the same workflow is still running.
-    - Skip: the new workflow instance is not started and dropped.
-    - Parallel: the new workflow instance is started and runs side by side with the already running instance.
-    - Replace: the already running workflow instance is stopped and gets replaced by the new one.
+    This enumeration defines the behaviour of a spawned task where the previous task
+    of the same task description is still running.
+    - Skip: the new task is not started and dropped.
+    - Parallel: the new task is started and runs side by side with the already running instance.
+    - Replace: the already running task is stopped and gets replaced by the new one.
     """
 
     Skip = 1
@@ -91,7 +91,7 @@ class ExecuteCommand(StepAction):
 
 class Step:
     """
-    Immutable description of a step inside a workflow.
+    Immutable description of a step inside a task.
     """
 
     def __init__(
@@ -146,7 +146,7 @@ class TaskDescription(ABC):
 
     @property
     @abstractmethod
-    def on_surpass(self) -> WorkflowSurpassBehaviour:
+    def on_surpass(self) -> TaskSurpassBehaviour:
         pass
 
     def __eq__(self, other: object) -> bool:
@@ -168,8 +168,8 @@ class Job(TaskDescription):
         return self._triggers
 
     @property
-    def on_surpass(self) -> WorkflowSurpassBehaviour:
-        return WorkflowSurpassBehaviour.Parallel
+    def on_surpass(self) -> TaskSurpassBehaviour:
+        return TaskSurpassBehaviour.Parallel
 
 
 class Workflow(TaskDescription):
@@ -183,7 +183,7 @@ class Workflow(TaskDescription):
         name: str,
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
-        on_surpass: WorkflowSurpassBehaviour = WorkflowSurpassBehaviour.Skip,
+        on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
     ) -> None:
         super().__init__(uid, name)
         self._steps = steps
@@ -199,14 +199,14 @@ class Workflow(TaskDescription):
         return self._triggers
 
     @property
-    def on_surpass(self) -> WorkflowSurpassBehaviour:
+    def on_surpass(self) -> TaskSurpassBehaviour:
         return self._on_surpass
 
 
 class StepState(State):  # type: ignore
     """
-    Base class for all states in a workflow instance.
-    There is always a related step definition inside a related workflow instance.
+    Base class for all states in a task.
+    There is always a related step definition inside a related task definition.
     """
 
     def __init__(self, step: Step, instance: RunningTask):
@@ -248,7 +248,7 @@ class StepState(State):  # type: ignore
     def check_timeout(self) -> bool:
         """
         Return true if the internal state of the fsm has changed by this event.
-        This method is called periodically by the workflow cleaner task.
+        This method is called periodically by the cleaner task.
         """
         if (self.instance.step_started_at + self.timeout()) < datetime.now(timezone.utc):
             self.timed_out = True
@@ -258,7 +258,7 @@ class StepState(State):  # type: ignore
     @staticmethod
     def from_step(step: Step, instance: RunningTask) -> StepState:
         """
-        Create the related state based on the given step and workflow instance.
+        Create the related state based on the given step and task description.
         """
         if isinstance(step.action, PerformAction):
             return PerformActionState(step.action, step, instance)
@@ -281,7 +281,7 @@ class StepState(State):  # type: ignore
     # noinspection PyMethodMayBeStatic
     def export_state(self) -> Json:
         """
-        This method is called when the state of the workflow instance need to be persisted.
+        This method is called when the state of the task needs to be persisted.
         Since each state in the FSM can have it's own schema, we export a generic json blob here,
         that has to be interpreted during import_state.
         :return: json representation of this state. empty by default.
@@ -290,7 +290,7 @@ class StepState(State):  # type: ignore
 
     def import_state(self, js: Json) -> None:
         """
-        This method is called when the execution of this workflow instance has been interrupted by a restart.
+        This method is called when the execution of this task has been interrupted by a restart.
         The last known state is persisted to some durable storage and imported in the startup phase.
 
         :param js: the same json that was exported with export_state()

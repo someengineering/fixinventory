@@ -17,7 +17,7 @@ from core.workflow.task_description import (
     RunningTask,
     EventTrigger,
     TimeTrigger,
-    WorkflowSurpassBehaviour,
+    TaskSurpassBehaviour,
     PerformAction,
     Step,
     TaskDescription,
@@ -138,17 +138,17 @@ class TaskHandler:
     async def start_task(self, descriptor: TaskDescription) -> None:
         existing = first(lambda x: x.task.id == descriptor.id, self.tasks.values())
         if existing:
-            if descriptor.on_surpass == WorkflowSurpassBehaviour.Skip:
+            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
                 log.info(
                     f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
                     f"the execution will be skipped, as defined by the task"
                 )
                 return None
-            elif descriptor.on_surpass == WorkflowSurpassBehaviour.Replace:
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
                 log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
                 existing.end()
                 await self.after_handled(existing, [])
-            elif descriptor.on_surpass == WorkflowSurpassBehaviour.Parallel:
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
                 log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
             else:
                 raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
