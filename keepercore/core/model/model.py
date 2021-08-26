@@ -230,11 +230,11 @@ class AnyKind(SimpleKind):
 
     __singleton: Optional[AnyKind] = None
 
-    @staticmethod
-    def any() -> AnyKind:
-        if not AnyKind.__singleton:
-            AnyKind.__singleton = AnyKind("any")
-        return AnyKind.__singleton
+    @classmethod
+    def any(cls) -> AnyKind:
+        if not cls.__singleton:
+            cls.__singleton = cls("any")
+        return cls.__singleton
 
 
 class StringKind(SimpleKind):
