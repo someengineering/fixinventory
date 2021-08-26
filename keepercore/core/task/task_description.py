@@ -7,6 +7,7 @@ from datetime import timedelta, datetime, timezone
 from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
+from dataclasses import dataclass
 from transitions import Machine, State, MachineError
 
 from core.event_bus import Event, Action, ActionDone, Message, ActionError
@@ -43,6 +44,9 @@ class TaskSurpassBehaviour(Enum):
     Replace = 3
 
 
+# region StepAction: what to do in one step
+
+
 class StepAction(ABC):
     """
     Base class for an action that should be performed in one step.
@@ -52,41 +56,71 @@ class StepAction(ABC):
         return self.__dict__ == other.__dict__ if isinstance(other, StepAction) else False
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class PerformAction(StepAction):
-    """
-    Perform an action by emitting an action message and wait for all subscribers to respond.
-    """
-
-    def __init__(self, message_type: str):
-        self.message_type = message_type
+    # Perform an action by emitting an action message and wait for all subscribers to respond.
+    message_type: str
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class EmitEvent(StepAction):
-    """
-    Emit a specified event.
-    """
-
-    def __init__(self, event: Event):
-        self.event = event
+    # Emit this event
+    event: Event
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class WaitForEvent(StepAction):
-    """
-    Wait for an event to arrive.
-    """
-
-    def __init__(self, message_type: str, filter_data: Optional[Json]):
-        self.message_type = message_type
-        self.filter_data = filter_data
+    # Wait for this event to arrive
+    message_type: str
+    filter_data: Optional[Json]
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class ExecuteCommand(StepAction):
-    """
-    Execute a command in the command interpreter. TBD.
-    """
+    # Execute this command in the command interpreter.
+    command: str
 
+
+# endregion
+
+# region StepCommand: resulting commands that get executed. Note that one action can create multiple commands.
+
+
+class TaskCommand(ABC):
     def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, ExecuteCommand) else False
+        return self.__dict__ == other.__dict__ if isinstance(other, TaskCommand) else False
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class SendMessage(TaskCommand):
+    message: Message
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class ExecuteOnCLI(TaskCommand):
+    command: str
+
+
+# endregion
+
+# region Trigger: when an task should be triggered
+class Trigger(ABC):
+    def __eq__(self, other: object) -> bool:
+        return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class EventTrigger(Trigger):
+    message_type: str
+    filter_data: Optional[Json] = None
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class TimeTrigger(Trigger):
+    cron_expression: str
+
+
+# endregion
 
 
 class Step:
@@ -108,22 +142,6 @@ class Step:
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Step) else False
-
-
-class Trigger(ABC):
-    def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
-
-
-class EventTrigger(Trigger):
-    def __init__(self, message_type: str, filter_data: Optional[Json] = None):
-        self.message_type = message_type
-        self.filter_data = filter_data
-
-
-class TimeTrigger(Trigger):
-    def __init__(self, cron_expression: str):
-        self.cron_expression = cron_expression
 
 
 class TaskDescription(ABC):
@@ -227,10 +245,10 @@ class StepState(State):  # type: ignore
         """
         return not self.timed_out
 
-    def messages_to_emit(self) -> Sequence[Message]:
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
         """
-        Override this method in deriving classes to emit messages when this state is entered.
-        :return: all messages to emit when this state is entered.
+        Override this method in deriving classes to define actions when this state is entered.
+        :return: all commands to execute when this state is entered.
         """
         return []
 
@@ -341,11 +359,11 @@ class PerformActionState(StepState):
             max_timeout = max_timeout if not subscription.wait_for_completion or max_timeout > to else to
         return max_timeout
 
-    def messages_to_emit(self) -> Sequence[Message]:
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
         """
         When the state is entered, emit the action message and inform all actors.
         """
-        return [Action(self.perform.message_type, self.instance.id, self.step.name)]
+        return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name))]
 
     def step_started(self) -> None:
         # refresh the list of subscribers when the step has started
@@ -399,8 +417,8 @@ class EmitEventState(StepState):
         super().__init__(step, instance)
         self.emit = emit
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.emit.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.emit.event)]
 
 
 class StartState(StepState):
@@ -408,8 +426,8 @@ class StartState(StepState):
         self.event = Event("task_start")
         super().__init__(Step("task_start", EmitEvent(self.event)), instance)
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.event)]
 
 
 class EndState(StepState):
@@ -427,32 +445,32 @@ class EndState(StepState):
     def current_step_done(self) -> bool:
         return False
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.event)]
 
 
 class RunningTask:
     @staticmethod
     def empty(
-        task: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
-    ) -> Tuple[RunningTask, Sequence[Message]]:
-        assert len(task.steps) > 0, "TaskDescription needs at least one step!"
+        descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
+    ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
+        assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = str(uuid.uuid1())
-        wi = RunningTask(uid, task, subscriber_by_event)
-        messages = [Event("task_started", data={"task": task.name}), *wi.move_to_next_state()]
+        wi = RunningTask(uid, descriptor, subscriber_by_event)
+        messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *wi.move_to_next_state()]
         return wi, messages
 
     def __init__(
-        self, uid: str, task: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
+        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
     ):
         self.id = uid
         self.is_error = False
-        self.task = task
+        self.descriptor = descriptor
         self.received_messages: MutableSequence[Message] = []
         self.subscribers_by_event = subscribers_by_event
         self.step_started_at = datetime.now(timezone.utc)
 
-        steps = [StepState.from_step(step, self) for step in task.steps]
+        steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
         end = EndState(self)
         states: List[StepState] = [start, *steps, end]
@@ -464,7 +482,7 @@ class RunningTask:
             )
             self.machine.add_transition("_to_err", current_state.name, end.name, [end.is_error])
 
-    def move_to_next_state(self) -> Sequence[Message]:
+    def move_to_next_state(self) -> Sequence[TaskCommand]:
         def next_state() -> bool:
             try:
                 # this method is defined dynamically by transitions
@@ -477,10 +495,10 @@ class RunningTask:
             except MachineError:
                 return False
 
-        resulting_events: List[Message] = []
+        resulting_commands: List[TaskCommand] = []
         while next_state():
-            resulting_events.extend(self.current_state.messages_to_emit())
-        return resulting_events
+            resulting_commands.extend(self.current_state.commands_to_execute())
+        return resulting_commands
 
     @property
     def current_state(self) -> StepState:
@@ -494,17 +512,17 @@ class RunningTask:
     def is_active(self) -> bool:
         return not isinstance(self.current_state, EndState)
 
-    def handle_event(self, event: Event) -> Tuple[bool, Sequence[Message]]:
+    def handle_event(self, event: Event) -> Tuple[bool, Sequence[TaskCommand]]:
         if self.current_state.handle_event(event):
             return True, self.move_to_next_state()
         else:
             return False, []
 
-    def handle_done(self, done: ActionDone) -> Sequence[Message]:
+    def handle_done(self, done: ActionDone) -> Sequence[TaskCommand]:
         self.received_messages.append(done)
         return self.move_to_next_state()
 
-    def handle_error(self, error: ActionError) -> Sequence[Message]:
+    def handle_error(self, error: ActionError) -> Sequence[TaskCommand]:
         """
         An action could not be performed - the subscriber returned an error.
         Such a message only makes sense in a PerformAction step.

@@ -39,8 +39,8 @@ class RunningTaskData:
     def data(wi: RunningTask) -> RunningTaskData:
         return RunningTaskData(
             wi.id,
-            wi.task.id,
-            wi.task.name,
+            wi.descriptor.id,
+            wi.descriptor.name,
             wi.received_messages,
             wi.current_state.name,
             wi.current_state.export_state(),

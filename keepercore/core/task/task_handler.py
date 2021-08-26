@@ -22,6 +22,9 @@ from core.task.task_description import (
     TaskDescription,
     Job,
     ExecuteCommand,
+    TaskCommand,
+    SendMessage,
+    ExecuteOnCLI,
 )
 from core.util import first, Periodic, group_by
 
@@ -141,7 +144,7 @@ class TaskHandler:
         return await self.start_task(descriptor)
 
     async def start_task(self, descriptor: TaskDescription) -> None:
-        existing = first(lambda x: x.task.id == descriptor.id, self.tasks.values())
+        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
         if existing:
             if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
                 log.info(
@@ -158,7 +161,7 @@ class TaskHandler:
             else:
                 raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
 
-        wi, messages = RunningTask.empty(descriptor, self.subscription_handler.subscribers_by_event)
+        wi, commands = RunningTask.empty(descriptor, self.subscription_handler.subscribers_by_event)
         if wi.is_active:
             log.info(f"Start new task: {descriptor.name} with id {wi.id}")
             # store initial state in database
@@ -167,8 +170,7 @@ class TaskHandler:
         else:
             log.info(f"Task {descriptor.name} was triggered and ran directly to the end. Ignore.")
 
-        for message in messages:
-            await self.event_bus.emit(message)
+        await self.execute_task_commands(wi, commands)
 
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
@@ -192,12 +194,12 @@ class TaskHandler:
     async def handle_action_result(
         self,
         done: Union[ActionDone, ActionError],
-        fn: Callable[[RunningTask], Sequence[Message]],
+        fn: Callable[[RunningTask], Sequence[TaskCommand]],
     ) -> None:
         wi = self.tasks.get(done.task_id)
         if wi:
-            messages = fn(wi)
-            return await self.after_handled(wi, messages, done)
+            commands = fn(wi)
+            return await self.after_handled(wi, commands, done)
         else:
             log.warning(
                 f"Received an ack for an unknown task={done.task_id} "
@@ -211,12 +213,20 @@ class TaskHandler:
         log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.task_id}")
         return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
 
-    async def after_handled(
-        self, wi: RunningTask, messages_to_emit: Sequence[Message], origin_message: Optional[Message] = None
-    ) -> None:
-        for event in messages_to_emit:
-            await self.event_bus.emit(event)
+    async def execute_task_commands(self, wi: RunningTask, commands: Sequence[TaskCommand]) -> None:
+        for command in commands:
+            if isinstance(command, SendMessage):
+                await self.event_bus.emit(command.message)
+            elif isinstance(command, ExecuteOnCLI):
+                # TODO interface with cli
+                pass
+            else:
+                raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
 
+    async def after_handled(
+        self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None
+    ) -> None:
+        await self.execute_task_commands(wi, commands)
         if wi.is_active:
             await self.running_task_db.update_state(wi, origin_message)
         else:
@@ -269,4 +279,4 @@ class TaskHandler:
 
     @staticmethod
     def known_jobs() -> Sequence[Job]:
-        return [Job("example-job", "example-job", ExecuteCommand(), EventTrigger("run_job"))]
+        return [Job("example-job", "example-job", ExecuteCommand("echo hello"), EventTrigger("run_job"))]

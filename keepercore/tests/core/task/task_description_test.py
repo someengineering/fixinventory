@@ -75,11 +75,11 @@ def test_eq() -> None:
     s1 = Step("a", PerformAction("a"), timedelta())
     s2 = Step("a", WaitForEvent("a", {"foo": "bla"}), timedelta())
     s3 = Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
-    s4 = Step("a", ExecuteCommand(), timedelta())
+    s4 = Step("a", ExecuteCommand("echo hello"), timedelta())
     assert s1 == Step("a", PerformAction("a"), timedelta())
     assert s2 == Step("a", WaitForEvent("a", {"foo": "bla"}), timedelta())
     assert s3 == Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
-    assert s4 == Step("a", ExecuteCommand(), timedelta())
+    assert s4 == Step("a", ExecuteCommand("echo hello"), timedelta())
     trigger = [EventTrigger("start me up")]
     assert Workflow("a", "a", [s1, s2, s3, s4], trigger) == Workflow("a", "a", [s1, s2, s3, s4], trigger)
 
@@ -144,7 +144,7 @@ def test_complete_workflow(
 ) -> None:
     init, s1, s2, subscriptions = workflow_instance
     # start new workflow instance
-    wi, events = RunningTask.empty(init.task, lambda: subscriptions)
+    wi, events = RunningTask.empty(init.descriptor, lambda: subscriptions)
     assert wi.current_step.name == "start"
     assert len(events) == 2
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
