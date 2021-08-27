@@ -8,11 +8,13 @@ from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
 from dataclasses import dataclass
+
+from frozendict import frozendict
 from transitions import Machine, State, MachineError
 
 from core.event_bus import Event, Action, ActionDone, Message, ActionError
 from core.types import Json
-from core.util import first, interleave, empty, exist, identity
+from core.util import first, interleave, empty, exist, identity, utc, utc_str
 from core.task.model import Subscriber
 
 log = logging.getLogger(__name__)
@@ -99,6 +101,8 @@ class SendMessage(TaskCommand):
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class ExecuteOnCLI(TaskCommand):
     command: str
+    # noinspection PyUnresolvedReferences
+    env: frozendict[str, str]
 
 
 # endregion
@@ -173,14 +177,21 @@ class TaskDescription(ABC):
 
 class Job(TaskDescription):
     def __init__(
-        self, uid: str, name: str, command: ExecuteCommand, trigger: Trigger, wait: Optional[WaitForEvent] = None
+        self,
+        uid: str,
+        name: str,
+        command: ExecuteCommand,
+        trigger: Trigger,
+        timeout: timedelta,
+        wait: Optional[EventTrigger] = None,
     ):
         super().__init__(uid, name)
         self.command = command
-        self._trigger = trigger
         self._triggers = [trigger]
-        execute = Step("execute", command)
-        self._steps = [Step("wait", wait), execute] if wait else [execute]
+        execute = Step("execute", command, timeout)
+        self._steps = (
+            [Step("wait", WaitForEvent(wait.message_type, wait.filter_data), timeout), execute] if wait else [execute]
+        )
 
     @property
     def steps(self) -> Sequence[Step]:
@@ -252,6 +263,14 @@ class StepState(State):  # type: ignore
         """
         return []
 
+    # noinspection PyUnusedLocal
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+        """
+        Override this method in deriving classes to define behaviour based on command results.
+        :param results: the results of emitted task commands.
+        :return: the list of new task commands.
+        """
+
     def timeout(self) -> timedelta:
         """
         Define the timeout of this step.
@@ -290,8 +309,7 @@ class StepState(State):  # type: ignore
         elif isinstance(step.action, WaitForEvent):
             return WaitForEventState(step.action, step, instance)
         elif isinstance(step.action, ExecuteCommand):
-            # TODO: add action
-            return StepState(step, instance)
+            return ExecuteCommandState(step.action, step, instance)
         else:
             raise AttributeError(f"No mapping for {type(step.action).__name__}")
 
@@ -412,6 +430,27 @@ class WaitForEventState(StepState):
         return False
 
 
+class ExecuteCommandState(StepState):
+    def __init__(self, execute: ExecuteCommand, step: Step, instance: RunningTask):
+        super().__init__(step, instance)
+        self.execute = execute
+        self.execution_done = False
+
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        # override now: always use the time when the task has been triggered
+        env = frozendict({"now": utc_str(self.instance.task_started_at)})
+        return [ExecuteOnCLI(self.execute.command, env)]
+
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+        found = first(lambda r: isinstance(r, ExecuteOnCLI) and r.command == self.execute.command, results.keys())
+        if found:
+            log.info(f"Result of command {self.execute.command} is {results[found]}")
+            self.execution_done = True
+
+    def current_step_done(self) -> bool:
+        return self.execution_done
+
+
 class EmitEventState(StepState):
     def __init__(self, emit: EmitEvent, step: Step, instance: RunningTask):
         super().__init__(step, instance)
@@ -468,7 +507,8 @@ class RunningTask:
         self.descriptor = descriptor
         self.received_messages: MutableSequence[Message] = []
         self.subscribers_by_event = subscribers_by_event
-        self.step_started_at = datetime.now(timezone.utc)
+        self.task_started_at = utc()
+        self.step_started_at = self.task_started_at
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
@@ -545,6 +585,10 @@ class RunningTask:
             )
             self.end()
             return []
+
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
+        self.current_state.handle_command_results(results)
+        return self.move_to_next_state()
 
     def end(self) -> None:
         """

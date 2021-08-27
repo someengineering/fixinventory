@@ -10,6 +10,7 @@ from jsons import set_deserializer, set_serializer
 
 from core.types import Json
 from core.util import pop_keys
+from frozendict import frozendict
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +49,13 @@ class Message(ABC):
 
     def __init__(self, message_type: str, data: Optional[Json]):
         self.message_type = message_type
-        self.data = data if data else {}
+        self.data = frozendict(data if data else {})
 
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Message) else False
+
+    def __hash__(self) -> int:
+        return hash(self.message_type) + hash(self.data)
 
     @staticmethod
     def from_json(json: Json, _: type = object, **__: object) -> Message:

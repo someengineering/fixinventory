@@ -6,6 +6,9 @@ from asyncio import Task, CancelledError
 from datetime import timedelta
 from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
 
+from aiostream import stream
+
+from core.cli.cli import CLI
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
 from core.task.model import Subscriber
@@ -38,17 +41,22 @@ class TaskHandler:
         event_bus: EventBus,
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
+        cli: CLI,
     ):
         self.running_task_db = running_task_db
         self.event_bus = event_bus
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
-        self.task_descriptions: Sequence[TaskDescription] = []
+        self.cli = cli
+        # Step1: define all workflows and jobs in code: later it will be persisted and read from database
+        self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
         self.event_bus_watcher: Optional[Task[Any]] = None
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
+
+    # region startup and teardown
 
     async def update_trigger(self, desc: TaskDescription, register: bool = True) -> None:
         # safeguard: unregister all event trigger of this task
@@ -98,12 +106,6 @@ class TaskHandler:
         return instances
 
     async def start(self) -> None:
-        # Step1: define all workflows and jobs in code: later it will be persisted and read from database
-        td: list[TaskDescription] = []
-        td.extend(self.known_workflows())
-        td.extend(self.known_jobs())
-        self.task_descriptions = td
-
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
 
@@ -139,6 +141,8 @@ class TaskHandler:
             except CancelledError:
                 log.info("task has been cancelled")
 
+    # endregion
+
     async def time_triggered(self, descriptor: TaskDescription, trigger: TimeTrigger) -> None:
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
         return await self.start_task(descriptor)
@@ -155,29 +159,25 @@ class TaskHandler:
             elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
                 log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
                 existing.end()
-                await self.after_handled(existing, [])
+                await self.store_running_task_state(existing)
             elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
                 log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
             else:
                 raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
 
         wi, commands = RunningTask.empty(descriptor, self.subscription_handler.subscribers_by_event)
-        if wi.is_active:
-            log.info(f"Start new task: {descriptor.name} with id {wi.id}")
-            # store initial state in database
-            await self.running_task_db.insert(wi)
-            self.tasks[wi.id] = wi
-        else:
-            log.info(f"Task {descriptor.name} was triggered and ran directly to the end. Ignore.")
-
+        log.info(f"Start new task: {descriptor.name} with id {wi.id}")
+        # store initial state in database
+        await self.running_task_db.insert(wi)
+        self.tasks[wi.id] = wi
         await self.execute_task_commands(wi, commands)
 
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
-        for wi in self.tasks.values():
-            handled, messages_to_emit = wi.handle_event(event)
+        for wi in list(self.tasks.values()):
+            handled, commands = wi.handle_event(event)
             if handled:
-                await self.after_handled(wi, messages_to_emit, event)
+                await self.execute_task_commands(wi, commands, event)
 
         # check if this event triggers any new task
         for trigger, descriptor in self.registered_event_trigger_by_message_type.get(event.message_type, []):
@@ -192,14 +192,12 @@ class TaskHandler:
         log.info(f"Received action: {action.step_name}:{action.message_type} of {action.task_id}")
 
     async def handle_action_result(
-        self,
-        done: Union[ActionDone, ActionError],
-        fn: Callable[[RunningTask], Sequence[TaskCommand]],
+        self, done: Union[ActionDone, ActionError], fn: Callable[[RunningTask], Sequence[TaskCommand]]
     ) -> None:
         wi = self.tasks.get(done.task_id)
         if wi:
             commands = fn(wi)
-            return await self.after_handled(wi, commands, done)
+            return await self.execute_task_commands(wi, commands, done)
         else:
             log.warning(
                 f"Received an ack for an unknown task={done.task_id} "
@@ -213,24 +211,38 @@ class TaskHandler:
         log.info(f"Received error: {err.error} {err.step_name}:{err.message_type} of {err.task_id}")
         return await self.handle_action_result(err, lambda wi: wi.handle_error(err))
 
-    async def execute_task_commands(self, wi: RunningTask, commands: Sequence[TaskCommand]) -> None:
+    async def execute_task_commands(
+        self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None
+    ) -> None:
+        # execute and collect all task commands
+        results: dict[TaskCommand, Any] = {}
         for command in commands:
             if isinstance(command, SendMessage):
                 await self.event_bus.emit(command.message)
+                results[command] = None
             elif isinstance(command, ExecuteOnCLI):
-                # TODO interface with cli
-                pass
+                # TODO: instead of executing it in process, we should do an http call here to a worker core.
+                result = await self.cli.execute_cli_command(command.command, stream.list, **command.env)
+                results[command] = result
             else:
                 raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
+        active_before_result = wi.is_active
+        # before we move on, we need to store the current state of the task (or delete if it is done)
+        await self.store_running_task_state(wi, origin_message)
+        # inform the task about the result, which might trigger new tasks to execute
+        new_commands = wi.handle_command_results(results)
+        if new_commands:
+            # note: recursion depth is defined by the number of steps in a job description and should be safe.
+            await self.execute_task_commands(wi, new_commands)
+        elif active_before_result and not wi.is_active:
+            # if this was the last result the task was waiting for, delete the task
+            await self.store_running_task_state(wi, origin_message)
 
-    async def after_handled(
-        self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None
-    ) -> None:
-        await self.execute_task_commands(wi, commands)
+    async def store_running_task_state(self, wi: RunningTask, origin_message: Optional[Message] = None) -> None:
         if wi.is_active:
             await self.running_task_db.update_state(wi, origin_message)
-        else:
-            log.info(f"Task instance {wi.id} is done and will be removed.")
+        elif wi.id in self.tasks:
+            log.info(f"Task {wi.id} is done and will be removed.")
             await self.running_task_db.delete(wi.id)
             del self.tasks[wi.id]
 
@@ -246,11 +258,11 @@ class TaskHandler:
         for task in list(self.tasks.values()):
             if task.is_active:  # task is still active
                 if task.current_state.check_timeout():
-                    messages = task.move_to_next_state()
-                    await self.after_handled(task, messages)
+                    commands = task.move_to_next_state()
+                    await self.execute_task_commands(task, commands)
 
     @staticmethod
-    def known_workflows() -> Sequence[Workflow]:
+    def known_workflows() -> list[Workflow]:
         return [
             Workflow(
                 "collect",
@@ -278,5 +290,21 @@ class TaskHandler:
         ]
 
     @staticmethod
-    def known_jobs() -> Sequence[Job]:
-        return [Job("example-job", "example-job", ExecuteCommand("echo hello"), EventTrigger("run_job"))]
+    def known_jobs() -> list[Job]:
+        return [
+            Job(
+                "example-job",
+                "example-job",
+                ExecuteCommand("echo hello"),
+                EventTrigger("run_job"),
+                timedelta(seconds=10),
+            ),
+            Job(
+                "example-job",
+                "example-job",
+                ExecuteCommand("echo I was started at @NOW@"),
+                TimeTrigger("* * * * *"),
+                timedelta(seconds=45),
+                EventTrigger("wait"),
+            ),
+        ]

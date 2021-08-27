@@ -5,16 +5,21 @@ from contextlib import asynccontextmanager
 from pytest import fixture
 from typing import AsyncGenerator
 
+from core.cli.cli import CLI
 from core.db.runningtaskdb import RunningTaskDb
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
+from core.task.task_description import Workflow, Step, PerformAction, WaitForEvent, EventTrigger, StepErrorBehaviour
 from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
+
+# noinspection PyUnresolvedReferences
+from tests.core.cli.cli_test import cli, cli_deps
 
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus, all_events, wait_for_message
@@ -32,9 +37,14 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 @fixture
 async def task_handler(
-    running_task_db: RunningTaskDb, event_bus: EventBus, subscription_handler: SubscriptionHandler
+    running_task_db: RunningTaskDb,
+    event_bus: EventBus,
+    subscription_handler: SubscriptionHandler,
+    cli: CLI,
+    test_workflow: Workflow,
 ) -> AsyncGenerator[TaskHandler, None]:
-    wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
+    wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli)
+    wfh.task_descriptions = [test_workflow]
     await wfh.start()
     try:
         yield wfh
@@ -42,12 +52,26 @@ async def task_handler(
         await wfh.stop()
 
 
+@fixture
+def test_workflow() -> Workflow:
+    return Workflow(
+        "test_workflow",
+        "Speakable name of workflow",
+        [
+            Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
+            Step("act", PerformAction("collect"), timedelta(seconds=10)),
+            Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
+        ],
+        [EventTrigger("start me up")],
+    )
+
+
 @pytest.mark.asyncio
 async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> None:
-    await task_handler.handle_event(Event("run_job"))
+    await task_handler.handle_event(Event("start me up"))
     started: Event = await wait_for_message(all_events, "task_started", Event)
     await wait_for_message(all_events, "task_end", Event)
-    assert started.data["task"] == "example-job"
+    assert started.data["task"] == "Speakable name of workflow"
 
 
 @pytest.mark.asyncio
@@ -56,10 +80,11 @@ async def test_recover_workflow(
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     all_events: list[Message],
+    cli: CLI,
 ) -> None:
     @asynccontextmanager
     async def handler() -> AsyncGenerator[TaskHandler, None]:
-        wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler())
+        wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli)
         await wfh.start()
         try:
             yield wfh
@@ -76,11 +101,11 @@ async def test_recover_workflow(
         assert len(wf1.tasks) == 1
         # expect a start_collect action message
         a: Action = await wait_for_message(all_events, "start_collect", Action)
-        await wf1.handle_action_done(ActionDone(a.message_type, a.task_id, a.step_name, sub1.id, a.data))
+        await wf1.handle_action_done(ActionDone(a.message_type, a.task_id, a.step_name, sub1.id, dict(a.data)))
 
         # expect a collect action message
         b: Action = await wait_for_message(all_events, "collect", Action)
-        await wf1.handle_action_done(ActionDone(b.message_type, b.task_id, b.step_name, sub1.id, b.data))
+        await wf1.handle_action_done(ActionDone(b.message_type, b.task_id, b.step_name, sub1.id, dict(b.data)))
 
     # subscriber 3 is also registering for collect
     # since the collect phase is already started, it should not participate in this round

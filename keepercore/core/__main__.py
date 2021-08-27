@@ -56,7 +56,7 @@ def main() -> None:
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ))
 
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
-    workflow_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler)
+    workflow_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli)
 
     api = Api(db, model, subscriptions, workflow_handler, event_bus, cli)
 

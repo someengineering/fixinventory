@@ -5,6 +5,7 @@ from aiostream import stream
 from pytest import fixture
 
 from core.cli.cli import CLI, Sink, CLIDependencies
+from core.error import CLIParseError
 
 from core.types import JsonElement
 
@@ -54,6 +55,14 @@ async def test_echo_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
 async def test_match_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('match isinstance("foo") and some_int==0 --> identifier=~"9_"', sink)
     assert len(result[0]) == 10
+
+
+@pytest.mark.asyncio
+async def test_sleep_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+    with pytest.raises(CLIParseError):
+        await cli.evaluate_cli_command("sleep forever")
+    result = await cli.execute_cli_command("sleep 0.001; echo hello", sink)
+    assert result == [[""], ["hello"]]
 
 
 @pytest.mark.asyncio

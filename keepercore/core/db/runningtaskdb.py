@@ -33,6 +33,8 @@ class RunningTaskData:
     # the state of the current state exported as json
     current_state_snapshot: Json = field(default_factory=dict)
     # the timestamp when the step has been started
+    task_started_at: datetime = field(default_factory=utc)
+    # the timestamp when the step has been started
     step_started_at: datetime = field(default_factory=utc)
 
     @staticmethod
@@ -44,6 +46,7 @@ class RunningTaskData:
             wi.received_messages,
             wi.current_state.name,
             wi.current_state.export_state(),
+            wi.task_started_at,
             wi.step_started_at,
         )
 

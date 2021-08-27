@@ -1,3 +1,4 @@
+import asyncio
 import json
 from abc import abstractmethod, ABC
 from functools import partial
@@ -58,6 +59,38 @@ class EchoSource(CLISource):
         else:
             raise AttributeError(f"Echo does not understand {arg}.")
         return stream.iterate(elements)  # type: ignore
+
+
+class SleepSource(CLISource):
+    """
+    Usage: sleep <seconds>
+
+    Sleep the amount of seconds. An empty string is emitted.
+
+    Example:
+        sleep 123        # will result in [""] after 123 seconds
+    """
+
+    @property
+    def name(self) -> str:
+        return "sleep"
+
+    def info(self) -> str:
+        return "Suspend execution for an interval of time"
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        async def sleep(secs: float) -> AsyncGenerator[JsonElement, None]:
+            for _ in range(0, 1):
+                await asyncio.sleep(secs)
+                yield ""
+
+        if not arg:
+            raise AttributeError("Sleep needs an argument!")
+        try:
+            sleep_time = float(arg)
+            return sleep(sleep_time)
+        except Exception as ex:
+            raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
 
 class MatchSource(CLISource):
@@ -445,7 +478,7 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), EnvSource(d), MatchSource(d)]
+    return [EchoSource(d), EnvSource(d), MatchSource(d), SleepSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:
