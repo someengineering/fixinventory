@@ -136,6 +136,29 @@ def make_valid_timestamp(timestamp: datetime) -> datetime:
     return timestamp
 
 
+def str2timedelta(td: str) -> timedelta:
+    if "day" in td:
+        m = re.match(
+            r"(?P<days>[-\d]+) day[s]*, (?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)",
+            td,
+        )
+    else:
+        m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", td)
+    args = {key: float(val) for key, val in m.groupdict().items()}
+    return timedelta(**args)
+
+
+def str2timezone(tz: str) -> timezone:
+    mult = 1
+    if not tz.startswith("UTC") or len(tz) != 9:
+        raise ValueError(f"Invalid timezone string {tz}")
+    if tz[3] == "-":
+        mult = -1
+    hours = int(tz[4:6]) * mult
+    minutes = int(tz[7:9])
+    return timezone(offset=timedelta(hours=hours, minutes=minutes))
+
+
 def delta_to_str(delta: timedelta) -> str:
     """Convert a timedelta to a string format which is reversable.
     Takes a datetime.timedelta object and converts it into a string

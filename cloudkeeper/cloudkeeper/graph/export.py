@@ -155,7 +155,9 @@ def dataclasses_to_keepercore_model(classes: Set[type]) -> List[Json]:
 
 
 def format_value_for_export(value: Any) -> Any:
-    if isinstance(value, (date, datetime, timedelta, timezone)):
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    elif isinstance(value, (timedelta, timezone)):
         return str(value)
     return value
 

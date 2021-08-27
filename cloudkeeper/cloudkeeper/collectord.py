@@ -11,12 +11,14 @@ import requests
 import json
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
+from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
+from dataclasses import fields
 from cloudkeeper.graph import GraphContainer, Graph, sanitize
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
-from cloudkeeper.utils import log_stats, increase_limits
+from cloudkeeper.utils import log_stats, increase_limits, str2timedelta, str2timezone
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.cleaner import Cleaner
 from cloudkeeper.event import (
@@ -175,7 +177,21 @@ def cleanup():
                 log.error(f"Do not know how to handle {data}")
                 continue
             del node_data["kind"]
-            node = class_mapping[resource_type](**node_data)
+            node_type = class_mapping[resource_type]
+            for field in fields(node_type):
+                if field.name not in node_data:
+                    continue
+                if field.type == datetime:
+                    node_data[field.name] = datetime.fromisoformat(
+                        node_data[field.name]
+                    )
+                elif field.type == date:
+                    node_data[field.name] = date.fromisoformat(node_data[field.name])
+                elif field.type == timedelta:
+                    node_data[field.name] = str2timedelta(node_data[field.name])
+                elif field.type == timezone:
+                    node_data[field.name] = str2timezone(node_data[field.name])
+            node = node_type(**node_data)
             node_mapping[data.get("id")] = node
             if node_delete:
                 node.clean = node_delete
