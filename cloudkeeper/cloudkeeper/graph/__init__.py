@@ -322,7 +322,7 @@ class GraphContainer:
     replacement and updating of the graph without losing its context.
     """
 
-    GRAPH_ROOT = GraphRoot("cloudkeeper", {})
+    GRAPH_ROOT = GraphRoot("root", {})
 
     def __init__(self, cache_graph=True) -> None:
         self._graph = None
