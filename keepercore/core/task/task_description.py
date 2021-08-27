@@ -183,15 +183,17 @@ class Job(TaskDescription):
         command: ExecuteCommand,
         trigger: Trigger,
         timeout: timedelta,
-        wait: Optional[EventTrigger] = None,
+        wait: Optional[Tuple[EventTrigger, timedelta]] = None,
     ):
         super().__init__(uid, name)
         self.command = command
         self._triggers = [trigger]
-        execute = Step("execute", command, timeout)
-        self._steps = (
-            [Step("wait", WaitForEvent(wait.message_type, wait.filter_data), timeout), execute] if wait else [execute]
-        )
+        self._steps = []
+        if wait:
+            trigger, wait_timeout = wait
+            action = WaitForEvent(trigger.message_type, trigger.filter_data)
+            self._steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
+        self._steps.append(Step("execute", command, timeout))
 
     @property
     def steps(self) -> Sequence[Step]:

@@ -28,6 +28,7 @@ from core.task.task_description import (
     TaskCommand,
     SendMessage,
     ExecuteOnCLI,
+    StepErrorBehaviour,
 )
 from core.util import first, Periodic, group_by
 
@@ -258,8 +259,20 @@ class TaskHandler:
         for task in list(self.tasks.values()):
             if task.is_active:  # task is still active
                 if task.current_state.check_timeout():
-                    commands = task.move_to_next_state()
-                    await self.execute_task_commands(task, commands)
+                    if task.current_step.on_error == StepErrorBehaviour.Continue:
+                        log.warning(
+                            f"Task {task.id}: {task.descriptor.name} timed out in step"
+                            f"{task.current_step.name}. Moving on."
+                        )
+                        commands = task.move_to_next_state()
+                        await self.execute_task_commands(task, commands)
+                    else:
+                        log.warning(
+                            f"Task {task.id}: {task.descriptor.name} timed out "
+                            f"in step {task.current_step.name}. Stop the task."
+                        )
+                        task.end()
+                        await self.store_running_task_state(task)
 
     @staticmethod
     def known_workflows() -> list[Workflow]:
@@ -305,6 +318,6 @@ class TaskHandler:
                 ExecuteCommand("echo I was started at @NOW@"),
                 TimeTrigger("* * * * *"),
                 timedelta(seconds=45),
-                EventTrigger("wait"),
+                (EventTrigger("wait"), timedelta(seconds=10)),
             ),
         ]
