@@ -182,9 +182,10 @@ def cleanup():
                 if field.name not in node_data:
                     continue
                 if field.type == datetime:
-                    node_data[field.name] = datetime.fromisoformat(
-                        node_data[field.name]
-                    )
+                    datetime_str = str(node_data[field.name])
+                    if datetime_str.endswith("Z"):
+                        datetime_str = datetime_str[:-1] + "+00:00"
+                    node_data[field.name] = datetime.fromisoformat(datetime_str)
                 elif field.type == date:
                     node_data[field.name] = date.fromisoformat(node_data[field.name])
                 elif field.type == timedelta:
