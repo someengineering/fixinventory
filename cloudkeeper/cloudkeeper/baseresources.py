@@ -742,7 +742,7 @@ class BaseInstanceType(BaseType):
 
 @dataclass(eq=False)
 class BaseCloud(BaseResource):
-    kind: ClassVar[str] = "cloud"
+    kind: ClassVar[str] = "base_cloud"
 
     _merge: bool = field(default=False, repr=False)
 
