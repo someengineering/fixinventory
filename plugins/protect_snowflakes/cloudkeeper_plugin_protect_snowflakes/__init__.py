@@ -66,12 +66,9 @@ class ProtectSnowflakesPlugin(BasePlugin):
                     or cloud.id not in self.config
                     or account.id not in self.config[cloud.id]
                     or region.id not in self.config[cloud.id][account.id]
-                    or node.kind
-                    not in self.config[cloud.id][account.id][region.id]
+                    or node.kind not in self.config[cloud.id][account.id][region.id]
                     or node.id
-                    not in self.config[cloud.id][account.id][region.id][
-                        node.kind
-                    ]
+                    not in self.config[cloud.id][account.id][region.id][node.kind]
                 ):
                     continue
 
@@ -156,9 +153,7 @@ class ProtectSnowflakesConfig(dict):
 
                     for kind, resource_list in resource_data.items():
                         if not isinstance(kind, str):
-                            raise ValueError(
-                                f"Resource Kind {kind} is no string"
-                            )
+                            raise ValueError(f"Resource Kind {kind} is no string")
                         if not isinstance(resource_list, list):
                             raise ValueError(
                                 f"Resource List {resource_list} is no list"

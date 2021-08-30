@@ -467,9 +467,7 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
             if isinstance(predecessor, AWSVPC):
                 log_msg = f"Detaching {predecessor.kind} {predecessor.dname}"
                 self.log(log_msg)
-                log.debug(
-                    f"{log_msg} for deletion of {self.kind} {self.dname}"
-                )
+                log.debug(f"{log_msg} for deletion of {self.kind} {self.dname}")
                 internet_gateway.detach_from_vpc(VpcId=predecessor.id)
         return True
 
