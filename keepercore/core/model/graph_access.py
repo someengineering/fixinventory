@@ -43,23 +43,38 @@ class GraphBuilder:
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and "reported" in js:
-            self.add_node(js["id"], js["reported"], js.get("metadata", None), js.get("merge", None) is True)
+            self.add_node(
+                js["id"],
+                js["reported"],
+                js.get("desired", None),
+                js.get("metadata", None),
+                js.get("merge", None) is True,
+            )
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
-    def add_node(self, node_id: str, reported: Json, metadata: Optional[Json] = None, merge: bool = False) -> None:
+    def add_node(
+        self,
+        node_id: str,
+        reported: Json,
+        desired: Optional[Json] = None,
+        metadata: Optional[Json] = None,
+        merge: bool = False,
+    ) -> None:
         self.nodes += 1
         # validate kind of this reported json
         coerced = self.model.check_valid(reported)
         item = reported if coerced is None else coerced
         kind = self.model[item]
         # create content hash
-        sha = GraphBuilder.content_hash(item, metadata)
+        sha = GraphBuilder.content_hash(item, desired, metadata)
         # flat all properties into a single string for search
         flat = GraphBuilder.flatten(item) if self.with_flatten else None
-        self.graph.add_node(node_id, reported=item, metadata=metadata, hash=sha, kind=kind, flat=flat, merge=merge)
+        self.graph.add_node(
+            node_id, reported=item, desired=desired, metadata=metadata, hash=sha, kind=kind, flat=flat, merge=merge
+        )
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
         self.edges += 1
@@ -67,9 +82,11 @@ class GraphBuilder:
         self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     @staticmethod
-    def content_hash(js: Json, metadata: Optional[Json] = None) -> str:
+    def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
         sha256 = hashlib.sha256()
         sha256.update(json.dumps(js, sort_keys=True).encode("utf-8"))
+        if desired:
+            sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
         if metadata:
             sha256.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
         return sha256.hexdigest()
@@ -113,7 +130,7 @@ class GraphBuilder:
         GraphAccess.root_id(self.graph)
 
 
-NodeData = Tuple[str, Json, Optional[Json], str, List[str], str]
+NodeData = Tuple[str, Json, Optional[Json], Optional[Json], str, List[str], str]
 
 
 class GraphAccess:
@@ -153,6 +170,7 @@ class GraphAccess:
     @staticmethod
     def dump(node_id: str, node: Dict[str, Any]) -> NodeData:
         js: Json = to_js(node["reported"])
+        desired: Optional[Json] = node.get("desired", None)
         metadata: Optional[Json] = node.get("metadata", None)
         sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(js, metadata)
         flat = node["flat"] if "flat" in node else GraphBuilder.flatten(js)
@@ -165,7 +183,7 @@ class GraphAccess:
             if hasattr(node, "kind")
             else []
         )
-        return node_id, js, metadata, sha256, kinds, flat
+        return node_id, js, desired, metadata, sha256, kinds, flat
 
     def not_visited_nodes(self) -> Generator[NodeData, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)

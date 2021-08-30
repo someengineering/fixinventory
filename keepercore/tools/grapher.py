@@ -275,7 +275,8 @@ def node(level, identity, merge: bool = False):
     num = randint(0, 100) if wild else level
     reported = by_idx[num % len(by_idx)] | idjs
     metadata = {"level": level}
-    js = {"id": identity, "reported": reported, "metadata": metadata}
+    desired = {"name": f"some cool name", "age": 29}
+    js = {"id": identity, "reported": reported, "desired": desired, "metadata": metadata}
     js = js | {"merge": True} if merge else js
     print(json.dumps(js))
 

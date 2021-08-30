@@ -166,7 +166,7 @@ class ArangoGraphDB(GraphDB):
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
             node["data"] = node["reported"]
-            node_id, _, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
+            node_id, _, _, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
             update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
             result = await self.db.update(self.vertex_name, update, return_new=True)
             trafo = self.document_to_instance_fn()
@@ -370,12 +370,19 @@ class ArangoGraphDB(GraphDB):
         resource_deletes: List[Json] = []
 
         def insert_node(
-            id_string: str, js: Json, maybe_meta: Optional[Json], hash_string: str, kinds: List[str], flat: str
+            id_string: str,
+            js: Json,
+            maybe_desired: Optional[Json],
+            maybe_meta: Optional[Json],
+            hash_string: str,
+            kinds: List[str],
+            flat: str,
         ) -> None:
             js_doc: Json = {
                 "_key": id_string,
                 "hash": hash_string,
                 "reported": js,
+                "desired": maybe_desired,
                 "metadata": maybe_meta,
                 "kinds": kinds,
                 "flat": flat,
@@ -392,13 +399,14 @@ class ArangoGraphDB(GraphDB):
                 # node is in db, but not in the graph any longer: delete node
                 resource_deletes.append({"_key": key})
                 info.nodes_deleted += 1
-            elif elem[3] != hash_string:
-                _, js, maybe_meta, current_hash, kinds, flat = elem
+            elif elem[4] != hash_string:
+                _, js, maybe_desired, maybe_meta, current_hash, kinds, flat = elem
                 # node is in db and in the graph, content is different
                 js = {
                     "_key": key,
                     "hash": current_hash,
                     "reported": js,
+                    "desired": maybe_desired,
                     "metadata": maybe_meta,
                     "kinds": kinds,
                     "flat": flat,
@@ -410,8 +418,8 @@ class ArangoGraphDB(GraphDB):
         for doc in node_cursor:
             update_or_delete_node(doc)
 
-        for ids, node_js, metadata, sha, node_kinds, flattened in access.not_visited_nodes():
-            insert_node(ids, node_js, metadata, sha, node_kinds, flattened)
+        for ids, node_js, desired, metadata, sha, node_kinds, flattened in access.not_visited_nodes():
+            insert_node(ids, node_js, desired, metadata, sha, node_kinds, flattened)
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(

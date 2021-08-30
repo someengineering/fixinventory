@@ -25,10 +25,10 @@ FooTuple = collections.namedtuple(
 @fixture
 def graph_access() -> GraphAccess:
     g = MultiDiGraph()
-    g.add_node("1", reported=FooTuple("1"))
-    g.add_node("2", reported=FooTuple("2"))
-    g.add_node("3", reported=FooTuple("3"))
-    g.add_node("4", reported=FooTuple("4"))
+    g.add_node("1", reported=FooTuple("1"), desired={"name": "a"}, metadata={"version": 1})
+    g.add_node("2", reported=FooTuple("2"), desired={"name": "b"}, metadata={"version": 2})
+    g.add_node("3", reported=FooTuple("3"), desired={"name": "c"}, metadata={"version": 3})
+    g.add_node("4", reported=FooTuple("4"), desired={"name": "d"}, metadata={"version": 4})
     g.add_edge("1", "2", "1_2_dependency", edge_type=EdgeType.dependency)
     g.add_edge("1", "3", "1_3_dependency", edge_type=EdgeType.dependency)
     g.add_edge("2", "3", "2_3_dependency", edge_type=EdgeType.dependency)
@@ -45,7 +45,7 @@ def test_access_node() -> None:
     g = MultiDiGraph()
     g.add_node("1", reported=FooTuple(a="1"))
     access: GraphAccess = GraphAccess(g)
-    _, json, _, sha, _, _ = node(access, "1")
+    _, json, _, _, sha, _, _ = node(access, "1")
     assert sha == "ae15ce169cbf1048cf1da6bd537eb0259437c630d45b82ce2fb2321d0b3059cd"
     assert json == {"a": "1", "b": 0, "c": [], "d": "foo", "e": {"a": 12, "b": 32}, "f": "2021-03-29", "g": 1.234567}
     assert access.node("2") is None
@@ -82,8 +82,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("3")
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0][3] == "54307723f66f858dec826875ab2636bd83daec4f2ce2141347977f7efb07220d"
-    assert not_visited[1][3] == "bfb6c25b89368ac7167226590f153a3c519d9a8200dcc6c18f75ffbc8673850c"
+    assert not_visited[0][4] == "4847fca1333fa8ee59f749d353f5bf5437c7fde667953d2ddfc7eca70afb24d1"
+    assert not_visited[1][4] == "2c3a5f59845c01c4acd0235aea01d6c2a63ba74f2796be4ac57c7c683abd49ca"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
@@ -92,6 +92,16 @@ def test_edges(graph_access: GraphAccess) -> None:
     assert graph_access.has_edge("2", "3", EdgeType.dependency)
     assert list(graph_access.not_visited_edges(EdgeType.dependency)) == [("1", "3"), ("2", "4"), ("3", "4")]
     assert list(graph_access.not_visited_edges(EdgeType.delete)) == [("1", "2"), ("1", "3"), ("1", "4")]
+
+
+def test_desired(graph_access: GraphAccess) -> None:
+    desired = {a[0]: a[2] for a in graph_access.not_visited_nodes()}
+    assert desired == {"1": {"name": "a"}, "2": {"name": "b"}, "3": {"name": "c"}, "4": {"name": "d"}}
+
+
+def test_metadata(graph_access: GraphAccess) -> None:
+    desired = {a[0]: a[3] for a in graph_access.not_visited_nodes()}
+    assert desired == {"1": {"version": 1}, "2": {"version": 2}, "3": {"version": 3}, "4": {"version": 4}}
 
 
 def test_flatten() -> None:
