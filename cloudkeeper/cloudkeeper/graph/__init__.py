@@ -598,6 +598,10 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     if root is None and isinstance(getattr(graph, "root", None), BaseResource):
         root = graph.root
 
+    if root is None:
+        log.error("No graph root found - unable to sanitize")
+        return
+
     for node in graph.successors(root):
         if isinstance(node, Cloud):
             log.debug(f"Found Plugin Root {node.id}")
