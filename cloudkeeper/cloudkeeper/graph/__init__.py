@@ -288,7 +288,7 @@ class Graph(networkx.DiGraph):
 
         # fixme: workaround to report kind
         for resource_model in model:
-            if resource_model.get("fqn") == "base_resource":
+            if resource_model.get("fqn") == "resource":
                 resource_model.get("properties", []).append(
                     {
                         "name": "kind",
