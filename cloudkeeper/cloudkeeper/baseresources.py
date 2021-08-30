@@ -185,6 +185,10 @@ class BaseResource(ABC):
         self.__log.append(log_entry)
 
     @property
+    def resource_type(self) -> str:
+        return self.kind
+
+    @property
     def event_log(self) -> List:
         return self.__log
 
