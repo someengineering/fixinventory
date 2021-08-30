@@ -2,7 +2,6 @@ import graph_exporter.logging
 import sys
 import requests
 import json
-import time
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily
 from threading import Event
