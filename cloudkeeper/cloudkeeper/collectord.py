@@ -5,7 +5,6 @@ import sys
 import threading
 import multiprocessing
 from cloudkeeper.baseresources import BaseResource
-from cloudkeeper_plugin_aws.cmd.s3 import Base
 import websocket
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
