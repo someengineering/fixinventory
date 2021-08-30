@@ -86,19 +86,19 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     # root -> collector -> sub_root -> **rest
-    graph.add_node("root", data=to_json(Foo("root")))
-    graph.add_node("collector", data=to_json(Foo("root")), merge=True)
-    graph.add_node("sub_root", data=to_json(Foo("sub_root")))
+    graph.add_node("root", reported=to_json(Foo("root")))
+    graph.add_node("collector", reported=to_json(Foo("root")), merge=True)
+    graph.add_node("sub_root", reported=to_json(Foo("sub_root")))
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
 
     for o in range(0, width):
         oid = str(o)
-        graph.add_node(oid, data=to_json(Foo(oid)))
+        graph.add_node(oid, reported=to_json(Foo(oid)))
         add_edge("sub_root", oid)
         for i in range(0, width):
             iid = f"{o}_{i}"
-            graph.add_node(iid, data=to_json(Bla(iid, name=bla_text)))
+            graph.add_node(iid, reported=to_json(Bla(iid, name=bla_text)))
             add_edge(oid, iid)
     return graph
 
@@ -111,7 +111,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_node(node_id: str, merge: bool = False) -> str:
-        graph.add_node(node_id, data=to_json(Foo(node_id)), merge=merge)
+        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge)
         return node_id
 
     root = add_node("root")
@@ -310,7 +310,7 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
     gen = filled_graph_db.query_list(QueryModel(blas, foo_model, "reported"))
-    result = [from_js(x, Bla) async for x in gen]
+    result = [from_js(x["reported"], Bla) async for x in gen]
     assert len(result) == 10
     assert isinstance(result[0], Bla)
 
@@ -331,13 +331,13 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
 @pytest.mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
-    root = from_js(await filled_graph_db.get_node("sub_root", "reported"), Foo)
+    root = to_foo(await filled_graph_db.get_node("sub_root", "reported"))
     assert root is not None
     assert isinstance(root, Foo)
-    node_7 = from_js(await filled_graph_db.get_node("7", "reported"), Foo)
+    node_7 = to_foo(await filled_graph_db.get_node("7", "reported"))
     assert node_7 is not None
     assert isinstance(node_7, Foo)
-    node_1_2 = from_js(await filled_graph_db.get_node("1_2", "reported"), Bla)
+    node_1_2 = to_bla(await filled_graph_db.get_node("1_2", "reported"))
     assert node_1_2 is not None
     assert isinstance(node_1_2, Bla)
 
@@ -396,5 +396,9 @@ def to_json(obj: BaseResource) -> Json:
     return to_js(obj) | {"kind": obj.kind()}
 
 
+def to_bla(json: Json) -> Bla:
+    return from_js(json["reported"], Bla)
+
+
 def to_foo(json: Json) -> Foo:
-    return from_js(json, Foo)
+    return from_js(json["reported"], Foo)

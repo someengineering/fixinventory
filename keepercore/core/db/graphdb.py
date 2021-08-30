@@ -172,7 +172,7 @@ class ArangoGraphDB(GraphDB):
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
             node["data"] = node["reported"]
-            node_id, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
+            node_id, _, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
             update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
             result = await self.db.update(self.vertex_name, update, return_new=True)
             trafo = self.document_to_instance_fn(result_section)
@@ -212,9 +212,12 @@ class ArangoGraphDB(GraphDB):
         visited = set()
         with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
             for element in cursor:
-                if element is not None and element["_id"] not in visited:
-                    visited.add(element["_id"])
-                    yield trafo(element)
+                _id = element["_id"]
+                if element is not None and _id not in visited:
+                    visited.add(_id)
+                    json = trafo(element)
+                    if json:
+                        yield json
 
     async def query_graph_gen(  # noqa: E501 pylint: disable=invalid-overridden-method
         self, query: QueryModel
@@ -229,10 +232,10 @@ class ArangoGraphDB(GraphDB):
                 try:
                     _id = element["_id"]
                     if _id not in visited_node:
-                        section = trafo(element)
-                        key = element["_key"]
-                        yield "node", {"type": "node", "id": key, "data": section}
-                        visited_node[_id] = key
+                        json = trafo(element)
+                        if json:
+                            yield "node", json
+                        visited_node[_id] = element["_key"]
                     from_id = element.get("_from")
                     to_id = element.get("_to")
                     if from_id in visited_node and to_id in visited_node:
@@ -248,7 +251,7 @@ class ArangoGraphDB(GraphDB):
         graph = DiGraph()
         async for kind, item in result:
             if kind == "node":
-                graph.add_node(item["id"], **item["data"])
+                graph.add_node(item["id"], **item["reported"])
             elif kind == "edge":
                 graph.add_edge(item["from"], item["to"])
         return graph
@@ -276,25 +279,24 @@ class ArangoGraphDB(GraphDB):
 
     @staticmethod
     def document_to_instance_fn(section: Union[str, List[str]], **kwargs: Any) -> Callable[[Json], Optional[Json]]:
-        def single_prop(doc: Json) -> Optional[Json]:
-            return doc[section] if section in doc else None
+        sections = [section] if isinstance(section, str) else section
 
-        def multi_prop(doc: Json) -> Optional[Json]:
-            return {prop: doc[prop] if prop in doc else {} for prop in section}
+        def props(doc: Json) -> Optional[Json]:
+            return {prop: doc[prop] if prop in doc else {} for prop in sections}
 
-        fn = single_prop if isinstance(section, str) else multi_prop
-
-        def default_props(doc: Json) -> Optional[Json]:
-            result = fn(doc)
+        def render_prop(doc: Json) -> Optional[Json]:
+            result = props(doc)
             if result:
-                for prop, name in ArangoGraphDB.default_system_props.items():
-                    value = doc.get(prop)
-                    if value:
-                        result[name] = value
-            return result
+                result["id"] = doc["_key"]
+                result["type"] = "node"
+                metadata = doc.get("metadata", None)
+                if metadata:
+                    result["metadata"] = metadata
+                return result
+            else:
+                return None
 
-        with_system_props = kwargs.get("with_system_props", False)
-        return default_props if with_system_props else fn
+        return render_prop
 
     async def list_in_progress_batch_updates(self) -> List[Json]:
         with await self.db.aql(self.query_active_batches()) as cursor:
@@ -380,11 +382,14 @@ class ArangoGraphDB(GraphDB):
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
 
-        def insert_node(id_string: str, js: Json, hash_string: str, kinds: List[str], flat: str) -> None:
+        def insert_node(
+            id_string: str, js: Json, maybe_meta: Optional[Json], hash_string: str, kinds: List[str], flat: str
+        ) -> None:
             js_doc: Json = {
                 "_key": id_string,
                 "hash": hash_string,
                 "reported": js,
+                "metadata": maybe_meta,
                 "kinds": kinds,
                 "flat": flat,
                 "update_id": sub_root_id,
@@ -400,13 +405,14 @@ class ArangoGraphDB(GraphDB):
                 # node is in db, but not in the graph any longer: delete node
                 resource_deletes.append({"_key": key})
                 info.nodes_deleted += 1
-            elif elem[2] != hash_string:
-                _, js, current_hash, kinds, flat = elem
+            elif elem[3] != hash_string:
+                _, js, maybe_meta, current_hash, kinds, flat = elem
                 # node is in db and in the graph, content is different
                 js = {
                     "_key": key,
                     "hash": current_hash,
                     "reported": js,
+                    "metadata": maybe_meta,
                     "kinds": kinds,
                     "flat": flat,
                     "update_id": sub_root_id,
@@ -417,8 +423,8 @@ class ArangoGraphDB(GraphDB):
         for doc in node_cursor:
             update_or_delete_node(doc)
 
-        for ids, node_js, sha, node_kinds, flattened in access.not_visited_nodes():
-            insert_node(ids, node_js, sha, node_kinds, flattened)
+        for ids, node_js, metadata, sha, node_kinds, flattened in access.not_visited_nodes():
+            insert_node(ids, node_js, metadata, sha, node_kinds, flattened)
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(

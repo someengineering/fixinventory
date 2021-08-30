@@ -323,8 +323,8 @@ class SetDesiredState(CLICommand, ABC):
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
-            if "_id" in item:
-                node_ids.append(item["_id"])
+            if "id" in item:
+                node_ids.append(item["id"])
             elif isinstance(item, str):
                 node_ids.append(item)
         async for update in db.update_nodes_desired(patch, node_ids, result_section, with_system_props=True):
@@ -340,10 +340,10 @@ class DesireCommand(SetDesiredState):
     existing desired state not defined in this command is not touched.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `_id`.
+    All objects coming from a query will have a property `id`.
 
     The result of this command will emit the complete object with desired and reported state:
-    { "_id": "..", "desired": { .. }, "reported": { .. } }
+    { "id": "..", "desired": { .. }, "reported": { .. } }
 
     Parameter:
        One or more parameters of form [property]=[value] separated by a space.
@@ -355,20 +355,20 @@ class DesireCommand(SetDesiredState):
     Example:
         match isinstance("ec2") | desire a=b b="c" num=2   # will result in
             [
-                { "_id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
+                { "id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
                 .
                 .
-                { "_id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
+                { "id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
             ]
-        echo [{"_id": "id1"}, {"_id": "id2"}] | desire a=b
+        echo [{"id": "id1"}, {"id": "id2"}] | desire a=b
             [
-                { "_id": "id1", "desired": { "a": b }, "reported": { .. } },
-                { "_id": "id2", "desired": { "a": b }, "reported": { .. } },
+                { "id": "id1", "desired": { "a": b }, "reported": { .. } },
+                { "id": "id2", "desired": { "a": b }, "reported": { .. } },
             ]
         echo ["id1", "id2"] | desire a=b
             [
-                { "_id": "id1", "desired": { "a": b }, "reported": { .. } },
-                { "_id": "id2", "desired": { "a": b }, "reported": { .. } },
+                { "id": "id1", "desired": { "a": b }, "reported": { .. } },
+                { "id": "id2", "desired": { "a": b }, "reported": { .. } },
             ]
     """
 
@@ -394,28 +394,28 @@ class MarkDeleteCommand(SetDesiredState):
     All objects marked as such will be finally deleted in the next delete run.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `_id`.
+    All objects coming from a query will have a property `id`.
 
     The result of this command will emit the complete object with desired and reported state:
-    { "_id": "..", "desired": { .. }, "reported": { .. } }
+    { "id": "..", "desired": { .. }, "reported": { .. } }
 
     Example:
         match isinstance("ec2") and atime<"-2d" | mark_delete
             [
-                { "_id": "abc" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
                 .
                 .
-                { "_id": "xyz" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
             ]
-        echo [{"_id": "id1"}, {"_id": "id2"}] | mark_delete
+        echo [{"id": "id1"}, {"id": "id2"}] | mark_delete
             [
-                { "_id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "_id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
             ]
         echo ["id1", "id2"] | mark_delete
             [
-                { "_id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "_id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
             ]
     """
 
