@@ -150,15 +150,44 @@ def keepercore_message_processor(
 
 
 def cleanup():
+    """Run resource cleanup"""
+
     def process_data_line(data: Dict, graph: Graph):
+        """Process a single line of keepercore graph data"""
+
+        def make_node(node_data: Dict):
+            """Create an instance from keepercore graph node data"""
+            node_data_reported = node_data.get("reported", {})
+            node_data_desired = node_data.get("desired", {})
+            node_data_metadata = node_data.get("metadata", {})
+
+            python_type = node_data_metadata.get("python_type", "NoneExisting")
+            node_type = locate(python_type)
+            if node_type is None:
+                raise ValueError(f"Do not know how to handle {node_data_reported}")
+
+            del node_data_reported["kind"]
+            restore_node_field_types(node_type, node_data_reported)
+            node = node_type(**node_data_reported)
+
+            clean_node = node_data_desired.get("delete", False)
+            if clean_node:
+                node.clean = clean_node
+            return node
+
         if data.get("type") == "node":
+            node_id = data.get("id")
             node = make_node(data)
-            node_mapping[data.get("id")] = node
+            node_mapping[node_id] = node
             log.debug(f"Adding node {node} to the graph")
             graph.add_node(node)
             if node.kind == "graph_root":
                 log.debug(f"Setting graph root {node}")
                 graph.root = node
+            if node_id != node.sha256:
+                log.warning(
+                    f"ID {node_id} of node {node} does not match checksum {node.sha256}"
+                )
         elif data.get("type") == "edge":
             node_from = data.get("from")
             node_to = data.get("to")
@@ -170,8 +199,8 @@ def cleanup():
     base_uri = ArgumentParser.args.keepercore_uri.strip("/")
     keepercore_graph = ArgumentParser.args.keepercore_graph
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    query_uri = f"{graph_uri}/desired/query/graph"
-    query = "delete==true -[0:]-"
+    query_uri = f"{graph_uri}/query/graph"
+    query = "desired.delete==true -[0:]-"
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
     )
@@ -193,26 +222,6 @@ def cleanup():
     sanitize(graph)
     cleaner = Cleaner(graph)
     cleaner.cleanup()
-
-
-def make_node(node_data: Dict):
-    node_data_reported = node_data.get("reported", {})
-    node_data_desired = node_data.get("desired", {})
-    node_data_metadata = node_data.get("metadata", {})
-
-    python_type = node_data_metadata.get("python_type", "NoneExisting")
-    node_type = locate(python_type)
-    if node_type is None:
-        raise ValueError(f"Do not know how to handle {node_data_reported}")
-
-    del node_data_reported["kind"]
-    restore_node_field_types(node_type, node_data_reported)
-    node = node_type(**node_data_reported)
-
-    clean_node = node_data_desired.get("delete", False)
-    if clean_node:
-        node.clean = clean_node
-    return node
 
 
 def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
