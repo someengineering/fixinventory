@@ -23,31 +23,37 @@ from tests.core.event_bus_test import event_bus
 
 
 @fixture
-def echo_source() -> str:
+def json_source() -> str:
     nums = ",".join([f'{{ "num": {a}}}' for a in range(0, 100)])
-    return "echo [" + nums + "," + nums + "]"
+    return "json [" + nums + "," + nums + "]"
 
 
 @pytest.mark.asyncio
 async def test_echo_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
-    # no arg passed to echo
+    # no arg passed to json
     result = await cli.execute_cli_command("echo", sink)
     assert result[0] == [""]
 
-    # simple string passed to echo
+    # simple string passed to json
     result = await cli.execute_cli_command("echo this is a string", sink)
     assert result[0] == ["this is a string"]
 
-    # json object passed to echo
-    result = await cli.execute_cli_command('echo {"a": 1}', sink)
+    result = await cli.execute_cli_command('echo "foo bla bar"', sink)
+    assert result[0] == ["foo bla bar"]
+
+
+@pytest.mark.asyncio
+async def test_json_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+    # json object passed to json
+    result = await cli.execute_cli_command('json {"a": 1}', sink)
     assert result[0] == [{"a": 1}]
 
-    # json array passed to echo
-    result = await cli.execute_cli_command('echo [{"a": 1}, {"b":2}]', sink)
+    # json array passed to json
+    result = await cli.execute_cli_command('json [{"a": 1}, {"b":2}]', sink)
     assert result[0] == [{"a": 1}, {"b": 2}]
 
-    # json string passed to echo
-    result = await cli.execute_cli_command('echo "foo bla bar"', sink)
+    # json string passed to json
+    result = await cli.execute_cli_command('json "foo bla bar"', sink)
     assert result[0] == ["foo bla bar"]
 
 
@@ -66,40 +72,40 @@ async def test_sleep_source(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_count_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
+async def test_count_command(cli: CLI, sink: Sink[List[JsonElement]], json_source: str) -> None:
     # count instances
-    result = await cli.execute_cli_command(f"{echo_source} | count", sink)
+    result = await cli.execute_cli_command(f"{json_source} | count", sink)
     assert len(result[0]) == 1
     assert result[0][0] == {"matched": 200, "not_matched": 0}
 
     # count attributes
-    result = await cli.execute_cli_command(f"{echo_source} | count num", sink)
+    result = await cli.execute_cli_command(f"{json_source} | count num", sink)
     assert len(result[0]) == 1
     assert result[0][0] == {"matched": 9900, "not_matched": 0}
 
     # count unknown attributes
-    result = await cli.execute_cli_command(f"{echo_source} | count does_not_exist", sink)
+    result = await cli.execute_cli_command(f"{json_source} | count does_not_exist", sink)
     assert len(result[0]) == 1
     assert result[0][0] == {"matched": 0, "not_matched": 200}
 
 
 @pytest.mark.asyncio
-async def test_chunk_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
-    result: list[list[str]] = await cli.execute_cli_command(f"{echo_source} | chunk 50", sink)
+async def test_chunk_command(cli: CLI, sink: Sink[List[JsonElement]], json_source: str) -> None:
+    result: list[list[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", sink)
     assert len(result[0]) == 4  # 200 in chunks of 50
     for a in result[0]:
         assert len(a) == 50
 
 
 @pytest.mark.asyncio
-async def test_flatten_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
-    result = await cli.execute_cli_command(f"{echo_source} | chunk 50 | flatten", sink)
+async def test_flatten_command(cli: CLI, sink: Sink[List[JsonElement]], json_source: str) -> None:
+    result = await cli.execute_cli_command(f"{json_source} | chunk 50 | flatten", sink)
     assert len(result[0]) == 200
 
 
 @pytest.mark.asyncio
-async def test_uniq_command(cli: CLI, sink: Sink[List[JsonElement]], echo_source: str) -> None:
-    result = await cli.execute_cli_command(f"{echo_source} | uniq", sink)
+async def test_uniq_command(cli: CLI, sink: Sink[List[JsonElement]], json_source: str) -> None:
+    result = await cli.execute_cli_command(f"{json_source} | uniq", sink)
     assert len(result[0]) == 100
 
 
@@ -122,13 +128,13 @@ async def test_mark_delete_command(cli: CLI, sink: Sink[List[JsonElement]]) -> N
 @pytest.mark.asyncio
 async def test_list_sink(cli: CLI, cli_deps: CLIDependencies) -> None:
     sink = await ListSink(cli_deps).parse()
-    result = await cli.execute_cli_command("echo [1,2,3]", sink)
+    result = await cli.execute_cli_command("json [1,2,3]", sink)
     assert result == [[1, 2, 3]]
 
 
 @pytest.mark.asyncio
 async def test_flat_sink(cli: CLI) -> None:
-    parsed = await cli.evaluate_cli_command("echo [1,2,3]; echo [4,5,6]; echo [7,8,9]")
+    parsed = await cli.evaluate_cli_command("json [1,2,3]; json [4,5,6]; json [7,8,9]")
     result = await stream.list(stream.concat(stream.iterate(p.generator for p in parsed)))
     assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -136,13 +142,13 @@ async def test_flat_sink(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_format(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     # access properties by name and path
-    result = await cli.execute_cli_command('echo {"a":"b", "b": {"c":"d"}} | format a:{a} b:{b.c} na:{fuerty}', sink)
+    result = await cli.execute_cli_command('json {"a":"b", "b": {"c":"d"}} | format a:{a} b:{b.c} na:{fuerty}', sink)
     assert result[0] == ["a:b b:d na:null"]
     # access deeply nested properties with dict and array
     result = await cli.execute_cli_command(
-        'echo {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', sink
+        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', sink
     )
     assert result[0] == ["will be an >f<"]
     # make sure any path that is not available leads to the null value
-    result = await cli.execute_cli_command("echo {} | format {a}:{b.c.d}:{foo.bla[23].test}", sink)
+    result = await cli.execute_cli_command("json {} | format {a}:{b.c.d}:{foo.bla[23].test}", sink)
     assert result[0] == ["null:null:null"]

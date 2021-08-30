@@ -28,14 +28,12 @@ from core.util import AccessJson
 
 class EchoSource(CLISource):
     """
-    Usage: echo <json>
+    Usage: echo <message>
 
-    The defined json will be parsed and written to the out stream.
-    If the defined element is a json array, each element will be send downstream.
+    Send the provided message to downstream.
 
     Example:
         echo "test"              # will result in ["test"]
-        echo [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
     """
 
     @property
@@ -43,7 +41,7 @@ class EchoSource(CLISource):
         return "echo"
 
     def info(self) -> str:
-        return "Parse json and pass parsed objects to the output stream."
+        return "Send the provided message to downstream"
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         arg_str = arg if arg else ""
@@ -57,7 +55,37 @@ class EchoSource(CLISource):
         elif isinstance(js, (str, int, float, bool, dict)):
             elements = [js]
         else:
-            raise AttributeError(f"Echo does not understand {arg}.")
+            raise AttributeError(f"json does not understand {arg}.")
+        return stream.iterate(elements)  # type: ignore
+
+
+class JsonSource(CLISource):
+    """
+    Usage: json <json>
+
+    The defined json will be parsed and written to the out stream.
+    If the defined element is a json array, each element will be send downstream.
+
+    Example:
+        json "test"              # will result in ["test"]
+        json [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
+    """
+
+    @property
+    def name(self) -> str:
+        return "json"
+
+    def info(self) -> str:
+        return "Parse json and pass parsed objects to the output stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        js = json.loads(arg)
+        if isinstance(js, list):
+            elements = js
+        elif isinstance(js, (str, int, float, bool, dict)):
+            elements = [js]
+        else:
+            raise AttributeError(f"json does not understand {arg}.")
         return stream.iterate(elements)  # type: ignore
 
 
@@ -162,9 +190,9 @@ class CountCommand(CLICommand):
         arg [optional]: Instead of counting the instances, sum the property of all objects with this name.
 
     Example:
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
     """
 
     @property
@@ -215,8 +243,8 @@ class ChunkCommand(CLICommand):
         num [optional, defaults to 100]: the number of elements to put into a chunk.
 
     Example:
-         echo [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
-         echo [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
+         json [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
+         json [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
 
     See:
         flatten for the reverse operation.
@@ -242,9 +270,9 @@ class FlattenCommand(CLICommand):
     while preserving the original order.
 
     Example:
-         echo [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
-         echo [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
-         echo [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
+         json [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
+         json [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
+         json [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
 
     See:
         chunk which is able to put incoming elements into chunks
@@ -273,8 +301,8 @@ class UniqCommand(CLICommand):
     so that {"a": 1, "b": 2} is declared equal to {"b": 2, "a": 1}
 
     Example:
-        echo [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
-        echo [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
+        json [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
+        json [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
     """
 
     @property
@@ -357,12 +385,12 @@ class DesireCommand(SetDesiredState):
                 .
                 { "id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
             ]
-        echo [{"id": "id1"}, {"id": "id2"}] | desire a=b
+        json [{"id": "id1"}, {"id": "id2"}] | desire a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
             ]
-        echo ["id1", "id2"] | desire a=b
+        json ["id1", "id2"] | desire a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
@@ -404,12 +432,12 @@ class MarkDeleteCommand(SetDesiredState):
                 .
                 { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
             ]
-        echo [{"id": "id1"}, {"id": "id2"}] | mark_delete
+        json [{"id": "id1"}, {"id": "id2"}] | mark_delete
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
             ]
-        echo ["id1", "id2"] | mark_delete
+        json ["id1", "id2"] | mark_delete
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
@@ -439,10 +467,10 @@ class FormatCommand(CLICommand):
         format_string [mandatory]: a string with any content with placeholders to be filled by the object.
 
     Example:
-        echo {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
-        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        echo {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
+        json {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
+        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        json {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
     """
 
     @property
@@ -475,7 +503,7 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), EnvSource(d), MatchSource(d), SleepSource(d)]
+    return [EchoSource(d), JsonSource(d), EnvSource(d), MatchSource(d), SleepSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:

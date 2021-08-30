@@ -5,7 +5,6 @@ from pytest import fixture
 
 from core.cli.cli import CLI, CLIDependencies, Sink
 from core.cli.command import (
-    EchoSource,
     ListSink,
     MatchSource,
     CountCommand,
@@ -13,6 +12,7 @@ from core.cli.command import (
     all_parts,
     FlattenCommand,
     UniqCommand,
+    EchoSource,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
