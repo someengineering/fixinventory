@@ -9,6 +9,7 @@ from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSeque
 
 from dataclasses import dataclass
 
+from asyncio import Task
 from frozendict import frozendict
 from transitions import Machine, State, MachineError
 
@@ -511,6 +512,7 @@ class RunningTask:
         self.subscribers_by_event = subscribers_by_event
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
+        self.update_task: Optional[Task[None]] = None
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)

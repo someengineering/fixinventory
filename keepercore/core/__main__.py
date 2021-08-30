@@ -63,7 +63,8 @@ def main() -> None:
     async def async_initializer() -> Application:
         await db.start()
         await subscriptions.start()
-        await workflow_handler.start()
+        # todo: how to use context managed objects with aiohttp?
+        await workflow_handler.__aenter__()
         await scheduler.start()
         log.info("Initialization done. Starting API.")
         return api.app

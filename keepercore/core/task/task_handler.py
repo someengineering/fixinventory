@@ -106,9 +106,11 @@ class TaskHandler:
                 await self.running_task_db.delete(data.id)
         return instances
 
-    async def start(self) -> None:
+    async def __aenter__(self) -> TaskHandler:
+        log.info("TaskHandler is starting up!")
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
+        # TODO: it might be necessary to restart current commands (e.g. cli commands)
 
         await self.timeout_watcher.start()
 
@@ -130,17 +132,30 @@ class TaskHandler:
                         log.error(f"Could not handle event {message} - give up.", ex)
 
         self.event_bus_watcher = asyncio.create_task(listen_to_event_bus())
+        return self
 
-    async def stop(self) -> None:
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        log.info("Tear down task handler")
+        # deregister from all triggers
         for descriptor in self.task_descriptions:
             await self.update_trigger(descriptor, register=False)
+
+        # stop timeout watcher
         await self.timeout_watcher.stop()
+
+        # stop event listener
         if self.event_bus_watcher:
             self.event_bus_watcher.cancel()
             try:
                 await self.event_bus_watcher
             except CancelledError:
                 log.info("task has been cancelled")
+
+        # wait for all running commands to complete
+        for task in list(self.tasks.values()):
+            if task.update_task:
+                await task.update_task
+                del self.tasks[task.id]
 
     # endregion
 
@@ -215,37 +230,45 @@ class TaskHandler:
     async def execute_task_commands(
         self, wi: RunningTask, commands: Sequence[TaskCommand], origin_message: Optional[Message] = None
     ) -> None:
-        # execute and collect all task commands
-        results: dict[TaskCommand, Any] = {}
-        for command in commands:
-            if isinstance(command, SendMessage):
-                await self.event_bus.emit(command.message)
-                results[command] = None
-            elif isinstance(command, ExecuteOnCLI):
-                # TODO: instead of executing it in process, we should do an http call here to a worker core.
-                result = await self.cli.execute_cli_command(command.command, stream.list, **command.env)
-                results[command] = result
-            else:
-                raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
-        active_before_result = wi.is_active
-        # before we move on, we need to store the current state of the task (or delete if it is done)
-        await self.store_running_task_state(wi, origin_message)
-        # inform the task about the result, which might trigger new tasks to execute
-        new_commands = wi.handle_command_results(results)
-        if new_commands:
-            # note: recursion depth is defined by the number of steps in a job description and should be safe.
-            await self.execute_task_commands(wi, new_commands)
-        elif active_before_result and not wi.is_active:
-            # if this was the last result the task was waiting for, delete the task
+        async def execute_commands() -> None:
+            # execute and collect all task commands
+            results: dict[TaskCommand, Any] = {}
+            for command in commands:
+                if isinstance(command, SendMessage):
+                    await self.event_bus.emit(command.message)
+                    results[command] = None
+                elif isinstance(command, ExecuteOnCLI):
+                    # TODO: instead of executing it in process, we should do an http call here to a worker core.
+                    result = await self.cli.execute_cli_command(command.command, stream.list, **command.env)
+                    results[command] = result
+                else:
+                    raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
+            active_before_result = wi.is_active
+            # before we move on, we need to store the current state of the task (or delete if it is done)
             await self.store_running_task_state(wi, origin_message)
+            # inform the task about the result, which might trigger new tasks to execute
+            new_commands = wi.handle_command_results(results)
+            if new_commands:
+                # note: recursion depth is defined by the number of steps in a job description and should be safe.
+                await self.execute_task_commands(wi, new_commands)
+            elif active_before_result and not wi.is_active:
+                # if this was the last result the task was waiting for, delete the task
+                await self.store_running_task_state(wi, origin_message)
+
+        async def execute_in_order(task: Task[None]) -> None:
+            # make sure the last execution is finished, before the new execution starts
+            await task
+            await execute_commands()
+
+        # start execution of commands in own task to not block the task handler
+        # note: the task is awaited finally in the timeout handler or context handler shutdown
+        wi.update_task = asyncio.create_task(execute_in_order(wi.update_task) if wi.update_task else execute_commands())
 
     async def store_running_task_state(self, wi: RunningTask, origin_message: Optional[Message] = None) -> None:
         if wi.is_active:
             await self.running_task_db.update_state(wi, origin_message)
         elif wi.id in self.tasks:
-            log.info(f"Task {wi.id} is done and will be removed.")
             await self.running_task_db.delete(wi.id)
-            del self.tasks[wi.id]
 
     async def list_all_pending_actions_for(self, subscriber: Subscriber) -> List[Action]:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
@@ -273,6 +296,11 @@ class TaskHandler:
                         )
                         task.end()
                         await self.store_running_task_state(task)
+            # check again for active (might have changed for overdue tasks)
+            if not task.is_active:
+                if task.update_task:
+                    await task.update_task
+                del self.tasks[task.id]
 
     @staticmethod
     def known_workflows() -> list[Workflow]:
@@ -313,11 +341,11 @@ class TaskHandler:
                 timedelta(seconds=10),
             ),
             Job(
-                "example-job",
-                "example-job",
-                ExecuteCommand("echo I was started at @NOW@"),
-                TimeTrigger("* * * * *"),
-                timedelta(seconds=45),
-                (EventTrigger("wait"), timedelta(seconds=10)),
+                "example-wait-job",
+                "example-wait-job",
+                ExecuteCommand("sleep 10; echo I was started at @NOW@"),
+                EventTrigger("run_job"),
+                timedelta(seconds=10),
+                (EventTrigger("wait"), timedelta(seconds=30)),
             ),
         ]

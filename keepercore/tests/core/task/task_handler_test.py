@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import pytest
-from contextlib import asynccontextmanager
 from pytest import fixture
 from typing import AsyncGenerator
 
@@ -11,7 +10,7 @@ from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
-from core.task.task_description import Workflow, Step, PerformAction, WaitForEvent, EventTrigger, StepErrorBehaviour
+from core.task.task_description import Workflow, Step, PerformAction, EventTrigger, StepErrorBehaviour
 from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
@@ -45,11 +44,8 @@ async def task_handler(
 ) -> AsyncGenerator[TaskHandler, None]:
     wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli)
     wfh.task_descriptions = [test_workflow]
-    await wfh.start()
-    try:
+    async with wfh:
         yield wfh
-    finally:
-        await wfh.stop()
 
 
 @fixture
@@ -82,14 +78,8 @@ async def test_recover_workflow(
     all_events: list[Message],
     cli: CLI,
 ) -> None:
-    @asynccontextmanager
-    async def handler() -> AsyncGenerator[TaskHandler, None]:
-        wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli)
-        await wfh.start()
-        try:
-            yield wfh
-        finally:
-            await wfh.stop()
+    def handler() -> TaskHandler:
+        return TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli)
 
     await subscription_handler.add_subscription("sub_1", "start_collect", True, timedelta(seconds=30))
     sub1 = await subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
@@ -123,7 +113,7 @@ async def test_recover_workflow(
         # expect an event workflow_end
         await wait_for_message(all_events, "task_end", Event)
         # all workflow instances are gone
-        assert len(wf2.tasks) == 0
+    assert len(wf2.tasks) == 0
 
     # simulate a restart, wf3 should start from a clean slate, since all instances are done
     async with handler() as wf3:
