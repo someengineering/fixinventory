@@ -778,7 +778,7 @@ class AWSAccountCollector:
                 else:
                     resource.mtime = fallback_time
         except ValueError:
-            log.exception(f"Error while processing metrics for resource {resource.id}")
+            log.exception("Error while processing resource metrics")
 
     def get_atime_mtime_from_metrics(
         self,

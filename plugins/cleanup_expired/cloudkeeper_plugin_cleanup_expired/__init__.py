@@ -75,7 +75,7 @@ class CleanupExpiredPlugin(BasePlugin):
                             )
                             continue
                         else:
-                            if now > expires:
+                            if expires is not None and now > expires:
                                 log.debug(
                                     (
                                         f"Found expired resource {node.rtdname} in cloud "
