@@ -25,6 +25,12 @@ class ConflictingChangeInProgress(DatabaseError):
         self.other_change_id = other_change_id
 
 
+class NoSuchGraph(DatabaseError, NotFoundError):
+    def __init__(self, graph: str):
+        super().__init__(f"No graph with this name {graph}")
+        self.graph = graph
+
+
 class NoSuchBatchError(DatabaseError, NotFoundError):
     def __init__(self, change_id: str):
         super().__init__(f"No batch with given id {change_id}")

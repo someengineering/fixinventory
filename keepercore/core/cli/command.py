@@ -18,6 +18,14 @@ from core.cli.cli import (
     CLIDependencies,
     CLIPart,
     key_values_parser,
+    ReportedPart,
+    DesiredPart,
+    MetadataPart,
+    Predecessor,
+    Successor,
+    Ancestor,
+    Descendant,
+    QueryPart,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError
@@ -79,7 +87,10 @@ class JsonSource(CLISource):
         return "Parse json and pass parsed objects to the output stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        js = json.loads(arg)
+        if arg:
+            js = json.loads(arg)
+        else:
+            raise AttributeError("json expects one argument!")
         if isinstance(js, list):
             elements = js
         elif isinstance(js, (str, int, float, bool, dict)):
@@ -121,15 +132,15 @@ class SleepSource(CLISource):
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
 
-class MatchSource(CLISource):
+class QuerySource(CLISource):
     """
-    Usage: match <query>
+    Usage: query <query>
 
     A query is performed against the graph database and all resulting elements will be emitted.
     To learn more about the query, visit todo: link is missing.
 
     Example:
-        match isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
+        query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
@@ -138,7 +149,7 @@ class MatchSource(CLISource):
 
     @property
     def name(self) -> str:
-        return "match"
+        return "query"
 
     def info(self) -> str:
         return "Query the database and pass the results to the output stream."
@@ -146,13 +157,12 @@ class MatchSource(CLISource):
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         # db name and section is coming from the env
         graph_name = env["graph"]
-        query_section = env.get("section", "reported")
         if not arg:
-            raise CLIParseError("match command needs a query to execute, but nothing was given!")
+            raise CLIParseError("query command needs a query to execute, but nothing was given!")
         query = parse_query(arg)
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
-        query_model = QueryModel(query, model, query_section)
+        query_model = QueryModel(query, model, None)
         db.to_query(query_model)  # only here to validate the query itself (can throw)
         return db.query_list(query_model)
 
@@ -378,7 +388,7 @@ class DesireCommand(SetDesiredState):
 
 
     Example:
-        match isinstance("ec2") | desire a=b b="c" num=2   # will result in
+        query isinstance("ec2") | desire a=b b="c" num=2   # will result in
             [
                 { "id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
                 .
@@ -425,7 +435,7 @@ class MarkDeleteCommand(SetDesiredState):
     { "id": "..", "desired": { .. }, "reported": { .. } }
 
     Example:
-        match isinstance("ec2") and atime<"-2d" | mark_delete
+        query isinstance("ec2") and atime<"-2d" | mark_delete
             [
                 { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
                 .
@@ -503,7 +513,7 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), JsonSource(d), EnvSource(d), MatchSource(d), SleepSource(d)]
+    return [EchoSource(d), JsonSource(d), EnvSource(d), QuerySource(d), SleepSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:
@@ -522,8 +532,13 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     ]
 
 
+def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
+    return [ReportedPart(d), DesiredPart(d), MetadataPart(d), Predecessor(d), Successor(d), Ancestor(d), Descendant(d)]
+
+
 def all_parts(d: CLIDependencies) -> List[CLIPart]:
     result: list[CLIPart] = []
+    result.extend(all_query_parts(d))
     result.extend(all_sources(d))
     result.extend(all_commands(d))
     result.extend(all_sinks(d))

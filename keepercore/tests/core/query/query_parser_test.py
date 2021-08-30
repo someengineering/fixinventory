@@ -96,6 +96,10 @@ def test_query() -> None:
     assert_round_trip(query_parser, query)
 
 
+# def test_query_with_double_navigation() -> None:
+#     query_parser.parse('id("root") --> <--')
+
+
 def test_query_with_preamble() -> None:
     query_parser.parse('id("root")')  # no preamble
     query_parser.parse('match: id("root")')  # match preamble
