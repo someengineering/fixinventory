@@ -2,7 +2,7 @@ import asyncio
 import json
 from abc import abstractmethod, ABC
 from functools import partial
-from typing import List, Optional, Any, Tuple, AsyncGenerator, Union, Hashable, Iterable
+from typing import List, Optional, Any, Tuple, AsyncGenerator, Hashable, Iterable
 
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -126,7 +126,7 @@ class MatchSource(CLISource):
         db = self.dependencies.db_access.get_graph_db(graph_name)
         query_model = QueryModel(query, model, query_section)
         db.to_query(query_model)  # only here to validate the query itself (can throw)
-        return db.query_list(query_model, with_system_props=True)
+        return db.query_list(query_model)
 
 
 class EnvSource(CLISource):
@@ -313,13 +313,10 @@ class SetDesiredState(CLICommand, ABC):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         buffer_size = 1000
-        result_section = env["result_section"].split(",") if "result_section" in env else ["reported", "desired"]
-        func = partial(self.set_desired, env["graph"], self.patch(arg, **env), result_section)
+        func = partial(self.set_desired, env["graph"], self.patch(arg, **env))
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)  # type: ignore
 
-    async def set_desired(
-        self, graph_name: str, patch: Json, result_section: Union[str, List[str]], items: List[Json]
-    ) -> AsyncGenerator[JsonElement, None]:
+    async def set_desired(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -327,7 +324,7 @@ class SetDesiredState(CLICommand, ABC):
                 node_ids.append(item["id"])
             elif isinstance(item, str):
                 node_ids.append(item)
-        async for update in db.update_nodes_desired(patch, node_ids, result_section, with_system_props=True):
+        async for update in db.update_nodes_desired(patch, node_ids, with_system_props=True):
             yield update
 
 
