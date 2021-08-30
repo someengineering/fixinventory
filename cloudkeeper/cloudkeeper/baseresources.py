@@ -203,21 +203,24 @@ class BaseResource(ABC):
         return sha256(str(self._keys()).encode()).hexdigest()
 
     @property
-    def age(self) -> timedelta:
+    def age(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.ctime
+        if self.ctime is not None:
+            return now - self.ctime
 
     @property
-    def last_access(self) -> timedelta:
+    def last_access(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.atime
+        if self.atime is not None:
+            return now - self.atime
 
     @property
-    def last_update(self) -> timedelta:
+    def last_update(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.mtime
+        if self.mtime is not None:
+            return now - self.mtime
 
-    def _ctime_getter(self) -> datetime:
+    def _ctime_getter(self) -> Optional[datetime]:
         if "cloudkeeper:ctime" in self.tags:
             ctime = self.tags["cloudkeeper:ctime"]
             try:
@@ -228,19 +231,19 @@ class BaseResource(ABC):
                 return ctime
         return self._ctime
 
-    def _ctime_setter(self, value: datetime) -> None:
+    def _ctime_setter(self, value: Optional[datetime]) -> None:
         self._ctime = make_valid_timestamp(value)
 
-    def _atime_getter(self) -> datetime:
+    def _atime_getter(self) -> Optional[datetime]:
         return self._atime
 
-    def _atime_setter(self, value: datetime) -> None:
+    def _atime_setter(self, value: Optional[datetime]) -> None:
         self._atime = make_valid_timestamp(value)
 
-    def _mtime_getter(self) -> datetime:
+    def _mtime_getter(self) -> Optional[datetime]:
         return self._mtime
 
-    def _mtime_setter(self, value: datetime) -> None:
+    def _mtime_setter(self, value: Optional[datetime]) -> None:
         self._mtime = make_valid_timestamp(value)
 
     @property

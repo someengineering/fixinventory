@@ -122,7 +122,7 @@ class _LightSwitch:
         self.__mutex.release()
 
 
-def make_valid_timestamp(timestamp: datetime) -> datetime:
+def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
         timestamp = datetime.combine(timestamp, datetime.min.time()).replace(
             tzinfo=timezone.utc
@@ -132,7 +132,7 @@ def make_valid_timestamp(timestamp: datetime) -> datetime:
     elif isinstance(timestamp, datetime):
         pass
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+        timestamp = None
     return timestamp
 
 
