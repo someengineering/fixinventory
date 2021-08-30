@@ -1,6 +1,5 @@
 import collections
 from datetime import date
-from typing import Tuple, List
 
 import jsons
 import pytest
@@ -8,9 +7,8 @@ from deepdiff import DeepDiff
 from networkx import MultiDiGraph
 from pytest import fixture
 
-from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
+from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, NodeData
 from core.model.model import Model
-from core.types import Json
 from tests.core.db.graphdb_test import Foo
 
 # noinspection PyUnresolvedReferences
@@ -27,10 +25,10 @@ FooTuple = collections.namedtuple(
 @fixture
 def graph_access() -> GraphAccess:
     g = MultiDiGraph()
-    g.add_node("1", data=FooTuple("1"))
-    g.add_node("2", data=FooTuple("2"))
-    g.add_node("3", data=FooTuple("3"))
-    g.add_node("4", data=FooTuple("4"))
+    g.add_node("1", reported=FooTuple("1"))
+    g.add_node("2", reported=FooTuple("2"))
+    g.add_node("3", reported=FooTuple("3"))
+    g.add_node("4", reported=FooTuple("4"))
     g.add_edge("1", "2", "1_2_dependency", edge_type=EdgeType.dependency)
     g.add_edge("1", "3", "1_3_dependency", edge_type=EdgeType.dependency)
     g.add_edge("2", "3", "2_3_dependency", edge_type=EdgeType.dependency)
@@ -45,9 +43,9 @@ def graph_access() -> GraphAccess:
 # noinspection PyArgumentList
 def test_access_node() -> None:
     g = MultiDiGraph()
-    g.add_node("1", data=FooTuple(a="1"))
+    g.add_node("1", reported=FooTuple(a="1"))
     access: GraphAccess = GraphAccess(g)
-    _, json, sha, _, _ = node(access, "1")
+    _, json, _, sha, _, _ = node(access, "1")
     assert sha == "ae15ce169cbf1048cf1da6bd537eb0259437c630d45b82ce2fb2321d0b3059cd"
     assert json == {"a": "1", "b": 0, "c": [], "d": "foo", "e": {"a": 12, "b": 32}, "f": "2021-03-29", "g": 1.234567}
     assert access.node("2") is None
@@ -66,8 +64,8 @@ def test_marshal_unmarshal() -> None:
 def test_content_hash() -> None:
     # the order of properties should not matter for the content hash
     g = MultiDiGraph()
-    g.add_node("1", data={"a": {"a": 1, "c": 2, "b": 3}, "c": 2, "b": 3, "d": "foo", "z": True})
-    g.add_node("2", data={"z": True, "c": 2, "b": 3, "a": {"b": 3, "c": 2, "a": 1}, "d": "foo"})  # change the order
+    g.add_node("1", reported={"a": {"a": 1, "c": 2, "b": 3}, "c": 2, "b": 3, "d": "foo", "z": True})
+    g.add_node("2", reported={"z": True, "c": 2, "b": 3, "a": {"b": 3, "c": 2, "a": 1}, "d": "foo"})  # change the order
 
     access = GraphAccess(g)
     sha1 = node(access, "1")[2]
@@ -84,8 +82,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("3")
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0][2] == "54307723f66f858dec826875ab2636bd83daec4f2ce2141347977f7efb07220d"
-    assert not_visited[1][2] == "bfb6c25b89368ac7167226590f153a3c519d9a8200dcc6c18f75ffbc8673850c"
+    assert not_visited[0][3] == "54307723f66f858dec826875ab2636bd83daec4f2ce2141347977f7efb07220d"
+    assert not_visited[1][3] == "bfb6c25b89368ac7167226590f153a3c519d9a8200dcc6c18f75ffbc8673850c"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
@@ -102,7 +100,7 @@ def test_flatten() -> None:
     assert flat == "blub 2021-06-18T10:31:34Z 0 hello one two"
 
 
-def node(access: GraphAccess, node_id: str) -> Tuple[str, Json, str, List[str], str]:
+def node(access: GraphAccess, node_id: str) -> NodeData:
     res = access.node(node_id)
     if res:
         return res
@@ -113,13 +111,13 @@ def node(access: GraphAccess, node_id: str) -> Tuple[str, Json, str, List[str], 
 def test_builder(person_model: Model) -> None:
     max_m = {"id": "max", "kind": "Person", "name": "Max"}
     builder = GraphBuilder(person_model)
-    builder.add_from_json({"id": "1", "data": max_m})
+    builder.add_from_json({"id": "1", "reported": max_m})
     builder.add_from_json({"from": "1", "to": "2"})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
     assert str(no_node.value) == "Vertex 2 was used in an edge definition but not provided as vertex!"
-    builder.add_from_json({"id": "2", "data": max_m})
-    builder.add_from_json({"id": "3", "data": max_m})
+    builder.add_from_json({"id": "2", "reported": max_m})
+    builder.add_from_json({"id": "3", "reported": max_m})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
     assert str(no_node.value) == "Given subgraph has more than one root: ['1', '3']"
@@ -133,7 +131,7 @@ def multi_cloud_graph(merge_on: str) -> MultiDiGraph:
     g.add_node(root)
 
     def add_node(node_id: str) -> None:
-        g.add_node(node_id, merge=node_id.startswith(merge_on), data="test")
+        g.add_node(node_id, merge=node_id.startswith(merge_on), reported="test")
 
     def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
