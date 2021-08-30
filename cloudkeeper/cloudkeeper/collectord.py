@@ -5,6 +5,7 @@ import sys
 import threading
 import multiprocessing
 from cloudkeeper.baseresources import BaseResource
+from cloudkeeper_plugin_aws.cmd.s3 import Base
 import websocket
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
@@ -157,46 +158,30 @@ def cleanup():
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
     query_uri = f"{graph_uri}/desired/query/graph"
     query = "delete==true -[0:]-"
-    r = requests.post(query_uri, data=query, headers={"accept": "application/x-ndjson"})
+    r = requests.post(
+        query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
+    )
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to query graph: {r.content}")
-    graph_data = r.content.decode()
     graph = Graph()
     node_mapping = {}
-    for line in graph_data.splitlines():
-        data = json.loads(line)
-        log.debug(data)
+
+    for line in r.iter_lines():
+        if not line:
+            continue
+        data = json.loads(line.decode("utf-8"))
         if data.get("type") == "node":
-            node_data = data.get("data", {}).get("reported")
-            node_data_desired = data.get("data", {}).get("desired")
-            node_delete = node_data_desired.get("delete", False)
-            resource_type = node_data.get("kind")
-            if resource_type not in class_mapping:
-                log.error(f"Do not know how to handle {data}")
+            node_data = data.get("data", {})
+            try:
+                node = make_node(node_data)
+            except ValueError:
+                log.exception("Error creating node instance")
                 continue
-            del node_data["kind"]
-            node_type = class_mapping[resource_type]
-            for field in fields(node_type):
-                if field.name not in node_data:
-                    continue
-                if field.type == datetime:
-                    datetime_str = str(node_data[field.name])
-                    if datetime_str.endswith("Z"):
-                        datetime_str = datetime_str[:-1] + "+00:00"
-                    node_data[field.name] = datetime.fromisoformat(datetime_str)
-                elif field.type == date:
-                    node_data[field.name] = date.fromisoformat(node_data[field.name])
-                elif field.type == timedelta:
-                    node_data[field.name] = str2timedelta(node_data[field.name])
-                elif field.type == timezone:
-                    node_data[field.name] = str2timezone(node_data[field.name])
-            node = node_type(**node_data)
             node_mapping[data.get("id")] = node
-            if node_delete:
-                node.clean = node_delete
+            log.debug(f"Adding node {node} to the graph")
             graph.add_node(node)
-            if resource_type == "graph_root":
+            if node.resource_type == "graph_root":
                 log.debug(f"Setting graph root {node}")
                 graph.root = node
         elif data.get("type") == "edge":
@@ -211,37 +196,43 @@ def cleanup():
     cleaner.cleanup()
 
 
-def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin, args=None
-) -> Optional[Graph]:
-    collector: BaseCollectorPlugin = collector_plugin()
-    collector_name = f"collector_{collector.cloud}"
-    cloudkeeper.signal.set_thread_name(collector_name)
+def make_node(node_data: Dict):
+    node_data_reported = node_data.get("reported")
+    node_data_desired = node_data.get("desired")
+    clean_node = node_data_desired.get("delete", False)
+    kind = node_data_reported.get("kind")
+    if kind not in class_mapping:
+        raise ValueError(f"Do not know how to handle {node_data_reported}")
+    del node_data_reported["kind"]
+    node_type = class_mapping[kind]
+    restore_node_field_types(node_type, node_data_reported)
+    node = node_type(**node_data_reported)
+    if clean_node:
+        node.clean = clean_node
+    return node
 
-    if args is not None:
-        ArgumentParser.args = args
 
-    log.debug(f"Starting new collect process for {collector.cloud}")
-    collector.start()
-    collector.join(ArgumentParser.args.timeout)
-    if not collector.is_alive():  # The plugin has finished its work
-        if not collector.finished:
-            log.error(
-                f"Plugin {collector.cloud} did not finish collection"
-                " - ignoring plugin results"
+def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
+    for field in fields(node_type):
+        if field.name not in node_data_reported:
+            continue
+        if field.type == datetime:
+            datetime_str = str(node_data_reported[field.name])
+            if datetime_str.endswith("Z"):
+                datetime_str = datetime_str[:-1] + "+00:00"
+            node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
+        elif field.type == date:
+            node_data_reported[field.name] = date.fromisoformat(
+                node_data_reported[field.name]
             )
-            return None
-        if not is_directed_acyclic_graph(collector.graph):
-            log.error(
-                f"Graph of plugin {collector.cloud} is not acyclic"
-                " - ignoring plugin results"
+        elif field.type == timedelta:
+            node_data_reported[field.name] = str2timedelta(
+                node_data_reported[field.name]
             )
-            return None
-        log.info(f"Collector of plugin {collector.cloud} finished")
-        return collector.graph
-    else:
-        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
-        return None
+        elif field.type == timezone:
+            node_data_reported[field.name] = str2timezone(
+                node_data_reported[field.name]
+            )
 
 
 def collect(collectors: List[BaseCollectorPlugin]):
@@ -280,6 +271,39 @@ def collect(collectors: List[BaseCollectorPlugin]):
     sanitize(graph)
     update_class_mapping(graph)
     send_to_keepercore(graph)
+
+
+def collect_plugin_graph(
+    collector_plugin: BaseCollectorPlugin, args=None
+) -> Optional[Graph]:
+    collector: BaseCollectorPlugin = collector_plugin()
+    collector_name = f"collector_{collector.cloud}"
+    cloudkeeper.signal.set_thread_name(collector_name)
+
+    if args is not None:
+        ArgumentParser.args = args
+
+    log.debug(f"Starting new collect process for {collector.cloud}")
+    collector.start()
+    collector.join(ArgumentParser.args.timeout)
+    if not collector.is_alive():  # The plugin has finished its work
+        if not collector.finished:
+            log.error(
+                f"Plugin {collector.cloud} did not finish collection"
+                " - ignoring plugin results"
+            )
+            return None
+        if not is_directed_acyclic_graph(collector.graph):
+            log.error(
+                f"Graph of plugin {collector.cloud} is not acyclic"
+                " - ignoring plugin results"
+            )
+            return None
+        log.info(f"Collector of plugin {collector.cloud} finished")
+        return collector.graph
+    else:
+        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
+        return None
 
 
 def update_class_mapping(graph: Graph) -> None:
