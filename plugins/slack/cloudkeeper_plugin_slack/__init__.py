@@ -54,6 +54,11 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             return
 
         log.info("Slack Collector Plugin: collecting Slack resources")
+#        import ssl
+#        ssl_context = ssl.create_default_context()
+#        ssl_context.check_hostname = False
+#        ssl_context.verify_mode = ssl.CERT_NONE
+#        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token, ssl=ssl_context)
         self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
 
         response = self.client.team_info()

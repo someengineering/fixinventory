@@ -1,6 +1,7 @@
 from functools import partial
 import time
 import os
+import sys
 import threading
 import multiprocessing
 from cloudkeeper.baseresources import BaseResource
@@ -14,7 +15,7 @@ import cloudkeeper.signal
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
-from cloudkeeper.graph import GraphContainer, Graph, sanitize
+from cloudkeeper.graph import GraphContainer, Graph, sanitize, GraphExportIterator
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
@@ -102,13 +103,11 @@ def main() -> None:
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
-    while not shutdown_event.is_set():
-        log_stats()
-        shutdown_event.wait(900)
-    time.sleep(5)
+    shutdown_event.wait()
+    time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
-    quit()
+    sys.exit(0)
 
 
 def keepercore_message_processor(
@@ -310,17 +309,25 @@ def send_to_keepercore(graph: Graph):
         raise RuntimeError(f"Failed to create graph: {r.content}")
     log.debug(f"Updating model via {model_uri}")
     model_json = json.dumps(graph.export_model(), indent=4)
+    if ArgumentParser.args.debug_dump_json:
+        with open("model.dump.json", "w") as model_outfile:
+            model_outfile.write(model_json)
     r = requests.patch(model_uri, data=model_json)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to create model: {r.content}")
-    graph_export_iterator = graph.export_iterator()
+    graph_outfile = None
+    if ArgumentParser.args.debug_dump_json:
+        graph_outfile = open("graph.dump.json", "w")
+    graph_export_iterator = GraphExportIterator(graph, graph_outfile)
     log.debug(f"Sending subgraph via {report_uri}")
     r = requests.post(
         report_uri,
-        data=graph.export_iterator(),
+        data=graph_export_iterator,
         headers={"Content-Type": "application/x-ndjson"},
     )
+    if graph_outfile is not None:
+        graph_outfile.close()
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")
@@ -369,6 +376,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="timeout",
         type=int,
     )
+    arg_parser.add_argument(
+        "--debug-dump-json",
+        help="Dump the generated json data (default: False)",
+        dest="debug_dump_json",
+        action="store_true",
+    )
 
 
 def shutdown(event: Event) -> None:
@@ -390,10 +403,6 @@ def shutdown(event: Event) -> None:
             f" {reason} - killing all threads and child processes"
         )
     )
-    # Send 'friendly' signal to children to have them shut down
-    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
-    kt = threading.Thread(target=force_shutdown, name="shutdown")
-    kt.start()
     shutdown_event.set()  # and then end the program
 
 

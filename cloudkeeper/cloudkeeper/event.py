@@ -298,7 +298,7 @@ class KeepercoreEvents(threading.Thread):
         log.error(f"{self.identifier} {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected: {close_msg}")
+        log.debug(f"{self.identifier} disconnected")
 
     def on_open(self, ws):
         log.debug(f"{self.identifier} connected")

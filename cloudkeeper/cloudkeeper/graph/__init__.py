@@ -20,7 +20,7 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List
+from typing import Dict, List, IO, Optional
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
@@ -650,7 +650,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphExportIterator:
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph, output: Optional[IO] = None):
         self.graph = graph
         self.nodes_sent = 0
         self.edges_sent = 0
@@ -660,6 +660,9 @@ class GraphExportIterator:
         self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
         self.report_every_n_edges = round(self.edges_total / report_every_percent)
         self.last_sent = time()
+        self.output = output
+        if self.output is not None:
+            log.debug(f"Writing graph json to file {self.output}")
 
     def __iter__(self):
         with self.graph.lock.read_access:
@@ -678,8 +681,9 @@ class GraphExportIterator:
                         f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
                     )
                     self.last_sent = time()
-
-                yield (attributes_json.encode())
+                if self.output is not None:
+                    self.output.write(attributes_json)
+                yield attributes_json.encode()
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
@@ -698,5 +702,6 @@ class GraphExportIterator:
                         f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
                     )
                     self.last_sent = time()
-
-                yield (link_json.encode())
+                if self.output is not None:
+                    self.output.write(link_json)
+                yield link_json.encode()
