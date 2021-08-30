@@ -2,6 +2,7 @@ import cloudkeeper.logging
 import threading
 import os
 import time
+import ssl
 import slack_sdk
 from typing import List
 from retrying import retry
@@ -54,13 +55,17 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             return
 
         log.info("Slack Collector Plugin: collecting Slack resources")
-#        import ssl
-#        ssl_context = ssl.create_default_context()
-#        ssl_context.check_hostname = False
-#        ssl_context.verify_mode = ssl.CERT_NONE
-#        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token, ssl=ssl_context)
-        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
 
+        slack_client_args = {
+            "token": ArgumentParser.args.slack_bot_token,
+        }
+        if ArgumentParser.args.slack_do_not_verify_ssl:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            slack_client_args.update({"ssl": ssl_context})
+
+        self.client = slack_sdk.WebClient(**slack_client_args)
         response = self.client.team_info()
         if not response.data.get("ok", False):
             log.error("Failed to retrieve Slack Account information")
@@ -205,6 +210,13 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             "--slack-include-archived",
             help="Include archived slack channels",
             dest="slack_include_archived",
+            action="store_true",
+            default=False,
+        )
+        arg_parser.add_argument(
+            "--slack-do-not-verify-cert",
+            help="Do not verify the Slack API server TLS certificate",
+            dest="slack_do_not_verify_ssl",
             action="store_true",
             default=False,
         )
