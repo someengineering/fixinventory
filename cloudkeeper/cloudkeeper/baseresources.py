@@ -99,9 +99,9 @@ class BaseResource(ABC):
     _account: object = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
-    ctime: datetime = None
-    mtime: datetime = None
-    atime: datetime = None
+    ctime: Optional[datetime] = None
+    mtime: Optional[datetime] = None
+    atime: Optional[datetime] = None
 
     def __post_init__(self) -> None:
         if self.name is None:

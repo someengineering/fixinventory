@@ -3,6 +3,7 @@ import sys
 import pathlib
 import requests
 import json
+from threading import Event
 from keeper_cli.args import get_arg_parser, ArgumentParser
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -20,18 +21,16 @@ def main() -> None:
     history_file = str(pathlib.Path.home() / ".keeper_history")
     history = FileHistory(history_file)
     session = PromptSession(history=history)
-    evaluate_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/evaluate"
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
+    shutdown_event = Event()
 
-    while True:
+    while not shutdown_event.is_set():
         try:
             cli_input = session.prompt("> ", completer=completer)
             if cli_input == "":
                 continue
-
-            res = requests.post(evaluate_endpoint, data=cli_input)
-            if res.status_code != 200:
-                print(res.text, file=sys.stderr)
+            if cli_input == "quit":
+                shutdown_event.set()
                 continue
 
             res = requests.post(execute_endpoint, data=cli_input)
@@ -46,12 +45,13 @@ def main() -> None:
         except KeyboardInterrupt:
             pass
         except EOFError:
-            sys.exit(0)
+            shutdown_event.set()
         except (RuntimeError, ValueError) as e:
             log.error(e)
         except Exception:
             log.exception("Caught unhandled exception while processing CLI command")
 
+    sys.exit(0)
 
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(

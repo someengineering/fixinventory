@@ -357,7 +357,7 @@ def send_to_keepercore(graph: Graph):
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")
-    log.debug(r.content.decode())
+    log.debug(f"Keepercore reply: {r.content.decode()}")
     log.debug(
         f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
     )
