@@ -330,7 +330,8 @@ class ArangoGraphDB(GraphDB):
                 lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute();",
                 [
                     f'for e in {temp_name} filter e.action=="node_insert" insert e.data in {self.vertex_name}',
-                    f'for e in {temp_name} filter e.action=="node_update" replace e.data in {self.vertex_name}',
+                    f'for e in {temp_name} filter e.action=="node_update" update e.data in {self.vertex_name}'
+                    + " OPTIONS {mergeObjects: false}",
                     f'for e in {temp_name} filter e.action=="node_delete" remove e.data in {self.vertex_name}',
                 ]
                 + edge_inserts
@@ -553,11 +554,13 @@ class ArangoGraphDB(GraphDB):
 
         async def update_directly() -> None:
             edge_collections = [self.edge_collection(a) for a in EdgeType.allowed_edge_types]
+            update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
                 # note: all requests are done sequentially on purpose
                 # https://www.arangodb.com/docs/stable/http/transaction-stream-transaction.html#concurrent-requests
                 await execute_many_async(self.db.insert_many, self.vertex_name, resource_inserts)
-                await execute_many_async(self.db.update_many, self.vertex_name, resource_updates)
+                # noinspection PyTypeChecker
+                await execute_many_async(update_many_no_merge, self.vertex_name, resource_updates)
                 await execute_many_async(self.db.delete_many, self.vertex_name, resource_deletes)
                 for ed_i_type, ed_insert in edge_inserts.items():
                     await execute_many_async(self.db.insert_many, self.edge_collection(ed_i_type), ed_insert)
