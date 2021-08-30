@@ -216,6 +216,7 @@ class KeepercoreEvents(threading.Thread):
         self.events = events
         self.message_processor = message_processor
         self.ws = None
+        self.shutdown_event = threading.Event()
 
     def __del__(self):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -229,6 +230,15 @@ class KeepercoreEvents(threading.Thread):
             log.exception(f"Caught unhandled events exception in {self.name}")
 
     def go(self):
+        while not self.shutdown_event.is_set():
+            log.info("Connecting to keepercore")
+            try:
+                self.connect()
+            except Exception as e:
+                log.error(e)
+            time.sleep(10)
+
+    def connect(self) -> None:
         for event, data in self.events.items():
             if not isinstance(data, dict):
                 data = None
@@ -250,6 +260,7 @@ class KeepercoreEvents(threading.Thread):
             f"Received event {event.event_type}"
             " - shutting down keepercore event bus listener"
         )
+        self.shutdown_event.set()
         if self.ws:
             self.ws.close()
         for core_event in self.events.keys():
@@ -295,10 +306,10 @@ class KeepercoreEvents(threading.Thread):
                 log.exception(f"Something went wrong while processing {message}")
 
     def on_error(self, ws, error):
-        log.error(f"{self.identifier} {error}")
+        log.error(f"{self.identifier} event bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected")
+        log.debug(f"{self.identifier} disconnected from keepercore event bus")
 
     def on_open(self, ws):
-        log.debug(f"{self.identifier} connected")
+        log.debug(f"{self.identifier} connected to keepercore event bus")
