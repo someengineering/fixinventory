@@ -6,7 +6,7 @@ import json
 import re
 import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
-from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
+from cloudkeeper.utils import RWLock, json_default, get_resource_attributes, type_str
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.graph.export import (
@@ -496,13 +496,10 @@ def dump_graph(graph) -> str:
         yield f"Node: {node.name} (type: {node.kind})"
         for predecessor_node in graph.predecessors(node):
             yield (
-                f"\tParent: {predecessor_node.name}"
-                f" (type: {predecessor_node.kind})"
+                f"\tParent: {predecessor_node.name}" f" (type: {predecessor_node.kind})"
             )
         for successor_node in graph.successors(node):
-            yield (
-                f"\tChild {successor_node.name} (type: {successor_node.kind})"
-            )
+            yield (f"\tChild {successor_node.name} (type: {successor_node.kind})")
 
 
 @metrics_graph2json.time()
@@ -672,7 +669,12 @@ class GraphExportIterator:
         with self.graph.lock.read_access:
             for node in self.graph.nodes:
                 node_attributes = get_node_attributes(node)
-                node_json = {"id": node.sha256, "data": node_attributes}
+                node_json = {
+                    "id": node.sha256,
+                    "reported": node_attributes,
+                    "metadata": {"python_type": type_str(node)},
+                    "desired": {},
+                }
                 if getattr(node, "_merge", None):
                     log.debug(f"Merging graph above {node.rtdname}")
                     node_json.update({"merge": True})

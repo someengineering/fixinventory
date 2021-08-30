@@ -163,6 +163,7 @@ class BaseResource(ABC):
     @property
     def kdname(self) -> str:
         return f"{self.kind} {self.dname}"
+
     rtdname = kdname
 
     def _tags_getter(self) -> Dict:

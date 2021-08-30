@@ -12,6 +12,7 @@ import requests
 import json
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
+from pydoc import locate
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
@@ -36,8 +37,6 @@ log = logging.getLogger(__name__)
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
 collect_event = threading.Event()
-
-class_mapping = {}
 
 
 def main() -> None:
@@ -151,6 +150,22 @@ def keepercore_message_processor(
 
 
 def cleanup():
+    def process_data_line(data: Dict, graph: Graph):
+        if data.get("type") == "node":
+            node = make_node(data)
+            node_mapping[data.get("id")] = node
+            log.debug(f"Adding node {node} to the graph")
+            graph.add_node(node)
+            if node.kind == "graph_root":
+                log.debug(f"Setting graph root {node}")
+                graph.root = node
+        elif data.get("type") == "edge":
+            node_from = data.get("from")
+            node_to = data.get("to")
+            if node_from not in node_mapping or node_to not in node_mapping:
+                raise ValueError(f"One of {node_from} -> {node_to} unknown")
+            graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+
     log.info("Running cleanup")
     base_uri = ArgumentParser.args.keepercore_uri.strip("/")
     keepercore_graph = ArgumentParser.args.keepercore_graph
@@ -170,42 +185,31 @@ def cleanup():
         if not line:
             continue
         data = json.loads(line.decode("utf-8"))
-        if data.get("type") == "node":
-            node_data = data.get("data", {})
-            try:
-                node = make_node(node_data)
-            except ValueError:
-                log.exception("Error creating node instance")
-                continue
-            node_mapping[data.get("id")] = node
-            log.debug(f"Adding node {node} to the graph")
-            graph.add_node(node)
-            if node.kind == "graph_root":
-                log.debug(f"Setting graph root {node}")
-                graph.root = node
-        elif data.get("type") == "edge":
-            node_from = data.get("from")
-            node_to = data.get("to")
-            if node_from not in node_mapping or node_to not in node_mapping:
-                log.error(f"One of {node_from} -> {node_to} unknown")
-                continue
-            graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+        try:
+            process_data_line(data, graph)
+        except ValueError as e:
+            log.error(e)
+            continue
     sanitize(graph)
     cleaner = Cleaner(graph)
     cleaner.cleanup()
 
 
 def make_node(node_data: Dict):
-    node_data_reported = node_data.get("reported")
-    node_data_desired = node_data.get("desired")
-    clean_node = node_data_desired.get("delete", False)
-    kind = node_data_reported.get("kind")
-    if kind not in class_mapping:
+    node_data_reported = node_data.get("reported", {})
+    node_data_desired = node_data.get("desired", {})
+    node_data_metadata = node_data.get("metadata", {})
+
+    python_type = node_data_metadata.get("python_type", "NoneExisting")
+    node_type = locate(python_type)
+    if node_type is None:
         raise ValueError(f"Do not know how to handle {node_data_reported}")
+
     del node_data_reported["kind"]
-    node_type = class_mapping[kind]
     restore_node_field_types(node_type, node_data_reported)
     node = node_type(**node_data_reported)
+
+    clean_node = node_data_desired.get("delete", False)
     if clean_node:
         node.clean = clean_node
     return node
@@ -215,6 +219,7 @@ def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
     for field in fields(node_type):
         if field.name not in node_data_reported:
             continue
+
         if field.type == datetime:
             datetime_str = str(node_data_reported[field.name])
             if datetime_str.endswith("Z"):
@@ -268,7 +273,6 @@ def collect(collectors: List[BaseCollectorPlugin]):
                 continue
             graph.merge(cluster_graph)
     sanitize(graph)
-    update_class_mapping(graph)
     send_to_keepercore(graph)
 
 
@@ -303,16 +307,6 @@ def collect_plugin_graph(
     else:
         log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
         return None
-
-
-def update_class_mapping(graph: Graph) -> None:
-    for node in graph.nodes:
-        if not isinstance(node, BaseResource):
-            continue
-        node_type = type(node)
-        if node.kind not in class_mapping:
-            log.debug(f"Adding class mapping {node.kind} -> {node_type}")
-            class_mapping[node.kind] = node_type
 
 
 def send_to_keepercore(graph: Graph):

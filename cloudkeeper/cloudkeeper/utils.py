@@ -628,3 +628,11 @@ def resource2dict(item, exclude_private=True, graph=None) -> Dict:
     out["predecessors"] = [i.sha256 for i in item.predecessors(graph)]
     out["successors"] = [i.sha256 for i in item.successors(graph)]
     return out
+
+
+def type_str(o):
+    cls = o.__class__
+    module = cls.__module__
+    if module == "builtins":
+        return cls.__qualname__
+    return module + "." + cls.__qualname__

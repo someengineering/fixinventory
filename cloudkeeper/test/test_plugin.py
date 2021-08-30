@@ -4,6 +4,7 @@ from cloudkeeper.baseresources import BaseResource
 from typing import ClassVar
 from dataclasses import dataclass
 
+
 @dataclass(eq=False)
 class SomeTestResource(BaseResource):
     kind: ClassVar[str] = "some_test_resource"
