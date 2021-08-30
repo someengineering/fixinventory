@@ -29,7 +29,7 @@ class AWSAccount(BaseAccount):
 @dataclass(eq=False)
 class AWSRegion(BaseRegion):
     kind: ClassVar[str] = "aws_region"
-    ctime: datetime = default_ctime
+    ctime: Optional[datetime] = default_ctime
 
     def delete(self, graph) -> bool:
         return False
