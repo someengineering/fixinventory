@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import logging
 import uuid
-from abc import ABC
+from abc import ABC, abstractmethod
 from datetime import timedelta, datetime, timezone
 from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
+from dataclasses import dataclass
+
+from asyncio import Task
+from frozendict import frozendict
 from transitions import Machine, State, MachineError
 
 from core.event_bus import Event, Action, ActionDone, Message, ActionError
 from core.types import Json
-from core.util import first, interleave, empty, exist, identity
-from core.workflow.model import Subscriber
+from core.util import first, interleave, empty, exist, identity, utc, utc_str
+from core.task.model import Subscriber
 
 log = logging.getLogger(__name__)
 
@@ -20,8 +24,8 @@ log = logging.getLogger(__name__)
 class StepErrorBehaviour(Enum):
     """
     This enumeration defines the behaviour of steps in case of an error:
-    - Continue: the response from the actor is ignored and the whole workflow instance continues.
-    - Stop: the workflow instance will be stopped in case of error
+    - Continue: the response from the actor is ignored and the whole task continues.
+    - Stop: the task will be stopped in case of error
     Default is: Continue
     """
 
@@ -29,18 +33,21 @@ class StepErrorBehaviour(Enum):
     Stop = 2
 
 
-class WorkflowSurpassBehaviour(Enum):
+class TaskSurpassBehaviour(Enum):
     """
-    This enumeration defines the behaviour of a spawned workflow instance where the previous workflow instance
-    of the same workflow is still running.
-    - Skip: the new workflow instance is not started and dropped.
-    - Parallel: the new workflow instance is started and runs side by side with the already running instance.
-    - Replace: the already running workflow instance is stopped and gets replaced by the new one.
+    This enumeration defines the behaviour of a spawned task where the previous task
+    of the same task description is still running.
+    - Skip: the new task is not started and dropped.
+    - Parallel: the new task is started and runs side by side with the already running instance.
+    - Replace: the already running task is stopped and gets replaced by the new one.
     """
 
     Skip = 1
     Parallel = 2
     Replace = 3
+
+
+# region StepAction: what to do in one step
 
 
 class StepAction(ABC):
@@ -52,46 +59,78 @@ class StepAction(ABC):
         return self.__dict__ == other.__dict__ if isinstance(other, StepAction) else False
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class PerformAction(StepAction):
-    """
-    Perform an action by emitting an action message and wait for all subscribers to respond.
-    """
-
-    def __init__(self, message_type: str):
-        self.message_type = message_type
+    # Perform an action by emitting an action message and wait for all subscribers to respond.
+    message_type: str
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class EmitEvent(StepAction):
-    """
-    Emit a specified event.
-    """
-
-    def __init__(self, event: Event):
-        self.event = event
+    # Emit this event
+    event: Event
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class WaitForEvent(StepAction):
-    """
-    Wait for an event to arrive.
-    """
-
-    def __init__(self, message_type: str, filter_data: Optional[Json]):
-        self.message_type = message_type
-        self.filter_data = filter_data
+    # Wait for this event to arrive
+    message_type: str
+    filter_data: Optional[Json]
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class ExecuteCommand(StepAction):
-    """
-    Execute a command in the command interpreter. TBD.
-    """
+    # Execute this command in the command interpreter.
+    command: str
 
+
+# endregion
+
+# region StepCommand: resulting commands that get executed. Note that one action can create multiple commands.
+
+
+class TaskCommand(ABC):
     def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, ExecuteCommand) else False
+        return self.__dict__ == other.__dict__ if isinstance(other, TaskCommand) else False
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class SendMessage(TaskCommand):
+    message: Message
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class ExecuteOnCLI(TaskCommand):
+    command: str
+    # noinspection PyUnresolvedReferences
+    env: frozendict[str, str]
+
+
+# endregion
+
+# region Trigger: when an task should be triggered
+class Trigger(ABC):
+    def __eq__(self, other: object) -> bool:
+        return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class EventTrigger(Trigger):
+    message_type: str
+    filter_data: Optional[Json] = None
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class TimeTrigger(Trigger):
+    cron_expression: str
+
+
+# endregion
 
 
 class Step:
     """
-    Immutable description of a step inside a workflow.
+    Immutable description of a step inside a task.
     """
 
     def __init__(
@@ -110,23 +149,67 @@ class Step:
         return self.__dict__ == other.__dict__ if isinstance(other, Step) else False
 
 
-class Trigger(ABC):
+class TaskDescription(ABC):
+    def __init__(self, uid: str, name: str):
+        self.id = uid
+        self.name = name
+
+    def step_by_name(self, name: str) -> Optional[Step]:
+        return first(lambda x: x.name == name, self.steps)
+
+    @property
+    @abstractmethod
+    def steps(self) -> Sequence[Step]:
+        pass
+
+    @property
+    @abstractmethod
+    def triggers(self) -> Sequence[Trigger]:
+        pass
+
+    @property
+    @abstractmethod
+    def on_surpass(self) -> TaskSurpassBehaviour:
+        pass
+
     def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
+        return self.__dict__ == other.__dict__ if isinstance(other, TaskDescription) else False
 
 
-class EventTrigger(Trigger):
-    def __init__(self, message_type: str, filter_data: Optional[Json] = None):
-        self.message_type = message_type
-        self.filter_data = filter_data
+class Job(TaskDescription):
+    def __init__(
+        self,
+        uid: str,
+        name: str,
+        command: ExecuteCommand,
+        trigger: Trigger,
+        timeout: timedelta,
+        wait: Optional[Tuple[EventTrigger, timedelta]] = None,
+    ):
+        super().__init__(uid, name)
+        self.command = command
+        self._triggers = [trigger]
+        self._steps = []
+        if wait:
+            trigger, wait_timeout = wait
+            action = WaitForEvent(trigger.message_type, trigger.filter_data)
+            self._steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
+        self._steps.append(Step("execute", command, timeout))
+
+    @property
+    def steps(self) -> Sequence[Step]:
+        return self._steps
+
+    @property
+    def triggers(self) -> Sequence[Trigger]:
+        return self._triggers
+
+    @property
+    def on_surpass(self) -> TaskSurpassBehaviour:
+        return TaskSurpassBehaviour.Parallel
 
 
-class TimeTrigger(Trigger):
-    def __init__(self, cron_expression: str):
-        self.cron_expression = cron_expression
-
-
-class Workflow:
+class Workflow(TaskDescription):
     """
     Immutable description of a complete workflow.
     """
@@ -137,28 +220,33 @@ class Workflow:
         name: str,
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
-        on_surpass: WorkflowSurpassBehaviour = WorkflowSurpassBehaviour.Skip,
-    ):
-        self.id = uid
-        self.name = name
-        self.steps = steps
-        self.triggers = triggers
-        self.on_surpass = on_surpass
+        on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
+    ) -> None:
+        super().__init__(uid, name)
+        self._steps = steps
+        self._triggers = triggers
+        self._on_surpass = on_surpass
 
-    def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Workflow) else False
+    @property
+    def steps(self) -> Sequence[Step]:
+        return self._steps
 
-    def step_by_name(self, name: str) -> Optional[Step]:
-        return first(lambda x: x.name == name, self.steps)
+    @property
+    def triggers(self) -> Sequence[Trigger]:
+        return self._triggers
+
+    @property
+    def on_surpass(self) -> TaskSurpassBehaviour:
+        return self._on_surpass
 
 
 class StepState(State):  # type: ignore
     """
-    Base class for all states in a workflow instance.
-    There is always a related step definition inside a related workflow instance.
+    Base class for all states in a task.
+    There is always a related step definition inside a related task definition.
     """
 
-    def __init__(self, step: Step, instance: WorkflowInstance):
+    def __init__(self, step: Step, instance: RunningTask):
         super().__init__(step.name, "begin_step")
         self.step = step
         self.instance = instance
@@ -171,12 +259,20 @@ class StepState(State):  # type: ignore
         """
         return not self.timed_out
 
-    def messages_to_emit(self) -> Sequence[Message]:
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
         """
-        Override this method in deriving classes to emit messages when this state is entered.
-        :return: all messages to emit when this state is entered.
+        Override this method in deriving classes to define actions when this state is entered.
+        :return: all commands to execute when this state is entered.
         """
         return []
+
+    # noinspection PyUnusedLocal
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+        """
+        Override this method in deriving classes to define behaviour based on command results.
+        :param results: the results of emitted task commands.
+        :return: the list of new task commands.
+        """
 
     def timeout(self) -> timedelta:
         """
@@ -197,7 +293,7 @@ class StepState(State):  # type: ignore
     def check_timeout(self) -> bool:
         """
         Return true if the internal state of the fsm has changed by this event.
-        This method is called periodically by the workflow cleaner task.
+        This method is called periodically by the cleaner task.
         """
         if (self.instance.step_started_at + self.timeout()) < datetime.now(timezone.utc):
             self.timed_out = True
@@ -205,9 +301,9 @@ class StepState(State):  # type: ignore
         return False
 
     @staticmethod
-    def from_step(step: Step, instance: WorkflowInstance) -> StepState:
+    def from_step(step: Step, instance: RunningTask) -> StepState:
         """
-        Create the related state based on the given step and workflow instance.
+        Create the related state based on the given step and task description.
         """
         if isinstance(step.action, PerformAction):
             return PerformActionState(step.action, step, instance)
@@ -216,8 +312,7 @@ class StepState(State):  # type: ignore
         elif isinstance(step.action, WaitForEvent):
             return WaitForEventState(step.action, step, instance)
         elif isinstance(step.action, ExecuteCommand):
-            # TODO: add action
-            return StepState(step, instance)
+            return ExecuteCommandState(step.action, step, instance)
         else:
             raise AttributeError(f"No mapping for {type(step.action).__name__}")
 
@@ -230,7 +325,7 @@ class StepState(State):  # type: ignore
     # noinspection PyMethodMayBeStatic
     def export_state(self) -> Json:
         """
-        This method is called when the state of the workflow instance need to be persisted.
+        This method is called when the state of the task needs to be persisted.
         Since each state in the FSM can have it's own schema, we export a generic json blob here,
         that has to be interpreted during import_state.
         :return: json representation of this state. empty by default.
@@ -239,7 +334,7 @@ class StepState(State):  # type: ignore
 
     def import_state(self, js: Json) -> None:
         """
-        This method is called when the execution of this workflow instance has been interrupted by a restart.
+        This method is called when the execution of this task has been interrupted by a restart.
         The last known state is persisted to some durable storage and imported in the startup phase.
 
         :param js: the same json that was exported with export_state()
@@ -252,7 +347,7 @@ class PerformActionState(StepState):
     State is done, when all subscribers with expected answer send a done message.
     """
 
-    def __init__(self, perform: PerformAction, step: Step, instance: WorkflowInstance):
+    def __init__(self, perform: PerformAction, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.perform = perform
         self.wait_for = self.instance.subscribers_by_event().get(perform.message_type, [])
@@ -285,11 +380,11 @@ class PerformActionState(StepState):
             max_timeout = max_timeout if not subscription.wait_for_completion or max_timeout > to else to
         return max_timeout
 
-    def messages_to_emit(self) -> Sequence[Message]:
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
         """
         When the state is entered, emit the action message and inform all actors.
         """
-        return [Action(self.perform.message_type, self.instance.id, self.step.name)]
+        return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name))]
 
     def step_started(self) -> None:
         # refresh the list of subscribers when the step has started
@@ -306,7 +401,7 @@ class PerformActionState(StepState):
 
 
 class WaitForEventState(StepState):
-    def __init__(self, perform: WaitForEvent, step: Step, instance: WorkflowInstance):
+    def __init__(self, perform: WaitForEvent, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.perform = perform
 
@@ -338,32 +433,53 @@ class WaitForEventState(StepState):
         return False
 
 
+class ExecuteCommandState(StepState):
+    def __init__(self, execute: ExecuteCommand, step: Step, instance: RunningTask):
+        super().__init__(step, instance)
+        self.execute = execute
+        self.execution_done = False
+
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        # override now: always use the time when the task has been triggered
+        env = frozendict({"now": utc_str(self.instance.task_started_at)})
+        return [ExecuteOnCLI(self.execute.command, env)]
+
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+        found = first(lambda r: isinstance(r, ExecuteOnCLI) and r.command == self.execute.command, results.keys())
+        if found:
+            log.info(f"Result of command {self.execute.command} is {results[found]}")
+            self.execution_done = True
+
+    def current_step_done(self) -> bool:
+        return self.execution_done
+
+
 class EmitEventState(StepState):
-    def __init__(self, emit: EmitEvent, step: Step, instance: WorkflowInstance):
+    def __init__(self, emit: EmitEvent, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.emit = emit
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.emit.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.emit.event)]
 
 
 class StartState(StepState):
-    def __init__(self, instance: WorkflowInstance):
-        self.event = Event("workflow_start")
-        super().__init__(Step("workflow_start", EmitEvent(self.event)), instance)
+    def __init__(self, instance: RunningTask):
+        self.event = Event("task_start")
+        super().__init__(Step("task_start", EmitEvent(self.event)), instance)
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.event)]
 
 
 class EndState(StepState):
     """
-    This state marks the end of the workflow.
+    This state marks the end of the task.
     """
 
-    def __init__(self, instance: WorkflowInstance):
-        self.event = Event("workflow_end")
-        super().__init__(Step("workflow_end", EmitEvent(self.event)), instance)
+    def __init__(self, instance: RunningTask):
+        self.event = Event("task_end")
+        super().__init__(Step("task_end", EmitEvent(self.event)), instance)
 
     def is_error(self) -> bool:
         return self.instance.is_error
@@ -371,30 +487,34 @@ class EndState(StepState):
     def current_step_done(self) -> bool:
         return False
 
-    def messages_to_emit(self) -> Sequence[Message]:
-        return [self.event]
+    def commands_to_execute(self) -> Sequence[TaskCommand]:
+        return [SendMessage(self.event)]
 
 
-class WorkflowInstance:
+class RunningTask:
     @staticmethod
     def empty(
-        workflow: Workflow, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
-    ) -> Tuple[WorkflowInstance, Sequence[Message]]:
-        assert len(workflow.steps) > 0, "Workflow needs at least one step!"
+        descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
+    ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
+        assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = str(uuid.uuid1())
-        wi = WorkflowInstance(uid, workflow, subscriber_by_event)
-        messages = [Event("workflow_started", data={"workflow": workflow.name}), *wi.move_to_next_state()]
+        wi = RunningTask(uid, descriptor, subscriber_by_event)
+        messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *wi.move_to_next_state()]
         return wi, messages
 
-    def __init__(self, uid: str, workflow: Workflow, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]):
+    def __init__(
+        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
+    ):
         self.id = uid
         self.is_error = False
-        self.workflow = workflow
+        self.descriptor = descriptor
         self.received_messages: MutableSequence[Message] = []
         self.subscribers_by_event = subscribers_by_event
-        self.step_started_at = datetime.now(timezone.utc)
+        self.task_started_at = utc()
+        self.step_started_at = self.task_started_at
+        self.update_task: Optional[Task[None]] = None
 
-        steps = [StepState.from_step(step, self) for step in workflow.steps]
+        steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
         end = EndState(self)
         states: List[StepState] = [start, *steps, end]
@@ -406,7 +526,7 @@ class WorkflowInstance:
             )
             self.machine.add_transition("_to_err", current_state.name, end.name, [end.is_error])
 
-    def move_to_next_state(self) -> Sequence[Message]:
+    def move_to_next_state(self) -> Sequence[TaskCommand]:
         def next_state() -> bool:
             try:
                 # this method is defined dynamically by transitions
@@ -419,10 +539,10 @@ class WorkflowInstance:
             except MachineError:
                 return False
 
-        resulting_events: List[Message] = []
+        resulting_commands: List[TaskCommand] = []
         while next_state():
-            resulting_events.extend(self.current_state.messages_to_emit())
-        return resulting_events
+            resulting_commands.extend(self.current_state.commands_to_execute())
+        return resulting_commands
 
     @property
     def current_state(self) -> StepState:
@@ -436,22 +556,22 @@ class WorkflowInstance:
     def is_active(self) -> bool:
         return not isinstance(self.current_state, EndState)
 
-    def handle_event(self, event: Event) -> Tuple[bool, Sequence[Message]]:
+    def handle_event(self, event: Event) -> Tuple[bool, Sequence[TaskCommand]]:
         if self.current_state.handle_event(event):
             return True, self.move_to_next_state()
         else:
             return False, []
 
-    def handle_done(self, done: ActionDone) -> Sequence[Message]:
+    def handle_done(self, done: ActionDone) -> Sequence[TaskCommand]:
         self.received_messages.append(done)
         return self.move_to_next_state()
 
-    def handle_error(self, error: ActionError) -> Sequence[Message]:
+    def handle_error(self, error: ActionError) -> Sequence[TaskCommand]:
         """
         An action could not be performed - the subscriber returned an error.
         Such a message only makes sense in a PerformAction step.
         Whether or not this event leads to a state change is decided by the current state.
-        Whether or not this leads to the end of this workflow instance is decided by the current step error behaviour.
+        Whether or not this leads to the end of this task is decided by the current step error behaviour.
         """
         if not isinstance(self.current_step.action, PerformAction):
             log.info(
@@ -464,16 +584,20 @@ class WorkflowInstance:
             return self.move_to_next_state()
         else:
             log.info(
-                f"Workflow: {error.workflow_instance_id}: Subscriber {error.subscriber_id} could not handle action: "
-                f"{error.message_type} because: {error.error}. Stop this workflow."
+                f"Task: {error.task_id}: Subscriber {error.subscriber_id} could not handle action: "
+                f"{error.message_type} because: {error.error}. Stop this task."
             )
             self.end()
             return []
 
+    def handle_command_results(self, results: dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
+        self.current_state.handle_command_results(results)
+        return self.move_to_next_state()
+
     def end(self) -> None:
         """
-        If this method is called, the workflow instance is marked as failed and moves to the end state.
-        Use this method to abort a workflow instance.
+        If this method is called, the task is marked as failed and moves to the end state.
+        Use this method to abort a task.
         """
         self.is_error = True
         self._to_err()  # type: ignore # pylint: disable=no-member
@@ -494,7 +618,7 @@ class WorkflowInstance:
 
     def pending_action_for(self, subscriber: Subscriber) -> Optional[Action]:
         """
-        In case this workflow is waiting for an action result from the given subscriber,
+        In case this task is waiting for an action result from the given subscriber,
         the relevant action is returned.
         """
         state = self.current_state
@@ -506,7 +630,7 @@ class WorkflowInstance:
         return None
 
     def begin_step(self) -> None:
-        log.info(f"Workflow {self.id}: begin step is: {self.current_step.name}")
+        log.info(f"Task {self.id}: begin step is: {self.current_step.name}")
         # update the step started time, whenever a new state is entered
         self.step_started_at = datetime.now(timezone.utc)
         self.current_state.step_started()

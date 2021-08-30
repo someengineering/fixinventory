@@ -30,9 +30,9 @@ from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
-from core.workflow.model import Subscription
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.workflow_handler import WorkflowHandler
+from core.task.model import Subscription
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_handler import TaskHandler
 
 log = logging.getLogger(__name__)
 Section = Union[str, List[str]]
@@ -45,7 +45,7 @@ class Api:
         db: DbAccess,
         model_handler: ModelHandler,
         subscription_handler: SubscriptionHandler,
-        workflow_handler: WorkflowHandler,
+        workflow_handler: TaskHandler,
         event_bus: EventBus,
         cli: CLI,
     ):

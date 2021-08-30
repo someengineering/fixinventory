@@ -5,7 +5,7 @@ import calendar
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 from functools import reduce
 from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, AsyncGenerator, Tuple, Dict
 
@@ -25,7 +25,7 @@ from core.event_bus import EventBus
 from core.model.model_handler import ModelHandler
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
 from core.types import JsonElement
-from core.util import split_esc, utc_str, utc
+from core.util import split_esc, utc_str, utc, from_utc
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
@@ -237,18 +237,19 @@ class CLI:
             else:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
-        replaced = self.replace_placeholder(cli_input)
+        replaced = self.replace_placeholder(cli_input, **env)
         return [await parse_line(cmd_line) for cmd_line in split_esc(replaced, ";")]
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]
 
     @staticmethod
-    def replacements() -> dict[str, str]:
-        ut = utc()
-        t = date.today()
+    def replacements(**env: str) -> dict[str, str]:
+        now_string = env.get("now")
+        ut = from_utc(now_string) if now_string else utc()
+        t = ut.date()
         try:
-            n = get_localzone().localize(datetime.now())
+            n = get_localzone().localize(ut)
         except Exception:
             n = ut
         return {
@@ -276,5 +277,5 @@ class CLI:
         }
 
     @staticmethod
-    def replace_placeholder(cli_input: str) -> str:
-        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements().items(), cli_input)
+    def replace_placeholder(cli_input: str, **env: str) -> str:
+        return reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)

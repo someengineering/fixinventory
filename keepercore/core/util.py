@@ -7,6 +7,8 @@ from contextlib import suppress
 from datetime import timedelta, datetime, timezone
 from typing import Any, Callable, Optional, Awaitable, Dict, TypeVar, List, Tuple, Mapping, MutableSequence
 
+from dateutil.parser import isoparse
+
 log = logging.getLogger(__name__)
 
 AnyT = TypeVar("AnyT")
@@ -18,7 +20,7 @@ def identity(o: AnyT) -> AnyT:
 
 
 def pop_keys(d: dict[AnyT, AnyR], keys: list[AnyT]) -> dict[AnyT, AnyR]:
-    res = d.copy()
+    res = dict(d)
     for key in keys:
         res.pop(key, None)  # type: ignore
     return res
@@ -33,6 +35,10 @@ def utc() -> datetime:
 
 def utc_str(dt: datetime = utc()) -> str:
     return dt.strftime(UTC_Date_Format)
+
+
+def from_utc(string: str) -> datetime:
+    return isoparse(string)
 
 
 def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:

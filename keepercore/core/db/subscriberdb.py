@@ -1,6 +1,6 @@
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EntityDb, EventEntityDb, ArangoEntityDb
-from core.workflow.model import Subscriber
+from core.task.model import Subscriber
 
 SubscriberDb = EntityDb[Subscriber]
 EventSubscriberDb = EventEntityDb[Subscriber]

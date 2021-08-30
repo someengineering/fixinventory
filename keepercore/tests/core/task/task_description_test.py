@@ -5,12 +5,12 @@ from pytest import fixture
 
 from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
-from core.workflow.subscribers import SubscriptionHandler
-from core.workflow.model import Subscriber, Subscription
-from core.workflow.workflows import (
+from core.task.subscribers import SubscriptionHandler
+from core.task.model import Subscriber, Subscription
+from core.task.task_description import (
     Workflow,
     Step,
-    WorkflowInstance,
+    RunningTask,
     StepErrorBehaviour,
     PerformAction,
     WaitForEvent,
@@ -50,7 +50,7 @@ def test_workflow() -> Workflow:
 @fixture
 def workflow_instance(
     test_workflow: Workflow,
-) -> Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
+) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
     td = timedelta(seconds=100)
     sub1 = Subscription("start_collect", True, td)
     sub2 = Subscription("collect", True, td)
@@ -58,7 +58,7 @@ def workflow_instance(
     s1 = Subscriber.from_list("s1", [sub1, sub2, sub3])
     s2 = Subscriber.from_list("s2", [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = WorkflowInstance.empty(test_workflow, lambda: subscriptions)
+    w, _ = RunningTask.empty(test_workflow, lambda: subscriptions)
     w.received_messages = [
         Action("start_collect", w.id, "start"),
         ActionDone("start_collect", w.id, "start", s1.id),
@@ -75,18 +75,16 @@ def test_eq() -> None:
     s1 = Step("a", PerformAction("a"), timedelta())
     s2 = Step("a", WaitForEvent("a", {"foo": "bla"}), timedelta())
     s3 = Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
-    s4 = Step("a", ExecuteCommand(), timedelta())
+    s4 = Step("a", ExecuteCommand("echo hello"), timedelta())
     assert s1 == Step("a", PerformAction("a"), timedelta())
     assert s2 == Step("a", WaitForEvent("a", {"foo": "bla"}), timedelta())
     assert s3 == Step("a", EmitEvent(Event("a", {"a": "b"})), timedelta())
-    assert s4 == Step("a", ExecuteCommand(), timedelta())
+    assert s4 == Step("a", ExecuteCommand("echo hello"), timedelta())
     trigger = [EventTrigger("start me up")]
     assert Workflow("a", "a", [s1, s2, s3, s4], trigger) == Workflow("a", "a", [s1, s2, s3, s4], trigger)
 
 
-def test_ack_for(
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
-) -> None:
+def test_ack_for(workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     assert wi.ack_for("start_collect", s1) is not None
     assert wi.ack_for("start_collect", s2) is not None
@@ -95,7 +93,7 @@ def test_ack_for(
 
 
 def test_pending_action_for(
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]],
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]],
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # s1 already sent a done message for the current step
@@ -105,7 +103,7 @@ def test_pending_action_for(
 
 
 def test_handle_done(
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # we are in state collect. Another ack of start is ignored.
@@ -127,7 +125,7 @@ def test_handle_done(
 
 
 def test_handle_error(
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # this event is the last missing event in this step. It fails but the workflow should continue at that point
@@ -142,11 +140,11 @@ def test_handle_error(
 
 
 def test_complete_workflow(
-    workflow_instance: Tuple[WorkflowInstance, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     init, s1, s2, subscriptions = workflow_instance
     # start new workflow instance
-    wi, events = WorkflowInstance.empty(init.workflow, lambda: subscriptions)
+    wi, events = RunningTask.empty(init.descriptor, lambda: subscriptions)
     assert wi.current_step.name == "start"
     assert len(events) == 2
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))

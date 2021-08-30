@@ -10,6 +10,7 @@ from jsons import set_deserializer, set_serializer
 
 from core.types import Json
 from core.util import pop_keys
+from frozendict import frozendict
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class CoreEvent:
     BatchUpdateCommitted = "batch-update-committed"
     BatchUpdateAborted = "batch-update-aborted"
     GraphDBWiped = "graphdb-wiped"
-    WorkflowFinished = "workflow-finished"
+    WorkflowFinished = "task-finished"
 
 
 class Message(ABC):
@@ -43,15 +44,18 @@ class Message(ABC):
     Subscribers subscribe solely on message_type.
 
     The data field can hold arbitrary data that makes sense for the specific message.
-    For all action, action_done and action_error messages, the data field contains references to the workflow.
+    For all action, action_done and action_error messages, the data field contains references to the task.
     """
 
     def __init__(self, message_type: str, data: Optional[Json]):
         self.message_type = message_type
-        self.data = data if data else {}
+        self.data = frozendict(data if data else {})
 
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Message) else False
+
+    def __hash__(self) -> int:
+        return hash(self.message_type) + hash(self.data)
 
     @staticmethod
     def from_json(json: Json, _: type = object, **__: object) -> Message:
@@ -59,17 +63,18 @@ class Message(ABC):
         message_type = json["message_type"]
         data: Json = json.get("data", {})
         if kind == "event":
-            return Event(message_type, data)
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
+            return Event(message_type, res_data)
         elif kind == "action":
-            res_data = pop_keys(data, ["workflow", "step"])
-            return Action(message_type, data["workflow"], data["step"], res_data)
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
+            return Action(message_type, data["task"], data["step"], res_data)
         elif kind == "action_done":
-            res_data = pop_keys(data, ["workflow", "step", "subscriber_id"])
-            return ActionDone(message_type, data["workflow"], data["step"], data["subscriber_id"], res_data)
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
+            return ActionDone(message_type, data["task"], data["step"], data["subscriber_id"], res_data)
         elif kind == "action_error":
-            res_data = pop_keys(data, ["workflow", "step", "subscriber_id", "error"])
+            res_data = pop_keys(data, ["task", "step", "subscriber_id", "error"])
             return ActionError(
-                message_type, data["workflow"], data["step"], data["subscriber_id"], data.get("error", "n/a"), res_data
+                message_type, data["task"], data["step"], data["subscriber_id"], data.get("error", "n/a"), res_data
             )
         else:
             raise AttributeError(f"No handler to parse {kind}")
@@ -83,14 +88,14 @@ class Message(ABC):
                 "data": o.data,
             }
         elif isinstance(o, Action):
-            extra_data = {"workflow": o.workflow_instance_id, "step": o.step_name}
+            extra_data = {"task": o.task_id, "step": o.step_name}
             return {
                 "kind": "action",
                 "message_type": o.message_type,
                 "data": o.data | extra_data,
             }
         elif isinstance(o, ActionDone):
-            extra_data = {"workflow": o.workflow_instance_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
+            extra_data = {"task": o.task_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
             return {
                 "kind": "action_done",
                 "message_type": o.message_type,
@@ -98,7 +103,7 @@ class Message(ABC):
             }
         elif isinstance(o, ActionError):
             extra_data = {
-                "workflow": o.workflow_instance_id,
+                "task": o.task_id,
                 "step": o.step_name,
                 "subscriber_id": o.subscriber_id,
                 "error": o.error,
@@ -118,9 +123,9 @@ class Event(Message):
 
 
 class ActionMessage(Message):
-    def __init__(self, message_type: str, workflow_instance_id: str, step_name: str, data: Optional[Json] = None):
+    def __init__(self, message_type: str, task_id: str, step_name: str, data: Optional[Json] = None):
         super().__init__(message_type, data)
-        self.workflow_instance_id = workflow_instance_id
+        self.task_id = task_id
         self.step_name = step_name
 
 
@@ -132,12 +137,12 @@ class ActionDone(ActionMessage):
     def __init__(
         self,
         message_type: str,
-        workflow_instance_id: str,
+        task_id: str,
         step_name: str,
         subscriber_id: str,
         data: Optional[Json] = None,
     ):
-        super().__init__(message_type, workflow_instance_id, step_name, data)
+        super().__init__(message_type, task_id, step_name, data)
         self.subscriber_id = subscriber_id
 
 
@@ -145,13 +150,13 @@ class ActionError(ActionMessage):
     def __init__(
         self,
         message_type: str,
-        workflow_instance_id: str,
+        task_id: str,
         step_name: str,
         subscriber_id: str,
         error: str,
         data: Optional[Json] = None,
     ):
-        super().__init__(message_type, workflow_instance_id, step_name, data)
+        super().__init__(message_type, task_id, step_name, data)
         self.subscriber_id = subscriber_id
         self.error = error
 
