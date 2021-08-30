@@ -15,6 +15,8 @@ tags:
       description: Endpoints to manipulate the reported data in the graph.
     - name: graph_desired
       description: Endpoints to manipulate the desired data in the graph.
+    - name: graph_all
+      description: Endpoints to query all sections of the graph
     - name: cli
       description: Endpoints to evaluate and execute cli commands
     - name: subscriptions
@@ -151,6 +153,218 @@ paths:
                             example: "Graph deleted."
     # endregion
 
+    # region graph no section
+    /graph/{graph_id}/query:
+        post:
+            summary: "Query this graph"
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+            tags:
+                - graph_all
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+                - name: format
+                  in: header
+                  description: "The format of the result to return"
+                  required: true
+                  schema:
+                      type: string
+                      enum:
+                          - graph
+                          - list
+                          - cytoscape
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: isinstance("graph_root") and reported.name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/Graph"
+                                    - type: array
+                                      items:
+                                          $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/query/raw:
+        post:
+            summary: "Transform the query into the raw database query"
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: isinstance("graph_root") and reported.name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "Returns the query as performed by the database."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/RawQuery"
+    /graph/{graph_id}/query/list:
+        post:
+            summary: "Query the graph and return all nodes as list (this will not contain any edges)"
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+            tags:
+                - graph_all
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: isinstance("graph_root") and reported.name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/Node"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/query/graph:
+        post:
+            summary: "Query the graph and return the resulting graph."
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+            tags:
+                - graph_all
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: isinstance("graph_root") and reported.name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Graph"
+                        application/x-ndjson:
+                            schema:
+                                oneOf:
+                                    - $ref: "#/components/schemas/NodeInGraph"
+                                    - $ref: "#/components/schemas/Edge"
+    /graph/{graph_id}/query/aggregate:
+        post:
+            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+            tags:
+                - graph_all
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The aggregation query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: |
+                                aggregate(kind: count(id) as nodes): isinstance("node")
+            responses:
+                "200":
+                    description: "The result of this query in the defined format"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+                        application/x-ndjson:
+                            schema:
+                                $ref: "#/components/schemas/Aggregated"
+    /graph/{graph_id}/query/explain:
+        post:
+            summary: "Explain the query execution plan"
+            description: |
+                Query the graph by all sections. This means that properties have to be prefixed by the section name.
+                Example: reported.age>23 and desired.clean==true and metadata.version==2
+
+            tags:
+                - debug
+            parameters:
+                - name: graph_id
+                  in: path
+                  description: "The identifier of the graph"
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                description: "The query to perform"
+                content:
+                    text/plain:
+                        schema:
+                            type: string
+                            example: isinstance("graph_root") and reported.name=="root" -[0:1]->
+            responses:
+                "200":
+                    description: "The execution plan of the database"
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+    # endregion
+
     # region graph reported
     /graph/{graph_id}/reported/search:
         get:
@@ -244,7 +458,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/Node"
-
         patch:
             summary: "Update a node with the given node id"
             tags:
@@ -480,7 +693,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" -[0:1]->
+                            example: isinstance("graph_root") and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -515,7 +728,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" -[0:1]->
+                            example: isinstance("graph_root") and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "Returns the query as performed by the database."
@@ -541,7 +754,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" -[0:1]->
+                            example: isinstance("graph_root") and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -572,7 +785,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" -[0:1]->
+                            example: isinstance("graph_root") and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -634,7 +847,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="root" -[0:1]->
+                            example: isinstance("graph_root") and name=="root" -[0:1]->
             responses:
                 "200":
                     description: "The execution plan of the database"
@@ -735,7 +948,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" -[0:1]->
+                            example: isinstance("graph_root") and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -770,7 +983,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" -[0:1]->
+                            example: isinstance("graph_root") and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "Returns the query as performed by the database."
@@ -796,7 +1009,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" -[0:1]->
+                            example: isinstance("graph_root") and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -827,7 +1040,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" -[0:1]->
+                            example: isinstance("graph_root") and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The result of this query in the defined format"
@@ -888,7 +1101,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: kind(graph_root) and name=="Batman" -[0:1]->
+                            example: isinstance("graph_root") and name=="Batman" -[0:1]->
             responses:
                 "200":
                     description: "The execution plan of the database"
@@ -1314,17 +1527,32 @@ components:
                 id:
                     type: string
                     description: "The identifier of this node."
-                data:
+                type:
+                    type: string
+                reported:
                     $ref: "#/components/schemas/Node"
+                desired:
+                    type: object
+                    additionalProperties: true
+                metadata:
+                    type: object
+                    additionalProperties: true
             example:
               {
                   "type": "node",
                   "id": "id-in-graph",
-                  "data": {
+                  "reported": {
                       "kind": "test.person",
                       "name": "Batman",
                       "city": "Gotham"
+                  },
+                  "desired": {
+                      "clean": true
+                  },
+                  "metadata": {
+                      "version": 1
                   }
+
               }
         DesiredNode:
             type: object

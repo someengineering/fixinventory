@@ -331,13 +331,13 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
 @pytest.mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
-    root = to_foo(await filled_graph_db.get_node("sub_root", "reported"))
+    root = to_foo(await filled_graph_db.get_node("sub_root"))
     assert root is not None
     assert isinstance(root, Foo)
-    node_7 = to_foo(await filled_graph_db.get_node("7", "reported"))
+    node_7 = to_foo(await filled_graph_db.get_node("7"))
     assert node_7 is not None
     assert isinstance(node_7, Foo)
-    node_1_2 = to_bla(await filled_graph_db.get_node("1_2", "reported"))
+    node_1_2 = to_bla(await filled_graph_db.get_node("1_2"))
     assert node_1_2 is not None
     assert isinstance(node_1_2, Bla)
 
@@ -347,16 +347,16 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     json = await graph_db.create_node(foo_model, "some_new_id", to_json(Foo("some_new_id", "name")), "root")
     assert to_foo(json).identifier == "some_new_id"
-    assert to_foo(await graph_db.get_node("some_new_id", "reported")).identifier == "some_new_id"
+    assert to_foo(await graph_db.get_node("some_new_id")).identifier == "some_new_id"
 
 
 @pytest.mark.asyncio
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    json = await graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
+    json = await graph_db.update_node(foo_model, "reported", "some_other", {"name": "bla"})
     assert to_foo(json).name == "bla"
-    assert to_foo(await graph_db.get_node("some_other", "reported")).name == "bla"
+    assert to_foo(await graph_db.get_node("some_other")).name == "bla"
 
 
 @pytest.mark.asyncio
@@ -366,7 +366,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, "some_other_child", to_json(Foo("some_other_child", "foo")), "sub_root")
     await graph_db.create_node(foo_model, "born_to_die", to_json(Foo("born_to_die", "foo")), "sub_root")
     await graph_db.delete_node("born_to_die")
-    assert await graph_db.get_node("born_to_die", "reported") is None
+    assert await graph_db.get_node("born_to_die") is None
     with pytest.raises(AttributeError) as not_allowed:
         await graph_db.delete_node("sub_root")
     assert str(not_allowed.value) == "Can not delete node, since it has 1 child(ren)!"
@@ -376,7 +376,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Message]) -> None:
     graph = create_graph("yes or no", width=0)
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    await event_graph_db.update_node(foo_model, "reported", "reported", "some_other", {"name": "bla"})
+    await event_graph_db.update_node(foo_model, "reported", "some_other", {"name": "bla"})
     await event_graph_db.delete_node("some_other")
     await event_graph_db.merge_graph(graph)
     await event_graph_db.merge_graph(graph, "batch1")

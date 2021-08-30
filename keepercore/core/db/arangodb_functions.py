@@ -32,7 +32,8 @@ def in_subnet(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel)
     expected = int(network.network_address) & mask
     length = str(len(bind_vars))
     bind_vars[length] = expected
-    return f"BIT_AND(IPV4_TO_NUMBER({cursor}.{model.query_section}.{fn.property_path}), {mask}) == @{length}"
+    section_dot = f"{model.query_section}." if model.query_section else ""
+    return f"BIT_AND(IPV4_TO_NUMBER({cursor}.{section_dot}{fn.property_path}), {mask}) == @{length}"
 
 
 def as_arangodb_function(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:

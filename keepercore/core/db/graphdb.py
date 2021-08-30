@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
 from itertools import chain
-from typing import Optional, Tuple, List, Union, Callable, AsyncGenerator, Any, Iterable
+from typing import Optional, Tuple, List, Callable, AsyncGenerator, Any, Iterable
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 
 class GraphDB(ABC):
     @abstractmethod
-    async def get_node(self, node_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
+    async def get_node(self, node_id: str) -> Optional[Json]:
         pass
 
     @abstractmethod
@@ -47,15 +47,11 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_node(
-        self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str, patch: Json
-    ) -> Json:
+    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
         pass
 
     @abstractmethod
-    async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
-    ) -> AsyncGenerator[Json, None]:
+    async def update_nodes_desired(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         yield {}  # only here for mypy type check (detects coroutine otherwise)
 
     @abstractmethod
@@ -134,14 +130,14 @@ class ArangoGraphDB(GraphDB):
         self, tokens: str, limit: int
     ) -> AsyncGenerator[Json, None]:
         bind = {"tokens": tokens, "limit": limit}
-        trafo = self.document_to_instance_fn("reported")
+        trafo = self.document_to_instance_fn()
         with await self.db.aql(query=self.query_search_token(), bind_vars=bind) as cursor:
             for element in cursor:
                 yield trafo(element)
 
-    async def get_node(self, node_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
+    async def get_node(self, node_id: str) -> Optional[Json]:
         node = await self.by_id(node_id)
-        return self.document_to_instance_fn(result_section)(node) if node is not None else None
+        return self.document_to_instance_fn()(node) if node is not None else None
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         graph = GraphBuilder(model)
@@ -156,12 +152,10 @@ class ArangoGraphDB(GraphDB):
         async with self.db.begin_transaction(write=[self.vertex_name, edge_collection]) as tx:
             result: Json = await tx.insert(self.vertex_name, node_inserts[0], return_new=True)
             await tx.insert(edge_collection, edge_inserts[0])
-            trafo = self.document_to_instance_fn("reported")
+            trafo = self.document_to_instance_fn()
             return trafo(result["new"])
 
-    async def update_node(
-        self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str, patch: Json
-    ) -> Json:
+    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
         node = await self.by_id(node_id)
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
@@ -175,14 +169,12 @@ class ArangoGraphDB(GraphDB):
             node_id, _, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
             update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
             result = await self.db.update(self.vertex_name, update, return_new=True)
-            trafo = self.document_to_instance_fn(result_section)
+            trafo = self.document_to_instance_fn()
             return trafo(result["new"])
 
-    async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
-    ) -> AsyncGenerator[Json, None]:
+    async def update_nodes_desired(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         bind_var = {"desired": patch, "node_ids": node_ids}
-        trafo = self.document_to_instance_fn(result_section, **kwargs)
+        trafo = self.document_to_instance_fn()
         with await self.db.aql(query=self.query_update_desired_many(), bind_vars=bind_var) as cursor:
             for element in cursor:
                 yield trafo(element)
@@ -208,7 +200,7 @@ class ArangoGraphDB(GraphDB):
     ) -> AsyncGenerator[Json, None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn(query.return_section, **kwargs)
+        trafo = self.document_to_instance_fn()
         visited = set()
         with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
             for element in cursor:
@@ -224,7 +216,7 @@ class ArangoGraphDB(GraphDB):
     ) -> AsyncGenerator[Tuple[str, Json], None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, all_edges=True)
-        trafo = self.document_to_instance_fn(query.return_section)
+        trafo = self.document_to_instance_fn()
         visited_node = {}
         visited_edge = set()
         with await self.db.aql(query=query_string, bind_vars=bind, batch_size=10000) as cursor:
@@ -275,23 +267,18 @@ class ArangoGraphDB(GraphDB):
             await self.db.truncate(self.edge_collection(edge_type))
         await self.insert_genesis_data()
 
-    default_system_props = {"_key": "_id", "_rev": "_rev"}
+    sections = {"reported", "desired", "metadata"}
 
     @staticmethod
-    def document_to_instance_fn(section: Union[str, List[str]], **kwargs: Any) -> Callable[[Json], Optional[Json]]:
-        sections = [section] if isinstance(section, str) else section
-
-        def props(doc: Json) -> Optional[Json]:
-            return {prop: doc[prop] if prop in doc else {} for prop in sections}
+    def document_to_instance_fn() -> Callable[[Json], Optional[Json]]:
+        def props(doc: Json) -> Json:
+            return {prop: doc[prop] for prop in ArangoGraphDB.sections if prop in doc}
 
         def render_prop(doc: Json) -> Optional[Json]:
             result = props(doc)
-            if result:
+            if len(result) > 0:
                 result["id"] = doc["_key"]
                 result["type"] = "node"
-                metadata = doc.get("metadata", None)
-                if metadata:
-                    result["metadata"] = metadata
                 return result
             else:
                 return None
@@ -623,12 +610,12 @@ class ArangoGraphDB(GraphDB):
     ) -> Tuple[str, Json]:
         query = query_model.query
         model = query_model.model
-        section = query_model.query_section
+        section_dot = f"{query_model.query_section}." if query_model.query_section else ""
         bind_vars: Json = {}
 
         def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
-            variables = ", ".join(f"{v.get_as_name()}={cursor}.{section}.{v.name}" for v in a.group_by)
-            funcs = ", ".join(f"{v.get_as_name()}={v.function}({cursor}.{section}.{v.name})" for v in a.group_func)
+            variables = ", ".join(f"{v.get_as_name()}={cursor}.{section_dot}{v.name}" for v in a.group_by)
+            funcs = ", ".join(f"{v.get_as_name()}={v.function}({cursor}.{section_dot}{v.name})" for v in a.group_func)
             agg = ", ".join(chain((v.get_as_name() for v in a.group_by), (f.get_as_name() for f in a.group_func)))
             return f"collect {variables} aggregate {funcs}", f"{{{agg}}}"
 
@@ -648,7 +635,7 @@ class ArangoGraphDB(GraphDB):
             # key of the predicate is the len of the dict as string
             length = str(len(bind_vars))
             bind_vars[length] = model.kind_by_path(path).coerce(p.value)
-            return f"{cursor}.{section}.{p.name}{extra} {p.op} @{length}"
+            return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
 
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
@@ -875,8 +862,8 @@ class EventGraphDB(GraphDB):
         self.event_bus = event_bus
         self.graph_name = real.name
 
-    async def get_node(self, node_id: str, result_section: Union[str, List[str]]) -> Optional[Json]:
-        return await self.real.get_node(node_id, result_section)
+    async def get_node(self, node_id: str) -> Optional[Json]:
+        return await self.real.get_node(node_id)
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
@@ -885,10 +872,8 @@ class EventGraphDB(GraphDB):
         )
         return result
 
-    async def update_node(
-        self, model: Model, section: str, result_section: Union[str, List[str]], node_id: str, patch: Json
-    ) -> Json:
-        result = await self.real.update_node(model, section, result_section, node_id, patch)
+    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
+        result = await self.real.update_node(model, section, node_id, patch)
         await self.event_bus.emit_event(
             CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
         )
@@ -899,10 +884,8 @@ class EventGraphDB(GraphDB):
         await self.event_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
         return result
 
-    async def update_nodes_desired(
-        self, patch: Json, node_ids: List[str], result_section: Union[str, List[str]], **kwargs: Any
-    ) -> AsyncGenerator[Json, None]:
-        result = self.real.update_nodes_desired(patch, node_ids, result_section, **kwargs)
+    async def update_nodes_desired(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+        result = self.real.update_nodes_desired(patch, node_ids, **kwargs)
         await self.event_bus.emit_event(
             CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
         )

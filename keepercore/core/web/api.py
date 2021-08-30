@@ -59,7 +59,6 @@ class Api:
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         r = "reported"
         d = "desired"
-        rd = [r, d]
         SwaggerFile(
             self.app,
             spec_file=f"{static_path}/api-doc.yaml",
@@ -73,34 +72,41 @@ class Api:
                 web.patch("/model", self.update_model),
                 # CRUD Graph operations
                 web.get("/graph", self.list_graphs),
-                web.get("/graph/{graph_id}", partial(self.get_node, r)),
+                web.get("/graph/{graph_id}", self.get_node),
                 web.post("/graph/{graph_id}", self.create_graph),
                 web.delete("/graph/{graph_id}", self.wipe),
+                # No section of the graph
+                web.post("/graph/{graph_id}/query", partial(self.query, None)),
+                web.post("/graph/{graph_id}/query/raw", partial(self.raw, None)),
+                web.post("/graph/{graph_id}/query/explain", partial(self.explain, None)),
+                web.post("/graph/{graph_id}/query/list", partial(self.query_list, None)),
+                web.post("/graph/{graph_id}/query/graph", partial(self.query_graph_stream, None)),
+                web.post("/graph/{graph_id}/query/aggregate", partial(self.query_aggregation, None)),
                 # Reported section of the graph
                 web.get("/graph/{graph_id}/reported/search", self.search_graph),
                 web.post("/graph/{graph_id}/reported/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/reported/batch/merge", self.update_merge_graph_batch),
                 web.post("/graph/{graph_id}/reported/node/{node_id}/under/{parent_node_id}", self.create_node),
-                web.get("/graph/{graph_id}/reported/node/{node_id}", partial(self.get_node, r)),
-                web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r, r)),
+                web.get("/graph/{graph_id}/reported/node/{node_id}", self.get_node),
+                web.patch("/graph/{graph_id}/reported/node/{node_id}", partial(self.update_node, r)),
                 web.delete("/graph/{graph_id}/reported/node/{node_id}", self.delete_node),
                 web.get("/graph/{graph_id}/reported/batch", self.list_batches),
                 web.post("/graph/{graph_id}/reported/batch/{batch_id}", self.commit_batch),
                 web.delete("/graph/{graph_id}/reported/batch/{batch_id}", self.abort_batch),
-                web.post("/graph/{graph_id}/reported/query", partial(self.query, r, r)),
+                web.post("/graph/{graph_id}/reported/query", partial(self.query, r)),
                 web.post("/graph/{graph_id}/reported/query/raw", partial(self.raw, r)),
                 web.post("/graph/{graph_id}/reported/query/explain", partial(self.explain, r)),
-                web.post("/graph/{graph_id}/reported/query/list", partial(self.query_list, r, r)),
-                web.post("/graph/{graph_id}/reported/query/graph", partial(self.query_graph_stream, r, r)),
+                web.post("/graph/{graph_id}/reported/query/list", partial(self.query_list, r)),
+                web.post("/graph/{graph_id}/reported/query/graph", partial(self.query_graph_stream, r)),
                 web.post("/graph/{graph_id}/reported/query/aggregate", partial(self.query_aggregation, r)),
                 # Desired section of the graph
-                web.get("/graph/{graph_id}/desired/node/{node_id}", partial(self.get_node, rd)),
-                web.patch("/graph/{graph_id}/desired/node/{node_id}", partial(self.update_node, d, rd)),
-                web.post("/graph/{graph_id}/desired/query", partial(self.query, d, rd)),
-                web.post("/graph/{graph_id}/desired/query/raw", partial(self.raw, d, rd)),
-                web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d, rd)),
-                web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d, rd)),
-                web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d, rd)),
+                web.get("/graph/{graph_id}/desired/node/{node_id}", self.get_node),
+                web.patch("/graph/{graph_id}/desired/node/{node_id}", partial(self.update_node, d)),
+                web.post("/graph/{graph_id}/desired/query", partial(self.query, d)),
+                web.post("/graph/{graph_id}/desired/query/raw", partial(self.raw, d)),
+                web.post("/graph/{graph_id}/desired/query/explain", partial(self.explain, d)),
+                web.post("/graph/{graph_id}/desired/query/list", partial(self.query_list, d)),
+                web.post("/graph/{graph_id}/desired/query/graph", partial(self.query_graph_stream, d)),
                 web.post("/graph/{graph_id}/desired/query/aggregate", partial(self.query_aggregation, d)),
                 # Subscriptions
                 web.get("/subscribers", self.list_all_subscriptions),
@@ -250,11 +256,11 @@ class Api:
         model = await self.model_handler.update_model(kinds)
         return web.json_response(to_js(model))
 
-    async def get_node(self, section: str, request: Request) -> StreamResponse:
+    async def get_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
         node_id = request.match_info.get("node_id", "root")
         graph = self.db.get_graph_db(graph_id)
-        node = await graph.get_node(node_id, section)
+        node = await graph.get_node(node_id)
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
         else:
@@ -270,13 +276,13 @@ class Api:
         node = await graph.create_node(md, node_id, item, parent_node_id)
         return web.json_response(node)
 
-    async def update_node(self, section: str, result_section: Section, request: Request) -> StreamResponse:
+    async def update_node(self, section: str, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
         node_id = request.match_info.get("node_id", "some_existing")
         graph = self.db.get_graph_db(graph_id)
         patch = await request.json()
         md = await self.model_handler.load_model()
-        node = await graph.update_node(md, section, result_section, node_id, patch)
+        node = await graph.update_node(md, section, node_id, patch)
         return web.json_response(node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
@@ -296,7 +302,7 @@ class Api:
         if "_" in graph_id:
             raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
-        root = await graph.get_node("root", "reported")
+        root = await graph.get_node("root")
         return web.json_response(root)
 
     async def merge_graph(self, request: Request) -> StreamResponse:
@@ -334,7 +340,7 @@ class Api:
         await graph_db.abort_batch_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
-    async def raw(self, query_section: str, request: Request) -> StreamResponse:
+    async def raw(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         m = await self.model_handler.load_model()
@@ -342,7 +348,7 @@ class Api:
         query, bind_vars = graph_db.to_query(QueryModel(q, m, query_section))
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
-    async def explain(self, query_section: str, request: Request) -> StreamResponse:
+    async def explain(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
@@ -362,34 +368,34 @@ class Api:
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
-    async def query_list(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
+    async def query_list(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
-        result = graph_db.query_list(QueryModel(q, m, query_section, result_section))
+        result = graph_db.query_list(QueryModel(q, m, query_section))
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
-    async def cytoscape(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
+    async def cytoscape(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
-        result = await graph_db.query_graph(QueryModel(q, m, query_section, result_section))
+        result = await graph_db.query_graph(QueryModel(q, m, query_section))
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
-    async def query_graph_stream(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
+    async def query_graph_stream(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        gen = graph_db.query_graph_gen(QueryModel(q, m, query_section, result_section))
+        gen = graph_db.query_graph_gen(QueryModel(q, m, query_section))
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (item async for _, item in gen))
 
-    async def query_aggregation(self, query_section: str, request: Request) -> StreamResponse:
+    async def query_aggregation(self, query_section: Optional[str], request: Request) -> StreamResponse:
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
@@ -398,13 +404,13 @@ class Api:
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, gen)
 
-    async def query(self, query_section: str, result_section: Section, request: Request) -> StreamResponse:
+    async def query(self, query_section: Optional[str], request: Request) -> StreamResponse:
         if request.headers.get("format") == "cytoscape":
-            return await self.cytoscape(query_section, result_section, request)
+            return await self.cytoscape(query_section, request)
         if request.headers.get("format") == "graph":
-            return await self.query_graph_stream(query_section, result_section, request)
+            return await self.query_graph_stream(query_section, request)
         elif request.headers.get("format") == "list":
-            return await self.query_list(query_section, result_section, request)
+            return await self.query_list(query_section, request)
         else:
             return web.HTTPPreconditionFailed(text="Define format header. `format: [graph|list|cytoscape]`")
 
