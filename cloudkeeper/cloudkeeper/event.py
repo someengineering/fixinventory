@@ -224,12 +224,6 @@ class KeepercoreEvents(threading.Thread):
     def run(self) -> None:
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
-        try:
-            self.go()
-        except Exception:
-            log.exception(f"Caught unhandled events exception in {self.name}")
-
-    def go(self):
         while not self.shutdown_event.is_set():
             log.info("Connecting to keepercore")
             try:
