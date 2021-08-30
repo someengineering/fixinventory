@@ -1,7 +1,6 @@
 from functools import partial
 import time
 import os
-import sys
 import threading
 import multiprocessing
 from cloudkeeper.baseresources import BaseResource
@@ -17,6 +16,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
 from cloudkeeper.graph import GraphContainer, Graph, sanitize, GraphExportIterator
+from cloudkeeper.graph.export import optional_origin
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
@@ -106,7 +106,7 @@ def main() -> None:
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
-    sys.exit(0)
+    os._exit(0)
 
 
 def keepercore_message_processor(
@@ -228,21 +228,22 @@ def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
     for field in fields(node_type):
         if field.name not in node_data_reported:
             continue
+        field_type = optional_origin(field.type)
 
-        if field.type == datetime:
+        if field_type == datetime:
             datetime_str = str(node_data_reported[field.name])
             if datetime_str.endswith("Z"):
                 datetime_str = datetime_str[:-1] + "+00:00"
             node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
-        elif field.type == date:
+        elif field_type == date:
             node_data_reported[field.name] = date.fromisoformat(
                 node_data_reported[field.name]
             )
-        elif field.type == timedelta:
+        elif field_type == timedelta:
             node_data_reported[field.name] = str2timedelta(
                 node_data_reported[field.name]
             )
-        elif field.type == timezone:
+        elif field_type == timezone:
             node_data_reported[field.name] = str2timezone(
                 node_data_reported[field.name]
             )
