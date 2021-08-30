@@ -53,6 +53,7 @@ def main() -> None:
 
     sys.exit(0)
 
+
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--keepercore-uri",
