@@ -109,7 +109,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             members = self.list_conversation_members(c)
             for member_id in members:
                 m = self.graph.search_first_all(
-                    {"resource_type": "slack_user", "id": member_id}
+                    {"kind": "slack_user", "id": member_id}
                 )
                 self.graph.add_edge(m, c)
 
@@ -326,14 +326,14 @@ class SlackBotPlugin(BasePlugin):
             tmp_emails = {}
             tmp_usergroups = {}
             tmp_channels = {}
-            for user in graph.search("resource_type", "slack_user"):
+            for user in graph.search("kind", "slack_user"):
                 tmp_users[user.name] = user
                 if user.email:
                     tmp_emails[user.email] = user
-            for usergroup in graph.search("resource_type", "slack_usergroup"):
+            for usergroup in graph.search("kind", "slack_usergroup"):
                 if usergroup.is_usergroup:
                     tmp_usergroups[usergroup.name] = usergroup
-            for channel in graph.search("resource_type", "slack_conversation"):
+            for channel in graph.search("kind", "slack_conversation"):
                 if channel.is_channel:
                     tmp_channels[channel.name] = channel
             self.users2id = tmp_users

@@ -15,7 +15,7 @@ class Edge:
 
     @property
     def srcdstrt(self) -> str:
-        return f"{self.src.resource_type}->{self.dst.resource_type}"
+        return f"{self.src.kind}->{self.dst.kind}"
 
 
 class CliEdgestatsPlugin(BaseCliPlugin):
@@ -24,7 +24,7 @@ class CliEdgestatsPlugin(BaseCliPlugin):
 
         Get all graph edges.
         Example: edges | count srcdstrt
-                 edges | count src.resource_type
+                 edges | count src.kind
         """
         with self.graph.lock.read_access:
             for edge in self.graph.edges:

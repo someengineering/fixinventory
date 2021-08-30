@@ -15,7 +15,7 @@ from cloudkeeper.graph.export import (
 
 @dataclass
 class DataClassBase:
-    resource_type: ClassVar[str] = "base"
+    kind: ClassVar[str] = "base"
     tags: Dict[str, str]
     _private_prop: dict
     __dunder_prop: list
@@ -23,14 +23,14 @@ class DataClassBase:
 
 @dataclass
 class DataClassProp:
-    resource_type: ClassVar[str] = "prop"
+    kind: ClassVar[str] = "prop"
     key: Optional[str]
     value: Union[str, int, float]
 
 
 @dataclass
 class DataClassExample(DataClassBase):
-    resource_type: ClassVar[str] = "example"
+    kind: ClassVar[str] = "example"
     list_of_string: List[str]
     optional_list_of_props: Optional[List[DataClassProp]]
     props: List[DataClassProp]

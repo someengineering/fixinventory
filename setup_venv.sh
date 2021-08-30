@@ -1,11 +1,12 @@
 #!/bin/bash
 if [ -d "venv/" ]; then
-    echo "Virtual Python ENV already exists - rm -rf venv/ - if you want to recreate it"
+    echo -e "Virtual Python ENV already exists!\nRun:\n\trm -rf venv/\nif you want to recreate it"
     exit 1
 fi
 python3 -m venv venv
 source venv/bin/activate
 pip install -U pip
+pip install -r keepercore/requirements-dev.txt
 pip install --editable keepercore/
 pip install --editable keeper-cli/
 pip install --editable cloudkeeper/

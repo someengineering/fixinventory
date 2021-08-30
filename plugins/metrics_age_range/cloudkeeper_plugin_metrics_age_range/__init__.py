@@ -121,7 +121,7 @@ class MetricsAgeRangePlugin(BasePlugin):
 
                 log.debug(
                     (
-                        f"Adding metrics for node {node.dname} of resource type {node.resource_type}, "
+                        f"Adding metrics for {node.rtdname}, "
                         f"created {node.age} ago, age range {node_age_range}"
                     )
                 )

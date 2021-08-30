@@ -15,7 +15,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class OnpremLocation(BaseAccount):
-    resource_type: ClassVar[str] = "onprem_location"
+    kind: ClassVar[str] = "onprem_location"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -23,7 +23,7 @@ class OnpremLocation(BaseAccount):
 
 @dataclass(eq=False)
 class OnpremRegion(BaseRegion):
-    resource_type: ClassVar[str] = "onprem_region"
+    kind: ClassVar[str] = "onprem_region"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -31,7 +31,7 @@ class OnpremRegion(BaseRegion):
 
 @dataclass(eq=False)
 class OnpremResource:
-    resource_type: ClassVar[str] = "onprem_resource"
+    kind: ClassVar[str] = "onprem_resource"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -45,7 +45,7 @@ class OnpremResource:
 
 @dataclass(eq=False)
 class OnpremInstance(OnpremResource, BaseInstance):
-    resource_type: ClassVar[str] = "onprem_instance"
+    kind: ClassVar[str] = "onprem_instance"
     network_device: Optional[str] = None
     network_ip4: Optional[str] = None
     network_ip6: Optional[str] = None
@@ -67,4 +67,4 @@ OnpremInstance.instance_status = property(
 
 @dataclass(eq=False)
 class OnpremNetwork(OnpremResource, BaseNetwork):
-    resource_type: ClassVar[str] = "onprem_network"
+    kind: ClassVar[str] = "onprem_network"

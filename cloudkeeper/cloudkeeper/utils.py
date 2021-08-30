@@ -543,7 +543,7 @@ def get_resource_attributes(
     resource, exclude_private: bool = True, keep_data_structures: bool = False
 ) -> Dict:
     attributes = dict(resource.__dict__)
-    attributes["resource_type"] = resource.resource_type
+    attributes["kind"] = resource.kind
 
     for attr_name in dir(resource):
         if exclude_private and attr_name.startswith("_"):

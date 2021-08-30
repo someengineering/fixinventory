@@ -6,4 +6,4 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
-    resource_type: ClassVar[str] = "kubernetes_cluster"
+    kind: ClassVar[str] = "kubernetes_cluster"

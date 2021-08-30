@@ -1,12 +1,15 @@
 from cloudkeeper.graph import Graph, GraphContainer
 from cloudkeeper.baseresources import BaseResource
 import cloudkeeper.logging as logging
+from dataclasses import dataclass
+from typing import ClassVar
 
 logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
 
 
+@dataclass(eq=False)
 class SomeTestResource(BaseResource):
-    resource_type = "some_test_resource"
+    kind: ClassVar[str] = "some_test_resource"
 
     def delete(self, graph) -> bool:
         return False

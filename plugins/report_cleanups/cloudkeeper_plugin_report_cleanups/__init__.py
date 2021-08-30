@@ -90,7 +90,7 @@ class ReportCleanupsPlugin(BasePlugin):
                     "cloud",
                     "account",
                     "region",
-                    "resource_type",
+                    "kind",
                     "id",
                     "name",
                     "ctime",

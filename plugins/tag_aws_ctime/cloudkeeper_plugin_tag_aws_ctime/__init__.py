@@ -94,7 +94,7 @@ class TagAWSCtimePlugin(BasePlugin):
                     ):
                         log.error(
                             (
-                                f"Resource {node.resource_type} {node.dname} has no valid "
+                                f"Resource {node.rtdname} has no valid "
                                 "cloud, account or region associated with it"
                             )
                         )
@@ -102,7 +102,7 @@ class TagAWSCtimePlugin(BasePlugin):
 
                     log.debug(
                         (
-                            f"Resource {node.resource_type} {node.dname} in cloud {cloud.name} account "
+                            f"Resource {node.rtdname} in cloud {cloud.name} account "
                             f"{account.dname} region {region.name} has no cloudkeeper:ctime tag "
                             f"- setting it because ctime is not available via the AWS API"
                         )

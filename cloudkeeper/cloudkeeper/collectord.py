@@ -180,7 +180,7 @@ def cleanup():
             node_mapping[data.get("id")] = node
             log.debug(f"Adding node {node} to the graph")
             graph.add_node(node)
-            if node.resource_type == "graph_root":
+            if node.kind == "graph_root":
                 log.debug(f"Setting graph root {node}")
                 graph.root = node
         elif data.get("type") == "edge":
@@ -310,9 +310,9 @@ def update_class_mapping(graph: Graph) -> None:
         if not isinstance(node, BaseResource):
             continue
         node_type = type(node)
-        if node.resource_type not in class_mapping:
-            log.debug(f"Adding class mapping {node.resource_type} -> {node_type}")
-            class_mapping[node.resource_type] = node_type
+        if node.kind not in class_mapping:
+            log.debug(f"Adding class mapping {node.kind} -> {node_type}")
+            class_mapping[node.kind] = node_type
 
 
 def send_to_keepercore(graph: Graph):

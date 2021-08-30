@@ -5,6 +5,8 @@ from cloudkeeper.baseresources import BaseResource
 from cloudkeeper.args import ArgumentParser, get_arg_parser
 from cloudkeeper.event import Event, EventType, add_args as event_add_args
 from cloudkeeper.cleaner import Cleaner
+from dataclasses import dataclass
+from typing import ClassVar
 import cloudkeeper.logging as logging
 import time
 import random
@@ -15,8 +17,9 @@ logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
 num_resources = random.randint(1, 100)
 
 
+@dataclass(eq=False)
 class SomeTestResource(BaseResource):
-    resource_type = "some_test_resource"
+    kind: ClassVar[str] = "some_test_resource"
 
     def delete(self, graph) -> bool:
         return False

@@ -66,11 +66,11 @@ class ProtectSnowflakesPlugin(BasePlugin):
                     or cloud.id not in self.config
                     or account.id not in self.config[cloud.id]
                     or region.id not in self.config[cloud.id][account.id]
-                    or node.resource_type
+                    or node.kind
                     not in self.config[cloud.id][account.id][region.id]
                     or node.id
                     not in self.config[cloud.id][account.id][region.id][
-                        node.resource_type
+                        node.kind
                     ]
                 ):
                     continue
@@ -78,7 +78,7 @@ class ProtectSnowflakesPlugin(BasePlugin):
                 log_msg = "Snowflake protection configured for this Node - burning protection fuse"
                 log.info(
                     (
-                        f"Protecting {node.resource_type} {node.dname} in cloud {cloud.name} "
+                        f"Protecting {node.kind} {node.dname} in cloud {cloud.name} "
                         f"account {account.dname} region {region.name}: {log_msg}"
                     )
                 )
@@ -154,10 +154,10 @@ class ProtectSnowflakesConfig(dict):
                     if not isinstance(resource_data, dict):
                         raise ValueError(f"Resource Data {resource_data} is no dict")
 
-                    for resource_type, resource_list in resource_data.items():
-                        if not isinstance(resource_type, str):
+                    for kind, resource_list in resource_data.items():
+                        if not isinstance(kind, str):
                             raise ValueError(
-                                f"Resource Type {resource_type} is no string"
+                                f"Resource Kind {kind} is no string"
                             )
                         if not isinstance(resource_list, list):
                             raise ValueError(

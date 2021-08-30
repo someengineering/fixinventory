@@ -39,7 +39,7 @@ $ docker run -it ghcr.io/someengineering/cloudkeeper --verbose \
     --aws-secret-access-key 'ABCDEF+c2L7yXeGvUyrPgYsDnWRRC1AYEXAMPLE' \
     --register-cli-action " \
         cleanup_plan: \
-          match resource_type = aws_ec2_volume \
+          match kind = aws_ec2_volume \
         | match volume_status = available \
         | match age > 7d \
         | match last_access > 7d \
@@ -152,24 +152,24 @@ contain all of the binary dependencies. Only a basic Python 3.8+ setup is requir
 # ~/.aws/credentials and export AWS_PROFILE.
 $ aws configure
 
-$ cloudkeeper                                                # Run cloudkeeper with defaults and wait for it to complete
-> count resource_type                                        # Count all collected resources by resource_type
-> match resource_type = aws_ec2_instance                     # Lists all discovered EC2 Instances
-> match resource_type = aws_ec2_instance | match age > 30d   # List all EC2 Instances that are older than 30 days
-> match resource_type = aws_ec2_volume | count               # Find all EC2 Volumes and count them
-> match resource_type ~ ^aws_ | match tags[owner] ~ sre      # List all AWS resources that have an 'owner' tag containing 'sre'
-> backup /tmp/graph                                          # Store a backup of the currently loaded graph to /tmp/graph
+$ cloudkeeper                                       # Run cloudkeeper with defaults and wait for it to complete
+> count kind                                        # Count all collected resources by kind
+> match kind = aws_ec2_instance                     # Lists all discovered EC2 Instances
+> match kind = aws_ec2_instance | match age > 30d   # List all EC2 Instances that are older than 30 days
+> match kind = aws_ec2_volume | count               # Find all EC2 Volumes and count them
+> match kind ~ ^aws_ | match tags[owner] ~ sre      # List all AWS resources that have an 'owner' tag containing 'sre'
+> backup /tmp/graph                                 # Store a backup of the currently loaded graph to /tmp/graph
 
 # load the previously collected graph and activate the cleanup code in dry run mode
 $ cloudkeeper --collector remote --remote-endpoint file:///tmp/graph --cleanup --cleanup-dry-run
 
-> match resource_type = aws_ec2_volume | head -10   # list the first ten EC2 volumes
-> match tags[owner] ~ sre | count resource_type   # find all resources where tag 'owner' contains 'sre' and count them by resource_type
+> match kind = aws_ec2_volume | head -10  # list the first ten EC2 volumes
+> match tags[owner] ~ sre | count kind    # find all resources where tag 'owner' contains 'sre' and count them by kind
 
 # Count by account.name all AWS EC2 Instances, ALBs and ELBs that do not have an 'owner' tag
-> match resource_type ~ ^(aws_[ae]lb\|aws_ec2_instance)$ | has not tags[owner] | count account.name
+> match kind ~ ^(aws_[ae]lb\|aws_ec2_instance)$ | has not tags[owner] | count account.name
 
-> match resource_type = aws_elb | head -1 | dump  # find the first Elastic Loadbalancer (Classic) and dump the object
+> match kind = aws_elb | head -1 | dump  # find the first Elastic Loadbalancer (Classic) and dump the object
 > match name = sometestinstance | successors      # find a resource with name 'sometestinstance' and list its child resources
 > match name = sometestinstance | predecessors    # find a resource with name 'sometestinstance' and list its parent resources
 ```
@@ -178,14 +178,14 @@ $ cloudkeeper --collector remote --remote-endpoint file:///tmp/graph --cleanup -
 ## CLI
 Cloudkeeper comes with a built-in CLI. Initially only used for debugging the internal data structures it can now also be used to perform simple searches and mark resources for cleanup. Entering `help` will give a list of all commands. `help <command>` will provide additional help for that command.
 Commands can be piped into one another using "`|`". Multiple commands can be run after one another using "`;`". If you need to use the pipe or semicolon characters in your commands make sure to escape them using a backslash "`\`" character.
-Internally commands take in and output Iterables often consisting of the Cloud resources. Commands can match any attribute of those resources. So for instance if an AWS EBS volume has an attribute `volume_size` then you could query all EBS volumes larger than 100GB using: `match resource_type = aws_ec2_volume | match volume_size > 100`.
+Internally commands take in and output Iterables often consisting of the Cloud resources. Commands can match any attribute of those resources. So for instance if an AWS EBS volume has an attribute `volume_size` then you could query all EBS volumes larger than 100GB using: `match kind = aws_ec2_volume | match volume_size > 100`.
 
 By default all resources have Unix like `ctime`, `mtime`, `atime` attributes represented as Python datetime objects. From those attributes derived are `age`, `last_update`, `last_access`. Right now most resources support the `ctime` attribute, but fewer support `mtime` and `atime`. By default if a Cloud API does not return a modification time the value for `mtime` and `atime` is set to the current timestamp. The reasoning there is that those attributes are used to determine when a resource was last used. Typically I would want to clean up resources that have not been used in a long time not the most recent ones.
 
 When the CLI sees that an attribute is of a certain data type it tries to convert the input value to that type as to allow comparison operations.
 In the next example we will delete all unused EBS volumes larger than 100 GiB that were created before the 1st of Januar 2020 and have not been written to or read from in the past 7 days.
 ```
-> match resource_type = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean
+> match kind = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean
 > cleanup
 ```
 
@@ -197,7 +197,7 @@ Side note: the same could have been written as `match name ~ (sre\|eng\|sales)`.
 Now the CLI is useful for exploring collected data but if you have a repeating cleanup query it would be tedious to manually run it periodically. To that end Cloudkeeper supports an argument `--register-cli-action` which takes a lowercased event name (see [Events](#events) below) followed by a colon : and the CLI command that should be executed when that event is dispatched.
 If we wanted to run our volume cleanup from earlier every time cloudkeeper has finished collecting resources, we could call it like so:
 ```
-$ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_plan:match resource_type = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean"
+$ cloudkeeper --collector aws --cleanup --register-cli-action "cleanup_plan:match kind = aws_ec2_volume | match volume_size > 100 | match volume_status = available | match ctime < 2020-01-01 | match last_access > 7d | match last_update > 7d | clean"
 ```
 As a side note, there is a plugin [plugins/cleanup_volumes/](plugins/cleanup_volumes/) that does just that. It was written before cloudkeeper had its own CLI.
 
@@ -205,12 +205,12 @@ Instead of passing CLI actions as commandline arguments they can also be stored 
 
 
 ## Warning
-Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup. **The default input to any CLI command is the list of all cloud resources.** Meaning when you run `match resource_type = aws_ec2_volume` it runs this match against all resources.
+Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup. **The default input to any CLI command is the list of all cloud resources.** Meaning when you run `match kind = aws_ec2_volume` it runs this match against all resources.
 This however also means if you run `delete --yes` without any `match` or other filter before it, cloudkeeper sequentially runs the delete against all cloud resources.  
 **It is the equivalent of `rm -rf /` for your cloud.**  
 An even more efficient destructive command is `clean; cleanup`. In this case cloudkeeper would first mark all resources for cleaning, create a cleanup plan and then delete them in a very efficient and parallelized manner.
 
-When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like `match clean = true | count` or `match clean = true | count resource_type` before issuing the `cleanup` command.
+When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like `match clean = true | count` or `match clean = true | count kind` before issuing the `cleanup` command.
 
 
 ## Data Structure
@@ -275,8 +275,8 @@ Cloudkeeper supports scheduling of CLI commands either using the `jobs`, `add_jo
 
 Example scheduler config file:
 ```
-0 5 * * sat cleanup_plan:match account.id = 119548413362 | match resource_type ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
-0 0 * * * count resource_type | tee /var/log/cloudkeeper/resource_count-@TODAY@.txt
+0 5 * * sat cleanup_plan:match account.id = 119548413362 | match kind ~ ^(aws_ec2_instance\|aws_alb\|aws_elb)$ | match ctime < @NOW@ | clean
+0 0 * * * count kind | tee /var/log/cloudkeeper/resource_count-@TODAY@.txt
 ```
 * First line: every Saturday at 5am schedule a command to run the next time a CLEANUP_PLAN event is dispatched. This particular command would wipe all EC2 instances and load balancers in an account with ID 119548413362 that were created before 5am that day.
 * Second line: every day at midnight count the number of resources by resource type, log the output and also write it to a file with today's date in the filename.

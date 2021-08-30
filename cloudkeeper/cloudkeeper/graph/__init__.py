@@ -114,7 +114,7 @@ class Graph(networkx.DiGraph):
         """Add a resource node to the graph
 
         When adding resource nodes to the graph there's always a label and a
-        resource_type as well as an edge connecting the new resource with its parent
+        kind as well as an edge connecting the new resource with its parent
         resource. This way we should never have disconnected nodes within the graph.
 
         The graph_attributes are a Dict of key=value pairs that contain all the
@@ -493,15 +493,15 @@ class GraphCache:
 def dump_graph(graph) -> str:
     """Debug dump the graph and list each nodes predecessor and successor nodes"""
     for node in graph.nodes:
-        yield f"Node: {node.name} (type: {node.resource_type})"
+        yield f"Node: {node.name} (type: {node.kind})"
         for predecessor_node in graph.predecessors(node):
             yield (
                 f"\tParent: {predecessor_node.name}"
-                f" (type: {predecessor_node.resource_type})"
+                f" (type: {predecessor_node.kind})"
             )
         for successor_node in graph.successors(node):
             yield (
-                f"\tChild {successor_node.name} (type: {successor_node.resource_type})"
+                f"\tChild {successor_node.name} (type: {successor_node.kind})"
             )
 
 
@@ -610,7 +610,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
             log.debug(f"Found Graph Root {node.id}")
             graph_roots.append(node)
         else:
-            log.error(f"Found unknown node {node.id} of type {node.resource_type}")
+            log.error(f"Found unknown node {node.id} of type {node.kind}")
 
     if len(graph_roots) > 0:
         for graph_root in graph_roots:
@@ -625,7 +625,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
                                 f"Found node {plugin_root_child.id} of type "
-                                f"{plugin_root_child.resource_type}"
+                                f"{plugin_root_child.kind}"
                                 " - attaching to existing plugin root"
                             )
                             graph.add_edge(plugin_roots[node.id], plugin_root_child)
@@ -640,7 +640,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                         graph.remove_edge(graph_root, node)
                 else:
                     log.debug(
-                        f"Found unknown node {node.id} of type {node.resource_type}"
+                        f"Found unknown node {node.id} of type {node.kind}"
                         " - attaching to top level root"
                     )
                     graph.add_edge(root, node)

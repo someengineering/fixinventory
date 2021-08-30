@@ -1,8 +1,11 @@
+from typing import ClassVar
+from dataclasses import dataclass
 from cloudkeeper.baseresources import BaseResource
 
 
+@dataclass(eq=False)
 class SomeTestResource(BaseResource):
-    resource_type = "some_test_resource"
+    kind: ClassVar[str] = "some_test_resource"
 
     def delete(self, graph) -> bool:
         return False
@@ -14,6 +17,6 @@ def test_resource():
     r.log(log_msg)
     assert r.id == "foo"
     assert r.name == "foo"
-    assert r.resource_type == "some_test_resource"
+    assert r.kind == "some_test_resource"
     assert r.tags["foo"] == "bar"
     assert r.event_log[0]["msg"] == log_msg

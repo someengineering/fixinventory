@@ -108,7 +108,7 @@ class CleanupAWSVPCsPlugin(BasePlugin):
 
                 for descendant in node.descendants(graph):
                     log.debug(
-                        f"Found descendant {descendant.resource_type} {descendant.dname} of VPC {node.dname}"
+                        f"Found descendant {descendant.rtdname} of VPC {node.dname}"
                     )
                     if isinstance(
                         descendant,

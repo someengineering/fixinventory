@@ -16,7 +16,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class GithubAccount(BaseAccount):
-    resource_type: ClassVar[str] = "github_account"
+    kind: ClassVar[str] = "github_account"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -24,7 +24,7 @@ class GithubAccount(BaseAccount):
 
 @dataclass(eq=False)
 class GithubRegion(BaseRegion):
-    resource_type: ClassVar[str] = "github_region"
+    kind: ClassVar[str] = "github_region"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -32,7 +32,7 @@ class GithubRegion(BaseRegion):
 
 @dataclass(eq=False)
 class GithubResource:
-    resource_type: ClassVar[str] = "github_resource"
+    kind: ClassVar[str] = "github_resource"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -46,7 +46,7 @@ class GithubResource:
 
 @dataclass(eq=False)
 class GithubOrg(GithubResource, BaseResource):
-    resource_type: ClassVar[str] = "github_org"
+    kind: ClassVar[str] = "github_org"
 
     avatar_url: Optional[str] = None
     billing_email: Optional[str] = None
@@ -130,7 +130,7 @@ class GithubOrg(GithubResource, BaseResource):
 
 @dataclass(eq=False)
 class GithubUser(GithubResource, BaseUser):
-    resource_type: ClassVar[str] = "github_user"
+    kind: ClassVar[str] = "github_user"
 
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
@@ -228,7 +228,7 @@ class GithubUser(GithubResource, BaseUser):
 
 @dataclass(eq=False)
 class GithubRepo(GithubResource, BaseResource):
-    resource_type: ClassVar[str] = "github_repo"
+    kind: ClassVar[str] = "github_repo"
 
     allow_merge_commit: Optional[bool] = None
     allow_rebase_merge: Optional[bool] = None

@@ -1,10 +1,12 @@
 from cloudkeeper.baseplugin import BaseCollectorPlugin
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.baseresources import BaseResource
+from typing import ClassVar
+from dataclasses import dataclass
 
-
+@dataclass(eq=False)
 class SomeTestResource(BaseResource):
-    resource_type = "some_test_resource"
+    kind: ClassVar[str] = "some_test_resource"
 
     def delete(self, graph) -> bool:
         return False

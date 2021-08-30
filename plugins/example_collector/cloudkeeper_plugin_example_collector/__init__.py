@@ -94,7 +94,7 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
 class ExampleAccount(BaseAccount):
     """Some example account"""
 
-    resource_type: ClassVar[str] = "example_account"
+    kind: ClassVar[str] = "example_account"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -104,7 +104,7 @@ class ExampleAccount(BaseAccount):
 class ExampleRegion(BaseRegion):
     """Some example region"""
 
-    resource_type: ClassVar[str] = "example_region"
+    kind: ClassVar[str] = "example_region"
 
     def delete(self, graph: Graph) -> bool:
         """Regions can usually not be deleted so we return NotImplemented"""
@@ -119,7 +119,7 @@ class ExampleResource:
     delete() must be implemented. update_tag() and delete_tag() are optional.
     """
 
-    resource_type: ClassVar[str] = "example_resource"
+    kind: ClassVar[str] = "example_resource"
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
@@ -148,7 +148,7 @@ class ExampleInstance(ExampleResource, BaseInstance):
     to our internal InstanceStatus state.
     """
 
-    resource_type: ClassVar[str] = "example_instance"
+    kind: ClassVar[str] = "example_instance"
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "pending": InstanceStatus.BUSY,
         "running": InstanceStatus.RUNNING,
@@ -185,7 +185,7 @@ class ExampleNetwork(ExampleResource, BaseNetwork):
     This is what instances and other networking related resources might reside in.
     """
 
-    resource_type: ClassVar[str] = "example_network"
+    kind: ClassVar[str] = "example_network"
 
 
 @dataclass(eq=False)
@@ -197,7 +197,7 @@ class ExampleCustomResource(ExampleResource, BaseResource):
     from which the cloudkeeper data model is being generated.
     """
 
-    resource_type: ClassVar[str] = "example_custom_resource"
+    kind: ClassVar[str] = "example_custom_resource"
 
     custom_string_attribute: str = ""
     custom_int_attribute: int = 0

@@ -96,10 +96,10 @@ def model_name(clazz: type) -> str:
     elif issubclass(to_check, simple_type):
         return lookup[to_check]
     elif is_dataclass(to_check):
-        name = getattr(to_check, "resource_type", None)
+        name = getattr(to_check, "kind", None)
         if not name:
             raise AttributeError(
-                f"dataclass {to_check} need to define a ClassVar resource_type!"
+                f"dataclass {to_check} need to define a ClassVar kind!"
             )
         return name
     else:

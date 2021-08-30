@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesPod(KubernetesResource, BaseInstance):
-    resource_type: ClassVar[str] = "kubernetes_pod"
+    kind: ClassVar[str] = "kubernetes_pod"
     api: ClassVar[object] = client.CoreV1Api
     list_method: ClassVar[str] = "list_pod_for_all_namespaces"
 
