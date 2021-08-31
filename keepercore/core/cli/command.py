@@ -543,3 +543,8 @@ def all_parts(d: CLIDependencies) -> List[CLIPart]:
     result.extend(all_commands(d))
     result.extend(all_sinks(d))
     return result
+
+
+def aliases() -> dict[str, str]:
+    # command alias -> command name
+    return {"match": "reported"}

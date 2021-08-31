@@ -23,13 +23,13 @@ from parsy import Parser
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.event_bus import EventBus
+from core.model.graph_access import EdgeType
 from core.model.model_handler import ModelHandler
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
+from core.query.model import Query, Navigation, AllTerm
+from core.query.query_parser import term_parser
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
-
-from core.query.query_parser import predicate_term
-
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
@@ -211,9 +211,14 @@ class MetadataPart(QueryPart):
 
 class Predecessor(QueryPart):
     """
-    Usage: predecessors
+    Usage: predecessors [edge_type]
 
     Select all predecessors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | predecessors | match prop2 == "b"
@@ -232,9 +237,14 @@ class Predecessor(QueryPart):
 
 class Successor(QueryPart):
     """
-    Usage: successors
+    Usage: successors [edge_type]
 
     Select all successors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | successors | match prop2 == "b"
@@ -253,9 +263,14 @@ class Successor(QueryPart):
 
 class Ancestor(QueryPart):
     """
-    Usage: ancestors
+    Usage: ancestors [edge_type]
 
     Select all ancestors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | ancestors | match prop2 == "b"
@@ -274,9 +289,14 @@ class Ancestor(QueryPart):
 
 class Descendant(QueryPart):
     """
-    Usage: descendants
+    Usage: descendants [edge_type]
 
     Select all descendants of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | descendants | match prop2 == "b"
@@ -303,9 +323,10 @@ class HelpCommand(CLISource):
     Show help text for a command or general help information.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart]):
+    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: dict[str, str]):
         super().__init__(dependencies)
-        self.parts: Dict[str, CLIPart] = {p.name: p for p in parts + [self]}
+        self.parts = {p.name: p for p in parts + [self]}
+        self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
 
     @property
     def name(self) -> str:
@@ -318,11 +339,13 @@ class HelpCommand(CLISource):
         if not arg:
             parts = (p for p in self.parts.values() if isinstance(p, (CLISource, CLICommand)))
             available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
+            aliases = "\n".join(f"   {alias} ({cmd}) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items())
             replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
             result = (
                 f"\nkeepercore CLI\n\n\n"
                 f"Valid placeholder string:\n{replacements}\n\n"
                 f"Available Commands:\n{available}\n\n"
+                f"Available Aliases:\n{aliases}\n\n"
                 f"Note that you can pipe commands using the pipe character (|)\n"
                 f"and chain multiple commands using the semicolon (;)."
             )
@@ -374,40 +397,38 @@ class CLI:
     A string can parsed into a command line that can be executed based on the list of available commands.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any]):
-        help_cmd = HelpCommand(dependencies, parts)
-        self.parts = {p.name: p for p in parts + [help_cmd]}
+    def __init__(
+        self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any], aliases: dict[str, str]
+    ):
+        help_cmd = HelpCommand(dependencies, parts, aliases)
+        cmds = {p.name: p for p in parts + [help_cmd]}
+        alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
+        self.parts = cmds | alias_cmds
         self.cli_env = env
         self.dependencies = dependencies
+        self.aliases = aliases
 
-    def create_query(self, parts: list[Tuple[QueryPart, str]]) -> str:
-        query = []
-        for part, arg in parts:
+    @staticmethod
+    def create_query(parts: list[Tuple[QueryPart, str]]) -> str:
+        query: Query = Query.by(AllTerm())
+        for part, arg_in in parts:
+            arg = arg_in.strip()
             if isinstance(part, ReportedPart):
-                predicate = predicate_term.parse(arg)
-                predicate.name = f"reported.{predicate.name}"
-                query.append(str(predicate))
+                query = query.filter(term_parser.parse(arg).on_section("reported"))
             elif isinstance(part, DesiredPart):
-                predicate = predicate_term.parse(arg)
-                predicate.name = f"desired.{predicate.name}"
-                query.append(str(predicate))
+                query = query.filter(term_parser.parse(arg).on_section("desired"))
             elif isinstance(part, MetadataPart):
-                predicate = predicate_term.parse(arg)
-                predicate.name = f"metadata.{predicate.name}"
-                query.append(str(predicate))
+                query = query.filter(term_parser.parse(arg).on_section("metadata"))
             elif isinstance(part, Predecessor):
-                assert query, "predecessor can only follow a match"
-                query[-1] = query[-1] + " " + "<--"
+                query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
             elif isinstance(part, Successor):
-                assert query, "successor can only follow a match"
-                query[-1] = query[-1] + " " + "-->"
+                query = query.traverse_out(1, 1, arg if arg else EdgeType.default)
             elif isinstance(part, Ancestor):
-                assert query, "ancestor can only follow a match"
-                query[-1] = query[-1] + " " + "<-[0:]-"
+                query = query.traverse_in(1, Navigation.Max, arg if arg else EdgeType.default)
             elif isinstance(part, Descendant):
-                assert query, "descendant can only follow a match"
-                query[-1] = query[-1] + " " + "-[0:]->"
-        return " and ".join(query)
+                query = query.traverse_out(1, Navigation.Max, arg if arg else EdgeType.default)
+
+        return str(query.simplify())
 
     async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:
         def parse_single_command(command: str) -> Tuple[CLIPart, str]:

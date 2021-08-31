@@ -1,6 +1,5 @@
 from __future__ import annotations
 import abc
-import sys
 from functools import reduce
 from typing import List, Mapping, Union, Optional
 
@@ -127,6 +126,37 @@ class Term(abc.ABC):
         else:
             return CombinedTerm(self, "and", other)
 
+    def on_section(self, section: str) -> Term:
+        def walk(term: Term) -> Term:
+            if isinstance(term, CombinedTerm):
+                return CombinedTerm(walk(term.left), term.op, walk(term.right))
+            elif isinstance(term, Predicate):
+                return Predicate(f"{section}.{term.name}", term.op, term.value, term.args)
+            elif isinstance(term, FunctionTerm):
+                return FunctionTerm(term.fn, f"{section}.{term.property_path}", term.args)
+            else:
+                return term
+
+        return walk(self)
+
+    def simplify(self) -> Term:
+        def walk(term: Term) -> Term:
+            if isinstance(term, CombinedTerm):
+                left = walk(term.left)
+                right = walk(term.right)
+                left_all = isinstance(left, AllTerm)
+                right_all = isinstance(right, AllTerm)
+                if left_all or right_all:
+                    if (left_all and term.op == "and") or (right_all and term.op == "or"):
+                        return right
+                    elif (right_all and term.op == "and") or (left_all and term.op == "or"):
+                        return left
+                return CombinedTerm(left, term.op, right)
+            else:
+                return term
+
+        return walk(self)
+
     # noinspection PyTypeChecker
     @staticmethod
     def from_json(json: dict[str, object], _: type = object, **kwargs: object) -> Term:
@@ -150,6 +180,11 @@ class Term(abc.ABC):
             return IdTerm(json.get("id"))  # type: ignore
         else:
             raise AttributeError(f"Can not parse json into query: {json}")
+
+
+class AllTerm(Term):
+    def __str__(self) -> str:
+        return "all"
 
 
 class Predicate(Term):
@@ -219,7 +254,7 @@ class FunctionTerm(Term):
 
 class Navigation:
     # Define the maximum level of navigation
-    Max = sys.maxsize
+    Max = 10000
 
     def __init__(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default, direction: str = "out"):
         self.start = start
@@ -234,9 +269,11 @@ class Navigation:
         return self.direction == "in"
 
     def __str__(self) -> str:
-        until = "" if self.until == Navigation.Max else self.until
-        depth = "" if self.start == 1 else f"[{self.start}]" if self.start == self.until else f"[{self.start}:{until}]"
-        nav = depth if self.edge_type == EdgeType.default else f"{self.edge_type} {depth}"
+        start = self.start
+        until = self.until
+        until_str = "" if until == Navigation.Max else until
+        depth = ("" if start == 1 else f"[{start}]") if start == until else f"[{start}:{until_str}]"
+        nav = depth if self.edge_type == EdgeType.default else f"{self.edge_type}{depth}"
         if self.direction == "out":
             return f"-{nav}->"
         elif self.direction == "in":
@@ -332,12 +369,27 @@ class Query:
 
     def traverse(self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = "out") -> Query:
         parts = self.parts.copy()
-        parts[0] = Part(parts[0].term, False, Navigation(start, until, edge_type, direction))
+        p0 = parts[0]
+        if p0.navigation:
+            # we already traverse in this direction: add start and until
+            if p0.navigation.edge_type == edge_type and p0.navigation.direction == direction:
+                start_m = min(Navigation.Max, start + p0.navigation.start)
+                until_m = min(Navigation.Max, until + p0.navigation.until)
+                parts[0] = Part(p0.term, False, Navigation(start_m, until_m, edge_type, direction))
+            # this is another traversal: so we need to start a new part
+            else:
+                parts.insert(0, Part(AllTerm(), False, Navigation(start, until, edge_type, direction)))
+        else:
+            parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
         return Query(parts, self.aggregate)
 
     def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
         return Query(self.parts, aggregate)
+
+    def simplify(self) -> Query:
+        parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
+        return Query(parts, self.aggregate)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

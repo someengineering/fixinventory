@@ -13,6 +13,7 @@ from core.cli.command import (
     FlattenCommand,
     UniqCommand,
     EchoSource,
+    aliases,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -39,7 +40,7 @@ def cli_deps(filled_graph_db: ArangoGraphDB, event_bus: EventBus, foo_model: Mod
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns"}
-    return CLI(cli_deps, all_parts(cli_deps), env)
+    return CLI(cli_deps, all_parts(cli_deps), env, aliases())
 
 
 @fixture
@@ -135,6 +136,23 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert len(commands) == 1
     assert len(commands[0].parts) == 1
     assert commands[0].parts[0].name == "query"
-    assert commands[0].parts_with_args[0][1] == 'reported.some_int == 0 and desired.identifier =~ "9_" -[0:]->'
-    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[0:]-"
+    assert commands[0].parts_with_args[0][1] == '(reported.some_int == 0 and desired.identifier =~ "9_") -[1:]->'
+    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[1:]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors | ancestors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2:]-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2]-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | successors | successors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[3]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 --> all <--"
+    # defining the edge type is supported as well
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete[1:]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete[1:]-"

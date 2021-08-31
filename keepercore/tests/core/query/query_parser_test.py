@@ -65,6 +65,11 @@ def test_term() -> None:
     assert_round_trip(term_parser, ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b") <= 12))
 
 
+def test_navigation_default() -> None:
+    assert str(Navigation(1, 1)) == "-->"
+    assert str(Navigation(1, Navigation.Max)) == "-[1:]->"
+
+
 def test_navigation() -> None:
     def make_default(nav: Navigation) -> Navigation:
         return Navigation(nav.start, nav.until, EdgeType.default, nav.direction)

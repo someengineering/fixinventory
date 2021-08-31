@@ -7,7 +7,7 @@ from aiohttp.web_app import Application
 from arango import ArangoClient
 
 from core.cli.cli import CLIDependencies, CLI
-from core.cli.command import all_parts
+from core.cli.command import all_parts, aliases
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
@@ -53,7 +53,7 @@ def main() -> None:
     db = DbAccess(database, event_bus)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies(event_bus, db, model)
-    cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ))
+    cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
 
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
     workflow_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli)
