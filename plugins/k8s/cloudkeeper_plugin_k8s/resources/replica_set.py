@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesReplicaSet(KubernetesResource, BaseResource):
-    resource_type: ClassVar[str] = "kubernetes_replica_set"
+    kind: ClassVar[str] = "kubernetes_replica_set"
     api: ClassVar[object] = client.AppsV1Api
     list_method: ClassVar[str] = "list_replica_set_for_all_namespaces"
     attr_map: ClassVar[Dict] = {"replicas": lambda r: r.spec.replicas}

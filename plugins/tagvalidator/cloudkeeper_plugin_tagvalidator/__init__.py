@@ -21,7 +21,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 metrics_tag_violations = Counter(
     "cloudkeeper_plugin_tagvalidator_tag_violations_total",
     "Tag Validator Plugin Tag Violations",
-    ["cloud", "account", "region", "resource_type"],
+    ["cloud", "account", "region", "kind"],
 )
 metrics_validate_tags = Summary(
     "cloudkeeper_plugin_tagvalidator_validate_tags_seconds",
@@ -117,7 +117,7 @@ class TagValidatorPlugin(BasePlugin):
                             current_value = node.tags[tag]
                             log.debug(
                                 (
-                                    f"Found {node.resource_type} {node.dname} age {node.age} in cloud {cloud.name}"
+                                    f"Found {node.rtdname} age {node.age} in cloud {cloud.name}"
                                     f" account {account.dname} region {region.name} with tag {tag}: {current_value}"
                                 )
                             )
@@ -228,7 +228,7 @@ def set_tag(
             cloud=cloud.name,
             account=account.dname,
             region=region.name,
-            resource_type=node.resource_type,
+            kind=node.kind,
         ).inc()
         pt_key = f"{cloud.id}-{account.id}-{region.id}"
     if ArgumentParser.args.tagvalidator_dry_run:

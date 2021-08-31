@@ -11,10 +11,12 @@ import requests
 import json
 import cloudkeeper.logging as logging
 import cloudkeeper.signal
+from pydoc import locate
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
-from cloudkeeper.graph import GraphContainer, Graph, sanitize
+from cloudkeeper.graph import GraphContainer, Graph, sanitize, GraphExportIterator
+from cloudkeeper.graph.export import optional_origin
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
@@ -35,8 +37,6 @@ log = logging.getLogger(__name__)
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
 collect_event = threading.Event()
-
-class_mapping = {}
 
 
 def main() -> None:
@@ -102,13 +102,11 @@ def main() -> None:
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
-    while not shutdown_event.is_set():
-        log_stats()
-        shutdown_event.wait(900)
-    time.sleep(5)
+    shutdown_event.wait()
+    time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
-    quit()
+    os._exit(0)
 
 
 def keepercore_message_processor(
@@ -152,97 +150,103 @@ def keepercore_message_processor(
 
 
 def cleanup():
-    log.info("Running cleanup")
-    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-    keepercore_graph = ArgumentParser.args.keepercore_graph
-    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    query_uri = f"{graph_uri}/desired/query/graph"
-    query = "delete==true -[0:]-"
-    r = requests.post(query_uri, data=query, headers={"accept": "application/x-ndjson"})
-    if r.status_code != 200:
-        log.error(r.content)
-        raise RuntimeError(f"Failed to query graph: {r.content}")
-    graph_data = r.content.decode()
-    graph = Graph()
-    node_mapping = {}
-    for line in graph_data.splitlines():
-        data = json.loads(line)
-        log.debug(data)
+    """Run resource cleanup"""
+
+    def process_data_line(data: Dict, graph: Graph):
+        """Process a single line of keepercore graph data"""
+
+        def make_node(node_data: Dict):
+            """Create an instance from keepercore graph node data"""
+            node_data_reported = node_data.get("reported", {})
+            node_data_desired = node_data.get("desired", {})
+            node_data_metadata = node_data.get("metadata", {})
+
+            python_type = node_data_metadata.get("python_type", "NoneExisting")
+            node_type = locate(python_type)
+            if node_type is None:
+                raise ValueError(f"Do not know how to handle {node_data_reported}")
+
+            del node_data_reported["kind"]
+            restore_node_field_types(node_type, node_data_reported)
+            node = node_type(**node_data_reported)
+
+            clean_node = node_data_desired.get("delete", False)
+            if clean_node:
+                node.clean = clean_node
+            return node
+
         if data.get("type") == "node":
-            node_data = data.get("data", {}).get("reported")
-            node_data_desired = data.get("data", {}).get("desired")
-            node_delete = node_data_desired.get("delete", False)
-            resource_type = node_data.get("kind")
-            if resource_type not in class_mapping:
-                log.error(f"Do not know how to handle {data}")
-                continue
-            del node_data["kind"]
-            node_type = class_mapping[resource_type]
-            for field in fields(node_type):
-                if field.name not in node_data:
-                    continue
-                if field.type == datetime:
-                    datetime_str = str(node_data[field.name])
-                    if datetime_str.endswith("Z"):
-                        datetime_str = datetime_str[:-1] + "+00:00"
-                    node_data[field.name] = datetime.fromisoformat(datetime_str)
-                elif field.type == date:
-                    node_data[field.name] = date.fromisoformat(node_data[field.name])
-                elif field.type == timedelta:
-                    node_data[field.name] = str2timedelta(node_data[field.name])
-                elif field.type == timezone:
-                    node_data[field.name] = str2timezone(node_data[field.name])
-            node = node_type(**node_data)
-            node_mapping[data.get("id")] = node
-            if node_delete:
-                node.clean = node_delete
+            node_id = data.get("id")
+            node = make_node(data)
+            node_mapping[node_id] = node
+            log.debug(f"Adding node {node} to the graph")
             graph.add_node(node)
-            if resource_type == "graph_root":
+            if node.kind == "graph_root":
                 log.debug(f"Setting graph root {node}")
                 graph.root = node
+            if node_id != node.sha256:
+                log.warning(
+                    f"ID {node_id} of node {node} does not match checksum {node.sha256}"
+                )
         elif data.get("type") == "edge":
             node_from = data.get("from")
             node_to = data.get("to")
             if node_from not in node_mapping or node_to not in node_mapping:
-                log.error(f"One of {node_from} -> {node_to} unknown")
-                continue
+                raise ValueError(f"One of {node_from} -> {node_to} unknown")
             graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+
+    log.info("Running cleanup")
+    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
+    keepercore_graph = ArgumentParser.args.keepercore_graph
+    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    query_uri = f"{graph_uri}/query/graph"
+    query = "desired.delete==true -[0:]-"
+    r = requests.post(
+        query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
+    )
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to query graph: {r.content}")
+    graph = Graph()
+    node_mapping = {}
+
+    for line in r.iter_lines():
+        if not line:
+            continue
+        data = json.loads(line.decode("utf-8"))
+        try:
+            process_data_line(data, graph)
+        except ValueError as e:
+            log.error(e)
+            continue
     sanitize(graph)
     cleaner = Cleaner(graph)
     cleaner.cleanup()
 
 
-def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin, args=None
-) -> Optional[Graph]:
-    collector: BaseCollectorPlugin = collector_plugin()
-    collector_name = f"collector_{collector.cloud}"
-    cloudkeeper.signal.set_thread_name(collector_name)
+def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
+    for field in fields(node_type):
+        if field.name not in node_data_reported:
+            continue
+        field_type = optional_origin(field.type)
 
-    if args is not None:
-        ArgumentParser.args = args
-
-    log.debug(f"Starting new collect process for {collector.cloud}")
-    collector.start()
-    collector.join(ArgumentParser.args.timeout)
-    if not collector.is_alive():  # The plugin has finished its work
-        if not collector.finished:
-            log.error(
-                f"Plugin {collector.cloud} did not finish collection"
-                " - ignoring plugin results"
+        if field_type == datetime:
+            datetime_str = str(node_data_reported[field.name])
+            if datetime_str.endswith("Z"):
+                datetime_str = datetime_str[:-1] + "+00:00"
+            node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
+        elif field_type == date:
+            node_data_reported[field.name] = date.fromisoformat(
+                node_data_reported[field.name]
             )
-            return None
-        if not is_directed_acyclic_graph(collector.graph):
-            log.error(
-                f"Graph of plugin {collector.cloud} is not acyclic"
-                " - ignoring plugin results"
+        elif field_type == timedelta:
+            node_data_reported[field.name] = str2timedelta(
+                node_data_reported[field.name]
             )
-            return None
-        log.info(f"Collector of plugin {collector.cloud} finished")
-        return collector.graph
-    else:
-        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
-        return None
+        elif field_type == timezone:
+            node_data_reported[field.name] = str2timezone(
+                node_data_reported[field.name]
+            )
 
 
 def collect(collectors: List[BaseCollectorPlugin]):
@@ -279,18 +283,40 @@ def collect(collectors: List[BaseCollectorPlugin]):
                 continue
             graph.merge(cluster_graph)
     sanitize(graph)
-    update_class_mapping(graph)
     send_to_keepercore(graph)
 
 
-def update_class_mapping(graph: Graph) -> None:
-    for node in graph.nodes:
-        if not isinstance(node, BaseResource):
-            continue
-        node_type = type(node)
-        if node.resource_type not in class_mapping:
-            log.debug(f"Adding class mapping {node.resource_type} -> {node_type}")
-            class_mapping[node.resource_type] = node_type
+def collect_plugin_graph(
+    collector_plugin: BaseCollectorPlugin, args=None
+) -> Optional[Graph]:
+    collector: BaseCollectorPlugin = collector_plugin()
+    collector_name = f"collector_{collector.cloud}"
+    cloudkeeper.signal.set_thread_name(collector_name)
+
+    if args is not None:
+        ArgumentParser.args = args
+
+    log.debug(f"Starting new collect process for {collector.cloud}")
+    collector.start()
+    collector.join(ArgumentParser.args.timeout)
+    if not collector.is_alive():  # The plugin has finished its work
+        if not collector.finished:
+            log.error(
+                f"Plugin {collector.cloud} did not finish collection"
+                " - ignoring plugin results"
+            )
+            return None
+        if not is_directed_acyclic_graph(collector.graph):
+            log.error(
+                f"Graph of plugin {collector.cloud} is not acyclic"
+                " - ignoring plugin results"
+            )
+            return None
+        log.info(f"Collector of plugin {collector.cloud} finished")
+        return collector.graph
+    else:
+        log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
+        return None
 
 
 def send_to_keepercore(graph: Graph):
@@ -310,21 +336,29 @@ def send_to_keepercore(graph: Graph):
         raise RuntimeError(f"Failed to create graph: {r.content}")
     log.debug(f"Updating model via {model_uri}")
     model_json = json.dumps(graph.export_model(), indent=4)
+    if ArgumentParser.args.debug_dump_json:
+        with open("model.dump.json", "w") as model_outfile:
+            model_outfile.write(model_json)
     r = requests.patch(model_uri, data=model_json)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to create model: {r.content}")
-    graph_export_iterator = graph.export_iterator()
+    graph_outfile = None
+    if ArgumentParser.args.debug_dump_json:
+        graph_outfile = open("graph.dump.json", "w")
+    graph_export_iterator = GraphExportIterator(graph, graph_outfile)
     log.debug(f"Sending subgraph via {report_uri}")
     r = requests.post(
         report_uri,
-        data=graph.export_iterator(),
+        data=graph_export_iterator,
         headers={"Content-Type": "application/x-ndjson"},
     )
+    if graph_outfile is not None:
+        graph_outfile.close()
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")
-    log.debug(r.content.decode())
+    log.debug(f"Keepercore reply: {r.content.decode()}")
     log.debug(
         f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
     )
@@ -369,6 +403,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="timeout",
         type=int,
     )
+    arg_parser.add_argument(
+        "--debug-dump-json",
+        help="Dump the generated json data (default: False)",
+        dest="debug_dump_json",
+        action="store_true",
+    )
 
 
 def shutdown(event: Event) -> None:
@@ -390,10 +430,6 @@ def shutdown(event: Event) -> None:
             f" {reason} - killing all threads and child processes"
         )
     )
-    # Send 'friendly' signal to children to have them shut down
-    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
-    kt = threading.Thread(target=force_shutdown, name="shutdown")
-    kt.start()
     shutdown_event.set()  # and then end the program
 
 

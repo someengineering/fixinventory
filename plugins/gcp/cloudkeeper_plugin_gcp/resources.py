@@ -62,7 +62,7 @@ regional_resources = (
 
 @dataclass(eq=False)
 class GCPResource:
-    resource_type: ClassVar[str] = "gcp_resource"
+    kind: ClassVar[str] = "gcp_resource"
     api_identifier: ClassVar[str] = NotImplemented
     client: ClassVar[str] = "compute"
     api_version: ClassVar[str] = "v1"
@@ -94,7 +94,7 @@ class GCPResource:
             self.id != ""
             and self.zone().name == "undefined"
             and self.region().name != "undefined"
-            and self.resource_type in regional_resources
+            and self.kind in regional_resources
         ):
             self._client_method = (
                 "region" + self._client_method[0].upper() + self._client_method[1:]
@@ -112,20 +112,20 @@ class GCPResource:
 
 @dataclass(eq=False)
 class GCPProject(GCPResource, BaseAccount):
-    resource_type: ClassVar[str] = "gcp_project"
+    kind: ClassVar[str] = "gcp_project"
     api_identifier: ClassVar[str] = "project"
 
 
 @dataclass(eq=False)
 class GCPZone(GCPResource, BaseZone):
-    resource_type: ClassVar[str] = "gcp_zone"
+    kind: ClassVar[str] = "gcp_zone"
     api_identifier: ClassVar[str] = "zone"
     zone_status: Optional[str] = None
 
 
 @dataclass(eq=False)
 class GCPRegion(GCPResource, BaseRegion):
-    resource_type: ClassVar[str] = "gcp_region"
+    kind: ClassVar[str] = "gcp_region"
     api_identifier: ClassVar[str] = "region"
     region_status: Optional[str] = None
     quotas: InitVar[List[str]] = None
@@ -140,13 +140,13 @@ class GCPRegion(GCPResource, BaseRegion):
 
 @dataclass(eq=False)
 class GCPDiskType(GCPResource, BaseVolumeType):
-    resource_type: ClassVar[str] = "gcp_disk_type"
+    kind: ClassVar[str] = "gcp_disk_type"
     api_identifier: ClassVar[str] = "diskType"
 
 
 @dataclass(eq=False)
 class GCPDisk(GCPResource, BaseVolume):
-    resource_type: ClassVar[str] = "gcp_disk"
+    kind: ClassVar[str] = "gcp_disk"
     api_identifier: ClassVar[str] = "disk"
 
     volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
@@ -199,7 +199,7 @@ GCPDisk.volume_status = property(
 
 @dataclass(eq=False)
 class GCPInstance(GCPResource, BaseInstance):
-    resource_type: ClassVar[str] = "gcp_instance"
+    kind: ClassVar[str] = "gcp_instance"
     api_identifier: ClassVar[str] = "instance"
 
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
@@ -250,55 +250,55 @@ GCPInstance.instance_status = property(
 
 @dataclass(eq=False)
 class GCPNetwork(GCPResource, BaseNetwork):
-    resource_type: ClassVar[str] = "gcp_network"
+    kind: ClassVar[str] = "gcp_network"
     api_identifier: ClassVar[str] = "network"
 
 
 @dataclass(eq=False)
 class GCPSubnetwork(GCPResource, BaseSubnet):
-    resource_type: ClassVar[str] = "gcp_subnetwork"
+    kind: ClassVar[str] = "gcp_subnetwork"
     api_identifier: ClassVar[str] = "subnetwork"
 
 
 @dataclass(eq=False)
 class GCPVPNTunnel(GCPResource, BaseTunnel):
-    resource_type: ClassVar[str] = "gcp_vpn_tunnel"
+    kind: ClassVar[str] = "gcp_vpn_tunnel"
     api_identifier: ClassVar[str] = "vpnTunnel"
 
 
 @dataclass(eq=False)
 class GCPVPNGateway(GCPResource, BaseGateway):
-    resource_type: ClassVar[str] = "gcp_vpn_gateway"
+    kind: ClassVar[str] = "gcp_vpn_gateway"
     api_identifier: ClassVar[str] = "vpnGateway"
 
 
 @dataclass(eq=False)
 class GCPTargetVPNGateway(GCPResource, BaseGateway):
-    resource_type: ClassVar[str] = "gcp_target_vpn_gateway"
+    kind: ClassVar[str] = "gcp_target_vpn_gateway"
     api_identifier: ClassVar[str] = "targetVpnGateway"
 
 
 @dataclass(eq=False)
 class GCPRouter(GCPResource, BaseGateway):
-    resource_type: ClassVar[str] = "gcp_router"
+    kind: ClassVar[str] = "gcp_router"
     api_identifier: ClassVar[str] = "router"
 
 
 @dataclass(eq=False)
 class GCPRoute(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_route"
+    kind: ClassVar[str] = "gcp_route"
     api_identifier: ClassVar[str] = "route"
 
 
 @dataclass(eq=False)
 class GCPInstanceTemplate(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_instance_template"
+    kind: ClassVar[str] = "gcp_instance_template"
     api_identifier: ClassVar[str] = "instanceTemplate"
 
 
 @dataclass(eq=False)
 class GCPSecurityPolicy(GCPResource, BasePolicy):
-    resource_type: ClassVar[str] = "gcp_security_policy"
+    kind: ClassVar[str] = "gcp_security_policy"
     api_identifier: ClassVar[str] = "securityPolicy"
 
     def __post_init__(self) -> None:
@@ -308,7 +308,7 @@ class GCPSecurityPolicy(GCPResource, BasePolicy):
 
 @dataclass(eq=False)
 class GCPSnapshot(GCPResource, BaseSnapshot):
-    resource_type: ClassVar[str] = "gcp_snapshot"
+    kind: ClassVar[str] = "gcp_snapshot"
     api_identifier: ClassVar[str] = "snapshot"
 
     storage_bytes: int = 0
@@ -321,13 +321,13 @@ class GCPSnapshot(GCPResource, BaseSnapshot):
 
 @dataclass(eq=False)
 class GCPSSLCertificate(GCPResource, BaseCertificate):
-    resource_type: ClassVar[str] = "gcp_ssl_certificate"
+    kind: ClassVar[str] = "gcp_ssl_certificate"
     api_identifier: ClassVar[str] = "sslCertificate"
 
 
 @dataclass(eq=False)
 class GCPMachineType(GCPResource, BaseInstanceType):
-    resource_type: ClassVar[str] = "gcp_machine_type"
+    kind: ClassVar[str] = "gcp_machine_type"
     api_identifier: ClassVar[str] = "machineType"
 
     def __post_init__(self) -> None:
@@ -337,7 +337,7 @@ class GCPMachineType(GCPResource, BaseInstanceType):
 
 @dataclass(eq=False)
 class GCPNetworkEndpointGroup(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_network_endpoint_group"
+    kind: ClassVar[str] = "gcp_network_endpoint_group"
     api_identifier: ClassVar[str] = "networkEndpointGroup"
 
     default_port: int = -1
@@ -346,7 +346,7 @@ class GCPNetworkEndpointGroup(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_global_network_endpoint_group"
+    kind: ClassVar[str] = "gcp_global_network_endpoint_group"
     api_identifier: ClassVar[str] = "globalNetworkEndpointGroup"
 
     default_port: int = -1
@@ -355,31 +355,31 @@ class GCPGlobalNetworkEndpointGroup(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPInstanceGroup(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_instance_group"
+    kind: ClassVar[str] = "gcp_instance_group"
     api_identifier: ClassVar[str] = "instanceGroup"
 
 
 @dataclass(eq=False)
 class GCPInstanceGroupManager(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_instance_group_manager"
+    kind: ClassVar[str] = "gcp_instance_group_manager"
     api_identifier: ClassVar[str] = "instanceGroupManager"
 
 
 @dataclass(eq=False)
 class GCPAutoscaler(GCPResource, BaseAutoScalingGroup):
-    resource_type: ClassVar[str] = "gcp_autoscaler"
+    kind: ClassVar[str] = "gcp_autoscaler"
     api_identifier: ClassVar[str] = "autoscaler"
 
 
 @dataclass(eq=False)
 class GCPHealthCheck(GCPResource, BaseHealthCheck):
-    resource_type: ClassVar[str] = "gcp_health_check"
+    kind: ClassVar[str] = "gcp_health_check"
     api_identifier: ClassVar[str] = "healthCheck"
 
 
 @dataclass(eq=False)
 class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
-    resource_type: ClassVar[str] = "gcp_http_health_check"
+    kind: ClassVar[str] = "gcp_http_health_check"
     api_identifier: ClassVar[str] = "httpHealthCheck"
 
     host: str = ""
@@ -389,19 +389,19 @@ class GCPHTTPHealthCheck(GCPResource, BaseHealthCheck):
 
 @dataclass(eq=False)
 class GCPHTTPSHealthCheck(GCPHTTPHealthCheck):
-    resource_type: ClassVar[str] = "gcp_https_health_check"
+    kind: ClassVar[str] = "gcp_https_health_check"
     api_identifier: ClassVar[str] = "httpsHealthCheck"
 
 
 @dataclass(eq=False)
 class GCPUrlMap(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_url_map"
+    kind: ClassVar[str] = "gcp_url_map"
     api_identifier: ClassVar[str] = "urlMap"
 
 
 @dataclass(eq=False)
 class GCPTargetPool(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_pool"
+    kind: ClassVar[str] = "gcp_target_pool"
     api_identifier: ClassVar[str] = "targetPool"
 
     session_affinity: str = ""
@@ -410,7 +410,7 @@ class GCPTargetPool(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetHttpProxy(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_http_proxy"
+    kind: ClassVar[str] = "gcp_target_http_proxy"
     api_identifier: ClassVar[str] = "targetHttpProxy"
 
     def __post_init__(self) -> None:
@@ -421,7 +421,7 @@ class GCPTargetHttpProxy(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetHttpsProxy(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_https_proxy"
+    kind: ClassVar[str] = "gcp_target_https_proxy"
     api_identifier: ClassVar[str] = "targetHttpsProxy"
 
     def __post_init__(self) -> None:
@@ -432,7 +432,7 @@ class GCPTargetHttpsProxy(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetSslProxy(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_ssl_proxy"
+    kind: ClassVar[str] = "gcp_target_ssl_proxy"
     api_identifier: ClassVar[str] = "targetSslProxy"
 
     def __post_init__(self) -> None:
@@ -442,7 +442,7 @@ class GCPTargetSslProxy(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetTcpProxy(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_tcp_proxy"
+    kind: ClassVar[str] = "gcp_target_tcp_proxy"
     api_identifier: ClassVar[str] = "targetTcpProxy"
 
     def __post_init__(self) -> None:
@@ -452,7 +452,7 @@ class GCPTargetTcpProxy(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetGrpcProxy(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_grpc_proxy"
+    kind: ClassVar[str] = "gcp_target_grpc_proxy"
     api_identifier: ClassVar[str] = "targetGrpcProxy"
 
     def __post_init__(self) -> None:
@@ -462,25 +462,25 @@ class GCPTargetGrpcProxy(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPTargetInstance(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_target_instance"
+    kind: ClassVar[str] = "gcp_target_instance"
     api_identifier: ClassVar[str] = "targetInstance"
 
 
 @dataclass(eq=False)
 class GCPQuota(GCPResource, BaseQuota):
-    resource_type: ClassVar[str] = "gcp_quota"
+    kind: ClassVar[str] = "gcp_quota"
     api_identifier: ClassVar[str] = "dummy"
 
 
 @dataclass(eq=False)
 class GCPBackendService(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_backend_service"
+    kind: ClassVar[str] = "gcp_backend_service"
     api_identifier: ClassVar[str] = "backendService"
 
 
 @dataclass(eq=False)
 class GCPForwardingRule(GCPResource, BaseLoadBalancer):
-    resource_type: ClassVar[str] = "gcp_forwarding_rule"
+    kind: ClassVar[str] = "gcp_forwarding_rule"
     api_identifier: ClassVar[str] = "forwardingRule"
 
     ip_address: str = ""
@@ -496,13 +496,13 @@ class GCPForwardingRule(GCPResource, BaseLoadBalancer):
 
 @dataclass(eq=False)
 class GCPGlobalForwardingRule(GCPForwardingRule):
-    resource_type: ClassVar[str] = "gcp_global_forwarding_rule"
+    kind: ClassVar[str] = "gcp_global_forwarding_rule"
     api_identifier: ClassVar[str] = "globalForwardingRule"
 
 
 @dataclass(eq=False)
 class GCPBucket(GCPResource, BaseBucket):
-    resource_type: ClassVar[str] = "gcp_bucket"
+    kind: ClassVar[str] = "gcp_bucket"
     api_identifier: ClassVar[str] = "bucket"
     client = "storage"
 
@@ -550,7 +550,7 @@ class GCPBucket(GCPResource, BaseBucket):
 
 @dataclass(eq=False)
 class GCPDatabase(GCPResource, BaseDatabase):
-    resource_type: ClassVar[str] = "gcp_database"
+    kind: ClassVar[str] = "gcp_database"
     api_identifier: ClassVar[str] = "instance"
     client: ClassVar[str] = "sqladmin"
     api_version: ClassVar[str] = "v1beta4"
@@ -574,7 +574,7 @@ class GCPDatabase(GCPResource, BaseDatabase):
 
 @dataclass(eq=False)
 class GCPService(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_service"
+    kind: ClassVar[str] = "gcp_service"
     api_identifier: ClassVar[str] = "service"
     client: ClassVar[str] = "cloudbilling"
     api_version: ClassVar[str] = "v1"
@@ -583,7 +583,7 @@ class GCPService(GCPResource, BaseResource):
 
 @dataclass(eq=False)
 class GCPServiceSKU(GCPResource, BaseResource):
-    resource_type: ClassVar[str] = "gcp_service_sku"
+    kind: ClassVar[str] = "gcp_service_sku"
     api_identifier: ClassVar[str] = "service"
     client: ClassVar[str] = "cloudbilling"
     api_version: ClassVar[str] = "v1"

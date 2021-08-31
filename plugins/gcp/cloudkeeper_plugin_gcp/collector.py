@@ -820,7 +820,7 @@ class GCPProjectCollector:
             skus = []
             for sku in graph.searchall(
                 {
-                    "resource_type": "gcp_service_sku",
+                    "kind": "gcp_service_sku",
                     "resource_family": "Storage",
                     "usage_type": "OnDemand",
                     "resource_group": resource_group,
@@ -990,7 +990,7 @@ class GCPProjectCollector:
         skus = []
         for sku in graph.searchall(
             {
-                "resource_type": "gcp_service_sku",
+                "kind": "gcp_service_sku",
                 "resource_family": "Compute",
                 "usage_type": "OnDemand",
             }

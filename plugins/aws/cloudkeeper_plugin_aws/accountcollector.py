@@ -778,7 +778,7 @@ class AWSAccountCollector:
                 else:
                     resource.mtime = fallback_time
         except ValueError:
-            log.exception(f"Error while processing metrics for resource {resource.id}")
+            log.exception("Error while processing resource metrics")
 
     def get_atime_mtime_from_metrics(
         self,
@@ -1295,7 +1295,7 @@ class AWSAccountCollector:
                         )
                 graph.add_resource(region, i)
                 kp = graph.search_first_all(
-                    {"name": instance.key_name, "resource_type": "aws_ec2_keypair"}
+                    {"name": instance.key_name, "kind": "aws_ec2_keypair"}
                 )
                 if kp:
                     graph.add_edge(kp, i)
@@ -2096,7 +2096,7 @@ class AWSAccountCollector:
             c.cluster_endpoint = cluster.get("endpoint")
             if "roleArn" in cluster:
                 log.debug(
-                    f"Queuing deferred connection from role {cluster['roleArn']} to {c.resource_type} {c.id}"
+                    f"Queuing deferred connection from role {cluster['roleArn']} to {c.kind} {c.id}"
                 )
                 c.add_deferred_connection("arn", cluster["roleArn"])
             graph.add_resource(region, c)
@@ -2184,7 +2184,7 @@ class AWSAccountCollector:
                 asg = graph.search_first_all(
                     {
                         "name": autoscaling_group["name"],
-                        "resource_type": "aws_autoscaling_group",
+                        "kind": "aws_autoscaling_group",
                     }
                 )
                 if asg:
@@ -2239,7 +2239,7 @@ class AWSAccountCollector:
                 if dimension.get("Name") == "InstanceId":
                     instance_id = dimension.get("Value")
                     i = graph.search_first_all(
-                        {"resource_type": "aws_ec2_instance", "id": instance_id}
+                        {"kind": "aws_ec2_instance", "id": instance_id}
                     )
                     graph.add_edge(cwa, i)
 

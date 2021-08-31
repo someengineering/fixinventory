@@ -10,7 +10,7 @@ Create a yaml config file.
 # cloud.id:
 #   account.id:
 #     region.id:
-#       resource_type:
+#       kind:
 #         - resource.id
 'aws':
   '110465657741':

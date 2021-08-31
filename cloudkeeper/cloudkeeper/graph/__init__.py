@@ -6,7 +6,7 @@ import json
 import re
 import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
-from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
+from cloudkeeper.utils import RWLock, json_default, get_resource_attributes, type_str
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.graph.export import (
@@ -20,7 +20,7 @@ from cloudkeeper.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List
+from typing import Dict, List, IO, Optional
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
@@ -114,7 +114,7 @@ class Graph(networkx.DiGraph):
         """Add a resource node to the graph
 
         When adding resource nodes to the graph there's always a label and a
-        resource_type as well as an edge connecting the new resource with its parent
+        kind as well as an edge connecting the new resource with its parent
         resource. This way we should never have disconnected nodes within the graph.
 
         The graph_attributes are a Dict of key=value pairs that contain all the
@@ -288,7 +288,7 @@ class Graph(networkx.DiGraph):
 
         # fixme: workaround to report kind
         for resource_model in model:
-            if resource_model.get("fqn") == "base_resource":
+            if resource_model.get("fqn") == "resource":
                 resource_model.get("properties", []).append(
                     {
                         "name": "kind",
@@ -493,16 +493,13 @@ class GraphCache:
 def dump_graph(graph) -> str:
     """Debug dump the graph and list each nodes predecessor and successor nodes"""
     for node in graph.nodes:
-        yield f"Node: {node.name} (type: {node.resource_type})"
+        yield f"Node: {node.name} (type: {node.kind})"
         for predecessor_node in graph.predecessors(node):
             yield (
-                f"\tParent: {predecessor_node.name}"
-                f" (type: {predecessor_node.resource_type})"
+                f"\tParent: {predecessor_node.name}" f" (type: {predecessor_node.kind})"
             )
         for successor_node in graph.successors(node):
-            yield (
-                f"\tChild {successor_node.name} (type: {successor_node.resource_type})"
-            )
+            yield (f"\tChild {successor_node.name} (type: {successor_node.kind})")
 
 
 @metrics_graph2json.time()
@@ -598,6 +595,10 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     if root is None and isinstance(getattr(graph, "root", None), BaseResource):
         root = graph.root
 
+    if root is None:
+        log.error("No graph root found - unable to sanitize")
+        return
+
     for node in graph.successors(root):
         if isinstance(node, Cloud):
             log.debug(f"Found Plugin Root {node.id}")
@@ -606,7 +607,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
             log.debug(f"Found Graph Root {node.id}")
             graph_roots.append(node)
         else:
-            log.error(f"Found unknown node {node.id} of type {node.resource_type}")
+            log.error(f"Found unknown node {node.id} of type {node.kind}")
 
     if len(graph_roots) > 0:
         for graph_root in graph_roots:
@@ -621,7 +622,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                         for plugin_root_child in list(graph.successors(node)):
                             log.debug(
                                 f"Found node {plugin_root_child.id} of type "
-                                f"{plugin_root_child.resource_type}"
+                                f"{plugin_root_child.kind}"
                                 " - attaching to existing plugin root"
                             )
                             graph.add_edge(plugin_roots[node.id], plugin_root_child)
@@ -636,7 +637,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                         graph.remove_edge(graph_root, node)
                 else:
                     log.debug(
-                        f"Found unknown node {node.id} of type {node.resource_type}"
+                        f"Found unknown node {node.id} of type {node.kind}"
                         " - attaching to top level root"
                     )
                     graph.add_edge(root, node)
@@ -650,7 +651,7 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphExportIterator:
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph, output: Optional[IO] = None):
         self.graph = graph
         self.nodes_sent = 0
         self.edges_sent = 0
@@ -660,12 +661,20 @@ class GraphExportIterator:
         self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
         self.report_every_n_edges = round(self.edges_total / report_every_percent)
         self.last_sent = time()
+        self.output = output
+        if self.output is not None:
+            log.debug(f"Writing graph json to file {self.output}")
 
     def __iter__(self):
         with self.graph.lock.read_access:
             for node in self.graph.nodes:
                 node_attributes = get_node_attributes(node)
-                node_json = {"id": node.sha256, "data": node_attributes}
+                node_json = {
+                    "id": node.sha256,
+                    "reported": node_attributes,
+                    "metadata": {"python_type": type_str(node)},
+                    "desired": {},
+                }
                 if getattr(node, "_merge", None):
                     log.debug(f"Merging graph above {node.rtdname}")
                     node_json.update({"merge": True})
@@ -678,8 +687,9 @@ class GraphExportIterator:
                         f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
                     )
                     self.last_sent = time()
-
-                yield (attributes_json.encode())
+                if self.output is not None:
+                    self.output.write(attributes_json)
+                yield attributes_json.encode()
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
@@ -698,5 +708,6 @@ class GraphExportIterator:
                         f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
                     )
                     self.last_sent = time()
-
-                yield (link_json.encode())
+                if self.output is not None:
+                    self.output.write(link_json)
+                yield link_json.encode()

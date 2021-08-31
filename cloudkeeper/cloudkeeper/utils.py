@@ -122,7 +122,7 @@ class _LightSwitch:
         self.__mutex.release()
 
 
-def make_valid_timestamp(timestamp: datetime) -> datetime:
+def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     if not isinstance(timestamp, datetime) and isinstance(timestamp, date):
         timestamp = datetime.combine(timestamp, datetime.min.time()).replace(
             tzinfo=timezone.utc
@@ -132,7 +132,7 @@ def make_valid_timestamp(timestamp: datetime) -> datetime:
     elif isinstance(timestamp, datetime):
         pass
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+        timestamp = None
     return timestamp
 
 
@@ -543,7 +543,7 @@ def get_resource_attributes(
     resource, exclude_private: bool = True, keep_data_structures: bool = False
 ) -> Dict:
     attributes = dict(resource.__dict__)
-    attributes["resource_type"] = resource.resource_type
+    attributes["kind"] = resource.kind
 
     for attr_name in dir(resource):
         if exclude_private and attr_name.startswith("_"):
@@ -628,3 +628,11 @@ def resource2dict(item, exclude_private=True, graph=None) -> Dict:
     out["predecessors"] = [i.sha256 for i in item.predecessors(graph)]
     out["successors"] = [i.sha256 for i in item.successors(graph)]
     return out
+
+
+def type_str(o):
+    cls = o.__class__
+    module = cls.__module__
+    if module == "builtins":
+        return cls.__qualname__
+    return module + "." + cls.__qualname__

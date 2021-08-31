@@ -596,7 +596,7 @@ and chain multipe commands using the semicolon (;).
         be printed instead.
 
         Example:
-            > match resource_type = gcp_instance |
+            > match kind = gcp_instance |
               format {name} {instance_cores} {instance_memory/1024}
 
         See
@@ -898,7 +898,7 @@ and chain multipe commands using the semicolon (;).
 
         Example:
             Count EC2 Instances every three hours
-            > add_job 0 */3 * * * match resource_type = aws_ec2_instance \\| count
+            > add_job 0 */3 * * * match kind = aws_ec2_instance \\| count
         """
         if self.scheduler is None:
             raise RuntimeError("No scheduler given")

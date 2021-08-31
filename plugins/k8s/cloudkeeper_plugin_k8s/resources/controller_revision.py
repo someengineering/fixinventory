@@ -9,6 +9,6 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesControllerRevision(KubernetesResource, BaseResource):
-    resource_type: ClassVar[str] = "kubernetes_controller_revision"
+    kind: ClassVar[str] = "kubernetes_controller_revision"
     api: ClassVar[str] = client.AppsV1Api
     list_method: ClassVar[str] = "list_controller_revision_for_all_namespaces"

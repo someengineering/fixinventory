@@ -9,6 +9,6 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesDeployment(KubernetesResource, BaseResource):
-    resource_type: ClassVar[str] = "kubernetes_deployment"
+    kind: ClassVar[str] = "kubernetes_deployment"
     api: ClassVar[object] = client.AppsV1Api
     list_method: ClassVar[str] = "list_deployment_for_all_namespaces"

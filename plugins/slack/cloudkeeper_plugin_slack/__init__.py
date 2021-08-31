@@ -2,6 +2,7 @@ import cloudkeeper.logging
 import threading
 import os
 import time
+import ssl
 import slack_sdk
 from typing import List
 from retrying import retry
@@ -54,8 +55,17 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             return
 
         log.info("Slack Collector Plugin: collecting Slack resources")
-        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
 
+        slack_client_args = {
+            "token": ArgumentParser.args.slack_bot_token,
+        }
+        if ArgumentParser.args.slack_do_not_verify_ssl:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            slack_client_args.update({"ssl": ssl_context})
+
+        self.client = slack_sdk.WebClient(**slack_client_args)
         response = self.client.team_info()
         if not response.data.get("ok", False):
             log.error("Failed to retrieve Slack Account information")
@@ -98,9 +108,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
 
             members = self.list_conversation_members(c)
             for member_id in members:
-                m = self.graph.search_first_all(
-                    {"resource_type": "slack_user", "id": member_id}
-                )
+                m = self.graph.search_first_all({"kind": "slack_user", "id": member_id})
                 self.graph.add_edge(m, c)
 
     @retry(
@@ -200,6 +208,13 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             "--slack-include-archived",
             help="Include archived slack channels",
             dest="slack_include_archived",
+            action="store_true",
+            default=False,
+        )
+        arg_parser.add_argument(
+            "--slack-do-not-verify-cert",
+            help="Do not verify the Slack API server TLS certificate",
+            dest="slack_do_not_verify_ssl",
             action="store_true",
             default=False,
         )
@@ -309,14 +324,14 @@ class SlackBotPlugin(BasePlugin):
             tmp_emails = {}
             tmp_usergroups = {}
             tmp_channels = {}
-            for user in graph.search("resource_type", "slack_user"):
+            for user in graph.search("kind", "slack_user"):
                 tmp_users[user.name] = user
                 if user.email:
                     tmp_emails[user.email] = user
-            for usergroup in graph.search("resource_type", "slack_usergroup"):
+            for usergroup in graph.search("kind", "slack_usergroup"):
                 if usergroup.is_usergroup:
                     tmp_usergroups[usergroup.name] = usergroup
-            for channel in graph.search("resource_type", "slack_conversation"):
+            for channel in graph.search("kind", "slack_conversation"):
                 if channel.is_channel:
                     tmp_channels[channel.name] = channel
             self.users2id = tmp_users
