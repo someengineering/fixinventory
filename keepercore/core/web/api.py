@@ -310,7 +310,7 @@ class Api:
         md = await self.model_handler.load_model()
         graph = await self.read_graph(request, md)
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        _, info = await graph_db.merge_graph(graph)
+        _, info = await graph_db.merge_graph(graph, md)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -320,7 +320,7 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
-        _, info = await graph_db.merge_graph(graph, batch_id)
+        _, info = await graph_db.merge_graph(graph, md, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
