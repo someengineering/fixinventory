@@ -31,6 +31,7 @@ from core.query.model import (
     Navigation,
     IdTerm,
     Aggregate,
+    AllTerm,
 )
 from core.util import first
 
@@ -658,6 +659,8 @@ class ArangoGraphDB(GraphDB):
             return f"{cursor}.kinds ANY == @{length}"
 
         def term(cursor: str, ab_term: Term) -> str:
+            if isinstance(ab_term, AllTerm):
+                return "true"
             if isinstance(ab_term, Predicate):
                 return predicate(cursor, ab_term)
             elif isinstance(ab_term, FunctionTerm):

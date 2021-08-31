@@ -5,14 +5,15 @@ from pytest import fixture
 
 from core.cli.cli import CLI, CLIDependencies, Sink
 from core.cli.command import (
-    EchoSource,
     ListSink,
-    MatchSource,
+    QuerySource,
     CountCommand,
     ChunkCommand,
     all_parts,
     FlattenCommand,
     UniqCommand,
+    EchoSource,
+    aliases,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -39,7 +40,7 @@ def cli_deps(filled_graph_db: ArangoGraphDB, event_bus: EventBus, foo_model: Mod
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns"}
-    return CLI(cli_deps, all_parts(cli_deps), env)
+    return CLI(cli_deps, all_parts(cli_deps), env, aliases())
 
 
 @fixture
@@ -76,7 +77,7 @@ async def test_multi_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_database(cli: CLI) -> None:
-    query = 'match isinstance("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
+    query = 'query isinstance("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
     count = "count f"
     commands = "|".join([query, count])
     result = await cli.evaluate_cli_command(commands)
@@ -84,15 +85,15 @@ async def test_query_database(cli: CLI) -> None:
     line1 = result[0]
     assert len(line1.parts) == 2
     p1, p2 = line1.parts
-    assert isinstance(p1, MatchSource)
+    assert isinstance(p1, QuerySource)
     assert isinstance(p2, CountCommand)
 
     with pytest.raises(CLIParseError):
-        await cli.evaluate_cli_command("match this is not a query")  # command is un-parsable
+        await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
 
     with pytest.raises(CLIParseError):
         cli.cli_env = {}  # delete the env
-        await cli.evaluate_cli_command("match id==3")  # no graph specified
+        await cli.evaluate_cli_command("query id==3")  # no graph specified
 
 
 @pytest.mark.asyncio
@@ -109,8 +110,8 @@ async def test_order_of_commands(cli: CLI) -> None:
     assert str(ex.value) == "Command >uniq< can not be used in this position: no source data given"
 
     with pytest.raises(CLIParseError) as ex:
-        await cli.evaluate_cli_command("echo foo | uniq | match bla==23")
-    assert str(ex.value) == "Command >match< can not be used in this position: must be the first command"
+        await cli.evaluate_cli_command("echo foo | uniq | query bla==23")
+    assert str(ex.value) == "Command >query< can not be used in this position: must be the first command"
 
 
 @pytest.mark.asyncio
@@ -127,3 +128,31 @@ async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()
+
+
+@pytest.mark.asyncio
+async def test_create_query_parts(cli: CLI) -> None:
+    commands = await cli.evaluate_cli_command('reported some_int==0 | desired identifier=~"9_" | descendants')
+    assert len(commands) == 1
+    assert len(commands[0].parts) == 1
+    assert commands[0].parts[0].name == "query"
+    assert commands[0].parts_with_args[0][1] == '(reported.some_int == 0 and desired.identifier =~ "9_") -[1:]->'
+    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[1:]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors | ancestors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2:]-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2]-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | successors | successors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[3]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 --> all <--"
+    # defining the edge type is supported as well
+    commands = await cli.evaluate_cli_command("reported some_int==0 | successors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete-"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete[1:]->"
+    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors delete")
+    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete[1:]-"

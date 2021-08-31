@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import reduce
+from itertools import takewhile
 from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, AsyncGenerator, Tuple, Dict
 
 try:
@@ -22,8 +23,11 @@ from parsy import Parser
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.event_bus import EventBus
+from core.model.graph_access import EdgeType
 from core.model.model_handler import ModelHandler
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
+from core.query.model import Query, Navigation, AllTerm
+from core.query.query_parser import term_parser
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
 
@@ -72,7 +76,7 @@ class CLIPart(ABC):
         pass
 
 
-class CLISource(CLIPart):
+class CLISource(CLIPart, ABC):
     """
     Subclasses of CLISource can create a stream.
     """
@@ -85,6 +89,12 @@ class CLISource(CLIPart):
     async def empty() -> Source:
         for _ in range(0, 0):
             yield {}
+
+
+class QueryPart(CLISource, ABC):
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        async for a in self.empty():
+            yield a
 
 
 class CLICommand(CLIPart, ABC):
@@ -113,6 +123,196 @@ class CLISink(CLIPart):
         pass
 
 
+class ReportedPart(QueryPart):
+    """
+    Usage: reported <property.path> <op> <value"
+
+    The reported section contains the values directly from the collector.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        reported prop1 == "a"             # matches documents with reported section like { "prop1": "a" ....}
+        reported some.nested in [1,2,3]   # matches documents with reported section like { "some": { "nested" : 1 ..}..}
+        reported array[*] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
+        reported array[1] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "reported"
+
+    def info(self) -> str:
+        return "Matches a property in the reported section."
+
+
+class DesiredPart(QueryPart):
+    """
+    Usage: desired <property.path> <op> <value"
+
+    The desired section contains values set by tools to change the state of this node.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        desired prop1 == "a"             # matches documents with desired section like { "prop1": "a" ....}
+        desired prop1 =~ "a.*"           # matches documents with desired section like { "prop1": "a" ....}
+        desired some.nested in [1,2,3]   # matches documents with desired section like { "some": { "nested" : 1 ..}..}
+        desired array[*] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
+        desired array[1] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "desired"
+
+    def info(self) -> str:
+        return "Matches a property in the desired section."
+
+
+class MetadataPart(QueryPart):
+    """
+    Usage: metadata <property.path> <op> <value"
+
+    The metadata section is set by the collector and holds additional meta information about this node.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        metadata prop1 == "a"             # matches documents with metadata section like { "prop1": "a" ....}
+        metadata prop1 =~ "a.*"           # matches documents with metadata section like { "prop1": "a" ....}
+        metadata some.nested in [1,2,3]   # matches documents with metadata section like { "some": { "nested" : 1 ..}..}
+        metadata array[*] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
+        metadata array[1] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "metadata"
+
+    def info(self) -> str:
+        return "Matches a property in the metadata section."
+
+
+class Predecessor(QueryPart):
+    """
+    Usage: predecessors [edge_type]
+
+    Select all predecessors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | predecessors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "predecessors"
+
+    def info(self) -> str:
+        return "Select all predecessors of this node in the graph."
+
+
+class Successor(QueryPart):
+    """
+    Usage: successors [edge_type]
+
+    Select all successors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | successors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "successors"
+
+    def info(self) -> str:
+        return "Select all successor of this node in the graph."
+
+
+class Ancestor(QueryPart):
+    """
+    Usage: ancestors [edge_type]
+
+    Select all ancestors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | ancestors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "ancestors"
+
+    def info(self) -> str:
+        return "Select all ancestors of this node in the graph."
+
+
+class Descendant(QueryPart):
+    """
+    Usage: descendants [edge_type]
+
+    Select all descendants of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | descendants | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "descendants"
+
+    def info(self) -> str:
+        return "Select all descendants of this node in the graph."
+
+
 class HelpCommand(CLISource):
     """
     Usage: help [command]
@@ -123,9 +323,10 @@ class HelpCommand(CLISource):
     Show help text for a command or general help information.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart]):
+    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: dict[str, str]):
         super().__init__(dependencies)
-        self.parts: Dict[str, CLIPart] = {p.name: p for p in parts + [self]}
+        self.parts = {p.name: p for p in parts + [self]}
+        self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
 
     @property
     def name(self) -> str:
@@ -138,11 +339,13 @@ class HelpCommand(CLISource):
         if not arg:
             parts = (p for p in self.parts.values() if isinstance(p, (CLISource, CLICommand)))
             available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
+            aliases = "\n".join(f"   {alias} ({cmd}) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items())
             replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
             result = (
                 f"\nkeepercore CLI\n\n\n"
                 f"Valid placeholder string:\n{replacements}\n\n"
                 f"Available Commands:\n{available}\n\n"
+                f"Available Aliases:\n{aliases}\n\n"
                 f"Note that you can pipe commands using the pipe character (|)\n"
                 f"and chain multiple commands using the semicolon (;)."
             )
@@ -165,11 +368,15 @@ class ParsedCommandLine:
     """
 
     env: JsonElement
-    parts: List[CLIPart]
+    parts_with_args: List[Tuple[CLIPart, str]]
     generator: AsyncGenerator[JsonElement, None]
 
     async def to_sink(self, sink: Sink[T]) -> T:
         return await sink(self.generator)
+
+    @property
+    def parts(self) -> list[CLIPart]:
+        return [part for part, _ in self.parts_with_args]
 
 
 @make_parser
@@ -181,6 +388,7 @@ def key_value_parser() -> Parser:
 
 
 key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
+CLIArg = Tuple[CLIPart, str]
 
 
 class CLI:
@@ -189,25 +397,63 @@ class CLI:
     A string can parsed into a command line that can be executed based on the list of available commands.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any]):
-        help_cmd = HelpCommand(dependencies, parts)
-        self.parts = {p.name: p for p in parts + [help_cmd]}
+    def __init__(
+        self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any], aliases: dict[str, str]
+    ):
+        help_cmd = HelpCommand(dependencies, parts, aliases)
+        cmds = {p.name: p for p in parts + [help_cmd]}
+        alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
+        self.parts = cmds | alias_cmds
         self.cli_env = env
+        self.dependencies = dependencies
+        self.aliases = aliases
+
+    @staticmethod
+    def create_query(parts: list[Tuple[QueryPart, str]]) -> str:
+        query: Query = Query.by(AllTerm())
+        for part, arg_in in parts:
+            arg = arg_in.strip()
+            if isinstance(part, ReportedPart):
+                query = query.filter(term_parser.parse(arg).on_section("reported"))
+            elif isinstance(part, DesiredPart):
+                query = query.filter(term_parser.parse(arg).on_section("desired"))
+            elif isinstance(part, MetadataPart):
+                query = query.filter(term_parser.parse(arg).on_section("metadata"))
+            elif isinstance(part, Predecessor):
+                query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
+            elif isinstance(part, Successor):
+                query = query.traverse_out(1, 1, arg if arg else EdgeType.default)
+            elif isinstance(part, Ancestor):
+                query = query.traverse_in(1, Navigation.Max, arg if arg else EdgeType.default)
+            elif isinstance(part, Descendant):
+                query = query.traverse_out(1, Navigation.Max, arg if arg else EdgeType.default)
+
+        return str(query.simplify())
 
     async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:
-        def parse_single_command(index: int, command: str) -> Tuple[CLIPart, str]:
-            expected = CLISource if index == 0 else CLICommand
+        def parse_single_command(command: str) -> Tuple[CLIPart, str]:
             p = command.strip().split(" ", 1)
             part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
             if part_str in self.parts:
                 part: CLIPart = self.parts[part_str]
-                if isinstance(part, expected):
-                    return part, args_str
-                else:
-                    detail = "no source data given" if index == 0 else "must be the first command"
-                    raise CLIParseError(f"Command >{part_str}< can not be used in this position: {detail}")
+                return part, args_str
             else:
                 raise CLIParseError(f"Command >{part_str}< is not known. typo?")
+
+        def combine_single_command(commands: list[CLIArg]) -> list[CLIArg]:
+            parts = list(takewhile(lambda x: isinstance(x[0], QueryPart), commands))
+            query = self.create_query(parts)  # type: ignore
+
+            # fmt: off
+            result = [(self.parts["query"], query), *commands[len(parts):]] if parts else commands
+            # fmt: on
+            for index, part_num in enumerate(result):
+                part, _ = part_num
+                expected = CLICommand if index else CLISource
+                if not isinstance(part, expected):
+                    detail = "no source data given" if index == 0 else "must be the first command"
+                    raise CLIParseError(f"Command >{part.name}< can not be used in this position: {detail}")
+            return result
 
         async def parse_arg(part: Any, args_str: str, **resulting_env: str) -> Any:
             try:
@@ -223,8 +469,8 @@ class CLI:
 
             parsed_env, rest = key_values_parser.parse_partial(line)
             resulting_env = self.cli_env | env | parsed_env
-            parts_with_args = [parse_single_command(idx, cmd) for idx, cmd in enumerate(split_esc(rest, "|"))]
-            parts = [part for part, _ in parts_with_args]
+            parts_with_args = combine_single_command([parse_single_command(cmd) for cmd in split_esc(rest, "|")])
+
             if parts_with_args:
                 source, source_arg = parts_with_args[0]
                 flow = make_stream(await parse_arg(source, source_arg, **resulting_env))
@@ -233,7 +479,7 @@ class CLI:
                     # noinspection PyTypeChecker
                     flow = make_stream(flow_fn(flow))
                 # noinspection PyTypeChecker
-                return ParsedCommandLine(resulting_env, parts, flow)
+                return ParsedCommandLine(resulting_env, parts_with_args, flow)
             else:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 

@@ -40,6 +40,7 @@ from core.query.model import (
     AggregateVariable,
     AggregateFunction,
     Aggregate,
+    AllTerm,
 )
 
 operation_p = reduce(
@@ -104,8 +105,8 @@ def function_term() -> Parser:
 
 isinstance_term = lexeme(string("isinstance") >> lparen_p >> quoted_string_p << rparen_p).map(IsInstanceTerm)
 id_term = lexeme(string("id") >> lparen_p >> quoted_string_p << rparen_p).map(IdTerm)
-
-leaf_term_p = isinstance_term | id_term | predicate_term | function_term
+match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
+leaf_term_p = isinstance_term | id_term | match_all_term | function_term | predicate_term
 
 bool_op_p = lexeme(string("and") | string("or"))
 

@@ -12,6 +12,7 @@ from core.db.modeldb import ModelDb, model_db
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.db.subscriberdb import subscriber_db
 from core.db.runningtaskdb import running_task_db
+from core.error import NoSuchGraph
 from core.event_bus import EventBus
 from core.util import Periodic
 
@@ -55,6 +56,7 @@ class DbAccess(ABC):
             db.delete_graph(name, drop_collections=True, ignore_missing=True)
             db.delete_collection(f"{name}_in_progress", ignore_missing=True)
             db.delete_view(f"search_{name}", ignore_missing=True)
+            self.graph_dbs.pop(name, None)
 
     async def list_graphs(self) -> List[str]:
         return [a["name"] for a in self.database.graphs() if not a["name"].endswith("_hs")]
@@ -64,7 +66,7 @@ class DbAccess(ABC):
             return self.graph_dbs[name]
         else:
             if not no_check and not self.database.has_graph(name):
-                raise AttributeError(f"No graph with this name: {name}")
+                raise NoSuchGraph(name)
             graph_db = ArangoGraphDB(self.db, name)
             event_db = EventGraphDB(graph_db, self.event_bus)
             self.graph_dbs[name] = event_db

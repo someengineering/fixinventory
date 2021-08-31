@@ -18,6 +18,14 @@ from core.cli.cli import (
     CLIDependencies,
     CLIPart,
     key_values_parser,
+    ReportedPart,
+    DesiredPart,
+    MetadataPart,
+    Predecessor,
+    Successor,
+    Ancestor,
+    Descendant,
+    QueryPart,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError
@@ -28,14 +36,12 @@ from core.util import AccessJson
 
 class EchoSource(CLISource):
     """
-    Usage: echo <json>
+    Usage: echo <message>
 
-    The defined json will be parsed and written to the out stream.
-    If the defined element is a json array, each element will be send downstream.
+    Send the provided message to downstream.
 
     Example:
         echo "test"              # will result in ["test"]
-        echo [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
     """
 
     @property
@@ -43,7 +49,7 @@ class EchoSource(CLISource):
         return "echo"
 
     def info(self) -> str:
-        return "Parse json and pass parsed objects to the output stream."
+        return "Send the provided message to downstream"
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         arg_str = arg if arg else ""
@@ -57,7 +63,40 @@ class EchoSource(CLISource):
         elif isinstance(js, (str, int, float, bool, dict)):
             elements = [js]
         else:
-            raise AttributeError(f"Echo does not understand {arg}.")
+            raise AttributeError(f"json does not understand {arg}.")
+        return stream.iterate(elements)  # type: ignore
+
+
+class JsonSource(CLISource):
+    """
+    Usage: json <json>
+
+    The defined json will be parsed and written to the out stream.
+    If the defined element is a json array, each element will be send downstream.
+
+    Example:
+        json "test"              # will result in ["test"]
+        json [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
+    """
+
+    @property
+    def name(self) -> str:
+        return "json"
+
+    def info(self) -> str:
+        return "Parse json and pass parsed objects to the output stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        if arg:
+            js = json.loads(arg)
+        else:
+            raise AttributeError("json expects one argument!")
+        if isinstance(js, list):
+            elements = js
+        elif isinstance(js, (str, int, float, bool, dict)):
+            elements = [js]
+        else:
+            raise AttributeError(f"json does not understand {arg}.")
         return stream.iterate(elements)  # type: ignore
 
 
@@ -93,15 +132,15 @@ class SleepSource(CLISource):
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
 
-class MatchSource(CLISource):
+class QuerySource(CLISource):
     """
-    Usage: match <query>
+    Usage: query <query>
 
     A query is performed against the graph database and all resulting elements will be emitted.
     To learn more about the query, visit todo: link is missing.
 
     Example:
-        match isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
+        query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
@@ -110,7 +149,7 @@ class MatchSource(CLISource):
 
     @property
     def name(self) -> str:
-        return "match"
+        return "query"
 
     def info(self) -> str:
         return "Query the database and pass the results to the output stream."
@@ -118,13 +157,12 @@ class MatchSource(CLISource):
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         # db name and section is coming from the env
         graph_name = env["graph"]
-        query_section = env.get("section", "reported")
         if not arg:
-            raise CLIParseError("match command needs a query to execute, but nothing was given!")
+            raise CLIParseError("query command needs a query to execute, but nothing was given!")
         query = parse_query(arg)
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
-        query_model = QueryModel(query, model, query_section)
+        query_model = QueryModel(query, model, None)
         db.to_query(query_model)  # only here to validate the query itself (can throw)
         return db.query_list(query_model)
 
@@ -162,9 +200,9 @@ class CountCommand(CLICommand):
         arg [optional]: Instead of counting the instances, sum the property of all objects with this name.
 
     Example:
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
-        echo [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
     """
 
     @property
@@ -215,8 +253,8 @@ class ChunkCommand(CLICommand):
         num [optional, defaults to 100]: the number of elements to put into a chunk.
 
     Example:
-         echo [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
-         echo [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
+         json [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
+         json [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
 
     See:
         flatten for the reverse operation.
@@ -242,9 +280,9 @@ class FlattenCommand(CLICommand):
     while preserving the original order.
 
     Example:
-         echo [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
-         echo [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
-         echo [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
+         json [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
+         json [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
+         json [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
 
     See:
         chunk which is able to put incoming elements into chunks
@@ -273,8 +311,8 @@ class UniqCommand(CLICommand):
     so that {"a": 1, "b": 2} is declared equal to {"b": 2, "a": 1}
 
     Example:
-        echo [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
-        echo [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
+        json [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
+        json [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
     """
 
     @property
@@ -350,19 +388,19 @@ class DesireCommand(SetDesiredState):
 
 
     Example:
-        match isinstance("ec2") | desire a=b b="c" num=2   # will result in
+        query isinstance("ec2") | desire a=b b="c" num=2   # will result in
             [
                 { "id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
                 .
                 .
                 { "id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
             ]
-        echo [{"id": "id1"}, {"id": "id2"}] | desire a=b
+        json [{"id": "id1"}, {"id": "id2"}] | desire a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
             ]
-        echo ["id1", "id2"] | desire a=b
+        json ["id1", "id2"] | desire a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
@@ -383,12 +421,12 @@ class DesireCommand(SetDesiredState):
             return {}
 
 
-class MarkDeleteCommand(SetDesiredState):
+class CleanCommand(SetDesiredState):
     """
-    Usage: mark_delete
+    Usage: clean
 
-    Mark incoming objects for deletion.
-    All objects marked as such will be finally deleted in the next delete run.
+    Mark incoming objects for cleaning.
+    All objects marked as such will be eventually cleaned in the next delete run.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
@@ -397,19 +435,19 @@ class MarkDeleteCommand(SetDesiredState):
     { "id": "..", "desired": { .. }, "reported": { .. } }
 
     Example:
-        match isinstance("ec2") and atime<"-2d" | mark_delete
+        query isinstance("ec2") and atime<"-2d" | clean
             [
                 { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
                 .
                 .
                 { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
             ]
-        echo [{"id": "id1"}, {"id": "id2"}] | mark_delete
+        json [{"id": "id1"}, {"id": "id2"}] | clean
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
             ]
-        echo ["id1", "id2"] | mark_delete
+        json ["id1", "id2"] | clean
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
@@ -418,13 +456,13 @@ class MarkDeleteCommand(SetDesiredState):
 
     @property
     def name(self) -> str:
-        return "mark_delete"
+        return "clean"
 
     def info(self) -> str:
-        return "Mark all incoming database objects for deletion."
+        return "Mark all incoming database objects for cleaning."
 
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
-        return {"delete": True}
+        return {"clean": True}
 
 
 class FormatCommand(CLICommand):
@@ -439,10 +477,10 @@ class FormatCommand(CLICommand):
         format_string [mandatory]: a string with any content with placeholders to be filled by the object.
 
     Example:
-        echo {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
-        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        echo {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        echo {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
+        json {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
+        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
+        json {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
     """
 
     @property
@@ -475,7 +513,7 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), EnvSource(d), MatchSource(d), SleepSource(d)]
+    return [EchoSource(d), JsonSource(d), EnvSource(d), QuerySource(d), SleepSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:
@@ -489,14 +527,24 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CountCommand(d),
         DesireCommand(d),
         FormatCommand(d),
-        MarkDeleteCommand(d),
+        CleanCommand(d),
         UniqCommand(d),
     ]
 
 
+def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
+    return [ReportedPart(d), DesiredPart(d), MetadataPart(d), Predecessor(d), Successor(d), Ancestor(d), Descendant(d)]
+
+
 def all_parts(d: CLIDependencies) -> List[CLIPart]:
     result: list[CLIPart] = []
+    result.extend(all_query_parts(d))
     result.extend(all_sources(d))
     result.extend(all_commands(d))
     result.extend(all_sinks(d))
     return result
+
+
+def aliases() -> dict[str, str]:
+    # command alias -> command name
+    return {"match": "reported"}

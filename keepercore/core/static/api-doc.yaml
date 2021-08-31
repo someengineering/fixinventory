@@ -1378,7 +1378,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: echo [1,2,3,4,5,6] | count
+                            example: json [1,2,3,4,5,6] | count
             tags:
                 - cli
             responses:
@@ -1421,7 +1421,7 @@ paths:
                     text/plain:
                         schema:
                             type: string
-                            example: echo [1,2,3,4,5,6] | count
+                            example: json [1,2,3,4,5,6] | count
             tags:
                 - cli
             responses:
