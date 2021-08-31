@@ -120,11 +120,11 @@ async def test_desire_command(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_mark_delete_command(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
-    result = await cli.execute_cli_command('query isinstance("foo") | mark_delete', sink)
+async def test_clean_command(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+    result = await cli.execute_cli_command('query isinstance("foo") | clean', sink)
     assert len(result[0]) == 13
     for elem in result[0]:
-        assert elem["desired"] == {"delete": True}
+        assert elem["desired"] == {"clean": True}
 
 
 @pytest.mark.asyncio

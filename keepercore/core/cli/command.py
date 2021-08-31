@@ -421,12 +421,12 @@ class DesireCommand(SetDesiredState):
             return {}
 
 
-class MarkDeleteCommand(SetDesiredState):
+class CleanCommand(SetDesiredState):
     """
-    Usage: mark_delete
+    Usage: clean
 
-    Mark incoming objects for deletion.
-    All objects marked as such will be finally deleted in the next delete run.
+    Mark incoming objects for cleaning.
+    All objects marked as such will be eventually cleaned in the next delete run.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
@@ -435,19 +435,19 @@ class MarkDeleteCommand(SetDesiredState):
     { "id": "..", "desired": { .. }, "reported": { .. } }
 
     Example:
-        query isinstance("ec2") and atime<"-2d" | mark_delete
+        query isinstance("ec2") and atime<"-2d" | clean
             [
                 { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
                 .
                 .
                 { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
             ]
-        json [{"id": "id1"}, {"id": "id2"}] | mark_delete
+        json [{"id": "id1"}, {"id": "id2"}] | clean
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
             ]
-        json ["id1", "id2"] | mark_delete
+        json ["id1", "id2"] | clean
             [
                 { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
                 { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
@@ -456,13 +456,13 @@ class MarkDeleteCommand(SetDesiredState):
 
     @property
     def name(self) -> str:
-        return "mark_delete"
+        return "clean"
 
     def info(self) -> str:
-        return "Mark all incoming database objects for deletion."
+        return "Mark all incoming database objects for cleaning."
 
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
-        return {"delete": True}
+        return {"clean": True}
 
 
 class FormatCommand(CLICommand):
@@ -527,7 +527,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CountCommand(d),
         DesireCommand(d),
         FormatCommand(d),
-        MarkDeleteCommand(d),
+        CleanCommand(d),
         UniqCommand(d),
     ]
 
