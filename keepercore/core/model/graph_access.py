@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
 from functools import reduce
 from typing import Optional, Tuple, Generator, Any, List, Set, Dict
 
-import jsons
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
 from core import feature
 from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
+from core.util import utc, utc_str
 
 
 class EdgeType:
@@ -146,8 +145,8 @@ class GraphAccess:
         self.nodes = sub.nodes()
         self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
         self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
-        self.at = datetime.now(timezone.utc)
-        self.at_json = jsons.dump(self.at)
+        self.at = utc()
+        self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
 
     def root(self) -> str:

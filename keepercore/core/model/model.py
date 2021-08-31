@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
-from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Sequence
+from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Sequence, Tuple
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -481,7 +481,7 @@ class Complex(Kind):
         self.allow_unknown_props = allow_unknown_props
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
-        self.__resolved_kinds: Dict[str, Kind] = dict()
+        self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = dict()
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__properties_kind_by_path: Dict[PropertyPath, SimpleKind] = dict()
@@ -492,7 +492,7 @@ class Complex(Kind):
             for prop in self.properties:
                 kind = prop.resolve(model)
                 kind.resolve(model)
-                self.__resolved_kinds[prop.name] = kind
+                self.__resolved_kinds[prop.name] = (prop, kind)
 
             # property path -> kind
             self.__properties_kind_by_path = self.__resolve_property_paths()
@@ -529,7 +529,7 @@ class Complex(Kind):
 
         result: Dict[PropertyPath, SimpleKind] = {}
         for x in self.properties:
-            result |= path_for(x, self.__resolved_kinds[x.name], from_path)
+            result |= path_for(x, self.__resolved_kinds[x.name][1], from_path)
 
         return result
 
@@ -552,18 +552,25 @@ class Complex(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
-            result = {}
+            result: Json = {}
             has_coerced = False
             for name, value in obj.items():
-                if name in self.__resolved_kinds:
-                    try:
-                        coerced = self.__resolved_kinds[name].check_valid(value, **kwargs)
-                        has_coerced |= coerced is not None
-                        result[name] = coerced if coerced is not None else value
-                    except AttributeError as at:
-                        raise AttributeError(
-                            f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}"
-                        ) from at
+                known = self.__resolved_kinds.get(name, None)
+                if known:
+                    prop, kind = known
+                    if value is None:
+                        if prop.required:
+                            raise AttributeError(f"Required property {prop.name} is undefined!")
+                        result[name] = None
+                    else:
+                        try:
+                            coerced = kind.check_valid(value, **kwargs)
+                            has_coerced |= coerced is not None
+                            result[name] = coerced if coerced is not None else value
+                        except AttributeError as at:
+                            raise AttributeError(
+                                f"Kind:{self.fqn} Property:{name} is not valid: {at}: {json.dumps(obj)}"
+                            ) from at
                 elif name == "kind":
                     # ok since kind is the type discriminator
                     pass

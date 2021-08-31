@@ -20,7 +20,7 @@ from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus, CoreEvent
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
-from core.model.model import Model
+from core.model.model import Model, Complex
 from core.query.model import (
     Predicate,
     IsInstanceTerm,
@@ -64,7 +64,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
     ) -> Tuple[list[str], GraphUpdate]:
         pass
 
@@ -144,7 +144,7 @@ class ArangoGraphDB(GraphDB):
         graph.add_node(node_id, data)
         graph.add_edge(under_node_id, node_id, EdgeType.default)
         access = GraphAccess(graph.graph, node_id, {under_node_id})
-        _, node_inserts, _, _ = self.prepare_nodes(access, [])
+        _, node_inserts, _, _ = self.prepare_nodes(access, [], model)
         _, edge_inserts, _ = self.prepare_edges(access, [], EdgeType.default)
         assert len(node_inserts) == 1
         assert len(edge_inserts) == 1
@@ -360,14 +360,23 @@ class ArangoGraphDB(GraphDB):
         doc = {"_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))}
         await db.delete(self.in_progress, doc, ignore_missing=True)
 
+    @staticmethod
     def prepare_nodes(
-        self, access: GraphAccess, node_cursor: Iterable[Json]
+        access: GraphAccess, node_cursor: Iterable[Json], model: Model
     ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         sub_root_id = access.root()
         info = GraphUpdate()
         resource_inserts: List[Json] = []
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
+
+        def normalize_reported(json: Json, created_at: Any) -> Json:
+            # preserve ctime in reported: if it is not set, use the creation time of the object
+            if not json.get("ctime", None):
+                kind = model[json]
+                if isinstance(kind, Complex) and "ctime" in kind:
+                    json["ctime"] = created_at
+            return json
 
         def insert_node(
             id_string: str,
@@ -381,12 +390,14 @@ class ArangoGraphDB(GraphDB):
             js_doc: Json = {
                 "_key": id_string,
                 "hash": hash_string,
-                "reported": js,
+                "reported": normalize_reported(js, access.at_json),
                 "desired": maybe_desired,
                 "metadata": maybe_meta,
                 "kinds": kinds,
                 "flat": flat,
                 "update_id": sub_root_id,
+                "created": access.at_json,
+                "updated": access.at_json,
             }
             resource_inserts.append(js_doc)
             info.nodes_created += 1
@@ -400,17 +411,18 @@ class ArangoGraphDB(GraphDB):
                 resource_deletes.append({"_key": key})
                 info.nodes_deleted += 1
             elif elem[4] != hash_string:
-                _, js, maybe_desired, maybe_meta, current_hash, kinds, flat = elem
+                _, reported, maybe_desired, maybe_meta, current_hash, kinds, flat = elem
                 # node is in db and in the graph, content is different
                 js = {
                     "_key": key,
                     "hash": current_hash,
-                    "reported": js,
+                    "reported": normalize_reported(reported, node["created"]),
                     "desired": maybe_desired,
                     "metadata": maybe_meta,
                     "kinds": kinds,
                     "flat": flat,
                     "update_id": sub_root_id,
+                    "updated": access.at_json,
                 }
                 resource_updates.append(js)
                 info.nodes_updated += 1
@@ -458,7 +470,7 @@ class ArangoGraphDB(GraphDB):
         return info, edges_inserts, edges_deletes
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
     ) -> Tuple[list[str], GraphUpdate]:
         is_batch = maybe_batch is not None
         change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
@@ -470,7 +482,7 @@ class ArangoGraphDB(GraphDB):
             # check all nodes for this subgraph
             query, bind = node_query
             with await self.db.aql(query, bind_vars=bind) as node_cursor:
-                node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor)
+                node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor, model)
                 graph_info += node_info
 
             # check all edges in all relevant edge-collections
@@ -740,7 +752,7 @@ class ArangoGraphDB(GraphDB):
             node_idxes = {idx["name"]: idx for idx in nodes.indexes()}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_id" not in node_idxes:
-                nodes.add_persistent_index(["_key", "update_id", "hash"], sparse=False, name="update_value")
+                nodes.add_persistent_index(["_key", "update_id", "hash", "created"], sparse=False, name="update_value")
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
@@ -802,7 +814,7 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN {self.vertex_name}
         FILTER a.update_id==@update_id
-        RETURN {{_key: a._key, hash:a.hash}}
+        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
 
     def query_update_edges(self, edge_type: str) -> str:
@@ -817,7 +829,7 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN {self.vertex_name}
         FILTER a._key IN @ids
-        RETURN {{_key: a._key, hash:a.hash}}
+        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
 
     def query_update_edges_by_ids(self, edge_type: str) -> str:
@@ -905,9 +917,9 @@ class EventGraphDB(GraphDB):
             yield elem
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
     ) -> Tuple[list[str], GraphUpdate]:
-        roots, info = await self.real.merge_graph(graph_to_merge, maybe_batch)
+        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_batch)
         even_data = {"graph": self.graph_name, "root_ids": roots}
         if maybe_batch:
             await self.event_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
