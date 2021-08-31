@@ -188,6 +188,8 @@ class Job(TaskDescription):
     ):
         super().__init__(uid, name)
         self.command = command
+        self.trigger = trigger
+        self.wait = wait
         self._triggers = [trigger]
         self._steps = []
         if wait:
