@@ -634,7 +634,7 @@ class ArangoGraphDB(GraphDB):
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
         mw = query.preamble.get("merge_with")
-        merge_with = re.split("\\s*,\\s*", mw) if mw else []
+        merge_with: list[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
         bind_vars: Json = {}
 
         def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
@@ -714,13 +714,13 @@ class ArangoGraphDB(GraphDB):
             return p, idx, out, query_part
 
         def merge_parents(cursor: str, part_str: str, parents: list[str]) -> tuple[str, str]:
-            # bind_vars["merge_stop_at"] = parents[0]
+            bind_vars["merge_stop_at"] = parents[0]
             bind_vars["merge_parent_parent_nodes"] = parents
             parts = [
                 f"FOR node in {cursor} "
                 + "LET parent_nodes = ("
                 + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
-                # + "PRUNE @merge_stop_at in p.kinds "
+                + "PRUNE @merge_stop_at in p.kinds "
                 + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
                 + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
             ]

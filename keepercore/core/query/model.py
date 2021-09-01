@@ -345,7 +345,7 @@ class Query:
         if parts is None or len(parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {parts}")
         self.parts = parts
-        self.preamble: dict[str, str] = preamble if preamble else dict()
+        self.preamble: dict[str, SimpleValue] = preamble if preamble else dict()
         self.aggregate = aggregate
 
     @staticmethod

@@ -20,6 +20,7 @@ from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
+from core.util import AccessJson
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -328,6 +329,19 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
     agg_query = parse_query('aggregate(kind: count(identifier) as instances): isinstance("foo")')
     gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
     assert [x async for x in gen] == [{"kind": "foo", "instances": 13}]
+
+
+@pytest.mark.asyncio
+async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    agg_query = parse_query('{merge_with="foo,bar"}: isinstance("bla")')
+    async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")):
+        js = AccessJson(bla)
+        assert "bar" in js.reported  # key exists
+        assert js.reported.bar is None  # bla is not a parent of this node
+        assert "foo" in js.reported  # key exists
+        assert js.reported.foo is not None  # foo is merged into reported
+        # make sure the correct parent is merged (foo(1) -> bla(1_xxx))
+        assert js.reported.identifier.startswith(js.reported.foo.identifier)
 
 
 @pytest.mark.asyncio
