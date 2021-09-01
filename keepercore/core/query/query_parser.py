@@ -50,7 +50,7 @@ operation_p = reduce(
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
 
-preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type"]])
+preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with"]])
 
 lparen_p = lexeme(lparen_dp)
 rparen_p = lexeme(rparen_dp)
@@ -174,7 +174,7 @@ def part_parser() -> Parser:
 def key_value_parser() -> Parser:
     key = yield preamble_prop_p
     yield equals_p
-    value = yield quoted_string_p | literal_p
+    value = yield quoted_string_p | true_p | false_p | float_p | integer_p | literal_p
     return key, value
 
 
@@ -254,7 +254,7 @@ def query_parser() -> Parser:
     for part in parts:
         if part.navigation and not part.navigation.edge_type:
             part.navigation.edge_type = edge_type
-    return Query(parts[::-1], maybe_aggregate)
+    return Query(parts[::-1], preamble, maybe_aggregate)
 
 
 def parse_query(query: str) -> Query:

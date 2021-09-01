@@ -114,6 +114,10 @@ def test_query_with_preamble() -> None:
 
 def test_preamble_tags() -> None:
     assert preamble_tags_parser.parse("{edge_type=foo}") == {"edge_type": "foo"}
+    assert preamble_tags_parser.parse("{edge_type=23}") == {"edge_type": 23}
+    assert preamble_tags_parser.parse("{edge_type=23.123}") == {"edge_type": 23.123}
+    assert preamble_tags_parser.parse("{edge_type=true}") == {"edge_type": True}
+    assert preamble_tags_parser.parse("{edge_type=false}") == {"edge_type": False}
     assert preamble_tags_parser.parse('{edge_type="!@#*(&$({{:::"}') == {"edge_type": "!@#*(&$({{:::"}
     assert preamble_parser.parse("") == (None, {})
 

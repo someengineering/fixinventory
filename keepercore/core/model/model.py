@@ -720,9 +720,9 @@ class Model:
                 # Filter out duplicates that have the same kind or any side is any
                 non_unique = list(filter(simple_kind_incompatible, intersect))
                 if non_unique:
-                    message = ", ".join(repr(a) for a in non_unique)
+                    message = ", ".join(f"{a} ({all_paths[a].fqn} -> {paths[a].fqn})" for a in non_unique)
                     raise AttributeError(
-                        f"Update not possible. Following properties would be non unique having "
+                        f"Update not possible. {kind.fqn}: following properties would be non unique having "
                         f"the same path but different type: {message}"
                     )
                 return paths | all_paths

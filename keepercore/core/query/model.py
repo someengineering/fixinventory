@@ -332,11 +332,14 @@ class Aggregate:
         return f"aggregate({group_by}: {funcs})"
 
 
+SimpleValue = Union[str, int, float, bool]
+
+
 class Query:
     def __init__(
         self,
         parts: List[Part],
-        preamble: Optional[dict[str, str]] = None,
+        preamble: Optional[dict[str, SimpleValue]] = None,
         aggregate: Optional[Aggregate] = None,
     ):
         if parts is None or len(parts) == 0:
@@ -346,14 +349,17 @@ class Query:
         self.aggregate = aggregate
 
     @staticmethod
-    def by(term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, str]] = None) -> Query:
+    def by(
+        term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, SimpleValue]] = None
+    ) -> Query:
         res = Query.mk_term(term, *terms)
         return Query([Part(res)], preamble)
 
     def __str__(self) -> str:
         aggregate = str(self.aggregate) if self.aggregate else ""
-        preamble = "{" + ", ".join(f'{k}="{v}"' for k, v in self.preamble.items()) + "}" if self.preamble else ""
-        colon = ":" if len(self.preamble) > 0 or self.aggregate else ""
+        to_str = Predicate.value_str_rep
+        preamble = "{" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + "}" if self.preamble else ""
+        colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
         return f"{aggregate}{preamble}{colon}{parts}"
 

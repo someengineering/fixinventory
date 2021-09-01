@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -632,6 +633,8 @@ class ArangoGraphDB(GraphDB):
         query = query_model.query
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
+        mw = query.preamble.get("merge_with")
+        merge_with = re.split("\\s*,\\s*", mw) if mw else []
         bind_vars: Json = {}
 
         def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
@@ -710,17 +713,40 @@ class ArangoGraphDB(GraphDB):
             query_part = f"LET {out} = (FOR {cursor} in {collection} FILTER {trm} {rtn})"
             return p, idx, out, query_part
 
+        def merge_parents(cursor: str, part_str: str, parents: list[str]) -> tuple[str, str]:
+            # bind_vars["merge_stop_at"] = parents[0]
+            bind_vars["merge_parent_parent_nodes"] = parents
+            parts = [
+                f"FOR node in {cursor} "
+                + "LET parent_nodes = ("
+                + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
+                # + "PRUNE @merge_stop_at in p.kinds "
+                + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
+                + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
+            ]
+            for p in parents:
+                bv = f"merge_node_{p}"
+                bind_vars[bv] = p
+                parts.append(f"""LET {p} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+
+            parent_result = "{" + ",".join([f"{p}: {p}.reported" for p in parents]) + "}"
+            parts.append(f'RETURN MERGE(node, {{"reported": MERGE(node.reported, {parent_result})}})')
+            return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(parts)})'
+
         parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
+        crs = last(parts)[2]
         all_parts = " ".join(p[3] for p in parts)
+        print(merge_with)
+        resulting_cursor, query_str = merge_parents(crs, all_parts, merge_with) if merge_with else (crs, all_parts)
         limited = f" LIMIT {limit} " if limit else ""
         if query.aggregate:  # return aggregate
             group_by, return_spec = aggregate("r", query.aggregate)
-            return f"""{all_parts} FOR r in {last(parts)[2]} {group_by}{limited} RETURN {return_spec}""", bind_vars
+            return f"""{query_str} FOR r in {resulting_cursor} {group_by}{limited} RETURN {return_spec}""", bind_vars
         else:  # return results
             # return all pinned parts (last result is "pinned" automatically)
             pinned = set(map(lambda x: x[2], filter(lambda x: x[0].pinned, parts)))
-            result = f'UNION({",".join(pinned)},{last(parts)[2]})' if pinned else last(parts)[2]
-            return f"""{all_parts} FOR r in {result}{limited} RETURN r""", bind_vars
+            result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
+            return f"""{query_str} FOR r in {result}{limited} RETURN r""", bind_vars
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
