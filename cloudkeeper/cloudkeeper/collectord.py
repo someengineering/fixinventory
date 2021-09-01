@@ -123,22 +123,16 @@ def keepercore_message_processor(
     data = message.get("data")
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
-        if message_type == "collect":
-            try:
+        try:
+            if message_type == "collect":
                 collect(collectors)
-            except Exception as e:
-                log.exception(f"Failed to collect: {e}")
-                reply_kind = "action_error"
-            else:
-                reply_kind = "action_done"
-        elif message_type == "cleanup":
-            try:
+            elif message_type == "cleanup":
                 cleanup()
-            except Exception as e:
-                log.exception(f"Failed to cleanup: {e}")
-                reply_kind = "action_error"
             else:
-                reply_kind = "action_done"
+                raise ValueError(f"Unknown message type {message_type}")
+        except Exception as e:
+            log.exception(f"Failed to {message_type}: {e}")
+            reply_kind = "action_error"
 
         reply_message = {
             "kind": reply_kind,
