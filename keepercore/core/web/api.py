@@ -33,6 +33,7 @@ from core.query.query_parser import parse_query
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
+from core.util import force_gen
 
 log = logging.getLogger(__name__)
 Section = Union[str, List[str]]
@@ -481,7 +482,9 @@ class Api:
             return web.HTTPNotFound(text=hint)
 
     @staticmethod
-    async def stream_response_from_gen(request: Request, gen: AsyncGenerator[Json, None]) -> StreamResponse:
+    async def stream_response_from_gen(request: Request, gen_in: AsyncGenerator[Json, None]) -> StreamResponse:
+        gen = await force_gen(gen_in)
+
         async def respond_json() -> StreamResponse:
             response = web.StreamResponse(status=200, headers={"Content-Type": "application/json"})
             await response.prepare(request)
