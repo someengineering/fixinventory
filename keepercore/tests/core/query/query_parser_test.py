@@ -91,7 +91,7 @@ def test_part() -> None:
 
 def test_query() -> None:
     query = (
-        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59), preamble={"edge_type": EdgeType.default})
         .traverse_out()
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()

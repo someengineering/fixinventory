@@ -333,21 +333,29 @@ class Aggregate:
 
 
 class Query:
-    def __init__(self, parts: List[Part], aggregate: Optional[Aggregate] = None):
+    def __init__(
+        self,
+        parts: List[Part],
+        preamble: Optional[dict[str, str]] = None,
+        aggregate: Optional[Aggregate] = None,
+    ):
         if parts is None or len(parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {parts}")
         self.parts = parts
+        self.preamble: dict[str, str] = preamble if preamble else dict()
         self.aggregate = aggregate
 
     @staticmethod
-    def by(term: Union[str, Term], *terms: Union[str, Term]) -> Query:
+    def by(term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, str]] = None) -> Query:
         res = Query.mk_term(term, *terms)
-        return Query([Part(res)])
+        return Query([Part(res)], preamble)
 
     def __str__(self) -> str:
-        agg = f"{self.aggregate}: " if self.aggregate else ""
+        aggregate = str(self.aggregate) if self.aggregate else ""
+        preamble = "{" + ", ".join(f'{k}="{v}"' for k, v in self.preamble.items()) + "}" if self.preamble else ""
+        colon = ":" if len(self.preamble) > 0 or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
-        return f"{agg}{parts}"
+        return f"{aggregate}{preamble}{colon}{parts}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
@@ -359,7 +367,7 @@ class Query:
         else:
             # put to the start
             parts.insert(0, Part(res))
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "out")
@@ -381,15 +389,15 @@ class Query:
                 parts.insert(0, Part(AllTerm(), False, Navigation(start, until, edge_type, direction)))
         else:
             parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
-        return Query(self.parts, aggregate)
+        return Query(self.parts, self.preamble, aggregate)
 
     def simplify(self) -> Query:
         parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:
