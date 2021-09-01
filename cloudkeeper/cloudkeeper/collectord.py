@@ -133,6 +133,8 @@ def keepercore_message_processor(
         except Exception as e:
             log.exception(f"Failed to {message_type}: {e}")
             reply_kind = "action_error"
+        else:
+            reply_kind = "action_done"
 
         reply_message = {
             "kind": reply_kind,
