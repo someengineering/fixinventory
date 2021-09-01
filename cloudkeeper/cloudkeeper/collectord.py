@@ -128,6 +128,8 @@ def keepercore_message_processor(
                 collect(collectors)
             elif message_type == "cleanup":
                 cleanup()
+            else:
+                raise ValueError(f"Unknown message type {message_type}")
         except Exception as e:
             log.exception(f"Failed to {message_type}: {e}")
             reply_kind = "action_error"
