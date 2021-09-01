@@ -49,8 +49,9 @@ def update_metrics(metrics: Dict) -> None:
     base_uri = ArgumentParser.args.keepercore_uri.strip("/")
     keepercore_graph = ArgumentParser.args.keepercore_graph
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    query_uri = f"{graph_uri}/query/graph"
-    query = "desired.delete==true -[0:]-"
+    query_uri = f"{graph_uri}/query/aggregate"
+    query = 'aggregate(cloud.name as cloud, region.name as region : sum(instance_cores) as instance_cores) {merge_with="cloud,region"}: isinstance("instance")'
+
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
     )
