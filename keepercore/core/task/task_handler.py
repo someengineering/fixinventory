@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
 from io import TextIOWrapper
@@ -12,6 +13,8 @@ from aiostream import stream
 from argparse import ArgumentParser, Namespace
 
 from functools import reduce
+
+from apscheduler.triggers.cron import CronTrigger
 
 from core.cli.cli import CLI
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
@@ -35,6 +38,7 @@ from core.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
     StepErrorBehaviour,
+    Trigger,
 )
 from core.util import first, Periodic, group_by, uuid_str
 
@@ -357,10 +361,13 @@ class TaskHandler:
         Example
 
         # event based trigger
-        event_name:reported test==true | clean
+        event_name : reported test==true | clean
+
+        # cron based trigger
+        0 5 * * sat : reported name="foo" | desire name="bla"
 
         # cron based + event based trigger
-        0 5 * * sat event_name:reported name="foo" | desire name="bla"
+        0 5 * * sat event_name : reported name="foo" | desire name="bla"
 
         :param file: the file handle to parse.
         :return: all parsed jobs.
@@ -370,9 +377,7 @@ class TaskHandler:
         with file as reader:
             for line in reader:
                 stripped = line.strip()
-                if not stripped or stripped.startswith("#"):
-                    pass
-                else:
+                if stripped and not stripped.startswith("#"):
                     jobs.append(await self.parse_job_line(file.name, stripped))
         return jobs
 
@@ -384,31 +389,30 @@ class TaskHandler:
         :return: the parsed jon
         """
         try:
-            trigger_raw, command_raw = line.strip().split(":", 1)
-            trigger = trigger_raw.strip()
-            command = command_raw.strip()
-            uid = uuid_str(line)
-            await self.cli.evaluate_cli_command(command)
-            if " " in trigger:
-                cron, event = trigger.rsplit(" ", 1)
-                job = Job(
-                    uid,
-                    f"scheduled job from file {source} at {cron}",
-                    ExecuteCommand(command),
-                    TimeTrigger(cron),
-                    timedelta(minutes=3),
-                    (EventTrigger(event), timedelta(hours=24)),
-                )
+            trigger, command = re.split("\\s*:\\s*", line.strip(), 1)
+            uid = uuid_str(line.strip())
+            await self.cli.evaluate_cli_command(command)  # make sure the command can be parsed
+            parts = re.split("\\s+", trigger)
+            job_trigger: Trigger = None  # type: ignore
+            if len(parts) == 1:
+                description = f"event triggered job {trigger} from file {source}"
+                job_trigger = EventTrigger(trigger)
+                wait = None
+            elif len(parts) == 5:
+                description = f"scheduled job {trigger} from file {source}"
+                CronTrigger.from_crontab(trigger)  # make sure the cron expression is valid
+                job_trigger = TimeTrigger(trigger)
+                wait = None
+            elif len(parts) == 6:
+                cron = " ".join(parts[0:5])
+                description = f"scheduled job {cron} with wait for event {parts[5]} from file {source}"
+                CronTrigger.from_crontab(cron)  # make sure the cron expression is valid
+                job_trigger = TimeTrigger(cron)
+                wait = (EventTrigger(parts[5]), timedelta(hours=24))
             else:
-                job = Job(
-                    uid,
-                    f"event triggered job from file {source}",
-                    ExecuteCommand(command),
-                    EventTrigger(trigger),
-                    timedelta(minutes=3),
-                )
-            log.info(f"Read job {job.name} with command {job.command.command}")
-            return job
+                raise AttributeError(f"Can not parse trigger of job {trigger}")
+            log.info(f"Read job {description} with command {command}")
+            return Job(uid, description, ExecuteCommand(command), job_trigger, timedelta(minutes=3), wait)
         except Exception as ex:
             raise ParseError(f"Can not parse job command line: {line}") from ex
 

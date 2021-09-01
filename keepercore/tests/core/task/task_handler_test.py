@@ -81,16 +81,31 @@ async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> 
 
 
 @pytest.mark.asyncio
-async def test_parse_job_file(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", 'cleanup_plan:match kind == "node" | clean')
+async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
+    job = await task_handler.parse_job_line("test", 'cleanup_plan : match kind == "node" | clean')
     assert job.trigger == EventTrigger("cleanup_plan")
     assert job.command.command == 'match kind == "node" | clean'
-    job = await task_handler.parse_job_line("test", '0 5 * * sat cleanup_plan:match t2 == "node" | clean')
+    assert job.wait is None
+
+
+@pytest.mark.asyncio
+async def test_parse_job_line_time_trigger(task_handler: TaskHandler) -> None:
+    job = await task_handler.parse_job_line("test", '0 5 * * sat : match t2 == "node" | clean')
+    assert job.trigger == TimeTrigger("0 5 * * sat")
+    assert job.command.command == 'match t2 == "node" | clean'
+    assert job.wait is None
+    with pytest.raises(ParseError):
+        await task_handler.parse_job_line("test", '0 5 invalid_cron_expr * sat : match t2 == "node" | clean')
+
+
+@pytest.mark.asyncio
+async def test_parse_job_line_event_and_time_trigger(task_handler: TaskHandler) -> None:
+    job = await task_handler.parse_job_line("test", '0 5 * * sat cleanup_plan : match t2 == "node" | clean')
     assert job.trigger == TimeTrigger("0 5 * * sat")
     assert job.command.command == 'match t2 == "node" | clean'
     assert job.wait[0] == EventTrigger("cleanup_plan")  # type: ignore
     with pytest.raises(ParseError):
-        await task_handler.parse_job_line("test", "does not make sense")
+        await task_handler.parse_job_line("test", '0 5 invalid_cron_expr * sat cleanup_plan:match t2 == "node" | clean')
 
 
 @pytest.mark.asyncio
