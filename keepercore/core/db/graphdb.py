@@ -642,10 +642,12 @@ class ArangoGraphDB(GraphDB):
                 name = f"{cursor}.{section_dot}{fn.name}" if isinstance(fn.name, str) else str(fn.name)
                 return f"{name} {fn.combined_ops()}" if fn.ops else name
 
-            variables = ", ".join(f"{v.get_as_name()}={cursor}.{section_dot}{v.name}" for v in a.group_by)
-            funcs = ", ".join(f"{v.get_as_name()}={v.function}({func_term(v)})" for v in a.group_func)
-            agg_vars = ", ".join(v.get_as_name() for v in a.group_by)
-            agg_funcs = ", ".join(f.get_as_name() for f in a.group_func)
+            vs = {v.name: f"var_{num}" for num, v in enumerate(a.group_by)}
+            fs = {v.name: f"fn_{num}" for num, v in enumerate(a.group_func)}
+            variables = ", ".join(f"{vs[v.name]}={cursor}.{section_dot}{v.name}" for v in a.group_by)
+            funcs = ", ".join(f"{fs[v.name]}={v.function}({func_term(v)})" for v in a.group_func)
+            agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[v.name]}' for v in a.group_by)
+            agg_funcs = ", ".join(f'"{f.get_as_name()}": {fs[f.name]}' for f in a.group_func)
             return f"collect {variables} aggregate {funcs}", f'{{"group":{{{agg_vars}}}, {agg_funcs}}}'
 
         def predicate(cursor: str, p: Predicate) -> str:
