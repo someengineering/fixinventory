@@ -1,6 +1,9 @@
 import json
 
-from core.util import AccessJson, uuid_str
+import pytest
+from aiostream import stream
+
+from core.util import AccessJson, force_gen, uuid_str
 
 
 def test_access_json() -> None:
@@ -22,3 +25,19 @@ def test_uuid() -> None:
     assert uuid_str("foo") == uuid_str("foo")
     assert uuid_str("foo") != uuid_str("bla")
     assert uuid_str() != uuid_str()
+
+
+@pytest.mark.asyncio
+async def test_async_gen() -> None:
+
+    async with stream.empty().stream() as empty:
+        async for _ in await force_gen(empty):
+            pass
+
+    with pytest.raises(Exception):
+        async with stream.throw(Exception(";)")).stream() as err:
+            async for _ in await force_gen(err):
+                pass
+
+    async with stream.iterate(range(0, 100)).stream() as elems:
+        assert [x async for x in await force_gen(elems)] == list(range(0, 100))

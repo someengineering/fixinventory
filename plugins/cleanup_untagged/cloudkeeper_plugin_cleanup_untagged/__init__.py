@@ -19,7 +19,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 metrics_cleanup_untagged = Counter(
     "cloudkeeper_plugin_cleanup_untagged_resources_total",
     "Cleanup Untagged Plugin Untagged Resources",
-    ["cloud", "account", "region", "resource_type"],
+    ["cloud", "account", "region", "kind"],
 )
 
 
@@ -90,7 +90,7 @@ class CleanupUntaggedPlugin(BasePlugin):
                     cloud=cloud.name,
                     account=account.name,
                     region=region.name,
-                    resource_type=node.resource_type,
+                    kind=node.kind,
                 ).inc()
                 log_msg = (
                     f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older "
@@ -98,7 +98,7 @@ class CleanupUntaggedPlugin(BasePlugin):
                 )
                 log.error(
                     (
-                        f"Cleaning resource {node.resource_type} {node.dname} in cloud {cloud.name} "
+                        f"Cleaning resource {node.rtdname} in cloud {cloud.name} "
                         f"account {account.dname} region {region.name}: {log_msg}"
                     )
                 )

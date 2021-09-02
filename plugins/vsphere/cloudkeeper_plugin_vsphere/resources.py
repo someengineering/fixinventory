@@ -16,7 +16,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class VSphereCluster(BaseAccount):
-    resource_type: ClassVar[str] = "vsphere_cluster"
+    kind: ClassVar[str] = "vsphere_cluster"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -24,7 +24,7 @@ class VSphereCluster(BaseAccount):
 
 @dataclass(eq=False)
 class VSphereDataCenter(BaseRegion):
-    resource_type: ClassVar[str] = "vsphere_data_center"
+    kind: ClassVar[str] = "vsphere_data_center"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -32,7 +32,7 @@ class VSphereDataCenter(BaseRegion):
 
 @dataclass(eq=False)
 class VSphereResource:
-    resource_type: ClassVar[str] = "vsphere_resource"
+    kind: ClassVar[str] = "vsphere_resource"
 
     def _vsphere_client(self) -> VSphereClient:
         return get_vsphere_client()
@@ -40,7 +40,7 @@ class VSphereResource:
 
 @dataclass(eq=False)
 class VSphereInstance(BaseInstance, VSphereResource):
-    resource_type: ClassVar[str] = "vsphere_instance"
+    kind: ClassVar[str] = "vsphere_instance"
 
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "pending": InstanceStatus.BUSY,

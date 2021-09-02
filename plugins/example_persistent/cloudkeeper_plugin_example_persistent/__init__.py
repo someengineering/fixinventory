@@ -34,9 +34,9 @@ class ExamplePersistentPlugin(BasePlugin):
         if ArgumentParser.args.example_arg:
             graph = event.data
             log.info("Example Persistent Plugin Event Handler called")
-            for node in graph.search("resource_type", "example_account"):
+            for node in graph.search("kind", "example_account"):
                 log.debug(
-                    f"Found node {node.dname} of resource type {node.resource_type} created {node.ctime}"
+                    f"Found node {node.dname} of kind {node.kind} created {node.ctime}"
                 )
 
     @staticmethod

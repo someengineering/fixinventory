@@ -6,7 +6,19 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta, datetime, timezone
-from typing import Any, Callable, Optional, Awaitable, Dict, TypeVar, List, Tuple, Mapping, MutableSequence
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Awaitable,
+    Dict,
+    TypeVar,
+    List,
+    Tuple,
+    Mapping,
+    MutableSequence,
+    AsyncGenerator,
+)
 
 from dateutil.parser import isoparse
 
@@ -133,6 +145,18 @@ def split_esc(s: str, delim: str) -> List[str]:
             continue  # add more to buf
         res.append(buf + s[i : j - d])  # noqa: E203
         i, buf = j + len(delim), ""  # start after delim
+
+
+async def force_gen(gen: AsyncGenerator[AnyT, None]) -> AsyncGenerator[AnyT, None]:
+    async def with_first(elem: AnyT) -> AsyncGenerator[AnyT, None]:
+        yield elem
+        async for a in gen:
+            yield a
+
+    try:
+        return with_first(await gen.__anext__())
+    except StopAsyncIteration:
+        return gen
 
 
 class Periodic:

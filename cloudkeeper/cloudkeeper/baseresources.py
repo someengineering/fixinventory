@@ -19,12 +19,12 @@ log = cloudkeeper.logging.getLogger(__name__)
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",
     "Number of resource pre_cleanup() exceptions",
-    ["cloud", "account", "region", "resource_type"],
+    ["cloud", "account", "region", "kind"],
 )
 metrics_resource_cleanup_exceptions = Counter(
     "resource_cleanup_exceptions_total",
     "Number of resource cleanup() exceptions",
-    ["cloud", "account", "region", "resource_type"],
+    ["cloud", "account", "region", "kind"],
 )
 metrics_resource_cleanup = Summary(
     "cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method"
@@ -60,8 +60,8 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also three class variables, resource_type, phantom and metrics_description.
-    resource_type is a string describing the type of resource, e.g. 'aws_ec2_instance'
+    There's also three class variables, kind, phantom and metrics_description.
+    kind is a string describing the type of resource, e.g. 'aws_ec2_instance'
     or 'some_cloud_load_balancer'.
     phantom is a bool describing whether or not the resource actually exists within
     the cloud or if it's just a phantom resource like pricing information or usage
@@ -88,7 +88,7 @@ class BaseResource(ABC):
     instances of this type and in this cloud, account and region.
     """
 
-    resource_type: ClassVar[str] = "base_resource"
+    kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
     metrics_description: ClassVar[Dict] = {}
 
@@ -99,9 +99,9 @@ class BaseResource(ABC):
     _account: object = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
-    ctime: datetime = None
-    mtime: datetime = None
-    atime: datetime = None
+    ctime: Optional[datetime] = None
+    mtime: Optional[datetime] = None
+    atime: Optional[datetime] = None
 
     def __post_init__(self) -> None:
         if self.name is None:
@@ -118,18 +118,26 @@ class BaseResource(ABC):
         self.max_graph_depth: int = 0
         for metric in self.metrics_description.keys():
             self._metrics[metric] = {}
+        if not hasattr(self, "_tags"):
+            self._tags = None
+        if not hasattr(self, "_ctime"):
+            self._ctime = None
+        if not hasattr(self, "_atime"):
+            self._atime = None
+        if not hasattr(self, "_mtime"):
+            self._mtime = None
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
             f" region='{self.region().name}', zone='{self.zone().name}',"
-            f" account='{self.account().dname}', resource_type='{self.resource_type}',"
+            f" account='{self.account().dname}', kind='{self.kind}',"
             f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
         )
 
     def _keys(self):
         return (
-            self.resource_type,
+            self.kind,
             self.cloud().id,
             self.account().id,
             self.region().id,
@@ -145,9 +153,6 @@ class BaseResource(ABC):
     #        if isinstance(other, type(self)):
     #            return self._keys() == other._keys()
     #        return NotImplemented
-    @property
-    def kind(self) -> str:
-        return self.resource_type
 
     @property
     def dname(self) -> str:
@@ -156,8 +161,10 @@ class BaseResource(ABC):
         return f"{self.name} ({self.id})"
 
     @property
-    def rtdname(self) -> str:
-        return f"{self.resource_type} {self.dname}"
+    def kdname(self) -> str:
+        return f"{self.kind} {self.dname}"
+
+    rtdname = kdname
 
     def _tags_getter(self) -> Dict:
         return self._tags
@@ -178,6 +185,10 @@ class BaseResource(ABC):
         self.__log.append(log_entry)
 
     @property
+    def resource_type(self) -> str:
+        return self.kind
+
+    @property
     def event_log(self) -> List:
         return self.__log
 
@@ -192,21 +203,24 @@ class BaseResource(ABC):
         return sha256(str(self._keys()).encode()).hexdigest()
 
     @property
-    def age(self) -> timedelta:
+    def age(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.ctime
+        if self.ctime is not None:
+            return now - self.ctime
 
     @property
-    def last_access(self) -> timedelta:
+    def last_access(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.atime
+        if self.atime is not None:
+            return now - self.atime
 
     @property
-    def last_update(self) -> timedelta:
+    def last_update(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        return now - self.mtime
+        if self.mtime is not None:
+            return now - self.mtime
 
-    def _ctime_getter(self) -> datetime:
+    def _ctime_getter(self) -> Optional[datetime]:
         if "cloudkeeper:ctime" in self.tags:
             ctime = self.tags["cloudkeeper:ctime"]
             try:
@@ -217,19 +231,19 @@ class BaseResource(ABC):
                 return ctime
         return self._ctime
 
-    def _ctime_setter(self, value: datetime) -> None:
+    def _ctime_setter(self, value: Optional[datetime]) -> None:
         self._ctime = make_valid_timestamp(value)
 
-    def _atime_getter(self) -> datetime:
+    def _atime_getter(self) -> Optional[datetime]:
         return self._atime
 
-    def _atime_setter(self, value: datetime) -> None:
+    def _atime_setter(self, value: Optional[datetime]) -> None:
         self._atime = make_valid_timestamp(value)
 
-    def _mtime_getter(self) -> datetime:
+    def _mtime_getter(self) -> Optional[datetime]:
         return self._mtime
 
-    def _mtime_setter(self, value: datetime) -> None:
+    def _mtime_setter(self, value: Optional[datetime]) -> None:
         self._mtime = make_valid_timestamp(value)
 
     @property
@@ -310,7 +324,7 @@ class BaseResource(ABC):
                 cloud=cloud.name,
                 account=account.dname,
                 region=region.name,
-                resource_type=self.resource_type,
+                kind=self.kind,
             ).inc()
             return False
         return True
@@ -361,7 +375,7 @@ class BaseResource(ABC):
                 cloud=cloud.name,
                 account=account.dname,
                 region=region.name,
-                resource_type=self.resource_type,
+                kind=self.kind,
             ).inc()
             return False
         return True
@@ -564,7 +578,7 @@ class ResourceTagsDict(dict):
                     self.parent_resource.log(log_msg)
                     log.info(
                         (
-                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f"{log_msg} for {self.parent_resource.kind}"
                             f" {self.parent_resource.id}"
                         )
                     )
@@ -574,7 +588,7 @@ class ResourceTagsDict(dict):
                     self.parent_resource.log(log_msg)
                     log.error(
                         (
-                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f"{log_msg} for {self.parent_resource.kind}"
                             f" {self.parent_resource.id}"
                         )
                     )
@@ -597,7 +611,7 @@ class ResourceTagsDict(dict):
                     self.parent_resource.log(log_msg)
                     log.info(
                         (
-                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f"{log_msg} for {self.parent_resource.kind}"
                             f" {self.parent_resource.id}"
                         )
                     )
@@ -607,7 +621,7 @@ class ResourceTagsDict(dict):
                     self.parent_resource.log(log_msg)
                     log.error(
                         (
-                            f"{log_msg} for {self.parent_resource.resource_type}"
+                            f"{log_msg} for {self.parent_resource.kind}"
                             f" {self.parent_resource.id}"
                         )
                     )
@@ -627,7 +641,7 @@ class ResourceTagsDict(dict):
 
 @dataclass(eq=False)
 class PhantomBaseResource(BaseResource):
-    resource_type: ClassVar[str] = "phantom_base_resource"
+    kind: ClassVar[str] = "phantom_resource"
     phantom: ClassVar[bool] = True
 
     def cleanup(self, graph=None) -> bool:
@@ -639,7 +653,7 @@ class PhantomBaseResource(BaseResource):
 
 @dataclass(eq=False)
 class BaseQuota(PhantomBaseResource):
-    resource_type: ClassVar[str] = "base_quota"
+    kind: ClassVar[str] = "quota"
     quota: float = -1.0
     usage: float = 0.0
 
@@ -658,13 +672,13 @@ class BaseQuota(PhantomBaseResource):
 
 @dataclass(eq=False)
 class BaseType(BaseQuota):
-    resource_type: ClassVar[str] = "base_type"
+    kind: ClassVar[str] = "type"
     pass
 
 
 @dataclass(eq=False)
 class BaseInstanceQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_instance_quota"
+    kind: ClassVar[str] = "instance_quota"
     metrics_description: ClassVar[Dict] = {
         "instances_quotas_total": {
             "help": "Quotas of Instances",
@@ -692,7 +706,7 @@ class BaseInstanceQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseInstanceType(BaseType):
-    resource_type: ClassVar[str] = "base_instance_type"
+    kind: ClassVar[str] = "instance_type"
     metrics_description: ClassVar[Dict] = {
         "reserved_instances_total": {
             "help": "Number of Reserved Instances",
@@ -728,7 +742,7 @@ class BaseInstanceType(BaseType):
 
 @dataclass(eq=False)
 class BaseCloud(BaseResource):
-    resource_type: ClassVar[str] = "base_cloud"
+    kind: ClassVar[str] = "base_cloud"
 
     _merge: bool = field(default=False, repr=False)
 
@@ -738,7 +752,7 @@ class BaseCloud(BaseResource):
 
 @dataclass(eq=False)
 class BaseAccount(BaseResource):
-    resource_type: ClassVar[str] = "base_account"
+    kind: ClassVar[str] = "account"
     metrics_description: ClassVar[Dict] = {
         "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
     }
@@ -755,7 +769,7 @@ class BaseAccount(BaseResource):
 
 @dataclass(eq=False)
 class BaseRegion(BaseResource):
-    resource_type: ClassVar[str] = "base_region"
+    kind: ClassVar[str] = "region"
 
     _merge: bool = field(default=False, repr=False)
 
@@ -765,7 +779,7 @@ class BaseRegion(BaseResource):
 
 @dataclass(eq=False)
 class BaseZone(BaseResource):
-    resource_type: ClassVar[str] = "base_zone"
+    kind: ClassVar[str] = "zone"
 
     def zone(self, graph=None):
         return self
@@ -781,7 +795,7 @@ class InstanceStatus(Enum):
 
 @dataclass(eq=False)
 class BaseInstance(BaseResource):
-    resource_type: ClassVar[str] = "base_instance"
+    kind: ClassVar[str] = "instance"
     metrics_description: ClassVar[Dict] = {
         "instances_total": {
             "help": "Number of Instances",
@@ -874,7 +888,7 @@ BaseInstance.instance_status = property(
 
 @dataclass(eq=False)
 class BaseVolumeType(BaseType):
-    resource_type: ClassVar[str] = "base_volume_type"
+    kind: ClassVar[str] = "volume_type"
     metrics_description: ClassVar[Dict] = {
         "volumes_quotas_bytes": {
             "help": "Quotas of Volumes in bytes",
@@ -910,7 +924,7 @@ class VolumeStatus(Enum):
 
 @dataclass(eq=False)
 class BaseVolume(BaseResource):
-    resource_type: ClassVar[str] = "base_volume"
+    kind: ClassVar[str] = "volume"
     metrics_description: ClassVar[Dict] = {
         "volumes_total": {
             "help": "Number of Volumes",
@@ -989,7 +1003,7 @@ BaseVolume.volume_status = property(
 
 @dataclass(eq=False)
 class BaseSnapshot(BaseResource):
-    resource_type: ClassVar[str] = "base_snapshot"
+    kind: ClassVar[str] = "snapshot"
     metrics_description: ClassVar[Dict] = {
         "snapshots_total": {
             "help": "Number of Snapshots",
@@ -1038,7 +1052,7 @@ class BaseSnapshot(BaseResource):
 
 @dataclass(eq=False)
 class Cloud(BaseCloud):
-    resource_type: ClassVar[str] = "cloud"
+    kind: ClassVar[str] = "cloud"
 
     def delete(self, graph) -> bool:
         return False
@@ -1046,7 +1060,7 @@ class Cloud(BaseCloud):
 
 @dataclass(eq=False)
 class GraphRoot(PhantomBaseResource):
-    resource_type: ClassVar[str] = "graph_root"
+    kind: ClassVar[str] = "graph_root"
 
     def delete(self, graph) -> bool:
         return False
@@ -1054,7 +1068,7 @@ class GraphRoot(PhantomBaseResource):
 
 @dataclass(eq=False)
 class BaseBucket(BaseResource):
-    resource_type: ClassVar[str] = "base_bucket"
+    kind: ClassVar[str] = "bucket"
     metrics_description: ClassVar[Dict] = {
         "buckets_total": {
             "help": "Number of Storage Buckets",
@@ -1080,7 +1094,7 @@ class BaseBucket(BaseResource):
 
 @dataclass(eq=False)
 class BaseKeyPair(BaseResource):
-    resource_type: ClassVar[str] = "base_keypair"
+    kind: ClassVar[str] = "keypair"
     metrics_description: ClassVar[Dict] = {
         "keypairs_total": {
             "help": "Number of Key Pairs",
@@ -1107,7 +1121,7 @@ class BaseKeyPair(BaseResource):
 
 @dataclass(eq=False)
 class BaseBucketQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_bucket_quota"
+    kind: ClassVar[str] = "bucket_quota"
     metrics_description: ClassVar[Dict] = {
         "buckets_quotas_total": {
             "help": "Quotas of Storage Buckets",
@@ -1128,7 +1142,7 @@ class BaseBucketQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseNetwork(BaseResource):
-    resource_type: ClassVar[str] = "base_network"
+    kind: ClassVar[str] = "network"
     metrics_description: ClassVar[Dict] = {
         "networks_total": {
             "help": "Number of Networks",
@@ -1154,7 +1168,7 @@ class BaseNetwork(BaseResource):
 
 @dataclass(eq=False)
 class BaseNetworkQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_network_quota"
+    kind: ClassVar[str] = "network_quota"
     metrics_description: ClassVar[Dict] = {
         "networks_quotas_total": {
             "help": "Quotas of Networks",
@@ -1175,7 +1189,7 @@ class BaseNetworkQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseDatabase(BaseResource):
-    resource_type: ClassVar[str] = "base_database"
+    kind: ClassVar[str] = "database"
     metrics_description: ClassVar[Dict] = {
         "databases_total": {
             "help": "Number of Databases",
@@ -1224,7 +1238,7 @@ class BaseDatabase(BaseResource):
 
 @dataclass(eq=False)
 class BaseLoadBalancer(BaseResource):
-    resource_type: ClassVar[str] = "base_load_balancer"
+    kind: ClassVar[str] = "load_balancer"
     metrics_description: ClassVar[Dict] = {
         "load_balancers_total": {
             "help": "Number of Load Balancers",
@@ -1253,7 +1267,7 @@ class BaseLoadBalancer(BaseResource):
 
 @dataclass(eq=False)
 class BaseLoadBalancerQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_load_balancer_quota"
+    kind: ClassVar[str] = "load_balancer_quota"
     metrics_description: ClassVar[Dict] = {
         "load_balancers_quotas_total": {
             "help": "Quotas of Load Balancers",
@@ -1274,7 +1288,7 @@ class BaseLoadBalancerQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseSubnet(BaseResource):
-    resource_type: ClassVar[str] = "base_subnet"
+    kind: ClassVar[str] = "subnet"
     metrics_description: ClassVar[Dict] = {
         "subnets_total": {
             "help": "Number of Subnets",
@@ -1300,7 +1314,7 @@ class BaseSubnet(BaseResource):
 
 @dataclass(eq=False)
 class BaseGateway(BaseResource):
-    resource_type: ClassVar[str] = "base_gateway"
+    kind: ClassVar[str] = "gateway"
     metrics_description: ClassVar[Dict] = {
         "gateways_total": {
             "help": "Number of Gateways",
@@ -1326,7 +1340,7 @@ class BaseGateway(BaseResource):
 
 @dataclass(eq=False)
 class BaseTunnel(BaseResource):
-    resource_type: ClassVar[str] = "base_tunnel"
+    kind: ClassVar[str] = "tunnel"
     metrics_description: ClassVar[Dict] = {
         "tunnels_total": {
             "help": "Number of Tunnels",
@@ -1352,7 +1366,7 @@ class BaseTunnel(BaseResource):
 
 @dataclass(eq=False)
 class BaseGatewayQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_gateway_quota"
+    kind: ClassVar[str] = "gateway_quota"
     metrics_description: ClassVar[Dict] = {
         "gateways_quotas_total": {
             "help": "Quotas of Gateways",
@@ -1373,7 +1387,7 @@ class BaseGatewayQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseSecurityGroup(BaseResource):
-    resource_type: ClassVar[str] = "base_security_group"
+    kind: ClassVar[str] = "security_group"
     metrics_description: ClassVar[Dict] = {
         "security_groups_total": {
             "help": "Number of Security Groups",
@@ -1399,7 +1413,7 @@ class BaseSecurityGroup(BaseResource):
 
 @dataclass(eq=False)
 class BaseRoutingTable(BaseResource):
-    resource_type: ClassVar[str] = "base_routing_table"
+    kind: ClassVar[str] = "routing_table"
     metrics_description: ClassVar[Dict] = {
         "routing_tables_total": {
             "help": "Number of Routing Tables",
@@ -1425,7 +1439,7 @@ class BaseRoutingTable(BaseResource):
 
 @dataclass(eq=False)
 class BaseNetworkAcl(BaseResource):
-    resource_type: ClassVar[str] = "base_network_acl"
+    kind: ClassVar[str] = "network_acl"
     metrics_description: ClassVar[Dict] = {
         "network_acls_total": {
             "help": "Number of Network ACLs",
@@ -1451,7 +1465,7 @@ class BaseNetworkAcl(BaseResource):
 
 @dataclass(eq=False)
 class BasePeeringConnection(BaseResource):
-    resource_type: ClassVar[str] = "base_peering_connection"
+    kind: ClassVar[str] = "peering_connection"
     metrics_description: ClassVar[Dict] = {
         "peering_connections_total": {
             "help": "Number of Peering Connections",
@@ -1477,7 +1491,7 @@ class BasePeeringConnection(BaseResource):
 
 @dataclass(eq=False)
 class BaseEndpoint(BaseResource):
-    resource_type: ClassVar[str] = "base_endpoint"
+    kind: ClassVar[str] = "endpoint"
     metrics_description: ClassVar[Dict] = {
         "endpoints_total": {
             "help": "Number of Endpoints",
@@ -1503,7 +1517,7 @@ class BaseEndpoint(BaseResource):
 
 @dataclass(eq=False)
 class BaseNetworkInterface(BaseResource):
-    resource_type: ClassVar[str] = "base_network_interface"
+    kind: ClassVar[str] = "network_interface"
     metrics_description: ClassVar[Dict] = {
         "network_interfaces_total": {
             "help": "Number of Network Interfaces",
@@ -1537,7 +1551,7 @@ class BaseNetworkInterface(BaseResource):
 
 @dataclass(eq=False)
 class BaseUser(BaseResource):
-    resource_type: ClassVar[str] = "base_user"
+    kind: ClassVar[str] = "user"
     metrics_description: ClassVar[Dict] = {
         "users_total": {
             "help": "Number of Users",
@@ -1563,7 +1577,7 @@ class BaseUser(BaseResource):
 
 @dataclass(eq=False)
 class BaseGroup(BaseResource):
-    resource_type: ClassVar[str] = "base_group"
+    kind: ClassVar[str] = "group"
     metrics_description: ClassVar[Dict] = {
         "groups_total": {
             "help": "Number of Groups",
@@ -1589,7 +1603,7 @@ class BaseGroup(BaseResource):
 
 @dataclass(eq=False)
 class BasePolicy(BaseResource):
-    resource_type: ClassVar[str] = "base_policy"
+    kind: ClassVar[str] = "policy"
     metrics_description: ClassVar[Dict] = {
         "policies_total": {
             "help": "Number of Policies",
@@ -1615,7 +1629,7 @@ class BasePolicy(BaseResource):
 
 @dataclass(eq=False)
 class BaseRole(BaseResource):
-    resource_type: ClassVar[str] = "base_role"
+    kind: ClassVar[str] = "role"
     metrics_description: ClassVar[Dict] = {
         "roles_total": {
             "help": "Number of Roles",
@@ -1641,7 +1655,7 @@ class BaseRole(BaseResource):
 
 @dataclass(eq=False)
 class BaseInstanceProfile(BaseResource):
-    resource_type: ClassVar[str] = "base_instance_profile"
+    kind: ClassVar[str] = "instance_profile"
     metrics_description: ClassVar[Dict] = {
         "instance_profiles_total": {
             "help": "Number of Instance Profiles",
@@ -1667,7 +1681,7 @@ class BaseInstanceProfile(BaseResource):
 
 @dataclass(eq=False)
 class BaseAccessKey(BaseResource):
-    resource_type: ClassVar[str] = "base_access_key"
+    kind: ClassVar[str] = "access_key"
     metrics_description: ClassVar[Dict] = {
         "access_keys_total": {
             "help": "Number of Access Keys",
@@ -1703,7 +1717,7 @@ class BaseAccessKey(BaseResource):
 
 @dataclass(eq=False)
 class BaseCertificate(BaseResource):
-    resource_type: ClassVar[str] = "base_certificate"
+    kind: ClassVar[str] = "certificate"
     metrics_description: ClassVar[Dict] = {
         "certificates_total": {
             "help": "Number of Certificates",
@@ -1730,7 +1744,7 @@ class BaseCertificate(BaseResource):
 
 @dataclass(eq=False)
 class BaseCertificateQuota(BaseQuota):
-    resource_type: ClassVar[str] = "base_certificate_quota"
+    kind: ClassVar[str] = "certificate_quota"
     metrics_description: ClassVar[Dict] = {
         "certificates_quotas_total": {
             "help": "Quotas of Certificates",
@@ -1751,7 +1765,7 @@ class BaseCertificateQuota(BaseQuota):
 
 @dataclass(eq=False)
 class BaseStack(BaseResource):
-    resource_type: ClassVar[str] = "base_stack"
+    kind: ClassVar[str] = "stack"
     metrics_description: ClassVar[Dict] = {
         "stacks_total": {
             "help": "Number of Stacks",
@@ -1780,7 +1794,7 @@ class BaseStack(BaseResource):
 
 @dataclass(eq=False)
 class BaseAutoScalingGroup(BaseResource):
-    resource_type: ClassVar[str] = "base_autoscaling_group"
+    kind: ClassVar[str] = "autoscaling_group"
     metrics_description: ClassVar[Dict] = {
         "autoscaling_groups_total": {
             "help": "Number of Autoscaling Groups",
@@ -1808,7 +1822,7 @@ class BaseAutoScalingGroup(BaseResource):
 
 @dataclass(eq=False)
 class BaseIPAddress(BaseResource):
-    resource_type: ClassVar[str] = "base_ip_address"
+    kind: ClassVar[str] = "ip_address"
     metrics_description: ClassVar[Dict] = {
         "ip_addresses_total": {
             "help": "Number of IP Addresses",
@@ -1836,7 +1850,7 @@ class BaseIPAddress(BaseResource):
 
 @dataclass(eq=False)
 class BaseHealthCheck(BaseResource):
-    resource_type: ClassVar[str] = "base_health_check"
+    kind: ClassVar[str] = "health_check"
     metrics_description: ClassVar[Dict] = {
         "health_checks_total": {
             "help": "Number of Health Checks",
@@ -1867,7 +1881,7 @@ class BaseHealthCheck(BaseResource):
 
 @dataclass(eq=False)
 class UnknownCloud(BaseCloud):
-    resource_type: ClassVar[str] = "unknown_cloud"
+    kind: ClassVar[str] = "unknown_cloud"
 
     def delete(self, graph) -> bool:
         return False
@@ -1875,7 +1889,7 @@ class UnknownCloud(BaseCloud):
 
 @dataclass(eq=False)
 class UnknownAccount(BaseAccount):
-    resource_type: ClassVar[str] = "unknown_account"
+    kind: ClassVar[str] = "unknown_account"
 
     def delete(self, graph) -> bool:
         return False
@@ -1883,7 +1897,7 @@ class UnknownAccount(BaseAccount):
 
 @dataclass(eq=False)
 class UnknownRegion(BaseRegion):
-    resource_type: ClassVar[str] = "unknown_region"
+    kind: ClassVar[str] = "unknown_region"
 
     def delete(self, graph) -> bool:
         return False
@@ -1891,7 +1905,7 @@ class UnknownRegion(BaseRegion):
 
 @dataclass(eq=False)
 class UnknownZone(BaseZone):
-    resource_type: ClassVar[str] = "unknown_zone"
+    kind: ClassVar[str] = "unknown_zone"
 
     def delete(self, graph) -> bool:
         return False
@@ -1899,7 +1913,7 @@ class UnknownZone(BaseZone):
 
 @dataclass(eq=False)
 class UnknownLocation(BaseResource):
-    resource_type: ClassVar[str] = "unknown_location"
+    kind: ClassVar[str] = "unknown_location"
 
     def delete(self, graph) -> bool:
         return False

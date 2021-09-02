@@ -37,7 +37,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             if "%" in server:
                 server_location, server = server.split("%", 1)
                 location = self.graph.search_first_all(
-                    {"id": server_location, "resource_type": "onprem_location"}
+                    {"id": server_location, "kind": "onprem_location"}
                 )
                 if location is None:
                     location = OnpremLocation(server_location, {})
@@ -47,7 +47,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             if "%" in server:
                 server_region, server = server.split("%", 1)
                 region = self.graph.search_first_all(
-                    {"id": server_region, "resource_type": "onprem_region"}
+                    {"id": server_region, "kind": "onprem_region"}
                 )
                 if region is None:
                     region = OnpremRegion(server_region, {})
@@ -57,7 +57,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
             if "%" in server:
                 server_network, server = server.split("%", 1)
                 network = self.graph.search_first_all(
-                    {"id": server_network, "resource_type": "onprem_network"}
+                    {"id": server_network, "kind": "onprem_network"}
                 )
                 if network is None:
                     network = OnpremNetwork(server_network, {})

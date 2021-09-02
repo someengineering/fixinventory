@@ -16,7 +16,7 @@ log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 @dataclass(eq=False)
 class OneLoginResource:
-    resource_type: ClassVar[str] = "onelogin_resource"
+    kind: ClassVar[str] = "onelogin_resource"
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -24,17 +24,17 @@ class OneLoginResource:
 
 @dataclass(eq=False)
 class OneLoginAccount(OneLoginResource, BaseAccount):
-    resource_type: ClassVar[str] = "onelogin_account"
+    kind: ClassVar[str] = "onelogin_account"
 
 
 @dataclass(eq=False)
 class OneLoginRegion(OneLoginResource, BaseRegion):
-    resource_type: ClassVar[str] = "onelogin_region"
+    kind: ClassVar[str] = "onelogin_region"
 
 
 @dataclass(eq=False)
 class OneLoginUser(OneLoginResource, BaseUser):
-    resource_type: ClassVar[str] = "onelogin_user"
+    kind: ClassVar[str] = "onelogin_user"
     user_id: Optional[int] = field(default=None, metadata={"description": "User ID"})
     external_id: Optional[str] = None
     email: Optional[str] = None

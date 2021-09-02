@@ -7,6 +7,6 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesNamespace(KubernetesResource, BaseRegion):
-    resource_type: ClassVar[str] = "kubernetes_namespace"
+    kind: ClassVar[str] = "kubernetes_namespace"
     api: ClassVar[object] = client.CoreV1Api
     list_method: ClassVar[str] = "list_namespace"

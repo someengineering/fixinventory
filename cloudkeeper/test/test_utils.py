@@ -4,6 +4,8 @@ import time
 import copy
 from cloudkeeper.utils import RWLock
 from cloudkeeper.baseresources import BaseResource
+from dataclasses import dataclass
+from typing import ClassVar
 
 
 class Writer(threading.Thread):
@@ -172,11 +174,12 @@ class RWLockTestCase(unittest.TestCase):
             t.join()
 
 
+@dataclass(eq=False)
 class SomeTestResource(BaseResource):
-    resource_type = "some_test_resource"
+    kind: ClassVar[str] = "some_test_resource"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self.key = None
         self.value = None
 

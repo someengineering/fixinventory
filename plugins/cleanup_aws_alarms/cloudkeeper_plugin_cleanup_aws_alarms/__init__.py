@@ -80,7 +80,7 @@ class CleanupAWSAlarmsPlugin(BasePlugin):
                     if dimension.get("Name") == "InstanceId":
                         instance_id = dimension.get("Value")
                         i = graph.search_first_all(
-                            {"resource_type": "aws_ec2_instance", "id": instance_id}
+                            {"kind": "aws_ec2_instance", "id": instance_id}
                         )
                         if isinstance(i, AWSEC2Instance) and i.instance_status not in (
                             "terminated"

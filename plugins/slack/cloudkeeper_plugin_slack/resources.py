@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 @dataclass(eq=False)
 class SlackResource:
-    resource_type: ClassVar[str] = "slack_resource"
+    kind: ClassVar[str] = "slack_resource"
 
     def delete(self, graph) -> bool:
         return False
@@ -21,7 +21,7 @@ class SlackResource:
 
 @dataclass(eq=False)
 class SlackTeam(SlackResource, BaseAccount):
-    resource_type: ClassVar[str] = "slack_team"
+    kind: ClassVar[str] = "slack_team"
     domain: str = None
     email_domain: str = None
     icon: str = None
@@ -40,12 +40,12 @@ class SlackTeam(SlackResource, BaseAccount):
 
 @dataclass(eq=False)
 class SlackRegion(SlackResource, BaseRegion):
-    resource_type = "slack_region"
+    kind = "slack_region"
 
 
 @dataclass(eq=False)
 class SlackUser(SlackResource, BaseUser):
-    resource_type: ClassVar[str] = "slack_user"
+    kind: ClassVar[str] = "slack_user"
 
     real_name: Optional[str] = None
     team_id: Optional[str] = None
@@ -132,7 +132,7 @@ class SlackUser(SlackResource, BaseUser):
 
 @dataclass(eq=False)
 class SlackUsergroup(SlackResource, BaseGroup):
-    resource_type: ClassVar[str] = "slack_usergroup"
+    kind: ClassVar[str] = "slack_usergroup"
 
     auto_provision: bool = None
     auto_type: Optional[str] = None
@@ -178,7 +178,7 @@ class SlackUsergroup(SlackResource, BaseGroup):
 
 @dataclass(eq=False)
 class SlackConversation(SlackResource, BaseResource):
-    resource_type: ClassVar[str] = "slack_conversation"
+    kind: ClassVar[str] = "slack_conversation"
 
     creator: Optional[str] = None
     is_archived: bool = None

@@ -9,6 +9,6 @@ from dataclasses import dataclass
 
 @dataclass(eq=False)
 class KubernetesStatefulSet(KubernetesResource, BaseResource):
-    resource_type: ClassVar[str] = "kubernetes_stateful_set"
+    kind: ClassVar[str] = "kubernetes_stateful_set"
     api: ClassVar[object] = client.AppsV1Api
     list_method: ClassVar[str] = "list_stateful_set_for_all_namespaces"
