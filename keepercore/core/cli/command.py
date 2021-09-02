@@ -242,6 +242,60 @@ class CountCommand(CLICommand):
         return count_in_stream
 
 
+class HeadCommand(CLICommand):
+    """
+    Usage: head [num]
+
+    Take <num> number of elements from the input stream and send them downstream.
+    The rest of the stream is discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to take from the head
+
+    Example:
+         json [1,2,3,4,5] | head 2  # will result in [1, 2]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "head"
+
+    def info(self) -> str:
+        return "Return n first elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = int(arg) if arg else 100
+        return lambda in_stream: stream.take(in_stream, size)  # type: ignore
+
+
+class TailCommand(CLICommand):
+    """
+    Usage: tail [num]
+
+    Take the last <num> number of elements from the input stream and send them downstream.
+    The beginning of the stream is consumed, but discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to return from the end.
+
+    Example:
+         json [1,2,3,4,5] | tail 2  # will result in [4, 5]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "tail"
+
+    def info(self) -> str:
+        return "Return n last elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = int(arg) if arg else 100
+        return lambda in_stream: stream.takelast(in_stream, size)  # type: ignore
+
+
 class ChunkCommand(CLICommand):
     """
     Usage: chunk [num]
@@ -523,11 +577,13 @@ def all_sinks(d: CLIDependencies) -> List[CLISink]:
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return [
         ChunkCommand(d),
-        FlattenCommand(d),
+        CleanCommand(d),
         CountCommand(d),
         DesireCommand(d),
+        FlattenCommand(d),
         FormatCommand(d),
-        CleanCommand(d),
+        HeadCommand(d),
+        TailCommand(d),
         UniqCommand(d),
     ]
 

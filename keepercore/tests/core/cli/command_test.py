@@ -92,6 +92,18 @@ async def test_count_command(cli: CLI, sink: Sink[List[JsonElement]], json_sourc
 
 
 @pytest.mark.asyncio
+async def test_head_command(cli: CLI) -> None:
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2", stream.list) == [[1, 2]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head", stream.list) == [[1, 2, 3, 4, 5]]
+
+
+@pytest.mark.asyncio
+async def test_tail_command(cli: CLI) -> None:
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2", stream.list) == [[4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail", stream.list) == [[1, 2, 3, 4, 5]]
+
+
+@pytest.mark.asyncio
 async def test_chunk_command(cli: CLI, sink: Sink[List[JsonElement]], json_source: str) -> None:
     result: list[list[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", sink)
     assert len(result[0]) == 4  # 200 in chunks of 50
