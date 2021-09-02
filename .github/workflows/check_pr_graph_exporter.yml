@@ -33,10 +33,10 @@ jobs:
           pip install --upgrade --editable graph_exporter/
           pip install tox wheel flake8
 
-      - name: Build Cloudkeeper CLI
-        working-directory: ./graph_exporter
+      - name: Build cloudkeeper
+        working-directory: ./cloudkeeper
         run: |
-          sudo rm -fr /build
+          sudo rm -rf /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 
