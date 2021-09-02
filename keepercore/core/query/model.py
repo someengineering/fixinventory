@@ -369,7 +369,7 @@ class Query:
     def __str__(self) -> str:
         aggregate = str(self.aggregate) if self.aggregate else ""
         to_str = Predicate.value_str_rep
-        preamble = "{" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + "}" if self.preamble else ""
+        preamble = "(" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + ")" if self.preamble else ""
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
         return f"{aggregate}{preamble}{colon}{parts}"

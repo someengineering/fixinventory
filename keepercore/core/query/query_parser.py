@@ -180,9 +180,9 @@ def key_value_parser() -> Parser:
 
 @make_parser
 def preamble_tags_parser() -> Parser:
-    yield l_curly_p
+    yield lparen_p
     key_values = yield key_value_parser.sep_by(comma_p)
-    yield r_curly_p
+    yield rparen_p
     return dict(key_values)
 
 

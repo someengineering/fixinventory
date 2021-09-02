@@ -107,20 +107,20 @@ def test_query_with_preamble() -> None:
     query_parser.parse('id("root")')  # no preamble
     query_parser.parse('match: id("root")')  # match preamble
     query_parser.parse('match(): id("root")')  # match preamble
-    query = query_parser.parse('{edge_type=delete}: id("root") -[0:1]->')
+    query = query_parser.parse('(edge_type=delete): id("root") -[0:1]->')
     assert query.parts[0].navigation.edge_type == "delete"
-    query = query_parser.parse('aggregate(region: sum(cpu)){edge_type=delete}: id("root") -[0:1]->')
+    query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
     assert query.aggregate.group_by[0].name == "region"
     assert query.aggregate.group_func[0].name == "cpu"
 
 
 def test_preamble_tags() -> None:
-    assert preamble_tags_parser.parse("{edge_type=foo}") == {"edge_type": "foo"}
-    assert preamble_tags_parser.parse("{edge_type=23}") == {"edge_type": 23}
-    assert preamble_tags_parser.parse("{edge_type=23.123}") == {"edge_type": 23.123}
-    assert preamble_tags_parser.parse("{edge_type=true}") == {"edge_type": True}
-    assert preamble_tags_parser.parse("{edge_type=false}") == {"edge_type": False}
-    assert preamble_tags_parser.parse('{edge_type="!@#*(&$({{:::"}') == {"edge_type": "!@#*(&$({{:::"}
+    assert preamble_tags_parser.parse("(edge_type=foo)") == {"edge_type": "foo"}
+    assert preamble_tags_parser.parse("(edge_type=23)") == {"edge_type": 23}
+    assert preamble_tags_parser.parse("(edge_type=23.123)") == {"edge_type": 23.123}
+    assert preamble_tags_parser.parse("(edge_type=true)") == {"edge_type": True}
+    assert preamble_tags_parser.parse("(edge_type=false)") == {"edge_type": False}
+    assert preamble_tags_parser.parse('(edge_type="!@#*(&$({{:::")') == {"edge_type": "!@#*(&$({{:::"}
     assert preamble_parser.parse("") == (None, {})
 
 

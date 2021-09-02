@@ -333,7 +333,7 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query('{merge_with="foo,bar"}: isinstance("bla")')
+    agg_query = parse_query('(merge_with="foo,bar"): isinstance("bla")')
     async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")):
         js = AccessJson(bla)
         assert "bar" in js.reported  # key exists
