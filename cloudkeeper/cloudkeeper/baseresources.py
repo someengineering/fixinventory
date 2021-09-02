@@ -688,7 +688,7 @@ class BaseInstanceQuota(BaseQuota):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, quota_type : sum(quota) as instances_quotas_total"
+                " instance_type as type, quota_type : sum(quota) as instances_quotas_total)"
                 ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_quota")'
             ),
         },
@@ -723,7 +723,7 @@ class BaseInstanceType(BaseType):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, quota_type : sum(reservations) as reserved_instances_total"
+                " instance_type as type, quota_type : sum(reservations) as reserved_instances_total)"
                 ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_type")'
             ),
         },
@@ -775,7 +775,7 @@ class BaseAccount(BaseResource):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud,"
-                " instance_type as type, quota_type : sum(1) as accounts_total"
+                " instance_type as type, quota_type : sum(1) as accounts_total)"
                 ' (merge_with_ancestors="cloud"): isinstance("account")'
             ),
         },
@@ -827,7 +827,7 @@ class BaseInstance(BaseResource):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, instance_status as status : sum(1) as instances_total"
+                " instance_type as type, instance_status as status : sum(1) as instances_total)"
                 ' (merge_with_ancestors="cloud,account,region"): isinstance("instance")'
             ),
         },
@@ -837,7 +837,7 @@ class BaseInstance(BaseResource):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(instance_cores) as cores_total"
+                " instance_type as type : sum(instance_cores) as cores_total)"
                 ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
             ),
         },
@@ -847,7 +847,7 @@ class BaseInstance(BaseResource):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes"
+                " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes)"
                 ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
             ),
         },
@@ -857,7 +857,7 @@ class BaseInstance(BaseResource):
             "type": "gauge",
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate"
+                " instance_type as type : sum(parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate)"
                 ' (merge_with_ancestors="cloud,account,region,instance_type as parent_instance_type"):'
                 ' isinstance("instance") and instance_status == "running"'
             ),
@@ -978,14 +978,35 @@ class BaseVolume(BaseResource):
         "volumes_total": {
             "help": "Number of Volumes",
             "labels": ["cloud", "account", "region", "type", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " volume_type as type, volume_status as status : sum(1) as volumes_total)"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume")'
+            ),
         },
         "volume_bytes": {
             "help": "Size of Volumes in bytes",
             "labels": ["cloud", "account", "region", "type", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " volume_type as type, volume_status as status :"
+                " sum(volume_size * 1024 * 1024 * 1024) as volume_bytes)"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume")'
+            ),
         },
         "volumes_monthly_cost_estimate": {
             "help": "Monthly volume cost estimate",
             "labels": ["cloud", "account", "region", "type", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " volume_type as type, volume_status as status :"
+                " sum(parent_volume_type.ondemand_cost) as volumes_monthly_cost_estimate)"
+                ' (merge_with_ancestors="cloud,account,region,volume_type as parent_volume_type"):'
+                ' isinstance("volume")'
+            ),
         },
         "cleaned_volumes_total": {
             "help": "Cleaned number of Volumes",
@@ -1057,10 +1078,22 @@ class BaseSnapshot(BaseResource):
         "snapshots_total": {
             "help": "Number of Snapshots",
             "labels": ["cloud", "account", "region", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " snapshot_status as status : sum(1) as snapshots_total)"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("snapshot")'
+            ),
         },
         "snapshots_volumes_bytes": {
             "help": "Size of Snapshots Volumes in bytes",
             "labels": ["cloud", "account", "region", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " snapshot_status as status : sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes)"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("snapshot")'
+            ),
         },
         "cleaned_snapshots_total": {
             "help": "Cleaned number of Snapshots",
