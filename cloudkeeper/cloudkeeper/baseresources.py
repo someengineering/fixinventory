@@ -1034,7 +1034,7 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
         },
     }
-    volume_size: int = -1
+    volume_size: int = 0
     volume_type: str = ""
     volume_status: str = ""
     volume_iops: Optional[int] = None
@@ -1351,7 +1351,7 @@ class BaseDatabase(BaseResource):
     db_version: Optional[str] = None
     db_publicly_accessible: Optional[bool] = None
     instance_type: str = ""
-    volume_size: int = -1
+    volume_size: int = 0
     volume_iops: Optional[int] = None
     volume_encrypted: Optional[bool] = None
 

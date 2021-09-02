@@ -433,7 +433,7 @@ class AWSAccountCollector:
                 f"for instance type {instance_type}"
             )
         )
-        return self.get_ec2_service_quotas(region).get(instance_type, -1.0)
+        return self.get_ec2_service_quotas(region).get(instance_type)
 
     @lru_cache()
     def get_ec2_service_quotas(self, region: AWSRegion) -> Dict:
@@ -450,7 +450,7 @@ class AWSAccountCollector:
                 f"for instance type {volume_type}"
             )
         )
-        return self.get_ebs_service_quotas(region).get(volume_type, -1.0)
+        return self.get_ebs_service_quotas(region).get(volume_type)
 
     @lru_cache()
     def get_ebs_service_quotas(self, region: AWSRegion) -> Dict:
