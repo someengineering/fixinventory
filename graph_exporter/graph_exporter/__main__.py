@@ -3,6 +3,8 @@ import sys
 import requests
 import json
 import time
+import inspect
+import cloudkeeper.baseresources
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily
 from threading import Event
@@ -71,19 +73,36 @@ def query(query: str, query_uri: str) -> Iterator:
         yield data
 
 
+def find_metrics(mod):
+    metrics_descriptions = {}
+    for name, obj in inspect.getmembers(mod):
+        if inspect.isclass(obj) and hasattr(obj, "metrics_description"):
+            metrics_description = obj.metrics_description
+            if len(metrics_description) > 0:
+                metrics_descriptions.update(metrics_description)
+    return metrics_descriptions
+
+
 @metrics_update_metrics.time()
 def update_metrics(metrics: Dict, query_uri: str) -> None:
-    
-    metric = "test"
-    labels = ("foo", "bar")
-    help_text = "Some test metric"
-    value = 10.0
-    metrics[metric] = GaugeMetricFamily(
-        f"cloudkeeper_{metric}",
-        help_text,
-        labels=labels,
-    )
-    metrics[metric].add_metric(labels, value)
+    metrics_descriptions = find_metrics(cloudkeeper.baseresources)
+
+    for metric_name, data in metrics_descriptions.items():
+        query = data.get("query")
+        if query is None:
+            continue
+        for result in query(query, query_uri):
+            log.debug(result)
+
+            labels = ()
+            label_values = ()
+            value = 10
+            metrics[metric_name] = GaugeMetricFamily(
+                f"cloudkeeper_{metric_name}",
+                data["help"],
+                labels=labels,
+            )
+            metrics[metric_name].add_metric(label_values, value)
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
