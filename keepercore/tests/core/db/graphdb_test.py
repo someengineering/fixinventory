@@ -328,7 +328,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query('aggregate(kind: count(identifier) as instances): isinstance("foo")')
     gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
-    assert [x async for x in gen] == [{"kind": "foo", "instances": 13}]
+    assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 13}]
 
 
 @pytest.mark.asyncio
