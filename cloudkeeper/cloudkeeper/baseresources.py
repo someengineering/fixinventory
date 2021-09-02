@@ -689,7 +689,7 @@ class BaseInstanceQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type, quota_type : sum(quota) as instances_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_quota") and quota >= 0'
             ),
         },
     }
@@ -724,7 +724,7 @@ class BaseInstanceType(BaseType):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type, quota_type : sum(reservations) as reserved_instances_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_type")'
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_type") and reservations >= 0'
             ),
         },
     }
@@ -952,7 +952,7 @@ class BaseVolumeType(BaseType):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " volume_type as type : sum(quota * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume_type")'
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume_type") and quota >= 0'
             ),
         },
     }
