@@ -667,7 +667,7 @@ class BaseQuota(PhantomBaseResource):
 
     @property
     def usage_percentage(self) -> float:
-        if self.quota is not None and self.quota > 0.0:
+        if self.quota is not None and self.usage is not None and self.quota > 0.0:
             return self.usage / self.quota * 100
         else:
             return 0.0
@@ -731,8 +731,8 @@ class BaseInstanceType(BaseType):
     instance_type: Optional[str] = None
     instance_cores: float = 0.0
     instance_memory: float = 0.0
-    ondemand_cost: float = 0.0
-    reservations: int = 0
+    ondemand_cost: Optional[float] = None
+    reservations: Optional[int] = None
 
     def __post_init__(
         self,
@@ -742,6 +742,10 @@ class BaseInstanceType(BaseType):
         super().__post_init__(*args, **kwargs)
         if self.instance_type is None:
             self.instance_type = self.id
+        if self.reservations is not None:
+            self.reservations = int(self.reservations)
+        if self.ondemand_cost is not None:
+            self.ondemand_cost = float(self.ondemand_cost)
 
     def metrics(self, graph) -> Dict:
         metrics_keys = (
