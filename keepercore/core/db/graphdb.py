@@ -33,7 +33,9 @@ from core.query.model import (
     Aggregate,
     AllTerm,
     AggregateFunction,
+    AggregateVariable,
 )
+from core.query.query_parser import aggregate_group_variable_parser
 from core.util import first
 
 log = logging.getLogger(__name__)
@@ -720,9 +722,10 @@ class ArangoGraphDB(GraphDB):
             query_part = f"LET {out} = (FOR {cursor} in {collection} FILTER {trm} {rtn})"
             return p, idx, out, query_part
 
-        def merge_parents(cursor: str, part_str: str, parents: list[str]) -> tuple[str, str]:
-            bind_vars["merge_stop_at"] = parents[0]
-            bind_vars["merge_parent_parent_nodes"] = parents
+        def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
+            parents: list[AggregateVariable] = [aggregate_group_variable_parser.parse(p) for p in parent_names]
+            bind_vars["merge_stop_at"] = parents[0].name
+            bind_vars["merge_parent_parent_nodes"] = [p.name for p in parents]
             parts = [
                 f"FOR node in {cursor} "
                 + "LET parent_nodes = ("
@@ -732,18 +735,17 @@ class ArangoGraphDB(GraphDB):
                 + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
             ]
             for p in parents:
-                bv = f"merge_node_{p}"
-                bind_vars[bv] = p
-                parts.append(f"""LET {p} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+                bv = f"merge_node_{p.name}"
+                bind_vars[bv] = p.name
+                parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
 
-            parent_result = "{" + ",".join([f"{p}: {p}.reported" for p in parents]) + "}"
+            parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.reported" for p in parents]) + "}"
             parts.append(f'RETURN MERGE(node, {{"reported": MERGE(node.reported, {parent_result})}})')
             return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(parts)})'
 
         parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
         crs = last(parts)[2]
         all_parts = " ".join(p[3] for p in parts)
-        print(merge_with)
         resulting_cursor, query_str = merge_parents(crs, all_parts, merge_with) if merge_with else (crs, all_parts)
         limited = f" LIMIT {limit} " if limit else ""
         if query.aggregate:  # return aggregate

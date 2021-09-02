@@ -333,15 +333,15 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query('(merge_with="foo,bar"): isinstance("bla")')
+    agg_query = parse_query('(merge_with="foo as foobar,bar"): isinstance("bla")')
     async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")):
         js = AccessJson(bla)
         assert "bar" in js.reported  # key exists
         assert js.reported.bar is None  # bla is not a parent of this node
-        assert "foo" in js.reported  # key exists
-        assert js.reported.foo is not None  # foo is merged into reported
-        # make sure the correct parent is merged (foo(1) -> bla(1_xxx))
-        assert js.reported.identifier.startswith(js.reported.foo.identifier)
+        assert "foobar" in js.reported  # key exists
+        assert js.reported.foobar is not None  # foobar is merged into reported
+        # make sure the correct parent is merged (foobar(1) -> bla(1_xxx))
+        assert js.reported.identifier.startswith(js.reported.foobar.identifier)
 
 
 @pytest.mark.asyncio
