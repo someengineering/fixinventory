@@ -227,12 +227,18 @@ def aggregate_group_function_parser() -> Parser:
 
 
 @make_parser
-def aggregate_parser() -> Parser:
-    yield aggregate_p
-    yield lparen_p
+def aggregate_parameter_parser() -> Parser:
     group_vars = yield aggregate_group_variable_parser.sep_by(comma_p, min=1)
     yield colon_p
     group_function_vars = yield aggregate_group_function_parser.sep_by(comma_p, min=1)
+    return group_vars, group_function_vars
+
+
+@make_parser
+def aggregate_parser() -> Parser:
+    yield aggregate_p
+    yield lparen_p
+    group_vars, group_function_vars = yield aggregate_parameter_parser
     yield rparen_p
     return Aggregate(group_vars, group_function_vars)
 

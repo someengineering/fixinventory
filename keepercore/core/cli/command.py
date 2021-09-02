@@ -26,6 +26,8 @@ from core.cli.cli import (
     Ancestor,
     Descendant,
     QueryPart,
+    AggregatePart,
+    MergeAncestorsPart,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError
@@ -164,7 +166,7 @@ class QuerySource(CLISource):
         db = self.dependencies.db_access.get_graph_db(graph_name)
         query_model = QueryModel(query, model, None)
         db.to_query(query_model)  # only here to validate the query itself (can throw)
-        return db.query_list(query_model)
+        return db.query_aggregation(query_model) if query.aggregate else db.query_list(query_model)
 
 
 class EnvSource(CLISource):
@@ -533,7 +535,17 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 
 def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
-    return [ReportedPart(d), DesiredPart(d), MetadataPart(d), Predecessor(d), Successor(d), Ancestor(d), Descendant(d)]
+    return [
+        ReportedPart(d),
+        DesiredPart(d),
+        MetadataPart(d),
+        Predecessor(d),
+        Successor(d),
+        Ancestor(d),
+        Descendant(d),
+        AggregatePart(d),
+        MergeAncestorsPart(d),
+    ]
 
 
 def all_parts(d: CLIDependencies) -> List[CLIPart]:
