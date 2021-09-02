@@ -202,17 +202,28 @@ def aggregate_group_variable_parser() -> Parser:
     return AggregateVariable(name, as_name)
 
 
+math_op_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["+", "-", "*", "/"]])
+
+
+@make_parser
+def op_with_val_parser() -> Parser:
+    op = yield math_op_p
+    value = yield float_p | integer_p
+    return op, value
+
+
 @make_parser
 def aggregate_group_function_parser() -> Parser:
     func = yield aggregate_func_p
     yield lparen_p
-    name_or_int = yield variable_p | integer_p
+    term_or_int = yield variable_p | integer_p
+    ops_list = yield op_with_val_parser.many()
     yield rparen_p
     with_as = yield as_p.optional()
     as_name = None
     if with_as:
         as_name = yield literal_p
-    return AggregateFunction(func, name_or_int, as_name)
+    return AggregateFunction(func, term_or_int, ops_list, as_name)
 
 
 @make_parser

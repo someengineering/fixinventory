@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Tuple, List, Callable, AsyncGenerator, Any, Iterable, Union
+from typing import Optional, Tuple, List, Callable, AsyncGenerator, Any, Iterable
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -32,6 +32,7 @@ from core.query.model import (
     IdTerm,
     Aggregate,
     AllTerm,
+    AggregateFunction,
 )
 from core.util import first
 
@@ -637,11 +638,12 @@ class ArangoGraphDB(GraphDB):
         bind_vars: Json = {}
 
         def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
-            def func_term(str_or_int: Union[str, int]) -> str:
-                return f"{cursor}.{section_dot}{str_or_int}" if isinstance(str_or_int, str) else str(str_or_int)
+            def func_term(fn: AggregateFunction) -> str:
+                name = f"{cursor}.{section_dot}{fn.name}" if isinstance(fn.name, str) else str(fn.name)
+                return f"{name} {fn.combined_ops()}" if fn.ops else name
 
             variables = ", ".join(f"{v.get_as_name()}={cursor}.{section_dot}{v.name}" for v in a.group_by)
-            funcs = ", ".join(f"{v.get_as_name()}={v.function}({func_term(v.name)})" for v in a.group_func)
+            funcs = ", ".join(f"{v.get_as_name()}={v.function}({func_term(v)})" for v in a.group_func)
             agg_vars = ", ".join(v.get_as_name() for v in a.group_by)
             agg_funcs = ", ".join(f.get_as_name() for f in a.group_func)
             return f"collect {variables} aggregate {funcs}", f'{{"group":{{{agg_vars}}}, {agg_funcs}}}'

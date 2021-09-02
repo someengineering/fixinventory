@@ -1,5 +1,7 @@
 from typing import Callable, Optional, Any
 
+import pytest
+
 from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction
 from core.model.graph_access import EdgeType
 from parsy import Parser
@@ -140,6 +142,10 @@ def test_aggregate_group_function() -> None:
     assert foo.function == "sum"
     assert bla.name == "bla"
     assert bla.as_name == "bar"
+    boo = aggregate_group_function_parser.parse("sum(boo * 1024.12 + 1) as bar")
+    assert boo.ops == [("*", 1024.12), ("+", 1)]
+    with pytest.raises(Exception):
+        assert aggregate_group_function_parser.parse("sum(test / 3 +)")
 
 
 def test_aggregate() -> None:

@@ -308,14 +308,25 @@ class AggregateVariable:
 
 
 class AggregateFunction:
-    def __init__(self, function: str, name_or_value: Union[str, int], as_name: Optional[str] = None):
+    def __init__(
+        self,
+        function: str,
+        name_or_value: Union[str, int],
+        ops: Optional[list[tuple[str, Union[int, float]]]] = None,
+        as_name: Optional[str] = None,
+    ):
         self.function = function
         self.name = name_or_value
+        self.ops: list[tuple[str, Union[int, float]]] = ops if ops else []
         self.as_name = as_name
 
     def __str__(self) -> str:
         with_as = f" as {self.as_name}" if self.as_name else ""
-        return f"{self.function}({self.name}){with_as}"
+        with_ops = " " + self.combined_ops() if self.ops else ""
+        return f"{self.function}({self.name}{with_ops}){with_as}"
+
+    def combined_ops(self) -> str:
+        return " ".join(f"{op} {value}" for op, value in self.ops)
 
     def get_as_name(self) -> str:
         return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
