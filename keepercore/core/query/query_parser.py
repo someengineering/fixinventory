@@ -206,13 +206,13 @@ def aggregate_group_variable_parser() -> Parser:
 def aggregate_group_function_parser() -> Parser:
     func = yield aggregate_func_p
     yield lparen_p
-    name = yield variable_p
+    name_or_int = yield variable_p | integer_p
     yield rparen_p
     with_as = yield as_p.optional()
     as_name = None
     if with_as:
         as_name = yield literal_p
-    return AggregateFunction(func, name, as_name)
+    return AggregateFunction(func, name_or_int, as_name)
 
 
 @make_parser

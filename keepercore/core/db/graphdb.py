@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
 from itertools import chain
-from typing import Optional, Tuple, List, Callable, AsyncGenerator, Any, Iterable
+from typing import Optional, Tuple, List, Callable, AsyncGenerator, Any, Iterable, Union
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -638,8 +638,11 @@ class ArangoGraphDB(GraphDB):
         bind_vars: Json = {}
 
         def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
+            def func_term(str_or_int: Union[str, int]) -> str:
+                return f"{cursor}.{section_dot}{str_or_int}" if isinstance(str_or_int, str) else str(str_or_int)
+
             variables = ", ".join(f"{v.get_as_name()}={cursor}.{section_dot}{v.name}" for v in a.group_by)
-            funcs = ", ".join(f"{v.get_as_name()}={v.function}({cursor}.{section_dot}{v.name})" for v in a.group_func)
+            funcs = ", ".join(f"{v.get_as_name()}={v.function}({func_term(v.name)})" for v in a.group_func)
             agg = ", ".join(chain((v.get_as_name() for v in a.group_by), (f.get_as_name() for f in a.group_func)))
             return f"collect {variables} aggregate {funcs}", f"{{{agg}}}"
 

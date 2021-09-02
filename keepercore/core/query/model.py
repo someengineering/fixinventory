@@ -308,9 +308,9 @@ class AggregateVariable:
 
 
 class AggregateFunction:
-    def __init__(self, function: str, name: str, as_name: Optional[str] = None):
+    def __init__(self, function: str, name_or_value: Union[str, int], as_name: Optional[str] = None):
         self.function = function
-        self.name = name
+        self.name = name_or_value
         self.as_name = as_name
 
     def __str__(self) -> str:
@@ -318,7 +318,7 @@ class AggregateFunction:
         return f"{self.function}({self.name}){with_as}"
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else self.name
+        return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
 
 class Aggregate:
