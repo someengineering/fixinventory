@@ -308,17 +308,28 @@ class AggregateVariable:
 
 
 class AggregateFunction:
-    def __init__(self, function: str, name: str, as_name: Optional[str] = None):
+    def __init__(
+        self,
+        function: str,
+        name_or_value: Union[str, int],
+        ops: Optional[list[tuple[str, Union[int, float]]]] = None,
+        as_name: Optional[str] = None,
+    ):
         self.function = function
-        self.name = name
+        self.name = name_or_value
+        self.ops: list[tuple[str, Union[int, float]]] = ops if ops else []
         self.as_name = as_name
 
     def __str__(self) -> str:
         with_as = f" as {self.as_name}" if self.as_name else ""
-        return f"{self.function}({self.name}){with_as}"
+        with_ops = " " + self.combined_ops() if self.ops else ""
+        return f"{self.function}({self.name}{with_ops}){with_as}"
+
+    def combined_ops(self) -> str:
+        return " ".join(f"{op} {value}" for op, value in self.ops)
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else self.name
+        return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
 
 class Aggregate:
@@ -332,22 +343,36 @@ class Aggregate:
         return f"aggregate({group_by}: {funcs})"
 
 
+SimpleValue = Union[str, int, float, bool]
+
+
 class Query:
-    def __init__(self, parts: List[Part], aggregate: Optional[Aggregate] = None):
+    def __init__(
+        self,
+        parts: List[Part],
+        preamble: Optional[dict[str, SimpleValue]] = None,
+        aggregate: Optional[Aggregate] = None,
+    ):
         if parts is None or len(parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {parts}")
         self.parts = parts
+        self.preamble: dict[str, SimpleValue] = preamble if preamble else dict()
         self.aggregate = aggregate
 
     @staticmethod
-    def by(term: Union[str, Term], *terms: Union[str, Term]) -> Query:
+    def by(
+        term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, SimpleValue]] = None
+    ) -> Query:
         res = Query.mk_term(term, *terms)
-        return Query([Part(res)])
+        return Query([Part(res)], preamble)
 
     def __str__(self) -> str:
-        agg = f"{self.aggregate}: " if self.aggregate else ""
+        aggregate = str(self.aggregate) if self.aggregate else ""
+        to_str = Predicate.value_str_rep
+        preamble = "(" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + ")" if self.preamble else ""
+        colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
-        return f"{agg}{parts}"
+        return f"{aggregate}{preamble}{colon}{parts}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
@@ -359,7 +384,7 @@ class Query:
         else:
             # put to the start
             parts.insert(0, Part(res))
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "out")
@@ -381,15 +406,15 @@ class Query:
                 parts.insert(0, Part(AllTerm(), False, Navigation(start, until, edge_type, direction)))
         else:
             parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
-        return Query(self.parts, aggregate)
+        return Query(self.parts, self.preamble, aggregate)
 
     def simplify(self) -> Query:
         parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
-        return Query(parts, self.aggregate)
+        return Query(parts, self.preamble, self.aggregate)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

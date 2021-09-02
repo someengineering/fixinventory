@@ -25,9 +25,10 @@ from core.error import CLIParseError
 from core.event_bus import EventBus
 from core.model.graph_access import EdgeType
 from core.model.model_handler import ModelHandler
+from core.model.typed_model import class_fqn
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
-from core.query.model import Query, Navigation, AllTerm
-from core.query.query_parser import term_parser
+from core.query.model import Query, Navigation, AllTerm, Aggregate
+from core.query.query_parser import term_parser, aggregate_parameter_parser
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
 
@@ -127,6 +128,7 @@ class ReportedPart(QueryPart):
     """
     Usage: reported <property.path> <op> <value"
 
+    Part of a query.
     The reported section contains the values directly from the collector.
     With this command you can query this section for a matching property.
     The property is the complete path in the json structure.
@@ -155,6 +157,7 @@ class DesiredPart(QueryPart):
     """
     Usage: desired <property.path> <op> <value"
 
+    Part of a query.
     The desired section contains values set by tools to change the state of this node.
     With this command you can query this section for a matching property.
     The property is the complete path in the json structure.
@@ -184,6 +187,7 @@ class MetadataPart(QueryPart):
     """
     Usage: metadata <property.path> <op> <value"
 
+    Part of a query.
     The metadata section is set by the collector and holds additional meta information about this node.
     With this command you can query this section for a matching property.
     The property is the complete path in the json structure.
@@ -213,6 +217,7 @@ class Predecessor(QueryPart):
     """
     Usage: predecessors [edge_type]
 
+    Part of a query.
     Select all predecessors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
@@ -239,6 +244,7 @@ class Successor(QueryPart):
     """
     Usage: successors [edge_type]
 
+    Part of a query.
     Select all successors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
@@ -265,6 +271,7 @@ class Ancestor(QueryPart):
     """
     Usage: ancestors [edge_type]
 
+    Part of a query.
     Select all ancestors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
@@ -291,6 +298,7 @@ class Descendant(QueryPart):
     """
     Usage: descendants [edge_type]
 
+    Part of a query.
     Select all descendants of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
@@ -311,6 +319,88 @@ class Descendant(QueryPart):
 
     def info(self) -> str:
         return "Select all descendants of this node in the graph."
+
+
+class AggregatePart(QueryPart):
+    """
+    Usage: aggregate [group_prop, .., group_prop]: [function(), .. , function()]
+
+    Part of a query.
+    Using the results of a query by aggregating over properties of this result
+    by aggregating over given properties and applying given aggregation functions.
+
+    Parameter:
+        group_prop: the name of the property to use for grouping. Multiple grouping variables are possible.
+                    Every grouping variable can be renamed via an as name directive. (prop as prop_name)
+        function(): grouping function to be applied on every resulting node.
+                    Following functions are possible: sum, count, min, max, avg
+                    The function contains the variable name (e.g.: min(path.to.prop))
+                    It is possible to use static values (e.g.: sum(1))
+                    It is possible to use simple math expressions in the function (e.g. min(path.to.prop * 3 + 2))
+                    It is possible to name the result of this function (e.g. count(foo) as number_of_foos)
+
+    Example:
+        aggregate reported.kind as kind, reported.cloud.name as cloud, reported.region.name as region : sum(1) as count
+            [
+                { "count": 228, "group": { "cloud": "aws", "kind": "aws_ec2_instance", "region": "us-east-1" }},
+                { "count": 326, "group": { "cloud": "gcp", "kind": "gcp_instance", "region": "us-west1" }},
+                .
+                .
+            ]
+        aggregate reported.instance_status as status: sum(reported.cores) as cores, sum(reported.memory) as mem
+            [
+                { "cores": 116, "mem": 64 , "group": { "status": "busy" }},
+                { "cores": 2520, "mem": 9824, "group": { "status": "running" }},
+                { "cores": 257, "mem": 973, "group": { "status": "stopped" }},
+                { "cores": 361, "mem": 1441, "group": { "status": "terminated" }},
+            ]
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "aggregate"
+
+    def info(self) -> str:
+        return "Aggregate this query by the provided specification"
+
+
+class MergeAncestorsPart(QueryPart):
+    """
+    Usage: merge_ancestors [kind, kind as name, ..., kind]
+
+    For all query results, merge the nodes with ancestor nodes of given kind.
+    Multiple ancestors can be provided.
+    Note: the first defined ancestor kind is used to stop the search of all other kinds.
+          This should be taken into consideration when the list of ancestor kinds is defined!
+    The resulting reported content of the ancestor node is merged into the current reported node
+    with the kind name or the alias.
+
+    Parameter:
+        kind [Mandatory] [as name]: search the ancestors of this node for a node of define kind.
+                                    Merge the result into the current node either under the kind name or the alias name.
+
+    Example:
+        compute_instance: the graph os traversed starting with the current node in direction to the root.
+                          When a node is found, which is of type compute_instance, the reported content of this node
+                          is merged with the reported content of the compute_instance node:
+                          { "id": "xyz", "reported": { "kind": "ebs", "compute_instance": { props from compute_instance}
+        compute_instance as ci:
+                          { "id": "xyz", "reported": { "kind": "ebs", "ci": { props from compute_instance}
+
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "merge_ancestors"
+
+    def info(self) -> str:
+        return "Merge the results of this query with the content of ancestor nodes of given type"
 
 
 class HelpCommand(CLISource):
@@ -427,7 +517,13 @@ class CLI:
                 query = query.traverse_in(1, Navigation.Max, arg if arg else EdgeType.default)
             elif isinstance(part, Descendant):
                 query = query.traverse_out(1, Navigation.Max, arg if arg else EdgeType.default)
-
+            elif isinstance(part, AggregatePart):
+                group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
+                query = Query(query.parts, query.preamble, Aggregate(group_vars, group_function_vars))
+            elif isinstance(part, MergeAncestorsPart):
+                query = Query(query.parts, query.preamble | {"merge_with_ancestors": arg}, query.aggregate)
+            else:
+                raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         return str(query.simplify())
 
     async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:

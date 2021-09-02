@@ -431,7 +431,7 @@ class Api:
         parsed = await self.cli.evaluate_cli_command(command, **env)
         # simply return the structure: outer array lines, inner array commands
         # if the structure is returned, it means the command could be evaluated.
-        return web.json_response([[p.name for p in line.parts] for line in parsed])
+        return web.json_response([{part.name: arg for part, arg in line.parts_with_args} for line in parsed])
 
     async def execute(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command

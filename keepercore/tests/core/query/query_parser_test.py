@@ -1,5 +1,7 @@
 from typing import Callable, Optional, Any
 
+import pytest
+
 from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction
 from core.model.graph_access import EdgeType
 from parsy import Parser
@@ -91,7 +93,7 @@ def test_part() -> None:
 
 def test_query() -> None:
     query = (
-        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59))
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59), preamble={"edge_type": EdgeType.default})
         .traverse_out()
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
@@ -105,16 +107,20 @@ def test_query_with_preamble() -> None:
     query_parser.parse('id("root")')  # no preamble
     query_parser.parse('match: id("root")')  # match preamble
     query_parser.parse('match(): id("root")')  # match preamble
-    query = query_parser.parse('{edge_type=delete}: id("root") -[0:1]->')
+    query = query_parser.parse('(edge_type=delete): id("root") -[0:1]->')
     assert query.parts[0].navigation.edge_type == "delete"
-    query = query_parser.parse('aggregate(region: sum(cpu)){edge_type=delete}: id("root") -[0:1]->')
+    query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
     assert query.aggregate.group_by[0].name == "region"
     assert query.aggregate.group_func[0].name == "cpu"
 
 
 def test_preamble_tags() -> None:
-    assert preamble_tags_parser.parse("{edge_type=foo}") == {"edge_type": "foo"}
-    assert preamble_tags_parser.parse('{edge_type="!@#*(&$({{:::"}') == {"edge_type": "!@#*(&$({{:::"}
+    assert preamble_tags_parser.parse("(edge_type=foo)") == {"edge_type": "foo"}
+    assert preamble_tags_parser.parse("(edge_type=23)") == {"edge_type": 23}
+    assert preamble_tags_parser.parse("(edge_type=23.123)") == {"edge_type": 23.123}
+    assert preamble_tags_parser.parse("(edge_type=true)") == {"edge_type": True}
+    assert preamble_tags_parser.parse("(edge_type=false)") == {"edge_type": False}
+    assert preamble_tags_parser.parse('(edge_type="!@#*(&$({{:::")') == {"edge_type": "!@#*(&$({{:::"}
     assert preamble_parser.parse("") == (None, {})
 
 
@@ -136,6 +142,10 @@ def test_aggregate_group_function() -> None:
     assert foo.function == "sum"
     assert bla.name == "bla"
     assert bla.as_name == "bar"
+    boo = aggregate_group_function_parser.parse("sum(boo * 1024.12 + 1) as bar")
+    assert boo.ops == [("*", 1024.12), ("+", 1)]
+    with pytest.raises(Exception):
+        assert aggregate_group_function_parser.parse("sum(test / 3 +)")
 
 
 def test_aggregate() -> None:
