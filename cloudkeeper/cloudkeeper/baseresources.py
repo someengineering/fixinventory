@@ -754,7 +754,7 @@ class BaseInstanceType(BaseType):
             self.region(graph).name,
             self.instance_type,
         )
-        if self.reservations > 0:
+        if self.reservations and self.reservations > 0:
             self._metrics["reserved_instances_total"][metrics_keys] = self.reservations
         return self._metrics
 
