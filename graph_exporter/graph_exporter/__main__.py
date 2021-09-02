@@ -2,11 +2,12 @@ import graph_exporter.logging
 import sys
 import requests
 import json
+import time
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily
 from threading import Event
 from graph_exporter.args import get_arg_parser, ArgumentParser
-from typing import Dict
+from typing import Dict, Iterator
 from signal import signal, SIGTERM, SIGINT
 
 
@@ -36,22 +37,25 @@ def main() -> None:
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
+    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
+    keepercore_graph = ArgumentParser.args.keepercore_graph
+    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    query_uri = f"{graph_uri}/query/aggregate"
+
     start_http_server(ArgumentParser.args.web_port)
     while not shutdown_event.is_set():
-        update_metrics(metrics)
+        try:
+            update_metrics(metrics, query_uri)
+        except Exception as e:
+            log.error(e)
+            time.sleep(10)
+            continue
         shutdown_event.wait(900)
     shutdown_event.wait()
     sys.exit(0)
 
 
-@metrics_update_metrics.time()
-def update_metrics(metrics: Dict) -> None:
-    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-    keepercore_graph = ArgumentParser.args.keepercore_graph
-    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    query_uri = f"{graph_uri}/query/aggregate"
-    query = 'aggregate(cloud.name as cloud, region.name as region : sum(instance_cores) as instance_cores) {merge_with="cloud,region"}: isinstance("instance")'
-
+def query(query: str, query_uri: str) -> Iterator:
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
     )
@@ -62,13 +66,14 @@ def update_metrics(metrics: Dict) -> None:
     for line in r.iter_lines():
         if not line:
             continue
-        data = json.loads(line.decode("utf-8"))
-        try:
-            print(data)
-        except ValueError as e:
-            log.error(e)
-            continue
 
+        data = json.loads(line.decode("utf-8"))
+        yield data
+
+
+@metrics_update_metrics.time()
+def update_metrics(metrics: Dict, query_uri: str) -> None:
+    
     metric = "test"
     labels = ("foo", "bar")
     help_text = "Some test metric"
