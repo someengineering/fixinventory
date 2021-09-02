@@ -970,7 +970,7 @@ class BaseVolumeType(BaseType):
             self.region(graph).name,
             self.volume_type,
         )
-        if self.quota > -1:
+        if self.quota is not None and self.quota > -1:
             self._metrics["volumes_quotas_bytes"][metrics_keys] = self.quota * 1024 ** 4
         return self._metrics
 
