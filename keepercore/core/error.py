@@ -39,3 +39,7 @@ class NoSuchBatchError(DatabaseError, NotFoundError):
 
 class CLIParseError(DomainError):
     pass
+
+
+class ParseError(DomainError):
+    pass

@@ -35,6 +35,7 @@ def parse_args() -> Namespace:
         default="https://www.plantuml.com/plantuml",
         help="The plantuml server to render plantuml images",
     )
+    TaskHandler.add_args(parser)
     return parser.parse_args()
 
 
@@ -56,15 +57,15 @@ def main() -> None:
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
 
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
-    workflow_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli)
+    task_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli, args)
 
-    api = Api(db, model, subscriptions, workflow_handler, event_bus, cli)
+    api = Api(db, model, subscriptions, task_handler, event_bus, cli)
 
     async def async_initializer() -> Application:
         await db.start()
         await subscriptions.start()
         # todo: how to use context managed objects with aiohttp?
-        await workflow_handler.__aenter__()
+        await task_handler.__aenter__()
         await scheduler.start()
         log.info("Initialization done. Starting API.")
         return api.app

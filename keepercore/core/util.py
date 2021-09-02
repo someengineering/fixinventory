@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from asyncio import Task
 from collections import defaultdict
 from collections.abc import Iterable
@@ -51,6 +52,13 @@ def utc_str(dt: datetime = utc()) -> str:
 
 def from_utc(string: str) -> datetime:
     return isoparse(string)
+
+
+def uuid_str(from_object: Optional[Any] = None) -> str:
+    if from_object:
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, from_object))
+    else:
+        return str(uuid.uuid1())
 
 
 def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:

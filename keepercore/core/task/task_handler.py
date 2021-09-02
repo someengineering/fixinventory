@@ -2,14 +2,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
+from io import TextIOWrapper
 from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
 
+import argparse
 from aiostream import stream
+from argparse import ArgumentParser, Namespace
+
+from functools import reduce
+
+from apscheduler.triggers.cron import CronTrigger
 
 from core.cli.cli import CLI
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
+from core.error import ParseError
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
@@ -29,13 +38,18 @@ from core.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
     StepErrorBehaviour,
+    Trigger,
 )
-from core.util import first, Periodic, group_by
+from core.util import first, Periodic, group_by, uuid_str
 
 log = logging.getLogger(__name__)
 
 
 class TaskHandler:
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"))
+
     def __init__(
         self,
         running_task_db: RunningTaskDb,
@@ -43,12 +57,15 @@ class TaskHandler:
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
         cli: CLI,
+        config: Namespace,
     ):
         self.running_task_db = running_task_db
         self.event_bus = event_bus
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
+        self.config = config
+
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
@@ -108,6 +125,12 @@ class TaskHandler:
 
     async def __aenter__(self) -> TaskHandler:
         log.info("TaskHandler is starting up!")
+
+        # load job descriptions from configuration files
+        all_jobs = [await self.parse_job_file(file) for file in self.config.jobs] if self.config.jobs else []
+        jobs: list[Job] = reduce(lambda r, l: r + l, all_jobs, [])
+        self.task_descriptions = [*self.task_descriptions, *jobs]
+
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
         # TODO: it might be necessary to restart current commands (e.g. cli commands)
@@ -329,6 +352,69 @@ class TaskHandler:
                 [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
             ),
         ]
+
+    async def parse_job_file(self, file: TextIOWrapper) -> list[Job]:
+        """
+        Parse a file with job definitions.
+        Every line is either a blank line, a comment or a job definition.
+
+        Example
+
+        # event based trigger
+        event_name : reported test==true | clean
+
+        # cron based trigger
+        0 5 * * sat : reported name="foo" | desire name="bla"
+
+        # cron based + event based trigger
+        0 5 * * sat event_name : reported name="foo" | desire name="bla"
+
+        :param file: the file handle to parse.
+        :return: all parsed jobs.
+        :raises: ParseError if the job can not be parsed
+        """
+        jobs = []
+        with file as reader:
+            for line in reader:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    jobs.append(await self.parse_job_line(file.name, stripped))
+        return jobs
+
+    async def parse_job_line(self, source: str, line: str) -> Job:
+        """
+        Parse a single job line.
+        :param source: the source of this line (just for naming purposes)
+        :param line: the line of text
+        :return: the parsed jon
+        """
+        try:
+            trigger, command = re.split("\\s*:\\s*", line.strip(), 1)
+            uid = uuid_str(line.strip())
+            await self.cli.evaluate_cli_command(command)  # make sure the command can be parsed
+            parts = re.split("\\s+", trigger)
+            job_trigger: Trigger = None  # type: ignore
+            if len(parts) == 1:
+                description = f"event triggered job {trigger} from file {source}"
+                job_trigger = EventTrigger(trigger)
+                wait = None
+            elif len(parts) == 5:
+                description = f"scheduled job {trigger} from file {source}"
+                CronTrigger.from_crontab(trigger)  # make sure the cron expression is valid
+                job_trigger = TimeTrigger(trigger)
+                wait = None
+            elif len(parts) == 6:
+                cron = " ".join(parts[0:5])
+                description = f"scheduled job {cron} with wait for event {parts[5]} from file {source}"
+                CronTrigger.from_crontab(cron)  # make sure the cron expression is valid
+                job_trigger = TimeTrigger(cron)
+                wait = (EventTrigger(parts[5]), timedelta(hours=24))
+            else:
+                raise AttributeError(f"Can not parse trigger of job {trigger}")
+            log.info(f"Read job {description} with command {command}")
+            return Job(uid, description, ExecuteCommand(command), job_trigger, timedelta(minutes=3), wait)
+        except Exception as ex:
+            raise ParseError(f"Can not parse job command line: {line}") from ex
 
     @staticmethod
     def known_jobs() -> list[Job]:
