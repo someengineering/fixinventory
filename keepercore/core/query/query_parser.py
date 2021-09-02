@@ -202,7 +202,7 @@ def aggregate_group_variable_parser() -> Parser:
     return AggregateVariable(name, as_name)
 
 
-math_op_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["+", "-", "*", "/"]])
+math_op_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["+", "-", "*", "/", "%"]])
 
 
 @make_parser
