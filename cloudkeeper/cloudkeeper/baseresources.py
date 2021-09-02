@@ -654,17 +654,20 @@ class PhantomBaseResource(BaseResource):
 @dataclass(eq=False)
 class BaseQuota(PhantomBaseResource):
     kind: ClassVar[str] = "quota"
-    quota: float = -1.0
-    usage: float = 0.0
+    quota: Optional[float] = None
+    usage: Optional[float] = None
+    quota_type: Optional[str] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.quota = float(self.quota)
-        self.usage = float(self.usage)
+        if self.quota is not None:
+            self.quota = float(self.quota)
+        if self.usage is not None:
+            self.usage = float(self.usage)
 
     @property
     def usage_percentage(self) -> float:
-        if self.quota > 0:
+        if self.quota is not None and self.quota > 0.0:
             return self.usage / self.quota * 100
         else:
             return 0.0
@@ -673,7 +676,6 @@ class BaseQuota(PhantomBaseResource):
 @dataclass(eq=False)
 class BaseType(BaseQuota):
     kind: ClassVar[str] = "type"
-    pass
 
 
 @dataclass(eq=False)
@@ -683,8 +685,15 @@ class BaseInstanceQuota(BaseQuota):
         "instances_quotas_total": {
             "help": "Quotas of Instances",
             "labels": ["cloud", "account", "region", "type", "quota_type"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type, quota_type : sum(quota) as instances_quotas_total"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_quota")'
+            ),
         },
     }
+    instance_type: Optional[str] = None
 
     def __post_init__(self, *args, **kwargs) -> None:
         super().__post_init__(*args, **kwargs)
@@ -699,7 +708,7 @@ class BaseInstanceQuota(BaseQuota):
             self.instance_type,
             self.quota_type,
         )
-        if self.quota > -1:
+        if self.quota is not None:
             self._metrics["instances_quotas_total"][metrics_keys] = self.quota
         return self._metrics
 
@@ -711,6 +720,12 @@ class BaseInstanceType(BaseType):
         "reserved_instances_total": {
             "help": "Number of Reserved Instances",
             "labels": ["cloud", "account", "region", "type"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type, quota_type : sum(reservations) as reserved_instances_total"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_type")'
+            ),
         },
     }
     instance_type: Optional[str] = None
@@ -754,7 +769,16 @@ class BaseCloud(BaseResource):
 class BaseAccount(BaseResource):
     kind: ClassVar[str] = "account"
     metrics_description: ClassVar[Dict] = {
-        "accounts_total": {"help": "Number of Accounts", "labels": ["cloud"]},
+        "accounts_total": {
+            "help": "Number of Accounts",
+            "labels": ["cloud"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud,"
+                " instance_type as type, quota_type : sum(1) as accounts_total"
+                ' (merge_with_ancestors="cloud"): isinstance("account")'
+            ),
+        },
     }
 
     _merge: bool = field(default=False, repr=False)
@@ -800,18 +824,43 @@ class BaseInstance(BaseResource):
         "instances_total": {
             "help": "Number of Instances",
             "labels": ["cloud", "account", "region", "type", "status"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type, instance_status as status : sum(1) as instances_total"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance")'
+            ),
         },
         "cores_total": {
             "help": "Number of CPU cores",
             "labels": ["cloud", "account", "region", "type"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type : sum(instance_cores) as cores_total"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
+            ),
         },
         "memory_bytes": {
             "help": "Amount of RAM in bytes",
             "labels": ["cloud", "account", "region", "type"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes"
+                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
+            ),
         },
         "instances_hourly_cost_estimate": {
             "help": "Hourly instance cost estimate",
             "labels": ["cloud", "account", "region", "type"],
+            "type": "gauge",
+            "query": (
+                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
+                " instance_type as type : sum(parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate"
+                ' (merge_with_ancestors="cloud,account,region,instance_type as parent_instance_type"):'
+                ' isinstance("instance") and instance_status == "running"'
+            ),
         },
         "cleaned_instances_total": {
             "help": "Cleaned number of Instances",
