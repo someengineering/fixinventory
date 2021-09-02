@@ -50,7 +50,7 @@ operation_p = reduce(
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
 
-preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with"]])
+preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
 
 lparen_p = lexeme(lparen_dp)
 rparen_p = lexeme(rparen_dp)

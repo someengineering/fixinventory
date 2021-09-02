@@ -635,7 +635,7 @@ class ArangoGraphDB(GraphDB):
         query = query_model.query
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
-        mw = query.preamble.get("merge_with")
+        mw = query.preamble.get("merge_with_ancestors")
         merge_with: list[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
         bind_vars: Json = {}
 
