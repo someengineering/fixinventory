@@ -838,7 +838,8 @@ class BaseInstance(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type : sum(instance_cores) as cores_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
+                ' (merge_with_ancestors="cloud,account,region"):'
+                ' isinstance("instance") and instance_status == "running"'
             ),
         },
         "memory_bytes": {
@@ -848,7 +849,8 @@ class BaseInstance(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance") and instance_status == "running"'
+                ' (merge_with_ancestors="cloud,account,region"):'
+                ' isinstance("instance") and instance_status == "running"'
             ),
         },
         "instances_hourly_cost_estimate": {
