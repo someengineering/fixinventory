@@ -3,9 +3,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
 ARG SUPERVISOR_VERSION=4.2.2
-ARG BUSYBOX_VERSION=1.32.1
-ARG ARANGODB_VERSION=3.8.0
-ARG PROMETHEUS_VERSION=2.29.1
+ARG BUSYBOX_VERSION=1.33.1
+ARG ARANGODB_VERSION=3.8.1
+ARG PROMETHEUS_VERSION=2.29.2
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
@@ -57,15 +57,15 @@ WORKDIR /usr/src/keepercore
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build .
 
-# Build graph_exporter
-COPY graph_exporter /usr/src/graph_exporter
-WORKDIR /usr/src/graph_exporter
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build .
-
 # Build cloudkeeper
 COPY cloudkeeper /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build .
+
+# Build graph_exporter
+COPY graph_exporter /usr/src/graph_exporter
+WORKDIR /usr/src/graph_exporter
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build .
 
