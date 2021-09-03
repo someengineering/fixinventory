@@ -1,4 +1,4 @@
-FROM debian:stable-slim as build-env
+FROM debian:stable as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
@@ -9,7 +9,7 @@ ARG PROMETHEUS_VERSION=2.29.2
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
-RUN apt-get update || true
+RUN apt-get update
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
@@ -114,14 +114,14 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
 # Setup main image
-FROM debian:stable-slim
+FROM debian:stable
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home cloudkeeper \
-    && apt-get update || true \
+    && apt-get update \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
     && apt-get -y --no-install-recommends install \
