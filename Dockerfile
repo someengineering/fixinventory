@@ -45,6 +45,7 @@ RUN cp busybox /usr/local/bin/
 WORKDIR /usr/local/tsdb
 RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
+COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 
 # Download and install Python test tools
 RUN pip install --upgrade pip
