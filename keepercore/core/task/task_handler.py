@@ -17,9 +17,11 @@ from functools import reduce
 from apscheduler.triggers.cron import CronTrigger
 
 from core.cli.cli import CLI
+from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.error import ParseError
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
+from core.task.job_handler import JobHandler
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -45,7 +47,7 @@ from core.util import first, Periodic, group_by, uuid_str
 log = logging.getLogger(__name__)
 
 
-class TaskHandler:
+class TaskHandler(JobHandler):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"))
@@ -53,6 +55,7 @@ class TaskHandler:
     def __init__(
         self,
         running_task_db: RunningTaskDb,
+        job_db: JobDb,
         event_bus: EventBus,
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
@@ -60,6 +63,7 @@ class TaskHandler:
         config: Namespace,
     ):
         self.running_task_db = running_task_db
+        self.joob_db = job_db
         self.event_bus = event_bus
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
@@ -179,6 +183,19 @@ class TaskHandler:
             if task.update_task:
                 await task.update_task
                 del self.tasks[task.id]
+
+    # endregion
+
+    # region job handler
+
+    def list_jobs(self) -> list[Job]:
+        return [job for job in self.task_descriptions if isinstance(job, Job)]
+
+    def add_job(self, job: Job) -> None:
+        pass
+
+    def delete_job(self, job: Job) -> None:
+        pass
 
     # endregion
 

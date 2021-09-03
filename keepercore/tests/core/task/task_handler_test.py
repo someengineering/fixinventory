@@ -6,13 +6,22 @@ from pytest import fixture
 from typing import AsyncGenerator
 
 from core.cli.cli import CLI
+from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskDb
 from core.error import ParseError
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
-from core.task.task_description import Workflow, Step, PerformAction, EventTrigger, StepErrorBehaviour, TimeTrigger
+from core.task.task_description import (
+    Workflow,
+    Step,
+    PerformAction,
+    EventTrigger,
+    StepErrorBehaviour,
+    TimeTrigger,
+    Job,
+)
 from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
@@ -37,6 +46,11 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 
 @fixture
+def job_db() -> JobDb:
+    return InMemoryDb[Job](Job, lambda x: x.id)
+
+
+@fixture
 def task_handler_args() -> Namespace:
     args = ArgumentParser()
     TaskHandler.add_args(args)
@@ -46,13 +60,14 @@ def task_handler_args() -> Namespace:
 @fixture
 async def task_handler(
     running_task_db: RunningTaskDb,
+    job_db: JobDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
     task_handler_args: Namespace,
 ) -> AsyncGenerator[TaskHandler, None]:
-    wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
+    wfh = TaskHandler(running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
     wfh.task_descriptions = [test_workflow]
     async with wfh:
         yield wfh
@@ -111,6 +126,7 @@ async def test_parse_job_line_event_and_time_trigger(task_handler: TaskHandler) 
 @pytest.mark.asyncio
 async def test_recover_workflow(
     running_task_db: RunningTaskDb,
+    job_db: JobDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     all_events: list[Message],
@@ -118,7 +134,9 @@ async def test_recover_workflow(
     task_handler_args: Namespace,
 ) -> None:
     def handler() -> TaskHandler:
-        return TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
+        return TaskHandler(
+            running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args
+        )
 
     await subscription_handler.add_subscription("sub_1", "start_collect", True, timedelta(seconds=30))
     sub1 = await subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))

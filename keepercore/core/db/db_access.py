@@ -8,6 +8,7 @@ from dateutil.parser import parse
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
+from core.db.jobdb import job_db
 from core.db.modeldb import ModelDb, model_db
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.db.subscriberdb import subscriber_db
@@ -25,16 +26,18 @@ class DbAccess(ABC):
         arango_database: StandardDatabase,
         event_bus: EventBus,
         model_name: str = "model",
-        subscribers_name: str = "subscriber",
-        running_task_name: str = "running_task",
+        subscriber_name: str = "subscribers",
+        running_task_name: str = "running_tasks",
+        job_name: str = "jobs",
         batch_outdated: timedelta = timedelta(minutes=30),
     ):
         self.event_bus = event_bus
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_bus, model_name)
-        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscribers_name), event_bus, subscribers_name)
+        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_bus, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
+        self.job_db = job_db(self.db, job_name)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.batch_outdated = batch_outdated
         self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))
@@ -43,6 +46,7 @@ class DbAccess(ABC):
         await self.model_db.create_update_schema()
         await self.subscribers_db.create_update_schema()
         await self.running_task_db.create_update_schema()
+        await self.job_db.create_update_schema()
         await self.cleaner.start()
 
     async def create_graph(self, name: str) -> GraphDB:

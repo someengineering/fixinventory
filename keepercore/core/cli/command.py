@@ -28,6 +28,7 @@ from core.cli.cli import (
     QueryPart,
     AggregatePart,
     MergeAncestorsPart,
+    Result,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError
@@ -556,6 +557,23 @@ class FormatCommand(CLICommand):
         return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)  # type: ignore
 
 
+class JobsSource(CLISource):
+    """
+    Usage: jobs
+    """
+
+    @property
+    def name(self) -> str:
+        return "jobs"
+
+    def info(self) -> str:
+        return "List all jobs in the system."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        for job in self.dependencies.job_handler.list_jobs():
+            yield f"{job.id}: {job.name} triggered by {job.trigger}"
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -569,7 +587,7 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), JsonSource(d), EnvSource(d), QuerySource(d), SleepSource(d)]
+    return [EchoSource(d), JsonSource(d), EnvSource(d), QuerySource(d), SleepSource(d), JobsSource(d)]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:

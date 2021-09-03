@@ -53,12 +53,12 @@ def main() -> None:
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
     db = DbAccess(database, event_bus)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
-    cli_deps = CLIDependencies(event_bus, db, model)
+    cli_deps = CLIDependencies()
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
 
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
-    task_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli, args)
-
+    task_handler = TaskHandler(db.running_task_db, db.job_db, event_bus, subscriptions, scheduler, cli, args)
+    cli_deps.lookup = {"event_bus": event_bus, "db_access": db, "model_handler": model, "job_handler": task_handler}
     api = Api(db, model, subscriptions, task_handler, event_bus, cli)
 
     async def async_initializer() -> Application:

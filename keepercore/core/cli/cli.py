@@ -29,6 +29,7 @@ from core.model.typed_model import class_fqn
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
 from core.query.model import Query, Navigation, AllTerm, Aggregate
 from core.query.query_parser import term_parser, aggregate_parameter_parser
+from core.task.job_handler import JobHandler
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
 
@@ -44,11 +45,25 @@ Flow = Callable[[JsGen], JsGen]
 Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 
 
-@dataclass(frozen=True)
 class CLIDependencies:
-    event_bus: EventBus
-    db_access: DbAccess
-    model_handler: ModelHandler
+    def __init__(self) -> None:
+        self.lookup: dict[str, Any] = dict()
+
+    @property
+    def event_bus(self) -> EventBus:
+        return self.lookup["event_bus"]  # type:ignore
+
+    @property
+    def db_access(self) -> DbAccess:
+        return self.lookup["db_access"]  # type:ignore
+
+    @property
+    def model_handler(self) -> ModelHandler:
+        return self.lookup["model_handler"]  # type:ignore
+
+    @property
+    def job_handler(self) -> JobHandler:
+        return self.lookup["job_handler"]  # type:ignore
 
 
 class CLIPart(ABC):
