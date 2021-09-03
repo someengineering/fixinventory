@@ -31,8 +31,7 @@ def handler(sig, frame) -> None:
 
 
 class Metrics:
-    def __init__(self, name: str) -> None:
-        self.name = name
+    def __init__(self) -> None:
         self.live = {}
         self.staging = {}
 
@@ -49,7 +48,7 @@ def main() -> None:
     add_args(arg_parser)
     arg_parser.parse_args()
 
-    metrics = Metrics("Lukas Test")
+    metrics = Metrics()
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
@@ -269,7 +268,7 @@ class GraphCollector:
 
     def collect(self):
         """collect() is being called whenever the /metrics endpoint is requested"""
-        log.debug(f"GraphCollector generating metrics {self.metrics.name} {hex(id(self.metrics))}")
+        log.debug("GraphCollector generating metrics")
 
         for metric in self.metrics.live.values():
             yield metric
