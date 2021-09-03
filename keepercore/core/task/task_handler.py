@@ -327,29 +327,48 @@ class TaskHandler:
 
     @staticmethod
     def known_workflows() -> list[Workflow]:
+        collect_steps=[
+            Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
+            Step("collect", PerformAction("collect"), timedelta(seconds=10)),
+            Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
+        ]
+        cleanup_steps=[
+            Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
+            Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
+            Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
+            Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
+            Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
+            Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
+        ]
+        metrics_steps=[
+            Step("pre_metrics", PerformAction("pre_generate_metrics"), timedelta(seconds=10)),
+            Step("metrics", PerformAction("generate_metrics"), timedelta(seconds=10)),
+            Step("post_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
+        ]
         return [
             Workflow(
-                "collect",
-                "collect",
-                [
-                    Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-                    Step("act", PerformAction("collect"), timedelta(seconds=10)),
-                    Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
-                ],
-                [EventTrigger("start_collect_workflow"), TimeTrigger("5 * * * *")],
+                uid="collect",
+                name="collect",
+                steps=collect_steps + metrics_steps,
+                triggers=[EventTrigger("start_collect_workflow")],
             ),
             Workflow(
-                "cleanup",
-                "cleanup",
-                [
-                    Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
-                    Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
-                    Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
-                    Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
-                    Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
-                    Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
-                ],
-                [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
+                uid="cleanup",
+                name="cleanup",
+                steps=cleanup_steps + metrics_steps,
+                triggers=[EventTrigger("start_cleanup_workflow")],
+            ),
+            Workflow(
+                uid="metrics",
+                name="metrics",
+                steps=metrics_steps,
+                triggers=[EventTrigger("start_metrics_workflow")],
+            ),
+            Workflow(
+                uid="collect_and_cleanup",
+                name="collect_and_cleanup",
+                steps=collect_steps + cleanup_steps + metrics_steps,
+                triggers=[EventTrigger("start_collect_and_cleanup_workflow"), TimeTrigger("0 * * * *")],
             ),
         ]
 
