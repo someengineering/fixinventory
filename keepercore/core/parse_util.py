@@ -1,6 +1,6 @@
 from typing import Callable
 
-from parsy import Parser, generate, regex, string, digit
+from parsy import Parser, generate, regex, string
 
 
 def make_parser(fn: Callable[[], Parser]) -> Parser:
@@ -33,8 +33,8 @@ colon_dp = string(":")
 comma_dp = string(",")
 dot_dot_dp = string("..")
 equals_dp = string("=")
-integer_dp = digit.at_least(1).concat().map(int)
-float_dp = (digit.many() + string(".").result(["."]) + digit.many()).concat().map(float)
+integer_dp = regex(r"[+-]?[0-9]+").map(int)
+float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
 variable_dp = regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*")
 literal_dp = regex("[A-Za-z][A-Za-z0-9_]*")
 

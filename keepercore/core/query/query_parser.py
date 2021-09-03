@@ -24,9 +24,9 @@ from core.parse_util import (
     integer_dp,
     variable_dp,
     literal_dp,
-    string_dp,
     make_parser,
     whitespace,
+    quoted_string_dp,
 )
 from core.query.model import (
     Predicate,
@@ -71,7 +71,7 @@ float_p = lexeme(float_dp)
 integer_p = lexeme(integer_dp)
 variable_p = lexeme(variable_dp)
 literal_p = lexeme(literal_dp)
-quoted_string_p = lexeme(string('"') >> string_dp << string('"'))
+quoted_string_p = lexeme(quoted_string_dp)
 
 
 @make_parser
