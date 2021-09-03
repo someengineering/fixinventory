@@ -122,7 +122,6 @@ def query(query_str: str, query_uri: str) -> Iterator:
         stream=True,
     )
     if r.status_code != 200:
-        log.error(r.content)
         raise RuntimeError(f"Failed to query graph: {r.content}")
 
     for line in r.iter_lines():
@@ -158,36 +157,42 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
         if metrics_query is None:
             continue
 
-        if metric_type not in ("gauge"):
+        if metric_type not in ("gauge", "counter"):
             log.error(f"Do not know how to handle metrics of type {metric_type}")
             continue
 
-        for result in query(metrics_query, query_uri):
-            labels = get_labels_from_result(result)
-            label_values = get_label_values_from_result(result, labels)
+        try:
+            for result in query(metrics_query, query_uri):
+                labels = get_labels_from_result(result)
+                label_values = get_label_values_from_result(result, labels)
 
-            for metric_name, metric_value in get_metrics_from_result(result).items():
-                if metric_name not in metrics.staging:
-                    log.debug(f"Adding metric {metric_name} of type {metric_type}")
-                    if metric_type == "gauge":
-                        metrics.staging[metric_name] = GaugeMetricFamily(
-                            f"cloudkeeper_{metric_name}",
-                            metric_help,
-                            labels=labels,
-                        )
-                    elif metric_type == "counter":
-                        metrics.staging[metric_name] = CounterMetricFamily(
-                            f"cloudkeeper_{metric_name}",
-                            metric_help,
-                            labels=labels,
-                        )
-                if metric_type == "counter" and metric_name in metrics.live:
-                    current_metric = metrics.live[metric_name]
-                    for sample in current_metric.samples:
-                        if sample.labels == result.get("group"):
-                            metric_value += sample.value
-                            break
-                metrics.staging[metric_name].add_metric(label_values, metric_value)
+                for metric_name, metric_value in get_metrics_from_result(
+                    result
+                ).items():
+                    if metric_name not in metrics.staging:
+                        log.debug(f"Adding metric {metric_name} of type {metric_type}")
+                        if metric_type == "gauge":
+                            metrics.staging[metric_name] = GaugeMetricFamily(
+                                f"cloudkeeper_{metric_name}",
+                                metric_help,
+                                labels=labels,
+                            )
+                        elif metric_type == "counter":
+                            metrics.staging[metric_name] = CounterMetricFamily(
+                                f"cloudkeeper_{metric_name}",
+                                metric_help,
+                                labels=labels,
+                            )
+                    if metric_type == "counter" and metric_name in metrics.live:
+                        current_metric = metrics.live[metric_name]
+                        for sample in current_metric.samples:
+                            if sample.labels == result.get("group"):
+                                metric_value += sample.value
+                                break
+                    metrics.staging[metric_name].add_metric(label_values, metric_value)
+        except RuntimeError as e:
+            log.error(e)
+            continue
     metrics.swap()
 
 
