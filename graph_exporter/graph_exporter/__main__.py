@@ -3,8 +3,11 @@ import sys
 import requests
 import json
 import time
+import websocket
 import inspect
 import cloudkeeper.baseresources
+from functools import partial
+from cloudkeeper.event import KeepercoreEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
@@ -55,19 +58,60 @@ def main() -> None:
     query_uri = f"{graph_uri}/reported/query/aggregate"
 
     start_http_server(ArgumentParser.args.web_port)
-    while not shutdown_event.is_set():
-        try:
-            start_time = time.time()
-            update_metrics(metrics, query_uri)
-            metrics.swap()
-            run_time = time.time() - start_time
-            log.debug(f"Updated metrics for {run_time:.2f} seconds")
-        except Exception as e:
-            log.error(e)
-            time.sleep(10)
-            continue
-        shutdown_event.wait(900)
+    message_processor = partial(keepercore_message_processor, metrics, query_uri)
+    ke = KeepercoreEvents(
+        identifier="graph_exporter",
+        keepercore_uri=ArgumentParser.args.keepercore_uri,
+        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        events={
+            "generate_metrics": {
+                "timeout": ArgumentParser.args.timeout,
+                "wait_for_completion": True,
+            },
+        },
+        message_processor=message_processor,
+    )
+    ke.start()
+    shutdown_event.wait()
+    ke.shutdown()
     sys.exit(0)
+
+
+def keepercore_message_processor(
+    metrics: Metrics, query_uri: str, ws: websocket.WebSocketApp, message: Dict
+) -> None:
+    if not isinstance(ws, websocket.WebSocketApp):
+        log.error(f"Invalid websocket: {ws}")
+        return
+    if not isinstance(message, dict):
+        log.error(f"Invalid message: {message}")
+        return
+    kind = message.get("kind")
+    message_type = message.get("message_type")
+    data = message.get("data")
+    log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
+    if kind == "action":
+        try:
+            if message_type == "generate_metrics":
+                start_time = time.time()
+                update_metrics(metrics, query_uri)
+                run_time = time.time() - start_time
+                log.debug(f"Updated metrics for {run_time:.2f} seconds")
+            else:
+                raise ValueError(f"Unknown message type {message_type}")
+        except Exception as e:
+            log.exception(f"Failed to {message_type}: {e}")
+            reply_kind = "action_error"
+        else:
+            reply_kind = "action_done"
+
+        reply_message = {
+            "kind": reply_kind,
+            "message_type": message_type,
+            "data": data,
+        }
+        log.debug(f"Sending reply {reply_message}")
+        ws.send(json.dumps(reply_message))
 
 
 def query(query_str: str, query_uri: str) -> Iterator:
@@ -193,6 +237,26 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Keepercore graph name",
         default="ck",
         dest="keepercore_graph",
+    )
+    arg_parser.add_argument(
+        "--pool-size",
+        help="Collector Thread/Process Pool Size (default: 5)",
+        dest="pool_size",
+        default=5,
+        type=int,
+    )
+    arg_parser.add_argument(
+        "--fork",
+        help="Use forked process instead of threads (default: False)",
+        dest="fork",
+        action="store_true",
+    )
+    arg_parser.add_argument(
+        "--timeout",
+        help="Metrics generation timeout in seconds (default: 300)",
+        default=300,
+        dest="timeout",
+        type=int,
     )
 
 

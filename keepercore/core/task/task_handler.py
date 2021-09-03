@@ -327,12 +327,12 @@ class TaskHandler:
 
     @staticmethod
     def known_workflows() -> list[Workflow]:
-        collect_steps=[
+        collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
             Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
         ]
-        cleanup_steps=[
+        cleanup_steps = [
             Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
             Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
             Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
@@ -340,7 +340,7 @@ class TaskHandler:
             Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
             Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
         ]
-        metrics_steps=[
+        metrics_steps = [
             Step("pre_metrics", PerformAction("pre_generate_metrics"), timedelta(seconds=10)),
             Step("metrics", PerformAction("generate_metrics"), timedelta(seconds=10)),
             Step("post_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
