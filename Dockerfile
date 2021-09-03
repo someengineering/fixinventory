@@ -69,6 +69,12 @@ WORKDIR /usr/src/graph_exporter
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
+# Build keeper-cli
+COPY keeper-cli /usr/src/keeper-cli
+WORKDIR /usr/src/keeper-cli
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
 # Build cloudkeeper plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
