@@ -13,12 +13,13 @@ supervisor_graphdb_conf_in=/usr/local/etc/supervisor.conf.in/graphdb.conf
 supervisor_tsdb_conf_in=/usr/local/etc/supervisor.conf.in/tsdb.conf
 supervisor_keepercore_conf_in=/usr/local/etc/supervisor.conf.in/keepercore.conf
 supervisor_collectord_conf_in=/usr/local/etc/supervisor.conf.in/collectord.conf
+supervisor_graph_exporter_conf_in=/usr/local/etc/supervisor.conf.in/graph_exporter.conf
 # Output files
 supervisor_graphdb_conf=/usr/local/etc/supervisor/conf.d/graphdb.conf
 supervisor_tsdb_conf=/usr/local/etc/supervisor/conf.d/tsdb.conf
 supervisor_keepercore_conf=/usr/local/etc/supervisor/conf.d/keepercore.conf
 supervisor_collectord_conf=/usr/local/etc/supervisor/conf.d/collectord.conf
-
+supervisor_graph_exporter_conf=/usr/local/etc/supervisor/conf.d/graph_exporter.conf
 
 # log levels
 debug=50

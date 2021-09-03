@@ -19,6 +19,7 @@ main() {
         setup_tsdb
         setup_keepercore
         setup_collectord
+        setup_graph_exporter
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
     fi
 }
@@ -147,7 +148,18 @@ setup_collectord() {
     if [ "$START_COLLECTORD" = true ]; then
         info "Collectord activated"
         sed -e "s#@COLLECTORD_KEEPERCORE_URI@#$COLLECTORD_KEEPERCORE_URI#" \
+            -e "s#@COLLECTORD_KEEPERCORE_WS_URI@#$COLLECTORD_KEEPERCORE_WS_URI#" \
             "$supervisor_collectord_conf_in" > "$supervisor_collectord_conf"
+    fi
+}
+
+setup_graph_exporter() {
+    rm -f "$supervisor_graph_exporter_conf"
+    if [ "$START_GRAPH_EXPORTER" = true ]; then
+        info "graph_exporter activated"
+        sed -e "s#@GRAPH_EXPORTER_KEEPERCORE_URI@#$GRAPH_EXPORTER_KEEPERCORE_URI#" \
+            -e "s#@GRAPH_EXPORTER_KEEPERCORE_WS_URI@#$GRAPH_EXPORTER_KEEPERCORE_WS_URI#" \
+            "$supervisor_graph_exporter_conf_in" > "$supervisor_graph_exporter_conf"
     fi
 }
 

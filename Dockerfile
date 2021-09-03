@@ -56,6 +56,12 @@ WORKDIR /usr/src/keepercore
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build .
 
+# Build graph_exporter
+COPY graph_exporter /usr/src/graph_exporter
+WORKDIR /usr/src/graph_exporter
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build .
+
 # Build cloudkeeper
 COPY cloudkeeper /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper

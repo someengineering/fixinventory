@@ -31,7 +31,8 @@ def handler(sig, frame) -> None:
 
 
 class Metrics:
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        self.name = name
         self.live = {}
         self.staging = {}
 
@@ -48,7 +49,7 @@ def main() -> None:
     add_args(arg_parser)
     arg_parser.parse_args()
 
-    metrics = Metrics()
+    metrics = Metrics("Lukas Test")
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
@@ -147,7 +148,6 @@ def find_metrics(mod):
 @metrics_update_metrics.time()
 def update_metrics(metrics: Metrics, query_uri: str) -> None:
     metrics_descriptions = find_metrics(cloudkeeper.baseresources)
-
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return
@@ -189,6 +189,7 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
                             metric_value += sample.value
                             break
                 metrics.staging[metric_name].add_metric(label_values, metric_value)
+    metrics.swap()
 
 
 def get_metrics_from_result(result: Dict):
@@ -268,7 +269,7 @@ class GraphCollector:
 
     def collect(self):
         """collect() is being called whenever the /metrics endpoint is requested"""
-        log.debug("GraphCollector generating metrics")
+        log.debug(f"GraphCollector generating metrics {self.metrics.name} {hex(id(self.metrics))}")
 
         for metric in self.metrics.live.values():
             yield metric
