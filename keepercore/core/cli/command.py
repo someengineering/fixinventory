@@ -567,6 +567,8 @@ class JobsSource(CLISource):
     Example
         jobs   # Could show
             [ { "id": "d20288f0", "command": "echo hi!", "trigger": { "cron_expression": "* * * * *" } ]
+
+    See: add_job, delete_job
     }
     """
 
@@ -590,6 +592,8 @@ class AddJobSource(CLISource):
     Add a job which runs scheduled via define cron expression.
     Optional: once the schedule triggers this job, it is possible to wait for an incoming event, before the command
     is executed.
+    The result of `add_job` will be a job identifier, which identifies this job uniquely and can be used to
+    delete the job agaim.
     Note: the command is not allowed to run longer than 1 hour. It is killed in such a case.
     Note: if an event to wait for is specified, it has to arrive in 24 hours, otherwise the job is aborted.
 
@@ -604,10 +608,10 @@ class AddJobSource(CLISource):
     Example:
         # print hello world every minute to the console
         add_job * * * * * echo hello world
-        # list all jobs every minute
-        add_job * * * * * echo here are all jobs from @NOW@\\; jobs
         # every morning at 4: wait for message of type collect_done and print a message
-        add_job 0 4 * * * collect_done: echo @NOW@ collect_done event received
+        add_job 0 4 * * * collect_done: match is instance("compute_instance") and cores>4 \\| format id
+
+    See: delete_job, jobs
     """
 
     @property
@@ -628,6 +632,18 @@ class AddJobSource(CLISource):
 class DeleteJobSource(CLISource):
     """
     Usage: delete_job [job_id]
+
+    Delete a job by a given job identifier.
+    Note: a job with an unknown id can not be deleted. It will not raise any error, but show a different message.
+
+
+    Parameter:
+        job_id [mandatory]: defines the identifier of the job to be deleted.
+
+    Example:
+        delete_job 123  # will delete the job with id 123
+
+    See: add_job, jobs
     """
 
     @property
