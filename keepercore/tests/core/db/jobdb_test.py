@@ -36,8 +36,8 @@ def event_db(job_db: JobDb, event_bus: EventBus) -> EventJobDb:
 def jobs() -> list[Job]:
     wait = (EventTrigger("wait"), timedelta(seconds=30))
     return [
-        Job("id1", "n1", ExecuteCommand("echo hello"), EventTrigger("run_job"), timedelta(seconds=10)),
-        Job("id2", "n2", ExecuteCommand("sleep 10"), EventTrigger("run_job"), timedelta(seconds=10), wait),
+        Job("id1", ExecuteCommand("echo hello"), EventTrigger("run_job"), timedelta(seconds=10)),
+        Job("id2", ExecuteCommand("sleep 10"), EventTrigger("run_job"), timedelta(seconds=10), wait),
     ]
 
 

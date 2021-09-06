@@ -1,17 +1,23 @@
 from abc import ABC, abstractmethod
 
+from typing import Optional
+
 from core.task.task_description import Job
 
 
 class JobHandler(ABC):
     @abstractmethod
-    def list_jobs(self) -> list[Job]:
+    async def list_jobs(self) -> list[Job]:
         pass
 
     @abstractmethod
-    def add_job(self, job: Job) -> None:
+    async def add_job(self, job: Job) -> None:
         pass
 
     @abstractmethod
-    def delete_job(self, job: Job) -> None:
+    async def delete_job(self, job_id: str) -> Optional[Job]:
+        pass
+
+    @abstractmethod
+    async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
         pass

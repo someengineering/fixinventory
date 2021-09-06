@@ -32,6 +32,7 @@ from core.cli.cli import (
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError
+from core.model.typed_model import to_js
 from core.query.query_parser import parse_query
 from core.types import Json, JsonElement
 from core.util import AccessJson
@@ -560,6 +561,13 @@ class FormatCommand(CLICommand):
 class JobsSource(CLISource):
     """
     Usage: jobs
+
+    List all jobs in the system.
+
+    Example
+        jobs   # Could show
+            [ { "id": "d20288f0", "command": "echo hi!", "trigger": { "cron_expression": "* * * * *" } ]
+    }
     """
 
     @property
@@ -570,8 +578,70 @@ class JobsSource(CLISource):
         return "List all jobs in the system."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
-        for job in self.dependencies.job_handler.list_jobs():
-            yield f"{job.id}: {job.name} triggered by {job.trigger}"
+        for job in await self.dependencies.job_handler.list_jobs():
+            wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
+            yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command} | wait
+
+
+class AddJobSource(CLISource):
+    """
+    Usage: add_job <cron_expression> [<event_name> :] <command>
+
+    Add a job which runs scheduled via define cron expression.
+    Optional: once the schedule triggers this job, it is possible to wait for an incoming event, before the command
+    is executed.
+    Note: the command is not allowed to run longer than 1 hour. It is killed in such a case.
+    Note: if an event to wait for is specified, it has to arrive in 24 hours, otherwise the job is aborted.
+
+    Parameter:
+        cron_expression [mandatory]: defines the recurrent schedule in crontab format.
+        event_name [optional]:       if defined, the command waits for the specified event _after_ the next scheduled
+                                     time has been reached. No waiting happens, if this parameter is not defined.
+        command [mandatory]:         the CLI command that will be executed, when the job is triggered.
+                                     Note: multiple commands can be defined by separating them via escaped semicolon.
+
+
+    Example:
+        # print hello world every minute to the console
+        add_job * * * * * echo hello world
+        # list all jobs every minute
+        add_job * * * * * echo here are all jobs from @NOW@\\; jobs
+        # every morning at 4: wait for message of type collect_done and print a message
+        add_job 0 4 * * * collect_done: echo @NOW@ collect_done event received
+    """
+
+    @property
+    def name(self) -> str:
+        return "add_job"
+
+    def info(self) -> str:
+        return "Add job to the system."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        if not arg:
+            raise AttributeError("No parameters provided for add_job!")
+        job = await self.dependencies.job_handler.parse_job_line("cli", arg)
+        await self.dependencies.job_handler.add_job(job)
+        yield f"Job {job.id} added."
+
+
+class DeleteJobSource(CLISource):
+    """
+    Usage: delete_job [job_id]
+    """
+
+    @property
+    def name(self) -> str:
+        return "delete_job"
+
+    def info(self) -> str:
+        return "Remove job from the system."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        if not arg:
+            raise AttributeError("No parameters provided for delete_job!")
+        job = await self.dependencies.job_handler.delete_job(arg)
+        yield f"Job {arg} deleted." if job else f"No job with this id: {arg}"
 
 
 class ListSink(CLISink):
@@ -587,7 +657,16 @@ class ListSink(CLISink):
 
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
-    return [EchoSource(d), JsonSource(d), EnvSource(d), QuerySource(d), SleepSource(d), JobsSource(d)]
+    return [
+        EchoSource(d),
+        JsonSource(d),
+        EnvSource(d),
+        QuerySource(d),
+        SleepSource(d),
+        JobsSource(d),
+        AddJobSource(d),
+        DeleteJobSource(d),
+    ]
 
 
 def all_sinks(d: CLIDependencies) -> List[CLISink]:

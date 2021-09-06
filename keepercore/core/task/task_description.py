@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
 from dataclasses import dataclass
 
 from asyncio import Task
+
+from apscheduler.triggers.cron import CronTrigger
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
@@ -157,6 +159,10 @@ class EventTrigger(Trigger):
 class TimeTrigger(Trigger):
     cron_expression: str
 
+    def __post_init__(self) -> None:
+        # make sure the time trigger is valid
+        CronTrigger.from_crontab(self.cron_expression)
+
 
 # endregion
 
@@ -183,9 +189,10 @@ class Step:
 
 
 class TaskDescription(ABC):
-    def __init__(self, uid: str, name: str):
+    def __init__(self, uid: str, name: str, mutable: bool):
         self.id = uid
         self.name = name
+        self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
         return first(lambda x: x.name == name, self.steps)
@@ -213,26 +220,24 @@ class Job(TaskDescription):
     def __init__(
         self,
         uid: str,
-        name: str,
         command: ExecuteCommand,
         trigger: Trigger,
         timeout: timedelta,
         wait: Optional[Tuple[EventTrigger, timedelta]] = None,
-        mutable: bool = False,
+        mutable: bool = True,
     ):
-        super().__init__(uid, name)
+        super().__init__(uid, uid, mutable)
         self.command = command
         self.trigger = trigger
         self.timeout = timeout
         self.wait = wait
-        self.mutable = mutable
         self._triggers = [trigger]
         self._steps = []
         if wait:
             trigger, wait_timeout = wait
             action = WaitForEvent(trigger.message_type, trigger.filter_data)
             self._steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
-        self._steps.append(Step("execute", command, timeout))
+        self._steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
 
     @property
     def steps(self) -> Sequence[Step]:
@@ -266,7 +271,6 @@ class Job(TaskDescription):
         )
         return Job(
             json["id"],
-            json["name"],
             from_js(json["command"], ExecuteCommand),
             from_js(json["trigger"], Trigger),
             from_js(json["timeout"], timedelta),
@@ -287,7 +291,7 @@ class Workflow(TaskDescription):
         triggers: Sequence[Trigger],
         on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
     ) -> None:
-        super().__init__(uid, name)
+        super().__init__(uid, name, mutable=False)
         self._steps = steps
         self._triggers = triggers
         self._on_surpass = on_surpass
@@ -380,7 +384,7 @@ class StepState(State):  # type: ignore
         Return true if the internal state of the fsm has changed by this event.
         This method is called periodically by the cleaner task.
         """
-        if (self.instance.step_started_at + self.timeout()) < datetime.now(timezone.utc):
+        if (self.instance.step_started_at + self.timeout()) < utc():
             self.timed_out = True
             return True
         return False
@@ -598,6 +602,7 @@ class RunningTask:
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
         self.update_task: Optional[Task[None]] = None
+        self.descriptor_alive = True
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
@@ -717,7 +722,7 @@ class RunningTask:
     def begin_step(self) -> None:
         log.info(f"Task {self.id}: begin step is: {self.current_step.name}")
         # update the step started time, whenever a new state is entered
-        self.step_started_at = datetime.now(timezone.utc)
+        self.step_started_at = utc()
         self.current_state.step_started()
 
 

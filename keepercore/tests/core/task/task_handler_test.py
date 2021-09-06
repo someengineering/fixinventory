@@ -67,10 +67,13 @@ async def task_handler(
     test_workflow: Workflow,
     task_handler_args: Namespace,
 ) -> AsyncGenerator[TaskHandler, None]:
-    wfh = TaskHandler(running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
-    wfh.task_descriptions = [test_workflow]
-    async with wfh:
-        yield wfh
+    task_handler = TaskHandler(
+        running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args
+    )
+    task_handler.task_descriptions = [test_workflow]
+    cli.dependencies.lookup["job_handler"] = task_handler
+    async with task_handler:
+        yield task_handler
 
 
 @fixture
@@ -96,16 +99,8 @@ async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> 
 
 
 @pytest.mark.asyncio
-async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", 'cleanup_plan : match kind == "node" | clean')
-    assert job.trigger == EventTrigger("cleanup_plan")
-    assert job.command.command == 'match kind == "node" | clean'
-    assert job.wait is None
-
-
-@pytest.mark.asyncio
 async def test_parse_job_line_time_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", '0 5 * * sat : match t2 == "node" | clean')
+    job = await task_handler.parse_job_line("test", '0 5 * * sat   match t2 == "node" | clean')
     assert job.trigger == TimeTrigger("0 5 * * sat")
     assert job.command.command == 'match t2 == "node" | clean'
     assert job.wait is None
