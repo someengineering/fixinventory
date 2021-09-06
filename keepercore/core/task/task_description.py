@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from abc import ABC, abstractmethod
+from abc import ABC
 from datetime import timedelta
 from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
@@ -189,28 +189,24 @@ class Step:
 
 
 class TaskDescription(ABC):
-    def __init__(self, uid: str, name: str, mutable: bool):
+    def __init__(
+        self,
+        uid: str,
+        name: str,
+        steps: Sequence[Step],
+        triggers: Sequence[Trigger],
+        on_surpass: TaskSurpassBehaviour,
+        mutable: bool,
+    ):
         self.id = uid
         self.name = name
+        self.steps = steps
+        self.triggers = triggers
+        self.on_surpass = on_surpass
         self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
         return first(lambda x: x.name == name, self.steps)
-
-    @property
-    @abstractmethod
-    def steps(self) -> Sequence[Step]:
-        pass
-
-    @property
-    @abstractmethod
-    def triggers(self) -> Sequence[Trigger]:
-        pass
-
-    @property
-    @abstractmethod
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        pass
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, TaskDescription) else False
@@ -226,30 +222,17 @@ class Job(TaskDescription):
         wait: Optional[Tuple[EventTrigger, timedelta]] = None,
         mutable: bool = True,
     ):
-        super().__init__(uid, uid, mutable)
+        steps = []
+        if wait:
+            wait_trigger, wait_timeout = wait
+            action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
+            steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
+        steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
+        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Parallel, mutable)
         self.command = command
         self.trigger = trigger
         self.timeout = timeout
         self.wait = wait
-        self._triggers = [trigger]
-        self._steps = []
-        if wait:
-            trigger, wait_timeout = wait
-            action = WaitForEvent(trigger.message_type, trigger.filter_data)
-            self._steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
-        self._steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
-
-    @property
-    def steps(self) -> Sequence[Step]:
-        return self._steps
-
-    @property
-    def triggers(self) -> Sequence[Trigger]:
-        return self._triggers
-
-    @property
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        return TaskSurpassBehaviour.Parallel
 
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:
@@ -291,22 +274,9 @@ class Workflow(TaskDescription):
         triggers: Sequence[Trigger],
         on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
     ) -> None:
-        super().__init__(uid, name, mutable=False)
-        self._steps = steps
+        super().__init__(uid, name, steps, triggers, on_surpass, mutable=False)
         self._triggers = triggers
         self._on_surpass = on_surpass
-
-    @property
-    def steps(self) -> Sequence[Step]:
-        return self._steps
-
-    @property
-    def triggers(self) -> Sequence[Trigger]:
-        return self._triggers
-
-    @property
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        return self._on_surpass
 
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:

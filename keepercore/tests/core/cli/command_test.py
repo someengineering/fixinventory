@@ -186,11 +186,11 @@ async def test_format(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
-    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
-    assert result == [["Job c0fa3076 added."]]
-    job = await job_db.get("c0fa3076")
+    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list)
+    assert result == [["Job c6f602e8 added."]]
+    job = await job_db.get("c6f602e8")
     assert job is not None
-    assert job.command.command == "echo Hello World"
+    assert job.command.command == "echo Hello World @NOW@"
     assert job.trigger == TimeTrigger("23 1 * * *")
     assert job.wait is None
     assert job in task_handler.task_descriptions

@@ -541,7 +541,9 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         return str(query.simplify())
 
-    async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:
+    async def evaluate_cli_command(
+        self, cli_input: str, replace_place_holder: bool = True, **env: str
+    ) -> List[ParsedCommandLine]:
         def parse_single_command(command: str) -> Tuple[CLIPart, str]:
             p = command.strip().split(" ", 1)
             part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
@@ -595,10 +597,13 @@ class CLI:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
         replaced = self.replace_placeholder(cli_input, **env)
-        return [await parse_line(cmd_line) for cmd_line in split_esc(replaced, ";")]
+        first = await parse_line(split_esc(replaced, ";")[0])
+        keep_raw = not replace_place_holder or (first.parts and first.parts[0].name == "add_job")
+        data = cli_input if keep_raw else replaced
+        return [await parse_line(cmd_line) for cmd_line in split_esc(data, ";")]
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
-        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]
+        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]
 
     @staticmethod
     def replacements(**env: str) -> dict[str, str]:

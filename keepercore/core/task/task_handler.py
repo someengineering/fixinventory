@@ -14,6 +14,8 @@ from argparse import ArgumentParser, Namespace
 
 from functools import reduce
 
+from copy import copy
+
 from core.cli.cli import CLI
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
@@ -39,12 +41,15 @@ from core.task.task_description import (
     ExecuteOnCLI,
     StepErrorBehaviour,
 )
-from core.util import first, Periodic, group_by, uuid_str
+from core.util import first, Periodic, group_by, uuid_str, utc_str
 
 log = logging.getLogger(__name__)
 
 
 class TaskHandler(JobHandler):
+
+    # region init
+
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"))
@@ -75,6 +80,8 @@ class TaskHandler(JobHandler):
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
 
+    # endregion
+
     # region startup and teardown
 
     async def update_trigger(self, desc: TaskDescription, register: bool = True) -> None:
@@ -99,6 +106,47 @@ class TaskHandler(JobHandler):
             lambda t: t[0].message_type, self.registered_event_trigger
         )
 
+    # task descriptors can hold placeholders (e.g. @NOW@)
+    # which should be replaced, when the task is started (or restarted).
+    def evaluate_task_definition(self, descriptor: TaskDescription, **env: str) -> TaskDescription:
+        def evaluate(step: Step) -> Step:
+            if isinstance(step.action, ExecuteCommand):
+                update = copy(step)
+                update.action = ExecuteCommand(self.cli.replace_placeholder(step.action.command, **env))
+                return update
+            else:
+                return step
+
+        updated = copy(descriptor)
+        updated.steps = [evaluate(step) for step in descriptor.steps]
+        return updated
+
+    async def start_task(self, descriptor: TaskDescription) -> None:
+        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
+        if existing:
+            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
+                log.info(
+                    f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
+                    f"the execution will be skipped, as defined by the task"
+                )
+                return None
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
+                log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
+                existing.end()
+                await self.store_running_task_state(existing)
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
+                log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
+            else:
+                raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
+
+        updated = self.evaluate_task_definition(descriptor)
+        wi, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
+        log.info(f"Start new task: {updated.name} with id {wi.id}")
+        # store initial state in database
+        await self.running_task_db.insert(wi)
+        self.tasks[wi.id] = wi
+        await self.execute_task_commands(wi, commands)
+
     async def start_interrupted_tasks(self) -> list[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
 
@@ -120,7 +168,9 @@ class TaskHandler(JobHandler):
         async for data in self.running_task_db.all():
             descriptor = descriptions.get(data.task_descriptor_id)
             if descriptor:
-                instance = RunningTask(data.id, descriptor, self.subscription_handler.subscribers_by_event)
+                # we have captured the timestamp when the task has been started
+                updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
+                instance = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
                 instances.append(reset_state(instance, data))
             else:
                 log.warning(f"No task description with this id found: {data.task_descriptor_id}. Remove instance data.")
@@ -238,34 +288,11 @@ class TaskHandler(JobHandler):
 
     # endregion
 
+    # region maintain running tasks
+
     async def time_triggered(self, descriptor: TaskDescription, trigger: TimeTrigger) -> None:
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
         return await self.start_task(descriptor)
-
-    async def start_task(self, descriptor: TaskDescription) -> None:
-        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
-        if existing:
-            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
-                log.info(
-                    f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
-                    f"the execution will be skipped, as defined by the task"
-                )
-                return None
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
-                log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
-                existing.end()
-                await self.store_running_task_state(existing)
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
-                log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
-            else:
-                raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
-
-        wi, commands = RunningTask.empty(descriptor, self.subscription_handler.subscribers_by_event)
-        log.info(f"Start new task: {descriptor.name} with id {wi.id}")
-        # store initial state in database
-        await self.running_task_db.insert(wi)
-        self.tasks[wi.id] = wi
-        await self.execute_task_commands(wi, commands)
 
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
@@ -355,6 +382,10 @@ class TaskHandler(JobHandler):
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
 
+    # endregion
+
+    # region periodic task checker
+
     async def check_overdue_tasks(self) -> None:
         """
         Called periodically by the system.
@@ -385,33 +416,9 @@ class TaskHandler(JobHandler):
                 del self.tasks[task.id]
                 await self.running_task_db.delete(task.id)
 
-    @staticmethod
-    def known_workflows() -> list[Workflow]:
-        return [
-            Workflow(
-                "collect",
-                "collect",
-                [
-                    Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
-                    Step("act", PerformAction("collect"), timedelta(seconds=10)),
-                    Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
-                ],
-                [EventTrigger("start_collect_workflow"), TimeTrigger("5 * * * *")],
-            ),
-            Workflow(
-                "cleanup",
-                "cleanup",
-                [
-                    Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
-                    Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
-                    Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
-                    Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
-                    Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
-                    Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
-                ],
-                [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
-            ),
-        ]
+    # endregion
+
+    # region parse job data
 
     async def parse_job_file(self, file: TextIOWrapper) -> list[Job]:
         """
@@ -462,12 +469,16 @@ class TaskHandler(JobHandler):
             if re.match("^[A-Za-z][A-Za-z0-9_\\-]*\\s*:", command):
                 event, command = re.split("\\s*:\\s*", command, 1)
                 wait = EventTrigger(event), timedelta(hours=24)
-            await self.cli.evaluate_cli_command(command)
+            await self.cli.evaluate_cli_command(command, replace_place_holder=False)
             return Job(uid, ExecuteCommand(command), trigger, timedelta(hours=1), wait, mutable)
         except CLIParseError as ex:
             raise ex
         except Exception as ex:
             raise ParseError(f"Can not parse job command line: {line}") from ex
+
+    # endregion
+
+    # region known task descriptors
 
     @staticmethod
     def known_jobs() -> list[Job]:
@@ -488,3 +499,33 @@ class TaskHandler(JobHandler):
                 mutable=False,
             ),
         ]
+
+    @staticmethod
+    def known_workflows() -> list[Workflow]:
+        return [
+            Workflow(
+                "collect",
+                "collect",
+                [
+                    Step("start", PerformAction("start_collect"), timedelta(seconds=10)),
+                    Step("act", PerformAction("collect"), timedelta(seconds=10)),
+                    Step("done", PerformAction("collect_done"), timedelta(seconds=10)),
+                ],
+                [EventTrigger("start_collect_workflow"), TimeTrigger("5 * * * *")],
+            ),
+            Workflow(
+                "cleanup",
+                "cleanup",
+                [
+                    Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
+                    Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
+                    Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
+                    Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
+                    Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
+                    Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
+                ],
+                [EventTrigger("start_cleanup_workflow"), TimeTrigger("5 * * * *")],
+            ),
+        ]
+
+    # endregion
