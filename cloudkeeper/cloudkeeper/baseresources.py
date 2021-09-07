@@ -689,7 +689,7 @@ class BaseInstanceQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type, quota_type : sum(quota) as instances_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_quota") and quota >= 0'
+                ' (merge_with_ancestors="cloud,account,region"): is("instance_quota") and quota >= 0'
             ),
         },
     }
@@ -724,7 +724,7 @@ class BaseInstanceType(BaseType):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type, quota_type : sum(reservations) as reserved_instances_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_type") and reservations >= 0'
+                ' (merge_with_ancestors="cloud,account,region"): is("instance_type") and reservations >= 0'
             ),
         },
     }
@@ -780,7 +780,7 @@ class BaseAccount(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud,"
                 " instance_type as type, quota_type : sum(1) as accounts_total)"
-                ' (merge_with_ancestors="cloud"): isinstance("account")'
+                ' (merge_with_ancestors="cloud"): is("account")'
             ),
         },
     }
@@ -832,7 +832,7 @@ class BaseInstance(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type, instance_status as status : sum(1) as instances_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance")'
+                ' (merge_with_ancestors="cloud,account,region"): is("instance")'
             ),
         },
         "cores_total": {
@@ -843,7 +843,7 @@ class BaseInstance(BaseResource):
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type : sum(instance_cores) as cores_total)"
                 ' (merge_with_ancestors="cloud,account,region"):'
-                ' isinstance("instance") and instance_status == "running"'
+                ' is("instance") and instance_status == "running"'
             ),
         },
         "memory_bytes": {
@@ -854,7 +854,7 @@ class BaseInstance(BaseResource):
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes)"
                 ' (merge_with_ancestors="cloud,account,region"):'
-                ' isinstance("instance") and instance_status == "running"'
+                ' is("instance") and instance_status == "running"'
             ),
         },
         "instances_hourly_cost_estimate": {
@@ -865,7 +865,7 @@ class BaseInstance(BaseResource):
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " instance_type as type : sum(parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate)"
                 ' (merge_with_ancestors="cloud,account,region,instance_type as parent_instance_type"):'
-                ' isinstance("instance") and instance_status == "running"'
+                ' is("instance") and instance_status == "running"'
             ),
         },
         "cleaned_instances_total": {
@@ -952,7 +952,7 @@ class BaseVolumeType(BaseType):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " volume_type as type : sum(quota * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume_type") and quota >= 0'
+                ' (merge_with_ancestors="cloud,account,region"): is("volume_type") and quota >= 0'
             ),
         },
     }
@@ -995,7 +995,7 @@ class BaseVolume(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " volume_type as type, volume_status as status : sum(1) as volumes_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume")'
+                ' (merge_with_ancestors="cloud,account,region"): is("volume")'
             ),
         },
         "volume_bytes": {
@@ -1006,7 +1006,7 @@ class BaseVolume(BaseResource):
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " volume_type as type, volume_status as status :"
                 " sum(volume_size * 1024 * 1024 * 1024) as volume_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("volume")'
+                ' (merge_with_ancestors="cloud,account,region"): is("volume")'
             ),
         },
         "volumes_monthly_cost_estimate": {
@@ -1018,7 +1018,7 @@ class BaseVolume(BaseResource):
                 " volume_type as type, volume_status as status :"
                 " sum(parent_volume_type.ondemand_cost) as volumes_monthly_cost_estimate)"
                 ' (merge_with_ancestors="cloud,account,region,volume_type as parent_volume_type"):'
-                ' isinstance("volume")'
+                ' is("volume")'
             ),
         },
         "cleaned_volumes_total": {
@@ -1095,7 +1095,7 @@ class BaseSnapshot(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " snapshot_status as status : sum(1) as snapshots_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("snapshot")'
+                ' (merge_with_ancestors="cloud,account,region"): is("snapshot")'
             ),
         },
         "snapshots_volumes_bytes": {
@@ -1105,7 +1105,7 @@ class BaseSnapshot(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " snapshot_status as status : sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("snapshot")'
+                ' (merge_with_ancestors="cloud,account,region"): is("snapshot")'
             ),
         },
         "cleaned_snapshots_total": {
@@ -1172,7 +1172,7 @@ class BaseBucket(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
                 " sum(1) as buckets_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("bucket")'
+                ' (merge_with_ancestors="cloud,account,region"): is("bucket")'
             ),
         },
         "cleaned_buckets_total": {
@@ -1204,7 +1204,7 @@ class BaseKeyPair(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
                 " sum(1) as keypairs_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("keypair")'
+                ' (merge_with_ancestors="cloud,account,region"): is("keypair")'
             ),
         },
         "cleaned_keypairs_total": {
@@ -1237,7 +1237,7 @@ class BaseBucketQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
                 " sum(1) as buckets_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("bucket_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): is("bucket_quota")'
             ),
         },
     }
@@ -1264,7 +1264,7 @@ class BaseNetwork(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
                 " sum(1) as networks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("network")'
+                ' (merge_with_ancestors="cloud,account,region"): is("network")'
             ),
         },
         "cleaned_networks_total": {
@@ -1296,7 +1296,7 @@ class BaseNetworkQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
                 " sum(1) as networks_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("network_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): is("network_quota")'
             ),
         },
     }
@@ -1323,7 +1323,7 @@ class BaseDatabase(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " db_type as type, instance_type : sum(1) as databases_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("database")'
+                ' (merge_with_ancestors="cloud,account,region"): is("database")'
             ),
         },
         "databases_bytes": {
@@ -1333,7 +1333,7 @@ class BaseDatabase(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " db_type as type, instance_type : sum(volume_size * 1024 * 1024 * 1024) as databases_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("database")'
+                ' (merge_with_ancestors="cloud,account,region"): is("database")'
             ),
         },
         "cleaned_databases_total": {
@@ -1384,7 +1384,7 @@ class BaseLoadBalancer(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " lb_type as type : sum(1) as load_balancers_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("load_balancer")'
+                ' (merge_with_ancestors="cloud,account,region"): is("load_balancer")'
             ),
         },
         "cleaned_load_balancers_total": {
@@ -1419,7 +1419,7 @@ class BaseLoadBalancerQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as load_balancers_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("load_balancer_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): is("load_balancer_quota")'
             ),
         },
     }
@@ -1446,7 +1446,7 @@ class BaseSubnet(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as subnets_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("subnet")'
+                ' (merge_with_ancestors="cloud,account,region"): is("subnet")'
             ),
         },
         "cleaned_subnets_total": {
@@ -1478,7 +1478,7 @@ class BaseGateway(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as gateways_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("gateway")'
+                ' (merge_with_ancestors="cloud,account,region"): is("gateway")'
             ),
         },
         "cleaned_gateways_total": {
@@ -1510,7 +1510,7 @@ class BaseTunnel(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as tunnels_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("tunnel")'
+                ' (merge_with_ancestors="cloud,account,region"): is("tunnel")'
             ),
         },
         "cleaned_tunnels_total": {
@@ -1542,7 +1542,7 @@ class BaseGatewayQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as gateways_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("gateway_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): is("gateway_quota")'
             ),
         },
     }
@@ -1569,7 +1569,7 @@ class BaseSecurityGroup(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as security_groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("security_group")'
+                ' (merge_with_ancestors="cloud,account,region"): is("security_group")'
             ),
         },
         "cleaned_security_groups_total": {
@@ -1601,7 +1601,7 @@ class BaseRoutingTable(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as routing_tables_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("routing_table")'
+                ' (merge_with_ancestors="cloud,account,region"): is("routing_table")'
             ),
         },
         "cleaned_routing_tables_total": {
@@ -1633,7 +1633,7 @@ class BaseNetworkAcl(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as network_acls_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("network_acl")'
+                ' (merge_with_ancestors="cloud,account,region"): is("network_acl")'
             ),
         },
         "cleaned_network_acls_total": {
@@ -1665,7 +1665,7 @@ class BasePeeringConnection(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as peering_connections_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("peering_connection")'
+                ' (merge_with_ancestors="cloud,account,region"): is("peering_connection")'
             ),
         },
         "cleaned_peering_connections_total": {
@@ -1697,7 +1697,7 @@ class BaseEndpoint(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as endpoints_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("endpoint")'
+                ' (merge_with_ancestors="cloud,account,region"): is("endpoint")'
             ),
         },
         "cleaned_endpoints_total": {
@@ -1729,7 +1729,7 @@ class BaseNetworkInterface(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " network_interface_status as status : sum(1) as network_interfaces_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("network_interface")'
+                ' (merge_with_ancestors="cloud,account,region"): is("network_interface")'
             ),
         },
         "cleaned_network_interfaces_total": {
@@ -1769,7 +1769,7 @@ class BaseUser(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as users_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("user")'
+                ' (merge_with_ancestors="cloud,account,region"): is("user")'
             ),
         },
         "cleaned_users_total": {
@@ -1801,7 +1801,7 @@ class BaseGroup(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("group")'
+                ' (merge_with_ancestors="cloud,account,region"): is("group")'
             ),
         },
         "cleaned_groups_total": {
@@ -1833,7 +1833,7 @@ class BasePolicy(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as policies_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("policy")'
+                ' (merge_with_ancestors="cloud,account,region"): is("policy")'
             ),
         },
         "cleaned_policies_total": {
@@ -1865,7 +1865,7 @@ class BaseRole(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as roles_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("role")'
+                ' (merge_with_ancestors="cloud,account,region"): is("role")'
             ),
         },
         "cleaned_roles_total": {
@@ -1897,7 +1897,7 @@ class BaseInstanceProfile(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as instance_profiles_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("instance_profile")'
+                ' (merge_with_ancestors="cloud,account,region"): is("instance_profile")'
             ),
         },
         "cleaned_instance_profiles_total": {
@@ -1929,7 +1929,7 @@ class BaseAccessKey(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
                 " access_key_status as status : sum(1) as access_keys_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("access_key")'
+                ' (merge_with_ancestors="cloud,account,region"): is("access_key")'
             ),
         },
         "cleaned_access_keys_total": {
@@ -1971,7 +1971,7 @@ class BaseCertificate(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as certificates_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("certificate")'
+                ' (merge_with_ancestors="cloud,account,region"): is("certificate")'
             ),
         },
         "cleaned_certificates_total": {
@@ -2004,7 +2004,7 @@ class BaseCertificateQuota(BaseQuota):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as certificates_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("certificate_quota")'
+                ' (merge_with_ancestors="cloud,account,region"): is("certificate_quota")'
             ),
         },
     }
@@ -2031,7 +2031,7 @@ class BaseStack(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as stacks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("stack")'
+                ' (merge_with_ancestors="cloud,account,region"): is("stack")'
             ),
         },
         "cleaned_stacks_total": {
@@ -2066,7 +2066,7 @@ class BaseAutoScalingGroup(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as autoscaling_groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("autoscaling_group")'
+                ' (merge_with_ancestors="cloud,account,region"): is("autoscaling_group")'
             ),
         },
         "cleaned_autoscaling_groups_total": {
@@ -2100,7 +2100,7 @@ class BaseIPAddress(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as ip_addresses_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("ip_address")'
+                ' (merge_with_ancestors="cloud,account,region"): is("ip_address")'
             ),
         },
         "cleaned_ip_addresses_total": {
@@ -2134,7 +2134,7 @@ class BaseHealthCheck(BaseResource):
             "query": (
                 "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
                 " sum(1) as health_checks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): isinstance("health_check")'
+                ' (merge_with_ancestors="cloud,account,region"): is("health_check")'
             ),
         },
         "cleaned_health_checks_total": {
