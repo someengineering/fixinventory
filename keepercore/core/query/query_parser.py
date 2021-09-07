@@ -266,22 +266,22 @@ def preamble_parser() -> Parser:
 
 
 sort_order_p = string("asc") | string("desc")
-sort_p = string("sort")
+sort_dp = string("sort")
 
 
 @make_parser
 def single_sort_arg_parser() -> Parser:
-    name = yield literal_dp
+    name = yield variable_dp
     order = yield (space_dp >> sort_order_p).optional()
     return Sort(name, order if order else SortOrder.Asc)
 
 
 @make_parser
 def sort_parser() -> Parser:
-    yield sort_p
-    yield lparen_p
+    yield sort_dp
+    yield space_dp
     attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
-    yield rparen_p
+    yield whitespace
     return attributes
 
 
@@ -308,4 +308,4 @@ def query_parser() -> Parser:
 
 
 def parse_query(query: str) -> Query:
-    return query_parser.parse(query)  # type: ignore
+    return query_parser.parse(query.strip())  # type: ignore

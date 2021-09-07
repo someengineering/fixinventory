@@ -381,7 +381,9 @@ class Query:
         preamble = "(" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + ")" if self.preamble else ""
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
-        return f"{aggregate}{preamble}{colon}{parts}"
+        sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
+        limit = f" limit {self.limit}" if self.limit else ""
+        return f"{aggregate}{preamble}{colon}{parts}{sort}{limit}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)

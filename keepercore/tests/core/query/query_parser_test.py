@@ -123,6 +123,8 @@ def test_query() -> None:
         .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
         .group_by([AggregateVariable("foo")], [AggregateFunction("sum", "cpu")])
+        .add_sort("test", "asc")
+        .with_limit(10)
     )
     assert_round_trip(query_parser, query)
 
@@ -189,9 +191,9 @@ def test_aggregate() -> None:
 
 
 def test_sort_order() -> None:
-    assert sort_parser.parse("sort(foo)") == [Sort("foo", "asc")]
-    assert sort_parser.parse("sort(foo asc)") == [Sort("foo", "asc")]
-    parsed = sort_parser.parse("sort(foo asc, bla desc, bar)")
+    assert sort_parser.parse("sort foo") == [Sort("foo", "asc")]
+    assert sort_parser.parse("sort foo asc") == [Sort("foo", "asc")]
+    parsed = sort_parser.parse("sort foo asc, bla desc, bar")
     assert parsed == [Sort("foo", "asc"), Sort("bla", "desc"), Sort("bar", "asc")]
     assert_round_trip(query_parser, Query.by("test").add_sort("test").add_sort("goo"))
 

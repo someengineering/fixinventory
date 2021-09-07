@@ -34,6 +34,7 @@ from core.query.model import (
     AllTerm,
     AggregateFunction,
     AggregateVariable,
+    Sort,
 )
 from core.query.query_parser import aggregate_group_variable_parser
 from core.util import first
@@ -109,9 +110,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def to_query(
-        self, query_model: QueryModel, all_edges: bool = False, limit: Optional[int] = None
-    ) -> Tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -629,9 +628,7 @@ class ArangoGraphDB(GraphDB):
         await self.delete_marked_update(batch_id)
         await self.db.delete_collection(temp_table.name)
 
-    def to_query(
-        self, query_model: QueryModel, all_edges: bool = False, limit: Optional[int] = None
-    ) -> Tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
         query = query_model.query
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
@@ -639,7 +636,9 @@ class ArangoGraphDB(GraphDB):
         merge_with: list[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
         bind_vars: Json = {}
 
-        def aggregate(cursor: str, a: Aggregate) -> Tuple[str, str]:
+        def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
+            cursor = "rg"
+
             def func_term(fn: AggregateFunction) -> str:
                 name = f"{cursor}.{section_dot}{fn.name}" if isinstance(fn.name, str) else str(fn.name)
                 return f"{name} {fn.combined_ops()}" if fn.ops else name
@@ -651,7 +650,12 @@ class ArangoGraphDB(GraphDB):
             agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[v.name]}' for v in a.group_by)
             agg_funcs = ", ".join(f'"{f.get_as_name()}": {fs[f.name]}' for f in a.group_func)
             group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
-            return f"collect {variables} aggregate {funcs}", f"{{{group_result} {agg_funcs}}}"
+            aggregate_term = f"collect {variables} aggregate {funcs}"
+            return_result = f"{{{group_result} {agg_funcs}}}"
+            return (
+                "aggregated",
+                f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})",
+            )
 
         def predicate(cursor: str, p: Predicate) -> str:
             extra = ""
@@ -744,19 +748,28 @@ class ArangoGraphDB(GraphDB):
             parts.append(f'RETURN MERGE(node, {{"reported": MERGE(node.reported, {parent_result})}})')
             return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(parts)})'
 
+        def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
+            sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
+            return f" sort {sorts} "
+
         parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
         crs = last(parts)[2]
         all_parts = " ".join(p[3] for p in parts)
         resulting_cursor, query_str = merge_parents(crs, all_parts, merge_with) if merge_with else (crs, all_parts)
-        limited = f" LIMIT {limit} " if limit else ""
+        limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
-            group_by, return_spec = aggregate("r", query.aggregate)
-            return f"""{query_str} FOR r in {resulting_cursor} {group_by}{limited} RETURN {return_spec}""", bind_vars
+            resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
+            sort_by = sort("r", query.sort, "") if query.sort else ""
+            return (
+                f"""{query_str} {aggregation} FOR r in {resulting_cursor}{sort_by}{limited} RETURN r""",
+                bind_vars,
+            )
         else:  # return results
             # return all pinned parts (last result is "pinned" automatically)
             pinned = set(map(lambda x: x[2], filter(lambda x: x[0].pinned, parts)))
+            sort_by = sort("r", query.sort, section_dot) if query.sort else ""
             result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
-            return f"""{query_str} FOR r in {result}{limited} RETURN r""", bind_vars
+            return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
@@ -999,10 +1012,8 @@ class EventGraphDB(GraphDB):
         await self.event_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
-    def to_query(
-        self, query_model: QueryModel, all_edges: bool = False, limit: Optional[int] = None
-    ) -> Tuple[str, Json]:
-        return self.real.to_query(query_model, all_edges, limit)
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
+        return self.real.to_query(query_model, all_edges)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
