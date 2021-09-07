@@ -1,5 +1,6 @@
 from functools import reduce
 
+from dataclasses import replace
 from parsy import string, Parser
 
 from core.model.graph_access import EdgeType
@@ -267,10 +268,13 @@ def query_parser() -> Parser:
     edge_type = preamble.get("edge_type", EdgeType.default)
     if edge_type not in EdgeType.allowed_edge_types:
         raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.allowed_edge_types}")
-    for part in parts:
-        if part.navigation and not part.navigation.edge_type:
-            part.navigation.edge_type = edge_type
-    return Query(parts[::-1], preamble, maybe_aggregate)
+    adapted = [
+        replace(part, navigation=replace(part.navigation, edge_type=edge_type))
+        if part.navigation and not part.navigation.edge_type
+        else part
+        for part in parts
+    ]
+    return Query(adapted[::-1], preamble, maybe_aggregate)
 
 
 def parse_query(query: str) -> Query:
