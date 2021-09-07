@@ -426,10 +426,6 @@ class TaskHandler(JobHandler):
         Every line is either a blank line, a comment or a job definition.
 
         Example
-
-        # event based trigger
-        event_name : reported test==true | clean
-
         # cron based trigger
         0 5 * * sat : reported name="foo" | desire name="bla"
 
