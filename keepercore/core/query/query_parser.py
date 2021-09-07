@@ -1,6 +1,6 @@
 from functools import reduce
 
-from parsy import success, string, Parser
+from parsy import string, Parser
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
@@ -116,7 +116,7 @@ def combined_term() -> Parser:
     left = yield simple_term_p
     result = left
     while True:
-        op = yield bool_op_p | success(None)
+        op = yield bool_op_p.optional()
         if op is None:
             break
         right = yield simple_term_p
@@ -165,7 +165,7 @@ pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
-    nav = yield navigation_parser | success(None)
+    nav = yield navigation_parser.optional()
     pinned = yield pin_parser
     return Part(term, pinned, nav)
 
@@ -228,10 +228,9 @@ def aggregate_group_function_parser() -> Parser:
 
 @make_parser
 def aggregate_parameter_parser() -> Parser:
-    group_vars = yield aggregate_group_variable_parser.sep_by(comma_p, min=1)
-    yield colon_p
+    group_vars = yield (aggregate_group_variable_parser.sep_by(comma_p, min=1) << colon_p).optional()
     group_function_vars = yield aggregate_group_function_parser.sep_by(comma_p, min=1)
-    return group_vars, group_function_vars
+    return group_vars if group_vars else [], group_function_vars
 
 
 @make_parser

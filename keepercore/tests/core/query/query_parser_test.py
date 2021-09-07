@@ -170,6 +170,9 @@ def test_aggregate() -> None:
     assert agg.group_func[1].function == "count"
     assert agg.group_func[1].name == "id"
     assert agg.group_func[1].as_name == "instances"
+    agg2: Aggregate = aggregate_parser.parse("aggregate(count(id) as length)")
+    assert agg2.group_by == []
+    assert len(agg2.group_func) == 1
 
 
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:

@@ -650,7 +650,8 @@ class ArangoGraphDB(GraphDB):
             funcs = ", ".join(f"{fs[v.name]}={v.function}({func_term(v)})" for v in a.group_func)
             agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[v.name]}' for v in a.group_by)
             agg_funcs = ", ".join(f'"{f.get_as_name()}": {fs[f.name]}' for f in a.group_func)
-            return f"collect {variables} aggregate {funcs}", f'{{"group":{{{agg_vars}}}, {agg_funcs}}}'
+            group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
+            return f"collect {variables} aggregate {funcs}", f"{{{group_result} {agg_funcs}}}"
 
         def predicate(cursor: str, p: Predicate) -> str:
             extra = ""
