@@ -251,7 +251,7 @@ class KeepercoreEvents(threading.Thread):
 
     def shutdown(self, event: Event = None) -> None:
         log.debug(
-            f"Received shutdown event - shutting down keepercore event bus listener"
+            "Received shutdown event - shutting down keepercore event bus listener"
         )
         self.shutdown_event.set()
         if self.ws:
