@@ -2,12 +2,12 @@ from typing import Callable, Optional, Any
 
 import pytest
 
-from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction
+from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction, IsTerm, IdTerm
 from core.model.graph_access import EdgeType
 from parsy import Parser
 from core.query.query_parser import (
     predicate_term,
-    isinstance_term,
+    is_term,
     function_term,
     combined_term,
     term_parser,
@@ -19,7 +19,18 @@ from core.query.query_parser import (
     aggregate_group_variable_parser,
     aggregate_group_function_parser,
     aggregate_parser,
+    id_term,
 )
+
+
+def test_parse_is_term() -> None:
+    assert is_term.parse('is("test")') == IsTerm("test")
+    assert is_term.parse("is(test)") == IsTerm("test")
+
+
+def test_parse_id_term() -> None:
+    assert id_term.parse('id("test")') == IdTerm("test")
+    assert id_term.parse("id(test)") == IdTerm("test")
 
 
 def test_parse_predicate() -> None:
@@ -44,7 +55,7 @@ def test_parse_predicate_array() -> None:
 
 
 def test_kind() -> None:
-    assert_round_trip(isinstance_term, P.of_kind("foo"))
+    assert_round_trip(is_term, P.of_kind("foo"))
 
 
 # noinspection PyTypeChecker

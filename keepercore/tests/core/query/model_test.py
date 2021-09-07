@@ -1,4 +1,4 @@
-from core.query.model import P, Query, AllTerm, IsInstanceTerm
+from core.query.model import P, Query, AllTerm, IsTerm
 
 
 def simple_reference() -> None:
@@ -46,7 +46,7 @@ def test_simple_query() -> None:
     )
 
     assert (
-        str(a) == '((isinstance("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
+        str(a) == '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
         "(some.int.value < 1 and some.other == 23) --> "
         '(active == 12 and in_subnet(ip, "1.2.3.4/32"))'
     )
@@ -54,9 +54,9 @@ def test_simple_query() -> None:
 
 def test_simplify() -> None:
     # some_criteria | all => all
-    assert str((IsInstanceTerm("test") | AllTerm()).simplify()) == "all"
+    assert str((IsTerm("test") | AllTerm()).simplify()) == "all"
     # some_criteria & all => some_criteria
-    assert str((IsInstanceTerm("test") & AllTerm()).simplify()) == 'isinstance("test")'
+    assert str((IsTerm("test") & AllTerm()).simplify()) == 'is("test")'
     # also works in nested setup
-    q = Query.by(AllTerm() & ((P("test") == True) & (IsInstanceTerm("test") | AllTerm()))).simplify()
+    q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm("test") | AllTerm()))).simplify()
     assert (str(q)) == "test == true"

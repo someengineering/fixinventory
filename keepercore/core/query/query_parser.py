@@ -31,7 +31,7 @@ from core.parse_util import (
 from core.query.model import (
     Predicate,
     CombinedTerm,
-    IsInstanceTerm,
+    IsTerm,
     Part,
     Navigation,
     Query,
@@ -103,10 +103,10 @@ def function_term() -> Parser:
     return FunctionTerm(fn, name, args)
 
 
-isinstance_term = lexeme(string("isinstance") >> lparen_p >> quoted_string_p << rparen_p).map(IsInstanceTerm)
-id_term = lexeme(string("id") >> lparen_p >> quoted_string_p << rparen_p).map(IdTerm)
+is_term = lexeme(string("is") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IsTerm)
+id_term = lexeme(string("id") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IdTerm)
 match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
-leaf_term_p = isinstance_term | id_term | match_all_term | function_term | predicate_term
+leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term
 
 bool_op_p = lexeme(string("and") | string("or"))
 
