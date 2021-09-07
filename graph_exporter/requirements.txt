@@ -1,0 +1,4 @@
+requests
+websocket-client
+prometheus_client
+cloudkeeper

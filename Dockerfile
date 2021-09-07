@@ -1,15 +1,15 @@
-FROM debian:stable-slim as build-env
+FROM debian:stable as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
 ARG SUPERVISOR_VERSION=4.2.2
-ARG BUSYBOX_VERSION=1.32.1
-ARG ARANGODB_VERSION=3.8.0
-ARG PROMETHEUS_VERSION=2.29.1
+ARG BUSYBOX_VERSION=1.33.1
+ARG ARANGODB_VERSION=3.8.1
+ARG PROMETHEUS_VERSION=2.29.2
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
-RUN apt-get update || true
+RUN apt-get update
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
@@ -45,6 +45,7 @@ RUN cp busybox /usr/local/bin/
 WORKDIR /usr/local/tsdb
 RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
+COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 
 # Download and install Python test tools
 RUN pip install --upgrade pip
@@ -54,13 +55,25 @@ RUN pip install tox flake8
 COPY keepercore /usr/src/keepercore
 WORKDIR /usr/src/keepercore
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
-RUN pip wheel -w /build .
+RUN pip wheel -w /build -f /build .
 
 # Build cloudkeeper
 COPY cloudkeeper /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper
 RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build .
+RUN pip wheel -w /build -f /build .
+
+# Build graph_exporter
+COPY graph_exporter /usr/src/graph_exporter
+WORKDIR /usr/src/graph_exporter
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
+# Build keeper-cli
+COPY keeper-cli /usr/src/keeper-cli
+WORKDIR /usr/src/keeper-cli
+RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
 
 # Build cloudkeeper plugins
 COPY plugins /usr/src/plugins
@@ -70,7 +83,7 @@ RUN if [ "X${TESTS:-true}" = Xtrue ]; then find plugins/ -name tox.ini | while r
 RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
 
 # Build supervisor
-RUN pip wheel -w /build supervisor==${SUPERVISOR_VERSION}
+RUN pip wheel -w /build -f /build supervisor==${SUPERVISOR_VERSION}
 
 # Install all wheels
 RUN pip install -f /build /build/*.whl
@@ -101,14 +114,14 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
 # Setup main image
-FROM debian:stable-slim
+FROM debian:stable
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home cloudkeeper \
-    && apt-get update || true \
+    && apt-get update \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
     && apt-get -y --no-install-recommends install \
