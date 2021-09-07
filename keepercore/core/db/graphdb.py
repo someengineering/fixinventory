@@ -23,7 +23,7 @@ from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model, Complex
 from core.query.model import (
     Predicate,
-    IsInstanceTerm,
+    IsTerm,
     Part,
     Term,
     CombinedTerm,
@@ -675,7 +675,7 @@ class ArangoGraphDB(GraphDB):
             bind_vars[length] = t.id
             return f"{cursor}._key == @{length}"
 
-        def is_instance(cursor: str, t: IsInstanceTerm) -> str:
+        def is_instance(cursor: str, t: IsTerm) -> str:
             if t.kind not in model:
                 raise AttributeError(f"Given kind does not exist: {t.kind}")
             length = str(len(bind_vars))
@@ -691,7 +691,7 @@ class ArangoGraphDB(GraphDB):
                 return as_arangodb_function(cursor, bind_vars, ab_term, query_model)
             elif isinstance(ab_term, IdTerm):
                 return with_id(cursor, ab_term)
-            elif isinstance(ab_term, IsInstanceTerm):
+            elif isinstance(ab_term, IsTerm):
                 return is_instance(cursor, ab_term)
             elif isinstance(ab_term, CombinedTerm):
                 left = term(cursor, ab_term.left)
