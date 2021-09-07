@@ -342,11 +342,27 @@ class Aggregate:
 SimpleValue = Union[str, int, float, bool]
 
 
+class SortOrder:
+    Asc = "asc"
+    Desc = "desc"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class Sort:
+    name: str
+    order: str = SortOrder.Asc
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.order}"
+
+
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
     parts: List[Part]
     preamble: dict[str, SimpleValue] = field(default_factory=dict)
     aggregate: Optional[Aggregate] = None
+    sort: list[Sort] = field(default_factory=list)
+    limit: Optional[int] = None
 
     def __post_init__(self) -> None:
         if self.parts is None or len(self.parts) == 0:
@@ -408,6 +424,12 @@ class Query:
     def simplify(self) -> Query:
         parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
         return replace(self, parts=parts)
+
+    def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
+        return replace(self, sort=[*self.sort, Sort(name, order)])
+
+    def with_limit(self, num: int) -> Query:
+        return replace(self, limit=num)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

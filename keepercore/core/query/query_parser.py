@@ -1,6 +1,7 @@
 from functools import reduce
 
 from dataclasses import replace
+
 from parsy import string, Parser
 
 from core.model.graph_access import EdgeType
@@ -28,6 +29,7 @@ from core.parse_util import (
     make_parser,
     whitespace,
     quoted_string_dp,
+    space_dp,
 )
 from core.query.model import (
     Predicate,
@@ -42,6 +44,8 @@ from core.query.model import (
     AggregateFunction,
     Aggregate,
     AllTerm,
+    Sort,
+    SortOrder,
 )
 
 operation_p = reduce(
@@ -261,6 +265,30 @@ def preamble_parser() -> Parser:
     return maybe_aggegate, preamble
 
 
+sort_order_p = string("asc") | string("desc")
+sort_p = string("sort")
+
+
+@make_parser
+def single_sort_arg_parser() -> Parser:
+    name = yield literal_dp
+    order = yield (space_dp >> sort_order_p).optional()
+    return Sort(name, order if order else SortOrder.Asc)
+
+
+@make_parser
+def sort_parser() -> Parser:
+    yield sort_p
+    yield lparen_p
+    attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
+    yield rparen_p
+    return attributes
+
+
+limit_p = string("limit")
+limit_parser = limit_p + space_dp >> integer_dp
+
+
 @make_parser
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
@@ -274,7 +302,9 @@ def query_parser() -> Parser:
         else part
         for part in parts
     ]
-    return Query(adapted[::-1], preamble, maybe_aggregate)
+    sort = yield sort_parser.optional()
+    limit = yield limit_parser.optional()
+    return Query(adapted[::-1], preamble, maybe_aggregate, sort, limit)
 
 
 def parse_query(query: str) -> Query:

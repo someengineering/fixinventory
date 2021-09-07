@@ -2,7 +2,18 @@ from typing import Callable, Optional, Any
 
 import pytest
 
-from core.query.model import Navigation, Part, Query, P, AggregateVariable, Aggregate, AggregateFunction, IsTerm, IdTerm
+from core.query.model import (
+    Navigation,
+    Part,
+    Query,
+    P,
+    AggregateVariable,
+    Aggregate,
+    AggregateFunction,
+    IsTerm,
+    IdTerm,
+    Sort,
+)
 from core.model.graph_access import EdgeType
 from parsy import Parser
 from core.query.query_parser import (
@@ -20,6 +31,8 @@ from core.query.query_parser import (
     aggregate_group_function_parser,
     aggregate_parser,
     id_term,
+    sort_parser,
+    limit_parser,
 )
 
 
@@ -173,6 +186,19 @@ def test_aggregate() -> None:
     agg2: Aggregate = aggregate_parser.parse("aggregate(count(id) as length)")
     assert agg2.group_by == []
     assert len(agg2.group_func) == 1
+
+
+def test_sort_order() -> None:
+    assert sort_parser.parse("sort(foo)") == [Sort("foo", "asc")]
+    assert sort_parser.parse("sort(foo asc)") == [Sort("foo", "asc")]
+    parsed = sort_parser.parse("sort(foo asc, bla desc, bar)")
+    assert parsed == [Sort("foo", "asc"), Sort("bla", "desc"), Sort("bar", "asc")]
+    assert_round_trip(query_parser, Query.by("test").add_sort("test").add_sort("goo"))
+
+
+def test_limit() -> None:
+    assert limit_parser.parse("limit 23") == 23
+    assert_round_trip(query_parser, Query.by("test").with_limit(23))
 
 
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:
