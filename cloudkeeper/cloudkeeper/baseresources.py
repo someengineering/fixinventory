@@ -179,7 +179,7 @@ class BaseResource(ABC):
         log_entry = {
             "timestamp": now,
             "msg": str(msg),
-            "exception": deepcopy(exception),
+            "exception": repr(exception),
             "data": deepcopy(data),
         }
         self.__log.append(log_entry)
