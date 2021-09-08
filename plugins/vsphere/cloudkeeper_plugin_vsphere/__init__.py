@@ -68,21 +68,24 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
         # loop over the list of VMs
         for list_vm in vms:
-            tags = self.get_custom_attributes(list_vm, keys)
-            # get TS and create clean datetime
-            ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
+            try:
+                tags = self.get_custom_attributes(list_vm, keys)
+                # get TS and create clean datetime
+                ctime = datetime.fromtimestamp(list_vm.config.createDate.timestamp())
 
-            vm = VSphereInstance(
-                list_vm._moId,
-                name=str(list_vm.name),
-                instance_cores=int(list_vm.config.hardware.numCPU),
-                instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
-                tags=tags,
-                ctime=ctime,
-                instance_status=list_vm.guest.guestState,
-            )
-
-            self.graph.add_resource(parent, vm)
+                vm = VSphereInstance(
+                    list_vm._moId,
+                    name=str(list_vm.name),
+                    instance_cores=int(list_vm.config.hardware.numCPU),
+                    instance_memory=int(list_vm.config.hardware.memoryMB / 1024),
+                    tags=tags,
+                    ctime=ctime,
+                    instance_status=list_vm.guest.guestState,
+                )
+            except Exception:
+                log.exception(f"Error while collecting {list_vm}")
+            else:
+                self.graph.add_resource(parent, vm)
 
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
