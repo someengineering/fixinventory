@@ -12,6 +12,7 @@ from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandlerDB
+from core.task_queue import WorkerTaskQueue
 from core.web.api import Api
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -48,6 +49,7 @@ def main() -> None:
 
     scheduler = Scheduler()
     event_bus = EventBus()
+    task_queue = WorkerTaskQueue()
     http_client = ArangoHTTPClient(args.arango_request_timeout, not args.arango_no_ssl_verify)
     client = ArangoClient(hosts=args.arango_server, http_client=http_client)
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
@@ -59,7 +61,7 @@ def main() -> None:
     subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
     task_handler = TaskHandler(db.running_task_db, event_bus, subscriptions, scheduler, cli, args)
 
-    api = Api(db, model, subscriptions, task_handler, event_bus, cli)
+    api = Api(db, model, subscriptions, task_handler, event_bus, task_queue, cli)
 
     async def async_initializer() -> Application:
         await db.start()
@@ -67,6 +69,7 @@ def main() -> None:
         # todo: how to use context managed objects with aiohttp?
         await task_handler.__aenter__()
         await scheduler.start()
+        await task_queue.start()
         log.info("Initialization done. Starting API.")
         return api.app
 

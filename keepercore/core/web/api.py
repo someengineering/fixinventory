@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import string
 import uuid
 import os
@@ -26,6 +27,7 @@ from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
 from core.model.graph_access import GraphBuilder
 from core.model.model import Kind, Model
+from core.task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskResult, WorkerTaskInProgress
 from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
@@ -33,7 +35,7 @@ from core.query.query_parser import parse_query
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
-from core.util import force_gen
+from core.util import force_gen, uuid_str
 
 log = logging.getLogger(__name__)
 Section = Union[str, List[str]]
@@ -48,6 +50,7 @@ class Api:
         subscription_handler: SubscriptionHandler,
         workflow_handler: TaskHandler,
         event_bus: EventBus,
+        worker_task_queue: WorkerTaskQueue,
         cli: CLI,
     ):
         self.db = db
@@ -55,6 +58,7 @@ class Api:
         self.subscription_handler = subscription_handler
         self.workflow_handler = workflow_handler
         self.event_bus = event_bus
+        self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.app = web.Application(middlewares=[self.error_handler])
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
@@ -124,6 +128,10 @@ class Api:
                 web.post("/cli/execute", self.execute),
                 # Event operations
                 web.get("/events", self.handle_events),
+                # Worker operations
+                web.get("/work/queue", self.handle_work_tasks),
+                web.get("/work/create", self.create_work),
+                web.get("/work/list", self.list_work),
                 # Serve static filed
                 web.get("", self.redirect_to_ui),
                 web.static("/static", static_path),
@@ -237,6 +245,72 @@ class Api:
                 await ws.send_str(to_js_str(msg) + "\n")
         await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
         return ws
+
+    async def handle_work_tasks(
+        self,
+        request: Request,
+    ) -> web.WebSocketResponse:
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        worker_id = uuid_str()
+        task_param = request.query.get("task")
+        if not task_param:
+            raise AttributeError("A worker needs to define at least one task that it can perform")
+        attrs = {k: v for k, v in request.query.items() if k != "task"}
+        task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
+
+        async def receive() -> None:
+            async for msg in ws:
+                try:
+                    if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
+                        log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
+                        tr = from_js(json.loads(msg.data), WorkerTaskResult)
+                        if tr.result == "error":
+                            error = tr.error if tr.error else "worker signalled error without detailed error message"
+                            await self.worker_task_queue.error_task(worker_id, tr.task_id, error)
+                        elif tr.result == "ack":
+                            await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id)
+                        else:
+                            log.info(f"Do not understand this message: {msg.data}")
+
+                except Exception as ex:
+                    # do not allow any exception - it will destroy the async fiber and cleanup
+                    log.debug(f"Error handling {worker_id}. Hang up. {ex}")
+                    await ws.close()
+
+        async def send() -> None:
+            try:
+                async with self.worker_task_queue.attach(worker_id, task_descriptions) as tasks:
+                    while True:
+                        task = await tasks.get()
+                        await ws.send_str(to_js_str(task.to_json()) + "\n")
+            except Exception as ex:
+                # do not allow any exception - it will destroy the async fiber and cleanup
+                log.debug(f"Error handling event sender: {worker_id}. Hang up. {ex}")
+                await ws.close()
+
+        await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        return ws
+
+    async def create_work(self, request: Request) -> StreamResponse:
+        attrs = {k: v for k, v in request.query.items() if k != "task"}
+        future = asyncio.get_event_loop().create_future()
+        task = WorkerTask(uuid_str(), "test", attrs, {"some": "data"}, future, timedelta(seconds=3))
+        await self.worker_task_queue.add_task(task)
+        await future
+        return web.HTTPOk()
+
+    async def list_work(self, request: Request) -> StreamResponse:
+        def wt_to_js(ip: WorkerTaskInProgress) -> Json:
+            return {
+                "task": ip.task.to_json(),
+                "worker": ip.worker.worker_id,
+                "retry_counter": ip.retry_counter,
+                "deadline": to_js(ip.deadline),
+            }
+
+        return web.json_response([wt_to_js(ot) for ot in self.worker_task_queue.outstanding_tasks.values()])
 
     async def model_uml(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else None
