@@ -27,7 +27,7 @@ class P:
 
     @staticmethod
     def of_kind(name: str) -> Term:
-        return IsInstanceTerm(name)
+        return IsTerm(name)
 
     @staticmethod
     def function(fn: str) -> PFunction:
@@ -175,7 +175,7 @@ class Term(abc.ABC):
             argv: list = json["args"] if isinstance(json.get("args"), list) else []  # type: ignore
             return FunctionTerm(json["fn"], json["property_path"], argv)  # type: ignore
         elif isinstance(json.get("kind"), str):
-            return IsInstanceTerm(json["kind"])  # type: ignore
+            return IsTerm(json["kind"])  # type: ignore
         elif isinstance(json.get("id"), str):
             return IdTerm(json.get("id"))  # type: ignore
         else:
@@ -232,12 +232,12 @@ class IdTerm(Term):
         return f'id("{self.id}")'
 
 
-class IsInstanceTerm(Term):
+class IsTerm(Term):
     def __init__(self, kind: str):
         self.kind = kind
 
     def __str__(self) -> str:
-        return f'isinstance("{self.kind}")'
+        return f'is("{self.kind}")'
 
 
 class FunctionTerm(Term):
@@ -422,7 +422,7 @@ class Query:
             if isinstance(t, Term):
                 return t
             elif isinstance(t, str):
-                return IsInstanceTerm(t)
+                return IsTerm(t)
             else:
                 raise AttributeError(f"Expected term or string, but got {t}")
 

@@ -326,14 +326,14 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 
 @pytest.mark.asyncio
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query('aggregate(kind: count(identifier) as instances): isinstance("foo")')
+    agg_query = parse_query('aggregate(kind: count(identifier) as instances): is("foo")')
     gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
     assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 13}]
 
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query('(merge_with_ancestors="foo as foobar,bar"): isinstance("bla")')
+    agg_query = parse_query('(merge_with_ancestors="foo as foobar,bar"): is("bla")')
     async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")):
         js = AccessJson(bla)
         assert "bar" in js.reported  # key exists

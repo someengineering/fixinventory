@@ -166,7 +166,7 @@ def cleanup():
             restore_node_field_types(node_type, node_data_reported)
             node = node_type(**node_data_reported)
 
-            clean_node = node_data_desired.get("delete", False)
+            clean_node = node_data_desired.get("clean", False)
             if clean_node:
                 node.clean = clean_node
             return node
@@ -196,7 +196,7 @@ def cleanup():
     keepercore_graph = ArgumentParser.args.keepercore_graph
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
     query_uri = f"{graph_uri}/query/graph"
-    query = "desired.delete==true -[0:]-"
+    query = "desired.clean==true -[0:]-"
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
     )

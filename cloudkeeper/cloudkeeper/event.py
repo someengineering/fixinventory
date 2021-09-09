@@ -249,10 +249,9 @@ class KeepercoreEvents(threading.Thread):
         )
         self.ws.run_forever()
 
-    def shutdown(self, event: Event) -> None:
+    def shutdown(self, event: Event = None) -> None:
         log.debug(
-            f"Received event {event.event_type}"
-            " - shutting down keepercore event bus listener"
+            "Received shutdown event - shutting down keepercore event bus listener"
         )
         self.shutdown_event.set()
         if self.ws:

@@ -75,7 +75,7 @@ async def test_json_source(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
     result = await cli.execute_cli_command(
-        'query isinstance("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
+        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
     )
     assert len(result[0]) == 10
 
@@ -140,7 +140,7 @@ async def test_uniq_command(cli: CLI, json_source: str) -> None:
 
 @pytest.mark.asyncio
 async def test_desire_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query isinstance("foo") | desire a="test" b=1 c=true', stream.list)
+    result = await cli.execute_cli_command('query is("foo") | desire a="test" b=1 c=true', stream.list)
     assert len(result[0]) == 13
     for elem in result[0]:
         assert elem["desired"] == {"a": "test", "b": 1, "c": True}
@@ -148,7 +148,7 @@ async def test_desire_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_clean_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query isinstance("foo") | clean', stream.list)
+    result = await cli.execute_cli_command('query is("foo") | clean', stream.list)
     assert len(result[0]) == 13
     for elem in result[0]:
         assert elem["desired"] == {"clean": True}

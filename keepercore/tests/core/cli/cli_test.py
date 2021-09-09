@@ -79,7 +79,7 @@ async def test_multi_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_database(cli: CLI) -> None:
-    query = 'query isinstance("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
+    query = 'query is("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
     count = "count f"
     commands = "|".join([query, count])
     result = await cli.evaluate_cli_command(commands)
