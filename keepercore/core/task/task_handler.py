@@ -496,7 +496,6 @@ class TaskHandler(JobHandler):
             ),
         ]
 
-
     @staticmethod
     def known_workflows() -> list[Workflow]:
         collect_steps = [

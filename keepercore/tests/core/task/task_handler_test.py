@@ -130,9 +130,7 @@ async def test_recover_workflow(
     test_workflow: Workflow,
 ) -> None:
     def handler() -> TaskHandler:
-        th = TaskHandler(
-            running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args
-        )
+        th = TaskHandler(running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
         th.task_descriptions = [test_workflow]
         return th
 
