@@ -151,21 +151,18 @@ class TaskHandler(JobHandler):
     async def start_interrupted_tasks(self) -> list[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
 
-        async def reset_state(wi: RunningTask, data: RunningTaskData) -> RunningTask:
+        def reset_state(wi: RunningTask, task_data: RunningTaskData) -> RunningTask:
             # reset the received messages
-            wi.received_messages = data.received_messages  # type: ignore
+            wi.received_messages = task_data.received_messages  # type: ignore
             # move the fsm into the last known state
-            wi.machine.set_state(data.current_state_name)
+            wi.machine.set_state(task_data.current_state_name)
             # import state of the current step
-            wi.current_state.import_state(data.current_state_snapshot)
+            wi.current_state.import_state(task_data.current_state_snapshot)
             # reset times
-            wi.task_started_at = data.task_started_at
-            wi.step_started_at = data.step_started_at
+            wi.task_started_at = task_data.task_started_at
+            wi.step_started_at = task_data.step_started_at
             # ignore all messages that would be emitted
             wi.move_to_next_state()
-            if isinstance(wi.current_step.action, RestartAgainStepAction):
-                log.info(f"Restart interrupted action: {wi.current_step.action}")
-                await self.execute_task_commands(wi, wi.current_state.commands_to_execute())
             return wi
 
         instances: list[RunningTask] = []
@@ -174,8 +171,13 @@ class TaskHandler(JobHandler):
             if descriptor:
                 # we have captured the timestamp when the task has been started
                 updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
-                instance = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
-                instances.append(await reset_state(instance, data))
+                rt = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
+                instance = reset_state(rt, data)
+                if isinstance(instance.current_step.action, RestartAgainStepAction):
+                    log.info(f"Restart interrupted action: {instance.current_step.action}")
+                    await self.execute_task_commands(instance, instance.current_state.commands_to_execute())
+                instances.append(instance)
+
             else:
                 log.warning(f"No task description with this id found: {data.task_descriptor_id}. Remove instance data.")
                 await self.running_task_db.delete(data.id)
@@ -194,7 +196,6 @@ class TaskHandler(JobHandler):
 
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
-        # TODO: it might be necessary to restart current commands (e.g. cli commands)
 
         await self.timeout_watcher.start()
 
