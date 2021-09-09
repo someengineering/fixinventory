@@ -76,6 +76,11 @@ class StepAction(ABC):
             raise AttributeError(f"Can not deserialize {json} into StepAction!")
 
 
+# All actions that need to be restarted from start when the action was interrupted
+class RestartAgainStepAction(StepAction):
+    pass
+
+
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class PerformAction(StepAction):
     # Perform an action by emitting an action message and wait for all subscribers to respond.
@@ -96,7 +101,7 @@ class WaitForEvent(StepAction):
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class ExecuteCommand(StepAction):
+class ExecuteCommand(RestartAgainStepAction):
     # Execute this command in the command interpreter.
     command: str
 

@@ -40,6 +40,7 @@ from core.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
     StepErrorBehaviour,
+    RestartAgainStepAction,
 )
 from core.util import first, Periodic, group_by, uuid_str, utc_str
 
@@ -150,7 +151,7 @@ class TaskHandler(JobHandler):
     async def start_interrupted_tasks(self) -> list[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
 
-        def reset_state(wi: RunningTask, data: RunningTaskData) -> RunningTask:
+        async def reset_state(wi: RunningTask, data: RunningTaskData) -> RunningTask:
             # reset the received messages
             wi.received_messages = data.received_messages  # type: ignore
             # move the fsm into the last known state
@@ -162,6 +163,9 @@ class TaskHandler(JobHandler):
             wi.step_started_at = data.step_started_at
             # ignore all messages that would be emitted
             wi.move_to_next_state()
+            if isinstance(wi.current_step.action, RestartAgainStepAction):
+                log.info(f"Restart interrupted action: {wi.current_step.action}")
+                await self.execute_task_commands(wi, wi.current_state.commands_to_execute())
             return wi
 
         instances: list[RunningTask] = []
@@ -171,7 +175,7 @@ class TaskHandler(JobHandler):
                 # we have captured the timestamp when the task has been started
                 updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
                 instance = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
-                instances.append(reset_state(instance, data))
+                instances.append(await reset_state(instance, data))
             else:
                 log.warning(f"No task description with this id found: {data.task_descriptor_id}. Remove instance data.")
                 await self.running_task_db.delete(data.id)
