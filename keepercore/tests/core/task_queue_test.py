@@ -5,7 +5,7 @@ from datetime import timedelta
 from pytest import fixture, mark
 from typing import AsyncGenerator
 
-from core.task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask
+from core.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask
 from core.util import group_by, identity
 
 

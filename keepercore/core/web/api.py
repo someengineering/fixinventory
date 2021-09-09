@@ -27,7 +27,13 @@ from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
 from core.model.graph_access import GraphBuilder
 from core.model.model import Kind, Model
-from core.task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskResult, WorkerTaskInProgress
+from core.worker_task_queue import (
+    WorkerTaskDescription,
+    WorkerTaskQueue,
+    WorkerTask,
+    WorkerTaskResult,
+    WorkerTaskInProgress,
+)
 from core.types import Json
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str

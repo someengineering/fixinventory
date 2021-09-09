@@ -12,7 +12,7 @@ from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandlerDB
-from core.task_queue import WorkerTaskQueue
+from core.worker_task_queue import WorkerTaskQueue
 from core.web.api import Api
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
