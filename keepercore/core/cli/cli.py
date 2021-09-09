@@ -29,6 +29,7 @@ from core.model.typed_model import class_fqn
 from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
 from core.query.model import Query, Navigation, AllTerm, Aggregate
 from core.query.query_parser import term_parser, aggregate_parameter_parser
+from core.task.job_handler import JobHandler
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
 
@@ -44,11 +45,25 @@ Flow = Callable[[JsGen], JsGen]
 Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 
 
-@dataclass(frozen=True)
 class CLIDependencies:
-    event_bus: EventBus
-    db_access: DbAccess
-    model_handler: ModelHandler
+    def __init__(self) -> None:
+        self.lookup: dict[str, Any] = dict()
+
+    @property
+    def event_bus(self) -> EventBus:
+        return self.lookup["event_bus"]  # type:ignore
+
+    @property
+    def db_access(self) -> DbAccess:
+        return self.lookup["db_access"]  # type:ignore
+
+    @property
+    def model_handler(self) -> ModelHandler:
+        return self.lookup["model_handler"]  # type:ignore
+
+    @property
+    def job_handler(self) -> JobHandler:
+        return self.lookup["job_handler"]  # type:ignore
 
 
 class CLIPart(ABC):
@@ -526,7 +541,9 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         return str(query.simplify())
 
-    async def evaluate_cli_command(self, cli_input: str, **env: str) -> List[ParsedCommandLine]:
+    async def evaluate_cli_command(
+        self, cli_input: str, replace_place_holder: bool = True, **env: str
+    ) -> List[ParsedCommandLine]:
         def parse_single_command(command: str) -> Tuple[CLIPart, str]:
             p = command.strip().split(" ", 1)
             part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
@@ -580,10 +597,13 @@ class CLI:
                 return ParsedCommandLine(resulting_env, [], CLISource.empty())
 
         replaced = self.replace_placeholder(cli_input, **env)
-        return [await parse_line(cmd_line) for cmd_line in split_esc(replaced, ";")]
+        first = await parse_line(split_esc(replaced, ";")[0])
+        keep_raw = not replace_place_holder or (first.parts and first.parts[0].name == "add_job")
+        data = cli_input if keep_raw else replaced
+        return [await parse_line(cmd_line) for cmd_line in split_esc(data, ";")]
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
-        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, **env)]
+        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]
 
     @staticmethod
     def replacements(**env: str) -> dict[str, str]:

@@ -1,6 +1,8 @@
 from functools import reduce
 
-from parsy import success, string, Parser
+from dataclasses import replace
+
+from parsy import string, Parser
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
@@ -27,6 +29,7 @@ from core.parse_util import (
     make_parser,
     whitespace,
     quoted_string_dp,
+    space_dp,
 )
 from core.query.model import (
     Predicate,
@@ -41,6 +44,8 @@ from core.query.model import (
     AggregateFunction,
     Aggregate,
     AllTerm,
+    Sort,
+    SortOrder,
 )
 
 operation_p = reduce(
@@ -116,7 +121,7 @@ def combined_term() -> Parser:
     left = yield simple_term_p
     result = left
     while True:
-        op = yield bool_op_p | success(None)
+        op = yield bool_op_p.optional()
         if op is None:
             break
         right = yield simple_term_p
@@ -165,7 +170,7 @@ pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
-    nav = yield navigation_parser | success(None)
+    nav = yield navigation_parser.optional()
     pinned = yield pin_parser
     return Part(term, pinned, nav)
 
@@ -228,10 +233,9 @@ def aggregate_group_function_parser() -> Parser:
 
 @make_parser
 def aggregate_parameter_parser() -> Parser:
-    group_vars = yield aggregate_group_variable_parser.sep_by(comma_p, min=1)
-    yield colon_p
+    group_vars = yield (aggregate_group_variable_parser.sep_by(comma_p, min=1) << colon_p).optional()
     group_function_vars = yield aggregate_group_function_parser.sep_by(comma_p, min=1)
-    return group_vars, group_function_vars
+    return group_vars if group_vars else [], group_function_vars
 
 
 @make_parser
@@ -261,6 +265,30 @@ def preamble_parser() -> Parser:
     return maybe_aggegate, preamble
 
 
+sort_order_p = string("asc") | string("desc")
+sort_dp = string("sort")
+
+
+@make_parser
+def single_sort_arg_parser() -> Parser:
+    name = yield variable_dp
+    order = yield (space_dp >> sort_order_p).optional()
+    return Sort(name, order if order else SortOrder.Asc)
+
+
+@make_parser
+def sort_parser() -> Parser:
+    yield sort_dp
+    yield space_dp
+    attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
+    yield whitespace
+    return attributes
+
+
+limit_p = string("limit")
+limit_parser = limit_p + space_dp >> integer_dp
+
+
 @make_parser
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
@@ -268,11 +296,16 @@ def query_parser() -> Parser:
     edge_type = preamble.get("edge_type", EdgeType.default)
     if edge_type not in EdgeType.allowed_edge_types:
         raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.allowed_edge_types}")
-    for part in parts:
-        if part.navigation and not part.navigation.edge_type:
-            part.navigation.edge_type = edge_type
-    return Query(parts[::-1], preamble, maybe_aggregate)
+    adapted = [
+        replace(part, navigation=replace(part.navigation, edge_type=edge_type))
+        if part.navigation and not part.navigation.edge_type
+        else part
+        for part in parts
+    ]
+    sort = yield sort_parser.optional()
+    limit = yield limit_parser.optional()
+    return Query(adapted[::-1], preamble, maybe_aggregate, sort, limit)
 
 
 def parse_query(query: str) -> Query:
-    return query_parser.parse(query)  # type: ignore
+    return query_parser.parse(query.strip())  # type: ignore

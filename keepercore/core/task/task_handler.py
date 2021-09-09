@@ -14,12 +14,14 @@ from argparse import ArgumentParser, Namespace
 
 from functools import reduce
 
-from apscheduler.triggers.cron import CronTrigger
+from copy import copy
 
 from core.cli.cli import CLI
+from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
-from core.error import ParseError
+from core.error import ParseError, CLIParseError
 from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
+from core.task.job_handler import JobHandler
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -38,14 +40,17 @@ from core.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
     StepErrorBehaviour,
-    Trigger,
+    RestartAgainStepAction,
 )
-from core.util import first, Periodic, group_by, uuid_str
+from core.util import first, Periodic, group_by, uuid_str, utc_str
 
 log = logging.getLogger(__name__)
 
 
-class TaskHandler:
+class TaskHandler(JobHandler):
+
+    # region init
+
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"))
@@ -53,6 +58,7 @@ class TaskHandler:
     def __init__(
         self,
         running_task_db: RunningTaskDb,
+        job_db: JobDb,
         event_bus: EventBus,
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
@@ -60,6 +66,7 @@ class TaskHandler:
         config: Namespace,
     ):
         self.running_task_db = running_task_db
+        self.job_db = job_db
         self.event_bus = event_bus
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
@@ -73,6 +80,8 @@ class TaskHandler:
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
+
+    # endregion
 
     # region startup and teardown
 
@@ -98,16 +107,60 @@ class TaskHandler:
             lambda t: t[0].message_type, self.registered_event_trigger
         )
 
+    # task descriptors can hold placeholders (e.g. @NOW@)
+    # which should be replaced, when the task is started (or restarted).
+    def evaluate_task_definition(self, descriptor: TaskDescription, **env: str) -> TaskDescription:
+        def evaluate(step: Step) -> Step:
+            if isinstance(step.action, ExecuteCommand):
+                update = copy(step)
+                update.action = ExecuteCommand(self.cli.replace_placeholder(step.action.command, **env))
+                return update
+            else:
+                return step
+
+        updated = copy(descriptor)
+        updated.steps = [evaluate(step) for step in descriptor.steps]
+        return updated
+
+    async def start_task(self, descriptor: TaskDescription) -> None:
+        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
+        if existing:
+            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
+                log.info(
+                    f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
+                    f"the execution will be skipped, as defined by the task"
+                )
+                return None
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
+                log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
+                existing.end()
+                await self.store_running_task_state(existing)
+            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
+                log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
+            else:
+                raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
+
+        updated = self.evaluate_task_definition(descriptor)
+        wi, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
+        log.info(f"Start new task: {updated.name} with id {wi.id}")
+        # store initial state in database
+        await self.running_task_db.insert(wi)
+        self.tasks[wi.id] = wi
+        await self.execute_task_commands(wi, commands)
+
     async def start_interrupted_tasks(self) -> list[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
 
-        def reset_state(wi: RunningTask, data: RunningTaskData) -> RunningTask:
+        def reset_state(wi: RunningTask, task_data: RunningTaskData) -> RunningTask:
             # reset the received messages
-            wi.received_messages = data.received_messages  # type: ignore
+            wi.received_messages = task_data.received_messages  # type: ignore
             # move the fsm into the last known state
-            wi.machine.set_state(data.current_state_name)
+            wi.machine.set_state(task_data.current_state_name)
             # import state of the current step
-            wi.current_state.import_state(data.current_state_snapshot)
+            wi.current_state.import_state(task_data.current_state_snapshot)
+            # reset times
+            wi.task_started_at = task_data.task_started_at
+            wi.step_started_at = task_data.step_started_at
             # ignore all messages that would be emitted
             wi.move_to_next_state()
             return wi
@@ -116,8 +169,15 @@ class TaskHandler:
         async for data in self.running_task_db.all():
             descriptor = descriptions.get(data.task_descriptor_id)
             if descriptor:
-                instance = RunningTask(data.id, descriptor, self.subscription_handler.subscribers_by_event)
-                instances.append(reset_state(instance, data))
+                # we have captured the timestamp when the task has been started
+                updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
+                rt = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
+                instance = reset_state(rt, data)
+                if isinstance(instance.current_step.action, RestartAgainStepAction):
+                    log.info(f"Restart interrupted action: {instance.current_step.action}")
+                    await self.execute_task_commands(instance, instance.current_state.commands_to_execute())
+                instances.append(instance)
+
             else:
                 log.warning(f"No task description with this id found: {data.task_descriptor_id}. Remove instance data.")
                 await self.running_task_db.delete(data.id)
@@ -127,13 +187,15 @@ class TaskHandler:
         log.info("TaskHandler is starting up!")
 
         # load job descriptions from configuration files
-        all_jobs = [await self.parse_job_file(file) for file in self.config.jobs] if self.config.jobs else []
-        jobs: list[Job] = reduce(lambda r, l: r + l, all_jobs, [])
-        self.task_descriptions = [*self.task_descriptions, *jobs]
+        file_jobs = [await self.parse_job_file(file) for file in self.config.jobs] if self.config.jobs else []
+        jobs: list[Job] = reduce(lambda r, l: r + l, file_jobs, [])
+
+        # load job descriptions from database
+        db_jobs = [job async for job in self.job_db.all()]
+        self.task_descriptions = [*self.task_descriptions, *jobs, *db_jobs]
 
         # load and restore all tasks
         self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
-        # TODO: it might be necessary to restart current commands (e.g. cli commands)
 
         await self.timeout_watcher.start()
 
@@ -182,34 +244,60 @@ class TaskHandler:
 
     # endregion
 
+    # region job handler
+
+    async def list_jobs(self) -> list[Job]:
+        return [job for job in self.task_descriptions if isinstance(job, Job)]
+
+    async def add_job(self, job: Job) -> None:
+        descriptions = list(self.task_descriptions)
+        existing = first(lambda td: td.id == job.id, descriptions)
+        if existing:
+            if not existing.mutable:
+                raise AttributeError(f"There is an existing job with this {job.id} which can not be deleted!")
+            log.info(f"Job with id {job.id} already exists. Update this job.")
+            descriptions.remove(existing)
+        # store in database
+        await self.job_db.update(job)
+        descriptions.append(job)
+        self.task_descriptions = descriptions
+        await self.update_trigger(job)
+
+    async def delete_running_task(self, task: RunningTask) -> None:
+        task.descriptor_alive = False
+        # remove tasks from list of running tasks
+        self.tasks.pop(task.id, None)
+        if task.update_task and not task.update_task.done():
+            task.update_task.cancel("task description is deleted")
+
+        # mark step as error
+        task.end()
+        # remove from database
+        await self.running_task_db.delete(task.id)
+
+    async def delete_job(self, job_id: str) -> Optional[Job]:
+        job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
+        if job:
+            if not job.mutable:
+                raise AttributeError(f"Can not delete job: {job.id} - it is defined in a system file!")
+            # delete all running tasks of this job
+            for task in list(filter(lambda x: x.descriptor.id == job.id, self.tasks.values())):
+                log.info(f"Job: {job_id}: delete running task: {task.id}")
+                await self.delete_running_task(task)
+            await self.job_db.delete(job_id)
+            descriptions = list(self.task_descriptions)
+            descriptions.remove(job)
+            self.task_descriptions = descriptions
+            await self.update_trigger(job, register=False)
+        return job
+
+    # endregion
+
+    # region maintain running tasks
+
     async def time_triggered(self, descriptor: TaskDescription, trigger: TimeTrigger) -> None:
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
         return await self.start_task(descriptor)
-
-    async def start_task(self, descriptor: TaskDescription) -> None:
-        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
-        if existing:
-            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
-                log.info(
-                    f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
-                    f"the execution will be skipped, as defined by the task"
-                )
-                return None
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
-                log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
-                existing.end()
-                await self.store_running_task_state(existing)
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
-                log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
-            else:
-                raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
-
-        wi, commands = RunningTask.empty(descriptor, self.subscription_handler.subscribers_by_event)
-        log.info(f"Start new task: {descriptor.name} with id {wi.id}")
-        # store initial state in database
-        await self.running_task_db.insert(wi)
-        self.tasks[wi.id] = wi
-        await self.execute_task_commands(wi, commands)
 
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
@@ -266,17 +354,19 @@ class TaskHandler:
                     results[command] = result
                 else:
                     raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
-            active_before_result = wi.is_active
-            # before we move on, we need to store the current state of the task (or delete if it is done)
-            await self.store_running_task_state(wi, origin_message)
-            # inform the task about the result, which might trigger new tasks to execute
-            new_commands = wi.handle_command_results(results)
-            if new_commands:
-                # note: recursion depth is defined by the number of steps in a job description and should be safe.
-                await self.execute_task_commands(wi, new_commands)
-            elif active_before_result and not wi.is_active:
-                # if this was the last result the task was waiting for, delete the task
+            # The descriptor might be removed in the mean time. If this is the case stop execution.
+            if wi.descriptor_alive:
+                active_before_result = wi.is_active
+                # before we move on, we need to store the current state of the task (or delete if it is done)
                 await self.store_running_task_state(wi, origin_message)
+                # inform the task about the result, which might trigger new tasks to execute
+                new_commands = wi.handle_command_results(results)
+                if new_commands:
+                    # note: recursion depth is defined by the number of steps in a job description and should be safe.
+                    await self.execute_task_commands(wi, new_commands)
+                elif active_before_result and not wi.is_active:
+                    # if this was the last result the task was waiting for, delete the task
+                    await self.store_running_task_state(wi, origin_message)
 
         async def execute_in_order(task: Task[None]) -> None:
             # make sure the last execution is finished, before the new execution starts
@@ -297,6 +387,10 @@ class TaskHandler:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
 
+    # endregion
+
+    # region periodic task checker
+
     async def check_overdue_tasks(self) -> None:
         """
         Called periodically by the system.
@@ -306,11 +400,12 @@ class TaskHandler:
             if task.is_active:  # task is still active
                 if task.current_state.check_timeout():
                     if task.current_step.on_error == StepErrorBehaviour.Continue:
-                        log.warning(
-                            f"Task {task.id}: {task.descriptor.name} timed out in step"
-                            f"{task.current_step.name}. Moving on."
-                        )
+                        current_step = task.current_step.name
                         commands = task.move_to_next_state()
+                        log.warning(
+                            f"Task {task.id}: {task.descriptor.name} timed out in step "
+                            f"{current_step}. Moving on to step: {task.current_step.name}."
+                        )
                         await self.execute_task_commands(task, commands)
                     else:
                         log.warning(
@@ -324,6 +419,87 @@ class TaskHandler:
                 if task.update_task:
                     await task.update_task
                 del self.tasks[task.id]
+                await self.running_task_db.delete(task.id)
+
+    # endregion
+
+    # region parse job data
+
+    async def parse_job_file(self, file: TextIOWrapper) -> list[Job]:
+        """
+        Parse a file with job definitions.
+        Every line is either a blank line, a comment or a job definition.
+
+        Example
+        # cron based trigger
+        0 5 * * sat : reported name="foo" | desire name="bla"
+
+        # cron based + event based trigger
+        0 5 * * sat event_name : reported name="foo" | desire name="bla"
+
+        :param file: the file handle to parse.
+        :return: all parsed jobs.
+        :raises: ParseError if the job can not be parsed
+        """
+        jobs = []
+        with file as reader:
+            for line in reader:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    job = await self.parse_job_line(f"file {file.name}", stripped, mutable=False)
+                    jobs.append(job)
+        return jobs
+
+    async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
+        """
+        Parse a single job line.
+        :param source: the source of this line (just for naming purposes)
+        :param line: the line of text
+        :param mutable: defines if the resulting job is mutable or not.
+        :return: the parsed jon
+        """
+        try:
+            parts = re.split("\\s+", line.strip(), 5)
+            if len(parts) != 6:
+                raise ValueError(f"Invalid job {line}")
+            uid = uuid_str(line.strip())[0:8]
+            wait: Optional[Tuple[EventTrigger, timedelta]] = None
+            trigger = TimeTrigger(" ".join(parts[0:5]))
+            command = parts[5]
+            # check if we also need to wait for an event: name_of_event : command
+            if re.match("^[A-Za-z][A-Za-z0-9_\\-]*\\s*:", command):
+                event, command = re.split("\\s*:\\s*", command, 1)
+                wait = EventTrigger(event), timedelta(hours=24)
+            await self.cli.evaluate_cli_command(command, replace_place_holder=False)
+            return Job(uid, ExecuteCommand(command), trigger, timedelta(hours=1), wait, mutable)
+        except CLIParseError as ex:
+            raise ex
+        except Exception as ex:
+            raise ParseError(f"Can not parse job command line: {line}") from ex
+
+    # endregion
+
+    # region known task descriptors
+
+    @staticmethod
+    def known_jobs() -> list[Job]:
+        return [
+            Job(
+                "example-job",
+                ExecuteCommand("echo hello"),
+                EventTrigger("run_job"),
+                timedelta(seconds=10),
+                mutable=False,
+            ),
+            Job(
+                "example-wait-job",
+                ExecuteCommand("sleep 10; echo I was started at @NOW@"),
+                EventTrigger("run_job"),
+                timedelta(seconds=10),
+                (EventTrigger("wait"), timedelta(seconds=30)),
+                mutable=False,
+            ),
+        ]
 
     @staticmethod
     def known_workflows() -> list[Workflow]:
@@ -372,85 +548,4 @@ class TaskHandler:
             ),
         ]
 
-    async def parse_job_file(self, file: TextIOWrapper) -> list[Job]:
-        """
-        Parse a file with job definitions.
-        Every line is either a blank line, a comment or a job definition.
-
-        Example
-
-        # event based trigger
-        event_name : reported test==true | clean
-
-        # cron based trigger
-        0 5 * * sat : reported name="foo" | desire name="bla"
-
-        # cron based + event based trigger
-        0 5 * * sat event_name : reported name="foo" | desire name="bla"
-
-        :param file: the file handle to parse.
-        :return: all parsed jobs.
-        :raises: ParseError if the job can not be parsed
-        """
-        jobs = []
-        with file as reader:
-            for line in reader:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#"):
-                    jobs.append(await self.parse_job_line(file.name, stripped))
-        return jobs
-
-    async def parse_job_line(self, source: str, line: str) -> Job:
-        """
-        Parse a single job line.
-        :param source: the source of this line (just for naming purposes)
-        :param line: the line of text
-        :return: the parsed jon
-        """
-        try:
-            trigger, command = re.split("\\s*:\\s*", line.strip(), 1)
-            uid = uuid_str(line.strip())
-            await self.cli.evaluate_cli_command(command)  # make sure the command can be parsed
-            parts = re.split("\\s+", trigger)
-            job_trigger: Trigger = None  # type: ignore
-            if len(parts) == 1:
-                description = f"event triggered job {trigger} from file {source}"
-                job_trigger = EventTrigger(trigger)
-                wait = None
-            elif len(parts) == 5:
-                description = f"scheduled job {trigger} from file {source}"
-                CronTrigger.from_crontab(trigger)  # make sure the cron expression is valid
-                job_trigger = TimeTrigger(trigger)
-                wait = None
-            elif len(parts) == 6:
-                cron = " ".join(parts[0:5])
-                description = f"scheduled job {cron} with wait for event {parts[5]} from file {source}"
-                CronTrigger.from_crontab(cron)  # make sure the cron expression is valid
-                job_trigger = TimeTrigger(cron)
-                wait = (EventTrigger(parts[5]), timedelta(hours=24))
-            else:
-                raise AttributeError(f"Can not parse trigger of job {trigger}")
-            log.info(f"Read job {description} with command {command}")
-            return Job(uid, description, ExecuteCommand(command), job_trigger, timedelta(minutes=3), wait)
-        except Exception as ex:
-            raise ParseError(f"Can not parse job command line: {line}") from ex
-
-    @staticmethod
-    def known_jobs() -> list[Job]:
-        return [
-            Job(
-                "example-job",
-                "example-job",
-                ExecuteCommand("echo hello"),
-                EventTrigger("run_job"),
-                timedelta(seconds=10),
-            ),
-            Job(
-                "example-wait-job",
-                "example-wait-job",
-                ExecuteCommand("sleep 10; echo I was started at @NOW@"),
-                EventTrigger("run_job"),
-                timedelta(seconds=10),
-                (EventTrigger("wait"), timedelta(seconds=30)),
-            ),
-        ]
+    # endregion

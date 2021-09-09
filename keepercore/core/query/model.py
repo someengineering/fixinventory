@@ -1,8 +1,9 @@
 from __future__ import annotations
 import abc
 from functools import reduce
-from typing import List, Mapping, Union, Optional
+from typing import List, Mapping, Union, Optional, Any, ClassVar
 
+from dataclasses import dataclass, field, replace
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
@@ -104,6 +105,7 @@ class PArray:
         return P(self.name, array=True, filter="all")
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Term(abc.ABC):
     def __or__(self, other: Term) -> Term:
         return self.or_term(other)
@@ -187,12 +189,12 @@ class AllTerm(Term):
         return "all"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Predicate(Term):
-    def __init__(self, name: str, op: str, value: object, args: Mapping[str, object]):
-        self.name = name
-        self.op = op
-        self.value = value
-        self.args = args
+    name: str
+    op: str
+    value: object
+    args: Mapping[str, object]
 
     def __str__(self) -> str:
         return f"{self.name} {self.op} {self.value_str_rep(self.value)}"
@@ -214,37 +216,37 @@ class Predicate(Term):
             return str(value)
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class CombinedTerm(Term):
-    def __init__(self, left: Term, op: str, right: Term):
-        self.left = left
-        self.op = op
-        self.right = right
+    left: Term
+    op: str
+    right: Term
 
     def __str__(self) -> str:
         return f"({self.left} {self.op} {self.right})"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class IdTerm(Term):
-    def __init__(self, uid: str):
-        self.id = uid
+    id: str
 
     def __str__(self) -> str:
         return f'id("{self.id}")'
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class IsTerm(Term):
-    def __init__(self, kind: str):
-        self.kind = kind
+    kind: str
 
     def __str__(self) -> str:
         return f'is("{self.kind}")'
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class FunctionTerm(Term):
-    def __init__(self, fn: str, property_path: str, args: List[object]):
-        self.fn = fn
-        self.property_path = property_path
-        self.args = args
+    fn: str
+    property_path: str
+    args: list[Any]
 
     def __str__(self) -> str:
         args = ", ".join((Predicate.value_str_rep(a) for a in self.args))
@@ -252,15 +254,15 @@ class FunctionTerm(Term):
         return f"{self.fn}({self.property_path}{sep}{args})"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
-    Max = 10000
+    Max: ClassVar[int] = 10000
 
-    def __init__(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default, direction: str = "out"):
-        self.start = start
-        self.until = until
-        self.edge_type = edge_type
-        self.direction = direction
+    start: int = 1
+    until: int = 1
+    edge_type: str = EdgeType.default
+    direction: str = "out"
 
     def is_out(self) -> bool:
         return self.direction == "out"
@@ -282,11 +284,11 @@ class Navigation:
             return f"-{nav}-"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Part:
-    def __init__(self, term: Term, pinned: bool = False, navigation: Optional[Navigation] = None):
-        self.term = term
-        self.navigation = navigation
-        self.pinned = pinned
+    term: Term
+    pinned: bool = False
+    navigation: Optional[Navigation] = None
 
     def __str__(self) -> str:
         nav = f" {self.navigation}" if self.navigation is not None else ""
@@ -294,10 +296,10 @@ class Part:
         return f"{self.term}{nav}{pin}"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateVariable:
-    def __init__(self, name: str, as_name: Optional[str] = None):
-        self.name = name
-        self.as_name = as_name
+    name: str
+    as_name: Optional[str] = None
 
     def __str__(self) -> str:
         with_as = f" as {self.as_name}" if self.as_name else ""
@@ -307,18 +309,12 @@ class AggregateVariable:
         return self.as_name if self.as_name else self.name
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateFunction:
-    def __init__(
-        self,
-        function: str,
-        name_or_value: Union[str, int],
-        ops: Optional[list[tuple[str, Union[int, float]]]] = None,
-        as_name: Optional[str] = None,
-    ):
-        self.function = function
-        self.name = name_or_value
-        self.ops: list[tuple[str, Union[int, float]]] = ops if ops else []
-        self.as_name = as_name
+    function: str
+    name: Union[str, int]
+    ops: list[tuple[str, Union[int, float]]] = field(default_factory=list)
+    as_name: Optional[str] = None
 
     def __str__(self) -> str:
         with_as = f" as {self.as_name}" if self.as_name else ""
@@ -332,10 +328,10 @@ class AggregateFunction:
         return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Aggregate:
-    def __init__(self, group_by: List[AggregateVariable], group_func: List[AggregateFunction]):
-        self.group_by = group_by
-        self.group_func = group_func
+    group_by: List[AggregateVariable]
+    group_func: List[AggregateFunction]
 
     def __str__(self) -> str:
         group_by = ", ".join(str(a) for a in self.group_by)
@@ -346,25 +342,38 @@ class Aggregate:
 SimpleValue = Union[str, int, float, bool]
 
 
+class SortOrder:
+    Asc = "asc"
+    Desc = "desc"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class Sort:
+    name: str
+    order: str = SortOrder.Asc
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.order}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
-    def __init__(
-        self,
-        parts: List[Part],
-        preamble: Optional[dict[str, SimpleValue]] = None,
-        aggregate: Optional[Aggregate] = None,
-    ):
-        if parts is None or len(parts) == 0:
-            raise AttributeError(f"Expected non empty parts but got {parts}")
-        self.parts = parts
-        self.preamble: dict[str, SimpleValue] = preamble if preamble else dict()
-        self.aggregate = aggregate
+    parts: List[Part]
+    preamble: dict[str, SimpleValue] = field(default_factory=dict)
+    aggregate: Optional[Aggregate] = None
+    sort: list[Sort] = field(default_factory=list)
+    limit: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        if self.parts is None or len(self.parts) == 0:
+            raise AttributeError(f"Expected non empty parts but got {self.parts}")
 
     @staticmethod
     def by(
         term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, SimpleValue]] = None
     ) -> Query:
         res = Query.mk_term(term, *terms)
-        return Query([Part(res)], preamble)
+        return Query([Part(res)], preamble if preamble else {})
 
     def __str__(self) -> str:
         aggregate = str(self.aggregate) if self.aggregate else ""
@@ -372,7 +381,9 @@ class Query:
         preamble = "(" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + ")" if self.preamble else ""
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
-        return f"{aggregate}{preamble}{colon}{parts}"
+        sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
+        limit = f" limit {self.limit}" if self.limit else ""
+        return f"{aggregate}{preamble}{colon}{parts}{sort}{limit}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
@@ -384,7 +395,7 @@ class Query:
         else:
             # put to the start
             parts.insert(0, Part(res))
-        return Query(parts, self.preamble, self.aggregate)
+        return replace(self, parts=parts)
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "out")
@@ -406,15 +417,21 @@ class Query:
                 parts.insert(0, Part(AllTerm(), False, Navigation(start, until, edge_type, direction)))
         else:
             parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
-        return Query(parts, self.preamble, self.aggregate)
+        return replace(self, parts=parts)
 
     def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
-        return Query(self.parts, self.preamble, aggregate)
+        return replace(self, aggregate=aggregate)
 
     def simplify(self) -> Query:
         parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
-        return Query(parts, self.preamble, self.aggregate)
+        return replace(self, parts=parts)
+
+    def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
+        return replace(self, sort=[*self.sort, Sort(name, order)])
+
+    def with_limit(self, num: int) -> Query:
+        return replace(self, limit=num)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:
