@@ -5,6 +5,7 @@ from deepdiff import DeepDiff
 
 from core.query.model import Query, P
 from core.model.typed_model import to_js, from_js
+from core.query.query_parser import parse_query
 
 
 class ModelBase(abc.ABC):
@@ -47,6 +48,5 @@ def test_ignore_private_properties() -> None:
 
 def test_marshal_query() -> None:
     q = Query.by("ec2", P("foo") > 23, P("test") >= "bummer", P("das") < "set")
-    js = to_js(q)
-    again = from_js(js, Query)
+    again = parse_query(str(q))
     assert str(q) == str(again)
