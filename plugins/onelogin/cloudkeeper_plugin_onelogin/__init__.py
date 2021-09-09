@@ -73,6 +73,13 @@ class OneLoginUser(OneLoginResource, BaseUser):
 
     @staticmethod
     def new(user: User) -> BaseUser:
+        if user.password_changed_at is not None:
+            password_age = datetime.utcnow().replace(
+                tzinfo=timezone.utc
+            ) - make_valid_timestamp(user.password_changed_at)
+        else:
+            password_age = None
+
         return OneLoginUser(
             id=str(user.id),
             tags={},
@@ -114,8 +121,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
             ctime=user.created_at,
             atime=user.last_login,
             mtime=user.updated_at,
-            password_age=datetime.utcnow().replace(tzinfo=timezone.utc)
-            - make_valid_timestamp(user.password_changed_at),
+            password_age=password_age,
         )
 
 

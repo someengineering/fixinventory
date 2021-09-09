@@ -116,9 +116,12 @@ async def test_recover_workflow(
     all_events: list[Message],
     cli: CLI,
     task_handler_args: Namespace,
+    test_workflow: Workflow,
 ) -> None:
     def handler() -> TaskHandler:
-        return TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
+        th = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
+        th.task_descriptions = [test_workflow]
+        return th
 
     await subscription_handler.add_subscription("sub_1", "start_collect", True, timedelta(seconds=30))
     sub1 = await subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
@@ -126,7 +129,7 @@ async def test_recover_workflow(
 
     async with handler() as wf1:
         # kick off a new workflow
-        await wf1.handle_event(Event("start_collect_workflow"))
+        await wf1.handle_event(Event("start me up"))
         assert len(wf1.tasks) == 1
         # expect a start_collect action message
         a: Action = await wait_for_message(all_events, "start_collect", Action)

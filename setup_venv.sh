@@ -9,6 +9,7 @@ pip install -U pip
 pip install -r keepercore/requirements-dev.txt
 pip install --editable keepercore/
 pip install --editable keeper-cli/
+pip install --editable graph_exporter/
 pip install --editable cloudkeeper/
 pip install --editable plugins/aws/
 find plugins/ -maxdepth 1 -mindepth 1 -type d -exec pip install --editable "{}" \;
