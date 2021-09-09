@@ -1,7 +1,7 @@
 import asyncio
 import string
 from abc import ABC
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from random import SystemRandom
 from typing import List, Optional
 
@@ -20,7 +20,7 @@ from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
-from core.util import AccessJson
+from core.util import AccessJson, utc
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -48,7 +48,7 @@ class Foo(BaseResource):
         name: Optional[str] = None,
         some_int: int = 0,
         some_string: str = "hello",
-        now_is: datetime = datetime.now(tz=timezone.utc),
+        now_is: datetime = utc(),
         ctime: Optional[datetime] = None,
     ) -> None:
         super().__init__(identifier)

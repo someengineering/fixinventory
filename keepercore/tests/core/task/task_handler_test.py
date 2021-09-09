@@ -6,13 +6,22 @@ from pytest import fixture
 from typing import AsyncGenerator
 
 from core.cli.cli import CLI
+from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskDb
 from core.error import ParseError
 from core.event_bus import EventBus, Event, Message, ActionDone, Action
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
-from core.task.task_description import Workflow, Step, PerformAction, EventTrigger, StepErrorBehaviour, TimeTrigger
+from core.task.task_description import (
+    Workflow,
+    Step,
+    PerformAction,
+    EventTrigger,
+    StepErrorBehaviour,
+    TimeTrigger,
+    Job,
+)
 from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
@@ -37,6 +46,11 @@ async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
 
 
 @fixture
+def job_db() -> JobDb:
+    return InMemoryDb[Job](Job, lambda x: x.id)
+
+
+@fixture
 def task_handler_args() -> Namespace:
     args = ArgumentParser()
     TaskHandler.add_args(args)
@@ -46,16 +60,20 @@ def task_handler_args() -> Namespace:
 @fixture
 async def task_handler(
     running_task_db: RunningTaskDb,
+    job_db: JobDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
     task_handler_args: Namespace,
 ) -> AsyncGenerator[TaskHandler, None]:
-    wfh = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
-    wfh.task_descriptions = [test_workflow]
-    async with wfh:
-        yield wfh
+    task_handler = TaskHandler(
+        running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args
+    )
+    task_handler.task_descriptions = [test_workflow]
+    cli.dependencies.lookup["job_handler"] = task_handler
+    async with task_handler:
+        yield task_handler
 
 
 @fixture
@@ -81,16 +99,8 @@ async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> 
 
 
 @pytest.mark.asyncio
-async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", 'cleanup_plan : match kind == "node" | clean')
-    assert job.trigger == EventTrigger("cleanup_plan")
-    assert job.command.command == 'match kind == "node" | clean'
-    assert job.wait is None
-
-
-@pytest.mark.asyncio
 async def test_parse_job_line_time_trigger(task_handler: TaskHandler) -> None:
-    job = await task_handler.parse_job_line("test", '0 5 * * sat : match t2 == "node" | clean')
+    job = await task_handler.parse_job_line("test", '0 5 * * sat   match t2 == "node" | clean')
     assert job.trigger == TimeTrigger("0 5 * * sat")
     assert job.command.command == 'match t2 == "node" | clean'
     assert job.wait is None
@@ -111,6 +121,7 @@ async def test_parse_job_line_event_and_time_trigger(task_handler: TaskHandler) 
 @pytest.mark.asyncio
 async def test_recover_workflow(
     running_task_db: RunningTaskDb,
+    job_db: JobDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
     all_events: list[Message],
@@ -119,7 +130,7 @@ async def test_recover_workflow(
     test_workflow: Workflow,
 ) -> None:
     def handler() -> TaskHandler:
-        th = TaskHandler(running_task_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
+        th = TaskHandler(running_task_db, job_db, event_bus, subscription_handler, Scheduler(), cli, task_handler_args)
         th.task_descriptions = [test_workflow]
         return th
 

@@ -1,8 +1,11 @@
 from datetime import timedelta
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Any
 
+from deepdiff import DeepDiff
+from frozendict import frozendict
 from pytest import fixture
 
+from core.model.typed_model import to_js, from_js
 from tests.core.db.entitydb import InMemoryDb
 from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
 from core.task.subscribers import SubscriptionHandler
@@ -17,6 +20,10 @@ from core.task.task_description import (
     EmitEvent,
     ExecuteCommand,
     EventTrigger,
+    Job,
+    TimeTrigger,
+    SendMessage,
+    ExecuteOnCLI,
 )
 
 # noinspection PyUnresolvedReferences
@@ -173,3 +180,41 @@ def test_complete_workflow(
     events = wi.handle_done(ActionDone("done", wi.id, "done", s2.id))
     assert len(events) == 1
     assert wi.is_active is False
+
+
+def test_marshalling_trigger() -> None:
+    roundtrip(EventTrigger("test", {"foo": True}))
+    roundtrip(TimeTrigger("* * * * *"))
+
+
+def test_marshalling_step_action() -> None:
+    roundtrip(PerformAction("test"))
+    roundtrip(EmitEvent(Event("test", {"foo": "hello"})))
+    roundtrip(WaitForEvent("test", {"foo": "hello"}))
+    roundtrip(ExecuteCommand("help"))
+
+
+def test_marshalling_task_command() -> None:
+    roundtrip(SendMessage(Event("test", {"foo": "hello"})))
+    roundtrip(ExecuteOnCLI("test", frozendict({"fii": "bla"})))
+
+
+def test_marshalling_step() -> None:
+    roundtrip(Step("test", PerformAction("test")))
+    roundtrip(Step("test", WaitForEvent("test"), timedelta(seconds=19), StepErrorBehaviour.Stop))
+
+
+def test_marshalling_job() -> None:
+    j = Job("id", ExecuteCommand("echo hello"), EventTrigger("run_job"), timedelta(seconds=10))
+    roundtrip(j)
+    roundtrip(Job(j.id, j.command, j.trigger, j.timeout, (EventTrigger("test"), timedelta(hours=2))))
+
+
+def test_marshalling_workflow(test_workflow: Workflow) -> None:
+    roundtrip(test_workflow)
+
+
+def roundtrip(obj: Any) -> None:
+    js = to_js(obj)
+    again = from_js(js, type(obj))
+    assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"

@@ -27,11 +27,11 @@ def from_js(json: Optional[Any], clazz: Type[AnyT]) -> AnyT:
     return jsons.load(json, cls=clazz) if clazz != dict else json  # type: ignore
 
 
-def to_js(node: object) -> Json:
+def to_js(node: object, **kwargs: Any) -> Json:
     # shortcut: assume a dict is already a json value
     if isinstance(node, dict):
         return node
-    return jsons.dump(node, strip_privates=True, strip_microseconds=True)  # type: ignore
+    return jsons.dump(node, strip_privates=True, strip_microseconds=True, **kwargs)  # type: ignore
 
 
 def to_js_str(node: object) -> str:

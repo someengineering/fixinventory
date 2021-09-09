@@ -72,7 +72,7 @@ class ArangoEntityDb(EntityDb[T], ABC):
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
         key = key_or_object if isinstance(key_or_object, str) else self.key_of(key_or_object)
-        await self.db.delete(self.collection_name, key)
+        await self.db.delete(self.collection_name, key, ignore_missing=True)
 
     async def create_update_schema(self) -> None:
         name = self.collection_name

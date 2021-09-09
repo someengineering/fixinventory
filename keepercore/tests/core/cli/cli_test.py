@@ -34,7 +34,9 @@ from tests.core.model import ModelHandlerStatic
 def cli_deps(filled_graph_db: ArangoGraphDB, event_bus: EventBus, foo_model: Model) -> CLIDependencies:
     db_access = DbAccess(filled_graph_db.db.db, event_bus)
     model_handler = ModelHandlerStatic(foo_model)
-    return CLIDependencies(event_bus, db_access, model_handler)
+    deps = CLIDependencies()
+    deps.lookup = {"event_bus": event_bus, "db_access": db_access, "model_handler": model_handler}
+    return deps
 
 
 @fixture

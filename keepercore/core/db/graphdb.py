@@ -169,7 +169,6 @@ class ArangoGraphDB(GraphDB):
             kind = model[node["reported"]]
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
-            node["data"] = node["reported"]
             node_id, _, _, _, sha, kinds, flat = GraphAccess.dump(node_id, node)
             update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
             result = await self.db.update(self.vertex_name, update, return_new=True)

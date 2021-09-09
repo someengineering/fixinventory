@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import logging
 import uuid
-from abc import ABC, abstractmethod
-from datetime import timedelta, datetime, timezone
+from abc import ABC
+from datetime import timedelta
 from enum import Enum
 from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
 
 from dataclasses import dataclass
 
 from asyncio import Task
+
+from apscheduler.triggers.cron import CronTrigger
 from frozendict import frozendict
+from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
 from core.event_bus import Event, Action, ActionDone, Message, ActionError
+from core.model.typed_model import to_js, from_js
 from core.types import Json
 from core.util import first, interleave, empty, exist, identity, utc, utc_str
 from core.task.model import Subscriber
@@ -58,6 +62,24 @@ class StepAction(ABC):
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, StepAction) else False
 
+    @staticmethod
+    def from_json(json: Json, _: type = object, **__: object) -> StepAction:
+        if "wait_for_message_type" in json:
+            return from_js(json, WaitForEvent)
+        elif "message_type" in json:
+            return from_js(json, PerformAction)
+        elif "command" in json:
+            return from_js(json, ExecuteCommand)
+        elif "event" in json:
+            return from_js(json, EmitEvent)
+        else:
+            raise AttributeError(f"Can not deserialize {json} into StepAction!")
+
+
+# All actions that need to be restarted from start when the action was interrupted
+class RestartAgainStepAction(StepAction):
+    pass
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class PerformAction(StepAction):
@@ -74,12 +96,12 @@ class EmitEvent(StepAction):
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class WaitForEvent(StepAction):
     # Wait for this event to arrive
-    message_type: str
-    filter_data: Optional[Json]
+    wait_for_message_type: str
+    filter_data: Optional[Json] = None
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class ExecuteCommand(StepAction):
+class ExecuteCommand(RestartAgainStepAction):
     # Execute this command in the command interpreter.
     command: str
 
@@ -92,6 +114,15 @@ class ExecuteCommand(StepAction):
 class TaskCommand(ABC):
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, TaskCommand) else False
+
+    @staticmethod
+    def from_json(json: Json, _: type = object, **__: object) -> TaskCommand:
+        if "message" in json:
+            return from_js(json, SendMessage)
+        elif "command" in json:
+            return from_js(json, ExecuteOnCLI)
+        else:
+            raise AttributeError(f"Can not deserialize {json} into TaskCommand!")
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -113,6 +144,15 @@ class Trigger(ABC):
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Trigger) else False
 
+    @staticmethod
+    def from_json(json: Json, _: type = object, **__: object) -> Trigger:
+        if "cron_expression" in json:
+            return from_js(json, TimeTrigger)
+        elif "message_type" in json:
+            return from_js(json, EventTrigger)
+        else:
+            raise AttributeError(f"Can not deserialize {json} into StepAction!")
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class EventTrigger(Trigger):
@@ -123,6 +163,10 @@ class EventTrigger(Trigger):
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class TimeTrigger(Trigger):
     cron_expression: str
+
+    def __post_init__(self) -> None:
+        # make sure the time trigger is valid
+        CronTrigger.from_crontab(self.cron_expression)
 
 
 # endregion
@@ -150,27 +194,24 @@ class Step:
 
 
 class TaskDescription(ABC):
-    def __init__(self, uid: str, name: str):
+    def __init__(
+        self,
+        uid: str,
+        name: str,
+        steps: Sequence[Step],
+        triggers: Sequence[Trigger],
+        on_surpass: TaskSurpassBehaviour,
+        mutable: bool,
+    ):
         self.id = uid
         self.name = name
+        self.steps = steps
+        self.triggers = triggers
+        self.on_surpass = on_surpass
+        self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
         return first(lambda x: x.name == name, self.steps)
-
-    @property
-    @abstractmethod
-    def steps(self) -> Sequence[Step]:
-        pass
-
-    @property
-    @abstractmethod
-    def triggers(self) -> Sequence[Trigger]:
-        pass
-
-    @property
-    @abstractmethod
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        pass
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, TaskDescription) else False
@@ -180,35 +221,49 @@ class Job(TaskDescription):
     def __init__(
         self,
         uid: str,
-        name: str,
         command: ExecuteCommand,
         trigger: Trigger,
         timeout: timedelta,
         wait: Optional[Tuple[EventTrigger, timedelta]] = None,
+        mutable: bool = True,
     ):
-        super().__init__(uid, name)
+        steps = []
+        if wait:
+            wait_trigger, wait_timeout = wait
+            action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
+            steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
+        steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
+        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Parallel, mutable)
         self.command = command
         self.trigger = trigger
+        self.timeout = timeout
         self.wait = wait
-        self._triggers = [trigger]
-        self._steps = []
-        if wait:
-            trigger, wait_timeout = wait
-            action = WaitForEvent(trigger.message_type, trigger.filter_data)
-            self._steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
-        self._steps.append(Step("execute", command, timeout))
 
-    @property
-    def steps(self) -> Sequence[Step]:
-        return self._steps
+    @staticmethod
+    def to_json(o: Job, **_: object) -> Json:
+        wait = {"wait_trigger": to_js(o.wait[0]), "wait_timeout": to_js(o.wait[1])} if o.wait else {}
+        return {
+            "id": o.id,
+            "name": o.name,
+            "command": to_js(o.command),
+            "trigger": to_js(o.trigger),
+            "timeout": to_js(o.timeout),
+        } | wait
 
-    @property
-    def triggers(self) -> Sequence[Trigger]:
-        return self._triggers
-
-    @property
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        return TaskSurpassBehaviour.Parallel
+    @staticmethod
+    def from_json(json: Json, _: type = object, **__: object) -> Job:
+        maybe_wait = (
+            (from_js(json["wait_trigger"], EventTrigger), from_js(json["wait_timeout"], timedelta))
+            if "wait_trigger" in json
+            else None
+        )
+        return Job(
+            json["id"],
+            from_js(json["command"], ExecuteCommand),
+            from_js(json["trigger"], Trigger),
+            from_js(json["timeout"], timedelta),
+            maybe_wait,
+        )
 
 
 class Workflow(TaskDescription):
@@ -224,22 +279,29 @@ class Workflow(TaskDescription):
         triggers: Sequence[Trigger],
         on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
     ) -> None:
-        super().__init__(uid, name)
-        self._steps = steps
+        super().__init__(uid, name, steps, triggers, on_surpass, mutable=False)
         self._triggers = triggers
         self._on_surpass = on_surpass
 
-    @property
-    def steps(self) -> Sequence[Step]:
-        return self._steps
+    @staticmethod
+    def to_json(o: Job, **_: object) -> Json:
+        return {
+            "id": o.id,
+            "name": o.name,
+            "steps": to_js(o.steps),
+            "triggers": to_js(o.triggers),
+            "on_surpass": to_js(o.on_surpass),
+        }
 
-    @property
-    def triggers(self) -> Sequence[Trigger]:
-        return self._triggers
-
-    @property
-    def on_surpass(self) -> TaskSurpassBehaviour:
-        return self._on_surpass
+    @staticmethod
+    def from_json(json: Json, _: type = object, **__: object) -> Workflow:
+        return Workflow(
+            json["id"],
+            json["name"],
+            from_js(json["steps"], list[Step]),
+            from_js(json["triggers"], list[Trigger]),
+            from_js(json["on_surpass"], TaskSurpassBehaviour),
+        )
 
 
 class StepState(State):  # type: ignore
@@ -297,7 +359,7 @@ class StepState(State):  # type: ignore
         Return true if the internal state of the fsm has changed by this event.
         This method is called periodically by the cleaner task.
         """
-        if (self.instance.step_started_at + self.timeout()) < datetime.now(timezone.utc):
+        if (self.instance.step_started_at + self.timeout()) < utc():
             self.timed_out = True
             return True
         return False
@@ -412,7 +474,7 @@ class WaitForEventState(StepState):
         This step is done, when the event it is waiting for has arrived.
         """
         return self.timed_out or exist(
-            lambda x: isinstance(x, Event) and x.message_type == self.perform.message_type,
+            lambda x: isinstance(x, Event) and x.message_type == self.perform.wait_for_message_type,
             self.instance.received_messages,
         )
 
@@ -429,7 +491,7 @@ class WaitForEventState(StepState):
             else:
                 return True
 
-        if event.message_type == self.perform.message_type and filter_applies():
+        if event.message_type == self.perform.wait_for_message_type and filter_applies():
             self.instance.received_messages.append(event)
             return True
         return False
@@ -515,6 +577,7 @@ class RunningTask:
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
         self.update_task: Optional[Task[None]] = None
+        self.descriptor_alive = True
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
@@ -634,5 +697,14 @@ class RunningTask:
     def begin_step(self) -> None:
         log.info(f"Task {self.id}: begin step is: {self.current_step.name}")
         # update the step started time, whenever a new state is entered
-        self.step_started_at = datetime.now(timezone.utc)
+        self.step_started_at = utc()
         self.current_state.step_started()
+
+
+set_deserializer(StepAction.from_json, StepAction, high_prio=False)
+set_deserializer(Trigger.from_json, Trigger, high_prio=False)
+set_deserializer(TaskCommand.from_json, TaskCommand, high_prio=False)
+set_deserializer(Job.from_json, Job)
+set_serializer(Job.to_json, Job)
+set_deserializer(Workflow.from_json, Workflow)
+set_serializer(Workflow.to_json, Workflow)
