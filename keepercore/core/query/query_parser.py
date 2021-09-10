@@ -2,7 +2,7 @@ from functools import reduce
 
 from dataclasses import replace
 
-from parsy import string, Parser
+from parsy import string, Parser, regex
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
@@ -30,6 +30,7 @@ from core.parse_util import (
     whitespace,
     quoted_string_dp,
     space_dp,
+    json_value_dp,
 )
 from core.query.model import (
     Predicate,
@@ -77,24 +78,14 @@ integer_p = lexeme(integer_dp)
 variable_p = lexeme(variable_dp)
 literal_p = lexeme(literal_dp)
 quoted_string_p = lexeme(quoted_string_dp)
-
-
-@make_parser
-def array_parser() -> Parser:
-    yield l_bracket_p
-    elements = yield value_p.sep_by(comma_p)
-    yield r_bracket_p
-    return elements
-
-
-value_p = quoted_string_p | float_p | integer_p | array_parser | true_p | false_p | null_p
+json_value_p = lexeme(json_value_dp)
 
 
 @make_parser
 def predicate_term() -> Parser:
     name = yield variable_p
     op = yield operation_p
-    value = yield value_p
+    value = yield json_value_p
     return Predicate(name, op, value, {})
 
 
@@ -103,7 +94,7 @@ def function_term() -> Parser:
     fn = yield function_p
     yield lparen_p
     name = yield variable_p
-    args = yield (comma_p >> value_p).many()
+    args = yield (comma_p >> json_value_p).many()
     yield rparen_p
     return FunctionTerm(fn, name, args)
 
@@ -146,9 +137,12 @@ def range_parser() -> Parser:
     return start, end
 
 
+edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
+
+
 @make_parser
 def edge_definition() -> Parser:
-    maybe_edge_type = yield literal_p.optional()
+    maybe_edge_type = yield edge_type_p.optional()
     maybe_range = yield range_parser.optional()
     parsed_range = maybe_range if maybe_range else (1, 1)
     return parsed_range[0], parsed_range[1], maybe_edge_type

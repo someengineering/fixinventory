@@ -23,27 +23,30 @@ def performed_by() -> dict[str, list[str]]:
 async def worker(
     task_queue: WorkerTaskQueue, performed_by: dict[str, list[str]]
 ) -> AsyncGenerator[tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
-    success_task = WorkerTaskDescription("success_task")
-    fail_task = WorkerTaskDescription("fail_task")
-    wait_task = WorkerTaskDescription("wait_task")
+    success = WorkerTaskDescription("success_task")
+    fail = WorkerTaskDescription("fail_task")
+    wait = WorkerTaskDescription("wait_task")
+    tag = WorkerTaskDescription("tag")
 
     async def do_work(worker_id: str, task_descriptions: list[WorkerTaskDescription]) -> None:
         async with task_queue.attach(worker_id, task_descriptions) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
                 performed_by[task.id].append(worker_id)
-                if task.name == success_task.name:
-                    await task_queue.acknowledge_task(worker_id, task.id)
-                elif task.name == fail_task.name:
+                if task.name == success.name:
+                    await task_queue.acknowledge_task(worker_id, task.id, {"result": "done!"})
+                elif task.name == fail.name:
                     await task_queue.error_task(worker_id, task.id, ";)")
-                else:
+                elif task.name == wait.name:
                     # if we come here, neither success nor failure was given, ignore the task
                     pass
+                elif task.name == "tag":
+                    await task_queue.acknowledge_task(worker_id, task.id, None)
 
-    workers = [asyncio.create_task(do_work(f"w{a}", [success_task, fail_task, wait_task])) for a in range(0, 4)]
+    workers = [asyncio.create_task(do_work(f"w{a}", [success, fail, wait, tag])) for a in range(0, 4)]
     await asyncio.sleep(0)
 
-    yield success_task, fail_task, wait_task
+    yield success, fail, wait
     for worker in workers:
         worker.cancel()
 
@@ -60,7 +63,8 @@ async def test_handle_work_successfully(
     for t in all_tasks:
         await task_queue.add_task(t)
 
-    await asyncio.gather(*[a.callback for a in all_tasks])
+    results = await asyncio.gather(*[a.callback for a in all_tasks])
+    assert results == [{"result": "done!"} for _ in range(0, 20)]
 
     # make sure the work is split equally between all workers: 20 work items by 4 workers: 5 work items each
     by_worker = group_by(identity, (item for sublist in performed_by.values() for item in sublist))

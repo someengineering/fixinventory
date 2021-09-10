@@ -37,6 +37,9 @@ from tests.core.event_bus_test import event_bus, all_events, wait_for_message
 # noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db
 
+# noinspection PyUnresolvedReferences
+from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+
 
 @fixture
 async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:

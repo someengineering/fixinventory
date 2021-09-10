@@ -22,7 +22,7 @@ class WorkerTask:
     name: str  # the well known name of the task to perform: the worker attaches to this name
     attrs: dict[str, str]  # all worker attributes need to match those attrs (but the task can define more)
     data: Json
-    callback: Future[Any]  # the callers callback. Notify the caller once the task is dones
+    callback: Future[Optional[Json]]  # the callers callback. Notify the caller once the task is dones
     timeout: timedelta  # timeout of this task to be performed
 
     def __eq__(self, other: Any) -> bool:
@@ -39,6 +39,7 @@ class WorkerTask:
 class WorkerTaskResult:
     task_id: str
     result: str
+    data: Optional[Json] = None
     error: Optional[str] = None
 
 
@@ -123,9 +124,9 @@ class WorkerTaskQueue:
         async with self.lock:
             await self.__add_task(task, retry_count)
 
-    async def acknowledge_task(self, worker_id: str, task_id: str) -> None:
+    async def acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json]) -> None:
         async with self.lock:
-            await self.__acknowledge_task(worker_id, task_id)
+            await self.__acknowledge_task(worker_id, task_id, result)
 
     async def error_task(self, worker_id: str, task_id: str, message: str) -> None:
         async with self.lock:
@@ -169,14 +170,14 @@ class WorkerTaskQueue:
                 self.unassigned_tasks[task.id] = WorkerTaskOnHold(task, retry_count, utc() + task.timeout)
             return False
 
-    async def __acknowledge_task(self, worker_id: str, task_id: str) -> None:
+    async def __acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json]) -> None:
         # remove task from internal list
         in_progress = self.outstanding_tasks.get(task_id, None)
         if in_progress:
             if in_progress.worker.worker_id == worker_id:
                 self.outstanding_tasks.pop(task_id, None)
                 self.work_count[worker_id] = self.work_count[worker_id] - 1
-                set_future_result(in_progress.task.callback, None)
+                set_future_result(in_progress.task.callback, result)
                 # todo: remove task from database
             else:
                 log.info(f"Got result for task {task_id} from wrong worker {worker_id}. outdated?")

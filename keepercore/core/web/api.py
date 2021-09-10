@@ -275,8 +275,8 @@ class Api:
                         if tr.result == "error":
                             error = tr.error if tr.error else "worker signalled error without detailed error message"
                             await self.worker_task_queue.error_task(worker_id, tr.task_id, error)
-                        elif tr.result == "ack":
-                            await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id)
+                        elif tr.result == "done":
+                            await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
                         else:
                             log.info(f"Do not understand this message: {msg.data}")
 

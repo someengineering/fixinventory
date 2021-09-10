@@ -41,5 +41,9 @@ class CLIParseError(DomainError):
     pass
 
 
+class CLIExecutionError(DomainError):
+    pass
+
+
 class ParseError(DomainError):
     pass

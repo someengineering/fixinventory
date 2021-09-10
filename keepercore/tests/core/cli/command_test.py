@@ -1,6 +1,7 @@
 import pytest
 from aiostream import stream
 from datetime import timedelta
+
 from pytest import fixture
 
 from core.cli.cli import CLI, CLIDependencies
@@ -34,6 +35,9 @@ from tests.core.task.task_handler_test import (
 )
 
 # noinspection PyUnresolvedReferences
+from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+
+# noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db
 
 
@@ -53,7 +57,7 @@ async def test_echo_source(cli: CLI) -> None:
     result = await cli.execute_cli_command("echo this is a string", stream.list)
     assert result[0] == ["this is a string"]
 
-    result = await cli.execute_cli_command('echo "foo bla bar"', stream.list)
+    result = await cli.execute_cli_command('echo   "foo bla bar" ', stream.list)
     assert result[0] == ["foo bla bar"]
 
 
@@ -222,3 +226,30 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert job is not None
     assert job["trigger"] == {"cron_expression": "23 1 * * *"}
     assert job["command"] == "echo Hello World"
+
+
+@pytest.mark.asyncio
+async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]]) -> None:
+    counter = 0
+
+    def nr_of_performed() -> int:
+        nonlocal counter
+        performed = len(performed_by)
+        increase = performed - counter
+        counter = performed
+        return increase
+
+    nr_of_performed()  # reset to 0
+
+    assert await cli.execute_cli_command("echo id_does_not_exist | tag update foo bla", stream.list) == [[]]
+    assert nr_of_performed() == 0
+    res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
+    assert nr_of_performed() == 2
+    # the results can come in any order
+    assert sorted(res1[0], key=lambda d: list(d.keys())[0]) == [{"collector": "success"}, {"root": "success"}]
+    res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
+    assert nr_of_performed() == 13
+    assert len(res2[0]) == 13
+    res3 = await cli.execute_cli_command('query is("foo") | tag delete foo', stream.list)
+    assert nr_of_performed() == 13
+    assert len(res3[0]) == 13
