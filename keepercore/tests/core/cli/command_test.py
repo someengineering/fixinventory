@@ -246,7 +246,7 @@ async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]]) -> None
     res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
     assert nr_of_performed() == 2
     # the results can come in any order
-    assert sorted(res1[0], key=lambda d: list(d.keys())[0]) == [{"collector": "success"}, {"root": "success"}]
+    assert sorted(res1[0], key=lambda d: list(d.keys())[0]) == [{"collector": "success"}, {"root": "success"}]  # type: ignore
     res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 13
     assert len(res2[0]) == 13
