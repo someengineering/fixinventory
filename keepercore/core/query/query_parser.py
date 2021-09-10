@@ -1,36 +1,32 @@
-from functools import reduce
-
 from dataclasses import replace
+from functools import reduce
 
 from parsy import string, Parser, regex
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
-    lparen_dp,
+    lparen_p,
     lexeme,
-    rparen_dp,
-    l_bracket_dp,
-    r_bracket_dp,
-    l_curly_dp,
-    r_curly_dp,
-    gt_dp,
-    lt_dp,
-    colon_dp,
-    comma_dp,
-    equals_dp,
-    true_dp,
-    false_dp,
-    dot_dot_dp,
-    null_dp,
-    float_dp,
+    rparen_p,
+    l_bracket_p,
+    r_bracket_p,
+    colon_p,
+    comma_p,
+    equals_p,
+    true_p,
+    false_p,
+    dot_dot_p,
+    float_p,
     integer_dp,
     variable_dp,
-    literal_dp,
+    literal_p,
     make_parser,
     whitespace,
-    quoted_string_dp,
+    quoted_string_p,
     space_dp,
-    json_value_dp,
+    json_value_p,
+    variable_p,
+    integer_p,
 )
 from core.query.model import (
     Predicate,
@@ -57,28 +53,6 @@ function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet"
 
 
 preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
-
-lparen_p = lexeme(lparen_dp)
-rparen_p = lexeme(rparen_dp)
-l_bracket_p = lexeme(l_bracket_dp)
-r_bracket_p = lexeme(r_bracket_dp)
-l_curly_p = lexeme(l_curly_dp)
-r_curly_p = lexeme(r_curly_dp)
-gt_p = lexeme(gt_dp)
-lt_p = lexeme(lt_dp)
-colon_p = lexeme(colon_dp)
-comma_p = lexeme(comma_dp)
-dot_dot_p = lexeme(dot_dot_dp)
-equals_p = lexeme(equals_dp)
-true_p = lexeme(true_dp)
-false_p = lexeme(false_dp)
-null_p = lexeme(null_dp)
-float_p = lexeme(float_dp)
-integer_p = lexeme(integer_dp)
-variable_p = lexeme(variable_dp)
-literal_p = lexeme(literal_dp)
-quoted_string_p = lexeme(quoted_string_dp)
-json_value_p = lexeme(json_value_dp)
 
 
 @make_parser
