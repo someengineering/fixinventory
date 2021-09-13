@@ -10,12 +10,6 @@ from functools import reduce
 from itertools import takewhile
 from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, AsyncGenerator, Tuple, Dict
 
-try:
-    # noinspection PyUnresolvedReferences
-    from tzlocal import get_localzone
-except ImportError:
-    pass
-
 from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser
@@ -26,17 +20,25 @@ from core.event_bus import EventBus
 from core.model.graph_access import EdgeType
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import class_fqn
-from core.parse_util import make_parser, literal_dp, equals_dp, value_dp, space_dp
+from core.parse_util import make_parser, literal_dp, equals_dp, json_value_dp, space_dp
 from core.query.model import Query, Navigation, AllTerm, Aggregate
 from core.query.query_parser import term_parser, aggregate_parameter_parser
 from core.task.job_handler import JobHandler
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
+from core.worker_task_queue import WorkerTaskQueue
+
+try:
+    # noinspection PyUnresolvedReferences
+    from tzlocal import get_localzone
+except ImportError:
+    pass
+
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Coroutine[Any, Any, T]]
-JsGen = AsyncGenerator[JsonElement, None]
+JsGen = Union[Stream, AsyncGenerator[JsonElement, None]]
 # A source provides a stream of objects
 Source = JsGen
 # Every Command will return a function that transforms a JsGen to another JsGen
@@ -64,6 +66,10 @@ class CLIDependencies:
     @property
     def job_handler(self) -> JobHandler:
         return self.lookup["job_handler"]  # type:ignore
+
+    @property
+    def worker_task_queue(self) -> WorkerTaskQueue:
+        return self.lookup["worker_task_queue"]  # type:ignore
 
 
 class CLIPart(ABC):
@@ -460,7 +466,7 @@ class HelpCommand(CLISource):
         else:
             result = f"No command found with this name: {arg}"
 
-        return stream.just(result)  # type: ignore
+        return stream.just(result)
 
 
 @dataclass
@@ -488,7 +494,7 @@ class ParsedCommandLine:
 def key_value_parser() -> Parser:
     key = yield literal_dp
     yield equals_dp
-    value = yield value_dp
+    value = yield json_value_dp
     return key, value
 
 

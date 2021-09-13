@@ -280,6 +280,8 @@ class ArangoGraphDB(GraphDB):
             result = props(doc)
             if len(result) > 0:
                 result["id"] = doc["_key"]
+                if "_rev" in doc:
+                    result["revision"] = doc["_rev"]
                 result["type"] = "node"
                 return result
             else:

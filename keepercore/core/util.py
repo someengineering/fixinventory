@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from asyncio import Task
+from asyncio import Task, Future
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
@@ -28,7 +28,7 @@ AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
 
 
-def identity(o: AnyT) -> AnyT:
+def identity(o: Any) -> Any:
     return o
 
 
@@ -159,6 +159,14 @@ async def force_gen(gen: AsyncGenerator[AnyT, None]) -> AsyncGenerator[AnyT, Non
         return gen
 
 
+def set_future_result(future: Future[Any], result: Any) -> None:
+    if not future.done():
+        if isinstance(result, Exception):
+            future.set_exception(result)
+        else:
+            future.set_result(result)
+
+
 class Periodic:
     """
     Periodic execution of a function based on a defined frequency that can be started and stopped.
@@ -192,7 +200,7 @@ class Periodic:
                 if isinstance(result, Awaitable):
                     await result
             except Exception as ex:
-                log.warning(f"Periodic function {self.name} caught an exception: {ex}")
+                log.error(f"Periodic function {self.name} caught an exception: {ex}", ex)
 
 
 class AccessNone:

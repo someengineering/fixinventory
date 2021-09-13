@@ -1,35 +1,32 @@
+from dataclasses import replace
 from functools import reduce
 
-from dataclasses import replace
-
-from parsy import string, Parser
+from parsy import string, Parser, regex
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
-    lparen_dp,
+    lparen_p,
     lexeme,
-    rparen_dp,
-    l_bracket_dp,
-    r_bracket_dp,
-    l_curly_dp,
-    r_curly_dp,
-    gt_dp,
-    lt_dp,
-    colon_dp,
-    comma_dp,
-    equals_dp,
-    true_dp,
-    false_dp,
-    dot_dot_dp,
-    null_dp,
-    float_dp,
+    rparen_p,
+    l_bracket_p,
+    r_bracket_p,
+    colon_p,
+    comma_p,
+    equals_p,
+    true_p,
+    false_p,
+    dot_dot_p,
+    float_p,
     integer_dp,
     variable_dp,
-    literal_dp,
+    literal_p,
     make_parser,
     whitespace,
-    quoted_string_dp,
+    quoted_string_p,
     space_dp,
+    json_value_p,
+    variable_p,
+    integer_p,
 )
 from core.query.model import (
     Predicate,
@@ -57,44 +54,12 @@ function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet"
 
 preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
 
-lparen_p = lexeme(lparen_dp)
-rparen_p = lexeme(rparen_dp)
-l_bracket_p = lexeme(l_bracket_dp)
-r_bracket_p = lexeme(r_bracket_dp)
-l_curly_p = lexeme(l_curly_dp)
-r_curly_p = lexeme(r_curly_dp)
-gt_p = lexeme(gt_dp)
-lt_p = lexeme(lt_dp)
-colon_p = lexeme(colon_dp)
-comma_p = lexeme(comma_dp)
-dot_dot_p = lexeme(dot_dot_dp)
-equals_p = lexeme(equals_dp)
-true_p = lexeme(true_dp)
-false_p = lexeme(false_dp)
-null_p = lexeme(null_dp)
-float_p = lexeme(float_dp)
-integer_p = lexeme(integer_dp)
-variable_p = lexeme(variable_dp)
-literal_p = lexeme(literal_dp)
-quoted_string_p = lexeme(quoted_string_dp)
-
-
-@make_parser
-def array_parser() -> Parser:
-    yield l_bracket_p
-    elements = yield value_p.sep_by(comma_p)
-    yield r_bracket_p
-    return elements
-
-
-value_p = quoted_string_p | float_p | integer_p | array_parser | true_p | false_p | null_p
-
 
 @make_parser
 def predicate_term() -> Parser:
     name = yield variable_p
     op = yield operation_p
-    value = yield value_p
+    value = yield json_value_p
     return Predicate(name, op, value, {})
 
 
@@ -103,7 +68,7 @@ def function_term() -> Parser:
     fn = yield function_p
     yield lparen_p
     name = yield variable_p
-    args = yield (comma_p >> value_p).many()
+    args = yield (comma_p >> json_value_p).many()
     yield rparen_p
     return FunctionTerm(fn, name, args)
 
@@ -146,9 +111,12 @@ def range_parser() -> Parser:
     return start, end
 
 
+edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
+
+
 @make_parser
 def edge_definition() -> Parser:
-    maybe_edge_type = yield literal_p.optional()
+    maybe_edge_type = yield edge_type_p.optional()
     maybe_range = yield range_parser.optional()
     parsed_range = maybe_range if maybe_range else (1, 1)
     return parsed_range[0], parsed_range[1], maybe_edge_type

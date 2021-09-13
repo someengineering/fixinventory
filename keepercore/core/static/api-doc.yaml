@@ -21,6 +21,8 @@ tags:
       description: Endpoints to evaluate and execute cli commands
     - name: subscriptions
       description: Endpoints to manipulate event subscriptions
+    - name: work_queue
+      description: Endpoints to attach to the work queue
     - name: system
       description: Endpoints to get information about the system.
     - name: debug
@@ -1115,9 +1117,10 @@ paths:
     # region events
     /events:
         get:
-            summary: "Register as event listener and receive all events."
+            summary: "[WebSocket] Register as event listener and receive all events."
             description:
-                This establishes a websocket. The client needs to send all the required headers for a ws connection
+                ## WebSocket Endpoint
+                The client needs to send all the required headers for a ws connection
                 and has to handle the websocket protocol.<br/>
                 **Note this can not be tested from within swagger!**
 
@@ -1177,7 +1180,6 @@ paths:
                                 type: array
                                 items:
                                     $ref: "#/components/schemas/Subscriber"
-
 
     /subscriber/{subscriber_id}:
         get:
@@ -1254,8 +1256,6 @@ paths:
                 "204":
                     description: "no content"
 
-
-
     /subscriber/{subscriber_id}/{event_type}:
         post:
             summary: "Add subscription to subscriber"
@@ -1329,9 +1329,13 @@ paths:
 
     /subscriber/{subscriber_id}/handle:
         get:
-            summary: "Listen to registered events of given subscriber"
+            summary: "[WebSocket] Listen to registered events of given subscriber"
             description: |
-                This endpoint expects a web-socket connection!
+                ## WebSocket Endpoint
+                The client needs to send all the required headers for a ws connection
+                and has to handle the websocket protocol.<br/>
+                **Note this can not be tested from within swagger!**
+
                 The connection to this endpoint will never be closed.
                 All action events of the system this subscriber has registerd will be send to this
                 connection.
@@ -1353,6 +1357,103 @@ paths:
                             schema:
                                 type: string
                                 example: No subscriber with this id
+    # endregion
+
+    # region task queue
+    /work/queue:
+        get:
+            summary: "[WebSocket] Attach to the working queue"
+            description: |
+                ## WebSocket Endpoint
+                The client needs to send all the required headers for a ws connection
+                and has to handle the websocket protocol.<br/>
+                **Note this can not be tested from within swagger!**
+
+                This endpoint is used by worker nodes which can perform work.
+                A worker would use this endpoint to establish a websocket connection and register the tasks
+                that can be performed by the worker. One worker can perform one or more tasks over one connection.
+
+                In case the connection is lost, all outstanding tasks are rescheduled to other workers.
+                This means the local tasks queue should be wiped in case of connection loss.
+
+                Note: the server tries to spread the number of tasks evenly over the number of workers.
+                This number is derived by the number of outstanding messages in the queue irrelevant which tasks
+                are outstanding.
+
+            parameters:
+                - name: task
+                  description: "The name of all tasks that this worker is able to perform."
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: array
+                      items:
+                          type: string
+                - name: filter
+                  description: |
+                      Additional properties to filter tasks of provided task name.
+                      Example: the worker is able to perform tasks of type tag, but only for cloud AWS.
+                               cloud=aws could be an additional filter criteria.
+                               Maybe the worker is only capable to perform the work in a specific account.
+                               cloud=aws&account=123 could be specified to only filter for tasks in this cloud in this
+                               account. The available filter criteria are derived from the metadata section of the
+                               node.
+                  in: query
+                  required: false
+                  schema:
+                      type: object
+                      additionalProperties: true
+                      example: {"cloud": "aws", "account": "123"}
+            tags:
+                - work_queue
+            responses:
+                "200":
+                    description: When the connection is established.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    additionalProperties: true
+    /work/list:
+        get:
+            summary: "List all outstanding work items"
+            description: |
+                All work items that are initiated but not done are listed via this endpoint.
+            tags:
+                - work_queue
+            responses:
+                "200":
+                    description: The list of all outstanding work items
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        task:
+                                            type: object
+                                            properties:
+                                                task_id:
+                                                    type: string
+                                                task_name:
+                                                    type: string
+                                                data:
+                                                    type: object
+                                                    additionalProperties: true
+                                                attrs:
+                                                    type: object
+                                                    additionalProperties: true
+                                        worker:
+                                            type: string
+                                        retry_counter:
+                                            type: integer
+                                        deadline:
+                                            type: string
+
     # endregion
 
     # region cli

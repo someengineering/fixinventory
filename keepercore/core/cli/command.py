@@ -1,8 +1,10 @@
 import asyncio
 import json
+import re
 from abc import abstractmethod, ABC
+from datetime import timedelta
 from functools import partial
-from typing import List, Optional, Any, Tuple, AsyncGenerator, Hashable, Iterable
+from typing import List, Optional, Any, Tuple, AsyncGenerator, Hashable, Iterable, Union, Callable
 
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -31,11 +33,20 @@ from core.cli.cli import (
     Result,
 )
 from core.db.model import QueryModel
-from core.error import CLIParseError
-from core.model.typed_model import to_js
-from core.query.query_parser import parse_query
+from core.error import CLIParseError, CLIExecutionError
+from core.model.typed_model import to_js, class_fqn
+from core.parse_util import quoted_or_simple_string_dp
+from core.query.query_parser import (
+    parse_query,
+)
 from core.types import Json, JsonElement
-from core.util import AccessJson
+from core.util import AccessJson, uuid_str
+from core.worker_task_queue import WorkerTask
+
+
+# check if a is a json node element
+def is_node(a: Any) -> bool:
+    return "id" in a and "reported" in a and "desired" in a and "metadata" in a if isinstance(a, dict) else False
 
 
 class EchoSource(CLISource):
@@ -55,20 +66,14 @@ class EchoSource(CLISource):
     def info(self) -> str:
         return "Send the provided message to downstream"
 
+    quoted = re.compile('(^\\s*")(.*)("\\s*$)')
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        arg_str = arg if arg else ""
-        js_str = arg_str if arg_str.strip() else '""'
-        try:
-            js = json.loads(js_str)
-        except Exception:
-            js = js_str
-        if isinstance(js, list):
-            elements = js
-        elif isinstance(js, (str, int, float, bool, dict)):
-            elements = [js]
-        else:
-            raise AttributeError(f"json does not understand {arg}.")
-        return stream.iterate(elements)  # type: ignore
+        arg = arg if arg else ""
+        matched = self.quoted.fullmatch(arg)
+        if matched:
+            arg = matched[2]
+        return stream.just(arg)
 
 
 class JsonSource(CLISource):
@@ -101,7 +106,7 @@ class JsonSource(CLISource):
             elements = [js]
         else:
             raise AttributeError(f"json does not understand {arg}.")
-        return stream.iterate(elements)  # type: ignore
+        return stream.iterate(elements)
 
 
 class SleepSource(CLISource):
@@ -190,7 +195,7 @@ class EnvSource(CLISource):
         return "Retrieve the environment and pass it to the output stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        return stream.just(env)  # type: ignore
+        return stream.just(env)
 
 
 class CountCommand(CLICommand):
@@ -270,7 +275,7 @@ class HeadCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         size = int(arg) if arg else 100
-        return lambda in_stream: stream.take(in_stream, size)  # type: ignore
+        return lambda in_stream: stream.take(in_stream, size)
 
 
 class TailCommand(CLICommand):
@@ -297,7 +302,7 @@ class TailCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         size = int(arg) if arg else 100
-        return lambda in_stream: stream.takelast(in_stream, size)  # type: ignore
+        return lambda in_stream: stream.takelast(in_stream, size)
 
 
 class ChunkCommand(CLICommand):
@@ -327,7 +332,7 @@ class ChunkCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         size = int(arg) if arg else 100
-        return lambda in_stream: stream.chunks(in_stream, size)  # type: ignore
+        return lambda in_stream: stream.chunks(in_stream, size)
 
 
 class FlattenCommand(CLICommand):
@@ -357,7 +362,7 @@ class FlattenCommand(CLICommand):
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
 
-        return lambda in_stream: stream.flatmap(in_stream, iterate)  # type: ignore
+        return lambda in_stream: stream.flatmap(in_stream, iterate)
 
 
 class UniqCommand(CLICommand):
@@ -398,7 +403,7 @@ class UniqCommand(CLICommand):
                 visited.add(item)
                 return True
 
-        return lambda in_stream: stream.filter(in_stream, has_not_seen)  # type: ignore
+        return lambda in_stream: stream.filter(in_stream, has_not_seen)
 
 
 class SetDesiredState(CLICommand, ABC):
@@ -410,7 +415,7 @@ class SetDesiredState(CLICommand, ABC):
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         buffer_size = 1000
         func = partial(self.set_desired, env["graph"], self.patch(arg, **env))
-        return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)  # type: ignore
+        return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
     async def set_desired(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
@@ -555,7 +560,7 @@ class FormatCommand(CLICommand):
             wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
             return arg.format_map(wrapped)  # type: ignore
 
-        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)  # type: ignore
+        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
 
 
 class JobsSource(CLISource):
@@ -660,6 +665,125 @@ class DeleteJobSource(CLISource):
         yield f"Job {arg} deleted." if job else f"No job with this id: {arg}"
 
 
+class SendWorkerTaskCommand(CLICommand, ABC):
+    # Abstract base for all commands that send task to the work queue
+
+    # this method expects a stream of tuple[str, dict[str, str], Json]
+    def send_to_queue_stream(self, in_stream: Stream) -> Stream:
+        async def send_to_queue(task_name: str, task_args: dict[str, str], data: Json) -> Any:
+            future = asyncio.get_event_loop().create_future()
+            task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
+            # enqueue this task
+            await self.dependencies.worker_task_queue.add_task(task)
+            # wait for the task result
+            try:
+                return task, await future
+            except Exception as ex:
+                return task, ex
+
+        return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
+
+    def load_by_id_if_string(self, in_stream: Stream, **env: str) -> Stream:
+        async def load_element(item: JsonElement) -> AsyncGenerator[Json, None]:
+            if isinstance(item, str):
+                graph_name = env["graph"]
+                node = await self.dependencies.db_access.get_graph_db(graph_name).get_node(item)
+                if node:
+                    yield node
+            elif is_node(item):
+                yield item  # type: ignore
+            else:
+                raise CLIExecutionError(f"Command expects a string  node element, but got {class_fqn(item)}.")
+
+        return stream.flatmap(in_stream, load_element, task_limit=self.task_limit())
+
+    # noinspection PyMethodMayBeStatic
+    def task_limit(self) -> int:
+        # override if this limit is not sufficient
+        return 100
+
+    @abstractmethod
+    def timeout(self) -> timedelta:
+        pass
+
+
+class TagCommand(SendWorkerTaskCommand):
+    """
+    Usage: tag update [tag_name new_value]
+           tag delete [tag_name]
+
+    This command can be used to update or delete a specific tag.
+    Tags have a name and value - both name and value are strings.
+
+    When this command is issued, the change is done on the cloud resource via the cloud specific provider.
+    In case of success, the resulting change is performed in the related cloud.
+    The change in the graph data itself might take up to the next collect run.
+
+    There are 2 modes of operations:
+    - The incoming elements are defined by a query:
+      Example: `match x>2 | tag delete foo`
+      All elements that match the query are updated.
+    - The incoming elements are defined by a string or string array:
+      Example: `echo id_of_node_23` | tag delete foo`
+               `json ["id1", "id2", "id3"] | tag delete foo`
+      In this case the related strings are interpreted as id and loaded from the graph.
+
+
+    Parameter:
+        command_name [mandatory]: is either update or delete
+        tag_name [mandatory]: the name of the tag to change
+        tag_value: in case of update: the new value of the tag_name
+
+
+    Example:
+        match x>2 | tag delete foo  # will result in [ { "id1": "success" }, { "id2": "success" } .. {} ]
+        echo "id1" | tag delete foo  # will result in [ { "id1": "success" } ]
+        json ["id1", "id2"] | tag delete foo  # will result in [ { "id1": "success" }, { "id2": "success" } ]
+
+
+    Environment Variables:
+        graph: the name of the graph to operate on.
+    """
+
+    @property
+    def name(self) -> str:
+        return "tag"
+
+    def info(self) -> str:
+        return "Update a tag with provided value or delete a tag"
+
+    def timeout(self) -> timedelta:
+        return timedelta(seconds=30)
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
+            tid = task.data["node"]["id"]  # defined by the data spec, see lines below
+            if isinstance(result, Exception):
+                return {tid: "error", "reason": str(result)}
+            else:
+                return {tid: "success"}
+
+        parts = re.split(r"\s+", arg if arg else "")
+        pl = len(parts)
+        if pl == 2 and parts[0] == "delete":
+            tag = parts[1]
+            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (  # noqa: E731
+                "tag",
+                item.get("metadata", {}),
+                {"delete": [tag], "node": item},
+            )
+        elif pl == 3 and parts[0] == "update":
+            tag = parts[1]
+            value = quoted_or_simple_string_dp.parse(parts[2])
+            fn = lambda item: ("tag", item.get("metadata", {}), {"update": {tag: value}, "node": item})  # noqa: E731
+        else:
+            raise AttributeError("Expect update tag_key tag_value or delete tag_key")
+
+        return lambda in_stream: stream.starmap(
+            self.send_to_queue_stream(stream.map(self.load_by_id_if_string(in_stream, **env), fn)), to_result
+        )
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -698,6 +822,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        TagCommand(d),
         TailCommand(d),
         UniqCommand(d),
     ]
