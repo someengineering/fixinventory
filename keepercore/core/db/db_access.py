@@ -15,6 +15,7 @@ from core.db.subscriberdb import subscriber_db
 from core.db.runningtaskdb import running_task_db
 from core.error import NoSuchGraph
 from core.event_bus import EventBus
+from core.model.adjust_node import AdjustNode
 from core.util import Periodic
 
 log = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class DbAccess(ABC):
         self,
         arango_database: StandardDatabase,
         event_bus: EventBus,
+        adjust_node: AdjustNode,
         model_name: str = "model",
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
@@ -34,6 +36,7 @@ class DbAccess(ABC):
         self.event_bus = event_bus
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
+        self.adjust_node = adjust_node
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_bus, model_name)
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_bus, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
@@ -71,7 +74,7 @@ class DbAccess(ABC):
         else:
             if not no_check and not self.database.has_graph(name):
                 raise NoSuchGraph(name)
-            graph_db = ArangoGraphDB(self.db, name)
+            graph_db = ArangoGraphDB(self.db, name, self.adjust_node)
             event_db = EventGraphDB(graph_db, self.event_bus)
             self.graph_dbs[name] = event_db
             return event_db

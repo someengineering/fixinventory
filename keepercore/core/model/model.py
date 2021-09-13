@@ -17,7 +17,7 @@ from parsy import regex, string, Parser
 
 from core.model.typed_model import from_js
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
-from core.util import if_set
+from core.util import if_set, utc
 from core.parse_util import make_parser
 
 
@@ -351,7 +351,7 @@ class BooleanKind(SimpleKind):
 class DateTimeKind(SimpleKind):
     Format = "%Y-%m-%dT%H:%M:%SZ"
     DateTimeRe = re.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z")
-    DurationRe = re.compile("^[+-]?[\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?$")
+    DurationRe = re.compile("^[+-]?([\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?)+$")
 
     def __init__(self, fqn: str):
         super().__init__(fqn, "datetime")
@@ -379,15 +379,23 @@ class DateTimeKind(SimpleKind):
     def coerce(self, value: Any) -> str:
         try:
             if self.DurationRe.fullmatch(value):
-                # in case of duration, compute the timestamp as: now + duration
-                delta = relativedelta(seconds=Duration(value).seconds)
-                instant = datetime.now(timezone.utc) + delta
-                return instant.strftime(DateTimeKind.Format)
+                return self.from_duration(value)
             else:
-                dt = datetime.fromtimestamp(parse(value).timestamp(), timezone.utc)
-                return dt.strftime(DateTimeKind.Format)
+                return self.from_datetime(value)
         except Exception as ex:
             raise AttributeError(f"Expected datetime but got: >{value}<") from ex
+
+    @staticmethod
+    def from_datetime(value: str) -> str:
+        dt = datetime.fromtimestamp(parse(value).timestamp(), timezone.utc)
+        return dt.strftime(DateTimeKind.Format)
+
+    @staticmethod
+    def from_duration(value: str, now: datetime = utc()) -> str:
+        # in case of duration, compute the timestamp as: now + duration
+        delta = relativedelta(seconds=Duration(value).seconds)
+        instant = now + delta
+        return instant.strftime(DateTimeKind.Format)
 
 
 class DateKind(SimpleKind):

@@ -19,8 +19,10 @@ from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus, CoreEvent
+from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model, Complex
+from core.model.resolve_in_graph import NodePath
 from core.query.model import (
     Predicate,
     IsTerm,
@@ -37,7 +39,7 @@ from core.query.model import (
     Sort,
 )
 from core.query.query_parser import aggregate_group_variable_parser
-from core.util import first
+from core.util import first, from_utc, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
 
@@ -119,9 +121,10 @@ class GraphDB(ABC):
 
 
 class ArangoGraphDB(GraphDB):
-    def __init__(self, db: AsyncArangoDB, name: str) -> None:
+    def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode) -> None:
         super().__init__()
         self.name = name
+        self.node_adjuster = adjust_node
         self.vertex_name = name
         self.in_progress = f"{name}_in_progress"
         self.db = db
@@ -168,8 +171,16 @@ class ArangoGraphDB(GraphDB):
             kind = model[node["reported"]]
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
-            node_id, _, _, _, _, sha, kinds, flat = GraphAccess.dump_direct(node_id, node)
-            update = {"_key": node["_key"], "hash": sha, section: node[section], "kinds": kinds, "flat": flat}
+            # call adjuster on resulting node
+            ctime = from_utc(value_in_path_get(existing, NodePath.reported_ctime, utc_str()))
+            adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, node), ctime)
+            update = {
+                "_key": node["_key"],
+                "hash": adjusted["hash"],
+                section: adjusted[section],
+                "kinds": adjusted["kinds"],
+                "flat": adjusted["flat"],
+            }
             result = await self.db.update(self.vertex_name, update, return_new=True)
             trafo = self.document_to_instance_fn()
             return trafo(result["new"])
@@ -364,9 +375,19 @@ class ArangoGraphDB(GraphDB):
         doc = {"_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))}
         await db.delete(self.in_progress, doc, ignore_missing=True)
 
-    @staticmethod
+    def adjust_node(self, model: Model, json: Json, created_at: Any) -> Json:
+        reported = json["reported"]
+        # preserve ctime in reported: if it is not set, use the creation time of the object
+        if not reported.get("ctime", None):
+            kind = model[reported]
+            if isinstance(kind, Complex) and "ctime" in kind:
+                reported["ctime"] = created_at
+
+        # adjuster has the option to manipulate the resulting json
+        return self.node_adjuster.adjust(json)
+
     def prepare_nodes(
-        access: GraphAccess, node_cursor: Iterable[Json], model: Model
+        self, access: GraphAccess, node_cursor: Iterable[Json], model: Model
     ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         sub_root_id = access.root()
         info = GraphUpdate()
@@ -374,33 +395,17 @@ class ArangoGraphDB(GraphDB):
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
 
-        def normalize_reported(json: Json, created_at: Any) -> Json:
-            # preserve ctime in reported: if it is not set, use the creation time of the object
-            if not json.get("ctime", None):
-                kind = model[json]
-                if isinstance(kind, Complex) and "ctime" in kind:
-                    json["ctime"] = created_at
-            return json
-
-        def insert_node(
-            id_string: str,
-            js: Json,
-            maybe_desired: Optional[Json],
-            maybe_meta: Optional[Json],
-            maybe_refs: Optional[Json],
-            hash_string: str,
-            kinds: List[str],
-            flat: str,
-        ) -> None:
+        def insert_node(node: Json) -> None:
+            elem = self.adjust_node(model, node, access.at_json)
             js_doc: Json = {
-                "_key": id_string,
-                "hash": hash_string,
-                "reported": normalize_reported(js, access.at_json),
-                "desired": maybe_desired,
-                "metadata": maybe_meta,
-                "refs": maybe_refs,
-                "kinds": kinds,
-                "flat": flat,
+                "_key": elem["id"],
+                "hash": elem.get("hash", None),
+                "reported": elem.get("reported", None),
+                "desired": elem.get("desired", None),
+                "metadata": elem.get("metadata", None),
+                "refs": elem.get("refs", None),
+                "kinds": elem.get("kinds", None),
+                "flat": elem.get("flat", None),
                 "update_id": sub_root_id,
                 "created": access.at_json,
                 "updated": access.at_json,
@@ -416,18 +421,18 @@ class ArangoGraphDB(GraphDB):
                 # node is in db, but not in the graph any longer: delete node
                 resource_deletes.append({"_key": key})
                 info.nodes_deleted += 1
-            elif elem[5] != hash_string:
-                _, reported, maybe_desired, maybe_meta, maybe_refs, current_hash, kinds, flat = elem
+            elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
+                adjusted: Json = self.adjust_node(model, elem, node["created"])
                 js = {
                     "_key": key,
-                    "hash": current_hash,
-                    "reported": normalize_reported(reported, node["created"]),
-                    "desired": maybe_desired,
-                    "metadata": maybe_meta,
-                    "refs": maybe_refs,
-                    "kinds": kinds,
-                    "flat": flat,
+                    "hash": adjusted.get("hash", None),
+                    "reported": adjusted.get("reported", None),
+                    "desired": adjusted.get("desired", None),
+                    "metadata": adjusted.get("metadata", None),
+                    "refs": adjusted.get("refs", None),
+                    "kinds": adjusted.get("kinds", None),
+                    "flat": adjusted.get("flat", None),
                     "update_id": sub_root_id,
                     "updated": access.at_json,
                 }
@@ -437,8 +442,8 @@ class ArangoGraphDB(GraphDB):
         for doc in node_cursor:
             update_or_delete_node(doc)
 
-        for ids, node_js, desired, metadata, refs, sha, node_kinds, flattened in access.not_visited_nodes():
-            insert_node(ids, node_js, desired, metadata, refs, sha, node_kinds, flattened)
+        for not_visited in access.not_visited_nodes():
+            insert_node(not_visited)
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(

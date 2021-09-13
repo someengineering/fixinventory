@@ -162,7 +162,7 @@ class GraphAccess:
     def root(self) -> str:
         return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
 
-    def node(self, node_id: str) -> Optional[NodeData]:
+    def node(self, node_id: str) -> Optional[Json]:
         self.visited_nodes.add(node_id)
         if self.g.has_node(node_id):
             n = self.nodes[node_id]
@@ -192,7 +192,7 @@ class GraphAccess:
                     with_ancestor(anc, res)
         return node
 
-    def dump(self, node_id: str, node: Json) -> NodeData:
+    def dump(self, node_id: str, node: Json) -> Json:
         return self.dump_direct(node_id, self.resolve(node_id, node))
 
     def predecessors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
@@ -221,17 +221,21 @@ class GraphAccess:
         return None
 
     @staticmethod
-    def dump_direct(node_id: str, node: Json) -> NodeData:
+    def dump_direct(node_id: str, node: Json) -> Json:
         reported: Json = to_js(node["reported"])
         desired: Optional[Json] = node.get("desired", None)
         metadata: Optional[Json] = node.get("metadata", None)
-        refs: Optional[Json] = node.get("refs", None)
-        sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(reported, desired, metadata)
-        flat = node["flat"] if "flat" in node else GraphBuilder.flatten(reported)
-        kinds = node["kinds"] if "kinds" in node else [reported["kind"]]
-        return node_id, reported, desired, metadata, refs, sha256, kinds, flat
+        if "id" not in node:
+            node["id"] = node_id
+        if "hash" not in node:
+            node["hash"] = GraphBuilder.content_hash(reported, desired, metadata)
+        if "flat" not in node:
+            node["flat"] = GraphBuilder.flatten(reported)
+        if "kinds" not in node:
+            node["kinds"] = [reported["kind"]]
+        return node
 
-    def not_visited_nodes(self) -> Generator[NodeData, None, None]:
+    def not_visited_nodes(self) -> Generator[Json, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
     def not_visited_edges(self, edge_type: str) -> Generator[Tuple[str, str], None, None]:

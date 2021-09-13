@@ -15,6 +15,7 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBatchUpdate
 from core.event_bus import EventBus, Message
+from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
@@ -199,7 +200,7 @@ def test_db() -> StandardDatabase:
 @pytest.fixture
 async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
     async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, "ns")
+    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust())
     await graph_db.create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db

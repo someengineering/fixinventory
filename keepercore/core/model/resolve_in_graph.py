@@ -8,6 +8,7 @@ class NodePath:
     node_id = ["id"]
     kinds = ["kinds"]
     reported_kind = ["reported", "kind"]
+    reported_ctime = ["reported", "ctime"]
     reported_id = ["reported", "id"]
     reported_name = ["reported", "name"]
 

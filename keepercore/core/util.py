@@ -126,14 +126,22 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     return func(x) if x is not None else if_not
 
 
-def value_in_path(element: JsonElement, path: list[str], idx: int = 0) -> Optional[Any]:
+def value_in_path_get(element: JsonElement, path: list[str], if_none: AnyT) -> AnyT:
+    result = value_in_path(element, path)
+    return result if result and isinstance(result, type(if_none)) else if_none
+
+
+def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
     # implementation without allocations (path is not changed)
-    if len(path) == idx:
-        return element
-    elif element is None or not isinstance(element, dict):
-        return None
-    else:
-        return value_in_path(element.get(path[idx], None), path, idx + 1)
+    def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
+        if len(path) == idx:
+            return current
+        elif current is None or not isinstance(current, dict) or path[idx] not in current:
+            return None
+        else:
+            return at_idx(current[path[idx]], idx + 1)
+
+    return at_idx(element, 0)
 
 
 def split_esc(s: str, delim: str) -> List[str]:

@@ -11,6 +11,7 @@ from core.cli.command import all_parts, aliases
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
+from core.model.adjust_node import DirectAdjuster
 from core.model.model_handler import ModelHandlerDB
 from core.worker_task_queue import WorkerTaskQueue
 from core.web.api import Api
@@ -53,7 +54,8 @@ def main() -> None:
     http_client = ArangoHTTPClient(args.arango_request_timeout, not args.arango_no_ssl_verify)
     client = ArangoClient(hosts=args.arango_server, http_client=http_client)
     database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
-    db = DbAccess(database, event_bus)
+    adjuster = DirectAdjuster()
+    db = DbAccess(database, event_bus, adjuster)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies()
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
