@@ -227,7 +227,7 @@ class KeepercoreEvents(threading.Thread):
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to keepercore")
+            log.info("Connecting to keepercore event bus")
             try:
                 self.connect()
             except Exception as e:

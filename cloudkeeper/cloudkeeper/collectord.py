@@ -127,6 +127,7 @@ def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
     update_tags = task_data.get("update", {})
     node_data = task_data.get("node")
     result = "done"
+    extra_data = {}
 
     try:
         node = make_node(node_data)
@@ -135,14 +136,16 @@ def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
 
         for k, v in update_tags.items():
             node.tags[k] = v
-    except Exception:
+    except Exception as e:
         log.exception("Error while updating tags")
         result = "error"
+        extra_data["error"] = str(e)
 
     reply_message = {
         "task_id": task_id,
         "result": result,
     }
+    reply_message.update(extra_data)
     log.debug(f"Sending reply {reply_message}")
     ws.send(json.dumps(reply_message))
 
@@ -204,6 +207,7 @@ def make_node(node_data: Dict):
     clean_node = node_data_desired.get("clean", False)
     if clean_node:
         node.clean = clean_node
+    node._raise_tags_exceptions = True
     return node
 
 
