@@ -28,6 +28,7 @@ from cloudkeeper.event import (
     Event,
     EventType,
     KeepercoreEvents,
+    KeepercoreTasks,
     add_args as event_add_args,
 )
 
@@ -83,7 +84,7 @@ def main() -> None:
     message_processor = partial(keepercore_message_processor, all_collector_plugins)
 
     ke = KeepercoreEvents(
-        identifier="collectord",
+        identifier="workerd-events",
         keepercore_uri=ArgumentParser.args.keepercore_uri,
         keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
         events={
@@ -98,7 +99,15 @@ def main() -> None:
         },
         message_processor=message_processor,
     )
+    kt = KeepercoreTasks(
+        identifier="workerd-tasks",
+        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        tasks=["tag"],
+        task_queue_filter={},
+        message_processor=tasks_processor,
+    )
     ke.start()
+    kt.start()
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
@@ -107,6 +116,35 @@ def main() -> None:
     cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
+
+
+def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
+    task_id = message.get("task_id")
+    # task_name = message.get("task_name")
+    # task_attrs = message.get("attrs", {})
+    task_data = message.get("data", {})
+    delete_tags = task_data.get("delete", [])
+    update_tags = task_data.get("update", {})
+    node_data = task_data.get("node")
+    result = "done"
+
+    try:
+        node = make_node(node_data)
+        for delete_tag in delete_tags:
+            del node.tags[delete_tag]
+
+        for k, v in update_tags.items():
+            node.tags[k] = v
+    except Exception:
+        log.exception("Error while updating tags")
+        result = "error"
+
+    reply_message = {
+        "task_id": task_id,
+        "result": result,
+    }
+    log.debug(f"Sending reply {reply_message}")
+    ws.send(json.dumps(reply_message))
 
 
 def keepercore_message_processor(
@@ -145,31 +183,35 @@ def keepercore_message_processor(
         ws.send(json.dumps(reply_message))
 
 
+def make_node(node_data: Dict):
+    """Create an instance from keepercore graph node data"""
+    node_data_reported = node_data.get("reported", {})
+    node_data_desired = node_data.get("desired", {})
+    node_data_metadata = node_data.get("metadata", {})
+
+    python_type = node_data_metadata.get("python_type", "NoneExisting")
+    node_type = locate(python_type)
+    if node_type is None:
+        raise ValueError(f"Do not know how to handle {node_data_reported}")
+
+    del node_data_reported["kind"]
+    restore_node_field_types(node_type, node_data_reported)
+    node = node_type(**node_data_reported)
+
+    protect_node = node_data_metadata.get("protected", False)
+    if protect_node:
+        node.protected = protect_node
+    clean_node = node_data_desired.get("clean", False)
+    if clean_node:
+        node.clean = clean_node
+    return node
+
+
 def cleanup():
     """Run resource cleanup"""
 
     def process_data_line(data: Dict, graph: Graph):
         """Process a single line of keepercore graph data"""
-
-        def make_node(node_data: Dict):
-            """Create an instance from keepercore graph node data"""
-            node_data_reported = node_data.get("reported", {})
-            node_data_desired = node_data.get("desired", {})
-            node_data_metadata = node_data.get("metadata", {})
-
-            python_type = node_data_metadata.get("python_type", "NoneExisting")
-            node_type = locate(python_type)
-            if node_type is None:
-                raise ValueError(f"Do not know how to handle {node_data_reported}")
-
-            del node_data_reported["kind"]
-            restore_node_field_types(node_type, node_data_reported)
-            node = node_type(**node_data_reported)
-
-            clean_node = node_data_desired.get("clean", False)
-            if clean_node:
-                node.clean = clean_node
-            return node
 
         if data.get("type") == "node":
             node_id = data.get("id")
