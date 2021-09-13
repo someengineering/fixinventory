@@ -49,6 +49,6 @@ class DirectAdjuster(AdjustNode):
                     json["metadata"] = {}
                 json["metadata"]["expires"] = expires
             except Exception as ex:
-                log.info(f"Could not parse expires {ex}")
+                log.debug(f"Could not parse expires {ex}")
         # json is mutated to save memory
         return json
