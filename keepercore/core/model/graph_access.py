@@ -3,15 +3,16 @@ from __future__ import annotations
 import hashlib
 import json
 from functools import reduce
-from typing import Optional, Tuple, Generator, Any, List, Set, Dict
+from typing import Optional, Tuple, Generator, Any, List, Set
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
 from core import feature
+from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
-from core.util import utc, utc_str
+from core.util import utc, utc_str, value_in_path
 
 
 class EdgeType:
@@ -72,7 +73,16 @@ class GraphBuilder:
         # flat all properties into a single string for search
         flat = GraphBuilder.flatten(item) if self.with_flatten else None
         self.graph.add_node(
-            node_id, reported=item, desired=desired, metadata=metadata, hash=sha, kind=kind, flat=flat, merge=merge
+            node_id,
+            id=node_id,
+            reported=item,
+            desired=desired,
+            metadata=metadata,
+            hash=sha,
+            kind=kind,
+            kinds=list(kind.kind_hierarchy()),
+            flat=flat,
+            merge=merge,
         )
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
@@ -129,7 +139,7 @@ class GraphBuilder:
         GraphAccess.root_id(self.graph)
 
 
-NodeData = Tuple[str, Json, Optional[Json], Optional[Json], str, List[str], str]
+NodeData = Tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, List[str], str]
 
 
 class GraphAccess:
@@ -166,23 +176,60 @@ class GraphAccess:
             self.visited_edges.add((from_id, to_id, edge_type))
         return result
 
+    def resolve(self, node_id: str, node: Json) -> Json:
+        def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:
+            extracted = value_in_path(ancestor, prop.extract_path)
+            if extracted:
+                if prop.section not in node:
+                    node[prop.section] = {}
+                node[prop.section][prop.name] = extracted
+
+        for resolver in GraphResolver.to_resolve:
+            # search for ancestor that matches filter criteria
+            anc = self.ancestor_of(node_id, EdgeType.dependency, resolver.kind)
+            if anc:
+                for res in resolver.resolve:
+                    with_ancestor(anc, res)
+        return node
+
+    def dump(self, node_id: str, node: Json) -> NodeData:
+        return self.dump_direct(node_id, self.resolve(node_id, node))
+
+    def predecessors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
+        for pred_id in self.g.predecessors(node_id):
+            # direction from parent node to provided node
+            if self.g.has_edge(pred_id, node_id, self.edge_key(pred_id, node_id, edge_type)):
+                yield pred_id
+
+    def successors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
+        for succ_id in self.g.successors(node_id):
+            # direction from provided node to successor node
+            if self.g.has_edge(node_id, succ_id, self.edge_key(node_id, succ_id, edge_type)):
+                yield succ_id
+
+    def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
+        for p_id in self.predecessors(node_id, edge_type):
+            p: Json = self.nodes[p_id]
+            kinds: Optional[list[str]] = value_in_path(p, NodePath.kinds)
+            if kinds and kind in kinds:
+                return p
+            else:
+                # return if the parent has this value, otherwise walk all branches
+                parent = self.ancestor_of(p_id, edge_type, kind)
+                if parent:
+                    return parent
+        return None
+
     @staticmethod
-    def dump(node_id: str, node: Dict[str, Any]) -> NodeData:
-        js: Json = to_js(node["reported"])
+    def dump_direct(node_id: str, node: Json) -> NodeData:
+        reported: Json = to_js(node["reported"])
         desired: Optional[Json] = node.get("desired", None)
         metadata: Optional[Json] = node.get("metadata", None)
-        sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(js, metadata)
-        flat = node["flat"] if "flat" in node else GraphBuilder.flatten(js)
-        kinds = (
-            list(node["kind"].kind_hierarchy())
-            if "kind" in node
-            else [js["kind"]]
-            if "kind" in js
-            else [node.kind()]  # type: ignore
-            if hasattr(node, "kind")
-            else []
-        )
-        return node_id, js, desired, metadata, sha256, kinds, flat
+        refs: Optional[Json] = node.get("refs", None)
+        sha256 = node["hash"] if "hash" in node else GraphBuilder.content_hash(reported, desired, metadata)
+        flat = node["flat"] if "flat" in node else GraphBuilder.flatten(reported)
+        kinds = node["kinds"] if "kinds" in node else [reported["kind"]]
+        return node_id, reported, desired, metadata, refs, sha256, kinds, flat
 
     def not_visited_nodes(self) -> Generator[NodeData, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
@@ -221,7 +268,7 @@ class GraphAccess:
             F: [A, B, C]
             G: [A, B, D]
 
-        Note that all successors of a merge node that is also a predecessor of the merge node is sorted out.
+        Note that all successors of a merge node that is also a predecessors of the merge node is sorted out.
         Example: A -> B -> C(merge=true) -> A  ==> A is not considered merge root.
 
         :param graph: the incoming multi graph update.
@@ -229,7 +276,7 @@ class GraphAccess:
         """
 
         # Find merge nodes: all nodes that are marked as merge node -> all children (merge roots) should be merged.
-        # This method returns all merge roots as key, with the respective predecessor nodes as value.
+        # This method returns all merge roots as key, with the respective predecessors nodes as value.
         def merge_roots() -> dict[str, set[str]]:
             graph_root = GraphAccess.root_id(graph)
             merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
@@ -244,7 +291,7 @@ class GraphAccess:
             return result
 
         # Walk the graph from given starting node and return all successors.
-        # A successor which is also a predecessor is not followed.
+        # A successor which is also a predecessors is not followed.
         def sub_graph_nodes(from_node: str, parent_ids: set[str]) -> set[str]:
             to_visit = [from_node]
             visited: set[str] = {from_node}
@@ -261,7 +308,7 @@ class GraphAccess:
         #   - creating the set of all successors
         #   - creating a subgraph which contains all predecessors and all succors
         #   - all predecessors are marked as visited
-        #   - all predecessor edges are marked as visited
+        #   - all predecessors edges are marked as visited
         # This way it is possible to have nodes in the graph that will not be touched by the update
         # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(

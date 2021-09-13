@@ -89,19 +89,19 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     # root -> collector -> sub_root -> **rest
-    graph.add_node("root", reported=to_json(Foo("root")))
-    graph.add_node("collector", reported=to_json(Foo("root")), merge=True)
-    graph.add_node("sub_root", reported=to_json(Foo("sub_root")))
+    graph.add_node("root", reported=to_json(Foo("root")), kinds=["foo"])
+    graph.add_node("collector", reported=to_json(Foo("root")), kinds=["foo"], merge=True)
+    graph.add_node("sub_root", reported=to_json(Foo("sub_root")), kinds=["foo"])
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
 
     for o in range(0, width):
         oid = str(o)
-        graph.add_node(oid, reported=to_json(Foo(oid)))
+        graph.add_node(oid, reported=to_json(Foo(oid)), kinds=["foo"])
         add_edge("sub_root", oid)
         for i in range(0, width):
             iid = f"{o}_{i}"
-            graph.add_node(iid, reported=to_json(Bla(iid, name=bla_text)))
+            graph.add_node(iid, reported=to_json(Bla(iid, name=bla_text)), kinds=["bla"])
             add_edge(oid, iid)
     return graph
 
@@ -114,7 +114,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_node(node_id: str, merge: bool = False) -> str:
-        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge)
+        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge, kinds=["foo"])
         return node_id
 
     root = add_node("root")

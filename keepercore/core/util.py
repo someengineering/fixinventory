@@ -22,6 +22,8 @@ from typing import (
 
 from dateutil.parser import isoparse
 
+from core.types import JsonElement
+
 log = logging.getLogger(__name__)
 
 AnyT = TypeVar("AnyT")
@@ -122,6 +124,16 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     :return: the result of the function or if_not
     """
     return func(x) if x is not None else if_not
+
+
+def value_in_path(element: JsonElement, path: list[str], idx: int = 0) -> Optional[Any]:
+    # implementation without allocations (path is not changed)
+    if len(path) == idx:
+        return element
+    elif element is None or not isinstance(element, dict):
+        return None
+    else:
+        return value_in_path(element.get(path[idx], None), path, idx + 1)
 
 
 def split_esc(s: str, delim: str) -> List[str]:
