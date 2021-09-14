@@ -91,7 +91,14 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
 
     def add_node(uid: str, kind: str, node: Optional[Json] = None, merge: bool = False) -> None:
         reported = node if node else to_json(Foo(uid))
-        graph.add_node(uid, kinds=[kind], reported=reported, desired={"node_id": uid}, metadata={"node_id": uid}, merge=merge)
+        graph.add_node(
+            uid,
+            kinds=[kind],
+            reported=reported,
+            desired={"node_id": uid},
+            metadata={"node_id": uid},
+            merge=merge,
+        )
 
     # root -> collector -> sub_root -> **rest
     add_node("root", "foo")
