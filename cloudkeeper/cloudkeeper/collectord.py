@@ -192,14 +192,28 @@ def make_node(node_data: Dict):
     node_data_desired = node_data.get("desired", {})
     node_data_metadata = node_data.get("metadata", {})
 
+    node_data = dict(node_data_reported)
+    del node_data["kind"]
+
     python_type = node_data_metadata.get("python_type", "NoneExisting")
     node_type = locate(python_type)
     if node_type is None:
         raise ValueError(f"Do not know how to handle {node_data_reported}")
 
-    del node_data_reported["kind"]
-    restore_node_field_types(node_type, node_data_reported)
-    node = node_type(**node_data_reported)
+    restore_node_field_types(node_type, node_data)
+
+    ancestors = {}
+    for ancestor in ("cloud", "account", "region", "zone"):
+        if ancestor in node_data_reported and ancestor in node_data_metadata:
+            ancestors[f"_{ancestor}"] = make_node(
+                {
+                    "reported": node_data_reported[ancestor],
+                    "metadata": node_data_metadata[ancestor],
+                }
+            )
+    node_data.update(ancestors)
+
+    node = node_type(**node_data)
 
     protect_node = node_data_metadata.get("protected", False)
     if protect_node:

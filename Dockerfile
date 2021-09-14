@@ -54,32 +54,32 @@ RUN pip install tox flake8
 # Build keepercore
 COPY keepercore /usr/src/keepercore
 WORKDIR /usr/src/keepercore
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build -f /build .
 
 # Build cloudkeeper
 COPY cloudkeeper /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
 # Build graph_exporter
 COPY graph_exporter /usr/src/graph_exporter
 WORKDIR /usr/src/graph_exporter
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
 # Build keeper-cli
 COPY keeper-cli /usr/src/keeper-cli
 WORKDIR /usr/src/keeper-cli
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then tox; fi
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
 # Build cloudkeeper plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
 RUN cd plugins/aws/ && pip wheel -w /build -f /build . && cd -
-RUN if [ "X${TESTS:-true}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
 RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
 
 # Build supervisor
@@ -99,7 +99,7 @@ COPY docker/startup /usr/local/bin/startup
 RUN chmod 755 /usr/local/bin/startup \
     /usr/local/sbin/bootstrap \
     /usr/local/sbin/bootstrap-graphdb
-RUN if [ "${TESTS:-true}" = true ]; then \
+RUN if [ "${TESTS:-false}" = true ]; then \
         shellcheck -a -x -s bash -e SC2034 \
             /usr/local/sbin/bootstrap \
             /usr/local/bin/startup \
