@@ -11,7 +11,7 @@ from core.util import utc_str, value_in_path
 def test_adjust_expired() -> None:
     adjuster = DirectAdjuster()
     created_at = datetime(2021, 1, 1)
-    expires_at = datetime(2022, 2, 1)
+    expires_at = datetime(2022, 2, 15, 13)
 
     def expect_expires(reported: Json, expires: Optional[Union[str, Pattern[Any]]]) -> None:
         result = adjuster.adjust({"reported": reported})
@@ -23,10 +23,10 @@ def test_adjust_expired() -> None:
             assert expires.fullmatch(value_in_path(result, ["metadata", "expires"]))
 
     # test iso datetime
-    expect_expires({"tags": {"cloudkeeper:expires": utc_str(expires_at)}}, "2022-02-01T00:00:00Z")
-    expect_expires({"tags": {"cloudkeeper:expires": expires_at.isoformat()}}, re.compile("2022-01-31T.*"))
-    expect_expires({"tags": {"cloudkeeper:expires": "31.12.2022"}}, re.compile("2022-12-30.*"))
-    expect_expires({"tags": {"cloudkeeper:expires": "12/31/2022"}}, re.compile("2022-12-30.*"))
+    expect_expires({"tags": {"cloudkeeper:expires": utc_str(expires_at)}}, "2022-02-15T13:00:00Z")
+    expect_expires({"tags": {"cloudkeeper:expires": expires_at.isoformat()}}, re.compile("2022-02-1.*"))
+    expect_expires({"tags": {"cloudkeeper:expires": "15.02.2022"}}, re.compile("2022-02-1.*"))
+    expect_expires({"tags": {"cloudkeeper:expires": "02/15/2022"}}, re.compile("2022-02-1.*"))
     expect_expires({"tags": {"cloudkeeper:expires": "+2d"}}, None)  # ony accept absolute time
     expect_expires({"tags": {"cloudkeeper:expires": "never"}}, None)  # never can not be parsed
 
