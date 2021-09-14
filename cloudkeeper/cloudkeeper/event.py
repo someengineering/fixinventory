@@ -1,5 +1,6 @@
 import os
 import threading
+import queue
 import time
 import websocket
 import requests
@@ -296,7 +297,9 @@ class KeepercoreEvents(threading.Thread):
         log.debug(f"{self.identifier} received: {message}")
         if self.message_processor is not None and callable(self.message_processor):
             try:
-                self.message_processor(ws, message)
+                result = self.message_processor(message)
+                log.debug(f"Sending reply {result}")
+                ws.send(json.dumps(result))
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
@@ -318,6 +321,7 @@ class KeepercoreTasks(threading.Thread):
         tasks: List,
         task_queue_filter: Optional[Dict] = None,
         message_processor: Optional[Callable] = None,
+        max_workers: int = 20,
     ) -> None:
         super().__init__()
         self.identifier = identifier
@@ -327,8 +331,10 @@ class KeepercoreTasks(threading.Thread):
             task_queue_filter = {}
         self.task_queue_filter = task_queue_filter
         self.message_processor = message_processor
+        self.max_workers = max_workers
         self.ws = None
         self.shutdown_event = threading.Event()
+        self.queue = queue.Queue()
 
     def __del__(self):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -336,6 +342,12 @@ class KeepercoreTasks(threading.Thread):
     def run(self) -> None:
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
+
+        for i in range(self.max_workers):
+            threading.Thread(
+                target=self.worker, daemon=True, name=f"worker-{i}"
+            ).start()
+
         while not self.shutdown_event.is_set():
             log.info("Connecting to keepercore task queue")
             try:
@@ -343,6 +355,19 @@ class KeepercoreTasks(threading.Thread):
             except Exception as e:
                 log.error(e)
             time.sleep(10)
+
+    def worker(self) -> None:
+        while not self.shutdown_event.is_set():
+            message = self.queue.get()
+            log.debug(f"{self.identifier} received: {message}")
+            if self.message_processor is not None and callable(self.message_processor):
+                try:
+                    result = self.message_processor(message)
+                    log.debug(f"Sending reply {result}")
+                    self.ws.send(json.dumps(result))
+                except Exception:
+                    log.exception(f"Something went wrong while processing {message}")
+            self.queue.task_done()
 
     def connect(self) -> None:
         keepercore_ws_uri_split = urlsplit(self.keepercore_ws_uri)
@@ -376,12 +401,7 @@ class KeepercoreTasks(threading.Thread):
         except json.JSONDecodeError:
             log.exception(f"Unable to decode received message {message}")
             return
-        log.debug(f"{self.identifier} received: {message}")
-        if self.message_processor is not None and callable(self.message_processor):
-            try:
-                self.message_processor(ws, message)
-            except Exception:
-                log.exception(f"Something went wrong while processing {message}")
+        self.queue.put(message)
 
     def on_error(self, ws, error):
         log.error(f"{self.identifier} event bus error: {error}")
