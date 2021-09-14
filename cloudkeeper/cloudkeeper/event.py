@@ -9,8 +9,10 @@ from cloudkeeper.utils import RWLock
 from cloudkeeper.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Dict, Iterable, Optional
+from typing import Callable, Dict, Iterable, Optional, List
 from enum import Enum
+from urllib.parse import urlunsplit, urlencode, urlsplit
+
 
 log = cloudkeeper.logging.getLogger(__name__)
 
@@ -225,7 +227,7 @@ class KeepercoreEvents(threading.Thread):
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to keepercore")
+            log.info("Connecting to keepercore event bus")
             try:
                 self.connect()
             except Exception as e:
@@ -306,3 +308,86 @@ class KeepercoreEvents(threading.Thread):
 
     def on_open(self, ws):
         log.debug(f"{self.identifier} connected to keepercore event bus")
+
+
+class KeepercoreTasks(threading.Thread):
+    def __init__(
+        self,
+        identifier: str,
+        keepercore_ws_uri: str,
+        tasks: List,
+        task_queue_filter: Optional[Dict] = None,
+        message_processor: Optional[Callable] = None,
+    ) -> None:
+        super().__init__()
+        self.identifier = identifier
+        self.keepercore_ws_uri = keepercore_ws_uri
+        self.tasks = tasks
+        if task_queue_filter is None:
+            task_queue_filter = {}
+        self.task_queue_filter = task_queue_filter
+        self.message_processor = message_processor
+        self.ws = None
+        self.shutdown_event = threading.Event()
+
+    def __del__(self):
+        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
+
+    def run(self) -> None:
+        self.name = self.identifier
+        add_event_listener(EventType.SHUTDOWN, self.shutdown)
+        while not self.shutdown_event.is_set():
+            log.info("Connecting to keepercore task queue")
+            try:
+                self.connect()
+            except Exception as e:
+                log.error(e)
+            time.sleep(10)
+
+    def connect(self) -> None:
+        keepercore_ws_uri_split = urlsplit(self.keepercore_ws_uri)
+        scheme = keepercore_ws_uri_split[0]
+        netloc = keepercore_ws_uri_split[1]
+        path = "/work/queue"
+        query = urlencode({"task": ",".join(self.tasks)} | self.task_queue_filter)
+        ws_uri = urlunsplit((scheme, netloc, path, query, ""))
+
+        log.debug(f"{self.identifier} connecting to {ws_uri}")
+        self.ws = websocket.WebSocketApp(
+            ws_uri,
+            on_open=self.on_open,
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+        )
+        self.ws.run_forever()
+
+    def shutdown(self, event: Event = None) -> None:
+        log.debug(
+            "Received shutdown event - shutting down keepercore task queue listener"
+        )
+        self.shutdown_event.set()
+        if self.ws:
+            self.ws.close()
+
+    def on_message(self, ws, message):
+        try:
+            message: Dict = json.loads(message)
+        except json.JSONDecodeError:
+            log.exception(f"Unable to decode received message {message}")
+            return
+        log.debug(f"{self.identifier} received: {message}")
+        if self.message_processor is not None and callable(self.message_processor):
+            try:
+                self.message_processor(ws, message)
+            except Exception:
+                log.exception(f"Something went wrong while processing {message}")
+
+    def on_error(self, ws, error):
+        log.error(f"{self.identifier} event bus error: {error}")
+
+    def on_close(self, ws, close_status_code, close_msg):
+        log.debug(f"{self.identifier} disconnected from keepercore task queue")
+
+    def on_open(self, ws):
+        log.debug(f"{self.identifier} connected to keepercore task queue")

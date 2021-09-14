@@ -115,6 +115,7 @@ class BaseResource(ABC):
         self.__log: List = []
         self.__protected: bool = False
         self.__custom_metrics: bool = False
+        self._raise_tags_exceptions: bool = False
         self.max_graph_depth: int = 0
         for metric in self.metrics_description.keys():
             self._metrics[metric] = {}
@@ -598,7 +599,10 @@ class ResourceTagsDict(dict):
                     f" in cloud: {type(e)} {e}"
                 )
                 self.parent_resource.log(log_msg, exception=e)
-                log.exception(log_msg)
+                if self.parent_resource._raise_tags_exceptions:
+                    raise
+                else:
+                    log.exception(log_msg)
         else:
             return super().__setitem__(key, value)
 
@@ -631,7 +635,10 @@ class ResourceTagsDict(dict):
                     f" {type(e)} {e}"
                 )
                 self.parent_resource.log(log_msg, exception=e)
-                log.exception(log_msg)
+                if self.parent_resource._raise_tags_exceptions:
+                    raise
+                else:
+                    log.exception(log_msg)
         else:
             return super().__delitem__(key)
 
