@@ -139,7 +139,7 @@ def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
     except Exception as e:
         log.exception("Error while updating tags")
         result = "error"
-        extra_data["error"] = str(e)
+        extra_data["error"] = repr(e)
 
     reply_message = {
         "task_id": task_id,
@@ -188,32 +188,34 @@ def keepercore_message_processor(
 
 def make_node(node_data: Dict):
     """Create an instance from keepercore graph node data"""
+    log.debug(f"Making node from {node_data}")
     node_data_reported = node_data.get("reported", {})
     node_data_desired = node_data.get("desired", {})
     node_data_metadata = node_data.get("metadata", {})
 
-    node_data = dict(node_data_reported)
-    del node_data["kind"]
+    new_node_data = dict(node_data_reported)
+    del new_node_data["kind"]
 
     python_type = node_data_metadata.get("python_type", "NoneExisting")
     node_type = locate(python_type)
     if node_type is None:
         raise ValueError(f"Do not know how to handle {node_data_reported}")
 
-    restore_node_field_types(node_type, node_data)
+    restore_node_field_types(node_type, new_node_data)
+    cleanup_node_field_types(node_type, new_node_data)
 
     ancestors = {}
     for ancestor in ("cloud", "account", "region", "zone"):
-        if ancestor in node_data_reported and ancestor in node_data_metadata:
+        if node_data_reported.get(ancestor) and node_data_metadata.get(ancestor):
             ancestors[f"_{ancestor}"] = make_node(
                 {
                     "reported": node_data_reported[ancestor],
                     "metadata": node_data_metadata[ancestor],
                 }
             )
-    node_data.update(ancestors)
+    new_node_data.update(ancestors)
 
-    node = node_type(**node_data)
+    node = node_type(**new_node_data)
 
     protect_node = node_data_metadata.get("protected", False)
     if protect_node:
@@ -278,6 +280,16 @@ def cleanup():
     sanitize(graph)
     cleaner = Cleaner(graph)
     cleaner.cleanup()
+
+
+def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
+    valid_fields = set(field.name for field in fields(node_type))
+    for field_name in list(node_data_reported.keys()):
+        if field_name not in valid_fields:
+            log.debug(
+                f"Removing extra field {field_name} from new node of type {node_type}"
+            )
+            del node_data_reported[field_name]
 
 
 def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
