@@ -88,20 +88,24 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
+    def add_node(uid: str, node: Optional[Json] = None, merge: bool = False) -> None:
+        reported = node if node else to_json(Foo(uid))
+        graph.add_node(uid, reported=reported, desired={"node_id": uid}, metadata={"node_id": uid}, merge=merge)
+
     # root -> collector -> sub_root -> **rest
-    graph.add_node("root", reported=to_json(Foo("root")))
-    graph.add_node("collector", reported=to_json(Foo("root")), merge=True)
-    graph.add_node("sub_root", reported=to_json(Foo("sub_root")))
+    add_node("root")
+    add_node("collector", merge=True)
+    add_node("sub_root")
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
 
     for o in range(0, width):
         oid = str(o)
-        graph.add_node(oid, reported=to_json(Foo(oid)))
+        add_node(oid)
         add_edge("sub_root", oid)
         for i in range(0, width):
             iid = f"{o}_{i}"
-            graph.add_node(iid, reported=to_json(Bla(iid, name=bla_text)))
+            add_node(iid, node=to_json(Bla(iid, name=bla_text)))
             add_edge(oid, iid)
     return graph
 
@@ -337,11 +341,18 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
     async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")):
         js = AccessJson(bla)
         assert "bar" in js.reported  # key exists
+        assert "bar" in js.desired  # key exists
+        assert "bar" in js.metadata  # key exists
         assert js.reported.bar is None  # bla is not a parent of this node
-        assert "foobar" in js.reported  # key exists
+        assert js.desired.bar is None  # bla is not a parent of this node
+        assert js.metadata.bar is None  # bla is not a parent of this node
         assert js.reported.foobar is not None  # foobar is merged into reported
+        assert js.desired.foobar is not None  # foobar is merged into reported
+        assert js.metadata.foobar is not None  # foobar is merged into reported
         # make sure the correct parent is merged (foobar(1) -> bla(1_xxx))
         assert js.reported.identifier.startswith(js.reported.foobar.identifier)
+        assert js.reported.identifier.startswith(js.desired.foobar.node_id)
+        assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
 
 
 @pytest.mark.asyncio

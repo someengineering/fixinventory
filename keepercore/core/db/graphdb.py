@@ -745,8 +745,12 @@ class ArangoGraphDB(GraphDB):
                 bind_vars[bv] = p.name
                 parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
 
-            parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.reported" for p in parents]) + "}"
-            parts.append(f'RETURN MERGE(node, {{"reported": MERGE(node.reported, {parent_result})}})')
+            result_parts = []
+            for section in ["reported", "desired", "metadata"]:
+                parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.{section}" for p in parents]) + "}"
+                result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
+
+            parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
             return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(parts)})'
 
         def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
