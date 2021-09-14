@@ -1,6 +1,6 @@
-from typing import Dict, Any, Optional, Callable, Union
+from typing import Any, Optional, Callable, Union
 
-Json = Dict[str, Any]
+Json = dict[str, Any]
 
 JsonElement = Union[Json, str, int, float, bool, None]
 

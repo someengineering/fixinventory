@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from functools import reduce
-from typing import Optional, Tuple, Generator, Any, List, Set
+from typing import Optional, Generator, Any
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
@@ -119,7 +119,7 @@ class GraphBuilder:
             for value in js_doc.values():
                 dispatch(value)
 
-        def flatten_array(arr: List[Any]) -> None:
+        def flatten_array(arr: list[Any]) -> None:
             for value in arr:
                 dispatch(value)
 
@@ -139,7 +139,7 @@ class GraphBuilder:
         GraphAccess.root_id(self.graph)
 
 
-NodeData = Tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, List[str], str]
+NodeData = tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, list[str], str]
 
 
 class GraphAccess:
@@ -148,13 +148,13 @@ class GraphAccess:
         sub: MultiDiGraph,
         maybe_root_id: Optional[str] = None,
         visited_nodes: Optional[set[Any]] = None,
-        visited_edges: Optional[Set[Tuple[Any, Any, str]]] = None,
+        visited_edges: Optional[set[tuple[Any, Any, str]]] = None,
     ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
-        self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
+        self.visited_nodes: set[object] = visited_nodes if visited_nodes else set()
+        self.visited_edges: set[tuple[object, object, str]] = visited_edges if visited_edges else set()
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
@@ -238,7 +238,7 @@ class GraphAccess:
     def not_visited_nodes(self) -> Generator[Json, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
-    def not_visited_edges(self, edge_type: str) -> Generator[Tuple[str, str], None, None]:
+    def not_visited_edges(self, edge_type: str) -> Generator[tuple[str, str], None, None]:
         # edge collection with (from, to, type): filter and drop type -> (from, to)
         edges = self.g.edges(data="edge_type")
         return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
@@ -250,14 +250,14 @@ class GraphAccess:
     @staticmethod
     def root_id(graph: DiGraph) -> str:
         # noinspection PyTypeChecker
-        roots: List[str] = [n for n, d in graph.in_degree if d == 0]
+        roots: list[str] = [n for n, d in graph.in_degree if d == 0]
         assert len(roots) == 1, f"Given subgraph has more than one root: {roots}"
         return roots[0]
 
     @staticmethod
     def merge_graphs(
         graph: DiGraph,
-    ) -> Tuple[list[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
+    ) -> tuple[list[str], GraphAccess, Generator[tuple[str, GraphAccess], None, None]]:
         """
         Find all merge graphs in the provided graph.
         A merge graph is a self contained graph under a node which is marked with merge=true.
@@ -316,9 +316,9 @@ class GraphAccess:
         # This way it is possible to have nodes in the graph that will not be touched by the update
         # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(
-            root_nodes: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[Tuple[str, str, str]]
-        ) -> Generator[Tuple[str, GraphAccess], None, None]:
-            all_successors: Set[str] = set()
+            root_nodes: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[tuple[str, str, str]]
+        ) -> Generator[tuple[str, GraphAccess], None, None]:
+            all_successors: set[str] = set()
             for root, predecessors in root_nodes.items():
                 successors: set[str] = sub_graph_nodes(root, predecessors)
                 # make sure nodes are not "mixed" between different merge nodes

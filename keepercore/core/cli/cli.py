@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
-from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, List, AsyncGenerator, Tuple, Dict
+from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, AsyncGenerator
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -49,7 +49,7 @@ Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 
 class CLIDependencies:
     def __init__(self) -> None:
-        self.lookup: dict[str, Any] = dict()
+        self.lookup: dict[str, Any] = {}
 
     @property
     def event_bus(self) -> EventBus:
@@ -434,7 +434,7 @@ class HelpCommand(CLISource):
     Show help text for a command or general help information.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: dict[str, str]):
+    def __init__(self, dependencies: CLIDependencies, parts: list[CLIPart], aliases: dict[str, str]):
         super().__init__(dependencies)
         self.parts = {p.name: p for p in parts + [self]}
         self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
@@ -479,7 +479,7 @@ class ParsedCommandLine:
     """
 
     env: JsonElement
-    parts_with_args: List[Tuple[CLIPart, str]]
+    parts_with_args: list[tuple[CLIPart, str]]
     generator: AsyncGenerator[JsonElement, None]
 
     async def to_sink(self, sink: Sink[T]) -> T:
@@ -499,7 +499,7 @@ def key_value_parser() -> Parser:
 
 
 key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
-CLIArg = Tuple[CLIPart, str]
+CLIArg = tuple[CLIPart, str]
 
 
 class CLI:
@@ -509,7 +509,7 @@ class CLI:
     """
 
     def __init__(
-        self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any], aliases: dict[str, str]
+        self, dependencies: CLIDependencies, parts: list[CLIPart], env: dict[str, Any], aliases: dict[str, str]
     ):
         help_cmd = HelpCommand(dependencies, parts, aliases)
         cmds = {p.name: p for p in parts + [help_cmd]}
@@ -520,7 +520,7 @@ class CLI:
         self.aliases = aliases
 
     @staticmethod
-    def create_query(parts: list[Tuple[QueryPart, str]]) -> str:
+    def create_query(parts: list[tuple[QueryPart, str]]) -> str:
         query: Query = Query.by(AllTerm())
         for part, arg_in in parts:
             arg = arg_in.strip()
@@ -549,8 +549,8 @@ class CLI:
 
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
-    ) -> List[ParsedCommandLine]:
-        def parse_single_command(command: str) -> Tuple[CLIPart, str]:
+    ) -> list[ParsedCommandLine]:
+        def parse_single_command(command: str) -> tuple[CLIPart, str]:
             p = command.strip().split(" ", 1)
             part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
             if part_str in self.parts:
@@ -608,7 +608,7 @@ class CLI:
         data = cli_input if keep_raw else replaced
         return [await parse_line(cmd_line) for cmd_line in split_esc(data, ";")]
 
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> list[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]
 
     @staticmethod

@@ -3,7 +3,7 @@ import string
 from abc import ABC
 from datetime import date, datetime
 from random import SystemRandom
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 from arango import ArangoClient
@@ -70,7 +70,7 @@ class Bla(BaseResource):
         name: Optional[str] = None,
         now: date = date.today(),
         f: int = 23,
-        g: Optional[List[int]] = None,
+        g: Optional[list[int]] = None,
     ) -> None:
         super().__init__(identifier)
         self.name = name
@@ -389,7 +389,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Message]) -> None:
+async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: list[Message]) -> None:
     graph = create_graph("yes or no", width=0)
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "reported", "some_other", {"name": "bla"})

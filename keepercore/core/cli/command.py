@@ -4,7 +4,7 @@ import re
 from abc import abstractmethod, ABC
 from datetime import timedelta
 from functools import partial
-from typing import List, Optional, Any, Tuple, AsyncGenerator, Hashable, Iterable, Union, Callable
+from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable
 
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -222,8 +222,8 @@ class CountCommand(CLICommand):
         return "Count incoming elements or sum defined property."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        def inc_prop(o: Any) -> Tuple[int, int]:
-            def prop_value() -> Tuple[int, int]:
+        def inc_prop(o: Any) -> tuple[int, int]:
+            def prop_value() -> tuple[int, int]:
                 try:
                     return int(o[arg]), 0
                 except Exception:
@@ -231,7 +231,7 @@ class CountCommand(CLICommand):
 
             return prop_value() if arg in o else (0, 1)
 
-        def inc_identity(_: Any) -> Tuple[int, int]:
+        def inc_identity(_: Any) -> tuple[int, int]:
             return 1, 0
 
         fn = inc_prop if arg else inc_identity
@@ -417,7 +417,7 @@ class SetDesiredState(CLICommand, ABC):
         func = partial(self.set_desired, env["graph"], self.patch(arg, **env))
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
-    async def set_desired(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
+    async def set_desired(self, graph_name: str, patch: Json, items: list[Json]) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -567,7 +567,7 @@ class JobsSource(CLISource):
     """
     Usage: jobs
 
-    List all jobs in the system.
+    rist all jobs in the system.
 
     Example
         jobs   # Could show
@@ -582,7 +582,7 @@ class JobsSource(CLISource):
         return "jobs"
 
     def info(self) -> str:
-        return "List all jobs in the system."
+        return "list all jobs in the system."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
         for job in await self.dependencies.job_handler.list_jobs():
@@ -792,11 +792,11 @@ class ListSink(CLISink):
     def info(self) -> str:
         return "Creates a list of results."
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[JsonElement]]:
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[list[JsonElement]]:
         return stream.list  # type: ignore
 
 
-def all_sources(d: CLIDependencies) -> List[CLISource]:
+def all_sources(d: CLIDependencies) -> list[CLISource]:
     return [
         EchoSource(d),
         JsonSource(d),
@@ -809,11 +809,11 @@ def all_sources(d: CLIDependencies) -> List[CLISource]:
     ]
 
 
-def all_sinks(d: CLIDependencies) -> List[CLISink]:
+def all_sinks(d: CLIDependencies) -> list[CLISink]:
     return [ListSink(d)]
 
 
-def all_commands(d: CLIDependencies) -> List[CLICommand]:
+def all_commands(d: CLIDependencies) -> list[CLICommand]:
     return [
         ChunkCommand(d),
         CleanCommand(d),
@@ -828,7 +828,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     ]
 
 
-def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
+def all_query_parts(d: CLIDependencies) -> list[QueryPart]:
     return [
         ReportedPart(d),
         DesiredPart(d),
@@ -842,7 +842,7 @@ def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
     ]
 
 
-def all_parts(d: CLIDependencies) -> List[CLIPart]:
+def all_parts(d: CLIDependencies) -> list[CLIPart]:
     result: list[CLIPart] = []
     result.extend(all_query_parts(d))
     result.extend(all_sources(d))

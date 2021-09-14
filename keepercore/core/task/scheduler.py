@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, List, Any
+from typing import Callable, Any
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.job import Job
@@ -38,5 +38,5 @@ class Scheduler:
     ) -> Job:
         return self.scheduler.add_job(func, "interval", args, kwargs, job_id, name, seconds=every_second)
 
-    def list_jobs(self) -> List[Job]:
+    def list_jobs(self) -> list[Job]:
         return self.scheduler.get_jobs(jobstore="default")  # type: ignore

@@ -228,7 +228,7 @@ def match_parser() -> Parser:
 def preamble_parser() -> Parser:
     maybe_aggegate = yield (aggregate_parser | match_parser).optional()
     maybe_preamble = yield preamble_tags_parser.optional()
-    preamble = maybe_preamble if maybe_preamble else dict()
+    preamble = maybe_preamble if maybe_preamble else {}
     yield colon_p if maybe_aggegate or maybe_preamble else colon_p.optional()
     return maybe_aggegate, preamble
 

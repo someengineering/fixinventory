@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, AsyncGenerator, Any, Type
+from typing import AsyncGenerator, Any, Type
 
 from datetime import timedelta
 from deepdiff import DeepDiff
@@ -16,8 +16,8 @@ def event_bus() -> EventBus:
 
 
 @fixture
-async def all_events(event_bus: EventBus) -> AsyncGenerator[List[Message], None]:
-    events: List[Message] = []
+async def all_events(event_bus: EventBus) -> AsyncGenerator[list[Message], None]:
+    events: list[Message] = []
 
     async def gather_events() -> None:
         with event_bus.subscribe("test") as event_queue:
@@ -32,7 +32,7 @@ async def all_events(event_bus: EventBus) -> AsyncGenerator[List[Message], None]
 
 
 async def wait_for_message(
-    all_events: List[Message], message_type: str, t: Type[AnyT], timeout: timedelta = timedelta(seconds=1)
+    all_events: list[Message], message_type: str, t: Type[AnyT], timeout: timedelta = timedelta(seconds=1)
 ) -> AnyT:
     stop_at = utc() + timeout
 
@@ -51,8 +51,8 @@ async def wait_for_message(
 
 @mark.asyncio
 async def test_handler(event_bus: EventBus) -> None:
-    foos: List[Message] = []
-    blas: List[Message] = []
+    foos: list[Message] = []
+    blas: list[Message] = []
 
     async def emit() -> None:
         await event_bus.emit(Event("foo"))
@@ -60,7 +60,7 @@ async def test_handler(event_bus: EventBus) -> None:
         await event_bus.emit(Event("bla"))
         await event_bus.emit(Event("bar"))
 
-    async def wait_for(name: str, list: List[Message]) -> None:
+    async def wait_for(name: str, list: list[Message]) -> None:
         with event_bus.subscribe("test", [name]) as events:
             while True:
                 list.append(await events.get())

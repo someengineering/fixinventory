@@ -6,7 +6,7 @@ import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
 from io import TextIOWrapper
-from typing import List, Dict, Tuple, Optional, Any, Callable, Union, Sequence
+from typing import Optional, Any, Callable, Union, Sequence
 
 import argparse
 from aiostream import stream
@@ -75,11 +75,11 @@ class TaskHandler(JobHandler):
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
-        self.tasks: Dict[str, RunningTask] = {}
+        self.tasks: dict[str, RunningTask] = {}
         self.event_bus_watcher: Optional[Task[Any]] = None
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
-        self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
-        self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
+        self.registered_event_trigger: list[tuple[EventTrigger, TaskDescription]] = []
+        self.registered_event_trigger_by_message_type: dict[str, list[tuple[EventTrigger, TaskDescription]]] = {}
 
     # endregion
 
@@ -383,7 +383,7 @@ class TaskHandler(JobHandler):
         elif wi.id in self.tasks:
             await self.running_task_db.delete(wi.id)
 
-    async def list_all_pending_actions_for(self, subscriber: Subscriber) -> List[Action]:
+    async def list_all_pending_actions_for(self, subscriber: Subscriber) -> list[Action]:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
 
@@ -463,7 +463,7 @@ class TaskHandler(JobHandler):
             if len(parts) != 6:
                 raise ValueError(f"Invalid job {line}")
             uid = uuid_str(line.strip())[0:8]
-            wait: Optional[Tuple[EventTrigger, timedelta]] = None
+            wait: Optional[tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
             command = parts[5]
             # check if we also need to wait for an event: name_of_event : command

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import abc
 from functools import reduce
-from typing import List, Mapping, Union, Optional, Any, ClassVar
+from typing import Mapping, Union, Optional, Any, ClassVar
 
 from dataclasses import dataclass, field, replace
 from jsons import set_deserializer
@@ -76,10 +76,10 @@ class P:
     def not_matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "!~", regex, self.args)
 
-    def is_in(self, other: List[object]) -> Predicate:
+    def is_in(self, other: list[object]) -> Predicate:
         return Predicate(self.name, "in", other, self.args)
 
-    def is_not_in(self, other: List[object]) -> Predicate:
+    def is_not_in(self, other: list[object]) -> Predicate:
         return Predicate(self.name, "not in", other, self.args)
 
 
@@ -330,8 +330,8 @@ class AggregateFunction:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Aggregate:
-    group_by: List[AggregateVariable]
-    group_func: List[AggregateFunction]
+    group_by: list[AggregateVariable]
+    group_func: list[AggregateFunction]
 
     def __str__(self) -> str:
         group_by = ", ".join(str(a) for a in self.group_by)
@@ -358,7 +358,7 @@ class Sort:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
-    parts: List[Part]
+    parts: list[Part]
     preamble: dict[str, SimpleValue] = field(default_factory=dict)
     aggregate: Optional[Aggregate] = None
     sort: list[Sort] = field(default_factory=list)
@@ -419,7 +419,7 @@ class Query:
             parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
-    def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
+    def group_by(self, group_by: list[AggregateVariable], funs: list[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
         return replace(self, aggregate=aggregate)
 

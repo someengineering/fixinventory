@@ -11,10 +11,7 @@ from typing import (
     Callable,
     Optional,
     Awaitable,
-    Dict,
     TypeVar,
-    List,
-    Tuple,
     Mapping,
     MutableSequence,
     AsyncGenerator,
@@ -63,7 +60,7 @@ def uuid_str(from_object: Optional[Any] = None) -> str:
         return str(uuid.uuid1())
 
 
-def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> Dict[AnyR, List[AnyT]]:
+def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> dict[AnyR, list[AnyT]]:
     """
     Group iterable by key provided by given key function.
     :param f: the function to be applied on every element that yields the key.
@@ -85,7 +82,7 @@ def empty(el: Iterable[AnyT]) -> bool:
     return not non_empty(el)
 
 
-def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
+def interleave(elements: list[AnyT]) -> list[tuple[AnyT, AnyT]]:
     if len(elements) < 2:
         return []
     else:
@@ -144,13 +141,13 @@ def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
     return at_idx(element, 0)
 
 
-def split_esc(s: str, delim: str) -> List[str]:
+def split_esc(s: str, delim: str) -> list[str]:
     """Split with support for delimiter escaping
 
     Via: https://stackoverflow.com/a/29107566
     """
     i = 0
-    res: List[str] = []
+    res: list[str] = []
     buf = ""
     while True:
         j, e = s.find(delim, i), 0

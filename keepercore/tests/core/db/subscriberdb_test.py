@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 import pytest
 from arango.database import StandardDatabase
 
@@ -32,20 +31,20 @@ def event_db(subscriber_db: SubscriberDb, event_bus: EventBus) -> EventSubscribe
 
 
 @pytest.fixture
-def subscribers() -> List[Subscriber]:
+def subscribers() -> list[Subscriber]:
     subs = [Subscription("foo", True) for _ in range(0, 10)]
     return [Subscriber.from_list(str(a), subs) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio
-async def test_load(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
+async def test_load(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
     await subscriber_db.update_many(subscribers)
     loaded = [sub async for sub in subscriber_db.all()]
     assert subscribers.sort() == loaded.sort()
 
 
 @pytest.mark.asyncio
-async def test_update(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
+async def test_update(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
     # multiple updates should work as expected
     await subscriber_db.update_many(subscribers)
     await subscriber_db.update_many(subscribers)
@@ -55,7 +54,7 @@ async def test_update(subscriber_db: SubscriberDb, subscribers: List[Subscriber]
 
 
 @pytest.mark.asyncio
-async def test_delete(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
+async def test_delete(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
     await subscriber_db.update_many(subscribers)
     remaining = list(subscribers)
     for _ in subscribers:
@@ -67,7 +66,7 @@ async def test_delete(subscriber_db: SubscriberDb, subscribers: List[Subscriber]
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventSubscriberDb, subscribers: List[Subscriber], all_events: List[Message]) -> None:
+async def test_events(event_db: EventSubscriberDb, subscribers: list[Subscriber], all_events: list[Message]) -> None:
     # 2 times update
     await event_db.update_many(subscribers)
     await event_db.update_many(subscribers)

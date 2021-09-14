@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
-from typing import List, Union, Dict, Any, Optional, Set, Callable, Type, Sequence, Tuple
+from typing import Union, Any, Optional, Callable, Type, Sequence
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -64,11 +64,11 @@ class Property:
         self.required = required
         self.description = description
 
-    def resolve(self, model: Dict[str, Kind]) -> Kind:
+    def resolve(self, model: dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
 
     @staticmethod
-    def parse_kind(name: str, model: Dict[str, Kind]) -> Kind:
+    def parse_kind(name: str, model: dict[str, Kind]) -> Kind:
         def kind_by_name(kind_name: str) -> Kind:
             if kind_name not in model:
                 raise AttributeError(f"Property kind is not known: {kind_name}. Have you registered it?")
@@ -145,10 +145,10 @@ class Kind(ABC):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         pass
 
-    def resolve(self, model: Dict[str, Kind]) -> None:
+    def resolve(self, model: dict[str, Kind]) -> None:
         pass
 
-    def kind_hierarchy(self) -> Set[str]:
+    def kind_hierarchy(self) -> set[str]:
         return {self.fqn}
 
     def package(self) -> Optional[str]:
@@ -184,7 +184,7 @@ class Kind(ABC):
                 raise TypeError(f"Unhandled runtime kind: {rk}")
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
-            bases: List[str] = js.get("bases")  # type: ignore
+            bases: list[str] = js.get("bases")  # type: ignore
             allow_unknown_props = js.get("allow_unknown_props", False)
             return Complex(js["fqn"], bases, props, allow_unknown_props)
         else:
@@ -197,7 +197,7 @@ class SimpleKind(Kind, ABC):
         super().__init__(fqn)
         self.runtime_kind = runtime_kind
 
-    Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
+    Kind_to_type: dict[str, Type[Union[str, int, float, bool]]] = {
         "string": str,
         "int32": int,
         "int64": int,
@@ -244,7 +244,7 @@ class StringKind(SimpleKind):
         min_length: Optional[int] = None,
         max_length: Optional[int] = None,
         pattern: Optional[str] = None,
-        enum: Optional[Set[str]] = None,
+        enum: Optional[set[str]] = None,
     ):
         super().__init__(fqn, "string")
         self.min_length = min_length
@@ -293,7 +293,7 @@ class NumberKind(SimpleKind):
         runtime_kind: str,
         minimum: Union[None, float, int] = None,
         maximum: Union[None, float, int] = None,
-        enum: Optional[Set[Union[float, int]]] = None,
+        enum: Optional[set[Union[float, int]]] = None,
     ):
         super().__init__(fqn, runtime_kind)
         self.minimum = minimum
@@ -442,7 +442,7 @@ class ArrayKind(Kind):
         super().__init__(f"{inner.fqn}[]")
         self.inner = inner
 
-    def resolve(self, model: Dict[str, Kind]) -> None:
+    def resolve(self, model: dict[str, Kind]) -> None:
         self.inner.resolve(model)
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
@@ -487,25 +487,25 @@ class Dictionary(Kind):
         else:
             raise AttributeError(f"dictionary requires a json object, but got this: {obj}")
 
-    def resolve(self, model: Dict[str, Kind]) -> None:
+    def resolve(self, model: dict[str, Kind]) -> None:
         self.key_kind.resolve(model)
         self.value_kind.resolve(model)
 
 
 class Complex(Kind):
-    def __init__(self, fqn: str, bases: List[str], properties: List[Property], allow_unknown_props: bool = False):
+    def __init__(self, fqn: str, bases: list[str], properties: list[Property], allow_unknown_props: bool = False):
         super().__init__(fqn)
         self.bases = bases
         self.properties = properties
         self.allow_unknown_props = allow_unknown_props
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
-        self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = dict()
-        self.__all_props: List[Property] = list(self.properties)
-        self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__properties_kind_by_path: Dict[PropertyPath, SimpleKind] = dict()
+        self.__resolved_kinds: dict[str, tuple[Property, Kind]] = {}
+        self.__all_props: list[Property] = list(self.properties)
+        self.__resolved_hierarchy: set[str] = {fqn}
+        self.__properties_kind_by_path: dict[PropertyPath, SimpleKind] = {}
 
-    def resolve(self, model: Dict[str, Kind]) -> None:
+    def resolve(self, model: dict[str, Kind]) -> None:
         if not self.__resolved:
             # resolve properties
             for prop in self.properties:
@@ -529,10 +529,10 @@ class Complex(Kind):
                         self.__properties_kind_by_path |= base.__properties_kind_by_path
         self.__resolved = True
 
-    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, SimpleKind]:
+    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> dict[PropertyPath, SimpleKind]:
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
-        ) -> Dict[PropertyPath, SimpleKind]:
+        ) -> dict[PropertyPath, SimpleKind]:
             arr = "[]" if array else ""
             relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
@@ -546,7 +546,7 @@ class Complex(Kind):
             else:
                 return {}
 
-        result: Dict[PropertyPath, SimpleKind] = {}
+        result: dict[PropertyPath, SimpleKind] = {}
         for x in self.properties:
             result |= path_for(x, self.__resolved_kinds[x.name][1], from_path)
 
@@ -561,10 +561,10 @@ class Complex(Kind):
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
-    def kind_hierarchy(self) -> Set[str]:
+    def kind_hierarchy(self) -> set[str]:
         return self.__resolved_hierarchy
 
-    def property_kind_by_path(self) -> Dict[PropertyPath, SimpleKind]:
+    def property_kind_by_path(self) -> dict[PropertyPath, SimpleKind]:
         if not self.__resolved:
             raise AttributeError(f"property_kind_by_path {self.fqn}: References are not resolved yet!")
         return self.__properties_kind_by_path
@@ -634,17 +634,17 @@ class Model:
         return Model({})
 
     @staticmethod
-    def from_kinds(kinds: List[Kind]) -> Model:
+    def from_kinds(kinds: list[Kind]) -> Model:
         all_kinds = kinds + predefined_kinds
         kind_dict = {kind.fqn: kind for kind in all_kinds}
         for kind in all_kinds:
             kind.resolve(kind_dict)
         return Model(kind_dict)
 
-    def __init__(self, kinds: Dict[str, Kind]):
+    def __init__(self, kinds: dict[str, Kind]):
         self.kinds = kinds
         complexes = (k for k in kinds.values() if isinstance(k, Complex))
-        paths: Dict[PropertyPath, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
+        paths: dict[PropertyPath, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
         self.__property_kind_by_path = paths
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -698,7 +698,7 @@ class Model:
 
         return graph
 
-    def update_kinds(self, kinds: List[Kind]) -> Model:
+    def update_kinds(self, kinds: list[Kind]) -> Model:
         def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
             def hint() -> str:
                 return f"Update {from_kind.fqn}"
@@ -726,7 +726,7 @@ class Model:
             update_is_valid(self.kinds[name], updates[name])
 
         # check if no property path is overlapping
-        def check(all_paths: Dict[PropertyPath, SimpleKind], kind: Kind) -> Dict[PropertyPath, SimpleKind]:
+        def check(all_paths: dict[PropertyPath, SimpleKind], kind: Kind) -> dict[PropertyPath, SimpleKind]:
             if isinstance(kind, Complex):
                 paths = kind.property_kind_by_path()
                 intersect = paths.keys() & all_paths.keys()
