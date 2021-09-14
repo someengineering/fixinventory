@@ -15,6 +15,7 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBatchUpdate
 from core.event_bus import EventBus, Message
+from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
 from core.model.model import Model, Complex, Property
 from core.model.typed_model import to_js, from_js
@@ -88,24 +89,24 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(uid: str, node: Optional[Json] = None, merge: bool = False) -> None:
+    def add_node(uid: str, kind: str, node: Optional[Json] = None, merge: bool = False) -> None:
         reported = node if node else to_json(Foo(uid))
-        graph.add_node(uid, reported=reported, desired={"node_id": uid}, metadata={"node_id": uid}, merge=merge)
+        graph.add_node(uid, kinds=[kind], reported=reported, desired={"node_id": uid}, metadata={"node_id": uid}, merge=merge)
 
     # root -> collector -> sub_root -> **rest
-    add_node("root")
-    add_node("collector", merge=True)
-    add_node("sub_root")
+    add_node("root", "foo")
+    add_node("collector", "foo", merge=True)
+    add_node("sub_root", "foo")
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
 
     for o in range(0, width):
         oid = str(o)
-        add_node(oid)
+        add_node(oid, "foo")
         add_edge("sub_root", oid)
         for i in range(0, width):
             iid = f"{o}_{i}"
-            add_node(iid, node=to_json(Bla(iid, name=bla_text)))
+            add_node(iid, "bla", node=to_json(Bla(iid, name=bla_text)))
             add_edge(oid, iid)
     return graph
 
@@ -118,7 +119,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_node(node_id: str, merge: bool = False) -> str:
-        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge)
+        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge, kinds=["foo"])
         return node_id
 
     root = add_node("root")
@@ -203,7 +204,7 @@ def test_db() -> StandardDatabase:
 @pytest.fixture
 async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
     async_db = AsyncArangoDB(test_db)
-    graph_db = ArangoGraphDB(async_db, "ns")
+    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust())
     await graph_db.create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db

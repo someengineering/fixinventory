@@ -113,12 +113,14 @@ async def test_count_command(cli: CLI, json_source: str) -> None:
 @pytest.mark.asyncio
 async def test_head_command(cli: CLI) -> None:
     assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2", stream.list) == [[1, 2]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head -2", stream.list) == [[1, 2]]
     assert await cli.execute_cli_command("json [1,2,3,4,5] | head", stream.list) == [[1, 2, 3, 4, 5]]
 
 
 @pytest.mark.asyncio
 async def test_tail_command(cli: CLI) -> None:
     assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2", stream.list) == [[4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail -2", stream.list) == [[4, 5]]
     assert await cli.execute_cli_command("json [1,2,3,4,5] | tail", stream.list) == [[1, 2, 3, 4, 5]]
 
 

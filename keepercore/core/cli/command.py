@@ -274,7 +274,7 @@ class HeadCommand(CLICommand):
         return "Return n first elements of the stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        size = int(arg) if arg else 100
+        size = abs(int(arg)) if arg else 100
         return lambda in_stream: stream.take(in_stream, size)
 
 
@@ -301,7 +301,7 @@ class TailCommand(CLICommand):
         return "Return n last elements of the stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        size = int(arg) if arg else 100
+        size = abs(int(arg)) if arg else 100
         return lambda in_stream: stream.takelast(in_stream, size)
 
 
