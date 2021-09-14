@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from core.model.model import DateTimeKind
+from core.model.resolve_in_graph import NodePath
 from core.types import Json
 from core.util import value_in_path, from_utc
 
@@ -21,34 +22,42 @@ class NoAdjust(AdjustNode):
 
 
 class DirectAdjuster(AdjustNode):
-    dt = DateTimeKind("datetime")
+
+    # this holds a datetime
+    expires_value = [["reported", "tags", "cloudkeeper:expires"]]
+
+    # this holds a relative timedelta
     expiration_values = [
         ["reported", "tags", "cloudkeeper:expiration"],
-        ["reported", "tags", "cloudkeeper:expires"],
-        ["reported", "tags", "expires"],
         ["reported", "tags", "expiration"],
     ]
 
     def adjust(self, json: Json) -> Json:
-        def expires_tag() -> Optional[str]:
-            for path in self.expiration_values:
-                expiration: Optional[str] = value_in_path(json, path)
-                if expiration:
-                    return expiration
+        def first_matching(paths: list[list[str]]) -> Optional[str]:
+            for path in paths:
+                value: Optional[str] = value_in_path(json, path)
+                if value:
+                    return value
             return None
 
-        expires_in = expires_tag()
-        if expires_in:
-            try:
-                if DateTimeKind.DurationRe.fullmatch(expires_in):
-                    ctime = from_utc(json["reported"]["ctime"])
-                    expires = DateTimeKind.from_duration(expires_in, ctime)
-                else:
-                    expires = self.dt.coerce(expires_in)
+        try:
+            expires_tag = first_matching(self.expires_value)
+            expires: Optional[str] = None
+            if expires_tag:
+                expires = DateTimeKind.from_datetime(expires_tag)
+            else:
+                expiration_tag = first_matching(self.expiration_values)
+                if expiration_tag and expires_tag != "never" and DateTimeKind.DurationRe.fullmatch(expiration_tag):
+                    ctime_str = value_in_path(json, NodePath.reported_ctime)
+                    if ctime_str:
+                        ctime = from_utc(ctime_str)
+                        expires = DateTimeKind.from_duration(expiration_tag, ctime)
+
+            if expires:
                 if "metadata" not in json:
                     json["metadata"] = {}
                 json["metadata"]["expires"] = expires
-            except Exception as ex:
-                log.debug(f"Could not parse expires {ex}")
+        except Exception as ex:
+            log.debug(f"Could not parse expiration: {ex}")
         # json is mutated to save memory
         return json

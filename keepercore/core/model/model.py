@@ -378,7 +378,9 @@ class DateTimeKind(SimpleKind):
 
     def coerce(self, value: Any) -> str:
         try:
-            if self.DurationRe.fullmatch(value):
+            if self.DateTimeRe.fullmatch(value):
+                return value  # type: ignore
+            elif self.DurationRe.fullmatch(value):
                 return self.from_duration(value)
             else:
                 return self.from_datetime(value)
@@ -387,7 +389,16 @@ class DateTimeKind(SimpleKind):
 
     @staticmethod
     def from_datetime(value: str) -> str:
-        dt = datetime.fromtimestamp(parse(value).timestamp(), timezone.utc)
+        try:
+            dt = datetime.fromisoformat(value)
+        except Exception:
+            dt = parse(value)
+        if (
+            not dt.tzinfo
+            or dt.tzinfo.utcoffset(None) is None
+            or dt.tzinfo.utcoffset(None).total_seconds() != 0  # type: ignore
+        ):
+            dt = dt.astimezone(timezone.utc)
         return dt.strftime(DateTimeKind.Format)
 
     @staticmethod
