@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from asyncio import Queue
 from contextlib import contextmanager
-from typing import Dict, List, Generator, Any, Optional
+from typing import Generator, Any, Optional
 
 from jsons import set_deserializer, set_serializer
 
@@ -169,13 +169,13 @@ class EventBus:
 
     def __init__(self) -> None:
         # key is the channel name, value is the list of queues
-        self.listeners: Dict[str, List[Queue[Message]]] = {}
+        self.listeners: dict[str, list[Queue[Message]]] = {}
         # key is the subscriber id, value is the list of queue names
         self.active_listener: dict[str, list[str]] = {}
 
     @contextmanager
     def subscribe(
-        self, subscriber_id: str, channels: Optional[List[str]] = None, queue_size: int = 0
+        self, subscriber_id: str, channels: Optional[list[str]] = None, queue_size: int = 0
     ) -> Generator[Queue[Message], Any, None]:
         """
         Subscribe to a list of event channels.

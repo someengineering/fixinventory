@@ -83,8 +83,8 @@ class WorkerTaskQueue:
         # key is the task_name, value is the list of worker subscriptions
         self.worker_by_task_name: dict[str, list[WorkerTaskSubscription]] = defaultdict(list)
         self.work_count: dict[str, int] = defaultdict(lambda: 0)
-        self.outstanding_tasks: dict[str, WorkerTaskInProgress] = dict()
-        self.unassigned_tasks: dict[str, WorkerTaskOnHold] = dict()
+        self.outstanding_tasks: dict[str, WorkerTaskInProgress] = {}
+        self.unassigned_tasks: dict[str, WorkerTaskOnHold] = {}
         self.lock = asyncio.Lock()  # note: this lock is not reentrant!
         self.outdated_checker: Periodic = Periodic(
             "check_outdated_tasks", self.check_outdated_unassigned_tasks, timedelta(seconds=5)

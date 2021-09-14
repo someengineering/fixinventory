@@ -1,7 +1,6 @@
 import logging
 from abc import ABC
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List
 
 from arango.database import StandardDatabase
 from dateutil.parser import parse
@@ -41,7 +40,7 @@ class DbAccess(ABC):
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_bus, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
-        self.graph_dbs: Dict[str, GraphDB] = {}
+        self.graph_dbs: dict[str, GraphDB] = {}
         self.batch_outdated = batch_outdated
         self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))
 
@@ -65,7 +64,7 @@ class DbAccess(ABC):
             db.delete_view(f"search_{name}", ignore_missing=True)
             self.graph_dbs.pop(name, None)
 
-    async def list_graphs(self) -> List[str]:
+    async def list_graphs(self) -> list[str]:
         return [a["name"] for a in self.database.graphs() if not a["name"].endswith("_hs")]
 
     def get_graph_db(self, name: str, no_check: bool = False) -> GraphDB:

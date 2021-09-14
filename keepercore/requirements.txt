@@ -4,14 +4,14 @@ aiohttp-swagger3==0.6.0
 aiohttp[speedups]==3.7.4.post0
 aiohttp_cors==0.7.0
 durations_nlp==1.0.1
-jsons==1.5.0
-networkx==2.6.2
+jsons==1.5.1
+networkx==2.6.3
 parsy==1.3.0
 plantuml==0.3.0
 python-arango==7.2.0
 python-dateutil==2.8.2
 toolz==0.11.1
-transitions==0.8.8
+transitions==0.8.9
 APScheduler==3.7.0
 aiostream==0.4.3
 tzlocal==2.1

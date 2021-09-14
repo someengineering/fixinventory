@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, MutableMapping, Union, Tuple
+from typing import Optional, MutableMapping, Union
 
 from arango import DefaultHTTPClient, Response
 from arango.typings import Headers
@@ -24,7 +24,7 @@ class ArangoHTTPClient(DefaultHTTPClient):  # type: ignore
         headers: Optional[Headers] = None,
         params: Optional[MutableMapping[str, str]] = None,
         data: Union[str, MultipartEncoder, None] = None,
-        auth: Optional[Tuple[str, str]] = None,
+        auth: Optional[tuple[str, str]] = None,
     ) -> Response:
         response = session.request(
             method, url, params, data, headers, auth=auth, timeout=self.timeout, verify=self.verify

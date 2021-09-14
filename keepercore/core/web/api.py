@@ -8,7 +8,7 @@ import os
 from datetime import timedelta
 from functools import partial
 from random import SystemRandom
-from typing import List, Union, AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
+from typing import Union, AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
 
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
@@ -44,7 +44,7 @@ from core.task.task_handler import TaskHandler
 from core.util import force_gen, uuid_str
 
 log = logging.getLogger(__name__)
-Section = Union[str, List[str]]
+Section = Union[str, list[str]]
 RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
@@ -161,7 +161,7 @@ class Api:
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         body = await request.json()
-        subscriptions = from_js(body, List[Subscription])
+        subscriptions = from_js(body, list[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
         return web.json_response(to_js(sub))
 
@@ -207,7 +207,7 @@ class Api:
         self,
         request: Request,
         listener_id: str,
-        event_types: List[str],
+        event_types: list[str],
         initial_messages: Optional[Sequence[Message]] = None,
     ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
@@ -333,7 +333,7 @@ class Api:
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await request.json()
-        kinds: List[Kind] = from_js(js, List[Kind])
+        kinds: list[Kind] = from_js(js, list[Kind])
         model = await self.model_handler.update_model(kinds)
         return web.json_response(to_js(model))
 

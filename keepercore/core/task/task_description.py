@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import List, Dict, Tuple, Set, Optional, Any, Sequence, MutableSequence, Callable
+from typing import Optional, Any, Sequence, MutableSequence, Callable
 
 from dataclasses import dataclass
 
@@ -224,7 +224,7 @@ class Job(TaskDescription):
         command: ExecuteCommand,
         trigger: Trigger,
         timeout: timedelta,
-        wait: Optional[Tuple[EventTrigger, timedelta]] = None,
+        wait: Optional[tuple[EventTrigger, timedelta]] = None,
         mutable: bool = True,
     ):
         steps = []
@@ -422,7 +422,7 @@ class PerformActionState(StepState):
         The step behavior defines how to deal in case of an error.
         """
         msg_type = self.perform.message_type
-        in_step: Set[str] = {
+        in_step: set[str] = {
             x.subscriber_id
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name
@@ -558,8 +558,8 @@ class EndState(StepState):
 class RunningTask:
     @staticmethod
     def empty(
-        descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
-    ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
+        descriptor: TaskDescription, subscriber_by_event: Callable[[], dict[str, list[Subscriber]]]
+    ) -> tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = str(uuid.uuid1())
         wi = RunningTask(uid, descriptor, subscriber_by_event)
@@ -567,7 +567,7 @@ class RunningTask:
         return wi, messages
 
     def __init__(
-        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
+        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], dict[str, list[Subscriber]]]
     ):
         self.id = uid
         self.is_error = False
@@ -582,7 +582,7 @@ class RunningTask:
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
         end = EndState(self)
-        states: List[StepState] = [start, *steps, end]
+        states: list[StepState] = [start, *steps, end]
         self.machine = Machine(self, states, start, auto_transitions=False, queued=True)
 
         for current_state, next_state in interleave(states):
@@ -604,7 +604,7 @@ class RunningTask:
             except MachineError:
                 return False
 
-        resulting_commands: List[TaskCommand] = []
+        resulting_commands: list[TaskCommand] = []
         while next_state():
             resulting_commands.extend(self.current_state.commands_to_execute())
         return resulting_commands
@@ -621,7 +621,7 @@ class RunningTask:
     def is_active(self) -> bool:
         return not isinstance(self.current_state, EndState)
 
-    def handle_event(self, event: Event) -> Tuple[bool, Sequence[TaskCommand]]:
+    def handle_event(self, event: Event) -> tuple[bool, Sequence[TaskCommand]]:
         if self.current_state.handle_event(event):
             return True, self.move_to_next_state()
         else:

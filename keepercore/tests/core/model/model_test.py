@@ -1,5 +1,5 @@
 import json
-from typing import Type, Any, Union, List
+from typing import Type, Any, Union
 
 import pytest
 from deepdiff import DeepDiff
@@ -286,7 +286,7 @@ def test_update(person_model: Model) -> None:
 
 
 def test_load(model_json: str) -> None:
-    kinds: List[Kind] = [from_js(a, Kind) for a in json.loads(model_json)]  # type: ignore
+    kinds: list[Kind] = [from_js(a, Kind) for a in json.loads(model_json)]  # type: ignore
     model = Model.from_kinds(kinds)
     assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32, "tags": {}}) is None
 

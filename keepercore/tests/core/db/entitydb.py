@@ -1,4 +1,4 @@
-from typing import Union, Optional, List, AsyncGenerator, Type, Callable
+from typing import Union, Optional, AsyncGenerator, Type, Callable
 
 
 from core.db.entitydb import EntityDb, T
@@ -16,7 +16,7 @@ class InMemoryDb(EntityDb[T]):
         for js in self.items.values():
             yield from_js(js, self.t_type)
 
-    async def update_many(self, elements: List[T]) -> None:
+    async def update_many(self, elements: list[T]) -> None:
         for elem in elements:
             key = self.key_fn(elem)
             self.items[key] = to_js(key)

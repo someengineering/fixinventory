@@ -1,5 +1,3 @@
-from typing import List
-
 import pytest
 from pytest import fixture
 
@@ -62,7 +60,7 @@ def cli(cli_deps: CLIDependencies) -> CLI:
 
 
 @fixture
-async def sink(cli_deps: CLIDependencies) -> Sink[List[JsonElement]]:
+async def sink(cli_deps: CLIDependencies) -> Sink[list[JsonElement]]:
     return await ListSink(cli_deps).parse()
 
 
@@ -133,7 +131,7 @@ async def test_order_of_commands(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+async def test_help(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
     result = await cli.execute_cli_command("help", sink)
     assert len(result[0]) == 1
 
@@ -142,7 +140,7 @@ async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
+async def test_parse_env_vars(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
     result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()

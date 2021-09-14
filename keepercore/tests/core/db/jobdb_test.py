@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 import pytest
 from arango.database import StandardDatabase
 from datetime import timedelta
@@ -75,7 +74,7 @@ async def test_delete(job_db: JobDb, jobs: list[Job]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventJobDb, jobs: list[Job], all_events: List[Message]) -> None:
+async def test_events(event_db: EventJobDb, jobs: list[Job], all_events: list[Message]) -> None:
     # 2 times update
     await event_db.update_many(jobs)
     await event_db.update_many(jobs)

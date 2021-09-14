@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from collections import defaultdict
 from datetime import timedelta, datetime
-from typing import List, Dict, Optional, Iterable
+from typing import Optional, Iterable
 
 from core.db.subscriberdb import SubscriberDb
 from core.event_bus import EventBus
@@ -24,8 +24,8 @@ class SubscriptionHandler(ABC):
     def __init__(self, db: SubscriberDb, event_bus: EventBus) -> None:
         self.db = db
         self.event_bus = event_bus
-        self._subscribers_by_id: Dict[str, Subscriber] = {}
-        self._subscribers_by_event: Dict[str, List[Subscriber]] = {}
+        self._subscribers_by_id: dict[str, Subscriber] = {}
+        self._subscribers_by_event: dict[str, list[Subscriber]] = {}
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: dict[str, datetime] = {}
@@ -41,7 +41,7 @@ class SubscriptionHandler(ABC):
     async def get_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
         return self._subscribers_by_id.get(subscriber_id)
 
-    async def list_subscriber_for(self, event_type: str) -> List[Subscriber]:
+    async def list_subscriber_for(self, event_type: str) -> list[Subscriber]:
         return self._subscribers_by_event.get(event_type, [])
 
     async def add_subscription(
@@ -88,12 +88,12 @@ class SubscriptionHandler(ABC):
         self._subscribers_by_id = {s.id: s async for s in self.db.all()}
         self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
 
-    def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
+    def subscribers_by_event(self) -> dict[str, list[Subscriber]]:
         return self._subscribers_by_event
 
     @staticmethod
-    def update_subscriber_by_event(subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
-        result: Dict[str, List[Subscriber]] = defaultdict(list)
+    def update_subscriber_by_event(subscribers: Iterable[Subscriber]) -> dict[str, list[Subscriber]]:
+        result: dict[str, list[Subscriber]] = defaultdict(list)
         for subscriber in subscribers:
             for subscription in subscriber.subscriptions.values():
                 result[subscription.message_type].append(subscriber)
