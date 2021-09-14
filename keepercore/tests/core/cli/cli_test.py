@@ -19,6 +19,7 @@ from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
 from core.error import CLIParseError
 from core.event_bus import EventBus
+from core.model.adjust_node import NoAdjust
 from core.model.model import Model
 from core.types import JsonElement
 from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
@@ -42,7 +43,7 @@ def cli_deps(
     task_queue: WorkerTaskQueue,
     worker: tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
 ) -> CLIDependencies:
-    db_access = DbAccess(filled_graph_db.db.db, event_bus)
+    db_access = DbAccess(filled_graph_db.db.db, event_bus, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
     deps = CLIDependencies()
     deps.lookup = {

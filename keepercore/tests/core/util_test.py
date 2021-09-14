@@ -3,7 +3,7 @@ import json
 import pytest
 from aiostream import stream
 
-from core.util import AccessJson, force_gen, uuid_str
+from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get
 
 
 def test_access_json() -> None:
@@ -25,6 +25,16 @@ def test_uuid() -> None:
     assert uuid_str("foo") == uuid_str("foo")
     assert uuid_str("foo") != uuid_str("bla")
     assert uuid_str() != uuid_str()
+
+
+def test_value_in_path() -> None:
+    js = {"foo": {"bla": {"test": 123}}}
+    assert value_in_path(js, ["foo", "bla", "test"]) == 123
+    assert value_in_path_get(js, ["foo", "bla", "test"], "foo") == "foo"  # expected string got int -> default value
+    assert value_in_path(js, ["foo", "bla", "test", "bar"]) is None
+    assert value_in_path_get(js, ["foo", "bla", "test", "bar"], 123) == 123
+    assert value_in_path(js, ["foo", "bla", "bar"]) is None
+    assert value_in_path_get(js, ["foo", "bla", "bar"], "foo") == "foo"
 
 
 @pytest.mark.asyncio

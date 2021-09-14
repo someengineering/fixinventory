@@ -87,6 +87,8 @@ def test_datetime() -> None:
     assert expect_error(a, True) == "Expected type datetime but got bool"
     assert a.coerce("2021-06-08T08:56:15Z") == "2021-06-08T08:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000+00:00") == "2021-06-08T08:56:15Z"
+    assert a.coerce("2021-06-08T08:56:15.0000+02:00") == "2021-06-08T06:56:15Z"
+    assert a.coerce("2021-06-08T08:56:15.0000-02:00") == "2021-06-08T10:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000+0000") == "2021-06-08T08:56:15Z"
     assert a.coerce("2021-06-08 08:56:15").startswith("2021-06-08T")
     assert a.coerce("2021-06-08 08:56:15").endswith(":56:15Z")  # ignore the hours, time zone dependant
