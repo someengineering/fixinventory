@@ -4,7 +4,6 @@ import os
 import threading
 import multiprocessing
 from cloudkeeper.baseresources import BaseResource
-import websocket
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
 import requests
@@ -118,7 +117,7 @@ def main() -> None:
     os._exit(0)
 
 
-def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
+def tasks_processor(message: Dict) -> None:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
@@ -146,16 +145,12 @@ def tasks_processor(ws: websocket.WebSocketApp, message: Dict) -> None:
         "result": result,
     }
     reply_message.update(extra_data)
-    log.debug(f"Sending reply {reply_message}")
-    ws.send(json.dumps(reply_message))
+    return reply_message
 
 
 def keepercore_message_processor(
-    collectors: List[BaseCollectorPlugin], ws: websocket.WebSocketApp, message: Dict
+    collectors: List[BaseCollectorPlugin], message: Dict
 ) -> None:
-    if not isinstance(ws, websocket.WebSocketApp):
-        log.error(f"Invalid websocket: {ws}")
-        return
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -182,8 +177,7 @@ def keepercore_message_processor(
             "message_type": message_type,
             "data": data,
         }
-        log.debug(f"Sending reply {reply_message}")
-        ws.send(json.dumps(reply_message))
+        return reply_message
 
 
 def make_node(node_data: Dict):

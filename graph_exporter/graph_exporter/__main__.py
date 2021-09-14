@@ -3,7 +3,6 @@ import sys
 import requests
 import json
 import time
-import websocket
 import inspect
 import cloudkeeper.baseresources
 from functools import partial
@@ -78,11 +77,8 @@ def main() -> None:
 
 
 def keepercore_message_processor(
-    metrics: Metrics, query_uri: str, ws: websocket.WebSocketApp, message: Dict
+    metrics: Metrics, query_uri: str, message: Dict
 ) -> None:
-    if not isinstance(ws, websocket.WebSocketApp):
-        log.error(f"Invalid websocket: {ws}")
-        return
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -110,8 +106,7 @@ def keepercore_message_processor(
             "message_type": message_type,
             "data": data,
         }
-        log.debug(f"Sending reply {reply_message}")
-        ws.send(json.dumps(reply_message))
+        return reply_message
 
 
 def query(query_str: str, query_uri: str) -> Iterator:
