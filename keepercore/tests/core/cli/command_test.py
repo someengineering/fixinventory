@@ -149,7 +149,7 @@ async def test_desire_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('query is("foo") | desire a="test" b=1 c=true', stream.list)
     assert len(result[0]) == 13
     for elem in result[0]:
-        assert elem["desired"] == {"a": "test", "b": 1, "c": True}
+        assert {"a": "test", "b": 1, "c": True}.items() <= elem["desired"].items()
 
 
 @pytest.mark.asyncio
@@ -157,7 +157,7 @@ async def test_clean_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('query is("foo") | clean', stream.list)
     assert len(result[0]) == 13
     for elem in result[0]:
-        assert elem["desired"] == {"clean": True}
+        assert {"clean": True}.items() <= elem["desired"].items()
 
 
 @pytest.mark.asyncio
