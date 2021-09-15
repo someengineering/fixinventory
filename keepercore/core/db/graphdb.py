@@ -11,7 +11,6 @@ from arango.collection import VertexCollection, StandardCollection, EdgeCollecti
 from arango.graph import Graph
 from arango.typings import Json
 from networkx import MultiDiGraph, DiGraph
-from toolz import last
 
 from core import feature
 from core.db.arangodb_functions import as_arangodb_function
@@ -37,6 +36,7 @@ from core.query.model import (
     AggregateFunction,
     AggregateVariable,
     Sort,
+    WithClause,
 )
 from core.query.query_parser import aggregate_group_variable_parser
 from core.util import first, from_utc, value_in_path_get, utc_str
@@ -714,33 +714,64 @@ class ArangoGraphDB(GraphDB):
             else:
                 raise AttributeError(f"Do not understand: {ab_term}")
 
-        def part(p: Part, idx: int) -> tuple[Part, str, str]:
-            nav = p.navigation
-            collection = self.vertex_name if idx == 0 else f"step{idx - 1}"
-            out = f"step{idx}"
-            cursor = f"r{idx}"
-            subcrs = f"sub{idx}"
-            link = f"link{idx}"
-            trm = term(cursor, p.term)
-            unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+        def part(p: Part, idx: int, in_cursor: str) -> tuple[Part, str, str]:
+            query_part = ""
 
-            def inout(navigation: Navigation) -> str:
-                direction = "OUTBOUND" if navigation.is_out() else "INBOUND"
-                return (
-                    f"FOR {subcrs}, {link} IN {navigation.start}..{navigation.until} {direction} {cursor} "
-                    f"{self.edge_collection(navigation.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
-                    f"RETURN MERGE({subcrs}, {{_from:{link}._from, _to:{link}._to}})"
+            def filter_statement() -> str:
+                nonlocal query_part
+                crsr = f"f{idx}"
+                out = f"step{idx}_filter"
+                query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {crsr})"
+                return out
+
+            def with_clause(in_crsr: str, clause: WithClause) -> str:
+                nonlocal query_part
+                out = f"step{idx}_with"
+                crsr = f"w{idx}"
+                nav = clause.navigation
+                fltr = clause.with_filter
+                direction = "OUTBOUND" if nav.is_out() else "INBOUND"
+                unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                filter_clause = f"{term(crsr, clause.term)}" if clause.term else "true"
+                query_part += (
+                    f"LET {out} =( FOR in{idx} in {in_crsr} "
+                    f"FOR {crsr} IN 0..{nav.until} {direction} in{idx} "
+                    f"{self.edge_collection(nav.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                    f"FILTER in{idx}._key=={crsr}._key or {filter_clause} "
+                    f"COLLECT p{idx}=in{idx} with COUNT INTO counter{idx} "
+                    # note: the traversal starts from 0 (only 0 and 1 is allowed)
+                    # when we start from 1: increase the count by one to not count the start node
+                    # when we start from 0: the start node is expected in the count already
+                    f"FILTER counter{idx}{fltr.op}{fltr.num+clause.navigation.start} "
+                    f"RETURN p{idx}) "
                 )
+                return out
 
-            rtn = f"RETURN {cursor}" if nav is None else inout(nav)
-            query_part = f"LET {out} = (FOR {cursor} in {collection} FILTER {trm} {rtn})"
-            return p, out, query_part
+            def inout(in_crsr: str, navigation: Navigation) -> str:
+                nonlocal query_part
+                out = f"step{idx}_navigation"
+                crsr = f"n{idx}"
+                link = f"link{idx}"
+                direction = "OUTBOUND" if navigation.is_out() else "INBOUND"
+                unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                query_part += (
+                    f"LET {out} =( FOR in{idx} in {in_crsr} "
+                    f"FOR {crsr}, {link} IN {navigation.start}..{navigation.until} {direction} in{idx} "
+                    f"{self.edge_collection(navigation.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                    f"RETURN MERGE({crsr}, {{_from:{link}._from, _to:{link}._to}})) "
+                )
+                return out
+
+            cursor = filter_statement()
+            cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
+            cursor = inout(cursor, p.navigation) if p.navigation else cursor
+            return p, cursor, query_part
 
         def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
             parents: list[AggregateVariable] = [aggregate_group_variable_parser.parse(p) for p in parent_names]
             bind_vars["merge_stop_at"] = parents[0].name
             bind_vars["merge_parent_parent_nodes"] = [p.name for p in parents]
-            parts = [
+            m_parts = [
                 f"FOR node in {cursor} "
                 + "LET parent_nodes = ("
                 + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
@@ -751,24 +782,29 @@ class ArangoGraphDB(GraphDB):
             for p in parents:
                 bv = f"merge_node_{p.name}"
                 bind_vars[bv] = p.name
-                parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+                m_parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
 
             result_parts = []
             for section in ["reported", "desired", "metadata"]:
                 parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.{section}" for p in parents]) + "}"
                 result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
 
-            parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
-            return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(parts)})'
+            m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
+            return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(m_parts)})'
 
         def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
             sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
             return f" sort {sorts} "
 
-        parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
-        crs = last(parts)[1]
+        parts = []
+        crsr = self.vertex_name
+        for idx, part_tuple in enumerate(reversed(query.parts)):
+            part_tuple = part(part_tuple, idx, crsr)
+            parts.append(part_tuple)
+            crsr = part_tuple[1]
+
         all_parts = " ".join(p[2] for p in parts)
-        resulting_cursor, query_str = merge_parents(crs, all_parts, merge_with) if merge_with else (crs, all_parts)
+        resulting_cursor, query_str = merge_parents(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
         limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
             resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
