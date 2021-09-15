@@ -6,12 +6,13 @@ import json
 import re
 import cloudkeeper.logging
 from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
-from cloudkeeper.utils import RWLock, json_default, get_resource_attributes, type_str
+from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.graph.export import (
     get_node_attributes,
     dataclasses_to_keepercore_model,
+    node_to_dict,
 )
 from cloudkeeper.event import (
     Event,
@@ -668,17 +669,11 @@ class GraphExportIterator:
     def __iter__(self):
         with self.graph.lock.read_access:
             for node in self.graph.nodes:
-                node_attributes = get_node_attributes(node)
-                node_json = {
-                    "id": node.sha256,
-                    "reported": node_attributes,
-                    "metadata": {"python_type": type_str(node)},
-                    "desired": {},
-                }
+                node_dict = node_to_dict(node)
                 if getattr(node, "_merge", None):
                     log.debug(f"Merging graph above {node.rtdname}")
-                    node_json.update({"merge": True})
-                attributes_json = json.dumps(node_json) + "\n"
+                    node_dict.update({"merge": True})
+                node_json = json.dumps(node_dict) + "\n"
                 self.nodes_sent += 1
                 if self.nodes_sent % self.report_every_n_nodes == 0:
                     percent = round(self.nodes_sent / self.nodes_total * 100)
@@ -688,8 +683,8 @@ class GraphExportIterator:
                     )
                     self.last_sent = time()
                 if self.output is not None:
-                    self.output.write(attributes_json)
-                yield attributes_json.encode()
+                    self.output.write(node_json)
+                yield node_json.encode()
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
@@ -698,8 +693,8 @@ class GraphExportIterator:
                 ):
                     log.error(f"One of {from_node} and {to_node} is no base resource")
                     continue
-                link = {"from": from_node.sha256, "to": to_node.sha256}
-                link_json = json.dumps(link) + "\n"
+                edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
+                edge_json = json.dumps(edge_dict) + "\n"
                 self.edges_sent += 1
                 if self.edges_sent % self.report_every_n_edges == 0:
                     percent = round(self.edges_sent / self.edges_total * 100)
@@ -709,5 +704,5 @@ class GraphExportIterator:
                     )
                     self.last_sent = time()
                 if self.output is not None:
-                    self.output.write(link_json)
-                yield link_json.encode()
+                    self.output.write(edge_json)
+                yield edge_json.encode()
