@@ -714,7 +714,7 @@ class ArangoGraphDB(GraphDB):
             else:
                 raise AttributeError(f"Do not understand: {ab_term}")
 
-        def part(p: Part, idx: int) -> tuple[Part, int, str, str]:
+        def part(p: Part, idx: int) -> tuple[Part, str, str]:
             nav = p.navigation
             collection = self.vertex_name if idx == 0 else f"step{idx - 1}"
             out = f"step{idx}"
@@ -734,7 +734,7 @@ class ArangoGraphDB(GraphDB):
 
             rtn = f"RETURN {cursor}" if nav is None else inout(nav)
             query_part = f"LET {out} = (FOR {cursor} in {collection} FILTER {trm} {rtn})"
-            return p, idx, out, query_part
+            return p, out, query_part
 
         def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
             parents: list[AggregateVariable] = [aggregate_group_variable_parser.parse(p) for p in parent_names]
@@ -766,8 +766,8 @@ class ArangoGraphDB(GraphDB):
             return f" sort {sorts} "
 
         parts = [part(p, idx) for idx, p in enumerate(reversed(query.parts))]
-        crs = last(parts)[2]
-        all_parts = " ".join(p[3] for p in parts)
+        crs = last(parts)[1]
+        all_parts = " ".join(p[2] for p in parts)
         resulting_cursor, query_str = merge_parents(crs, all_parts, merge_with) if merge_with else (crs, all_parts)
         limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
@@ -779,7 +779,7 @@ class ArangoGraphDB(GraphDB):
             )
         else:  # return results
             # return all pinned parts (last result is "pinned" automatically)
-            pinned = {out for part, _, out, _ in parts if part.pinned}
+            pinned = {out for part, out, _ in parts if part.pinned}
             sort_by = sort("r", query.sort, section_dot) if query.sort else ""
             result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
             return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars
