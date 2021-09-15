@@ -694,7 +694,7 @@ class ArangoGraphDB(GraphDB):
                 raise AttributeError(f"Given kind does not exist: {t.kind}")
             length = str(len(bind_vars))
             bind_vars[length] = t.kind
-            return f"{cursor}.kinds ANY == @{length}"
+            return f"@{length} IN {cursor}.kinds"
 
         def term(cursor: str, ab_term: Term) -> str:
             if isinstance(ab_term, AllTerm):
@@ -779,7 +779,7 @@ class ArangoGraphDB(GraphDB):
             )
         else:  # return results
             # return all pinned parts (last result is "pinned" automatically)
-            pinned = set(map(lambda x: x[2], filter(lambda x: x[0].pinned, parts)))
+            pinned = {out for part, _, out, _ in parts if part.pinned}
             sort_by = sort("r", query.sort, section_dot) if query.sort else ""
             result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
             return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars

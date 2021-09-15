@@ -43,6 +43,8 @@ from core.query.model import (
     AllTerm,
     Sort,
     SortOrder,
+    WithClauseFilter,
+    WithClause,
 )
 
 operation_p = reduce(
@@ -133,14 +135,42 @@ navigation_parser = out_p | in_p | in_out_p
 
 pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 
+with_p = lexeme(string("with"))
+count_p = lexeme(string("count"))
+
+len_empty = lexeme(string("empty")).result(WithClauseFilter("==", 0))
+len_any = lexeme(string("any")).result(WithClauseFilter(">", 0))
+
+
+@make_parser
+def with_len_parser() -> Parser:
+    yield count_p
+    op = yield operation_p
+    num = yield integer_p
+    return WithClauseFilter(op, num)
+
+
+@make_parser
+def with_clause_parser() -> Parser:
+    yield with_p
+    yield lparen_p
+    with_filter = yield len_empty | len_any | with_len_parser
+    yield comma_p
+    nav = yield navigation_parser
+    term = yield term_parser.optional()
+    with_clause = yield with_clause_parser.optional()
+    yield rparen_p
+    return WithClause(with_filter, nav, term, with_clause)
+
 
 @make_parser
 def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
+    with_clause = yield with_clause_parser.optional()
     nav = yield navigation_parser.optional()
     pinned = yield pin_parser
-    return Part(term, pinned, nav)
+    return Part(term, pinned, with_clause, nav)
 
 
 @make_parser
@@ -226,11 +256,11 @@ def match_parser() -> Parser:
 
 @make_parser
 def preamble_parser() -> Parser:
-    maybe_aggegate = yield (aggregate_parser | match_parser).optional()
+    maybe_aggregate = yield (aggregate_parser | match_parser).optional()
     maybe_preamble = yield preamble_tags_parser.optional()
     preamble = maybe_preamble if maybe_preamble else {}
-    yield colon_p if maybe_aggegate or maybe_preamble else colon_p.optional()
-    return maybe_aggegate, preamble
+    yield colon_p if maybe_aggregate or maybe_preamble else colon_p.optional()
+    return maybe_aggregate, preamble
 
 
 sort_order_p = string("asc") | string("desc")
