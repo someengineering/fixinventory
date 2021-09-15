@@ -10,7 +10,6 @@ from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
 from cloudkeeper.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
 from cloudkeeper.graph.export import (
-    get_node_attributes,
     dataclasses_to_keepercore_model,
     node_to_dict,
 )
