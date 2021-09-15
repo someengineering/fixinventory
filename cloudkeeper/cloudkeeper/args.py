@@ -79,6 +79,8 @@ def get_arg_parser(add_help: bool = True) -> ArgumentParser:
 
 def convert(value, type_goal):
     try:
+        if type_goal == bool:
+            value = str(value).capitalize()
         converted_value = type_goal(ast.literal_eval(value))
     except ValueError:
         pass
