@@ -47,8 +47,12 @@ from core.query.model import (
     WithClause,
 )
 
-operation_p = reduce(
-    lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+operation_p = (
+    reduce(
+        lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+    )
+    | lexeme(string("=")).result("==")
+    | lexeme(string("~")).result("=~")
 )
 
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
