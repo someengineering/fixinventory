@@ -149,7 +149,7 @@ len_any = lexeme(string("any")).result(WithClauseFilter(">", 0))
 
 
 @make_parser
-def with_len_parser() -> Parser:
+def with_count_parser() -> Parser:
     yield count_p
     op = yield operation_p
     num = yield integer_p
@@ -160,7 +160,7 @@ def with_len_parser() -> Parser:
 def with_clause_parser() -> Parser:
     yield with_p
     yield lparen_p
-    with_filter = yield len_empty | len_any | with_len_parser
+    with_filter = yield len_empty | len_any | with_count_parser
     yield comma_p
     nav: Navigation = yield navigation_parser
     term: Optional[Term] = yield term_parser.optional()
