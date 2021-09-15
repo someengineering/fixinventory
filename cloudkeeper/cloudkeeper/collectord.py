@@ -15,7 +15,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
 from cloudkeeper.graph import GraphContainer, Graph, sanitize, GraphExportIterator
-from cloudkeeper.graph.export import optional_origin
+from cloudkeeper.graph.export import optional_origin, node_to_dict
 from cloudkeeper.pluginloader import PluginLoader
 from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
 from cloudkeeper.args import get_arg_parser
@@ -125,16 +125,23 @@ def tasks_processor(message: Dict) -> None:
     delete_tags = task_data.get("delete", [])
     update_tags = task_data.get("update", {})
     node_data = task_data.get("node")
+    node_id = node_data.get("id")
+    node_revision = node_data.get("revision")
     result = "done"
     extra_data = {}
 
     try:
-        node = make_node(node_data)
+        node = node_from_dict(node_data)
         for delete_tag in delete_tags:
             del node.tags[delete_tag]
 
         for k, v in update_tags.items():
             node.tags[k] = v
+
+        if node_id and node_revision:
+            node_dict = node_to_dict(node)
+            node_dict.update({"id": node_id, "revision": node_revision})
+            extra_data.update({"data": node_dict})
     except Exception as e:
         log.exception("Error while updating tags")
         result = "error"
@@ -180,12 +187,18 @@ def keepercore_message_processor(
         return reply_message
 
 
-def make_node(node_data: Dict):
-    """Create an instance from keepercore graph node data"""
+def node_from_dict(node_data: Dict) -> BaseResource:
+    """Create a resource from keepercore graph node data"""
     log.debug(f"Making node from {node_data}")
     node_data_reported = node_data.get("reported", {})
+    if node_data_reported is None:
+        node_data_reported = {}
     node_data_desired = node_data.get("desired", {})
+    if node_data_desired is None:
+        node_data_desired = {}
     node_data_metadata = node_data.get("metadata", {})
+    if node_data_metadata is None:
+        node_data_metadata = {}
 
     new_node_data = dict(node_data_reported)
     del new_node_data["kind"]
@@ -201,7 +214,7 @@ def make_node(node_data: Dict):
     ancestors = {}
     for ancestor in ("cloud", "account", "region", "zone"):
         if node_data_reported.get(ancestor) and node_data_metadata.get(ancestor):
-            ancestors[f"_{ancestor}"] = make_node(
+            ancestors[f"_{ancestor}"] = node_from_dict(
                 {
                     "reported": node_data_reported[ancestor],
                     "metadata": node_data_metadata[ancestor],
@@ -229,7 +242,7 @@ def cleanup():
 
         if data.get("type") == "node":
             node_id = data.get("id")
-            node = make_node(data)
+            node = node_from_dict(data)
             node_mapping[node_id] = node
             log.debug(f"Adding node {node} to the graph")
             graph.add_node(node)

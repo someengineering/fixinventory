@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta, timezone
 from functools import reduce
 from typing import List, MutableSet, get_args, get_origin, Union, Tuple, Dict, Set, Any
 from cloudkeeper.baseresources import BaseResource
+from cloudkeeper.utils import type_str
 
 Json = Dict[str, Any]
 
@@ -175,3 +176,11 @@ def get_node_attributes(node: BaseResource) -> Dict:
         value = format_value_for_export(value)
         attributes.update({field.name: value})
     return attributes
+
+
+def node_to_dict(node: BaseResource) -> Dict:
+    return {
+        "id": node.sha256,
+        "reported": get_node_attributes(node),
+        "metadata": {"python_type": type_str(node)},
+    }
