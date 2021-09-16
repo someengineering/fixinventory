@@ -726,24 +726,68 @@ class ArangoGraphDB(GraphDB):
 
             def with_clause(in_crsr: str, clause: WithClause) -> str:
                 nonlocal query_part
+                # this is the general structure of the with_clause that is created
+                """
+                FOR cloud in foo FILTER @0 in cloud.kinds
+                    FOR account IN 0..1 OUTBOUND cloud foo_dependency
+                    OPTIONS { bfs: true, uniqueVertices: 'global' }
+                    FILTER (cloud._key==account._key) or (@1 in account.kinds)
+                        FOR region in 0..1 OUTBOUND account foo_dependency
+                        OPTIONS { bfs: true, uniqueVertices: 'global' }
+                        FILTER (cloud._key==region._key) or (@2 in region.kinds)
+                            FOR zone in 0..1 OUTBOUND region foo_dependency
+                            OPTIONS { bfs: true, uniqueVertices: 'global' }
+                            FILTER (cloud._key==zone._key) or (@3 in zone.kinds)
+                        COLLECT l4_cloud = cloud, l4_account=account, l4_region=region WITH COUNT INTO counter3
+                        FILTER (l4_cloud._key==l4_region._key) or (counter3>=0)
+                    COLLECT l3_cloud = l4_cloud, l3_account=l4_account WITH COUNT INTO counter2
+                    FILTER (l3_cloud._key==l3_account._key) or (counter2>=0) // ==2 regions
+                COLLECT l2_cloud = l3_cloud WITH COUNT INTO counter1
+                FILTER (counter1>=0) //counter is +1 since the node itself is always bypassed
+                RETURN ({cloud: l2_cloud._key, count:counter1})
+                """
+
+                def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
+                    nav = cl.navigation
+                    crsr = f"l{depth}crsr"
+                    direction = "OUTBOUND" if nav.is_out() else "INBOUND"
+                    unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                    filter_clause = f"{term(crsr, cl.term)}" if cl.term else "true"
+                    inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
+                    filter_root = f"(l0crsr._key=={crsr}._key) or " if depth > 0 else ""
+                    return (
+                        f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
+                        f"{self.edge_collection(nav.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                        f"FILTER {filter_root}{filter_clause} "
+                    ) + inner
+
+                def collect_filter(cl: WithClause, depth: int) -> str:
+                    fltr = cl.with_filter
+                    if cl.with_clause:
+                        collects = ", ".join(f"l{depth-1}_l{i}_res=l{depth}_l{i}_res" for i in range(0, depth))
+                    else:
+                        collects = ", ".join(f"l{depth-1}_l{i}_res=l{i}crsr" for i in range(0, depth))
+
+                    if depth == 1:
+                        # note: the traversal starts from 0 (only 0 and 1 is allowed)
+                        # when we start from 1: increase the count by one to not count the start node
+                        # when we start from 0: the start node is expected in the count already
+                        filter_term = f"FILTER counter1{fltr.op}{fltr.num + cl.navigation.start}"
+                    else:
+                        root_key = f"l{depth-1}_l0_res._key==l{depth-1}_l{depth-1}_res._key"
+                        filter_term = f"FILTER ({root_key}) or (counter{depth}{fltr.op}{fltr.num})"
+
+                    inner = collect_filter(cl.with_clause, depth + 1) if cl.with_clause else ""
+                    return inner + f"COLLECT {collects} WITH COUNT INTO counter{depth} {filter_term} "
+
                 out = f"step{idx}_with"
-                crsr = f"w{idx}"
-                nav = clause.navigation
-                fltr = clause.with_filter
-                direction = "OUTBOUND" if nav.is_out() else "INBOUND"
-                unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
-                filter_clause = f"{term(crsr, clause.term)}" if clause.term else "true"
+                crsr = f"l0crsr"
+
                 query_part += (
-                    f"LET {out} =( FOR in{idx} in {in_crsr} "
-                    f"FOR {crsr} IN 0..{nav.until} {direction} in{idx} "
-                    f"{self.edge_collection(nav.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
-                    f"FILTER in{idx}._key=={crsr}._key or {filter_clause} "
-                    f"COLLECT p{idx}=in{idx} with COUNT INTO counter{idx} "
-                    # note: the traversal starts from 0 (only 0 and 1 is allowed)
-                    # when we start from 1: increase the count by one to not count the start node
-                    # when we start from 0: the start node is expected in the count already
-                    f"FILTER counter{idx}{fltr.op}{fltr.num+clause.navigation.start} "
-                    f"RETURN p{idx}) "
+                    f"LET {out} =( FOR {crsr} in {in_crsr} "
+                    + traversal_filter(clause, crsr, 1)
+                    + collect_filter(clause, 1)
+                    + f"RETURN l0_l0_res) "
                 )
                 return out
 
