@@ -299,7 +299,7 @@ def test_load(model_json: str) -> None:
 
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
-    assert len(graph.nodes()) == 5
+    assert len(graph.nodes()) == 6
     assert len(graph.edges()) == 3
 
 
