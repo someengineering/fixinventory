@@ -68,7 +68,8 @@ disable=
     no-self-use,
     unused-argument,
     useless-return,
-    broad-except
+    broad-except,
+    too-many-statements
 
 
 [REPORTS]

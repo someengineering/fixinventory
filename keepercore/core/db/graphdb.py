@@ -727,32 +727,31 @@ class ArangoGraphDB(GraphDB):
             def with_clause(in_crsr: str, clause: WithClause) -> str:
                 nonlocal query_part
                 # this is the general structure of the with_clause that is created
-                """
-                FOR cloud in foo FILTER @0 in cloud.kinds
-                    FOR account IN 0..1 OUTBOUND cloud foo_dependency
-                    OPTIONS { bfs: true, uniqueVertices: 'global' }
-                    FILTER (cloud._key==account._key) or (@1 in account.kinds)
-                        FOR region in 0..1 OUTBOUND account foo_dependency
-                        OPTIONS { bfs: true, uniqueVertices: 'global' }
-                        FILTER (cloud._key==region._key) or (@2 in region.kinds)
-                            FOR zone in 0..1 OUTBOUND region foo_dependency
-                            OPTIONS { bfs: true, uniqueVertices: 'global' }
-                            FILTER (cloud._key==zone._key) or (@3 in zone.kinds)
-                        COLLECT l4_cloud = cloud, l4_account=account, l4_region=region WITH COUNT INTO counter3
-                        FILTER (l4_cloud._key==l4_region._key) or (counter3>=0)
-                    COLLECT l3_cloud = l4_cloud, l3_account=l4_account WITH COUNT INTO counter2
-                    FILTER (l3_cloud._key==l3_account._key) or (counter2>=0) // ==2 regions
-                COLLECT l2_cloud = l3_cloud WITH COUNT INTO counter1
-                FILTER (counter1>=0) //counter is +1 since the node itself is always bypassed
-                RETURN ({cloud: l2_cloud._key, count:counter1})
-                """
+                #
+                # FOR cloud in foo FILTER @0 in cloud.kinds
+                #    FOR account IN 0..1 OUTBOUND cloud foo_dependency
+                #    OPTIONS { bfs: true, uniqueVertices: 'global' }
+                #    FILTER (cloud._key==account._key) or (@1 in account.kinds)
+                #        FOR region in 0..1 OUTBOUND account foo_dependency
+                #        OPTIONS { bfs: true, uniqueVertices: 'global' }
+                #         FILTER (cloud._key==region._key) or (@2 in region.kinds)
+                #             FOR zone in 0..1 OUTBOUND region foo_dependency
+                #             OPTIONS { bfs: true, uniqueVertices: 'global' }
+                #             FILTER (cloud._key==zone._key) or (@3 in zone.kinds)
+                #         COLLECT l4_cloud = cloud, l4_account=account, l4_region=region WITH COUNT INTO counter3
+                #         FILTER (l4_cloud._key==l4_region._key) or (counter3>=0)
+                #     COLLECT l3_cloud = l4_cloud, l3_account=l4_account WITH COUNT INTO counter2
+                #     FILTER (l3_cloud._key==l3_account._key) or (counter2>=0) // ==2 regions
+                # COLLECT l2_cloud = l3_cloud WITH COUNT INTO counter1
+                # FILTER (counter1>=0) //counter is +1 since the node itself is always bypassed
+                # RETURN ({cloud: l2_cloud._key, count:counter1})
 
                 def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
                     nav = cl.navigation
                     crsr = f"l{depth}crsr"
                     direction = "OUTBOUND" if nav.is_out() else "INBOUND"
                     unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
-                    filter_clause = f"{term(crsr, cl.term)}" if cl.term else "true"
+                    filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                     inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                     filter_root = f"(l0crsr._key=={crsr}._key) or " if depth > 0 else ""
                     return (
@@ -781,28 +780,28 @@ class ArangoGraphDB(GraphDB):
                     return inner + f"COLLECT {collects} WITH COUNT INTO counter{depth} {filter_term} "
 
                 out = f"step{idx}_with"
-                crsr = f"l0crsr"
+                out_crsr = "l0crsr"
 
                 query_part += (
-                    f"LET {out} =( FOR {crsr} in {in_crsr} "
-                    + traversal_filter(clause, crsr, 1)
+                    f"LET {out} =( FOR {out_crsr} in {in_crsr} "
+                    + traversal_filter(clause, out_crsr, 1)
                     + collect_filter(clause, 1)
-                    + f"RETURN l0_l0_res) "
+                    + "RETURN l0_l0_res) "
                 )
                 return out
 
             def inout(in_crsr: str, navigation: Navigation) -> str:
                 nonlocal query_part
                 out = f"step{idx}_navigation"
-                crsr = f"n{idx}"
+                out_crsr = f"n{idx}"
                 link = f"link{idx}"
                 direction = "OUTBOUND" if navigation.is_out() else "INBOUND"
                 unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
                 query_part += (
                     f"LET {out} =( FOR in{idx} in {in_crsr} "
-                    f"FOR {crsr}, {link} IN {navigation.start}..{navigation.until} {direction} in{idx} "
+                    f"FOR {out_crsr}, {link} IN {navigation.start}..{navigation.until} {direction} in{idx} "
                     f"{self.edge_collection(navigation.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
-                    f"RETURN MERGE({crsr}, {{_from:{link}._from, _to:{link}._to}})) "
+                    f"RETURN MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})) "
                 )
                 return out
 
@@ -842,8 +841,8 @@ class ArangoGraphDB(GraphDB):
 
         parts = []
         crsr = self.vertex_name
-        for idx, part_tuple in enumerate(reversed(query.parts)):
-            part_tuple = part(part_tuple, idx, crsr)
+        for idx, p in enumerate(reversed(query.parts)):
+            part_tuple = part(p, idx, crsr)
             parts.append(part_tuple)
             crsr = part_tuple[1]
 
