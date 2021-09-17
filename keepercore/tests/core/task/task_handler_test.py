@@ -122,6 +122,16 @@ async def test_parse_job_line_event_and_time_trigger(task_handler: TaskHandler) 
 
 
 @pytest.mark.asyncio
+async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
+    job = await task_handler.parse_job_line("test", 'cleanup_plan : match t2 == "node" | clean')
+    assert job.trigger == EventTrigger("cleanup_plan")
+    assert job.command.command == 'match t2 == "node" | clean'
+    assert job.wait is None
+    with pytest.raises(ParseError):
+        await task_handler.parse_job_line("test", 'cleanup_plan match t2 == "node" | clean')
+
+
+@pytest.mark.asyncio
 async def test_recover_workflow(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
