@@ -58,8 +58,11 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
-        yield {}  # only here for mypy type check (detects coroutine otherwise)
+    def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+        pass
+
+    def update_nodes_metadata(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+        pass
 
     @abstractmethod
     async def delete_node(self, node_id: str) -> None:
@@ -185,10 +188,16 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn()
             return trafo(result["new"])
 
-    async def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
-        bind_var = {"desired": patch, "node_ids": node_ids}
+    def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+        return self.update_nodes_section(Section.desired, patch, node_ids)
+
+    def update_nodes_metadata(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+        return self.update_nodes_section(Section.metadata, patch, node_ids)
+
+    async def update_nodes_section(self, section: str, patch: Json, node_ids: list[str]) -> AsyncGenerator[Json, None]:
+        bind_var = {"patch": patch, "node_ids": node_ids}
         trafo = self.document_to_instance_fn()
-        with await self.db.aql(query=self.query_update_desired_many(), bind_vars=bind_var) as cursor:
+        with await self.db.aql(query=self.query_update_desired_metadata_many(section), bind_vars=bind_var) as cursor:
             for element in cursor:
                 yield trafo(element)
 
@@ -983,12 +992,12 @@ class ArangoGraphDB(GraphDB):
         RETURN true
         """
 
-    def query_update_desired_many(self) -> str:
+    def query_update_desired_metadata_many(self, section: str) -> str:
         return f"""
         FOR a IN {self.vertex_name}
         FILTER a._key in @node_ids
-        UPDATE a with {{ "desired": @desired }} IN {self.vertex_name}
-        RETURN {{"_key": NEW._key, "reported": NEW.reported, "desired": NEW.desired }}
+        UPDATE a with {{ "{section}": @patch }} IN {self.vertex_name}
+        RETURN NEW
         """
 
     def query_count_direct_children(self) -> str:
@@ -1043,10 +1052,25 @@ class EventGraphDB(GraphDB):
         await self.event_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
         return result
 
-    async def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    async def update_nodes_desired(
+        self,
+        patch: Json,
+        node_ids: list[str],
+        **kwargs: Any,
+    ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_desired(patch, node_ids, **kwargs)
         await self.event_bus.emit_event(
             CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
+        )
+        async for a in result:
+            yield a
+
+    async def update_nodes_metadata(
+        self, patch: Json, node_ids: list[str], **kwargs: Any
+    ) -> AsyncGenerator[Json, None]:
+        result = self.real.update_nodes_metadata(patch, node_ids, **kwargs)
+        await self.event_bus.emit_event(
+            CoreEvent.NodesMetadataUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
         )
         async for a in result:
             yield a

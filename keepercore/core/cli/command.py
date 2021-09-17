@@ -430,13 +430,13 @@ class SetDesiredState(CLICommand, ABC):
                 node_ids.append(item["id"])
             elif isinstance(item, str):
                 node_ids.append(item)
-        async for update in db.update_nodes_desired(patch, node_ids, with_system_props=True):
+        async for update in db.update_nodes_desired(patch, node_ids):
             yield update
 
 
-class DesireCommand(SetDesiredState):
+class SetDesiredCommand(SetDesiredState):
     """
-    Usage: desire [property]=[value]
+    Usage: set_desired [property]=[value]
 
     Set one or more desired properties for every database node that is received on the input channel.
     The desired state of each node in the database is merged with this new desired state, so that
@@ -456,19 +456,19 @@ class DesireCommand(SetDesiredState):
 
 
     Example:
-        query isinstance("ec2") | desire a=b b="c" num=2   # will result in
+        query isinstance("ec2") | set_desired a=b b="c" num=2   # will result in
             [
                 { "id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
                 .
                 .
                 { "id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
             ]
-        json [{"id": "id1"}, {"id": "id2"}] | desire a=b
+        json [{"id": "id1"}, {"id": "id2"}] | set_desired a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
             ]
-        json ["id1", "id2"] | desire a=b
+        json ["id1", "id2"] | set_desired a=b
             [
                 { "id": "id1", "desired": { "a": b }, "reported": { .. } },
                 { "id": "id2", "desired": { "a": b }, "reported": { .. } },
@@ -477,7 +477,7 @@ class DesireCommand(SetDesiredState):
 
     @property
     def name(self) -> str:
-        return "desire"
+        return "set_desired"
 
     def info(self) -> str:
         return "Allows to set arbitrary properties as desired for all incoming database objects."
@@ -531,6 +531,122 @@ class CleanCommand(SetDesiredState):
 
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         return {"clean": True}
+
+
+class SetMetadataState(CLICommand, ABC):
+    @abstractmethod
+    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+        # deriving classes need to define how to patch
+        pass
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        buffer_size = 1000
+        func = partial(self.set_metadata, env["graph"], self.patch(arg, **env))
+        return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
+
+    async def set_metadata(self, graph_name: str, patch: Json, items: list[Json]) -> AsyncGenerator[JsonElement, None]:
+        db = self.dependencies.db_access.get_graph_db(graph_name)
+        node_ids = []
+        for item in items:
+            if "id" in item:
+                node_ids.append(item["id"])
+            elif isinstance(item, str):
+                node_ids.append(item)
+        async for update in db.update_nodes_metadata(patch, node_ids):
+            yield update
+
+
+class SetMetadataCommand(SetMetadataState):
+    """
+    Usage: set_metadata [property]=[value]
+
+    Set one or more metadata properties for every database node that is received on the input channel.
+    The metadata state of each node in the database is merged with this new metadata state, so that
+    existing metadata state not defined in this command is not touched.
+
+    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
+    All objects coming from a query will have a property `id`.
+
+    Parameter:
+       One or more parameters of form [property]=[value] separated by a space.
+       [property] is the name of the property to set.
+       [value] is a json primitive type: string, int, number, boolean or null.
+       Quotation marks for strings are optional.
+
+
+    Example:
+        query isinstance("ec2") | set_metadata a=b b="c" num=2   # will result in
+            [
+                { "id": "abc" "metadata": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
+                .
+                .
+                { "id": "xyz" "metadata": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
+            ]
+        json [{"id": "id1"}, {"id": "id2"}] | set_metadata a=b
+            [
+                { "id": "id1", "metadata": { "a": b }, "reported": { .. } },
+                { "id": "id2", "metadata": { "a": b }, "reported": { .. } },
+            ]
+        json ["id1", "id2"] | set_metadata a=b
+            [
+                { "id": "id1", "metadata": { "a": b }, "reported": { .. } },
+                { "id": "id2", "metadata": { "a": b }, "reported": { .. } },
+            ]
+    """
+
+    @property
+    def name(self) -> str:
+        return "set_metadata"
+
+    def info(self) -> str:
+        return "Allows to set arbitrary properties as metadata for all incoming database objects."
+
+    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+        if arg and arg.strip():
+            return key_values_parser.parse(arg)  # type: ignore
+        else:
+            return {}
+
+
+class ProtectCommand(SetMetadataState):
+    """
+    Usage: protect
+
+    Mark incoming objects as protected.
+    All objects marked as such will be safe from deletion.
+
+    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
+    All objects coming from a query will have a property `id`.
+
+    Example:
+        query isinstance("ec2") and atime<"-2d" | protect
+            [
+                { "id": "abc" "metadata": { "protected": true }, "reported": { .. } },
+                .
+                .
+                { "id": "xyz" "metadata": { "protected": true }, "reported": { .. } },
+            ]
+        json [{"id": "id1"}, {"id": "id2"}] | clean
+            [
+                { "id": "id1", "metadata": { "protected": true }, "reported": { .. } },
+                { "id": "id2", "metadata": { "protected": true }, "reported": { .. } },
+            ]
+        json ["id1", "id2"] | clean
+            [
+                { "id": "id1", "metadata": { "protected": true }, "reported": { .. } },
+                { "id": "id2", "metadata": { "protected": true }, "reported": { .. } },
+            ]
+    """
+
+    @property
+    def name(self) -> str:
+        return "protect"
+
+    def info(self) -> str:
+        return "Mark all incoming database objects as protected."
+
+    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+        return {"protected": True}
 
 
 class FormatCommand(CLICommand):
@@ -828,10 +944,12 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
         ChunkCommand(d),
         CleanCommand(d),
         CountCommand(d),
-        DesireCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        ProtectCommand(d),
+        SetDesiredCommand(d),
+        SetMetadataCommand(d),
         TagCommand(d),
         TailCommand(d),
         UniqCommand(d),

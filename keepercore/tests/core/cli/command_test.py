@@ -145,11 +145,19 @@ async def test_uniq_command(cli: CLI, json_source: str) -> None:
 
 
 @pytest.mark.asyncio
-async def test_desire_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query is("foo") | desire a="test" b=1 c=true', stream.list)
+async def test_set_desired_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command('query is("foo") | set_desired a="test" b=1 c=true', stream.list)
     assert len(result[0]) == 13
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["desired"].items()
+
+
+@pytest.mark.asyncio
+async def test_set_metadata_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command('query is("foo") | set_metadata a="test" b=1 c=true', stream.list)
+    assert len(result[0]) == 13
+    for elem in result[0]:
+        assert {"a": "test", "b": 1, "c": True}.items() <= elem["metadata"].items()
 
 
 @pytest.mark.asyncio
@@ -158,6 +166,14 @@ async def test_clean_command(cli: CLI) -> None:
     assert len(result[0]) == 13
     for elem in result[0]:
         assert {"clean": True}.items() <= elem["desired"].items()
+
+
+@pytest.mark.asyncio
+async def test_protect_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command('query is("foo") | protect', stream.list)
+    assert len(result[0]) == 13
+    for elem in result[0]:
+        assert {"protected": True}.items() <= elem["metadata"].items()
 
 
 @pytest.mark.asyncio

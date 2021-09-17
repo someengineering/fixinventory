@@ -19,6 +19,7 @@ class CoreEvent:
     NodeCreated = "node-created"
     NodeUpdated = "node-updated"
     NodesDesiredUpdated = "nodes-desired-updated"
+    NodesMetadataUpdated = "nodes-metadata-updated"
     NodeDeleted = "node-deleted"
     GraphMerged = "graph-merged"
     BatchUpdateGraphMerged = "batch-update-graph-merged"

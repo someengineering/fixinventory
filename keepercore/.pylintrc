@@ -69,7 +69,8 @@ disable=
     unused-argument,
     useless-return,
     broad-except,
-    too-many-statements
+    too-many-statements,
+    invalid-overridden-method
 
 
 [REPORTS]
