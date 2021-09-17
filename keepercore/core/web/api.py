@@ -8,7 +8,7 @@ import os
 from datetime import timedelta
 from functools import partial
 from random import SystemRandom
-from typing import Union, AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
+from typing import AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
 
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
@@ -25,7 +25,7 @@ from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
-from core.model.graph_access import GraphBuilder
+from core.model.graph_access import GraphBuilder, Section
 from core.model.model import Kind, Model
 from core.worker_task_queue import (
     WorkerTaskDescription,
@@ -44,7 +44,6 @@ from core.task.task_handler import TaskHandler
 from core.util import force_gen, uuid_str
 
 log = logging.getLogger(__name__)
-Section = Union[str, list[str]]
 RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
@@ -68,8 +67,8 @@ class Api:
         self.cli = cli
         self.app = web.Application(middlewares=[self.error_handler])
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
-        r = "reported"
-        d = "desired"
+        r = Section.reported
+        d = Section.desired
         SwaggerFile(
             self.app,
             spec_file=f"{static_path}/api-doc.yaml",

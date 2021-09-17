@@ -299,8 +299,8 @@ def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
     parts = yield part_parser.at_least(1)
     edge_type = preamble.get("edge_type", EdgeType.default)
-    if edge_type not in EdgeType.allowed_edge_types:
-        raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.allowed_edge_types}")
+    if edge_type not in EdgeType.all:
+        raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.all}")
 
     def set_in_with_clause(wc: WithClause) -> WithClause:
         nav = wc.navigation

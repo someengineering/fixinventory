@@ -34,6 +34,7 @@ from core.cli.cli import (
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError, CLIExecutionError
+from core.model.graph_access import Section
 from core.model.typed_model import to_js, class_fqn
 from core.parse_util import quoted_or_simple_string_dp
 from core.query.query_parser import (
@@ -46,7 +47,11 @@ from core.worker_task_queue import WorkerTask
 
 # check if a is a json node element
 def is_node(a: Any) -> bool:
-    return "id" in a and "reported" in a and "desired" in a and "metadata" in a if isinstance(a, dict) else False
+    return (
+        "id" in a and Section.reported in a and Section.desired in a and Section.metadata in a
+        if isinstance(a, dict)
+        else False
+    )
 
 
 class EchoSource(CLISource):

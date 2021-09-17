@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from core.model.graph_access import Section
 from core.model.model import DateTimeKind
 from core.model.resolve_in_graph import NodePath
 from core.types import Json
@@ -24,12 +25,12 @@ class NoAdjust(AdjustNode):
 class DirectAdjuster(AdjustNode):
 
     # this holds a datetime
-    expires_value = [["reported", "tags", "cloudkeeper:expires"]]
+    expires_value = [[Section.reported, "tags", "cloudkeeper:expires"]]
 
     # this holds a relative timedelta
     expiration_values = [
-        ["reported", "tags", "cloudkeeper:expiration"],
-        ["reported", "tags", "expiration"],
+        [Section.reported, "tags", "cloudkeeper:expiration"],
+        [Section.reported, "tags", "expiration"],
     ]
 
     def adjust(self, json: Json) -> Json:

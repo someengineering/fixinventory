@@ -138,7 +138,7 @@ def test_builder(person_model: Model) -> None:
     builder.add_from_json({"from": "1", "to": "2"})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
-    assert str(no_node.value) == "Vertex 2 was used in an edge definition but not provided as vertex!"
+    assert str(no_node.value) == "2 was used in an edge definition but not provided as vertex!"
     builder.add_from_json({"id": "2", "reported": max_m})
     builder.add_from_json({"id": "3", "reported": max_m})
     with pytest.raises(AssertionError) as no_node:

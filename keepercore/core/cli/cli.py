@@ -17,7 +17,7 @@ from parsy import Parser
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.event_bus import EventBus
-from core.model.graph_access import EdgeType
+from core.model.graph_access import EdgeType, Section
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import class_fqn
 from core.parse_util import make_parser, literal_dp, equals_dp, json_value_dp, space_dp
@@ -168,7 +168,7 @@ class ReportedPart(QueryPart):
 
     @property
     def name(self) -> str:
-        return "reported"
+        return Section.reported
 
     def info(self) -> str:
         return "Matches a property in the reported section."
@@ -198,7 +198,7 @@ class DesiredPart(QueryPart):
 
     @property
     def name(self) -> str:
-        return "desired"
+        return Section.desired
 
     def info(self) -> str:
         return "Matches a property in the desired section."
@@ -228,7 +228,7 @@ class MetadataPart(QueryPart):
 
     @property
     def name(self) -> str:
-        return "metadata"
+        return Section.metadata
 
     def info(self) -> str:
         return "Matches a property in the metadata section."
@@ -525,11 +525,11 @@ class CLI:
         for part, arg_in in parts:
             arg = arg_in.strip()
             if isinstance(part, ReportedPart):
-                query = query.filter(term_parser.parse(arg).on_section("reported"))
+                query = query.filter(term_parser.parse(arg).on_section(Section.reported))
             elif isinstance(part, DesiredPart):
-                query = query.filter(term_parser.parse(arg).on_section("desired"))
+                query = query.filter(term_parser.parse(arg).on_section(Section.desired))
             elif isinstance(part, MetadataPart):
-                query = query.filter(term_parser.parse(arg).on_section("metadata"))
+                query = query.filter(term_parser.parse(arg).on_section(Section.metadata))
             elif isinstance(part, Predecessor):
                 query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
             elif isinstance(part, Successor):

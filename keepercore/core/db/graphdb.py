@@ -19,7 +19,7 @@ from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
 from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
-from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
+from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, Complex
 from core.model.resolve_in_graph import NodePath
 from core.query.model import (
@@ -168,7 +168,7 @@ class ArangoGraphDB(GraphDB):
         else:
             existing = node[section] if section in node else {}
             node[section] = existing | patch
-            kind = model[node["reported"]]
+            kind = model[node[Section.reported]]
             coerced = kind.check_valid(node[section], ignore_missing=True)
             node[section] = coerced if coerced is not None else node[section]
             # call adjuster on resulting node
@@ -276,16 +276,14 @@ class ArangoGraphDB(GraphDB):
 
     async def wipe(self) -> None:
         await self.db.truncate(self.vertex_name)
-        for edge_type in EdgeType.allowed_edge_types:
+        for edge_type in EdgeType.all:
             await self.db.truncate(self.edge_collection(edge_type))
         await self.insert_genesis_data()
-
-    sections = {"reported", "desired", "metadata"}
 
     @staticmethod
     def document_to_instance_fn() -> Callable[[Json], Optional[Json]]:
         def props(doc: Json) -> Json:
-            return {prop: doc[prop] for prop in ArangoGraphDB.sections if prop in doc}
+            return {prop: doc[prop] for prop in Section.all if prop in doc}
 
         def render_prop(doc: Json) -> Optional[Json]:
             result = props(doc)
@@ -322,12 +320,12 @@ class ArangoGraphDB(GraphDB):
         edge_inserts = [
             f'for e in {temp_name} filter e.action=="edge_insert" and e.edge_type=="{a}" '
             f"insert e.data in {self.edge_collection(a)}"
-            for a in EdgeType.allowed_edge_types
+            for a in EdgeType.all
         ]
         edge_deletes = [
             f'for e in {temp_name} filter e.action=="edge_delete" and e.edge_type=="{a}" '
             f"remove e.data in {self.edge_collection(a)}"
-            for a in EdgeType.allowed_edge_types
+            for a in EdgeType.all
         ]
         updates = "\n".join(
             map(
@@ -348,7 +346,7 @@ class ArangoGraphDB(GraphDB):
         await self.db.execute_transaction(
             f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
             read=[temp_name],
-            write=[self.edge_collection(a) for a in EdgeType.allowed_edge_types] + [self.vertex_name, self.in_progress],
+            write=[self.edge_collection(a) for a in EdgeType.all] + [self.vertex_name, self.in_progress],
         )
 
     async def mark_update(
@@ -376,7 +374,7 @@ class ArangoGraphDB(GraphDB):
         await db.delete(self.in_progress, doc, ignore_missing=True)
 
     def adjust_node(self, model: Model, json: Json, created_at: Any) -> Json:
-        reported = json["reported"]
+        reported = json[Section.reported]
         # preserve ctime in reported: if it is not set, use the creation time of the object
         if not reported.get("ctime", None):
             kind = model[reported]
@@ -400,9 +398,9 @@ class ArangoGraphDB(GraphDB):
             js_doc: Json = {
                 "_key": elem["id"],
                 "hash": elem.get("hash", None),
-                "reported": elem.get("reported", None),
-                "desired": elem.get("desired", None),
-                "metadata": elem.get("metadata", None),
+                "reported": elem.get(Section.reported, None),
+                "desired": elem.get(Section.desired, None),
+                "metadata": elem.get(Section.metadata, None),
                 "refs": elem.get("refs", None),
                 "kinds": elem.get("kinds", None),
                 "flat": elem.get("flat", None),
@@ -427,9 +425,9 @@ class ArangoGraphDB(GraphDB):
                 js = {
                     "_key": key,
                     "hash": adjusted.get("hash", None),
-                    "reported": adjusted.get("reported", None),
-                    "desired": adjusted.get("desired", None),
-                    "metadata": adjusted.get("metadata", None),
+                    "reported": adjusted.get(Section.reported, None),
+                    "desired": adjusted.get(Section.desired, None),
+                    "metadata": adjusted.get(Section.metadata, None),
                     "refs": adjusted.get("refs", None),
                     "kinds": adjusted.get("kinds", None),
                     "flat": adjusted.get("flat", None),
@@ -500,7 +498,7 @@ class ArangoGraphDB(GraphDB):
             # check all edges in all relevant edge-collections
             edge_inserts = defaultdict(list)
             edge_deletes = defaultdict(list)
-            for edge_type in EdgeType.allowed_edge_types:
+            for edge_type in EdgeType.all:
                 query, bind = edge_query(edge_type)
                 with await self.db.aql(query, bind_vars=bind) as ec:
                     edge_info, gei, ged = self.prepare_edges(sub, ec, edge_type)
@@ -578,7 +576,7 @@ class ArangoGraphDB(GraphDB):
             await execute_many_async(async_fn, name, array)
 
         async def update_directly() -> None:
-            edge_collections = [self.edge_collection(a) for a in EdgeType.allowed_edge_types]
+            edge_collections = [self.edge_collection(a) for a in EdgeType.all]
             update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
                 # note: all requests are done sequentially on purpose
@@ -682,7 +680,7 @@ class ArangoGraphDB(GraphDB):
             # key of the predicate is the len of the dict as string
             length = str(len(bind_vars))
             # if no section is given, the path is prefixed by the section: remove the section
-            lookup = path if query_model.query_section else self.next_dot.sub("", path, 1)
+            lookup = path if query_model.query_section else self.no_section.sub("", path, 1)
             bind_vars[length] = model.kind_by_path(lookup).coerce(p.value)
             return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
 
@@ -830,7 +828,7 @@ class ArangoGraphDB(GraphDB):
                 m_parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
 
             result_parts = []
-            for section in ["reported", "desired", "metadata"]:
+            for section in Section.all:
                 parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.{section}" for p in parents]) + "}"
                 result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
 
@@ -868,7 +866,7 @@ class ArangoGraphDB(GraphDB):
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
         sha = GraphBuilder.content_hash(root_data)
-        root_node = {"_key": "root", "id": "root", "reported": root_data, "kinds": ["graph_root"], "hash": sha}
+        root_node = {"_key": "root", "id": "root", Section.reported: root_data, "kinds": ["graph_root"], "hash": sha}
         try:
             await self.db.insert(self.vertex_name, root_node)
         except Exception:
@@ -922,7 +920,7 @@ class ArangoGraphDB(GraphDB):
                     },
                 )
 
-        for edge_type in EdgeType.allowed_edge_types:
+        for edge_type in EdgeType.all:
             edge_type_name = self.edge_collection(edge_type)
             await create_update_graph(self.name, self.vertex_name, edge_type_name)
 
@@ -1021,8 +1019,8 @@ class ArangoGraphDB(GraphDB):
         RETURN change
         """
 
-    # detect the string until the first dot (including the dot)
-    next_dot = re.compile("^[^.]+[.]")
+    # remove the section plus dot if it exists in the string: reported.foo => foo
+    no_section = re.compile("^(" + "|".join(f"({s})" for s in Section.all) + ")[.]")
 
 
 class EventGraphDB(GraphDB):
