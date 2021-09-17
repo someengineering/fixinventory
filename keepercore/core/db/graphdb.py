@@ -681,7 +681,9 @@ class ArangoGraphDB(GraphDB):
 
             # key of the predicate is the len of the dict as string
             length = str(len(bind_vars))
-            bind_vars[length] = model.kind_by_path(path).coerce(p.value)
+            # if no section is given, the path is prefixed by the section: remove the section
+            lookup = path if query_model.query_section else self.next_dot.sub("", path, 1)
+            bind_vars[length] = model.kind_by_path(lookup).coerce(p.value)
             return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
 
         def with_id(cursor: str, t: IdTerm) -> str:
@@ -1018,6 +1020,9 @@ class ArangoGraphDB(GraphDB):
         FILTER @root_node_ids any in change.parent_node_ids OR @root_node_ids any in change.root_node_ids
         RETURN change
         """
+
+    # detect the string until the first dot (including the dot)
+    next_dot = re.compile("^[^.]+[.]")
 
 
 class EventGraphDB(GraphDB):

@@ -625,6 +625,15 @@ predefined_kinds = [
         ],
         allow_unknown_props=True,
     ),
+    Complex(
+        "predefined_properties",
+        [],
+        [
+            Property("kind", "string", False, "The kind property of every node."),
+            Property("ctime", "datetime", False, "datetime when the node has been created."),
+            Property("expires", "datetime", False, "datetime when the node expires."),
+        ],
+    ),
 ]
 
 
