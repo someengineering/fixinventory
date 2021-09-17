@@ -123,7 +123,7 @@ class TaskHandler(JobHandler):
         return updated
 
     async def start_task(self, descriptor: TaskDescription) -> None:
-        existing = first(lambda x: x.descriptor.id == descriptor.id, self.tasks.values())
+        existing = first(lambda x: x.descriptor.id == descriptor.id and x.is_active, self.tasks.values())
         if existing:
             if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
                 log.info(
@@ -299,6 +299,15 @@ class TaskHandler(JobHandler):
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
         return await self.start_task(descriptor)
 
+    async def check_for_task_to_start_on_message(self, msg: Message) -> None:
+        # check if this event triggers any new task
+        for trigger, descriptor in self.registered_event_trigger_by_message_type.get(msg.message_type, []):
+            if msg.message_type == trigger.message_type:
+                comp = trigger.filter_data
+                if {key: msg.data.get(key) for key in comp} == comp if comp else True:
+                    log.info(f"Event {msg.message_type} triggers task: {descriptor.name}")
+                    await self.start_task(descriptor)
+
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
         for wi in list(self.tasks.values()):
@@ -307,16 +316,11 @@ class TaskHandler(JobHandler):
                 await self.execute_task_commands(wi, commands, event)
 
         # check if this event triggers any new task
-        for trigger, descriptor in self.registered_event_trigger_by_message_type.get(event.message_type, []):
-            if event.message_type == trigger.message_type:
-                comp = trigger.filter_data
-                if {key: event.data.get(key) for key in comp} == comp if comp else True:
-                    log.info(f"Event {event.message_type} triggers task: {descriptor.name}")
-                    await self.start_task(descriptor)
+        await self.check_for_task_to_start_on_message(event)
 
     # noinspection PyMethodMayBeStatic
     async def handle_action(self, action: Action) -> None:
-        log.info(f"Received action: {action.step_name}:{action.message_type} of {action.task_id}")
+        await self.check_for_task_to_start_on_message(action)
 
     async def handle_action_result(
         self, done: Union[ActionDone, ActionError], fn: Callable[[RunningTask], Sequence[TaskCommand]]
@@ -458,25 +462,39 @@ class TaskHandler(JobHandler):
         :param mutable: defines if the resulting job is mutable or not.
         :return: the parsed jon
         """
-        try:
-            parts = re.split("\\s+", line.strip(), 5)
+
+        stripped = line.strip()
+        uid = uuid_str(stripped)[0:8]
+        timeout = timedelta(hours=1)
+        wait_timeout = timedelta(hours=24)
+
+        async def parse_with_cron() -> Job:
+            parts = re.split("\\s+", stripped, 5)
             if len(parts) != 6:
-                raise ValueError(f"Invalid job {line}")
-            uid = uuid_str(line.strip())[0:8]
+                raise ValueError(f"Invalid job {stripped}")
             wait: Optional[tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
             command = parts[5]
             # check if we also need to wait for an event: name_of_event : command
-            if re.match("^[A-Za-z][A-Za-z0-9_\\-]*\\s*:", command):
+            if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
-                wait = EventTrigger(event), timedelta(hours=24)
+                wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, replace_place_holder=False)
-            return Job(uid, ExecuteCommand(command), trigger, timedelta(hours=1), wait, mutable)
+            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, mutable)
+
+        async def parse_event() -> Job:
+            event, command = re.split("\\s*:\\s*", stripped, 1)
+            await self.cli.evaluate_cli_command(command, replace_place_holder=False)
+            return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, mutable=mutable)
+
+        try:
+            return await (parse_event() if self.event_re.match(stripped) else parse_with_cron())
         except CLIParseError as ex:
             raise ex
         except Exception as ex:
-            raise ParseError(f"Can not parse job command line: {line}") from ex
+            raise ParseError(f"Can not parse job command line: {stripped}") from ex
 
+    event_re = re.compile("^[A-Za-z][A-Za-z0-9_\\-]*\\s*:")
     # endregion
 
     # region known task descriptors

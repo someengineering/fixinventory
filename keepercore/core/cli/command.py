@@ -597,18 +597,21 @@ class JobsSource(CLISource):
 
 class AddJobSource(CLISource):
     """
-    Usage: add_job <cron_expression> [<event_name> :] <command>
+    Usage: add_job [<cron_expression>] [<event_name> :] <command>
 
-    Add a job which runs scheduled via define cron expression.
-    Optional: once the schedule triggers this job, it is possible to wait for an incoming event, before the command
-    is executed.
+    Add a job which either runs
+        - scheduled via defined cron expression
+        - event triggered via defined name of event to trigger this job
+        - combined scheduled + event trigger once the schedule triggers this job,
+          it is possible to wait for an incoming event, before the command is executed.
+
     The result of `add_job` will be a job identifier, which identifies this job uniquely and can be used to
-    delete the job agaim.
+    delete the job again.
     Note: the command is not allowed to run longer than 1 hour. It is killed in such a case.
     Note: if an event to wait for is specified, it has to arrive in 24 hours, otherwise the job is aborted.
 
     Parameter:
-        cron_expression [mandatory]: defines the recurrent schedule in crontab format.
+        cron_expression [optional]:  defines the recurrent schedule in crontab format.
         event_name [optional]:       if defined, the command waits for the specified event _after_ the next scheduled
                                      time has been reached. No waiting happens, if this parameter is not defined.
         command [mandatory]:         the CLI command that will be executed, when the job is triggered.
@@ -620,6 +623,8 @@ class AddJobSource(CLISource):
         add_job * * * * * echo hello world
         # every morning at 4: wait for message of type collect_done and print a message
         add_job 0 4 * * * collect_done: match is instance("compute_instance") and cores>4 \\| format id
+        # wait for message of type collect_done and print a message
+        add_job collect_done echo hello world
 
     See: delete_job, jobs
     """
