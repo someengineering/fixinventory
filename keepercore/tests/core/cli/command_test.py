@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from aiostream import stream
 from datetime import timedelta
@@ -7,11 +9,11 @@ from pytest import fixture
 from core.cli.cli import CLI, CLIDependencies
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
-from core.task.task_description import TimeTrigger
+from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
 
 from core.types import Json
-from core.util import first, exist
+from core.util import first, exist, AccessJson
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
@@ -271,3 +273,19 @@ async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]]) -> None
     res3 = await cli.execute_cli_command('query is("foo") | tag delete foo', stream.list)
     assert nr_of_performed() == 13
     assert len(res3[0]) == 13
+
+
+@pytest.mark.asyncio
+async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
+    result = await cli.execute_cli_command(f"start_task {test_workflow.id}", stream.list)
+    assert len(result[0]) == 1
+    assert re.match("Task .+ has been started", result[0][0])
+
+
+@pytest.mark.asyncio
+async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
+    await task_handler.start_task(test_workflow)
+    result = await cli.execute_cli_command("tasks", stream.list)
+    assert len(result[0]) == 1
+    task = AccessJson(result[0][0])
+    assert task.descriptor.id == "test_workflow"

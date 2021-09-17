@@ -910,6 +910,75 @@ class TagCommand(SendWorkerTaskCommand):
         )
 
 
+class TasksSource(CLISource):
+    """
+    Usage: tasks
+
+    List all running tasks.
+
+    Example:
+        tasks
+        # Could return this output
+         [
+          { "id": "123", "descriptor": { "id": "231", "name": "example-job" }, "started_at": "2021-09-17T12:07:39Z" }
+         ]
+
+    """
+
+    @property
+    def name(self) -> str:
+        return "tasks"
+
+    def info(self) -> str:
+        return "Lists all currently running tasks."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        tasks = await self.dependencies.job_handler.running_tasks()
+        return stream.iterate(
+            {
+                "id": t.id,
+                "started_at": to_js(t.task_started_at),
+                "descriptor": {"id": t.descriptor.id, "name": t.descriptor.name},
+            }
+            for t in tasks
+        )
+
+
+class StartTaskSource(CLISource):
+    """
+    Usage: start_task <name of task>
+
+    Start a task with given task descriptor id.
+
+    The configured surpass behaviour of a task definition defines, if multiple tasks of the same task definition
+    are allowed to run in parallel.
+    In case parallel tasks are forbidden a new task can not be started.
+    If a task could be started or not is returned as result message of this command.
+
+    Parameter:
+        task_name [mandatory]:  The name of the related task definition.
+
+    Example:
+        start_task example_task # Will return Task 6d96f5dc has been started
+
+    See: add_job, delete_job, jobs
+    """
+
+    @property
+    def name(self) -> str:
+        return "start_task"
+
+    def info(self) -> str:
+        return "Start a task with the given name."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        if not arg:
+            raise CLIParseError("Name of task is not provided")
+
+        task = await self.dependencies.job_handler.start_task_by_descriptor_id(arg)
+        yield f"Task {task.id} has been started" if task else "Task can not be started."
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -924,14 +993,16 @@ class ListSink(CLISink):
 
 def all_sources(d: CLIDependencies) -> list[CLISource]:
     return [
-        EchoSource(d),
-        JsonSource(d),
-        EnvSource(d),
-        QuerySource(d),
-        SleepSource(d),
-        JobsSource(d),
         AddJobSource(d),
         DeleteJobSource(d),
+        EchoSource(d),
+        EnvSource(d),
+        JobsSource(d),
+        JsonSource(d),
+        QuerySource(d),
+        SleepSource(d),
+        StartTaskSource(d),
+        TasksSource(d),
     ]
 
 
@@ -981,4 +1052,4 @@ def all_parts(d: CLIDependencies) -> list[CLIPart]:
 
 def aliases() -> dict[str, str]:
     # command alias -> command name
-    return {"match": "reported"}
+    return {"match": "reported", "start_workflow": "start_task", "start_job": "start_task"}

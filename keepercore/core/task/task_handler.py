@@ -122,7 +122,7 @@ class TaskHandler(JobHandler):
         updated.steps = [evaluate(step) for step in descriptor.steps]
         return updated
 
-    async def start_task(self, descriptor: TaskDescription) -> None:
+    async def start_task(self, descriptor: TaskDescription) -> Optional[RunningTask]:
         existing = first(lambda x: x.descriptor.id == descriptor.id and x.is_active, self.tasks.values())
         if existing:
             if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
@@ -147,6 +147,7 @@ class TaskHandler(JobHandler):
         await self.running_task_db.insert(wi)
         self.tasks[wi.id] = wi
         await self.execute_task_commands(wi, commands)
+        return wi
 
     async def start_interrupted_tasks(self) -> list[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
@@ -246,6 +247,16 @@ class TaskHandler(JobHandler):
 
     # region job handler
 
+    async def running_tasks(self) -> list[RunningTask]:
+        return list(self.tasks.values())
+
+    async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
+        td = first(lambda t: t.id == uid, self.task_descriptions)
+        if td:
+            return await self.start_task(td)
+        else:
+            raise NameError(f"No task with such id: {uid}")
+
     async def list_jobs(self) -> list[Job]:
         return [job for job in self.task_descriptions if isinstance(job, Job)]
 
@@ -297,7 +308,7 @@ class TaskHandler(JobHandler):
 
     async def time_triggered(self, descriptor: TaskDescription, trigger: TimeTrigger) -> None:
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
-        return await self.start_task(descriptor)
+        await self.start_task(descriptor)
 
     async def check_for_task_to_start_on_message(self, msg: Message) -> None:
         # check if this event triggers any new task
