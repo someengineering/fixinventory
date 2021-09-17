@@ -380,6 +380,21 @@ async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Mode
 
 
 @pytest.mark.asyncio
+async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
+    # imported graph should not have any desired or metadata sections
+    graph = create_graph("test", 0)
+    for _, node in graph.nodes(True):
+        del node["desired"]
+        del node["metadata"]
+    await graph_db.merge_graph(graph, foo_model)
+    async for elem in graph_db.query_list(QueryModel(parse_query("all"), foo_model)):
+        assert "reported" in elem
+        assert "desired" not in elem
+        assert "metadata" not in elem
+
+
+@pytest.mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
     root = to_foo(await filled_graph_db.get_node("sub_root"))
     assert root is not None

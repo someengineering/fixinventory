@@ -393,21 +393,20 @@ class ArangoGraphDB(GraphDB):
         resource_updates: list[Json] = []
         resource_deletes: list[Json] = []
 
+        optional_properties = [*Section.all, "refs", "kinds", "flat", "hash"]
+
         def insert_node(node: Json) -> None:
             elem = self.adjust_node(model, node, access.at_json)
             js_doc: Json = {
                 "_key": elem["id"],
-                "hash": elem.get("hash", None),
-                "reported": elem.get(Section.reported, None),
-                "desired": elem.get(Section.desired, None),
-                "metadata": elem.get(Section.metadata, None),
-                "refs": elem.get("refs", None),
-                "kinds": elem.get("kinds", None),
-                "flat": elem.get("flat", None),
                 "update_id": sub_root_id,
                 "created": access.at_json,
                 "updated": access.at_json,
             }
+            for prop in optional_properties:
+                value = node.get(prop, None)
+                if value:
+                    js_doc[prop] = value
             resource_inserts.append(js_doc)
             info.nodes_created += 1
 
@@ -422,18 +421,11 @@ class ArangoGraphDB(GraphDB):
             elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
                 adjusted: Json = self.adjust_node(model, elem, node["created"])
-                js = {
-                    "_key": key,
-                    "hash": adjusted.get("hash", None),
-                    "reported": adjusted.get(Section.reported, None),
-                    "desired": adjusted.get(Section.desired, None),
-                    "metadata": adjusted.get(Section.metadata, None),
-                    "refs": adjusted.get("refs", None),
-                    "kinds": adjusted.get("kinds", None),
-                    "flat": adjusted.get("flat", None),
-                    "update_id": sub_root_id,
-                    "updated": access.at_json,
-                }
+                js = {"_key": key, "update_id": sub_root_id, "updated": access.at_json}
+                for prop in optional_properties:
+                    value = adjusted.get(prop, None)
+                    if value:
+                        js[prop] = value
                 resource_updates.append(js)
                 info.nodes_updated += 1
 
