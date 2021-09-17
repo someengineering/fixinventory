@@ -7,7 +7,7 @@ from core.query.model import Query
 
 
 class QueryModel(ABC):
-    def __init__(self, query: Query, model: Model, query_section: Optional[str]):
+    def __init__(self, query: Query, model: Model, query_section: Optional[str] = None):
         self.query = query
         self.model = model
         self.query_section = query_section

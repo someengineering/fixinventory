@@ -38,7 +38,7 @@ equals_dp = string("=")
 integer_dp = regex(r"[+-]?[0-9]+").map(int)
 float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
 variable_dp = regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*")
-literal_dp = regex("[A-Za-z][A-Za-z0-9_\\-]*")
+literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
 
 string_part_dp = regex(r'[^"\\]+')
 string_esc_dp = string("\\") >> (
@@ -98,7 +98,7 @@ def json_array_parser() -> Parser:
 
 @make_parser
 def json_object_pair() -> Parser:
-    key = yield quoted_string_p
+    key = yield quoted_string_p | literal_p
     yield colon_p
     val = yield json_value_p
     return key, val

@@ -285,9 +285,37 @@ class Navigation:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
+class WithClauseFilter:
+    op: str
+    num: int
+
+    def __str__(self) -> str:
+        if self.op == "==" and self.num == 0:
+            return "empty"
+        elif self.op == ">" and self.num == 0:
+            return "any"
+        else:
+            return f"count{self.op}{self.num}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class WithClause:
+    with_filter: WithClauseFilter
+    navigation: Navigation
+    term: Optional[Term] = None
+    with_clause: Optional[WithClause] = None
+
+    def __str__(self) -> str:
+        term = " " + str(self.term) if self.term else ""
+        with_clause = " " + str(self.with_clause) if self.with_clause else ""
+        return f"with({self.with_filter}, {self.navigation}{term}{with_clause})"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Part:
     term: Term
     pinned: bool = False
+    with_clause: Optional[WithClause] = None
     navigation: Optional[Navigation] = None
 
     def __str__(self) -> str:
@@ -411,12 +439,12 @@ class Query:
             if p0.navigation.edge_type == edge_type and p0.navigation.direction == direction:
                 start_m = min(Navigation.Max, start + p0.navigation.start)
                 until_m = min(Navigation.Max, until + p0.navigation.until)
-                parts[0] = Part(p0.term, False, Navigation(start_m, until_m, edge_type, direction))
+                parts[0] = replace(p0, navigation=Navigation(start_m, until_m, edge_type, direction))
             # this is another traversal: so we need to start a new part
             else:
-                parts.insert(0, Part(AllTerm(), False, Navigation(start, until, edge_type, direction)))
+                parts.insert(0, Part(AllTerm(), False, None, Navigation(start, until, edge_type, direction)))
         else:
-            parts[0] = Part(p0.term, False, Navigation(start, until, edge_type, direction))
+            parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
     def group_by(self, group_by: list[AggregateVariable], funs: list[AggregateFunction]) -> Query:
@@ -424,7 +452,7 @@ class Query:
         return replace(self, aggregate=aggregate)
 
     def simplify(self) -> Query:
-        parts = [Part(part.term.simplify(), part.pinned, part.navigation) for part in self.parts]
+        parts = [replace(part, term=part.term.simplify()) for part in self.parts]
         return replace(self, parts=parts)
 
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:

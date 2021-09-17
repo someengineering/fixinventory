@@ -2,6 +2,7 @@ from dataclasses import replace
 from functools import reduce
 
 from parsy import string, Parser, regex
+from typing import Optional
 
 from core.model.graph_access import EdgeType
 from core.parse_util import (
@@ -43,10 +44,17 @@ from core.query.model import (
     AllTerm,
     Sort,
     SortOrder,
+    WithClauseFilter,
+    WithClause,
+    Term,
 )
 
-operation_p = reduce(
-    lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+operation_p = (
+    reduce(
+        lambda x, y: x | y, [lexeme(string(a)) for a in ["<=", ">=", ">", "<", "==", "!=", "=~", "!~", "in", "not in"]]
+    )
+    | lexeme(string("=")).result("==")
+    | lexeme(string("~")).result("=~")
 )
 
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
@@ -133,14 +141,43 @@ navigation_parser = out_p | in_p | in_out_p
 
 pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 
+with_p = lexeme(string("with"))
+count_p = lexeme(string("count"))
+
+len_empty = lexeme(string("empty")).result(WithClauseFilter("==", 0))
+len_any = lexeme(string("any")).result(WithClauseFilter(">", 0))
+
+
+@make_parser
+def with_count_parser() -> Parser:
+    yield count_p
+    op = yield operation_p
+    num = yield integer_p
+    return WithClauseFilter(op, num)
+
+
+@make_parser
+def with_clause_parser() -> Parser:
+    yield with_p
+    yield lparen_p
+    with_filter = yield len_empty | len_any | with_count_parser
+    yield comma_p
+    nav: Navigation = yield navigation_parser
+    term: Optional[Term] = yield term_parser.optional()
+    with_clause: Optional[WithClause] = yield with_clause_parser.optional()
+    yield rparen_p
+    assert 0 <= nav.start <= 1, "with traversal need to start from 0 or 1"
+    return WithClause(with_filter, nav, term, with_clause)
+
 
 @make_parser
 def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
+    with_clause = yield with_clause_parser.optional()
     nav = yield navigation_parser.optional()
     pinned = yield pin_parser
-    return Part(term, pinned, nav)
+    return Part(term, pinned, with_clause, nav)
 
 
 @make_parser
@@ -226,11 +263,11 @@ def match_parser() -> Parser:
 
 @make_parser
 def preamble_parser() -> Parser:
-    maybe_aggegate = yield (aggregate_parser | match_parser).optional()
+    maybe_aggregate = yield (aggregate_parser | match_parser).optional()
     maybe_preamble = yield preamble_tags_parser.optional()
     preamble = maybe_preamble if maybe_preamble else {}
-    yield colon_p if maybe_aggegate or maybe_preamble else colon_p.optional()
-    return maybe_aggegate, preamble
+    yield colon_p if maybe_aggregate or maybe_preamble else colon_p.optional()
+    return maybe_aggregate, preamble
 
 
 sort_order_p = string("asc") | string("desc")
@@ -264,12 +301,22 @@ def query_parser() -> Parser:
     edge_type = preamble.get("edge_type", EdgeType.default)
     if edge_type not in EdgeType.allowed_edge_types:
         raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.allowed_edge_types}")
-    adapted = [
-        replace(part, navigation=replace(part.navigation, edge_type=edge_type))
-        if part.navigation and not part.navigation.edge_type
-        else part
-        for part in parts
-    ]
+
+    def set_in_with_clause(wc: WithClause) -> WithClause:
+        nav = wc.navigation
+        if wc.navigation and not wc.navigation.edge_type:
+            nav = replace(nav, edge_type=edge_type)
+        inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
+        return replace(wc, navigation=nav, with_clause=inner)
+
+    def set_in_part(part: Part) -> Part:
+        nav = part.navigation
+        if part.navigation and not part.navigation.edge_type:
+            nav = replace(nav, edge_type=edge_type)
+        wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
+        return replace(part, navigation=nav, with_clause=wc)
+
+    adapted = [set_in_part(part) for part in parts]
     sort = yield sort_parser.optional()
     limit = yield limit_parser.optional()
     return Query(adapted[::-1], preamble, maybe_aggregate, sort, limit)

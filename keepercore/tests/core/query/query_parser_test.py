@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Any
 
 import pytest
+from dataclasses import replace
 
 from core.query.model import (
     Navigation,
@@ -13,6 +14,8 @@ from core.query.model import (
     IsTerm,
     IdTerm,
     Sort,
+    WithClause,
+    WithClauseFilter,
 )
 from core.model.graph_access import EdgeType
 from parsy import Parser
@@ -33,6 +36,7 @@ from core.query.query_parser import (
     id_term,
     sort_parser,
     limit_parser,
+    with_clause_parser,
 )
 
 
@@ -111,8 +115,10 @@ def test_navigation() -> None:
 # noinspection PyTypeChecker
 def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), False, Navigation(1, 10, EdgeType.delete)))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), True, Navigation(1, 10, EdgeType.delete)))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), False, None, Navigation(1, 10, EdgeType.delete)))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), True, None, Navigation(1, 10, EdgeType.delete)))
+    with_clause = WithClause(WithClauseFilter("==", 0), Navigation())
+    assert_round_trip(part_parser, Part(P.of_kind("test"), True, with_clause, Navigation(1, 10, EdgeType.delete)))
 
 
 def test_query() -> None:
@@ -201,6 +207,24 @@ def test_sort_order() -> None:
 def test_limit() -> None:
     assert limit_parser.parse("limit 23") == 23
     assert_round_trip(query_parser, Query.by("test").with_limit(23))
+
+
+def test_with_clause() -> None:
+    wc: WithClause = with_clause_parser.parse("with(empty, -delete-> foo == bla and test > 23 with(any, -delete->))")
+    assert wc.with_filter == WithClauseFilter("==", 0)
+    assert wc.navigation == Navigation(edge_type="delete")
+    assert str(wc.term) == '(foo == "bla" and test > 23)'
+    assert str(wc.with_clause) == "with(any, -delete->)"
+    term = Query.mk_term("foo", P("test") == 23)
+    clause_filter = WithClauseFilter(">", 23)
+    nav = Navigation()
+
+    def edge(wc: WithClause) -> WithClause:
+        wcr = replace(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
+        return replace(wcr, navigation=replace(wcr.navigation, edge_type=EdgeType.default))
+
+    assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
+    assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)
 
 
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:

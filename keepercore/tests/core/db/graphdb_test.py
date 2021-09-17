@@ -364,6 +364,22 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
 
 
 @pytest.mark.asyncio
+async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def query(q: str) -> list[Json]:
+        agg_query = parse_query(q)
+        return [bla async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported"))]
+
+    assert len(await query("is(bla) with(any, <-- is(foo))")) == 100
+    assert len(await query('is(bla) with(any, <-- is(foo) and identifier=~"1")')) == 10
+    assert len(await query("is(bla) with(empty, <-- is(foo))")) == 0
+    assert len(await query("is(bla) with(any, <-- is(bla))")) == 0
+    assert len(await query("is(bla) with(empty, <-- is(bla))")) == 100
+    assert len(await query('is(bla) with(count==1, <-- is(foo) and identifier=~"1")')) == 10
+    assert len(await query('is(bla) with(count==2, <-- is(foo) and identifier=~"1")')) == 0
+    assert len(await query("is(bla) with(any, <-- with(any, <-- is(foo)))")) == 100
+
+
+@pytest.mark.asyncio
 async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
     root = to_foo(await filled_graph_db.get_node("sub_root"))
     assert root is not None
