@@ -15,6 +15,30 @@ from core.types import Json
 from core.util import utc, utc_str, value_in_path
 
 
+class Section:
+
+    # The reported section contains the data gathered by the collector.
+    # This data is usually not changed by the user directly, but implicitly via changes on the
+    # infrastructure, so the next collect run will change this state.
+    reported = "reported"
+
+    # This section holds changes that should be reflected by the given node.
+    # The desired section can be queried the same way as the reported section
+    # and allows to query parts of the graph with a common desired state.
+    # For example the clean flag is manifested in the desired section.
+    # The separate clean step would query all nodes that should be cleaned
+    # and can compute the correct order of action by walking the graph structure.
+    desired = "desired"
+
+    # This section holds information about this node that are gathered during the import process.
+    # Example: This section resolves common graph attributes like cloud, account, region, zone to make
+    # querying the graph easy.
+    metadata = "metadata"
+
+    # The set of all allowed sections
+    all = {reported, desired, metadata}
+
+
 class EdgeType:
     # This edge type defines logical dependencies between resources.
     # It is the main edge type and is assumed, if no edge type is given.
@@ -30,7 +54,7 @@ class EdgeType:
 
     # The list of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    allowed_edge_types = {dependency, delete}
+    all = {dependency, delete}
 
 
 class GraphBuilder:
@@ -42,12 +66,12 @@ class GraphBuilder:
         self.edges = 0
 
     def add_from_json(self, js: Json) -> None:
-        if "id" in js and "reported" in js:
+        if "id" in js and Section.reported in js:
             self.add_node(
                 js["id"],
-                js["reported"],
-                js.get("desired", None),
-                js.get("metadata", None),
+                js[Section.reported],
+                js.get(Section.desired, None),
+                js.get(Section.metadata, None),
                 js.get("merge", None) is True,
             )
         elif "from" in js and "to" in js:
@@ -130,10 +154,10 @@ class GraphBuilder:
         # check that all vertices are given, that were defined in any edge definition
         # note: DiGraph will create an empty vertex node automatically
         for node_id, node in self.graph.nodes(data=True):
-            assert node.get("reported"), f"Vertex {node_id} was used in an edge definition but not provided as vertex!"
+            assert node.get(Section.reported), f"{node_id} was used in an edge definition but not provided as vertex!"
 
         edge_types = {edge[2] for edge in self.graph.edges(data="edge_type")}
-        al = EdgeType.allowed_edge_types
+        al = EdgeType.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
         GraphAccess.root_id(self.graph)
@@ -222,9 +246,9 @@ class GraphAccess:
 
     @staticmethod
     def dump_direct(node_id: str, node: Json) -> Json:
-        reported: Json = to_js(node["reported"])
-        desired: Optional[Json] = node.get("desired", None)
-        metadata: Optional[Json] = node.get("metadata", None)
+        reported: Json = to_js(node[Section.reported])
+        desired: Optional[Json] = node.get(Section.desired, None)
+        metadata: Optional[Json] = node.get(Section.metadata, None)
         if "id" not in node:
             node["id"] = node_id
         if "hash" not in node:

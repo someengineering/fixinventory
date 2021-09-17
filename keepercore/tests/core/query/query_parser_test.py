@@ -104,7 +104,7 @@ def test_navigation() -> None:
     def make_default(nav: Navigation) -> Navigation:
         return Navigation(nav.start, nav.until, EdgeType.default, nav.direction)
 
-    for edge_type in EdgeType.allowed_edge_types:
+    for edge_type in EdgeType.all:
         # the default edge type is not rendered, so we set it explicitly to make the mapping homogeneous
         fn = make_default if edge_type == EdgeType.default else None
         for direction in ["in", "out", "inout"]:
