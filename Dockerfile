@@ -69,9 +69,9 @@ WORKDIR /usr/src/ckmetrics
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build keeper-cli
-COPY keeper-cli /usr/src/keeper-cli
-WORKDIR /usr/src/keeper-cli
+# Build cksh
+COPY cksh /usr/src/cksh
+WORKDIR /usr/src/cksh
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
