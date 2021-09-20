@@ -21,7 +21,7 @@ from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, Complex
-from core.model.resolve_in_graph import NodePath
+from core.model.resolve_in_graph import NodePath, GraphResolver
 from core.query.model import (
     Predicate,
     IsTerm,
@@ -39,7 +39,7 @@ from core.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
 )
-from core.query.query_parser import merge_parents_parser
+from core.query.query_parser import merge_ancestors_parser
 from core.util import first, from_utc, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
@@ -822,30 +822,39 @@ class ArangoGraphDB(GraphDB):
             cursor = inout(cursor, p.navigation) if p.navigation else cursor
             return p, cursor, query_part
 
-        def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
-            parents: list[tuple[str, str]] = [merge_parents_parser.parse(p) for p in parent_names]
-            bind_vars["merge_stop_at"] = parents[0][0]
-            bind_vars["merge_parent_parent_nodes"] = [p[0] for p in parents]
-            m_parts = [
-                f"FOR node in {cursor} "
-                + "LET parent_nodes = ("
-                + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
-                + "PRUNE @merge_stop_at in p.kinds "
-                + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
-                + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
-            ]
-            for p in parents:
-                bv = f"merge_node_{p[0]}"
-                bind_vars[bv] = p[0]
-                m_parts.append(f"""LET {p[0]} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+        def merge_ancestors(cursor: str, part_str: str, ancestor_names: list[str]) -> tuple[str, str]:
+            ancestors: list[tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
+            m_parts = [f"FOR node in {cursor} "]
+
+            # filter out resolved ancestors: all remaining ancestors need to be looked up in hierarchy
+            to_resolve = [(nr, p_as) for nr, p_as in ancestors if nr not in GraphResolver.resolved_ancestors]
+            if to_resolve:
+                bind_vars["merge_stop_at"] = to_resolve[0][0]
+                bind_vars["merge_ancestor_nodes"] = [tr[0] for tr in to_resolve]
+                m_parts.append(
+                    "LET ancestor_nodes = ("
+                    + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
+                    + "PRUNE @merge_stop_at in p.kinds "
+                    + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
+                    + "FILTER p.kinds any in @merge_ancestor_nodes RETURN p)"
+                )
+                for tr, _ in to_resolve:
+                    bv = f"merge_node_{tr}"
+                    bind_vars[bv] = tr
+                    m_parts.append(f"""LET {tr} = FIRST(FOR p IN ancestor_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+
+            # all resolved ancestors can be looked up directly
+            for tr, _ in ancestors:
+                if tr in GraphResolver.resolved_ancestors:
+                    m_parts.append(f"LET {tr} = Document({cursor}.refs.{tr}_id)")
 
             result_parts = []
             for section in Section.all:
-                parent_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in parents]) + "}"
-                result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
+                ancestor_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in ancestors]) + "}"
+                result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {ancestor_result})")
 
             m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
-            return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(m_parts)})'
+            return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
 
         def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
             sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
@@ -859,7 +868,7 @@ class ArangoGraphDB(GraphDB):
             crsr = part_tuple[1]
 
         all_parts = " ".join(p[2] for p in parts)
-        resulting_cursor, query_str = merge_parents(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
+        resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
         limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
             resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
