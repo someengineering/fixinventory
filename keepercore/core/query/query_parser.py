@@ -28,6 +28,9 @@ from core.parse_util import (
     json_value_p,
     variable_p,
     integer_p,
+    quote_dp,
+    l_curly_dp,
+    r_curly_dp,
 )
 from core.query.model import (
     Predicate,
@@ -47,6 +50,8 @@ from core.query.model import (
     WithClauseFilter,
     WithClause,
     Term,
+    AggregateVariableName,
+    AggregateVariableCombined,
 )
 
 operation_p = (
@@ -200,16 +205,28 @@ as_p = lexeme(string("as"))
 aggregate_p = lexeme(string("aggregate"))
 aggregate_func_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg"]])
 match_p = lexeme(string("match"))
+variable_name_p = variable_p.map(AggregateVariableName)
+no_curly_dp = regex(r'[^{"]+')
+var_in_curly = (l_curly_dp >> variable_p << r_curly_dp).map(AggregateVariableName)
+aggregate_group_variable_name_combined_p = (
+    quote_dp >> (no_curly_dp | var_in_curly).at_least(1).map(AggregateVariableCombined) << quote_dp
+)
 
 
 @make_parser
 def aggregate_group_variable_parser() -> Parser:
-    name = yield variable_p
-    with_as = yield as_p.optional()
-    as_name = None
-    if with_as:
-        as_name = yield literal_p
+    name = yield variable_name_p | aggregate_group_variable_name_combined_p
+    as_name = yield (as_p >> literal_p).optional()
     return AggregateVariable(name, as_name)
+
+
+@make_parser
+def merge_parents_parser() -> Parser:
+    # parses foo as bla -> "foo", "bla"
+    # parses foo        -> "foo", "foo"
+    name = yield variable_p
+    as_name = yield (as_p >> literal_p).optional()
+    return name, as_name if as_name else name
 
 
 math_op_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["+", "-", "*", "/", "%"]])
