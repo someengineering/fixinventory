@@ -27,5 +27,18 @@ if logfile_arg in argv:
         getLogger().addHandler(fh)
 
 
+log = getLogger("cloudkeeper")
+
+
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(logfile_arg, help="Logfile to log into", dest="logfile")
+    arg_parser.add_argument(
+        "--verbose",
+        "-v",
+        help="Verbose logging",
+        dest="verbose",
+        action="store_true",
+        default=False,
+    )
+    arg_parser.add_argument(
+        logfile_arg, help="Logfile to log into", dest="logfile", default=None
+    )

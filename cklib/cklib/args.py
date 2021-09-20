@@ -2,8 +2,6 @@ import os
 import ast
 import argparse
 
-ENV_ARGS_PREFIX = "CLOUDKEEPER_"
-
 
 class Namespace(argparse.Namespace):
     def __getattr__(self, item):
@@ -16,13 +14,18 @@ class ArgumentParser(argparse.ArgumentParser):
     # attribute.
     args = Namespace()
 
+    def __init__(self, *args, env_args_prefix: str = "CLOUDKEEPER_", **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.env_args_prefix = env_args_prefix
+
     def parse_known_args(self, args=None, namespace=None):
         for action in self._actions:
             env_name = None
             for option_string in action.option_strings:
                 if option_string.startswith("--"):
                     env_name = (
-                        ENV_ARGS_PREFIX + option_string[2:].replace("-", "_").upper()
+                        self.env_args_prefix
+                        + option_string[2:].replace("-", "_").upper()
                     )
                     break
             if env_name is not None and action.default != argparse.SUPPRESS:
@@ -62,23 +65,17 @@ class ArgumentParser(argparse.ArgumentParser):
         return ret_args, ret_argv
 
 
-def get_arg_parser(add_help: bool = True, description: str = "Cloudkeeper") -> ArgumentParser:
-    arg_parser = ArgumentParser(
-        description=description, add_help=add_help
-    )
-    arg_parser.add_argument(
-        "--verbose",
-        "-v",
-        help="Verbose logging",
-        dest="verbose",
-        action="store_true",
-        default=False,
-    )
+def get_arg_parser(
+    add_help: bool = True, description: str = "Cloudkeeper"
+) -> ArgumentParser:
+    arg_parser = ArgumentParser(description=description, add_help=add_help)
     return arg_parser
 
 
 def convert(value, type_goal):
     try:
+        if type_goal == bool:
+            value = str(value).capitalize()
         converted_value = type_goal(ast.literal_eval(value))
     except ValueError:
         pass
