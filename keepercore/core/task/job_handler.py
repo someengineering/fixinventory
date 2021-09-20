@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-
 from typing import Optional
 
-from core.task.task_description import Job
+from core.task.task_description import Job, RunningTask
 
 
 class JobHandler(ABC):
@@ -20,4 +19,12 @@ class JobHandler(ABC):
 
     @abstractmethod
     async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
+        pass
+
+    @abstractmethod
+    async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
+        pass
+
+    @abstractmethod
+    async def running_tasks(self) -> list[RunningTask]:
         pass

@@ -448,7 +448,8 @@ class HelpCommand(CLISource):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         if not arg:
-            parts = (p for p in self.parts.values() if isinstance(p, (CLISource, CLICommand)))
+            all_parts = sorted(self.parts.values(), key=lambda p: p.name)
+            parts = (p for p in all_parts if isinstance(p, (CLISource, CLICommand)))
             available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
             aliases = "\n".join(f"   {alias} ({cmd}) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items())
             replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
