@@ -63,9 +63,9 @@ WORKDIR /usr/src/cloudkeeper
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build graph_exporter
-COPY graph_exporter /usr/src/graph_exporter
-WORKDIR /usr/src/graph_exporter
+# Build ckmetrics
+COPY ckmetrics /usr/src/ckmetrics
+WORKDIR /usr/src/ckmetrics
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 

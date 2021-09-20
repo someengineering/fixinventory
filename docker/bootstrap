@@ -19,7 +19,7 @@ main() {
         setup_tsdb
         setup_keepercore
         setup_collectord
-        setup_graph_exporter
+        setup_ckmetrics
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
     fi
 }
@@ -153,13 +153,13 @@ setup_collectord() {
     fi
 }
 
-setup_graph_exporter() {
-    rm -f "$supervisor_graph_exporter_conf"
-    if [ "$START_GRAPH_EXPORTER" = true ]; then
-        info "graph_exporter activated"
-        sed -e "s#@GRAPH_EXPORTER_KEEPERCORE_URI@#$GRAPH_EXPORTER_KEEPERCORE_URI#" \
-            -e "s#@GRAPH_EXPORTER_KEEPERCORE_WS_URI@#$GRAPH_EXPORTER_KEEPERCORE_WS_URI#" \
-            "$supervisor_graph_exporter_conf_in" > "$supervisor_graph_exporter_conf"
+setup_ckmetrics() {
+    rm -f "$supervisor_ckmetrics_conf"
+    if [ "$START_CKMETRICS" = true ]; then
+        info "ckmetrics activated"
+        sed -e "s#@CKMETRICS_KEEPERCORE_URI@#$CKMETRICS_KEEPERCORE_URI#" \
+            -e "s#@CKMETRICS_KEEPERCORE_WS_URI@#$CKMETRICS_KEEPERCORE_WS_URI#" \
+            "$supervisor_ckmetrics_conf_in" > "$supervisor_ckmetrics_conf"
     fi
 }
 

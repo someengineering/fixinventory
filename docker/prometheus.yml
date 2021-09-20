@@ -18,6 +18,6 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "graph_exporter"
+  - job_name: "ckmetrics"
     static_configs:
       - targets: ["localhost:9855"]
