@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from abc import abstractmethod, ABC
 from datetime import timedelta
@@ -35,14 +36,17 @@ from core.cli.cli import (
 from core.db.model import QueryModel
 from core.error import CLIParseError, CLIExecutionError
 from core.model.graph_access import Section
+from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js, class_fqn
 from core.parse_util import quoted_or_simple_string_dp
 from core.query.query_parser import (
     parse_query,
 )
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str
+from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path
 from core.worker_task_queue import WorkerTask
+
+log = logging.getLogger(__name__)
 
 
 # check if a is a json node element
@@ -419,10 +423,12 @@ class SetDesiredState(CLICommand, ABC):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         buffer_size = 1000
-        func = partial(self.set_desired, env["graph"], self.patch(arg, **env))
+        func = partial(self.set_desired, arg, env["graph"], self.patch(arg, **env))
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
-    async def set_desired(self, graph_name: str, patch: Json, items: list[Json]) -> AsyncGenerator[JsonElement, None]:
+    async def set_desired(
+        self, arg: Optional[str], graph_name: str, patch: Json, items: list[Json]
+    ) -> AsyncGenerator[Json, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -491,16 +497,23 @@ class SetDesiredCommand(SetDesiredState):
 
 class CleanCommand(SetDesiredState):
     """
-    Usage: clean
+    Usage: clean [reason]
 
     Mark incoming objects for cleaning.
     All objects marked as such will be eventually cleaned in the next delete run.
+
+    An optional reason can be provided.
+    This reason is used to log each marked element, which can be useful to understand the reason
+    a resource is cleaned later on.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
 
     The result of this command will emit the complete object with desired and reported state:
     { "id": "..", "desired": { .. }, "reported": { .. } }
+
+    Parameter:
+        reason [optional]: the reason why this resource is marked for cleaning
 
     Example:
         query isinstance("ec2") and atime<"-2d" | clean
@@ -531,6 +544,18 @@ class CleanCommand(SetDesiredState):
 
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         return {"clean": True}
+
+    async def set_desired(
+        self, arg: Optional[str], graph_name: str, patch: Json, items: list[Json]
+    ) -> AsyncGenerator[Json, None]:
+        reason = f"Reason: {arg}" if arg else "No reason provided."
+        async for elem in super().set_desired(arg, graph_name, patch, items):
+            uid = value_in_path(elem, NodePath.node_id)
+            r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
+            r_name = value_in_path_get(elem, NodePath.reported_name, "<no name>")
+            r_kind = value_in_path_get(elem, NodePath.reported_kind, "<no kind>")
+            log.info(f"Node id={r_id}, name={r_name}, kind={r_kind} marked for cleanup. {reason}. ({uid})")
+            yield elem
 
 
 class SetMetadataState(CLICommand, ABC):
