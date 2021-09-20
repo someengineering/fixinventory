@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 import abc
+from dataclasses import dataclass, field, replace
 from functools import reduce
 from typing import Mapping, Union, Optional, Any, ClassVar
 
-from dataclasses import dataclass, field, replace
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
@@ -325,8 +326,25 @@ class Part:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class AggregateVariable:
+class AggregateVariableName:
     name: str
+
+    def __str__(self) -> str:
+        return self.name
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AggregateVariableCombined:
+    parts: list[Union[str, AggregateVariableName]]
+
+    def __str__(self) -> str:
+        return "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AggregateVariable:
+    # name is either a simple variable name or some combination of strings and variables like "foo_{var1}_{var2}_bla"
+    name: Union[AggregateVariableName, AggregateVariableCombined]
     as_name: Optional[str] = None
 
     def __str__(self) -> str:
@@ -334,7 +352,7 @@ class AggregateVariable:
         return f"{self.name}{with_as}"
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else self.name
+        return self.as_name if self.as_name else str(self.name)
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

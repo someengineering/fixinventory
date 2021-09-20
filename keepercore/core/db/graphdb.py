@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable
+from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -34,11 +34,12 @@ from core.query.model import (
     Aggregate,
     AllTerm,
     AggregateFunction,
-    AggregateVariable,
     Sort,
     WithClause,
+    AggregateVariableName,
+    AggregateVariableCombined,
 )
-from core.query.query_parser import aggregate_group_variable_parser
+from core.query.query_parser import merge_parents_parser
 from core.util import first, from_utc, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
@@ -647,15 +648,25 @@ class ArangoGraphDB(GraphDB):
         def aggregate(in_cursor: str, a: Aggregate) -> tuple[str, str]:
             cursor = "rg"
 
+            def var_name(n: Union[AggregateVariableName, AggregateVariableCombined]) -> str:
+                def comb_name(cb: Union[str, AggregateVariableName]) -> str:
+                    return f'"{cb}"' if isinstance(cb, str) else f"{cursor}.{section_dot}{cb.name}"
+
+                return (
+                    f"{cursor}.{section_dot}{n.name}"
+                    if isinstance(n, AggregateVariableName)
+                    else f'CONCAT({",".join(comb_name(cp) for cp in n.parts)})'
+                )
+
             def func_term(fn: AggregateFunction) -> str:
                 name = f"{cursor}.{section_dot}{fn.name}" if isinstance(fn.name, str) else str(fn.name)
                 return f"{name} {fn.combined_ops()}" if fn.ops else name
 
-            vs = {v.name: f"var_{num}" for num, v in enumerate(a.group_by)}
+            vs = {str(v.name): f"var_{num}" for num, v in enumerate(a.group_by)}
             fs = {v.name: f"fn_{num}" for num, v in enumerate(a.group_func)}
-            variables = ", ".join(f"{vs[v.name]}={cursor}.{section_dot}{v.name}" for v in a.group_by)
+            variables = ", ".join(f"{vs[str(v.name)]}={var_name(v.name)}" for v in a.group_by)
             funcs = ", ".join(f"{fs[v.name]}={v.function}({func_term(v)})" for v in a.group_func)
-            agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[v.name]}' for v in a.group_by)
+            agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[str(v.name)]}' for v in a.group_by)
             agg_funcs = ", ".join(f'"{f.get_as_name()}": {fs[f.name]}' for f in a.group_func)
             group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
             aggregate_term = f"collect {variables} aggregate {funcs}"
@@ -812,9 +823,9 @@ class ArangoGraphDB(GraphDB):
             return p, cursor, query_part
 
         def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
-            parents: list[AggregateVariable] = [aggregate_group_variable_parser.parse(p) for p in parent_names]
-            bind_vars["merge_stop_at"] = parents[0].name
-            bind_vars["merge_parent_parent_nodes"] = [p.name for p in parents]
+            parents: list[tuple[str, str]] = [merge_parents_parser.parse(p) for p in parent_names]
+            bind_vars["merge_stop_at"] = parents[0][0]
+            bind_vars["merge_parent_parent_nodes"] = [p[0] for p in parents]
             m_parts = [
                 f"FOR node in {cursor} "
                 + "LET parent_nodes = ("
@@ -824,13 +835,13 @@ class ArangoGraphDB(GraphDB):
                 + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
             ]
             for p in parents:
-                bv = f"merge_node_{p.name}"
-                bind_vars[bv] = p.name
-                m_parts.append(f"""LET {p.name} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+                bv = f"merge_node_{p[0]}"
+                bind_vars[bv] = p[0]
+                m_parts.append(f"""LET {p[0]} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
 
             result_parts = []
             for section in Section.all:
-                parent_result = "{" + ",".join([f"{p.get_as_name()}: {p.name}.{section}" for p in parents]) + "}"
+                parent_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in parents]) + "}"
                 result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
 
             m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")

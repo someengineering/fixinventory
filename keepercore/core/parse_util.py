@@ -39,6 +39,7 @@ integer_dp = regex(r"[+-]?[0-9]+").map(int)
 float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
 variable_dp = regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*")
 literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
+quote_dp = string('"')
 
 string_part_dp = regex(r'[^"\\]+')
 string_esc_dp = string("\\") >> (
@@ -53,7 +54,7 @@ string_esc_dp = string("\\") >> (
     | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
 )
 string_part_or_esc_dp = (string_part_dp | string_esc_dp).many().concat()
-quoted_string_dp = string('"') >> string_part_or_esc_dp << string('"')
+quoted_string_dp = quote_dp >> string_part_or_esc_dp << quote_dp
 quoted_or_simple_string_dp = quoted_string_dp | literal_dp
 
 true_dp = string("true").result(True)

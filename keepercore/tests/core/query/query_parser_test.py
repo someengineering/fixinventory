@@ -16,6 +16,8 @@ from core.query.model import (
     Sort,
     WithClause,
     WithClauseFilter,
+    AggregateVariableName,
+    AggregateVariableCombined,
 )
 from core.model.graph_access import EdgeType
 from parsy import Parser
@@ -128,7 +130,7 @@ def test_query() -> None:
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
-        .group_by([AggregateVariable("foo")], [AggregateFunction("sum", "cpu")])
+        .group_by([AggregateVariable(AggregateVariableName("foo"))], [AggregateFunction("sum", "cpu")])
         .add_sort("test", "asc")
         .with_limit(10)
     )
@@ -142,7 +144,7 @@ def test_query_with_preamble() -> None:
     query = query_parser.parse('(edge_type=delete): id("root") -[0:1]->')
     assert query.parts[0].navigation.edge_type == "delete"
     query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
-    assert query.aggregate.group_by[0].name == "region"
+    assert query.aggregate.group_by[0].name == AggregateVariableName("region")
     assert query.aggregate.group_func[0].name == "cpu"
 
 
@@ -157,12 +159,20 @@ def test_preamble_tags() -> None:
 
 
 def test_aggregate_group_variable() -> None:
+    foo_var = AggregateVariableName("foo")
+    bla_var = AggregateVariableName("bla")
+
     foo = aggregate_group_variable_parser.parse("foo")
-    assert foo.name == "foo"
+    assert foo.name == foo_var
     assert foo.as_name is None
+
     bla = aggregate_group_variable_parser.parse("bla as bar")
-    assert bla.name == "bla"
+    assert bla.name == bla_var
     assert bla.as_name == "bar"
+
+    combined = aggregate_group_variable_parser.parse('"some_{foo}_{bla}_test" as foo_bar')
+    assert combined.name == AggregateVariableCombined(["some_", foo_var, "_", bla_var, "_test"])
+    assert combined.as_name == "foo_bar"
 
 
 def test_aggregate_group_function() -> None:
@@ -183,7 +193,7 @@ def test_aggregate_group_function() -> None:
 def test_aggregate() -> None:
     agg: Aggregate = aggregate_parser.parse("aggregate(region: sum(cpu) as cpus, count(id) as instances)")
     assert len(agg.group_by) == 1
-    assert agg.group_by[0].name == "region"
+    assert agg.group_by[0].name == AggregateVariableName("region")
     assert len(agg.group_func) == 2
     assert agg.group_func[0].function == "sum"
     assert agg.group_func[0].name == "cpu"
