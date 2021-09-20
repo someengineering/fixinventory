@@ -1,13 +1,13 @@
-name: Check PR (keeper-cli)
+name: Check PR (cksh)
 on:
   push:
     paths:
-      - 'keeper-cli/**'
+      - 'cksh/**'
       - '.github/**'
 
 jobs:
-  keeper_cli:
-    name: "keeper-cli"
+  cksh:
+    name: "cksh"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,16 +30,16 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable keeper-cli/
+          pip install --upgrade --editable cksh/
           pip install tox wheel flake8
 
       - name: Build Cloudkeeper CLI
-        working-directory: ./keeper-cli
+        working-directory: ./cksh
         run: |
           sudo rm -fr /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./keeper-cli
+        working-directory: ./cksh
         run: tox

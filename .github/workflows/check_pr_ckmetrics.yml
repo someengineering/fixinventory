@@ -1,13 +1,13 @@
-name: Check PR (graph_exporter)
+name: Check PR (ckmetrics)
 on:
   push:
     paths:
-      - 'graph_exporter/**'
+      - 'ckmetrics/**'
       - '.github/**'
 
 jobs:
-  graph_exporter:
-    name: "graph_exporter"
+  ckmetrics:
+    name: "ckmetrics"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,5 +41,5 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./graph_exporter
+        working-directory: ./ckmetrics
         run: tox
