@@ -34,11 +34,13 @@ from core.cli.cli import (
     Result,
 )
 from core.db.model import QueryModel
-from core.error import CLIParseError, CLIExecutionError
+from core.error import CLIParseError
 from core.model.graph_access import Section
+from core.model.model import Model
 from core.model.resolve_in_graph import NodePath
-from core.model.typed_model import to_js, class_fqn
+from core.model.typed_model import to_js
 from core.parse_util import quoted_or_simple_string_dp
+from core.query.model import Query, P
 from core.query.query_parser import (
     parse_query,
 )
@@ -834,20 +836,6 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
 
-    def load_by_id_if_string(self, in_stream: Stream, **env: str) -> Stream:
-        async def load_element(item: JsonElement) -> AsyncGenerator[Json, None]:
-            if isinstance(item, str):
-                graph_name = env["graph"]
-                node = await self.dependencies.db_access.get_graph_db(graph_name).get_node(item)
-                if node:
-                    yield node
-            elif is_node(item):
-                yield item  # type: ignore
-            else:
-                raise CLIExecutionError(f"Command expects a string  node element, but got {class_fqn(item)}.")
-
-        return stream.flatmap(in_stream, load_element, task_limit=self.task_limit())
-
     # noinspection PyMethodMayBeStatic
     def task_limit(self) -> int:
         # override if this limit is not sufficient
@@ -906,6 +894,17 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
+    def load_by_id_merged(self, in_stream: Stream, **env: str) -> Stream:
+        async def load_element(items: list[JsonElement]) -> AsyncGenerator[Json, None]:
+            ids = [i["id"] if is_node(i) else i for i in items]
+            query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
+            model = QueryModel(query, Model.empty())
+            graph_name = env["graph"]
+            async for a in self.dependencies.db_access.get_graph_db(graph_name).query_list(model):
+                yield a
+
+        return stream.flatmap(stream.chunks(in_stream, 1000), load_element, task_limit=self.task_limit())
+
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
             tid = task.data["node"]["id"]  # defined by the data spec, see lines below
@@ -931,7 +930,7 @@ class TagCommand(SendWorkerTaskCommand):
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
         return lambda in_stream: stream.starmap(
-            self.send_to_queue_stream(stream.map(self.load_by_id_if_string(in_stream, **env), fn)), to_result
+            self.send_to_queue_stream(stream.map(self.load_by_id_merged(in_stream, **env), fn)), to_result
         )
 
 

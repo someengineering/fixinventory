@@ -479,6 +479,10 @@ class Query:
     def with_limit(self, num: int) -> Query:
         return replace(self, limit=num)
 
+    def merge_preamble(self, preamble: dict[str, SimpleValue]) -> Query:
+        updated = self.preamble | preamble if self.preamble else preamble
+        return replace(self, preamble=updated)
+
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:
         def make_term(t: Union[str, Term]) -> Term:

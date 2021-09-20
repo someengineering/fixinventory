@@ -693,7 +693,11 @@ class ArangoGraphDB(GraphDB):
             length = str(len(bind_vars))
             # if no section is given, the path is prefixed by the section: remove the section
             lookup = path if query_model.query_section else self.no_section.sub("", path, 1)
-            bind_vars[length] = model.kind_by_path(lookup).coerce(p.value)
+            kind = model.kind_by_path(lookup)
+            if (p.op == "in" or p.op == "not in") and isinstance(p.value, list):
+                bind_vars[length] = [kind.coerce(a) for a in p.value]
+            else:
+                bind_vars[length] = kind.coerce(p.value)
             return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
 
         def with_id(cursor: str, t: IdTerm) -> str:
@@ -846,7 +850,7 @@ class ArangoGraphDB(GraphDB):
             # all resolved ancestors can be looked up directly
             for tr, _ in ancestors:
                 if tr in GraphResolver.resolved_ancestors:
-                    m_parts.append(f"LET {tr} = Document({cursor}.refs.{tr}_id)")
+                    m_parts.append(f'LET {tr} = DOCUMENT("{self.vertex_name}", node.refs.{tr}_id)')
 
             result_parts = []
             for section in Section.all:
@@ -1095,9 +1099,8 @@ class EventGraphDB(GraphDB):
         async for a in result:
             yield a
 
-    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        async for elem in self.real.search(tokens, limit):
-            yield elem
+    def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
+        return self.real.search(tokens, limit)
 
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
