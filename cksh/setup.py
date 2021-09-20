@@ -1,4 +1,4 @@
-import graph_exporter
+import cksh
 from setuptools import setup, find_packages
 
 
@@ -12,15 +12,15 @@ with open("README.md") as f:
 
 
 setup(
-    name=graph_exporter.__title__,
-    version=graph_exporter.__version__,
-    description=graph_exporter.__description__,
-    license=graph_exporter.__license__,
+    name=cksh.__title__,
+    version=cksh.__version__,
+    description=cksh.__description__,
+    license=cksh.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "graph_exporter = graph_exporter.__main__:main",
+            "ck = cksh.__main__:main",
         ]
     },
     include_package_data=True,

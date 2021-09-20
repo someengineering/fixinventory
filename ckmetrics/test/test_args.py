@@ -1,5 +1,5 @@
-from graph_exporter.args import get_arg_parser, ArgumentParser
-from graph_exporter.__main__ import add_args
+from ckmetrics.args import get_arg_parser, ArgumentParser
+from ckmetrics.__main__ import add_args
 
 
 def test_args():

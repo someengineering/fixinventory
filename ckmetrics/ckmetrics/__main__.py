@@ -1,4 +1,4 @@
-import graph_exporter.logging
+import ckmetrics.logging
 import sys
 import requests
 import json
@@ -10,16 +10,16 @@ from cloudkeeper.event import KeepercoreEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
-from graph_exporter.args import get_arg_parser, ArgumentParser
+from ckmetrics.args import get_arg_parser, ArgumentParser
 from typing import Dict, Iterator, Tuple
 from signal import signal, SIGTERM, SIGINT
 
 
-log = graph_exporter.logging.getLogger(__name__)
+log = ckmetrics.logging.getLogger(__name__)
 shutdown_event = Event()
 
 metrics_update_metrics = Summary(
-    "graph_exporter_update_metrics_seconds",
+    "ckmetrics_update_metrics_seconds",
     "Time it took the update_metrics() function",
 )
 
@@ -59,7 +59,7 @@ def main() -> None:
     start_http_server(ArgumentParser.args.web_port)
     message_processor = partial(keepercore_message_processor, metrics, query_uri)
     ke = KeepercoreEvents(
-        identifier="graph_exporter",
+        identifier="ckmetrics",
         keepercore_uri=ArgumentParser.args.keepercore_uri,
         keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
         events={

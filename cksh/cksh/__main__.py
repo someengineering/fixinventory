@@ -1,15 +1,15 @@
-import keeper_cli.logging
+import cksh.logging
 import sys
 import pathlib
 import requests
 import json
 from threading import Event
-from keeper_cli.args import get_arg_parser, ArgumentParser
+from cksh.args import get_arg_parser, ArgumentParser
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 
 
-log = keeper_cli.logging.getLogger(__name__)
+log = cksh.logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     arg_parser.parse_args()
 
     session = completer = None
-    history_file = str(pathlib.Path.home() / ".keeper_history")
+    history_file = str(pathlib.Path.home() / ".cksh_history")
     history = FileHistory(history_file)
     session = PromptSession(history=history)
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"

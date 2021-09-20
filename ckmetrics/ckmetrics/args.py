@@ -2,7 +2,7 @@ import os
 import ast
 import argparse
 
-ENV_ARGS_PREFIX = "KEEPER_CLI_"
+ENV_ARGS_PREFIX = "CLOUDKEEPER_"
 
 
 class Namespace(argparse.Namespace):
@@ -63,7 +63,9 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def get_arg_parser(add_help: bool = True) -> ArgumentParser:
-    arg_parser = ArgumentParser(description="Cloudkeeper CLI", add_help=add_help)
+    arg_parser = ArgumentParser(
+        description="Cloudkeeper metrics exporter", add_help=add_help
+    )
     arg_parser.add_argument(
         "--verbose",
         "-v",

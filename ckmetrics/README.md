@@ -1,2 +1,2 @@
-# graph_exporter
+# ckmetrics
 Cloudkeeper Prometheus exporter

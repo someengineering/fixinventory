@@ -1,20 +1,20 @@
 import sys
 import os
 from logging import *
-from keeper_cli.args import ArgumentParser
+from cksh.args import ArgumentParser
 
 
 log_format = "%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s"
 basicConfig(level=WARN, format=log_format)
-getLogger("keeper_cli").setLevel(INFO)
+getLogger("cloudkeeper").setLevel(INFO)
 
 argv = sys.argv[1:]
 if (
     "-v" in argv
     or "--verbose" in argv
-    or os.environ.get("KEEPER_CLI_VERBOSE", "False") == "True"
+    or os.environ.get("CLOUDKEEPER_VERBOSE", "False") == "True"
 ):
-    getLogger("keeper_cli").setLevel(DEBUG)
+    getLogger("cksh").setLevel(DEBUG)
 
 logfile_arg = "--logfile"
 if logfile_arg in argv:

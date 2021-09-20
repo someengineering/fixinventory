@@ -1,20 +1,20 @@
 import sys
 import os
 from logging import *
-from graph_exporter.args import ArgumentParser
+from ckmetrics.args import ArgumentParser
 
 
 log_format = "%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s"
 basicConfig(level=WARN, format=log_format)
-getLogger("graph_exporter").setLevel(INFO)
+getLogger("cloudkeeper").setLevel(INFO)
 
 argv = sys.argv[1:]
 if (
     "-v" in argv
     or "--verbose" in argv
-    or os.environ.get("GRAPH_EXPORTER_VERBOSE", "False") == "True"
+    or os.environ.get("CLOUDKEEPER_VERBOSE", "False") == "True"
 ):
-    getLogger("graph_exporter").setLevel(DEBUG)
+    getLogger("cloudkeeper").setLevel(DEBUG)
 
 logfile_arg = "--logfile"
 if logfile_arg in argv:

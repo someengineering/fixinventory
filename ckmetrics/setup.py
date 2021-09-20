@@ -1,4 +1,4 @@
-import keeper_cli
+import ckmetrics
 from setuptools import setup, find_packages
 
 
@@ -12,15 +12,15 @@ with open("README.md") as f:
 
 
 setup(
-    name=keeper_cli.__title__,
-    version=keeper_cli.__version__,
-    description=keeper_cli.__description__,
-    license=keeper_cli.__license__,
+    name=ckmetrics.__title__,
+    version=ckmetrics.__version__,
+    description=ckmetrics.__description__,
+    license=ckmetrics.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "keeper = keeper_cli.__main__:main",
+            "ckmetrics = ckmetrics.__main__:main",
         ]
     },
     include_package_data=True,

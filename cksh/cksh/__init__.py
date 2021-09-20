@@ -6,7 +6,7 @@ Commandline interpreter to interact with cloudkeeper.
 :license: Apache 2.0, see LICENSE for more details.
 """
 
-__title__ = "keeper-cli"
+__title__ = "cksh"
 __description__ = "Commandline interpreter to interact with cloudkeeper."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
