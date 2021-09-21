@@ -39,7 +39,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable cloudkeeper/
+          pip install --upgrade --editable cklib/
           pip install tox wheel flake8
 
       - name: Build cklib
