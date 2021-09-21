@@ -148,7 +148,10 @@ def add_event_listener(
         return False
 
     if timeout is None:
-        timeout = ArgumentParser.args.event_timeout
+        if hasattr(ArgumentParser.args, "event_timeout"):
+            timeout = ArgumentParser.args.event_timeout
+        else:
+            timeout = 900
 
     log.debug(
         f"Registering {listener} with event {event_type.name}"

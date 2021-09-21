@@ -4,7 +4,7 @@ import json
 import time
 import inspect
 import cklib.baseresources
-from cklib.logging import log
+from cklib.logging import log, add_args as logging_add_args
 from functools import partial
 from cklib.event import KeepercoreEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
@@ -44,6 +44,7 @@ def main() -> None:
 
     arg_parser = get_arg_parser()
     add_args(arg_parser)
+    logging_add_args(arg_parser)
     arg_parser.parse_args()
 
     metrics = Metrics()
