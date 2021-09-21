@@ -9,7 +9,6 @@ from cklib.args import get_arg_parser, ArgumentParser
 from cklib.logging import log
 
 
-
 def main() -> None:
     arg_parser = get_arg_parser()
     add_args(arg_parser)

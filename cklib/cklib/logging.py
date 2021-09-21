@@ -1,6 +1,16 @@
 import sys
 import os
-from logging import basicConfig, getLogger, Formatter, FileHandler, DEBUG, INFO, WARNING, ERROR, CRITICAL
+from logging import (
+    basicConfig,
+    getLogger,
+    Formatter,
+    FileHandler,
+    DEBUG,
+    INFO,
+    WARNING,
+    ERROR,
+    CRITICAL,
+)
 from cklib.args import ArgumentParser
 
 

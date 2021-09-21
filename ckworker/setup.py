@@ -1,36 +1,31 @@
-import os
+import ckworker
 from setuptools import setup, find_packages
 
 
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
+readme = ""
+with open("README.md") as f:
+    readme = f.read()
 
 
 setup(
-    name="cloudkeeper",
-    version="0.0.3",
-    description="Housekeeping for Clouds",
-    license="Apache 2.0",
+    name=ckworker.__title__,
+    version=ckworker.__version__,
+    description=ckworker.__description__,
+    license=ckworker.__license__,
     packages=find_packages(),
-    long_description=read("README.md"),
+    long_description=readme,
     entry_points={
         "console_scripts": [
-            "cloudkeeper = cloudkeeper.__main__:main",
+            "ckworker = ckworker.__main__:main",
         ]
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=[
-        "cklib",
-        "cherrypy",
-        "requests",
-        "prometheus_client",
-        "apscheduler",
-        "prompt_toolkit",
-        "tzlocal==2.1",
-        "pyyaml",
-        "PyJWT",
-    ],
+    install_requires=requirements,
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

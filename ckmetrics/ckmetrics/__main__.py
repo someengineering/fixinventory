@@ -139,7 +139,7 @@ def find_metrics(mod):
 
 @metrics_update_metrics.time()
 def update_metrics(metrics: Metrics, query_uri: str) -> None:
-    metrics_descriptions = find_metrics(cloudkeeper.baseresources)
+    metrics_descriptions = find_metrics(cklib.baseresources)
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return
