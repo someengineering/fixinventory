@@ -10,12 +10,12 @@ import cklib.logging
 import re
 from datetime import datetime
 
-cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.INFO)
+cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.INFO)
 log = cklib.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.DEBUG)
+    cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.DEBUG)
 log.info("Cloudkeeper S3 object purger")
 
 

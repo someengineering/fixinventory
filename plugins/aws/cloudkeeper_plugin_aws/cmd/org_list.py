@@ -4,12 +4,12 @@ from cklib.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws import get_org_accounts
 
 
-cloudkeeper.logging.getLogger("cloudkeeper").setLevel(cloudkeeper.logging.ERROR)
+cklib.logging.getLogger("cloudkeeper").setLevel(cklib.logging.ERROR)
 log = cklib.logging.getLogger(__name__)
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cloudkeeper.logging.getLogger("cloudkeeper").setLevel(cloudkeeper.logging.DEBUG)
+    cklib.logging.getLogger("cloudkeeper").setLevel(cklib.logging.DEBUG)
 
 
 def main() -> None:

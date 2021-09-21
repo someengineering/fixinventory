@@ -45,9 +45,7 @@ jobs:
       - name: Build cloudkeeper
         working-directory: ./cloudkeeper
         run: |
-          sudo rm -fr /build
-          sudo mkdir -p /build -m a+rw
-          pip wheel -w /build .
+          pip wheel -w /build -f /build .
 
       - name: Run tests
         working-directory: ./cloudkeeper

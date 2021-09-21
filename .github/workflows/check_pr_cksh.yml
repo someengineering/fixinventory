@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'cksh/**'
+      - 'cklib/**'
       - '.github/**'
 
 jobs:
@@ -30,13 +31,13 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable cksh/
+          pip install --upgrade --editable cklib/
           pip install tox wheel flake8
 
-      - name: Build Cloudkeeper CLI
-        working-directory: ./cksh
+      - name: Build cklib
+        working-directory: ./cklib
         run: |
-          sudo rm -fr /build
+          sudo rm -rf /build
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 

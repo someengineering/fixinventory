@@ -22,14 +22,14 @@ class EventType(Enum):
     STARTUP: None
     SHUTDOWN: {'reason': 'reason for shutdown', 'emergency': True/False}
     START_COLLECT: None
-    COLLECT_BEGIN: cloudkeeper.graph.Graph
-    COLLECT_FINISH: cloudkeeper.graph.Graph
-    CLEANUP_PLAN: cloudkeeper.graph.Graph
-    CLEANUP_BEGIN: cloudkeeper.graph.Graph
-    CLEANUP_FINISH: cloudkeeper.graph.Graph
-    PROCESS_BEGIN: cloudkeeper.graph.Graph
-    PROCESS_FINISH: cloudkeeper.graph.Graph
-    GENERATE_METRICS: cloudkeeper.graph.Graph
+    COLLECT_BEGIN: cklib.graph.Graph
+    COLLECT_FINISH: cklib.graph.Graph
+    CLEANUP_PLAN: cklib.graph.Graph
+    CLEANUP_BEGIN: cklib.graph.Graph
+    CLEANUP_FINISH: cklib.graph.Graph
+    PROCESS_BEGIN: cklib.graph.Graph
+    PROCESS_FINISH: cklib.graph.Graph
+    GENERATE_METRICS: cklib.graph.Graph
     """
 
     STARTUP = "startup"

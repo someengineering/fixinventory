@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'ckmetrics/**'
+      - 'cklib/**'
       - '.github/**'
 
 jobs:

@@ -26,12 +26,12 @@ from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
 from cloudkeeper_plugin_aws import current_account_id, AWSPlugin, get_org_accounts
 
-cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.INFO)
+cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.INFO)
 log = cklib.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.DEBUG)
+    cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.DEBUG)
 log.info("Cloudkeeper S3 bucket collector")
 
 

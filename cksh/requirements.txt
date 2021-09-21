@@ -1,3 +1,4 @@
+cklib
 requests
 prompt_toolkit
 websocket-client

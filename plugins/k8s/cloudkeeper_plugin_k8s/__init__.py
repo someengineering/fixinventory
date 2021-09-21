@@ -33,7 +33,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.k8s_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cloudkeeper.signal.initializer
+            pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {"args": ArgumentParser.args}
         else:
@@ -72,7 +72,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         """
         cluster = KubernetesCluster(cluster_id, {})
         collector_name = f"k8s_{cluster.id}"
-        cloudkeeper.signal.set_thread_name(collector_name)
+        cklib.signal.set_thread_name(collector_name)
 
         if args is not None:
             ArgumentParser.args = args

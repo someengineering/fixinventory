@@ -8,7 +8,6 @@ from cklib.logging import log
 from cklib.baseresources import GraphRoot, Cloud, BaseResource
 from cklib.utils import RWLock, json_default, get_resource_attributes
 from cklib.args import ArgumentParser
-from cloudkeeper.metrics import graph2metrics
 from cklib.graph.export import (
     dataclasses_to_keepercore_model,
     node_to_dict,
@@ -20,13 +19,18 @@ from cklib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List, IO, Optional
+from prometheus_client.core import GaugeMetricFamily
+from typing import Dict, List, IO, Optional, Tuple
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
+from collections import defaultdict
 
 
+metrics_graph2metrics = Summary(
+    "cloudkeeper_graph2metrics_seconds", "Time it took the graph2metrics() method"
+)
 metrics_graph_search = Summary(
     "cloudkeeper_graph_search_seconds", "Time it took the Graph search() method"
 )
@@ -417,6 +421,88 @@ class GraphContainer:
             return self.cache.metrics
         else:
             return graph2metrics(self.graph)
+
+
+# The mlabels() and mtags() functions are being used to dynamically add more labels
+# to each metric. The idea here is that via a cli arg we can specify resource tags
+# that should be exported as labels for each metric. This way we don't have to touch
+# the code itself any time we want to add another metrics dimension. Instead we could
+# just have a tag like 'project' and then use the '--tag-as-metrics-label project'
+# argument to export another label based on the given tag.
+def mlabels(labels: List) -> List:
+    """Takes a list of labels and appends any cli arg specified tag names to it."""
+    if ArgumentParser.args and getattr(
+        ArgumentParser.args, "metrics_tag_as_label", None
+    ):
+        for tag in ArgumentParser.args.metrics_tag_as_label:
+            labels.append(make_valid_label(tag))
+    return labels
+
+
+def mtags(labels: Tuple, node: BaseResource) -> Tuple:
+    """Takes a tuple containing labels and adds any tags specified as cli args to it.
+
+    Returns the extended tuple.
+    """
+    if not type(labels) is tuple:
+        if type(labels) is list:
+            labels = tuple(labels)
+        else:
+            labels = tuple([labels])
+    ret = list(labels)
+    if ArgumentParser.args and getattr(
+        ArgumentParser.args, "metrics_tag_as_label", None
+    ):
+        for tag in ArgumentParser.args.metrics_tag_as_label:
+            if tag in node.tags:
+                tag_value = node.tags[tag]
+                ret.append(tag_value)
+            else:
+                ret.append("")
+    return tuple(ret)
+
+
+def make_valid_label(label: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_]", "_", label)
+
+
+@metrics_graph2metrics.time()
+def graph2metrics(graph):
+    metrics = {}
+    num = {}
+
+    with graph.lock.read_access:
+        for node in graph.nodes:
+            if not isinstance(node, BaseResource):
+                continue
+            try:
+                for metric, data in node.metrics_description.items():
+                    if metric not in metrics:
+                        metrics[metric] = GaugeMetricFamily(
+                            f"cloudkeeper_{metric}",
+                            data["help"],
+                            labels=mlabels(data["labels"]),
+                        )
+                        num[metric] = defaultdict(lambda: 0)
+                for metric, data in node.metrics(graph).items():
+                    for labels, value in data.items():
+                        if metric not in num:
+                            log.error(
+                                (
+                                    f"Couldn't find metric {metric} in num when"
+                                    f" processing node {node}"
+                                )
+                            )
+                            continue
+                        num[metric][mtags(labels, node)] += value
+            except AttributeError:
+                log.exception(f"Encountered invalid node in graph {node}")
+
+        for metric in metrics:
+            for labels, value in num[metric].items():
+                metrics[metric].add_metric(labels, value)
+
+    return metrics
 
 
 class GraphCache:
