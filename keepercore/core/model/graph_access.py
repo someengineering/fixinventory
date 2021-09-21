@@ -36,7 +36,8 @@ class Section:
     metadata = "metadata"
 
     # The set of all allowed sections
-    all = {reported, desired, metadata}
+    all_ordered = [reported, desired, metadata]
+    all = set(all_ordered)
 
 
 class EdgeType:
