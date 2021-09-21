@@ -1,7 +1,7 @@
 import time
 from typing import Dict, ClassVar, List, Optional
 from datetime import datetime
-from cloudkeeper.baseresources import (
+from cklib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseUser,

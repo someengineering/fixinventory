@@ -19,7 +19,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        "cloudkeeper",
+        "cklib",
         "google-api-python-client",
         "oauth2client",
         "prometheus_client",

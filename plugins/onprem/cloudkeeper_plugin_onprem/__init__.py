@@ -1,17 +1,17 @@
-from cloudkeeper.baseresources import BaseResource
-import cloudkeeper.logging
+from cklib.baseresources import BaseResource
+import cklib.logging
 import socket
 import multiprocessing
-import cloudkeeper.signal
+import cklib.signal
 from concurrent import futures
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
 from .resources import OnpremLocation, OnpremRegion, OnpremNetwork
 from .ssh import instance_from_ssh
 from paramiko import ssh_exception
 from typing import Dict
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class OnpremCollectorPlugin(BaseCollectorPlugin):
@@ -75,7 +75,7 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.onprem_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cloudkeeper.signal.initializer
+            pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {"args": ArgumentParser.args}
         else:
@@ -172,7 +172,7 @@ def collect_server(srv: Dict, args=None) -> Dict:
         hostname, port = hostname.split(":", 1)
 
     collector_name = f"onprem_{hostname}"
-    cloudkeeper.signal.set_thread_name(collector_name)
+    cklib.signal.set_thread_name(collector_name)
     try:
         s = instance_from_ssh(
             hostname,

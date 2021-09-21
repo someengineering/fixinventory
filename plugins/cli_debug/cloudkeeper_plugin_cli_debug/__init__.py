@@ -1,15 +1,15 @@
 import os
 import inspect
-import cloudkeeper.logging
+import cklib.logging
 from pprint import pformat
 from pympler import asizeof
 from typing import Iterable
-from cloudkeeper.baseplugin import BaseCliPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import get_stats, fmt_json
+from cklib.baseplugin import BaseCliPlugin
+from cklib.args import ArgumentParser
+from cklib.utils import get_stats, fmt_json
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CliDebugPlugin(BaseCliPlugin):

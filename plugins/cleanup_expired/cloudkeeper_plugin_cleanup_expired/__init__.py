@@ -1,18 +1,18 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
 from datetime import datetime, timezone
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.baseresources import *
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import make_valid_timestamp, parse_delta
-from cloudkeeper.event import (
+from cklib.baseplugin import BasePlugin
+from cklib.baseresources import *
+from cklib.args import ArgumentParser
+from cklib.utils import make_valid_timestamp, parse_delta
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
     remove_event_listener,
 )
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CleanupExpiredPlugin(BasePlugin):

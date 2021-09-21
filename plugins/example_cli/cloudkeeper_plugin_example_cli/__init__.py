@@ -1,9 +1,9 @@
-import cloudkeeper.logging
+import cklib.logging
 from typing import Iterable
-from cloudkeeper.baseplugin import BaseCliPlugin
-from cloudkeeper.args import ArgumentParser
+from cklib.baseplugin import BaseCliPlugin
+from cklib.args import ArgumentParser
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class ExampleCliPlugin(BaseCliPlugin):

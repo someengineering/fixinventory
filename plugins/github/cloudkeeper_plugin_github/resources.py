@@ -1,9 +1,9 @@
 from datetime import datetime
-import cloudkeeper.logging
+import cklib.logging
 from dataclasses import dataclass
 from typing import Optional, ClassVar
-from cloudkeeper.graph import Graph
-from cloudkeeper.baseresources import (
+from cklib.graph import Graph
+from cklib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseResource,
@@ -11,7 +11,7 @@ from cloudkeeper.baseresources import (
 )
 import github
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

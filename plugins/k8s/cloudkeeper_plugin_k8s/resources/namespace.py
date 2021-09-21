@@ -1,6 +1,6 @@
 from kubernetes import client
 from .common import KubernetesResource
-from cloudkeeper.baseresources import BaseRegion
+from cklib.baseresources import BaseRegion
 from typing import ClassVar
 from dataclasses import dataclass
 

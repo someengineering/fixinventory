@@ -1,6 +1,6 @@
 from kubernetes import client
 from .common import KubernetesResource
-from cloudkeeper.baseresources import (
+from cklib.baseresources import (
     BaseResource,
 )
 from typing import ClassVar, Dict

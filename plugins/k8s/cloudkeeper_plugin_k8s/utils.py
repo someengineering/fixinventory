@@ -1,10 +1,10 @@
-import cloudkeeper.logging
-from cloudkeeper.args import ArgumentParser
+import cklib.logging
+from cklib.args import ArgumentParser
 from typing import Dict
 from kubernetes import client, config
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 def k8s_config() -> Dict:

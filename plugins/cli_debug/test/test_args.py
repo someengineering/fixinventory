@@ -1,4 +1,4 @@
-from cloudkeeper.args import get_arg_parser
+from cklib.args import get_arg_parser
 from cloudkeeper_plugin_cli_debug import CliDebugPlugin
 
 

@@ -1,16 +1,16 @@
 from datetime import datetime
 
-import cloudkeeper.logging
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.baseresources import BaseResource
+import cklib.logging
+from cklib.args import ArgumentParser
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.baseresources import BaseResource
 
 from .vsphere_client import get_vsphere_client
 from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
 
 from pyVmomi import vim
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class VSphereCollectorPlugin(BaseCollectorPlugin):

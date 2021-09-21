@@ -4,14 +4,14 @@ from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
 from cloudkeeper_plugin_aws import AWSPlugin, current_account_id
-from cloudkeeper.utils import make_valid_timestamp
-from cloudkeeper.args import get_arg_parser, ArgumentParser
-import cloudkeeper.logging
+from cklib.utils import make_valid_timestamp
+from cklib.args import get_arg_parser, ArgumentParser
+import cklib.logging
 import re
 from datetime import datetime
 
 cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.INFO)
-log = cloudkeeper.logging.getLogger("cloudkeeper.cmd")
+log = cklib.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:

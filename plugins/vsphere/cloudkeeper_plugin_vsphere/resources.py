@@ -1,6 +1,6 @@
-from cloudkeeper.graph import Graph
-import cloudkeeper.logging
-from cloudkeeper.baseresources import (
+from cklib.graph import Graph
+import cklib.logging
+from cklib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -11,7 +11,7 @@ from typing import ClassVar, Dict
 from pyVmomi import vim
 from .vsphere_client import get_vsphere_client, VSphereClient
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

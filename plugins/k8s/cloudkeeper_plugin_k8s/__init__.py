@@ -1,18 +1,18 @@
-import cloudkeeper.logging
+import cklib.logging
 import multiprocessing
-import cloudkeeper.signal
+import cklib.signal
 from concurrent import futures
 from typing import Optional, Dict
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
 from kubernetes import client
 from .utils import k8s_config
 from .collector import KubernetesCollector
 from .resources.cluster import KubernetesCluster
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class KubernetesCollectorPlugin(BaseCollectorPlugin):

@@ -18,16 +18,16 @@ from sqlalchemy import (
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import WordCompleter
-import cloudkeeper.logging
+import cklib.logging
 from cloudkeeper.cli import replace_placeholder
-from cloudkeeper.utils import split_esc, iec_size_format
-from cloudkeeper.args import get_arg_parser, ArgumentParser
+from cklib.utils import split_esc, iec_size_format
+from cklib.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
 from cloudkeeper_plugin_aws import current_account_id, AWSPlugin, get_org_accounts
 
 cloudkeeper.logging.getLogger("cloudkeeper.cmd").setLevel(cloudkeeper.logging.INFO)
-log = cloudkeeper.logging.getLogger("cloudkeeper.cmd")
+log = cklib.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:

@@ -1,9 +1,9 @@
 import jq
 from typing import Iterable
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.baseplugin import BaseCliPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import fmt_json, resource2dict
+from cklib.baseresources import BaseResource
+from cklib.baseplugin import BaseCliPlugin
+from cklib.args import ArgumentParser
+from cklib.utils import fmt_json, resource2dict
 
 
 class CliJqPlugin(BaseCliPlugin):

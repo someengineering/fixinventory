@@ -20,7 +20,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "pyyaml"],
+    install_requires=["cklib", "pyyaml"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

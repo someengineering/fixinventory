@@ -20,7 +20,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "Pympler"],
+    install_requires=["cklib", "Pympler"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

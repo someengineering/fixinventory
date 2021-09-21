@@ -1,22 +1,22 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
 import inspect
 from .config import TagValidatorConfig
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.baseresources import *
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
-from cloudkeeper.event import (
+from cklib.baseplugin import BasePlugin
+from cklib.baseresources import *
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
     remove_event_listener,
 )
-from cloudkeeper.utils import parse_delta
+from cklib.utils import parse_delta
 from cloudkeeper.paralleltagger import ParallelTagger
 from prometheus_client import Summary, Counter
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_tag_violations = Counter(
     "cloudkeeper_plugin_tagvalidator_tag_violations_total",

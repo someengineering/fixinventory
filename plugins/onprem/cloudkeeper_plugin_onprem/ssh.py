@@ -1,9 +1,9 @@
-import cloudkeeper.logging
+import cklib.logging
 from collections import defaultdict
 from paramiko import SSHClient
 from .resources import OnpremInstance
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 def instance_from_ssh(
