@@ -13,6 +13,7 @@ main() {
     if [ "$LEGACY_STARTUP" = true ]; then
         exec /usr/local/bin/cloudkeeper "$@"
     else
+        setup_dnsmasq
         setup_syslog
         setup_supervisor_http_server
         setup_graphdb
@@ -106,6 +107,19 @@ username = $SUPERVISOR_HTTP_USER
 password = $SUPERVISOR_HTTP_PASS
 EOF
         fi
+    fi
+}
+
+setup_dnsmasq() {
+    rm -f "$supervisor_dnsmasq_conf"
+    if [ "$START_DNSMASQ" = true ]; then
+        info "dnsmasq activated"
+        cp "$supervisor_dnsmasq_conf_in" "$supervisor_dnsmasq_conf"
+        cp /etc/resolv.conf /etc/resolv.dnsmasq
+        if [ "${LOG_DNS_QUERIES-}" = true ]; then
+            echo "log-queries=extra" >> /etc/dnsmasq.d/cloudkeeper.conf
+        fi
+        echo "nameserver 127.0.0.1" > /etc/resolv.conf
     fi
 }
 
