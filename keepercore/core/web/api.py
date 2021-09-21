@@ -588,20 +588,14 @@ class Api:
             return response
 
         async def respond_yaml() -> StreamResponse:
-            response = web.StreamResponse(status=200, headers={"Content-Type": "application/yaml"})
+            response = web.StreamResponse(status=200, headers={"Content-Type": "text/yaml"})
             await response.prepare(request)
-            async for item in gen:
-                yml = yaml.dump([to_js(item)], default_flow_style=False, sort_keys=False)
-                await response.write(yml.encode("utf-8"))
-            await response.write_eof()
-            return response
-
-        async def respond_text() -> StreamResponse:
-            response = web.StreamResponse(status=200, headers={"Content-Type": "text/plain"})
-            await response.prepare(request)
+            flag = False
             async for item in gen:
                 yml = yaml.dump(to_js(item), default_flow_style=False, sort_keys=False)
-                await response.write(f"{yml}\n".encode("utf-8"))
+                sep = "---\n" if flag else ""
+                await response.write(f"{sep}{yml}".encode("utf-8"))
+                flag = True
             await response.write_eof()
             return response
 
@@ -610,10 +604,8 @@ class Api:
             return await respond_ndjson()
         elif accept == "application/json":
             return await respond_json()
-        elif accept in ["application/yaml", "application/yml", "text/yaml", "text/yml"]:
-            return await respond_yaml()
         else:
-            return await respond_text()
+            return await respond_yaml()
 
     @staticmethod
     async def error_handler(_: Any, handler: RequestHandler) -> RequestHandler:
