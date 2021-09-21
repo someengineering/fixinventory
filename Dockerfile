@@ -57,9 +57,21 @@ WORKDIR /usr/src/keepercore
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build -f /build .
 
+# Build cklib
+COPY cloudkeeper /usr/src/cklib
+WORKDIR /usr/src/cklib
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
 # Build cloudkeeper
 COPY cloudkeeper /usr/src/cloudkeeper
 WORKDIR /usr/src/cloudkeeper
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
+# Build ckworker
+COPY cloudkeeper /usr/src/ckworker
+WORKDIR /usr/src/ckworker
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
