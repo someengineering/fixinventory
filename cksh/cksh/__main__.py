@@ -1,7 +1,6 @@
 import sys
 import pathlib
 import requests
-import json
 from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -20,6 +19,7 @@ def main() -> None:
     session = PromptSession(history=history)
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
     shutdown_event = Event()
+    headers = {"Content-type": "application/yaml"}
 
     while not shutdown_event.is_set():
         try:
@@ -30,14 +30,12 @@ def main() -> None:
                 shutdown_event.set()
                 continue
 
-            res = requests.post(execute_endpoint, data=cli_input)
+            res = requests.post(execute_endpoint, data=cli_input, headers=headers)
             if res.status_code != 200:
                 print(res.text, file=sys.stderr)
                 continue
 
-            response = json.loads(res.text)
-            for line in response:
-                print(line)
+            print(res.text)
 
         except KeyboardInterrupt:
             pass
