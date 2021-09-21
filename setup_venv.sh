@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 if [ -d "venv/" ]; then
     echo -e "Virtual Python ENV already exists!\nRun:\n\trm -rf venv/\nif you want to recreate it"
     exit 1
