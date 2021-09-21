@@ -837,6 +837,22 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         # override if this limit is not sufficient
         return 100
 
+    cloud_account_region_zone = {
+        "cloud": ["reported", "cloud", "id"],
+        "account": ["reported", "account", "id"],
+        "region": ["reported", "region", "id"],
+        "zone": ["reported", "zone", "id"],
+    }
+
+    @classmethod
+    def carz_from_node(cls, node: Json) -> Json:
+        result = {}
+        for name, path in cls.cloud_account_region_zone.items():
+            value = value_in_path(node, path)
+            if value:
+                result[name] = value
+        return result
+
     @abstractmethod
     def timeout(self) -> timedelta:
         pass
@@ -888,17 +904,19 @@ class TagCommand(SendWorkerTaskCommand):
         return "Update a tag with provided value or delete a tag"
 
     def timeout(self) -> timedelta:
-        return timedelta(seconds=300)
+        return timedelta(seconds=30)
 
     def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
         async def load_element(items: list[JsonElement]) -> AsyncGenerator[Json, None]:
+            # collect ids either from json dict or string
             ids: list[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            # one query to load all items that match given ids (max 1000 as defined in chunk size)
             query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
             query_model = QueryModel(query, model)
             async for a in self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model):
                 yield a
 
-        return stream.flatmap(stream.chunks(in_stream, 1000), load_element, task_limit=self.task_limit())
+        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
 
     def handle_result(
         self, model: Model, **env: str
@@ -931,15 +949,19 @@ class TagCommand(SendWorkerTaskCommand):
         pl = len(parts)
         if pl == 2 and parts[0] == "delete":
             tag = parts[1]
-            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (  # noqa: E731
+            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (
                 "tag",
-                item.get("metadata", {}),
+                self.carz_from_node(item),
                 {"delete": [tag], "node": item},
-            )
+            )  # noqa: E731
         elif pl == 3 and parts[0] == "update":
             tag = parts[1]
             value = quoted_or_simple_string_dp.parse(parts[2])
-            fn = lambda item: ("tag", item.get("metadata", {}), {"update": {tag: value}, "node": item})  # noqa: E731
+            fn = lambda item: (  # noqa: E731
+                "tag",
+                self.carz_from_node(item),
+                {"update": {tag: value}, "node": item},
+            )
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
