@@ -1,16 +1,16 @@
 import multiprocessing
-import cloudkeeper.logging
-import cloudkeeper.signal
+import cklib.logging
+import cklib.signal
 from concurrent import futures
 from typing import Dict, Optional
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
 from .resources import GCPProject
 from .utils import Credentials
 from .collector import GCPProjectCollector
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
@@ -48,7 +48,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.gcp_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cloudkeeper.signal.initializer
+            pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {"args": ArgumentParser.args}
         else:
@@ -84,7 +84,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         """
         project = GCPProject(project_id, {})
         collector_name = f"gcp_{project.id}"
-        cloudkeeper.signal.set_thread_name(collector_name)
+        cklib.signal.set_thread_name(collector_name)
 
         if args is not None:
             ArgumentParser.args = args

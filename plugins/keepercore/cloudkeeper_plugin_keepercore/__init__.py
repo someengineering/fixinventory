@@ -1,9 +1,9 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import (
+from cklib.baseplugin import BasePlugin
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
@@ -12,7 +12,7 @@ from cloudkeeper.event import (
 import requests
 import json
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class KeepercorePlugin(BasePlugin):

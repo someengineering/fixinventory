@@ -1,11 +1,11 @@
-import cloudkeeper.logging
+import cklib.logging
 from dataclasses import dataclass, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import (
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
+from cklib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -14,7 +14,7 @@ from cloudkeeper.baseresources import (
     InstanceStatus,
 )
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class ExampleCollectorPlugin(BaseCollectorPlugin):

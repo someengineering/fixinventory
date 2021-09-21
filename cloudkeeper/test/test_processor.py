@@ -1,13 +1,13 @@
 from cloudkeeper.processor import Processor
-from cloudkeeper.graph import GraphContainer
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.args import ArgumentParser, get_arg_parser
-from cloudkeeper.event import Event, EventType, add_args as event_add_args
-from cloudkeeper.cleaner import Cleaner
+from cklib.graph import GraphContainer
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.baseresources import BaseResource
+from cklib.args import ArgumentParser, get_arg_parser
+from cklib.event import Event, EventType, add_args as event_add_args
+from cklib.cleaner import Cleaner
 from dataclasses import dataclass
 from typing import ClassVar
-import cloudkeeper.logging as logging
+import cklib.logging as logging
 import time
 import random
 

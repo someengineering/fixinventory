@@ -23,7 +23,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        "cloudkeeper",
+        "cklib",
         "retrying",
         "sqlalchemy",
         "prometheus_client",

@@ -20,7 +20,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "cloudkeeper-plugin-aws"],
+    install_requires=["cklib", "cloudkeeper", "cloudkeeper-plugin-aws"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

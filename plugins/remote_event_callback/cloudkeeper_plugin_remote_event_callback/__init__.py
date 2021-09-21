@@ -1,19 +1,19 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
 import requests
 import jwt
 import datetime
 from functools import partial
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import (
+from cklib.baseplugin import BasePlugin
+from cklib.args import ArgumentParser
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
     remove_event_listener,
 )
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class RemoteEventCallbackPlugin(BasePlugin):

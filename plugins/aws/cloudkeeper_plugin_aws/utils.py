@@ -2,9 +2,9 @@ import boto3
 import boto3.session
 import uuid
 from typing import Iterable
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.graph import Graph
+from cklib.args import ArgumentParser
+from cklib.baseresources import BaseResource
+from cklib.graph import Graph
 from retrying import retry
 from prometheus_client import Counter
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError

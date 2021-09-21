@@ -6,7 +6,7 @@ import ast
 import time
 import calendar
 import yaml
-import cloudkeeper.logging
+from cklib.logging import log
 from typing import Iterable, Tuple, Any, List
 from collections import deque
 from itertools import islice
@@ -23,32 +23,29 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.shortcuts import button_dialog
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.pluginloader import PluginLoader, PluginType
-from cloudkeeper.graph import (
+from cklib.baseresources import BaseResource
+from cklib.pluginloader import PluginLoader, PluginType
+from cklib.graph import (
     Graph,
     GraphContainer,
     graph2pickle,
 )
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import (
+from cklib.args import ArgumentParser
+from cklib.event import (
     dispatch_event,
     Event,
     EventType,
     add_event_listener,
     list_event_listeners,
 )
-from cloudkeeper.utils import (
+from cklib.utils import (
     parse_delta,
     make_valid_timestamp,
     split_esc,
     fmt_json,
     resource2dict,
 )
-from cloudkeeper.cleaner import Cleaner
-
-
-log = cloudkeeper.logging.getLogger(__name__)
+from cklib.cleaner import Cleaner
 
 
 class Cli(threading.Thread):

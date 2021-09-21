@@ -1,17 +1,17 @@
-import cloudkeeper.logging
+import cklib.logging
 import os
 from datetime import datetime, timedelta, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import make_valid_timestamp
-from cloudkeeper.baseresources import BaseAccount, BaseRegion, BaseUser
-from cloudkeeper.graph import Graph
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
+from cklib.utils import make_valid_timestamp
+from cklib.baseresources import BaseAccount, BaseRegion, BaseUser
+from cklib.graph import Graph
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Dict, List
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

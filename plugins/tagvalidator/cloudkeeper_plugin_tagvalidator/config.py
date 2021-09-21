@@ -1,8 +1,8 @@
 import configparser
-import cloudkeeper.logging
+import cklib.logging
 from collections import defaultdict
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class TagValidatorConfig:

@@ -1,0 +1,2 @@
+# cklib
+Cloudkeeper common library

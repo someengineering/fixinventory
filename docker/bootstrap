@@ -13,13 +13,14 @@ main() {
     if [ "$LEGACY_STARTUP" = true ]; then
         exec /usr/local/bin/cloudkeeper "$@"
     else
+        setup_dnsmasq
         setup_syslog
         setup_supervisor_http_server
         setup_graphdb
         setup_tsdb
-        setup_keepercore
-        setup_collectord
-        setup_graph_exporter
+        setup_ckcore
+        setup_ckworker
+        setup_ckmetrics
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
     fi
 }
@@ -109,6 +110,19 @@ EOF
     fi
 }
 
+setup_dnsmasq() {
+    rm -f "$supervisor_dnsmasq_conf"
+    if [ "$START_DNSMASQ" = true ]; then
+        info "dnsmasq activated"
+        cp "$supervisor_dnsmasq_conf_in" "$supervisor_dnsmasq_conf"
+        cp /etc/resolv.conf /etc/resolv.dnsmasq
+        if [ "${LOG_DNS_QUERIES-}" = true ]; then
+            echo "log-queries=extra" >> /etc/dnsmasq.d/cloudkeeper.conf
+        fi
+        echo "nameserver 127.0.0.1" > /etc/resolv.conf
+    fi
+}
+
 setup_graphdb() {
     rm -f "$supervisor_graphdb_conf"
     if [ "$START_GRAPHDB" = true ]; then
@@ -131,35 +145,35 @@ setup_tsdb() {
     fi
 }
 
-setup_keepercore() {
-    rm -f "$supervisor_keepercore_conf"
-    if [ "$START_KEEPERCORE" = true ]; then
-        info "Keepercore activated"
-        sed -e "s#@KEEPERCORE_GRAPHDB_SERVER@#$KEEPERCORE_GRAPHDB_SERVER#" \
-            -e "s#@KEEPERCORE_GRAPHDB_DATABASE@#$KEEPERCORE_GRAPHDB_DATABASE#" \
-            -e "s#@KEEPERCORE_GRAPHDB_LOGIN@#$KEEPERCORE_GRAPHDB_LOGIN#" \
-            -e "s#@KEEPERCORE_GRAPHDB_PASSWORD@#$KEEPERCORE_GRAPHDB_PASSWORD#" \
-            "$supervisor_keepercore_conf_in" > "$supervisor_keepercore_conf"
+setup_ckcore() {
+    rm -f "$supervisor_ckcore_conf"
+    if [ "$START_CKCORE" = true ]; then
+        info "ckcore activated"
+        sed -e "s#@CKCORE_GRAPHDB_SERVER@#$CKCORE_GRAPHDB_SERVER#" \
+            -e "s#@CKCORE_GRAPHDB_DATABASE@#$CKCORE_GRAPHDB_DATABASE#" \
+            -e "s#@CKCORE_GRAPHDB_LOGIN@#$CKCORE_GRAPHDB_LOGIN#" \
+            -e "s#@CKCORE_GRAPHDB_PASSWORD@#$CKCORE_GRAPHDB_PASSWORD#" \
+            "$supervisor_ckcore_conf_in" > "$supervisor_ckcore_conf"
     fi
 }
 
-setup_collectord() {
-    rm -f "$supervisor_collectord_conf"
-    if [ "$START_COLLECTORD" = true ]; then
-        info "Collectord activated"
-        sed -e "s#@COLLECTORD_KEEPERCORE_URI@#$COLLECTORD_KEEPERCORE_URI#" \
-            -e "s#@COLLECTORD_KEEPERCORE_WS_URI@#$COLLECTORD_KEEPERCORE_WS_URI#" \
-            "$supervisor_collectord_conf_in" > "$supervisor_collectord_conf"
+setup_ckworker() {
+    rm -f "$supervisor_ckworker_conf"
+    if [ "$START_CKWORKER" = true ]; then
+        info "ckworker activated"
+        sed -e "s#@CKWORKER_CKCORE_URI@#$CKWORKER_CKCORE_URI#" \
+            -e "s#@CKWORKER_CKCORE_WS_URI@#$CKWORKER_CKCORE_WS_URI#" \
+            "$supervisor_ckworker_conf_in" > "$supervisor_ckworker_conf"
     fi
 }
 
-setup_graph_exporter() {
-    rm -f "$supervisor_graph_exporter_conf"
-    if [ "$START_GRAPH_EXPORTER" = true ]; then
-        info "graph_exporter activated"
-        sed -e "s#@GRAPH_EXPORTER_KEEPERCORE_URI@#$GRAPH_EXPORTER_KEEPERCORE_URI#" \
-            -e "s#@GRAPH_EXPORTER_KEEPERCORE_WS_URI@#$GRAPH_EXPORTER_KEEPERCORE_WS_URI#" \
-            "$supervisor_graph_exporter_conf_in" > "$supervisor_graph_exporter_conf"
+setup_ckmetrics() {
+    rm -f "$supervisor_ckmetrics_conf"
+    if [ "$START_CKMETRICS" = true ]; then
+        info "ckmetrics activated"
+        sed -e "s#@CKMETRICS_CKCORE_URI@#$CKMETRICS_CKCORE_URI#" \
+            -e "s#@CKMETRICS_CKCORE_WS_URI@#$CKMETRICS_CKCORE_WS_URI#" \
+            "$supervisor_ckmetrics_conf_in" > "$supervisor_ckmetrics_conf"
     fi
 }
 

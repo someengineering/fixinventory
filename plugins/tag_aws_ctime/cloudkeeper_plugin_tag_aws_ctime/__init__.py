@@ -1,9 +1,9 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
 from datetime import datetime, timezone
-from cloudkeeper.graph import Graph
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.baseresources import BaseCloud, BaseAccount, BaseRegion
+from cklib.graph import Graph
+from cklib.baseplugin import BasePlugin
+from cklib.baseresources import BaseCloud, BaseAccount, BaseRegion
 from cloudkeeper_plugin_aws.resources import (
     AWSALBTargetGroup,
     AWSEC2KeyPair,
@@ -11,8 +11,8 @@ from cloudkeeper_plugin_aws.resources import (
     AWSVPC,
 )
 from cloudkeeper.paralleltagger import ParallelTagger
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import (
+from cklib.args import ArgumentParser
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
@@ -20,7 +20,7 @@ from cloudkeeper.event import (
 )
 from prometheus_client import Summary, Counter
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_ctime_tags = Counter(
     "cloudkeeper_plugin_tag_aws_ctime_tags_total",
