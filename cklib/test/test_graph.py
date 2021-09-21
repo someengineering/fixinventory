@@ -1,6 +1,6 @@
-from cloudkeeper.graph import Graph, GraphContainer
-from cloudkeeper.baseresources import BaseResource
-import cloudkeeper.logging as logging
+from cklib.graph import Graph, GraphContainer
+from cklib.baseresources import BaseResource
+import cklib.logging as logging
 from dataclasses import dataclass
 from typing import ClassVar
 

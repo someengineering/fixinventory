@@ -3,26 +3,26 @@ import time
 import os
 import threading
 import multiprocessing
-from cloudkeeper.baseresources import BaseResource
+from cklib.baseresources import BaseResource
 from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
 import requests
 import json
-import cloudkeeper.logging as logging
-import cloudkeeper.signal
+import cklib.logging as logging
+import cklib.signal
 from pydoc import locate
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
-from cloudkeeper.graph import GraphContainer, Graph, sanitize, GraphExportIterator
-from cloudkeeper.graph.export import optional_origin, node_to_dict
-from cloudkeeper.pluginloader import PluginLoader
-from cloudkeeper.baseplugin import BaseCollectorPlugin, PluginType
-from cloudkeeper.args import get_arg_parser
-from cloudkeeper.utils import log_stats, increase_limits, str2timedelta, str2timezone
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.cleaner import Cleaner
-from cloudkeeper.event import (
+from cklib.graph import GraphContainer, Graph, sanitize, GraphExportIterator
+from cklib.graph.export import optional_origin, node_to_dict
+from cklib.pluginloader import PluginLoader
+from cklib.baseplugin import BaseCollectorPlugin, PluginType
+from cklib.args import get_arg_parser
+from cklib.utils import log_stats, increase_limits, str2timedelta, str2timezone
+from cklib.args import ArgumentParser
+from cklib.cleaner import Cleaner
+from cklib.event import (
     add_event_listener,
     Event,
     EventType,
@@ -48,7 +48,7 @@ def main() -> None:
     except Exception:
         pass
 
-    cloudkeeper.signal.parent_pid = os.getpid()
+    cklib.signal.parent_pid = os.getpid()
 
     # Add cli args
     collector_arg_parser = get_arg_parser(add_help=False)
@@ -73,7 +73,7 @@ def main() -> None:
     arg_parser.parse_args()
 
     # Handle Ctrl+c and other means of termination/shutdown
-    cloudkeeper.signal.initializer()
+    cklib.signal.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # Try to increase nofile and nproc limits
@@ -112,7 +112,7 @@ def main() -> None:
     # While doing so we print the list of active threads once per 15 minutes
     shutdown_event.wait()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
-    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
+    cklib.signal.kill_children(cklib.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
 
@@ -335,7 +335,7 @@ def collect(collectors: List[BaseCollectorPlugin]):
     pool_args = {"max_workers": max_workers}
     if ArgumentParser.args.fork:
         pool_args["mp_context"] = multiprocessing.get_context("spawn")
-        pool_args["initializer"] = cloudkeeper.signal.initializer
+        pool_args["initializer"] = cklib.signal.initializer
         pool_executor = futures.ProcessPoolExecutor
         collect_args = {"args": ArgumentParser.args}
     else:
@@ -366,7 +366,7 @@ def collect_plugin_graph(
 ) -> Optional[Graph]:
     collector: BaseCollectorPlugin = collector_plugin()
     collector_name = f"collector_{collector.cloud}"
-    cloudkeeper.signal.set_thread_name(collector_name)
+    cklib.signal.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args
@@ -491,10 +491,10 @@ def shutdown(event: Event) -> None:
     emergency = event.data.get("emergency")
 
     if emergency:
-        cloudkeeper.signal.emergency_shutdown(reason)
+        cklib.signal.emergency_shutdown(reason)
 
     current_pid = os.getpid()
-    if current_pid != cloudkeeper.signal.parent_pid:
+    if current_pid != cklib.signal.parent_pid:
         return
 
     if reason is None:

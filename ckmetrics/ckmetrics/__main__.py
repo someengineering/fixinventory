@@ -1,21 +1,20 @@
-import ckmetrics.logging
 import sys
 import requests
 import json
 import time
 import inspect
-import cloudkeeper.baseresources
+import cklib.baseresources
+from cklib.logging import log
 from functools import partial
-from cloudkeeper.event import KeepercoreEvents
+from cklib.event import KeepercoreEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
-from ckmetrics.args import get_arg_parser, ArgumentParser
+from cklib.args import get_arg_parser, ArgumentParser
 from typing import Dict, Iterator, Tuple
 from signal import signal, SIGTERM, SIGINT
 
 
-log = ckmetrics.logging.getLogger(__name__)
 shutdown_event = Event()
 
 metrics_update_metrics = Summary(

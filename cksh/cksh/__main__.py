@@ -1,15 +1,13 @@
-import cksh.logging
 import sys
 import pathlib
 import requests
 import json
 from threading import Event
-from cksh.args import get_arg_parser, ArgumentParser
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
+from cklib.args import get_arg_parser, ArgumentParser
+from cklib.logging import log
 
-
-log = cksh.logging.getLogger(__name__)
 
 
 def main() -> None:

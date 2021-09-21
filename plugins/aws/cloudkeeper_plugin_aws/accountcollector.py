@@ -1,6 +1,5 @@
 import botocore.exceptions
 import concurrent.futures
-import cloudkeeper.logging
 import socket
 import urllib3
 import json
@@ -8,9 +7,9 @@ import re
 from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
-from cloudkeeper.utils import make_valid_timestamp, chunks
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
+from cklib.utils import make_valid_timestamp, chunks
 from .utils import aws_session, paginate
 from .resources import *
 from prometheus_client import Summary, Counter
@@ -18,9 +17,7 @@ from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
 from pprint import pformat
-
-
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+from cklib.logging import log
 
 
 # boto3 has no way of converting between short and long region names

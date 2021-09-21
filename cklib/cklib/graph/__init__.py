@@ -4,16 +4,16 @@ import threading
 import pickle
 import json
 import re
-import cloudkeeper.logging
-from cloudkeeper.baseresources import GraphRoot, Cloud, BaseResource
-from cloudkeeper.utils import RWLock, json_default, get_resource_attributes
-from cloudkeeper.args import ArgumentParser
+from cklib.logging import log
+from cklib.baseresources import GraphRoot, Cloud, BaseResource
+from cklib.utils import RWLock, json_default, get_resource_attributes
+from cklib.args import ArgumentParser
 from cloudkeeper.metrics import graph2metrics
-from cloudkeeper.graph.export import (
+from cklib.graph.export import (
     dataclasses_to_keepercore_model,
     node_to_dict,
 )
-from cloudkeeper.event import (
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
@@ -26,7 +26,6 @@ from dataclasses import fields
 from typeguard import check_type
 from time import time
 
-log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_graph_search = Summary(
     "cloudkeeper_graph_search_seconds", "Time it took the Graph search() method"

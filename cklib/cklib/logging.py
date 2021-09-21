@@ -1,11 +1,13 @@
 import sys
 import os
-from logging import basicConfig, getLogger, Formatter, FileHandler, DEBUG, INFO, WARNING
+from logging import basicConfig, getLogger, Formatter, FileHandler, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from cklib.args import ArgumentParser
 
 
 log_format = "%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s"
 basicConfig(level=WARNING, format=log_format)
+getLogger().setLevel(ERROR)
+getLogger("cloudkeeper").setLevel(CRITICAL)
 getLogger("cloudkeeper").setLevel(INFO)
 
 argv = sys.argv[1:]

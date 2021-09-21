@@ -1,11 +1,11 @@
 import socket
 import requests
 import time
-import cloudkeeper.logging as logging
-from cloudkeeper.args import ArgumentParser, get_arg_parser
-from cloudkeeper.event import add_args as event_add_args, Event, EventType
+import cklib.logging as logging
+from cklib.args import ArgumentParser, get_arg_parser
+from cklib.event import add_args as event_add_args, Event, EventType
 from cloudkeeper.web import WebServer, CloudkeeperWebApp
-from cloudkeeper.graph import GraphContainer
+from cklib.graph import GraphContainer
 
 logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
 

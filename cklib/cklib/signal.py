@@ -3,12 +3,11 @@ import time
 import sys
 import psutil
 import threading
-import cloudkeeper.logging
-from cloudkeeper.event import dispatch_event, Event, EventType
+from cklib.logging import log
+from cklib.event import dispatch_event, Event, EventType
 from signal import signal, Signals, SIGTERM, SIGINT
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 parent_pid = None
 
 

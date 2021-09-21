@@ -2,8 +2,8 @@ from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import reduce
 from typing import List, MutableSet, get_args, get_origin, Union, Tuple, Dict, Set, Any
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.utils import type_str
+from cklib.baseresources import BaseResource
+from cklib.utils import type_str
 
 Json = Dict[str, Any]
 

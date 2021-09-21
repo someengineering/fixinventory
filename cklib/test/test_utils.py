@@ -2,8 +2,8 @@ import unittest
 import threading
 import time
 import copy
-from cloudkeeper.utils import RWLock
-from cloudkeeper.baseresources import BaseResource
+from cklib.utils import RWLock
+from cklib.baseresources import BaseResource
 from dataclasses import dataclass
 from typing import ClassVar
 

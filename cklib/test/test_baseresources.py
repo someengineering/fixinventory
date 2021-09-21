@@ -1,6 +1,6 @@
 from typing import ClassVar
 from dataclasses import dataclass
-from cloudkeeper.baseresources import BaseResource
+from cklib.baseresources import BaseResource
 
 
 @dataclass(eq=False)

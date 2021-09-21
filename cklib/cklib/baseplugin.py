@@ -1,13 +1,12 @@
-import cloudkeeper.logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import Cloud
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
+from cklib.logging import log
+from cklib.baseresources import Cloud
 from threading import Thread
 from prometheus_client import Counter
 
-log = cloudkeeper.logging.getLogger(__name__)
 metrics_unhandled_plugin_exceptions = Counter(
     "cloudkeeper_unhandled_plugin_exceptions_total",
     "Unhandled plugin exceptions",

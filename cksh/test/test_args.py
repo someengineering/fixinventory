@@ -1,4 +1,4 @@
-from cksh.args import get_arg_parser, ArgumentParser
+from cklib.args import get_arg_parser, ArgumentParser
 from cksh.__main__ import add_args
 
 

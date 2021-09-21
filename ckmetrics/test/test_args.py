@@ -1,4 +1,4 @@
-from ckmetrics.args import get_arg_parser, ArgumentParser
+from cklib.args import get_arg_parser, ArgumentParser
 from ckmetrics.__main__ import add_args
 
 

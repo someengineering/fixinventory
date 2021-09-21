@@ -1,20 +1,20 @@
 import time
 import os
 import threading
-import cloudkeeper.logging as logging
-import cloudkeeper.signal
-from cloudkeeper.graph import GraphContainer
-from cloudkeeper.pluginloader import PluginLoader
-from cloudkeeper.baseplugin import PluginType
+import cklib.signal
+from cklib.graph import GraphContainer
+from cklib.pluginloader import PluginLoader
+from cklib.baseplugin import PluginType
 from cloudkeeper.web import WebServer, CloudkeeperWebApp
 from cloudkeeper.scheduler import Scheduler
-from cloudkeeper.args import get_arg_parser, ArgumentParser
+from cklib.args import get_arg_parser, ArgumentParser
+from cklib.logging import log, add_args as logging_add_args
 from cloudkeeper.processor import Processor
-from cloudkeeper.cleaner import Cleaner
+from cklib.cleaner import Cleaner
 from cloudkeeper.metrics import GraphCollector
-from cloudkeeper.utils import log_stats, increase_limits
+from cklib.utils import log_stats, increase_limits
 from cloudkeeper.cli import Cli
-from cloudkeeper.event import (
+from cklib.event import (
     add_event_listener,
     dispatch_event,
     Event,
@@ -23,8 +23,6 @@ from cloudkeeper.event import (
 )
 from prometheus_client import REGISTRY
 
-
-log = logging.getLogger(__name__)
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
@@ -39,7 +37,7 @@ def main() -> None:
     except Exception:
         pass
 
-    cloudkeeper.signal.parent_pid = os.getpid()
+    cklib.signal.parent_pid = os.getpid()
 
     # Add cli args
     collector_arg_parser = get_arg_parser(add_help=False)
@@ -49,7 +47,7 @@ def main() -> None:
 
     arg_parser = get_arg_parser()
 
-    logging.add_args(arg_parser)
+    logging_add_args(arg_parser)
     Cli.add_args(arg_parser)
     WebServer.add_args(arg_parser)
     Scheduler.add_args(arg_parser)
@@ -68,7 +66,7 @@ def main() -> None:
     arg_parser.parse_args()
 
     # Handle Ctrl+c and other means of termination/shutdown
-    cloudkeeper.signal.initializer()
+    cklib.signal.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
 
     # Try to increase nofile and nproc limits
@@ -123,7 +121,7 @@ def main() -> None:
         log_stats()
         shutdown_event.wait(900)
     time.sleep(5)
-    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM, ensure_death=True)
+    cklib.signal.kill_children(cklib.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     quit()
 
@@ -133,10 +131,10 @@ def shutdown(event: Event) -> None:
     emergency = event.data.get("emergency")
 
     if emergency:
-        cloudkeeper.signal.emergency_shutdown(reason)
+        cklib.signal.emergency_shutdown(reason)
 
     current_pid = os.getpid()
-    if current_pid != cloudkeeper.signal.parent_pid:
+    if current_pid != cklib.signal.parent_pid:
         return
 
     if reason is None:
@@ -146,7 +144,7 @@ def shutdown(event: Event) -> None:
         f" {reason} - killing all threads and child processes"
     )
     # Send 'friendly' signal to children to have them shut down
-    cloudkeeper.signal.kill_children(cloudkeeper.signal.SIGTERM)
+    cklib.signal.kill_children(cklib.signal.SIGTERM)
     kt = threading.Thread(target=force_shutdown, name="shutdown")
     kt.start()
     shutdown_event.set()  # and then end the program

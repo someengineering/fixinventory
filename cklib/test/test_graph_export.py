@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Dict, Union, ClassVar
 
-from cloudkeeper.graph.export import (
+from cklib.graph.export import (
     is_collection,
     type_arg,
     is_dict,

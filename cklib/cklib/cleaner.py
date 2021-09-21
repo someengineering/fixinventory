@@ -1,13 +1,11 @@
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
-from cloudkeeper.event import dispatch_event, Event, EventType
-from cloudkeeper.baseresources import BaseResource
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
+from cklib.event import dispatch_event, Event, EventType
+from cklib.baseresources import BaseResource
 from defaultlist import defaultlist
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
-import cloudkeeper.logging
-
-log = cloudkeeper.logging.getLogger(__name__)
+from cklib.logging import log
 
 metrics_cleanup = Summary(
     "cloudkeeper_cleanup_seconds", "Time it took the cleanup() method"

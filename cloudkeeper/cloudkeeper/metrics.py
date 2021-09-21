@@ -1,13 +1,12 @@
 import re
-import cloudkeeper.logging
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import *
+from cklib.logging import log
+from cklib.args import ArgumentParser
+from cklib.baseresources import *
 from prometheus_client import Summary
 from prometheus_client.core import GaugeMetricFamily
 from collections import defaultdict
 from typing import List, Tuple
 
-log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_graph2metrics = Summary(
     "cloudkeeper_graph2metrics_seconds", "Time it took the graph2metrics() method"

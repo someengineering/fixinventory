@@ -6,15 +6,13 @@ from copy import deepcopy
 import uuid
 import weakref
 import networkx.algorithms.dag
-import cloudkeeper.logging
+from cklib.logging import log
 from enum import Enum
 from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
-from cloudkeeper.utils import make_valid_timestamp
+from cklib.utils import make_valid_timestamp
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
 
-
-log = cloudkeeper.logging.getLogger(__name__)
 
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",

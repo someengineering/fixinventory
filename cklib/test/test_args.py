@@ -1,5 +1,4 @@
 import os
-import logging
 from cklib.args import get_arg_parser, ArgumentParser
 from cklib.logging import add_args
 from cklib.logging import log

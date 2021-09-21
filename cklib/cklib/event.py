@@ -5,17 +5,14 @@ import time
 import websocket
 import requests
 import json
-import cloudkeeper.logging
-from cloudkeeper.utils import RWLock
-from cloudkeeper.args import ArgumentParser
+from cklib.logging import log
+from cklib.utils import RWLock
+from cklib.args import ArgumentParser
 from collections import defaultdict
 from threading import Thread, Lock
 from typing import Callable, Dict, Iterable, Optional, List
 from enum import Enum
 from urllib.parse import urlunsplit, urlencode, urlsplit
-
-
-log = cloudkeeper.logging.getLogger(__name__)
 
 
 class EventType(Enum):

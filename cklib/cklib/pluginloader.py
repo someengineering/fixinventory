@@ -1,11 +1,9 @@
 import pkg_resources
 import inspect
-import cloudkeeper.logging
+from cklib.logging import log
 from typing import List, Optional
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseplugin import BasePlugin, BaseCliPlugin, PluginType
-
-log = cloudkeeper.logging.getLogger(__name__)
+from cklib.args import ArgumentParser
+from cklib.baseplugin import BasePlugin, BaseCliPlugin, PluginType
 
 
 plugins = {}

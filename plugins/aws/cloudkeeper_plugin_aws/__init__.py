@@ -1,12 +1,12 @@
 import botocore.exceptions
-import cloudkeeper.logging
+import cklib.logging
 import multiprocessing
-import cloudkeeper.signal
+import cklib.signal
 from concurrent import futures
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
-from cloudkeeper.utils import log_runtime
-from cloudkeeper.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
+from cklib.utils import log_runtime
+from cklib.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -14,8 +14,8 @@ from prometheus_client import Summary, Counter
 from typing import List
 
 
-cloudkeeper.logging.getLogger("boto").setLevel(cloudkeeper.logging.CRITICAL)
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+cklib.logging.getLogger("boto").setLevel(cklib.logging.CRITICAL)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_collect = Summary(
     "cloudkeeper_plugin_aws_collect_seconds", "Time it took the collect() method"
@@ -173,7 +173,7 @@ class AWSPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.aws_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cloudkeeper.signal.initializer
+            pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -266,7 +266,7 @@ def all_regions() -> List:
 @log_runtime
 def collect_account(account: AWSAccount, regions: List, args=None):
     collector_name = f"aws_{account.id}"
-    cloudkeeper.signal.set_thread_name(collector_name)
+    cklib.signal.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args

@@ -1,6 +1,6 @@
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.baseresources import BaseResource
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
+from cklib.baseresources import BaseResource
 from typing import ClassVar
 from dataclasses import dataclass
 

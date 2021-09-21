@@ -1,7 +1,7 @@
-import cloudkeeper.logging
+import cklib.logging
 import threading
 import yaml
-from cloudkeeper.baseplugin import BasePlugin
+from cklib.baseplugin import BasePlugin
 from cloudkeeper_plugin_aws.resources import (
     AWSVPC,
     AWSVPCPeeringConnection,
@@ -19,15 +19,15 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2Instance,
     AWSEC2ElasticIP,
 )
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import (
+from cklib.args import ArgumentParser
+from cklib.event import (
     Event,
     EventType,
     add_event_listener,
     remove_event_listener,
 )
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class CleanupAWSVPCsPlugin(BasePlugin):

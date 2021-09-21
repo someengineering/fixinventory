@@ -1,12 +1,10 @@
-import cloudkeeper.logging
 from datetime import datetime
 from pathlib import Path
-from cloudkeeper.baseplugin import BasePlugin
-from cloudkeeper.graph import graph2pickle
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener
-
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+from cklib.baseplugin import BasePlugin
+from cklib.graph import graph2pickle
+from cklib.args import ArgumentParser
+from cklib.event import Event, EventType, add_event_listener
+from cklib.logging import log
 
 
 class BackupPlugin(BasePlugin):

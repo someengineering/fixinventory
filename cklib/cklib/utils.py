@@ -8,15 +8,12 @@ if sys.platform == "linux":
     import resource
 import time
 import json
-import cloudkeeper.logging
+from cklib.logging import log
 from functools import wraps
 from pprint import pformat
 from pympler import asizeof
 from typing import Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
-
-
-log = cloudkeeper.logging.getLogger(__name__)
 
 
 class RWLock:

@@ -1,16 +1,13 @@
 from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.event import Event, EventType, add_event_listener, dispatch_event
-from cloudkeeper.utils import get_stats
+from cklib.args import ArgumentParser
+from cklib.event import Event, EventType, add_event_listener, dispatch_event
+from cklib.utils import get_stats
 from typing import Dict
 import os
 import jwt
 import cherrypy
 import threading
-import cloudkeeper.logging
-
-
-log = cloudkeeper.logging.getLogger(__name__)
+from cklib.logging import log
 
 
 class CloudkeeperWebApp:

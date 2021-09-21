@@ -1,5 +1,5 @@
 from cloudkeeper.metrics import GraphCollector
-from cloudkeeper.graph import GraphContainer
+from cklib.graph import GraphContainer
 from prometheus_client.core import GaugeMetricFamily
 
 
