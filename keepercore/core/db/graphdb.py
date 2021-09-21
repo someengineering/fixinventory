@@ -292,16 +292,19 @@ class ArangoGraphDB(GraphDB):
 
     @staticmethod
     def document_to_instance_fn() -> Callable[[Json], Optional[Json]]:
-        def props(doc: Json) -> Json:
-            return {prop: doc[prop] for prop in Section.all if prop in doc}
+        def props(doc: Json, result: Json) -> None:
+            for prop in Section.all_ordered:
+                if prop in doc and doc[prop]:
+                    result[prop] = doc[prop]
 
         def render_prop(doc: Json) -> Optional[Json]:
-            result = props(doc)
-            if len(result) > 0:
-                result["id"] = doc["_key"]
+            if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
+                # side note: the dictionary remembers insertion order
+                # this order is also used to render the output (e.g. yaml property order)
+                result = {"id": doc["_key"], "type": "node"}
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
-                result["type"] = "node"
+                props(doc, result)
                 return result
             else:
                 return None

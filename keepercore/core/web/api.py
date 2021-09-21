@@ -10,6 +10,7 @@ from functools import partial
 from random import SystemRandom
 from typing import AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
 
+import yaml
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web_exceptions import HTTPRedirection
 from aiohttp.web_request import Request
@@ -586,10 +587,21 @@ class Api:
             await response.write_eof()
             return response
 
+        async def respond_yaml() -> StreamResponse:
+            response = web.StreamResponse(status=200, headers={"Content-Type": "text/yaml"})
+            await response.prepare(request)
+            async for item in gen:
+                yml = yaml.dump(to_js(item), default_flow_style=False, sort_keys=False)
+                await response.write(f"{yml}\n".encode("utf-8"))
+            await response.write_eof()
+            return response
+
         if request.headers.get("accept") == "application/x-ndjson":
             return await respond_ndjson()
-        else:
+        elif request.headers.get("accept") == "application/json":
             return await respond_json()
+        else:
+            return await respond_yaml()
 
     @staticmethod
     async def error_handler(_: Any, handler: RequestHandler) -> RequestHandler:
