@@ -5,7 +5,7 @@ name: Check PR (Plugin report_cleanups)
 on:
   push:
     paths:
-      - 'cloudkeeper/**'
+      - 'cklib/**'
       - 'plugins/report_cleanups/**'
       - '.github/**'
 
@@ -37,8 +37,8 @@ jobs:
           pip install --upgrade --editable cloudkeeper/
           pip install tox wheel flake8
 
-      - name: Build cloudkeeper
-        working-directory: ./cloudkeeper
+      - name: Build cklib
+        working-directory: ./cklib
         run: |
           sudo rm -rf /build
           sudo mkdir -p /build -m a+rw
