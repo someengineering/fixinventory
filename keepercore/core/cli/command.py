@@ -5,7 +5,7 @@ import re
 from abc import abstractmethod, ABC
 from datetime import timedelta
 from functools import partial
-from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable
+from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
 
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -34,7 +34,7 @@ from core.cli.cli import (
     Result,
 )
 from core.db.model import QueryModel
-from core.error import CLIParseError
+from core.error import CLIParseError, DatabaseError
 from core.model.graph_access import Section
 from core.model.model import Model
 from core.model.resolve_in_graph import NodePath
@@ -53,11 +53,7 @@ log = logging.getLogger(__name__)
 
 # check if a is a json node element
 def is_node(a: Any) -> bool:
-    return (
-        "id" in a and Section.reported in a and Section.desired in a and Section.metadata in a
-        if isinstance(a, dict)
-        else False
-    )
+    return "id" in a and Section.reported in a if isinstance(a, dict) else False
 
 
 class EchoSource(CLISource):
@@ -892,27 +888,45 @@ class TagCommand(SendWorkerTaskCommand):
         return "Update a tag with provided value or delete a tag"
 
     def timeout(self) -> timedelta:
-        return timedelta(seconds=30)
+        return timedelta(seconds=300)
 
-    def load_by_id_merged(self, in_stream: Stream, **env: str) -> Stream:
+    def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
         async def load_element(items: list[JsonElement]) -> AsyncGenerator[Json, None]:
-            ids = [i["id"] if is_node(i) else i for i in items]
+            ids: list[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
             query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
-            model = QueryModel(query, Model.empty())
-            graph_name = env["graph"]
-            async for a in self.dependencies.db_access.get_graph_db(graph_name).query_list(model):
+            query_model = QueryModel(query, model)
+            async for a in self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model):
                 yield a
 
         return stream.flatmap(stream.chunks(in_stream, 1000), load_element, task_limit=self.task_limit())
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
-            tid = task.data["node"]["id"]  # defined by the data spec, see lines below
+    def handle_result(
+        self, model: Model, **env: str
+    ) -> Callable[[WorkerTask, Union[Json, Exception]], Awaitable[Json]]:
+        async def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
+            nid = value_in_path(task.data, ["node", "id"])
             if isinstance(result, Exception):
-                return {tid: "error", "reason": str(result)}
+                return {"error": str(result), "id": nid}
+            elif is_node(result):
+                db = self.dependencies.db_access.get_graph_db(env["graph"])
+                try:
+                    updated: Json = await db.update_node(model, result["id"], result, None)
+                    return updated
+                except DatabaseError as ex:
+                    # if the change could not be reflected in database, show success
+                    log.warning(
+                        f"Tag update not reflected in db. Wait until next collector run. Reason: {str(ex)}", exc_info=ex
+                    )
+                    return result
             else:
-                return {tid: "success"}
+                log.warning(
+                    f"Result from tag worker is not a node. Will not update the internal state. {json.dumps(result)}"
+                )
+                return result
 
+        return to_result
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         parts = re.split(r"\s+", arg if arg else "")
         pl = len(parts)
         if pl == 2 and parts[0] == "delete":
@@ -929,9 +943,18 @@ class TagCommand(SendWorkerTaskCommand):
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
-        return lambda in_stream: stream.starmap(
-            self.send_to_queue_stream(stream.map(self.load_by_id_merged(in_stream, **env), fn)), to_result
-        )
+        def setup_stream(in_stream: Stream) -> Stream:
+            def with_dependencies(model: Model) -> Stream:
+                load = self.load_by_id_merged(model, in_stream, **env)
+                to_queue = self.send_to_queue_stream(stream.map(load, fn))
+                # return stream.starmap(to_queue, partial(self.handle_result, model, env=env))
+                return stream.starmap(to_queue, self.handle_result(model, **env))
+
+            # dependencies are not resolved directly (no async function is allowed here)
+            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            return stream.flatmap(dependencies, with_dependencies)
+
+        return setup_stream
 
 
 class TasksSource(CLISource):

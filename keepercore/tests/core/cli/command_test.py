@@ -1,28 +1,31 @@
+import logging
 import re
-
-import pytest
-from aiostream import stream
 from datetime import timedelta
 
+import pytest
+from _pytest.logging import LogCaptureFixture
+from aiostream import stream
 from pytest import fixture
 
 from core.cli.cli import CLI, CLIDependencies
+
+# noinspection PyUnresolvedReferences
+from core.cli.command import ListSink
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
-
 from core.types import Json
 from core.util import first, exist, AccessJson
+
+# noinspection PyUnresolvedReferences
+from tests.core.cli.cli_test import cli, cli_deps
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
 
 # noinspection PyUnresolvedReferences
-from core.cli.command import ListSink
-
-# noinspection PyUnresolvedReferences
-from tests.core.cli.cli_test import cli, cli_deps
+from tests.core.db.runningtaskdb_test import running_task_db
 
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus
@@ -38,9 +41,6 @@ from tests.core.task.task_handler_test import (
 
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
-
-# noinspection PyUnresolvedReferences
-from tests.core.db.runningtaskdb_test import running_task_db
 
 
 @fixture
@@ -249,7 +249,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
 
 
 @pytest.mark.asyncio
-async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]]) -> None:
+async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]], caplog: LogCaptureFixture) -> None:
     counter = 0
 
     def nr_of_performed() -> int:
@@ -265,14 +265,22 @@ async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]]) -> None
     assert nr_of_performed() == 0
     res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
     assert nr_of_performed() == 2
-    # the results can come in any order
-    assert sorted(res1[0], key=lambda d: list(d.keys())[0]) == [{"collector": "success"}, {"root": "success"}]  # type: ignore
+    assert {a["id"] for a in res1[0]} == {"root", "collector"}
     res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 13
     assert len(res2[0]) == 13
     res3 = await cli.execute_cli_command('query is("foo") | tag delete foo', stream.list)
     assert nr_of_performed() == 13
     assert len(res3[0]) == 13
+    captured = {a.message for a in caplog.records}
+    res4 = await cli.execute_cli_command('query is("bla") limit 2 | tag delete foo', stream.list)
+    assert nr_of_performed() == 2
+    assert len(res4[0]) == 2
+    # make sure that 2 warnings are emitted
+    res = [a for a in caplog.records if a.levelno == logging.WARNING and a.message not in captured]
+    assert len(res) == 2
+    for a in res:
+        assert a.message.startswith("Tag update not reflected in db. Wait until next collector run.")
 
 
 @pytest.mark.asyncio

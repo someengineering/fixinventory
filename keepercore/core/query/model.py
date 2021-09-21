@@ -77,10 +77,10 @@ class P:
     def not_matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "!~", regex, self.args)
 
-    def is_in(self, other: list[object]) -> Predicate:
+    def is_in(self, other: list[Any]) -> Predicate:
         return Predicate(self.name, "in", other, self.args)
 
-    def is_not_in(self, other: list[object]) -> Predicate:
+    def is_not_in(self, other: list[Any]) -> Predicate:
         return Predicate(self.name, "not in", other, self.args)
 
 

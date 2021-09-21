@@ -25,6 +25,17 @@ class ConflictingChangeInProgress(DatabaseError):
         self.other_change_id = other_change_id
 
 
+class OptimisticLockingFailed(DatabaseError):
+    def __init__(self, uid: str, current_revision: str, read_revision: str) -> None:
+        super().__init__(
+            f"Node {uid}: The record to update has been changed since it was read!"
+            + f"Current revision: {current_revision} Read revision: {read_revision}"
+        )
+        self.uid = uid
+        self.current_revision = current_revision
+        self.read_revision = read_revision
+
+
 class NoSuchGraph(DatabaseError, NotFoundError):
     def __init__(self, graph: str):
         super().__init__(f"No graph with this name {graph}")

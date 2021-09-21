@@ -16,7 +16,7 @@ from core import feature
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
-from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
+from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError, OptimisticLockingFailed
 from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
@@ -40,7 +40,7 @@ from core.query.model import (
     AggregateVariableCombined,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first, from_utc, value_in_path_get, utc_str
+from core.util import first, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         pass
 
     @abstractmethod
@@ -165,29 +165,42 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn()
             return trafo(result["new"])
 
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         node = await self.by_id(node_id)
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
+        if "revision" in patch and patch["revision"] != node["_rev"]:
+            raise OptimisticLockingFailed(node_id, node["_rev"], patch["revision"])
+
+        updated = node.copy()
+        if section:
+            existing_section = node[section] if section in node else {}
+            updated[section] = existing_section | patch
         else:
-            existing = node[section] if section in node else {}
-            node[section] = existing | patch
-            kind = model[node[Section.reported]]
-            coerced = kind.check_valid(node[section], ignore_missing=True)
-            node[section] = coerced if coerced is not None else node[section]
-            # call adjuster on resulting node
-            ctime = from_utc(value_in_path_get(existing, NodePath.reported_ctime, utc_str()))
-            adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, node), ctime)
-            update = {
-                "_key": node["_key"],
-                "hash": adjusted["hash"],
-                section: adjusted[section],
-                "kinds": adjusted["kinds"],
-                "flat": adjusted["flat"],
-            }
-            result = await self.db.update(self.vertex_name, update, return_new=True)
-            trafo = self.document_to_instance_fn()
-            return trafo(result["new"])
+            updated = node | patch
+
+        # Only the reported section is defined by the model and can be coerced
+        kind = model[updated[Section.reported]]
+        coerced = kind.check_valid(updated[Section.reported])
+        updated[Section.reported] = coerced if coerced is not None else updated[Section.reported]
+
+        # call adjuster on resulting node
+        ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
+        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated), ctime)
+        update = {
+            "_key": node["_key"],
+            "hash": adjusted["hash"],
+            "kinds": adjusted["kinds"],
+            "flat": adjusted["flat"],
+        }
+        # copy relevant sections into update node
+        for sec in [section] if section else Section.all:
+            if sec in adjusted:
+                update[sec] = adjusted[sec]
+
+        result = await self.db.update(self.vertex_name, update, return_new=True)
+        trafo = self.document_to_instance_fn()
+        return trafo(result["new"])
 
     def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section(Section.desired, patch, node_ids)
@@ -1064,8 +1077,8 @@ class EventGraphDB(GraphDB):
         )
         return result
 
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
-        result = await self.real.update_node(model, section, node_id, patch)
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
+        result = await self.real.update_node(model, node_id, patch, section)
         await self.event_bus.emit_event(
             CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
         )

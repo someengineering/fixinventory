@@ -1,12 +1,14 @@
 import asyncio
 from collections import defaultdict
-
 from datetime import timedelta
-from pytest import fixture, mark
 from typing import AsyncGenerator
 
+from pytest import fixture, mark
+
+from core.model.graph_access import Section
+from core.model.resolve_in_graph import GraphResolver, NodePath
+from core.util import group_by, identity, value_in_path
 from core.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask
-from core.util import group_by, identity
 
 
 @fixture
@@ -41,7 +43,31 @@ async def worker(
                     # if we come here, neither success nor failure was given, ignore the task
                     pass
                 elif task.name == "tag":
-                    await task_queue.acknowledge_task(worker_id, task.id, None)
+                    node = task.data["node"]
+                    for key in GraphResolver.resolved_ancestors.keys():
+                        for section in Section.all:
+                            if section in node:
+                                node[section].pop(key, None)
+
+                    # update or delete tags
+                    if "tags" not in node:
+                        node["tags"] = {}
+
+                    if task.data.get("delete"):
+                        for a in task.data.get("delete"):  # type: ignore
+                            node["tags"].pop(a, None)
+                            continue
+                    elif task.data.get("update"):
+                        for k, v in task.data.get("update").items():  # type: ignore
+                            node["tags"][k] = v
+                            continue
+
+                    # for testing purposes: change revision number
+                    kind: str = value_in_path(node, NodePath.reported_kind)  # type: ignore
+                    if kind == "bla":
+                        node["revision"] = "changed"
+
+                    await task_queue.acknowledge_task(worker_id, task.id, node)
 
     workers = [asyncio.create_task(do_work(f"w{a}", [success, fail, wait, tag])) for a in range(0, 4)]
     await asyncio.sleep(0)
