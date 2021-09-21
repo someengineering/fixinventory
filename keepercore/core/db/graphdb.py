@@ -16,12 +16,12 @@ from core import feature
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
-from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError
+from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError, OptimisticLockingFailed
 from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, Complex
-from core.model.resolve_in_graph import NodePath
+from core.model.resolve_in_graph import NodePath, GraphResolver
 from core.query.model import (
     Predicate,
     IsTerm,
@@ -39,8 +39,8 @@ from core.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
 )
-from core.query.query_parser import merge_parents_parser
-from core.util import first, from_utc, value_in_path_get, utc_str
+from core.query.query_parser import merge_ancestors_parser
+from core.util import first, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         pass
 
     @abstractmethod
@@ -165,29 +165,42 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn()
             return trafo(result["new"])
 
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         node = await self.by_id(node_id)
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
+        if "revision" in patch and patch["revision"] != node["_rev"]:
+            raise OptimisticLockingFailed(node_id, node["_rev"], patch["revision"])
+
+        updated = node.copy()
+        if section:
+            existing_section = node[section] if section in node else {}
+            updated[section] = existing_section | patch
         else:
-            existing = node[section] if section in node else {}
-            node[section] = existing | patch
-            kind = model[node[Section.reported]]
-            coerced = kind.check_valid(node[section], ignore_missing=True)
-            node[section] = coerced if coerced is not None else node[section]
-            # call adjuster on resulting node
-            ctime = from_utc(value_in_path_get(existing, NodePath.reported_ctime, utc_str()))
-            adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, node), ctime)
-            update = {
-                "_key": node["_key"],
-                "hash": adjusted["hash"],
-                section: adjusted[section],
-                "kinds": adjusted["kinds"],
-                "flat": adjusted["flat"],
-            }
-            result = await self.db.update(self.vertex_name, update, return_new=True)
-            trafo = self.document_to_instance_fn()
-            return trafo(result["new"])
+            updated = node | patch
+
+        # Only the reported section is defined by the model and can be coerced
+        kind = model[updated[Section.reported]]
+        coerced = kind.check_valid(updated[Section.reported])
+        updated[Section.reported] = coerced if coerced is not None else updated[Section.reported]
+
+        # call adjuster on resulting node
+        ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
+        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated), ctime)
+        update = {
+            "_key": node["_key"],
+            "hash": adjusted["hash"],
+            "kinds": adjusted["kinds"],
+            "flat": adjusted["flat"],
+        }
+        # copy relevant sections into update node
+        for sec in [section] if section else Section.all:
+            if sec in adjusted:
+                update[sec] = adjusted[sec]
+
+        result = await self.db.update(self.vertex_name, update, return_new=True)
+        trafo = self.document_to_instance_fn()
+        return trafo(result["new"])
 
     def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section(Section.desired, patch, node_ids)
@@ -693,7 +706,11 @@ class ArangoGraphDB(GraphDB):
             length = str(len(bind_vars))
             # if no section is given, the path is prefixed by the section: remove the section
             lookup = path if query_model.query_section else self.no_section.sub("", path, 1)
-            bind_vars[length] = model.kind_by_path(lookup).coerce(p.value)
+            kind = model.kind_by_path(lookup)
+            if (p.op == "in" or p.op == "not in") and isinstance(p.value, list):
+                bind_vars[length] = [kind.coerce(a) for a in p.value]
+            else:
+                bind_vars[length] = kind.coerce(p.value)
             return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
 
         def with_id(cursor: str, t: IdTerm) -> str:
@@ -822,30 +839,39 @@ class ArangoGraphDB(GraphDB):
             cursor = inout(cursor, p.navigation) if p.navigation else cursor
             return p, cursor, query_part
 
-        def merge_parents(cursor: str, part_str: str, parent_names: list[str]) -> tuple[str, str]:
-            parents: list[tuple[str, str]] = [merge_parents_parser.parse(p) for p in parent_names]
-            bind_vars["merge_stop_at"] = parents[0][0]
-            bind_vars["merge_parent_parent_nodes"] = [p[0] for p in parents]
-            m_parts = [
-                f"FOR node in {cursor} "
-                + "LET parent_nodes = ("
-                + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
-                + "PRUNE @merge_stop_at in p.kinds "
-                + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
-                + "FILTER p.kinds any in @merge_parent_parent_nodes RETURN p)"
-            ]
-            for p in parents:
-                bv = f"merge_node_{p[0]}"
-                bind_vars[bv] = p[0]
-                m_parts.append(f"""LET {p[0]} = FIRST(FOR p IN parent_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+        def merge_ancestors(cursor: str, part_str: str, ancestor_names: list[str]) -> tuple[str, str]:
+            ancestors: list[tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
+            m_parts = [f"FOR node in {cursor} "]
+
+            # filter out resolved ancestors: all remaining ancestors need to be looked up in hierarchy
+            to_resolve = [(nr, p_as) for nr, p_as in ancestors if nr not in GraphResolver.resolved_ancestors]
+            if to_resolve:
+                bind_vars["merge_stop_at"] = to_resolve[0][0]
+                bind_vars["merge_ancestor_nodes"] = [tr[0] for tr in to_resolve]
+                m_parts.append(
+                    "LET ancestor_nodes = ("
+                    + f"FOR p IN 1..1000 INBOUND node {self.edge_collection(EdgeType.default)} "
+                    + "PRUNE @merge_stop_at in p.kinds "
+                    + "OPTIONS {order: 'bfs', uniqueVertices: 'global'} "
+                    + "FILTER p.kinds any in @merge_ancestor_nodes RETURN p)"
+                )
+                for tr, _ in to_resolve:
+                    bv = f"merge_node_{tr}"
+                    bind_vars[bv] = tr
+                    m_parts.append(f"""LET {tr} = FIRST(FOR p IN ancestor_nodes FILTER @{bv} IN p.kinds RETURN p)""")
+
+            # all resolved ancestors can be looked up directly
+            for tr, _ in ancestors:
+                if tr in GraphResolver.resolved_ancestors:
+                    m_parts.append(f'LET {tr} = DOCUMENT("{self.vertex_name}", node.refs.{tr}_id)')
 
             result_parts = []
             for section in Section.all:
-                parent_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in parents]) + "}"
-                result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {parent_result})")
+                ancestor_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in ancestors]) + "}"
+                result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {ancestor_result})")
 
             m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
-            return "merge_with_parent", part_str + f' LET merge_with_parent = ({" ".join(m_parts)})'
+            return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
 
         def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
             sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
@@ -859,7 +885,7 @@ class ArangoGraphDB(GraphDB):
             crsr = part_tuple[1]
 
         all_parts = " ".join(p[2] for p in parts)
-        resulting_cursor, query_str = merge_parents(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
+        resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
         limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
             resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
@@ -1051,8 +1077,8 @@ class EventGraphDB(GraphDB):
         )
         return result
 
-    async def update_node(self, model: Model, section: str, node_id: str, patch: Json) -> Json:
-        result = await self.real.update_node(model, section, node_id, patch)
+    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
+        result = await self.real.update_node(model, node_id, patch, section)
         await self.event_bus.emit_event(
             CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
         )
@@ -1086,9 +1112,8 @@ class EventGraphDB(GraphDB):
         async for a in result:
             yield a
 
-    async def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        async for elem in self.real.search(tokens, limit):
-            yield elem
+    def search(self, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
+        return self.real.search(tokens, limit)
 
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None

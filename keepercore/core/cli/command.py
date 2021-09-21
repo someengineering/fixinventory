@@ -5,7 +5,7 @@ import re
 from abc import abstractmethod, ABC
 from datetime import timedelta
 from functools import partial
-from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable
+from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
 
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -34,11 +34,13 @@ from core.cli.cli import (
     Result,
 )
 from core.db.model import QueryModel
-from core.error import CLIParseError, CLIExecutionError
+from core.error import CLIParseError, DatabaseError
 from core.model.graph_access import Section
+from core.model.model import Model
 from core.model.resolve_in_graph import NodePath
-from core.model.typed_model import to_js, class_fqn
+from core.model.typed_model import to_js
 from core.parse_util import quoted_or_simple_string_dp
+from core.query.model import Query, P
 from core.query.query_parser import (
     parse_query,
 )
@@ -51,11 +53,7 @@ log = logging.getLogger(__name__)
 
 # check if a is a json node element
 def is_node(a: Any) -> bool:
-    return (
-        "id" in a and Section.reported in a and Section.desired in a and Section.metadata in a
-        if isinstance(a, dict)
-        else False
-    )
+    return "id" in a and Section.reported in a if isinstance(a, dict) else False
 
 
 class EchoSource(CLISource):
@@ -834,24 +832,26 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
 
-    def load_by_id_if_string(self, in_stream: Stream, **env: str) -> Stream:
-        async def load_element(item: JsonElement) -> AsyncGenerator[Json, None]:
-            if isinstance(item, str):
-                graph_name = env["graph"]
-                node = await self.dependencies.db_access.get_graph_db(graph_name).get_node(item)
-                if node:
-                    yield node
-            elif is_node(item):
-                yield item  # type: ignore
-            else:
-                raise CLIExecutionError(f"Command expects a string  node element, but got {class_fqn(item)}.")
-
-        return stream.flatmap(in_stream, load_element, task_limit=self.task_limit())
-
     # noinspection PyMethodMayBeStatic
     def task_limit(self) -> int:
         # override if this limit is not sufficient
         return 100
+
+    cloud_account_region_zone = {
+        "cloud": ["reported", "cloud", "id"],
+        "account": ["reported", "account", "id"],
+        "region": ["reported", "region", "id"],
+        "zone": ["reported", "zone", "id"],
+    }
+
+    @classmethod
+    def carz_from_node(cls, node: Json) -> Json:
+        result = {}
+        for name, path in cls.cloud_account_region_zone.items():
+            value = value_in_path(node, path)
+            if value:
+                result[name] = value
+        return result
 
     @abstractmethod
     def timeout(self) -> timedelta:
@@ -906,33 +906,77 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
-            tid = task.data["node"]["id"]  # defined by the data spec, see lines below
-            if isinstance(result, Exception):
-                return {tid: "error", "reason": str(result)}
-            else:
-                return {tid: "success"}
+    def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
+        async def load_element(items: list[JsonElement]) -> AsyncGenerator[Json, None]:
+            # collect ids either from json dict or string
+            ids: list[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            # one query to load all items that match given ids (max 1000 as defined in chunk size)
+            query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
+            query_model = QueryModel(query, model)
+            async for a in self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model):
+                yield a
 
+        return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
+
+    def handle_result(
+        self, model: Model, **env: str
+    ) -> Callable[[WorkerTask, Union[Json, Exception]], Awaitable[Json]]:
+        async def to_result(task: WorkerTask, result: Union[Json, Exception]) -> Json:
+            nid = value_in_path(task.data, ["node", "id"])
+            if isinstance(result, Exception):
+                return {"error": str(result), "id": nid}
+            elif is_node(result):
+                db = self.dependencies.db_access.get_graph_db(env["graph"])
+                try:
+                    updated: Json = await db.update_node(model, result["id"], result, None)
+                    return updated
+                except DatabaseError as ex:
+                    # if the change could not be reflected in database, show success
+                    log.warning(
+                        f"Tag update not reflected in db. Wait until next collector run. Reason: {str(ex)}", exc_info=ex
+                    )
+                    return result
+            else:
+                log.warning(
+                    f"Result from tag worker is not a node. Will not update the internal state. {json.dumps(result)}"
+                )
+                return result
+
+        return to_result
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         parts = re.split(r"\s+", arg if arg else "")
         pl = len(parts)
         if pl == 2 and parts[0] == "delete":
             tag = parts[1]
-            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (  # noqa: E731
+            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (
                 "tag",
-                item.get("metadata", {}),
+                self.carz_from_node(item),
                 {"delete": [tag], "node": item},
-            )
+            )  # noqa: E731
         elif pl == 3 and parts[0] == "update":
             tag = parts[1]
             value = quoted_or_simple_string_dp.parse(parts[2])
-            fn = lambda item: ("tag", item.get("metadata", {}), {"update": {tag: value}, "node": item})  # noqa: E731
+            fn = lambda item: (  # noqa: E731
+                "tag",
+                self.carz_from_node(item),
+                {"update": {tag: value}, "node": item},
+            )
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
-        return lambda in_stream: stream.starmap(
-            self.send_to_queue_stream(stream.map(self.load_by_id_if_string(in_stream, **env), fn)), to_result
-        )
+        def setup_stream(in_stream: Stream) -> Stream:
+            def with_dependencies(model: Model) -> Stream:
+                load = self.load_by_id_merged(model, in_stream, **env)
+                to_queue = self.send_to_queue_stream(stream.map(load, fn))
+                # return stream.starmap(to_queue, partial(self.handle_result, model, env=env))
+                return stream.starmap(to_queue, self.handle_result(model, **env))
+
+            # dependencies are not resolved directly (no async function is allowed here)
+            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            return stream.flatmap(dependencies, with_dependencies)
+
+        return setup_stream
 
 
 class TasksSource(CLISource):

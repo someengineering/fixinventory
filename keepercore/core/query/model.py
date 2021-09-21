@@ -77,10 +77,10 @@ class P:
     def not_matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "!~", regex, self.args)
 
-    def is_in(self, other: list[object]) -> Predicate:
+    def is_in(self, other: list[Any]) -> Predicate:
         return Predicate(self.name, "in", other, self.args)
 
-    def is_not_in(self, other: list[object]) -> Predicate:
+    def is_not_in(self, other: list[Any]) -> Predicate:
         return Predicate(self.name, "not in", other, self.args)
 
 
@@ -478,6 +478,10 @@ class Query:
 
     def with_limit(self, num: int) -> Query:
         return replace(self, limit=num)
+
+    def merge_preamble(self, preamble: dict[str, SimpleValue]) -> Query:
+        updated = self.preamble | preamble if self.preamble else preamble
+        return replace(self, preamble=updated)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

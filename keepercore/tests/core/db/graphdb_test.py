@@ -425,7 +425,7 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    json = await graph_db.update_node(foo_model, "reported", "some_other", {"name": "bla"})
+    json = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     assert to_foo(json).name == "bla"
     assert to_foo(await graph_db.get_node("some_other")).name == "bla"
 
@@ -447,7 +447,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: list[Message]) -> None:
     graph = create_graph("yes or no", width=0)
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    await event_graph_db.update_node(foo_model, "reported", "some_other", {"name": "bla"})
+    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     await event_graph_db.delete_node("some_other")
     await event_graph_db.merge_graph(graph, foo_model)
     await event_graph_db.merge_graph(graph, foo_model, "batch1")

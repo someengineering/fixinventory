@@ -221,7 +221,7 @@ def aggregate_group_variable_parser() -> Parser:
 
 
 @make_parser
-def merge_parents_parser() -> Parser:
+def merge_ancestors_parser() -> Parser:
     # parses foo as bla -> "foo", "bla"
     # parses foo        -> "foo", "foo"
     name = yield variable_p
