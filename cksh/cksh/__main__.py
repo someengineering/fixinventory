@@ -8,6 +8,7 @@ from prompt_toolkit.history import FileHistory
 from cklib.args import get_arg_parser, ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
 from typing import Dict
+from urllib.parse import urlencode
 
 
 def main() -> None:
@@ -16,8 +17,12 @@ def main() -> None:
     add_args(arg_parser)
     logging_add_args(arg_parser)
     arg_parser.parse_args()
+
     headers = {"Content-Type": "text/plain"}
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
+    if ArgumentParser.args.keepercore_graph:
+        query_string = urlencode({"graph": ArgumentParser.args.keepercore_graph})
+        execute_endpoint += f"?{query_string}"
 
     if ArgumentParser.args.stdin:
         log.debug("Reading commands from STDIN")
@@ -110,6 +115,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Keepercore Websocket URI",
         default="ws://localhost:8080",
         dest="keepercore_ws_uri",
+    )
+    arg_parser.add_argument(
+        "--keepercore-graph",
+        help="Keepercore graph name",
+        default="ck",
+        dest="keepercore_graph",
     )
     arg_parser.add_argument(
         "--stdin",
