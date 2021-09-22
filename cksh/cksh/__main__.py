@@ -1,4 +1,5 @@
 import sys
+import shutil
 import pathlib
 import requests
 from threading import Event
@@ -6,6 +7,8 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from cklib.args import get_arg_parser, ArgumentParser
 from cklib.logging import log
+from requests.api import head
+from typing import Dict
 
 
 def main() -> None:
@@ -19,6 +22,7 @@ def main() -> None:
     session = PromptSession(history=history)
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
     shutdown_event = Event()
+    headers = {"Content-Type": "text/plain"}
 
     while not shutdown_event.is_set():
         try:
@@ -29,10 +33,11 @@ def main() -> None:
                 shutdown_event.set()
                 continue
 
+            update_headers_with_terminal_size(headers)
             r = requests.post(
                 execute_endpoint,
                 data=cli_input,
-                headers={"Content-type": "text/plain"},
+                headers=headers,
                 stream=True,
             )
             if r.status_code != 200:
@@ -54,6 +59,16 @@ def main() -> None:
             log.exception("Caught unhandled exception while processing CLI command")
 
     sys.exit(0)
+
+
+def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
+    tty_columns, tty_lines = shutil.get_terminal_size(fallback=(80, 20))
+    headers.update(
+        {
+            "Cloudkeeper-Cksh-Columns": str(tty_columns),
+            "Cloudkeeper-Cksh-Lines": str(tty_lines),
+        }
+    )
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
