@@ -557,20 +557,15 @@ class CLI:
     @staticmethod
     def create_query(parts: list[tuple[QueryPart, str]]) -> str:
         query: Query = Query.by(AllTerm())
-        reported_only: Optional[bool] = None
         for part, arg_in in parts:
             arg = arg_in.strip()
             if isinstance(part, QueryAllPart):
-                reported_only = False
                 query = query.combine(parse_query(arg))
             elif isinstance(part, ReportedPart):
-                reported_only = True if reported_only is None else reported_only
                 query = query.combine(parse_query(arg).on_section(Section.reported))
             elif isinstance(part, DesiredPart):
-                reported_only = False
                 query = query.combine(parse_query(arg).on_section(Section.desired))
             elif isinstance(part, MetadataPart):
-                reported_only = False
                 query = query.combine(parse_query(arg).on_section(Section.metadata))
             elif isinstance(part, Predecessor):
                 query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
@@ -587,8 +582,6 @@ class CLI:
                 query = Query(query.parts, query.preamble | {"merge_with_ancestors": arg}, query.aggregate)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        if reported_only:
-            query = query.merge_preamble({"show_section": Section.reported})
         return str(query.simplify())
 
     async def evaluate_cli_command(
