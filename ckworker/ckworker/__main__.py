@@ -403,7 +403,7 @@ def send_to_keepercore(graph: Graph):
     keepercore_graph = ArgumentParser.args.keepercore_graph
     model_uri = f"{base_uri}/model"
     graph_uri = f"{base_uri}/graph/{keepercore_graph}"
-    report_uri = f"{graph_uri}/reported/merge"
+    merge_uri = f"{graph_uri}/merge"
     log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
     r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
     if r.status_code != 200:
@@ -422,9 +422,9 @@ def send_to_keepercore(graph: Graph):
     if ArgumentParser.args.debug_dump_json:
         graph_outfile = open("graph.dump.json", "w")
     graph_export_iterator = GraphExportIterator(graph, graph_outfile)
-    log.debug(f"Sending subgraph via {report_uri}")
+    log.debug(f"Sending subgraph via {merge_uri}")
     r = requests.post(
-        report_uri,
+        merge_uri,
         data=graph_export_iterator,
         headers={"Content-Type": "application/x-ndjson"},
     )
