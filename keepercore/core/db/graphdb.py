@@ -236,7 +236,7 @@ class ArangoGraphDB(GraphDB):
     ) -> AsyncGenerator[Json, None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn()
+        trafo = self.document_to_instance_fn(query.query.preamble.get("show_section"))  # type: ignore
         visited = set()
         with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
             for element in cursor:
@@ -304,7 +304,7 @@ class ArangoGraphDB(GraphDB):
         await self.insert_genesis_data()
 
     @staticmethod
-    def document_to_instance_fn() -> Callable[[Json], Optional[Json]]:
+    def document_to_instance_fn(show_section: Optional[str] = None) -> Callable[[Json], Optional[Json]]:
         def props(doc: Json, result: Json) -> None:
             for prop in Section.all_ordered:
                 if prop in doc and doc[prop]:
@@ -322,7 +322,10 @@ class ArangoGraphDB(GraphDB):
             else:
                 return None
 
-        return render_prop
+        def render_section(doc: Json) -> Optional[Json]:
+            return doc.get(show_section)
+
+        return render_section if show_section else render_prop
 
     async def list_in_progress_batch_updates(self) -> list[Json]:
         with await self.db.aql(self.query_active_batches()) as cursor:

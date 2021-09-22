@@ -1,4 +1,7 @@
+import pytest
+
 from core.query.model import P, Query, AllTerm, IsTerm
+from core.query.query_parser import parse_query
 
 
 def simple_reference() -> None:
@@ -60,3 +63,33 @@ def test_simplify() -> None:
     # also works in nested setup
     q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm("test") | AllTerm()))).simplify()
     assert (str(q)) == "test == true"
+
+
+def test_combine() -> None:
+    query1 = Query.by(P("test") == True).traverse_out().combine(Query.by("foo")).combine(Query.by("bla"))
+    assert str(query1) == 'test == true --> (is("foo") and is("bla"))'
+    query2 = (
+        Query.by(P("test") == True)
+        .traverse_out()
+        .combine(Query.by("foo").traverse_out())
+        .combine(Query.by("bla").traverse_out())
+    )
+    assert str(query2) == 'test == true --> is("foo") --> is("bla") -->'
+    query3 = (
+        Query.by(P("test") == True)
+        .traverse_out()
+        .filter("boo")
+        .traverse_out()
+        .filter("bar")
+        .combine(Query.by("foo"))
+        .combine(Query.by("bla"))
+    )
+    assert str(query3) == 'test == true --> is("boo") --> ((is("bar") and is("foo")) and is("bla"))'
+    query4 = Query.by("a").with_limit(10).combine(Query.by("b").with_limit(2))
+    assert query4.limit == 2  # minimum is taken
+    with pytest.raises(AttributeError) as ae:
+        # can not combine 2 aggregations
+        parse_query("aggregate(sum(1)): is(a)").combine(parse_query("aggregate(sum(1)): is(a)"))
+    with pytest.raises(AttributeError) as ae:
+        # can not combine 2 with statements
+        parse_query("is(foo) with(empty, -->)").combine(parse_query("is(bla) with(empty, -->)"))

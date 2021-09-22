@@ -82,6 +82,17 @@ def empty(el: Iterable[AnyT]) -> bool:
     return not non_empty(el)
 
 
+def combine_optional(
+    left: Optional[AnyT], right: Optional[AnyT], combine: Callable[[AnyT, AnyT], AnyT]
+) -> Optional[AnyT]:
+    if left and right:
+        return combine(left, right)
+    elif left:
+        return left
+    else:
+        return right
+
+
 def interleave(elements: list[AnyT]) -> list[tuple[AnyT, AnyT]]:
     if len(elements) < 2:
         return []

@@ -65,7 +65,9 @@ operation_p = (
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
 
-preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
+preamble_prop_p = reduce(
+    lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors", "show_section"]]
+)
 
 
 @make_parser
