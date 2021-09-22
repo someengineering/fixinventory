@@ -25,7 +25,7 @@ from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
-from core.model.graph_access import GraphBuilder
+from core.model.graph_access import GraphBuilder, Section
 from core.model.model import Kind, Model
 from core.worker_task_queue import (
     WorkerTaskDescription,
@@ -45,6 +45,13 @@ from core.util import force_gen, uuid_str
 
 log = logging.getLogger(__name__)
 RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
+
+
+def section_of(request: Request) -> Optional[str]:
+    section = request.match_info.get("section")
+    if section and section not in Section.all:
+        raise AttributeError(f"Given section does not exist: {section}")
+    return section
 
 
 class Api:
@@ -349,7 +356,7 @@ class Api:
     async def update_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
         node_id = request.match_info.get("node_id", "some_existing")
-        section = request.match_info.get("section")
+        section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
         patch = await request.json()
         md = await self.model_handler.load_model()
@@ -413,7 +420,7 @@ class Api:
 
     async def raw(self, request: Request) -> StreamResponse:
         query_string = await request.text()
-        section = request.match_info.get("section")
+        section = section_of(request)
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         m = await self.model_handler.load_model()
         q = parse_query(query_string)
@@ -421,7 +428,7 @@ class Api:
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request) -> StreamResponse:
-        section = request.match_info.get("section")
+        section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
@@ -442,7 +449,7 @@ class Api:
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
     async def query_list(self, request: Request) -> StreamResponse:
-        section = request.match_info.get("section")
+        section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
@@ -452,7 +459,7 @@ class Api:
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
     async def cytoscape(self, request: Request) -> StreamResponse:
-        section = request.match_info.get("section")
+        section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
@@ -462,7 +469,7 @@ class Api:
         return web.json_response(node_link_data)
 
     async def query_graph_stream(self, request: Request) -> StreamResponse:
-        section = request.match_info.get("section")
+        section = section_of(request)
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
@@ -472,7 +479,7 @@ class Api:
         return await self.stream_response_from_gen(request, (item async for _, item in gen))
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
-        section = request.match_info.get("section")
+        section = section_of(request)
         query_string = await request.text()
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
