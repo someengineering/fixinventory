@@ -6,7 +6,7 @@ from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from cklib.args import get_arg_parser, ArgumentParser
-from cklib.logging import log
+from cklib.logging import log, add_args as logging_add_args
 from typing import Dict
 
 
@@ -14,15 +14,17 @@ def main() -> None:
     shutdown_event = Event()
     arg_parser = get_arg_parser()
     add_args(arg_parser)
+    logging_add_args(arg_parser)
     arg_parser.parse_args()
     headers = {"Content-Type": "text/plain"}
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
 
     if ArgumentParser.args.stdin:
+        log.debug("Reading commands from STDIN")
         try:
             for command in sys.stdin.readlines():
                 command = command.rstrip()
-                send_command(command, execute_endpoint, headers)
+                send_command(command, execute_endpoint, headers, tty=False)
         except KeyboardInterrupt:
             pass
         except (RuntimeError, ValueError) as e:
@@ -36,6 +38,7 @@ def main() -> None:
         history_file = str(pathlib.Path.home() / ".cksh_history")
         history = FileHistory(history_file)
         session = PromptSession(history=history)
+        log.debug("Starting interactive session")
 
     while not shutdown_event.is_set():
         try:
@@ -60,8 +63,14 @@ def main() -> None:
     sys.exit(0)
 
 
-def send_command(command: str, execute_endpoint: str, headers: Dict[str, str]) -> None:
-    update_headers_with_terminal_size(headers)
+def send_command(
+    command: str, execute_endpoint: str, headers: Dict[str, str], tty: bool = True
+) -> None:
+    if tty:
+        update_headers_with_terminal_size(headers)
+
+    log.debug(f'Sending command "{command}" to {execute_endpoint}')
+
     r = requests.post(
         execute_endpoint,
         data=command,
@@ -80,6 +89,7 @@ def send_command(command: str, execute_endpoint: str, headers: Dict[str, str]) -
 
 def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
     tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 20))
+    log.debug(f"Setting columns {tty_columns}, rows {tty_rows}")
     headers.update(
         {
             "Cloudkeeper-Cksh-Columns": str(tty_columns),
