@@ -64,6 +64,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         "terminated": InstanceStatus.TERMINATED,
         "stopping": InstanceStatus.BUSY,
         "stopped": InstanceStatus.STOPPED,
+        "busy": InstanceStatus.BUSY,
     }
 
     def _instance_status_setter(self, value: str) -> None:
@@ -145,6 +146,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         "deleting": VolumeStatus.BUSY,
         "deleted": VolumeStatus.DELETED,
         "error": VolumeStatus.ERROR,
+        "busy": VolumeStatus.BUSY,
     }
 
     def _volume_status_setter(self, value: str) -> None:
