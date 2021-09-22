@@ -94,7 +94,10 @@ def test_term() -> None:
     assert_round_trip(term_parser, P.with_id("foo"))
     assert_round_trip(term_parser, P.of_kind("foo"))
     assert_round_trip(term_parser, P.of_kind("foo") | P.of_kind("bla"))
-    assert_round_trip(term_parser, ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b") <= 12))
+    assert_round_trip(
+        term_parser,
+        ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b").is_in([1, 2, 3])) & (P("c") == {"a": 123}),
+    )
 
 
 def test_navigation_default() -> None:
