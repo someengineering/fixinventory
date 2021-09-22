@@ -19,7 +19,6 @@ def main() -> None:
     session = PromptSession(history=history)
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
     shutdown_event = Event()
-    headers = {"Content-type": "application/yaml"}
 
     while not shutdown_event.is_set():
         try:
@@ -31,7 +30,10 @@ def main() -> None:
                 continue
 
             r = requests.post(
-                execute_endpoint, data=cli_input, headers=headers, stream=True
+                execute_endpoint,
+                data=cli_input,
+                headers={"Content-type": "text/plain"},
+                stream=True,
             )
             if r.status_code != 200:
                 print(r.text, file=sys.stderr)
