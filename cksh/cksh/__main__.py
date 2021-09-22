@@ -62,11 +62,11 @@ def main() -> None:
 
 
 def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
-    tty_columns, tty_lines = shutil.get_terminal_size(fallback=(80, 20))
+    tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 20))
     headers.update(
         {
             "Cloudkeeper-Cksh-Columns": str(tty_columns),
-            "Cloudkeeper-Cksh-Lines": str(tty_lines),
+            "Cloudkeeper-Cksh-Rows": str(tty_rows),
         }
     )
 
