@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
 from typing import Mapping, Union, Optional, Any, ClassVar
@@ -8,10 +9,11 @@ from typing import Mapping, Union, Optional, Any, ClassVar
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
+from core.model.typed_model import to_js
 
 
 class P:
-    def __init__(self, name: str, **kwargs: object):
+    def __init__(self, name: str, **kwargs: Any):
         self.name = name
         self.args = kwargs
 
@@ -35,40 +37,40 @@ class P:
     def function(fn: str) -> PFunction:
         return PFunction(fn)
 
-    def __gt__(self, other: object) -> Predicate:
+    def __gt__(self, other: Any) -> Predicate:
         return self.gt(other)
 
-    def __ge__(self, other: object) -> Predicate:
+    def __ge__(self, other: Any) -> Predicate:
         return self.ge(other)
 
-    def __lt__(self, other: object) -> Predicate:
+    def __lt__(self, other: Any) -> Predicate:
         return self.lt(other)
 
-    def __le__(self, other: object) -> Predicate:
+    def __le__(self, other: Any) -> Predicate:
         return self.le(other)
 
-    def __eq__(self, other: object) -> Predicate:  # type: ignore
+    def __eq__(self, other: Any) -> Predicate:  # type: ignore
         return self.eq(other)
 
-    def __ne__(self, other: object) -> Predicate:  # type: ignore
+    def __ne__(self, other: Any) -> Predicate:  # type: ignore
         return self.ne(other)
 
-    def gt(self, other: object) -> Predicate:
+    def gt(self, other: Any) -> Predicate:
         return Predicate(self.name, ">", other, self.args)
 
-    def ge(self, other: object) -> Predicate:
+    def ge(self, other: Any) -> Predicate:
         return Predicate(self.name, ">=", other, self.args)
 
-    def lt(self, other: object) -> Predicate:
+    def lt(self, other: Any) -> Predicate:
         return Predicate(self.name, "<", other, self.args)
 
-    def le(self, other: object) -> Predicate:
+    def le(self, other: Any) -> Predicate:
         return Predicate(self.name, "<=", other, self.args)
 
-    def eq(self, other: object) -> Predicate:
+    def eq(self, other: Any) -> Predicate:
         return Predicate(self.name, "==", other, self.args)
 
-    def ne(self, other: object) -> Predicate:
+    def ne(self, other: Any) -> Predicate:
         return Predicate(self.name, "!=", other, self.args)
 
     def matches(self, regex: str) -> Predicate:
@@ -88,7 +90,7 @@ class PFunction:
     def __init__(self, fn: str):
         self.fn = fn
 
-    def on(self, name: str, *args: object) -> FunctionTerm:
+    def on(self, name: str, *args: Any) -> FunctionTerm:
         return FunctionTerm(self.fn, name, list(args))
 
 
@@ -114,7 +116,7 @@ class Term(abc.ABC):
     def __and__(self, other: Term) -> Term:
         return self.and_term(other)
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Term) else False
 
     def or_term(self, other: Term) -> CombinedTerm:
@@ -162,27 +164,23 @@ class Term(abc.ABC):
 
     # noinspection PyTypeChecker
     @staticmethod
-    def from_json(json: dict[str, object], _: type = object, **kwargs: object) -> Term:
-        if (
-            isinstance(json.get("left"), dict)
-            and isinstance(json.get("right"), dict)
-            and isinstance(json.get("op"), str)
-        ):
-            left = Term.from_json(json["left"])  # type: ignore
-            right = Term.from_json(json["right"])  # type: ignore
-            return CombinedTerm(left, json["op"], right)  # type: ignore
-        elif isinstance(json.get("name"), str) and isinstance(json.get("op"), str):
-            args = json["args"] if isinstance(json.get("args"), dict) else {}
-            return Predicate(json["name"], json["op"], json["value"], args)  # type: ignore
-        elif isinstance(json.get("fn"), str) and isinstance(json.get("property_path"), str):
-            argv: list = json["args"] if isinstance(json.get("args"), list) else []  # type: ignore
-            return FunctionTerm(json["fn"], json["property_path"], argv)  # type: ignore
-        elif isinstance(json.get("kind"), str):
-            return IsTerm(json["kind"])  # type: ignore
-        elif isinstance(json.get("id"), str):
-            return IdTerm(json.get("id"))  # type: ignore
+    def from_json(js: dict[str, Any], _: type = object, **kwargs: Any) -> Term:
+        if isinstance(js.get("left"), dict) and isinstance(js.get("right"), dict) and isinstance(js.get("op"), str):
+            left = Term.from_json(js["left"])
+            right = Term.from_json(js["right"])
+            return CombinedTerm(left, js["op"], right)
+        elif isinstance(js.get("name"), str) and isinstance(js.get("op"), str):
+            args = js["args"] if isinstance(js.get("args"), dict) else {}
+            return Predicate(js["name"], js["op"], js["value"], args)
+        elif isinstance(js.get("fn"), str) and isinstance(js.get("property_path"), str):
+            argv: list = js["args"] if isinstance(js.get("args"), list) else []  # type: ignore
+            return FunctionTerm(js["fn"], js["property_path"], argv)
+        elif isinstance(js.get("kind"), str):
+            return IsTerm(js["kind"])
+        elif isinstance(js.get("id"), str):
+            return IdTerm(js.get("id"))  # type: ignore
         else:
-            raise AttributeError(f"Can not parse json into query: {json}")
+            raise AttributeError(f"Can not parse json into query: {js}")
 
 
 class AllTerm(Term):
@@ -194,27 +192,20 @@ class AllTerm(Term):
 class Predicate(Term):
     name: str
     op: str
-    value: object
-    args: Mapping[str, object]
+    value: Any
+    args: Mapping[str, Any]
 
     def __str__(self) -> str:
         return f"{self.name} {self.op} {self.value_str_rep(self.value)}"
 
     @staticmethod
-    def value_str_rep(value: object) -> str:
+    def value_str_rep(value: Any) -> str:
         """
         This method is used to get a string representation of a value.
         :param value: the value to be represented.
         :return: the string representation.
         """
-        if value is None:
-            return "null"
-        elif isinstance(value, str):
-            return f'"{value}"'
-        elif isinstance(value, bool):
-            return "true" if value else "false"
-        else:
-            return str(value)
+        return json.dumps(to_js(value))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
