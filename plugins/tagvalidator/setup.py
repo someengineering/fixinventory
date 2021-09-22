@@ -20,7 +20,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper", "prometheus_client"],
+    install_requires=["cklib", "cloudkeeper", "prometheus_client"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

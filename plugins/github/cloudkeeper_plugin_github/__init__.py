@@ -1,11 +1,11 @@
-import cloudkeeper.logging
-import cloudkeeper.signal
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
+import cklib.logging
+import cklib.signal
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
 from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo
 from github import Github
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GithubCollectorPlugin(BaseCollectorPlugin):

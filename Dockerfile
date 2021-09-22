@@ -51,10 +51,16 @@ COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 
+# Build cklib
+COPY cklib /usr/src/cklib
+WORKDIR /usr/src/cklib
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
 # Build keepercore
 COPY keepercore /usr/src/keepercore
 WORKDIR /usr/src/keepercore
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
+#RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build -f /build .
 
 # Build cloudkeeper
@@ -63,15 +69,21 @@ WORKDIR /usr/src/cloudkeeper
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build graph_exporter
-COPY graph_exporter /usr/src/graph_exporter
-WORKDIR /usr/src/graph_exporter
+# Build ckworker
+COPY ckworker /usr/src/ckworker
+WORKDIR /usr/src/ckworker
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build keeper-cli
-COPY keeper-cli /usr/src/keeper-cli
-WORKDIR /usr/src/keeper-cli
+# Build ckmetrics
+COPY ckmetrics /usr/src/ckmetrics
+WORKDIR /usr/src/ckmetrics
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
+RUN pip wheel -w /build -f /build .
+
+# Build cksh
+COPY cksh /usr/src/cksh
+WORKDIR /usr/src/cksh
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
@@ -105,8 +117,7 @@ RUN if [ "${TESTS:-false}" = true ]; then \
             /usr/local/bin/startup \
         ; \
     fi
-RUN mkdir -p /usr/local/etc/dnsmasq.d
-COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.d/cloudkeeper.conf
+COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.conf
 COPY docker/supervisord.conf /usr/local/etc/supervisord.conf
 RUN mkdir -p /usr/local/etc/supervisor/conf.d/
 RUN chmod 640 /usr/local/etc/supervisord.conf
@@ -147,7 +158,6 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && locale-gen \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
     && mkdir -p /var/spool/cron/crontabs /var/run/cloudkeeper /var/log/supervisor \
-    && ln -s /usr/local/etc/dnsmasq.d/cloudkeeper.conf /etc/dnsmasq.d/cloudkeeper.conf \
     && ln -s /usr/local/bin/busybox /usr/local/sbin/syslogd \
     && ln -s /usr/local/bin/busybox /usr/local/sbin/mkpasswd \
     && ln -s /usr/local/bin/busybox /usr/local/bin/vi \

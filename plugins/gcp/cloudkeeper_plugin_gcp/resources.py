@@ -1,9 +1,9 @@
 from typing import List, Dict, ClassVar, Optional
 from datetime import datetime, timezone, timedelta
-from cloudkeeper.graph import Graph
-from cloudkeeper.utils import make_valid_timestamp
-import cloudkeeper.logging
-from cloudkeeper.baseresources import (
+from cklib.graph import Graph
+from cklib.utils import make_valid_timestamp
+import cklib.logging
+from cklib.baseresources import (
     BaseQuota,
     BaseAccount,
     BaseLoadBalancer,
@@ -39,7 +39,7 @@ from .utils import (
 from dataclasses import dataclass, field, InitVar
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 # Resources that can exist within zones OR outside zones in regions only
 regional_resources = (
@@ -156,6 +156,11 @@ class GCPDisk(GCPResource, BaseVolume):
         "READY": VolumeStatus.IN_USE,
         "AVAILABLE": VolumeStatus.AVAILABLE,
         "DELETING": VolumeStatus.BUSY,
+        "busy": VolumeStatus.BUSY,
+        "in-use": VolumeStatus.IN_USE,
+        "available": VolumeStatus.AVAILABLE,
+        "error": VolumeStatus.ERROR,
+        "deleted": VolumeStatus.DELETED,
     }
 
     last_attach_timestamp: Optional[datetime] = None
@@ -211,6 +216,10 @@ class GCPInstance(GCPResource, BaseInstance):
         "SUSPENDED": InstanceStatus.STOPPED,
         "REPAIRING": InstanceStatus.BUSY,
         "TERMINATED": InstanceStatus.TERMINATED,
+        "busy": InstanceStatus.BUSY,
+        "running": InstanceStatus.RUNNING,
+        "stopped": InstanceStatus.STOPPED,
+        "terminated": InstanceStatus.TERMINATED,
     }
 
     network_interfaces: Optional[str] = None

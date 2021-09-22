@@ -1,5 +1,5 @@
 from .common import KubernetesResource
-from cloudkeeper.baseresources import BaseAccount
+from cklib.baseresources import BaseAccount
 from typing import ClassVar
 from dataclasses import dataclass
 

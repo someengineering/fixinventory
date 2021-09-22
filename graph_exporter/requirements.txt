@@ -1,3 +1,0 @@
-requests
-prometheus_client
-cloudkeeper

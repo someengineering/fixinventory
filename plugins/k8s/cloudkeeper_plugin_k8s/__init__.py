@@ -1,18 +1,18 @@
-import cloudkeeper.logging
+import cklib.logging
 import multiprocessing
-import cloudkeeper.signal
+import cklib.signal
 from concurrent import futures
 from typing import Optional, Dict
-from cloudkeeper.baseplugin import BaseCollectorPlugin
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.graph import Graph
+from cklib.baseplugin import BaseCollectorPlugin
+from cklib.args import ArgumentParser
+from cklib.graph import Graph
 from kubernetes import client
 from .utils import k8s_config
 from .collector import KubernetesCollector
 from .resources.cluster import KubernetesCluster
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class KubernetesCollectorPlugin(BaseCollectorPlugin):
@@ -33,7 +33,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.k8s_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cloudkeeper.signal.initializer
+            pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {"args": ArgumentParser.args}
         else:
@@ -72,7 +72,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
         """
         cluster = KubernetesCluster(cluster_id, {})
         collector_name = f"k8s_{cluster.id}"
-        cloudkeeper.signal.set_thread_name(collector_name)
+        cklib.signal.set_thread_name(collector_name)
 
         if args is not None:
             ArgumentParser.args = args

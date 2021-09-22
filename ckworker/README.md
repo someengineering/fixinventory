@@ -1,0 +1,2 @@
+# ckworker
+Cloudkeeper Worker Daemon

@@ -1,18 +1,17 @@
 import time
-import cloudkeeper.logging
 import copy
 from datetime import date
 from enum import Enum, auto
-from cloudkeeper.baseresources import *
-from cloudkeeper.graph import Graph
-from cloudkeeper.utils import make_valid_timestamp
+from cklib.baseresources import *
+from cklib.graph import Graph
+from cklib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource
 from typing import ClassVar
 from dataclasses import dataclass
+from cklib.logging import log
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch date
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
 
 
 # derived from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
@@ -65,6 +64,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
         "terminated": InstanceStatus.TERMINATED,
         "stopping": InstanceStatus.BUSY,
         "stopped": InstanceStatus.STOPPED,
+        "busy": InstanceStatus.BUSY,
     }
 
     def _instance_status_setter(self, value: str) -> None:
@@ -146,6 +146,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
         "deleting": VolumeStatus.BUSY,
         "deleted": VolumeStatus.DELETED,
         "error": VolumeStatus.ERROR,
+        "busy": VolumeStatus.BUSY,
     }
 
     def _volume_status_setter(self, value: str) -> None:

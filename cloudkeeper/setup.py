@@ -16,26 +16,20 @@ setup(
     entry_points={
         "console_scripts": [
             "cloudkeeper = cloudkeeper.__main__:main",
-            "collectord = cloudkeeper.collectord:main",
         ]
     },
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        "networkx",
+        "cklib",
         "cherrypy",
         "requests",
         "prometheus_client",
         "apscheduler",
-        "defaultlist",
         "prompt_toolkit",
-        "Pympler",
         "tzlocal==2.1",
-        "psutil",
         "pyyaml",
         "PyJWT",
-        "typeguard",
-        "websocket-client",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],

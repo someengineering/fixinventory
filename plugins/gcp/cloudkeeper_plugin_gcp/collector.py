@@ -1,13 +1,12 @@
-import cloudkeeper.logging
-import cloudkeeper.signal
+import cklib.logging
 import socket
 from pprint import pformat
 from retrying import retry
 from typing import Callable, List, Dict, Type, Union
-from cloudkeeper.baseresources import BaseResource
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
-from cloudkeeper.utils import except_log_and_pass
+from cklib.baseresources import BaseResource
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
+from cklib.utils import except_log_and_pass
 from prometheus_client import Summary
 from .resources import (
     GCPProject,
@@ -64,7 +63,7 @@ from .utils import (
     retry_on_error,
 )
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 metrics_collect_regions = Summary(

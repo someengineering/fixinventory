@@ -18,7 +18,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cloudkeeper"],
+    install_requires=["cklib"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

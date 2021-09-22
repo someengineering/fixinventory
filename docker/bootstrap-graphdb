@@ -17,10 +17,10 @@ while [ $is_up = false ]; do
     fi
 done
 
-echo "Creating $KEEPERCORE_GRAPHDB_LOGIN user and $KEEPERCORE_GRAPHDB_DATABASE database"
+echo "Creating $CKCORE_GRAPHDB_LOGIN user and $CKCORE_GRAPHDB_DATABASE database"
 cat <<EOF | arangosh --console.history false --server.password "$GRAPHDB_ROOT_PASSWORD" > /dev/null 2>&1
 const users = require('@arangodb/users');
-users.save('$KEEPERCORE_GRAPHDB_LOGIN', '$KEEPERCORE_GRAPHDB_PASSWORD');
-db._createDatabase('$KEEPERCORE_GRAPHDB_DATABASE');
-users.grantDatabase('$KEEPERCORE_GRAPHDB_LOGIN', '$KEEPERCORE_GRAPHDB_DATABASE', 'rw');
+users.save('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_PASSWORD');
+db._createDatabase('$CKCORE_GRAPHDB_DATABASE');
+users.grantDatabase('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_DATABASE', 'rw');
 EOF

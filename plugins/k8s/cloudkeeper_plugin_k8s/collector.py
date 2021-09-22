@@ -1,6 +1,6 @@
-import cloudkeeper.logging
-from cloudkeeper.graph import Graph
-from cloudkeeper.args import ArgumentParser
+import cklib.logging
+from cklib.graph import Graph
+from cklib.args import ArgumentParser
 
 from kubernetes import client
 from .resources.cluster import KubernetesCluster
@@ -11,7 +11,7 @@ from .resources import (
 )
 
 
-log = cloudkeeper.logging.getLogger("cloudkeeper." + __name__)
+log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class KubernetesCollector:
