@@ -17,3 +17,5 @@ aiostream==0.4.3
 tzlocal==2.1
 frozendict==2.0.6
 pyyaml==5.4.1
+# no version, since it is installed directly
+cklib
