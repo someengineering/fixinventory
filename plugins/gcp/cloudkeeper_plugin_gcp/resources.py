@@ -333,6 +333,12 @@ class GCPSSLCertificate(GCPResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     api_identifier: ClassVar[str] = "sslCertificate"
 
+    description: Optional[str] = None
+    certificate: Optional[str] = None
+    certificate_type: Optional[str] = None
+    certificate_managed: Optional[Dict] = None
+    subject_alternative_names: Optional[List[str]] = None
+
 
 @dataclass(eq=False)
 class GCPMachineType(GCPResource, BaseInstanceType):

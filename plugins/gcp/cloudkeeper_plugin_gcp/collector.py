@@ -957,6 +957,15 @@ class GCPProjectCollector:
         self.collect_something(
             paginate_method_name="aggregatedList",
             resource_class=GCPSSLCertificate,
+            attr_map={
+                "ctime": lambda r: iso2datetime(r.get("creationTimestamp")),
+                "expires": lambda r: iso2datetime(r.get("expireTime")),
+                "description": "description",
+                "certificate": "certificate",
+                "certificate_type": "type",
+                "certificate_managed": "managed",
+                "subject_alternative_names": "subjectAlternativeNames",
+            },
             search_map={
                 "__user": ["link", "user"],
             },
@@ -1293,8 +1302,9 @@ class GCPProjectCollector:
             paginate_method_name="aggregatedList",
             search_map={
                 "__url_map": ["link", "urlMap"],
+                "__ssl_certificates": ["link", "sslCertificates"],
             },
-            predecessors=["__url_map"],
+            predecessors=["__url_map", "__ssl_certificates"],
         )
 
     @metrics_collect_target_ssl_proxies.time()
@@ -1303,8 +1313,9 @@ class GCPProjectCollector:
             resource_class=GCPTargetSslProxy,
             search_map={
                 "__service": ["link", "service"],
+                "__ssl_certificates": ["link", "sslCertificates"],
             },
-            predecessors=["__service"],
+            predecessors=["__service", "__ssl_certificates"],
         )
 
     @metrics_collect_target_tcp_proxies.time()
