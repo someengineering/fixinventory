@@ -1,10 +1,11 @@
 import logging
 import os
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 
 from aiohttp import web
 from aiohttp.web_app import Application
 from arango import ArangoClient
+from cklib.args import ArgumentParser
 
 from core.cli.cli import CLIDependencies, CLI
 from core.cli.command import all_parts, aliases
@@ -23,7 +24,11 @@ log = logging.getLogger(__name__)
 
 
 def parse_args() -> Namespace:
-    parser = ArgumentParser(description="Maintains graphs of documents of any shape.", epilog="Keeps all the things.")
+    parser = ArgumentParser(
+        env_args_prefix="CKCORE_",
+        description="Maintains graphs of documents of any shape.",
+        epilog="Keeps all the things.",
+    )
     parser.add_argument("--log-level", default="info", help="The threshold log level for the application log.")
     parser.add_argument("-s", "--arango-server", default="http://localhost:8529", help="The server to connect to.")
     parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="The database to connect to.")
@@ -38,7 +43,7 @@ def parse_args() -> Namespace:
         help="The plantuml server to render plantuml images",
     )
     TaskHandler.add_args(parser)
-    return parser.parse_args()
+    return parser.parse_args()  # type: ignore
 
 
 def main() -> None:

@@ -83,6 +83,7 @@ install: clean ## install the package to the active Python's site-packages
 
 venv:
 	python3 -m venv venv
+	./venv/bin/pip install --upgrade --editable ../cklib
 	./venv/bin/pip install -r requirements-dev.txt
 	./venv/bin/pip install -r requirements.txt
 	./venv/bin/mypy core tests > /dev/null 2>&1 || true
