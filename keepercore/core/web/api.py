@@ -21,6 +21,7 @@ from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.cli.cli import CLI
+from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
@@ -604,7 +605,7 @@ class Api:
 
         async def respond_text() -> StreamResponse:
             def filter_attrs(js: Json) -> Json:
-                result = {}
+                result: Json = {}
                 for path in plain_text_whitelist:
                     value = value_in_path(js, path)
                     if value:
@@ -657,12 +658,3 @@ class Api:
                 return web.HTTPBadRequest(text=message)
 
         return middleware_handler
-
-
-plain_text_whitelist = [
-    ["reported"],
-    ["desired", "clean"],
-    ["metadata", "protected"],
-    ["metadata", "ancestors"],
-    ["kinds"],
-]

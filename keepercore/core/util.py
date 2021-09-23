@@ -153,7 +153,7 @@ def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
 
 
 def set_value_in_path(element: JsonElement, path: list[str], json: Optional[Json] = None) -> Json:
-    def at_idx(current: Json, idx: int):
+    def at_idx(current: Json, idx: int) -> None:
         if len(path) - 1 == idx:
             current[path[-1]] = element
         else:
