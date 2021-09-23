@@ -21,6 +21,7 @@ from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.cli.cli import CLI
+from core.cli.command import is_node
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
@@ -35,7 +36,7 @@ from core.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from core.types import Json
+from core.types import Json, JsonElement
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
 from core.query.query_parser import parse_query
@@ -612,6 +613,10 @@ class Api:
                         set_value_in_path(value, path, result)
                 return result
 
+            def to_result(js: JsonElement) -> JsonElement:
+                # if js is a node, the resulting content should be filtered
+                return filter_attrs(js) if is_node(js) else js  # type: ignore
+
             response = web.StreamResponse(status=200, headers={"Content-Type": "text/plain"})
             await response.prepare(request)
             flag = False
@@ -620,7 +625,7 @@ class Api:
                 flag = True
                 js = to_js(item)
                 if isinstance(js, dict):
-                    yml = yaml.dump(filter_attrs(js), default_flow_style=False, sort_keys=False)
+                    yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
                     await response.write(f"{sep}{yml}".encode("utf-8"))
                 else:
                     await response.write(f"{sep}{js}".encode("utf-8"))
