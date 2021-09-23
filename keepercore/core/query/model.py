@@ -324,6 +324,9 @@ class AggregateVariableName:
     def __str__(self) -> str:
         return self.name
 
+    def on_section(self, section: str) -> AggregateVariableName:
+        return AggregateVariableName(f"{section}.{self.name}")
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateVariableCombined:
@@ -331,6 +334,11 @@ class AggregateVariableCombined:
 
     def __str__(self) -> str:
         return "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
+
+    def on_section(self, section: str) -> AggregateVariableCombined:
+        return AggregateVariableCombined(
+            [p.on_section(section) if isinstance(p, AggregateVariableName) else p for p in self.parts]
+        )
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -345,6 +353,9 @@ class AggregateVariable:
 
     def get_as_name(self) -> str:
         return self.as_name if self.as_name else str(self.name)
+
+    def on_section(self, section: str) -> AggregateVariable:
+        return replace(self, name=self.name.on_section(section))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -365,6 +376,9 @@ class AggregateFunction:
     def get_as_name(self) -> str:
         return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
+    def on_section(self, section: str) -> AggregateFunction:
+        return replace(self, name=f"{section}.{self.name}") if isinstance(self.name, str) else self
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Aggregate:
@@ -375,6 +389,12 @@ class Aggregate:
         group_by = ", ".join(str(a) for a in self.group_by)
         funcs = ", ".join(str(a) for a in self.group_func)
         return f"aggregate({group_by}: {funcs})"
+
+    def on_section(self, section: str) -> Aggregate:
+        return Aggregate(
+            [a.on_section(section) for a in self.group_by],
+            [a.on_section(section) for a in self.group_func],
+        )
 
 
 SimpleValue = Union[str, int, float, bool]
@@ -476,7 +496,9 @@ class Query:
         return replace(self, preamble=updated)
 
     def on_section(self, section: str) -> Query:
-        return replace(self, parts=[replace(p, term=p.term.on_section(section)) for p in self.parts])
+        aggregate = self.aggregate.on_section(section) if self.aggregate else None
+        parts = [replace(p, term=p.term.on_section(section)) for p in self.parts]
+        return replace(self, aggregate=aggregate, parts=parts)
 
     def combine(self, other: Query) -> Query:
         preamble = self.preamble | other.preamble
