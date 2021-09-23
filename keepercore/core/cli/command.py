@@ -231,14 +231,19 @@ class CountCommand(CLICommand):
         return "Count incoming elements or sum defined property."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        def inc_prop(o: Any) -> tuple[int, int]:
-            def prop_value() -> tuple[int, int]:
+        get_path = arg.split(".") if arg else None
+
+        def inc_prop(o: JsonElement) -> tuple[int, int]:
+            def prop_value(path: list[str]) -> tuple[int, int]:
                 try:
-                    return int(o[arg]), 0
+                    if isinstance(o, dict):
+                        return int(value_in_path(o, path)), 0  # type: ignore
+                    else:
+                        return 0, 1
                 except Exception:
                     return 0, 1
 
-            return prop_value() if arg in o else (0, 1)
+            return prop_value(get_path) if get_path else (0, 1)
 
         def inc_identity(_: Any) -> tuple[int, int]:
             return 1, 0

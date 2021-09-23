@@ -45,7 +45,7 @@ from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 
 @fixture
 def json_source() -> str:
-    nums = ",".join([f'{{ "num": {a}}}' for a in range(0, 100)])
+    nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
 
 
@@ -103,6 +103,11 @@ async def test_count_command(cli: CLI, json_source: str) -> None:
 
     # count attributes
     result = await cli.execute_cli_command(f"{json_source} | count num", stream.list)
+    assert len(result[0]) == 1
+    assert result[0][0] == {"matched": 9900, "not_matched": 0}
+
+    # count attributes with path
+    result = await cli.execute_cli_command(f"{json_source} | count inner.num", stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == {"matched": 9900, "not_matched": 0}
 
