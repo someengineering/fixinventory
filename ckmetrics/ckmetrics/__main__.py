@@ -215,41 +215,28 @@ def get_label_values_from_result(result: Dict, labels: Tuple):
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--web-port",
-        help="TCP port to listen on",
-        default=9855,
+        help="TCP port to listen on (default: 9955)",
+        default=9955,
         type=int,
         dest="web_port",
     )
     arg_parser.add_argument(
         "--keepercore-uri",
-        help="Keepercore URI",
+        help="Keepercore URI (default: http://localhost:8080)",
         default="http://localhost:8080",
         dest="keepercore_uri",
     )
     arg_parser.add_argument(
         "--keepercore-ws-uri",
-        help="Keepercore Websocket URI",
+        help="Keepercore Websocket URI (default: ws://localhost:8080)",
         default="ws://localhost:8080",
         dest="keepercore_ws_uri",
     )
     arg_parser.add_argument(
         "--keepercore-graph",
-        help="Keepercore graph name",
+        help="Keepercore graph name (default: ck)",
         default="ck",
         dest="keepercore_graph",
-    )
-    arg_parser.add_argument(
-        "--pool-size",
-        help="Collector Thread/Process Pool Size (default: 5)",
-        dest="pool_size",
-        default=5,
-        type=int,
-    )
-    arg_parser.add_argument(
-        "--fork",
-        help="Use forked process instead of threads (default: False)",
-        dest="fork",
-        action="store_true",
     )
     arg_parser.add_argument(
         "--timeout",
