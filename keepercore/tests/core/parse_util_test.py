@@ -1,4 +1,7 @@
-from core.parse_util import integer_dp, float_dp
+import pytest
+from parsy import ParseError
+
+from core.parse_util import integer_dp, float_dp, json_value_p, unquoted_string_dp, unquoted_string_p
 
 
 def test_number_parse() -> None:
@@ -8,3 +11,28 @@ def test_number_parse() -> None:
     assert float_dp.parse("-123.321") == -123.321
     assert float_dp.parse("123.321") == 123.321
     assert float_dp.parse("+123.321") == 123.321
+
+
+def test_unquoted_string_dp() -> None:
+    assert unquoted_string_p.parse("a") == "a"
+    assert unquoted_string_p.parse("  abc:123  ") == "abc:123"
+    assert unquoted_string_dp.parse("2021-09-23T06:42:26Z") == "2021-09-23T06:42:26Z"
+    with pytest.raises(ParseError) as ex:
+        unquoted_string_dp.parse("2021%")
+    assert str(ex.value) == "expected 'A-Za-z0-9_-:' at 0:5"
+
+
+def test_json_value_p() -> None:
+    assert json_value_p.parse("-123") == -123
+    assert json_value_p.parse("123") == 123
+    assert json_value_p.parse("123.23") == 123.23
+    assert json_value_p.parse("-123.23") == -123.23
+    assert json_value_p.parse('"-123"') == "-123"
+    assert json_value_p.parse("2021-09-23T06:42:26Z") == "2021-09-23T06:42:26Z"
+    assert json_value_p.parse('"2021-09-23T06:42:26Z"') == "2021-09-23T06:42:26Z"
+    assert json_value_p.parse("true") is True
+    assert json_value_p.parse("false") is False
+    assert json_value_p.parse("null") is None
+    assert json_value_p.parse('["a", 1, "2", {"test":"a"}]') == ["a", 1, "2", {"test": "a"}]
+    assert json_value_p.parse('{"test":{"foo":{"bla":123}}}') == {"test": {"foo": {"bla": 123}}}
+    assert json_value_p.parse("test") is "test"
