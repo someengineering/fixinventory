@@ -216,7 +216,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--web-port",
         help="TCP port to listen on",
-        default=9855,
+        default=9955,
         type=int,
         dest="web_port",
     )
