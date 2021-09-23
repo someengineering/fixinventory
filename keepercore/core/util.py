@@ -19,7 +19,7 @@ from typing import (
 
 from dateutil.parser import isoparse
 
-from core.types import JsonElement
+from core.types import JsonElement, Json
 
 log = logging.getLogger(__name__)
 
@@ -150,6 +150,22 @@ def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
             return at_idx(current[path[idx]], idx + 1)
 
     return at_idx(element, 0)
+
+
+def set_value_in_path(element: JsonElement, path: list[str], json: Optional[Json] = None) -> Json:
+    def at_idx(current: Json, idx: int):
+        if len(path) - 1 == idx:
+            current[path[-1]] = element
+        else:
+            value = current.get(path[idx])
+            if not isinstance(value, dict):
+                value = {}
+                current[path[idx]] = value
+            at_idx(value, idx + 1)
+
+    js = json if json is not None else {}
+    at_idx(js, 0)
+    return js
 
 
 def split_esc(s: str, delim: str) -> list[str]:

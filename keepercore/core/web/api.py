@@ -41,7 +41,7 @@ from core.query.query_parser import parse_query
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
-from core.util import force_gen, uuid_str
+from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
 
 log = logging.getLogger(__name__)
 RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
@@ -602,11 +602,37 @@ class Api:
             await response.write_eof()
             return response
 
+        async def respond_text() -> StreamResponse:
+            def filter_attrs(js: Json) -> Json:
+                result = {}
+                for path in plain_text_whitelist:
+                    value = value_in_path(js, path)
+                    if value:
+                        set_value_in_path(value, path, result)
+                return result
+
+            response = web.StreamResponse(status=200, headers={"Content-Type": "text/plain"})
+            await response.prepare(request)
+            flag = False
+            async for item in gen:
+                sep = "---\n" if flag else ""
+                flag = True
+                js = to_js(item)
+                if isinstance(js, dict):
+                    yml = yaml.dump(filter_attrs(js), default_flow_style=False, sort_keys=False)
+                    await response.write(f"{sep}{yml}".encode("utf-8"))
+                else:
+                    await response.write(f"{sep}{js}".encode("utf-8"))
+            await response.write_eof()
+            return response
+
         accept = request.headers.get("accept")
         if accept == "application/x-ndjson":
             return await respond_ndjson()
         elif accept == "application/json":
             return await respond_json()
+        elif accept in ["text/plain"]:
+            return await respond_text()
         else:
             return await respond_yaml()
 
@@ -631,3 +657,12 @@ class Api:
                 return web.HTTPBadRequest(text=message)
 
         return middleware_handler
+
+
+plain_text_whitelist = [
+    ["reported"],
+    ["desired", "clean"],
+    ["metadata", "protected"],
+    ["metadata", "ancestors"],
+    ["kinds"],
+]

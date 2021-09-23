@@ -318,6 +318,8 @@ class ArangoGraphDB(GraphDB):
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
                 props(doc, result)
+                if "kinds" in doc:
+                    result["kinds"] = doc["kinds"]
                 return result
             else:
                 return None

@@ -2,8 +2,9 @@ import json
 
 import pytest
 from aiostream import stream
+from copy import deepcopy
 
-from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get
+from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get, set_value_in_path
 
 
 def test_access_json() -> None:
@@ -35,6 +36,19 @@ def test_value_in_path() -> None:
     assert value_in_path_get(js, ["foo", "bla", "test", "bar"], 123) == 123
     assert value_in_path(js, ["foo", "bla", "bar"]) is None
     assert value_in_path_get(js, ["foo", "bla", "bar"], "foo") == "foo"
+
+
+def test_set_value_in_path() -> None:
+    js = {"foo": {"bla": {"test": 123}}}
+    res = set_value_in_path(124, ["foo", "bla", "test"], deepcopy(js))
+    assert res == {"foo": {"bla": {"test": 124}}}
+    res = set_value_in_path(124, ["foo", "bla", "blubber"], deepcopy(js))
+    assert res == {"foo": {"bla": {"test": 123, "blubber": 124}}}
+    res = set_value_in_path(js, ["foo", "bla", "test"])
+    assert res == {"foo": {"bla": {"test": js}}}
+    res = {"a": 1}
+    set_value_in_path(23, ["reported"], res)
+    assert res == {"a": 1, "reported": 23}
 
 
 @pytest.mark.asyncio
