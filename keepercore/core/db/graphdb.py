@@ -13,6 +13,7 @@ from arango.typings import Json
 from networkx import MultiDiGraph, DiGraph
 
 from core import feature
+from core.constants import less_greater_then_operations
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
@@ -714,7 +715,9 @@ class ArangoGraphDB(GraphDB):
                 bind_vars[length] = [kind.coerce(a) for a in p.value]
             else:
                 bind_vars[length] = kind.coerce(p.value)
-            return f"{cursor}.{section_dot}{p.name}{extra} {p.op} @{length}"
+            var_name = f"{cursor}.{section_dot}{p.name}"
+            p_term = f"{var_name}{extra} {p.op} @{length}"
+            return f"({var_name}!=null and {p_term})" if p.op in less_greater_then_operations else p_term
 
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
