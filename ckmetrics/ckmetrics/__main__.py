@@ -239,19 +239,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="keepercore_graph",
     )
     arg_parser.add_argument(
-        "--pool-size",
-        help="Collector Thread/Process Pool Size (default: 5)",
-        dest="pool_size",
-        default=5,
-        type=int,
-    )
-    arg_parser.add_argument(
-        "--fork",
-        help="Use forked process instead of threads (default: False)",
-        dest="fork",
-        action="store_true",
-    )
-    arg_parser.add_argument(
         "--timeout",
         help="Metrics generation timeout in seconds (default: 300)",
         default=300,
