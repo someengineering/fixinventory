@@ -18,7 +18,7 @@ def main() -> None:
     logging_add_args(arg_parser)
     arg_parser.parse_args()
 
-    headers = {"Content-Type": "text/plain"}
+    headers = {"Accept": "text/plain"}
     execute_endpoint = f"{ArgumentParser.args.keepercore_uri}/cli/execute"
     if ArgumentParser.args.keepercore_graph:
         query_string = urlencode({"graph": ArgumentParser.args.keepercore_graph})
