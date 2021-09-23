@@ -442,19 +442,19 @@ def send_to_keepercore(graph: Graph):
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--keepercore-uri",
-        help="Keepercore URI",
+        help="Keepercore URI (default: http://localhost:8080)",
         default="http://localhost:8080",
         dest="keepercore_uri",
     )
     arg_parser.add_argument(
         "--keepercore-ws-uri",
-        help="Keepercore Websocket URI",
+        help="Keepercore Websocket URI (default: ws://localhost:8080)",
         default="ws://localhost:8080",
         dest="keepercore_ws_uri",
     )
     arg_parser.add_argument(
         "--keepercore-graph",
-        help="Keepercore graph name",
+        help="Keepercore graph name (default: ck)",
         default="ck",
         dest="keepercore_graph",
     )
