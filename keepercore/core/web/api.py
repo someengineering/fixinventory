@@ -591,8 +591,8 @@ class Api:
             await response.write_eof()
             return response
 
-        async def respond_yaml() -> StreamResponse:
-            response = web.StreamResponse(status=200, headers={"Content-Type": "text/yaml"})
+        async def respond_yaml(content_type: str) -> StreamResponse:
+            response = web.StreamResponse(status=200, headers={"Content-Type": content_type})
             await response.prepare(request)
             flag = False
             async for item in gen:
@@ -634,8 +634,10 @@ class Api:
             return await respond_json()
         elif accept in ["text/plain"]:
             return await respond_text()
+        elif accept in ["application/yaml", "text/yaml"]:
+            return await respond_yaml(accept)
         else:
-            return await respond_yaml()
+            return await respond_json()
 
     @staticmethod
     async def error_handler(_: Any, handler: RequestHandler) -> RequestHandler:
