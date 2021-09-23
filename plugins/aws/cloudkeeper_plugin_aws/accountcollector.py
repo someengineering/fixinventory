@@ -582,6 +582,7 @@ class AWSAccountCollector:
         session = aws_session(self.account.id, self.account.role)
         ec2 = session.resource("ec2", region_name=region.id)
         volumes = []
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         for volume in ec2.volumes.all():
             try:
                 v = AWSEC2Volume(
@@ -590,6 +591,7 @@ class AWSAccountCollector:
                     _account=self.account,
                     _region=region,
                     ctime=volume.create_time,
+                    atime=now,
                 )
                 v.name = v.tags.get("Name", v.id)
                 v.volume_size = volume.size

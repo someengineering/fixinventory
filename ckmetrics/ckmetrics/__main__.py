@@ -255,7 +255,7 @@ class GraphCollector:
 
     def collect(self):
         """collect() is being called whenever the /metrics endpoint is requested"""
-        log.debug("GraphCollector generating metrics")
+        log.debug("generating metrics")
 
         for metric in self.metrics.live.values():
             yield metric
