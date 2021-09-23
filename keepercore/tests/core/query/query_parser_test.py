@@ -223,6 +223,7 @@ def test_limit() -> None:
 
 
 def test_with_clause() -> None:
+    predicate_term.parse("foo == bla")
     wc: WithClause = with_clause_parser.parse("with(empty, -delete-> foo == bla and test > 23 with(any, -delete->))")
     assert wc.with_filter == WithClauseFilter("==", 0)
     assert wc.navigation == Navigation(edge_type="delete")
