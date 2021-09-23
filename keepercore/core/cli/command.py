@@ -32,6 +32,8 @@ from core.cli.cli import (
     AggregatePart,
     MergeAncestorsPart,
     Result,
+    InternalPart,
+    QueryAllPart,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError, DatabaseError
@@ -148,15 +150,15 @@ class SleepSource(CLISource):
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
 
-class QuerySource(CLISource):
+class ExecuteQuerySource(CLISource, InternalPart):
     """
-    Usage: query <query>
+    Usage: execute_query <query>
 
     A query is performed against the graph database and all resulting elements will be emitted.
     To learn more about the query, visit todo: link is missing.
 
     Example:
-        query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, .. {..}]
+        execute_query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, ..]
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
@@ -165,7 +167,7 @@ class QuerySource(CLISource):
 
     @property
     def name(self) -> str:
-        return "query"
+        return "execute_query"
 
     def info(self) -> str:
         return "Query the database and pass the results to the output stream."
@@ -1066,9 +1068,9 @@ def all_sources(d: CLIDependencies) -> list[CLISource]:
         DeleteJobSource(d),
         EchoSource(d),
         EnvSource(d),
+        ExecuteQuerySource(d),
         JobsSource(d),
         JsonSource(d),
-        QuerySource(d),
         SleepSource(d),
         StartTaskSource(d),
         TasksSource(d),
@@ -1098,6 +1100,7 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
 
 def all_query_parts(d: CLIDependencies) -> list[QueryPart]:
     return [
+        QueryAllPart(d),
         ReportedPart(d),
         DesiredPart(d),
         MetadataPart(d),

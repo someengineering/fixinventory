@@ -10,6 +10,7 @@ from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
 from core.model.typed_model import to_js
+from core.util import combine_optional
 
 
 class P:
@@ -473,6 +474,31 @@ class Query:
     def merge_preamble(self, preamble: dict[str, SimpleValue]) -> Query:
         updated = self.preamble | preamble if self.preamble else preamble
         return replace(self, preamble=updated)
+
+    def on_section(self, section: str) -> Query:
+        return replace(self, parts=[replace(p, term=p.term.on_section(section)) for p in self.parts])
+
+    def combine(self, other: Query) -> Query:
+        preamble = self.preamble | other.preamble
+        if self.aggregate and other.aggregate:
+            raise AttributeError("Can not combine 2 aggregations!")
+        aggregate = self.aggregate if self.aggregate else other.aggregate
+        left_last = self.parts[0]
+        right_first = other.parts[-1]
+        if left_last.navigation:
+            parts = other.parts + self.parts
+        else:
+            if left_last.with_clause and right_first.with_clause:
+                raise AttributeError("Can not combine 2 with clauses!")
+            term = left_last.term & right_first.term
+            pinned = left_last.pinned | right_first.pinned
+            with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
+            combined = Part(term, pinned, with_clause, right_first.navigation)
+            parts = [*other.parts[0:-1], combined, *self.parts[1:]]
+        sort_opt = combine_optional(self.sort, other.sort, lambda l, r: l + r)
+        sort = sort_opt if sort_opt else []
+        limit = combine_optional(self.limit, other.limit, min)
+        return Query(parts, preamble, aggregate, sort, limit)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

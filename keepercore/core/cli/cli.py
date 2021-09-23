@@ -22,7 +22,7 @@ from core.model.model_handler import ModelHandler
 from core.model.typed_model import class_fqn
 from core.parse_util import make_parser, literal_dp, equals_dp, json_value_dp, space_dp
 from core.query.model import Query, Navigation, AllTerm, Aggregate
-from core.query.query_parser import term_parser, aggregate_parameter_parser
+from core.query.query_parser import aggregate_parameter_parser, parse_query
 from core.task.job_handler import JobHandler
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
@@ -70,6 +70,10 @@ class CLIDependencies:
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:
         return self.lookup["worker_task_queue"]  # type:ignore
+
+
+class InternalPart(ABC):
+    pass
 
 
 class CLIPart(ABC):
@@ -143,6 +147,36 @@ class CLISink(CLIPart):
     @abstractmethod
     async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[Any]:
         pass
+
+
+class QueryAllPart(QueryPart):
+    """
+    Usage: query <property.path> <op> <value"
+
+    Part of a query.
+    With this command you can query all sections directly.
+    In order to define the section, all parameters have to be prefixed by the section name.
+
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
+        query desired.some.nested in [1,2,3] # matches documents with desired section like { "some": { "nested" : 1 ..}
+        query reported.array[*] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
+        query reported.array[1] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "query"
+
+    def info(self) -> str:
+        return "Matches a property in all sections."
 
 
 class ReportedPart(QueryPart):
@@ -436,7 +470,7 @@ class HelpCommand(CLISource):
 
     def __init__(self, dependencies: CLIDependencies, parts: list[CLIPart], aliases: dict[str, str]):
         super().__init__(dependencies)
-        self.parts = {p.name: p for p in parts + [self]}
+        self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
 
     @property
@@ -525,12 +559,14 @@ class CLI:
         query: Query = Query.by(AllTerm())
         for part, arg_in in parts:
             arg = arg_in.strip()
-            if isinstance(part, ReportedPart):
-                query = query.filter(term_parser.parse(arg).on_section(Section.reported))
+            if isinstance(part, QueryAllPart):
+                query = query.combine(parse_query(arg))
+            elif isinstance(part, ReportedPart):
+                query = query.combine(parse_query(arg).on_section(Section.reported))
             elif isinstance(part, DesiredPart):
-                query = query.filter(term_parser.parse(arg).on_section(Section.desired))
+                query = query.combine(parse_query(arg).on_section(Section.desired))
             elif isinstance(part, MetadataPart):
-                query = query.filter(term_parser.parse(arg).on_section(Section.metadata))
+                query = query.combine(parse_query(arg).on_section(Section.metadata))
             elif isinstance(part, Predecessor):
                 query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
             elif isinstance(part, Successor):
@@ -565,7 +601,7 @@ class CLI:
             query = self.create_query(parts)  # type: ignore
 
             # fmt: off
-            result = [(self.parts["query"], query), *commands[len(parts):]] if parts else commands
+            result = [(self.parts["execute_query"], query), *commands[len(parts):]] if parts else commands
             # fmt: on
             for index, part_num in enumerate(result):
                 part, _ = part_num

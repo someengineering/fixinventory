@@ -4,7 +4,7 @@ from pytest import fixture
 from core.cli.cli import CLI, CLIDependencies, Sink
 from core.cli.command import (
     ListSink,
-    QuerySource,
+    ExecuteQuerySource,
     CountCommand,
     ChunkCommand,
     all_parts,
@@ -101,10 +101,10 @@ async def test_query_database(cli: CLI) -> None:
     line1 = result[0]
     assert len(line1.parts) == 2
     p1, p2 = line1.parts
-    assert isinstance(p1, QuerySource)
+    assert isinstance(p1, ExecuteQuerySource)
     assert isinstance(p2, CountCommand)
 
-    with pytest.raises(CLIParseError):
+    with pytest.raises(Exception):
         await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
 
     with pytest.raises(CLIParseError):
@@ -148,33 +148,33 @@ async def test_parse_env_vars(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
 
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
-    commands = await cli.evaluate_cli_command('reported some_int==0 | desired identifier=~"9_" | descendants')
+    commands = await cli.evaluate_cli_command('desired some_int==0 | desired identifier=~"9_" | descendants')
     assert len(commands) == 1
     assert len(commands[0].parts) == 1
-    assert commands[0].parts[0].name == "query"
-    assert commands[0].parts_with_args[0][1] == '(reported.some_int == 0 and desired.identifier =~ "9_") -[1:]->'
-    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[1:]->"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors | ancestors")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2:]-"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors | predecessors")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-[2]-"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | successors | successors")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -[3]->"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | successors | predecessors")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 --> all <--"
+    assert commands[0].parts[0].name == "execute_query"
+    assert commands[0].parts_with_args[0][1] == '(desired.some_int == 0 and desired.identifier =~ "9_") -[1:]->'
+    commands = await cli.evaluate_cli_command("desired some_int==0 | descendants")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 -[1:]->"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | ancestors | ancestors")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 <-[2:]-"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | predecessors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 <-[2]-"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | successors | successors | successors")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 -[3]->"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | successors | predecessors")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 --> all <--"
     # defining the edge type is supported as well
-    commands = await cli.evaluate_cli_command("reported some_int==0 | successors delete")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete->"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | predecessors delete")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete-"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | descendants delete")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 -delete[1:]->"
-    commands = await cli.evaluate_cli_command("reported some_int==0 | ancestors delete")
-    assert commands[0].parts_with_args[0][1] == "reported.some_int == 0 <-delete[1:]-"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | successors delete")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 -delete->"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | predecessors delete")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 <-delete-"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | descendants delete")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 -delete[1:]->"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | ancestors delete")
+    assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 <-delete[1:]-"
     # defining merge_ancestors
-    commands = await cli.evaluate_cli_command("reported some_int==0 | merge_ancestors foo")
-    assert commands[0].parts_with_args[0][1] == '(merge_with_ancestors="foo"):reported.some_int == 0'
+    commands = await cli.evaluate_cli_command("desired some_int==0 | merge_ancestors foo")
+    assert commands[0].parts_with_args[0][1] == '(merge_with_ancestors="foo"):desired.some_int == 0'
     # defining merge_ancestors
-    commands = await cli.evaluate_cli_command("reported some_int==0 | aggregate foo, bla as bla: sum(bar)")
-    assert commands[0].parts_with_args[0][1] == "aggregate(foo, bla as bla: sum(bar)):reported.some_int == 0"
+    commands = await cli.evaluate_cli_command("desired some_int==0 | aggregate foo, bla as bla: sum(bar)")
+    assert commands[0].parts_with_args[0][1] == "aggregate(foo, bla as bla: sum(bar)):desired.some_int == 0"
