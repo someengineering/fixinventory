@@ -108,14 +108,14 @@ def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--ckcore-uri",
-        help="ckcore URI (default: http://localhost:8080)",
-        default="http://localhost:8080",
+        help="ckcore URI (default: http://localhost:8900)",
+        default="http://localhost:8900",
         dest="ckcore_uri",
     )
     arg_parser.add_argument(
         "--ckcore-ws-uri",
-        help="ckcore Websocket URI (default: ws://localhost:8080)",
-        default="ws://localhost:8080",
+        help="ckcore Websocket URI (default: ws://localhost:8900)",
+        default="ws://localhost:8900",
         dest="ckcore_ws_uri",
     )
     arg_parser.add_argument(

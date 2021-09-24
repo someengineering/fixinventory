@@ -6,9 +6,9 @@ Cloudkeeper Prometheus exporter
 ```
   --web-port WEB_PORT   TCP port to listen on (default: 9955)
   --ckcore-uri CKCORE_URI
-                        ckcore URI (default: http://localhost:8080)
+                        ckcore URI (default: http://localhost:8900)
   --ckcore-ws-uri CKCORE_WS_URI
-                        ckcore Websocket URI (default: ws://localhost:8080)
+                        ckcore Websocket URI (default: ws://localhost:8900)
   --ckcore-graph CKCORE_GRAPH
                         ckcore graph name (default: ck)
   --timeout TIMEOUT     Metrics generation timeout in seconds (default: 300)

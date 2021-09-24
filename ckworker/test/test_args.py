@@ -9,4 +9,4 @@ def test_args():
     )
     add_args(arg_parser)
     arg_parser.parse_args()
-    assert ArgumentParser.args.ckcore_uri == "http://localhost:8080"
+    assert ArgumentParser.args.ckcore_uri == "http://localhost:8900"
