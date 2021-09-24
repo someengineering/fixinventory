@@ -186,4 +186,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && ln -s /usr/local/bin/busybox /usr/local/bin/bc \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+EXPOSE 8080 8529 9955 9090
+VOLUME ["/data"]
 ENTRYPOINT ["/usr/local/sbin/bootstrap"]
