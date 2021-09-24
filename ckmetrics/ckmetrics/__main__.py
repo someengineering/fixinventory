@@ -6,7 +6,7 @@ import inspect
 import cklib.baseresources
 from cklib.logging import log, add_args as logging_add_args
 from functools import partial
-from cklib.event import KeepercoreEvents
+from cklib.event import CkEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
@@ -51,17 +51,17 @@ def main() -> None:
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
-    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-    keepercore_graph = ArgumentParser.args.keepercore_graph
-    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    ckcore_graph = ArgumentParser.args.ckcore_graph
+    graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     query_uri = f"{graph_uri}/reported/query/aggregate"
 
     start_http_server(ArgumentParser.args.web_port)
-    message_processor = partial(keepercore_message_processor, metrics, query_uri)
-    ke = KeepercoreEvents(
+    message_processor = partial(ckcore_message_processor, metrics, query_uri)
+    ke = CkEvents(
         identifier="ckmetrics",
-        keepercore_uri=ArgumentParser.args.keepercore_uri,
-        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        ckcore_uri=ArgumentParser.args.ckcore_uri,
+        ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         events={
             "generate_metrics": {
                 "timeout": ArgumentParser.args.timeout,
@@ -76,9 +76,7 @@ def main() -> None:
     sys.exit(0)
 
 
-def keepercore_message_processor(
-    metrics: Metrics, query_uri: str, message: Dict
-) -> None:
+def ckcore_message_processor(metrics: Metrics, query_uri: str, message: Dict) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
@@ -221,22 +219,22 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="web_port",
     )
     arg_parser.add_argument(
-        "--keepercore-uri",
-        help="Keepercore URI (default: http://localhost:8080)",
+        "--ckcore-uri",
+        help="ckcore URI (default: http://localhost:8080)",
         default="http://localhost:8080",
-        dest="keepercore_uri",
+        dest="ckcore_uri",
     )
     arg_parser.add_argument(
-        "--keepercore-ws-uri",
-        help="Keepercore Websocket URI (default: ws://localhost:8080)",
+        "--ckcore-ws-uri",
+        help="ckcore Websocket URI (default: ws://localhost:8080)",
         default="ws://localhost:8080",
-        dest="keepercore_ws_uri",
+        dest="ckcore_ws_uri",
     )
     arg_parser.add_argument(
-        "--keepercore-graph",
-        help="Keepercore graph name (default: ck)",
+        "--ckcore-graph",
+        help="ckcore graph name (default: ck)",
         default="ck",
-        dest="keepercore_graph",
+        dest="ckcore_graph",
     )
     arg_parser.add_argument(
         "--timeout",

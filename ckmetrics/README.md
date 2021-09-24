@@ -5,12 +5,12 @@ Cloudkeeper Prometheus exporter
 `ckmetrics` uses the following commandline arguments:
 ```
   --web-port WEB_PORT   TCP port to listen on (default: 9955)
-  --keepercore-uri KEEPERCORE_URI
-                        Keepercore URI (default: http://localhost:8080)
-  --keepercore-ws-uri KEEPERCORE_WS_URI
-                        Keepercore Websocket URI (default: ws://localhost:8080)
-  --keepercore-graph KEEPERCORE_GRAPH
-                        Keepercore graph name (default: ck)
+  --ckcore-uri CKCORE_URI
+                        ckcore URI (default: http://localhost:8080)
+  --ckcore-ws-uri CKCORE_WS_URI
+                        ckcore Websocket URI (default: ws://localhost:8080)
+  --ckcore-graph CKCORE_GRAPH
+                        ckcore graph name (default: ck)
   --timeout TIMEOUT     Metrics generation timeout in seconds (default: 300)
   --verbose, -v         Verbose logging
   --logfile LOGFILE     Logfile to log into

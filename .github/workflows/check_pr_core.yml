@@ -1,8 +1,8 @@
-name: Check PR (keepercore)
+name: Check PR (ckcore)
 on:
     push:
         paths:
-            - 'keepercore/**'
+            - 'ckcore/**'
             - '.github/**'
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         defaults:
             run:
-                working-directory: ./keepercore
+                working-directory: ./ckcore
         services:
             arangodb:
                 image: arangodb:3.8

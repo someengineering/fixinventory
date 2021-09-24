@@ -26,8 +26,8 @@ from cklib.event import (
     add_event_listener,
     Event,
     EventType,
-    KeepercoreEvents,
-    KeepercoreTasks,
+    CkEvents,
+    CkCoreTasks,
     add_args as event_add_args,
 )
 
@@ -80,12 +80,12 @@ def main() -> None:
     increase_limits()
 
     all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
-    message_processor = partial(keepercore_message_processor, all_collector_plugins)
+    message_processor = partial(ckcore_message_processor, all_collector_plugins)
 
-    ke = KeepercoreEvents(
+    ke = CkEvents(
         identifier="workerd-events",
-        keepercore_uri=ArgumentParser.args.keepercore_uri,
-        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        ckcore_uri=ArgumentParser.args.ckcore_uri,
+        ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         events={
             "collect": {
                 "timeout": ArgumentParser.args.timeout,
@@ -98,9 +98,9 @@ def main() -> None:
         },
         message_processor=message_processor,
     )
-    kt = KeepercoreTasks(
+    kt = CkCoreTasks(
         identifier="workerd-tasks",
-        keepercore_ws_uri=ArgumentParser.args.keepercore_ws_uri,
+        ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         tasks=["tag"],
         task_queue_filter={},
         message_processor=tasks_processor,
@@ -155,7 +155,7 @@ def tasks_processor(message: Dict) -> None:
     return reply_message
 
 
-def keepercore_message_processor(
+def ckcore_message_processor(
     collectors: List[BaseCollectorPlugin], message: Dict
 ) -> None:
     if not isinstance(message, dict):
@@ -188,7 +188,7 @@ def keepercore_message_processor(
 
 
 def node_from_dict(node_data: Dict) -> BaseResource:
-    """Create a resource from keepercore graph node data"""
+    """Create a resource from ckcore graph node data"""
     log.debug(f"Making node from {node_data}")
     node_data_reported = node_data.get("reported", {})
     if node_data_reported is None:
@@ -238,7 +238,7 @@ def cleanup():
     """Run resource cleanup"""
 
     def process_data_line(data: Dict, graph: Graph):
-        """Process a single line of keepercore graph data"""
+        """Process a single line of ckcore graph data"""
 
         if data.get("type") == "node":
             node_id = data.get("id")
@@ -261,9 +261,9 @@ def cleanup():
             graph.add_edge(node_mapping[node_from], node_mapping[node_to])
 
     log.info("Running cleanup")
-    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-    keepercore_graph = ArgumentParser.args.keepercore_graph
-    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    ckcore_graph = ArgumentParser.args.ckcore_graph
+    graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     query_uri = f"{graph_uri}/query/graph"
     query = "desired.clean==true -[0:]-"
     r = requests.post(
@@ -358,7 +358,7 @@ def collect(collectors: List[BaseCollectorPlugin]):
                 continue
             graph.merge(cluster_graph)
     sanitize(graph)
-    send_to_keepercore(graph)
+    send_to_ckcore(graph)
 
 
 def collect_plugin_graph(
@@ -394,17 +394,17 @@ def collect_plugin_graph(
         return None
 
 
-def send_to_keepercore(graph: Graph):
-    if not ArgumentParser.args.keepercore_uri:
+def send_to_ckcore(graph: Graph):
+    if not ArgumentParser.args.ckcore_uri:
         return
 
-    log.info("Keepercore Event Handler called")
-    base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-    keepercore_graph = ArgumentParser.args.keepercore_graph
+    log.info("ckcore Event Handler called")
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    ckcore_graph = ArgumentParser.args.ckcore_graph
     model_uri = f"{base_uri}/model"
-    graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+    graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     merge_uri = f"{graph_uri}/merge"
-    log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
+    log.debug(f"Creating graph {ckcore_graph} via {graph_uri}")
     r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
     if r.status_code != 200:
         log.error(r.content)
@@ -433,30 +433,30 @@ def send_to_keepercore(graph: Graph):
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to send graph: {r.content}")
-    log.debug(f"Keepercore reply: {r.content.decode()}")
+    log.debug(f"ckcore reply: {r.content.decode()}")
     log.debug(
-        f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
+        f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to ckcore"
     )
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
-        "--keepercore-uri",
-        help="Keepercore URI (default: http://localhost:8080)",
+        "--ckcore-uri",
+        help="ckcore URI (default: http://localhost:8080)",
         default="http://localhost:8080",
-        dest="keepercore_uri",
+        dest="ckcore_uri",
     )
     arg_parser.add_argument(
-        "--keepercore-ws-uri",
-        help="Keepercore Websocket URI (default: ws://localhost:8080)",
+        "--ckcore-ws-uri",
+        help="ckcore Websocket URI (default: ws://localhost:8080)",
         default="ws://localhost:8080",
-        dest="keepercore_ws_uri",
+        dest="ckcore_ws_uri",
     )
     arg_parser.add_argument(
-        "--keepercore-graph",
-        help="Keepercore graph name (default: ck)",
+        "--ckcore-graph",
+        help="ckcore graph name (default: ck)",
         default="ck",
-        dest="keepercore_graph",
+        dest="ckcore_graph",
     )
     arg_parser.add_argument(
         "--pool-size",

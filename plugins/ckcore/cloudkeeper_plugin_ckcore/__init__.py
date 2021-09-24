@@ -15,42 +15,40 @@ import json
 log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
-class KeepercorePlugin(BasePlugin):
+class CkCorePlugin(BasePlugin):
     def __init__(self):
         super().__init__()
-        self.name = "keepercore"
+        self.name = "ckcore"
         self.exit = threading.Event()
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
 
-        if ArgumentParser.args.keepercore_uri:
+        if ArgumentParser.args.ckcore_uri:
             add_event_listener(
-                EventType.COLLECT_FINISH, self.keepercore_event_handler, blocking=False
+                EventType.COLLECT_FINISH, self.ckcore_event_handler, blocking=False
             )
 
     def __del__(self):
-        if ArgumentParser.args.keepercore_uri:
-            remove_event_listener(
-                EventType.COLLECT_FINISH, self.keepercore_event_handler
-            )
+        if ArgumentParser.args.ckcore_uri:
+            remove_event_listener(EventType.COLLECT_FINISH, self.ckcore_event_handler)
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):
-        if ArgumentParser.args.keepercore_uri:
+        if ArgumentParser.args.ckcore_uri:
             self.exit.wait()
 
     @staticmethod
-    def keepercore_event_handler(event: Event):
-        if not ArgumentParser.args.keepercore_uri:
+    def ckcore_event_handler(event: Event):
+        if not ArgumentParser.args.ckcore_uri:
             return
 
         graph: Graph = event.data
-        log.info("Keepercore Event Handler called")
-        base_uri = ArgumentParser.args.keepercore_uri.strip("/")
-        keepercore_graph = ArgumentParser.args.keepercore_graph
+        log.info("ckcore Event Handler called")
+        base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+        ckcore_graph = ArgumentParser.args.ckcore_graph
         model_uri = f"{base_uri}/model"
-        graph_uri = f"{base_uri}/graph/{keepercore_graph}"
+        graph_uri = f"{base_uri}/graph/{ckcore_graph}"
         report_uri = f"{graph_uri}/reported/sub_graph/root"
-        log.debug(f"Creating graph {keepercore_graph} via {graph_uri}")
+        log.debug(f"Creating graph {ckcore_graph} via {graph_uri}")
         r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
         if r.status_code != 200:
             log.error(r.content)
@@ -69,26 +67,24 @@ class KeepercorePlugin(BasePlugin):
         )
         log.debug(r.content.decode())
         log.debug(
-            f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to keepercore"
+            f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to ckcore"
         )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--keepercore-uri",
-            help="Keepercore URI",
+            "--ckcore-uri",
+            help="ckcore URI",
             default=None,
-            dest="keepercore_uri",
+            dest="ckcore_uri",
         )
         arg_parser.add_argument(
-            "--keepercore-graph",
-            help="Keepercore graph name",
+            "--ckcore-graph",
+            help="ckcore graph name",
             default="ck",
-            dest="keepercore_graph",
+            dest="ckcore_graph",
         )
 
     def shutdown(self, event: Event):
-        log.debug(
-            f"Received event {event.event_type} - shutting down keepercore plugin"
-        )
+        log.debug(f"Received event {event.event_type} - shutting down ckcore plugin")
         self.exit.set()

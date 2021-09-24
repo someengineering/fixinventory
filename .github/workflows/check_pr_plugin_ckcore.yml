@@ -1,17 +1,17 @@
 # Note: this workflow is automatically generated via the `create_pr` script in the same folder.
 # Please do not change the file, but the script!
 
-name: Check PR (Plugin keepercore)
+name: Check PR (Plugin ckcore)
 on:
   push:
     paths:
       - 'cklib/**'
-      - 'plugins/keepercore/**'
+      - 'plugins/ckcore/**'
       - '.github/**'
 
 jobs:
-  keepercore:
-    name: "keepercore"
+  ckcore:
+    name: "ckcore"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,5 +45,5 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./plugins/keepercore
+        working-directory: ./plugins/ckcore
         run: tox

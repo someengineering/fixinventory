@@ -7,16 +7,14 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-keepercore",
+    name="cloudkeeper-plugin-ckcore",
     version="0.0.2",
-    description="Cloudkeeper Keepercore Plugin",
+    description="Cloudkeeper ckcore Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "keepercore = cloudkeeper_plugin_keepercore:KeepercorePlugin"
-        ]
+        "cloudkeeper.plugins": ["ckcore = cloudkeeper_plugin_ckcore:CkCorePlugin"]
     },
     include_package_data=True,
     zip_safe=False,

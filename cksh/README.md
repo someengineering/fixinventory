@@ -1,2 +1,2 @@
 # keeper-cli
-Keepercore CLI
+ckcore CLI

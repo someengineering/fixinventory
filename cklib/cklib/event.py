@@ -203,19 +203,19 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
-class KeepercoreEvents(threading.Thread):
+class CkEvents(threading.Thread):
     def __init__(
         self,
         identifier: str,
-        keepercore_uri: str,
-        keepercore_ws_uri: str,
+        ckcore_uri: str,
+        ckcore_ws_uri: str,
         events: Dict,
         message_processor: Optional[Callable] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
-        self.keepercore_uri = keepercore_uri
-        self.keepercore_ws_uri = keepercore_ws_uri
+        self.ckcore_uri = ckcore_uri
+        self.ckcore_ws_uri = ckcore_ws_uri
         self.events = events
         self.message_processor = message_processor
         self.ws = None
@@ -228,7 +228,7 @@ class KeepercoreEvents(threading.Thread):
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to keepercore event bus")
+            log.info("Connecting to ckcore event bus")
             try:
                 self.connect()
             except Exception as e:
@@ -241,7 +241,7 @@ class KeepercoreEvents(threading.Thread):
                 data = None
             self.register(event, data)
 
-        ws_uri = f"{self.keepercore_ws_uri}/subscriber/{self.identifier}/handle"
+        ws_uri = f"{self.ckcore_ws_uri}/subscriber/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
         self.ws = websocket.WebSocketApp(
             ws_uri,
@@ -253,9 +253,7 @@ class KeepercoreEvents(threading.Thread):
         self.ws.run_forever()
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug(
-            "Received shutdown event - shutting down keepercore event bus listener"
-        )
+        log.debug("Received shutdown event - shutting down ckcore event bus listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()
@@ -273,7 +271,7 @@ class KeepercoreEvents(threading.Thread):
     def registration(
         self, event: str, client: Callable, data: Optional[Dict] = None
     ) -> bool:
-        url = f"{self.keepercore_uri}/subscriber/{self.identifier}/{event}"
+        url = f"{self.ckcore_uri}/subscriber/{self.identifier}/{event}"
         r = client(url, headers={"accept": "application/json"}, params=data)
         if r.status_code != 200:
             log.error(r.content)
@@ -283,7 +281,7 @@ class KeepercoreEvents(threading.Thread):
     def dispatch_event(self, message: Dict) -> bool:
         if self.ws is None:
             return False
-        ws = websocket.create_connection(f"{self.keepercore_ws_uri}/events")
+        ws = websocket.create_connection(f"{self.ckcore_ws_uri}/events")
         ws.send(json.dumps(message))
         ws.close()
         return True
@@ -307,17 +305,17 @@ class KeepercoreEvents(threading.Thread):
         log.error(f"{self.identifier} event bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected from keepercore event bus")
+        log.debug(f"{self.identifier} disconnected from ckcore event bus")
 
     def on_open(self, ws):
-        log.debug(f"{self.identifier} connected to keepercore event bus")
+        log.debug(f"{self.identifier} connected to ckcore event bus")
 
 
-class KeepercoreTasks(threading.Thread):
+class CkCoreTasks(threading.Thread):
     def __init__(
         self,
         identifier: str,
-        keepercore_ws_uri: str,
+        ckcore_ws_uri: str,
         tasks: List,
         task_queue_filter: Optional[Dict] = None,
         message_processor: Optional[Callable] = None,
@@ -325,7 +323,7 @@ class KeepercoreTasks(threading.Thread):
     ) -> None:
         super().__init__()
         self.identifier = identifier
-        self.keepercore_ws_uri = keepercore_ws_uri
+        self.ckcore_ws_uri = ckcore_ws_uri
         self.tasks = tasks
         if task_queue_filter is None:
             task_queue_filter = {}
@@ -349,7 +347,7 @@ class KeepercoreTasks(threading.Thread):
             ).start()
 
         while not self.shutdown_event.is_set():
-            log.info("Connecting to keepercore task queue")
+            log.info("Connecting to ckcore task queue")
             try:
                 self.connect()
             except Exception as e:
@@ -370,9 +368,9 @@ class KeepercoreTasks(threading.Thread):
             self.queue.task_done()
 
     def connect(self) -> None:
-        keepercore_ws_uri_split = urlsplit(self.keepercore_ws_uri)
-        scheme = keepercore_ws_uri_split[0]
-        netloc = keepercore_ws_uri_split[1]
+        ckcore_ws_uri_split = urlsplit(self.ckcore_ws_uri)
+        scheme = ckcore_ws_uri_split[0]
+        netloc = ckcore_ws_uri_split[1]
         path = "/work/queue"
         query = urlencode({"task": ",".join(self.tasks)} | self.task_queue_filter)
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))
@@ -388,9 +386,7 @@ class KeepercoreTasks(threading.Thread):
         self.ws.run_forever()
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug(
-            "Received shutdown event - shutting down keepercore task queue listener"
-        )
+        log.debug("Received shutdown event - shutting down ckcore task queue listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()
@@ -407,7 +403,7 @@ class KeepercoreTasks(threading.Thread):
         log.error(f"{self.identifier} event bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected from keepercore task queue")
+        log.debug(f"{self.identifier} disconnected from ckcore task queue")
 
     def on_open(self, ws):
-        log.debug(f"{self.identifier} connected to keepercore task queue")
+        log.debug(f"{self.identifier} connected to ckcore task queue")
