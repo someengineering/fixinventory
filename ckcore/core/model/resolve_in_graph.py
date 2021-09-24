@@ -17,10 +17,9 @@ class NodePath:
 class ResolveProp:
     # Path to the property that needs to be extracted
     extract_path: list[str]
-    # section to write the result (e.g. metadata, refs etc)
-    section: str
-    # name of property in section
-    name: str
+
+    # Path to write this property to
+    to_path: list[str]
 
 
 @dataclass(frozen=True)
@@ -38,39 +37,47 @@ class ResolveAncestor:
 
 
 class GraphResolver:
+    """
+    Resolve common properties from the structure of the graph and make them available
+    as properties on the node. This way the data does not have to be looked up in the hierarchy
+    but can be queried directly.
+    """
+
     to_resolve = [
         ResolveAncestor(
             "cloud",
             [
-                ResolveProp(NodePath.reported_name, "metadata", "cloud"),
-                ResolveProp(NodePath.node_id, "refs", "cloud_id"),
+                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "cloud", "name"]),
+                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "cloud", "id"]),
+                ResolveProp(NodePath.node_id, ["refs", "cloud_id"]),
             ],
         ),
         ResolveAncestor(
             "account",
             [
-                ResolveProp(NodePath.reported_name, "metadata", "account"),
-                ResolveProp(NodePath.node_id, "refs", "account_id"),
+                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "account", "name"]),
+                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "account", "id"]),
+                ResolveProp(NodePath.node_id, ["refs", "account_id"]),
             ],
         ),
         ResolveAncestor(
             "region",
             [
-                ResolveProp(NodePath.reported_name, "metadata", "region"),
-                ResolveProp(NodePath.node_id, "refs", "region_id"),
+                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "region", "name"]),
+                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "region", "id"]),
+                ResolveProp(NodePath.node_id, ["refs", "region_id"]),
             ],
         ),
         ResolveAncestor(
             "zone",
             [
-                ResolveProp(NodePath.reported_name, "metadata", "zone"),
-                ResolveProp(NodePath.node_id, "refs", "zone_id"),
+                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "zone", "name"]),
+                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "zone", "id"]),
+                ResolveProp(NodePath.node_id, ["refs", "zone_id"]),
             ],
         ),
     ]
 
     resolved_ancestors = {
-        kind: f"{prop.section}.{prop.name}"
-        for kind, prop in {a.kind: a.resolves_id() for a in to_resolve}.items()
-        if prop
+        kind: ".".join(prop.to_path) for kind, prop in {a.kind: a.resolves_id() for a in to_resolve}.items() if prop
     }
