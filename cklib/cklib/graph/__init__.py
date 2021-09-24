@@ -759,7 +759,10 @@ class GraphExportIterator:
                     node_dict.update({"merge": True})
                 node_json = json.dumps(node_dict) + "\n"
                 self.nodes_sent += 1
-                if self.nodes_sent % self.report_every_n_nodes == 0:
+                if (
+                    self.report_every_n_nodes > 0
+                    and self.nodes_sent % self.report_every_n_nodes == 0
+                ):
                     percent = round(self.nodes_sent / self.nodes_total * 100)
                     elapsed = time() - self.last_sent
                     log.debug(
@@ -780,7 +783,10 @@ class GraphExportIterator:
                 edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.edges_sent += 1
-                if self.edges_sent % self.report_every_n_edges == 0:
+                if (
+                    self.report_every_n_edges > 0
+                    and self.edges_sent % self.report_every_n_edges == 0
+                ):
                     percent = round(self.edges_sent / self.edges_total * 100)
                     elapsed = time() - self.last_sent
                     log.debug(
