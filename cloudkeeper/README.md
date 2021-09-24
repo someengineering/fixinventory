@@ -1,19 +1,4 @@
 # cloudkeeper
 Houskeeping for Clouds
 
-## Development Setup
-```
-$ git clone https://github.com/someengineering/cloudkeeper.git
-$ cd cloudkeeper
-$ python3.8 -m venv venv
-$ source venv/bin/activate
-$ pip install --upgrade --editable cklib/
-$ pip install --upgrade --editable cloudkeeper/
-$ find plugins/ -maxdepth 1 -mindepth 1 -type d -exec pip install --upgrade --editable "{}" \+
-```
-
-## Example usage
-```
-$ eval $(maws li production)
-$ cloudkeeper --plugin aws --aws-region us-west-2
-```
+NOTICE: This is the legacy version of cloudkeeper. It is here for backwards compatibility but no longer actively maintained!
