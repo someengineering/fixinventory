@@ -18,12 +18,12 @@ setup_requirements = [
 ]
 
 setup(
-    name="keepercore",
+    name="ckcore",
     version="0.1.0",
     description="Keeps all the things.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
-    entry_points={"console_scripts": ["keepercore=core.__main__:main"]},
+    entry_points={"console_scripts": ["ckcore=core.__main__:main"]},
     install_requires=required,
     license="Apache Software License 2.0",
     long_description=readme,
@@ -32,5 +32,5 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_required,
-    url="https://github.com/someengineering/cloudkeeper/keepercore",
+    url="https://github.com/someengineering/cloudkeeper/ckcore",
 )

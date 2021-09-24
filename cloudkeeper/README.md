@@ -7,6 +7,7 @@ $ git clone https://github.com/someengineering/cloudkeeper.git
 $ cd cloudkeeper
 $ python3.8 -m venv venv
 $ source venv/bin/activate
+$ pip install --upgrade --editable cklib/
 $ pip install --upgrade --editable cloudkeeper/
 $ find plugins/ -maxdepth 1 -mindepth 1 -type d -exec pip install --upgrade --editable "{}" \+
 ```

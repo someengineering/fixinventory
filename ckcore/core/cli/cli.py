@@ -488,7 +488,7 @@ class HelpCommand(CLISource):
             aliases = "\n".join(f"   {alias} ({cmd}) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items())
             replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
             result = (
-                f"\nkeepercore CLI\n\n\n"
+                f"\nckcore CLI\n\n\n"
                 f"Valid placeholder string:\n{replacements}\n\n"
                 f"Available Commands:\n{available}\n\n"
                 f"Available Aliases:\n{aliases}\n\n"

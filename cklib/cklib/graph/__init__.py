@@ -9,7 +9,7 @@ from cklib.baseresources import GraphRoot, Cloud, BaseResource
 from cklib.utils import RWLock, json_default, get_resource_attributes
 from cklib.args import ArgumentParser
 from cklib.graph.export import (
-    dataclasses_to_keepercore_model,
+    dataclasses_to_ckcore_model,
     node_to_dict,
 )
 from cklib.event import (
@@ -282,12 +282,12 @@ class Graph(networkx.DiGraph):
             node.resolve_deferred_connections(self)
 
     def export_model(self) -> List:
-        """Return the graph node dataclass model in keepercore format"""
+        """Return the graph node dataclass model in ckcore format"""
         classes = set()
         with self.lock.read_access:
             for node in self.nodes:
                 classes.add(type(node))
-        model = dataclasses_to_keepercore_model(classes)
+        model = dataclasses_to_ckcore_model(classes)
 
         # fixme: workaround to report kind
         for resource_model in model:

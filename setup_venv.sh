@@ -8,9 +8,9 @@ fi
 python3 -m venv venv
 source venv/bin/activate
 pip install -U pip
-pip install -r keepercore/requirements-dev.txt
+pip install -r ckcore/requirements-dev.txt
 pip install --editable cklib/
-pip install --editable keepercore/
+pip install --editable ckcore/
 pip install --editable cksh/
 pip install --editable ckmetrics/
 pip install --editable ckworker/

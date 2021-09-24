@@ -57,9 +57,9 @@ WORKDIR /usr/src/cklib
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build keepercore
-COPY keepercore /usr/src/keepercore
-WORKDIR /usr/src/keepercore
+# Build ckcore
+COPY ckcore /usr/src/ckcore
+WORKDIR /usr/src/ckcore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build -f /build .
 

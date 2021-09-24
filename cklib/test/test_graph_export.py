@@ -8,7 +8,7 @@ from cklib.graph.export import (
     is_dict,
     dict_types,
     transitive_dataclasses,
-    dataclasses_to_keepercore_model,
+    dataclasses_to_ckcore_model,
     model_name,
 )
 
@@ -64,7 +64,7 @@ def test_dictionary() -> None:
 
 
 def test_transitive() -> None:
-    assert transitive_dataclasses([DataClassExample]) == {
+    assert transitive_dataclasses({DataClassExample}) == {
         DataClassExample,
         DataClassProp,
         DataClassBase,
@@ -86,8 +86,8 @@ def test_model_name() -> None:
     )
 
 
-def test_dataclasses_to_keepercore_model() -> None:
-    result = dataclasses_to_keepercore_model([DataClassExample])
+def test_dataclasses_to_ckcore_model() -> None:
+    result = dataclasses_to_ckcore_model({DataClassExample})
     assert len(result) == 3
     for r in result:
         props = {p["name"]: p for p in r["properties"]}
