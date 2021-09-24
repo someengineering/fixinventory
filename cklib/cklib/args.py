@@ -3,6 +3,9 @@ import ast
 import argparse
 
 
+DEFAULT_ENV_ARGS_PREFIX = "CLOUDKEEPER_"
+
+
 class Namespace(argparse.Namespace):
     def __getattr__(self, item):
         return None
@@ -14,7 +17,9 @@ class ArgumentParser(argparse.ArgumentParser):
     # attribute.
     args = Namespace()
 
-    def __init__(self, *args, env_args_prefix: str = "CLOUDKEEPER_", **kwargs) -> None:
+    def __init__(
+        self, *args, env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.env_args_prefix = env_args_prefix
 
@@ -66,9 +71,13 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def get_arg_parser(
-    add_help: bool = True, description: str = "Cloudkeeper"
+    add_help: bool = True,
+    description: str = "Cloudkeeper",
+    env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX,
 ) -> ArgumentParser:
-    arg_parser = ArgumentParser(description=description, add_help=add_help)
+    arg_parser = ArgumentParser(
+        description=description, add_help=add_help, env_args_prefix=env_args_prefix
+    )
     return arg_parser
 
 
