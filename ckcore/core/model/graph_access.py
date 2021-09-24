@@ -12,7 +12,7 @@ from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
-from core.util import utc, utc_str, value_in_path
+from core.util import utc, utc_str, value_in_path, set_value_in_path
 
 
 class Section:
@@ -221,9 +221,7 @@ class GraphAccess:
         def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:
             extracted = value_in_path(ancestor, prop.extract_path)
             if extracted:
-                if prop.section not in node:
-                    node[prop.section] = {}
-                node[prop.section][prop.name] = extracted
+                set_value_in_path(extracted, prop.to_path, node)
 
         for resolver in GraphResolver.to_resolve:
             # search for ancestor that matches filter criteria
