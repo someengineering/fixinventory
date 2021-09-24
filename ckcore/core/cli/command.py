@@ -420,7 +420,7 @@ class UniqCommand(CLICommand):
         return lambda in_stream: stream.filter(in_stream, has_not_seen)
 
 
-class KindCommand(CLISource):
+class KindSource(CLISource):
     """
     Usage: kind [-p property_path] [name_of_kind]
 
@@ -485,7 +485,7 @@ class KindCommand(CLISource):
 
         def with_dependencies(model: Model) -> Stream:
             if show_kind:
-                result = kind_to_js(model[show_kind]) if arg in model else f"No kind with this name: {show_kind}"
+                result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
             elif show_path:
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
             else:
@@ -1153,6 +1153,7 @@ def all_sources(d: CLIDependencies) -> list[CLISource]:
         ExecuteQuerySource(d),
         JobsSource(d),
         JsonSource(d),
+        KindSource(d),
         SleepSource(d),
         StartTaskSource(d),
         TasksSource(d),
@@ -1171,7 +1172,6 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
-        KindCommand(d),
         ProtectCommand(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
