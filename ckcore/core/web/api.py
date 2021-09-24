@@ -605,10 +605,6 @@ class Api:
             return response
 
         async def respond_text() -> StreamResponse:
-            screen_width = int(request.headers.get("Cloudkeeper-Cksh-Columns", "80"))
-            for header, value in request.headers.items():
-                print(f"header {header}={value}")
-
             def filter_attrs(js: Json) -> Json:
                 result: Json = {}
                 for path in plain_text_whitelist:
@@ -629,7 +625,7 @@ class Api:
                 flag = True
                 js = to_js(item)
                 if isinstance(js, dict):
-                    yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False, width=screen_width)
+                    yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
                     await response.write(f"{sep}{yml}".encode("utf-8"))
                 else:
                     await response.write(f"{sep}{js}".encode("utf-8"))
