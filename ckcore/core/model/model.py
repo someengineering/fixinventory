@@ -93,7 +93,7 @@ class Property:
             yield comma_parser
             value_kind = yield array_parser | dictionary_parser | simple_kind_parser
             yield bracket_r
-            return Dictionary(key_kind, value_kind)
+            return DictionaryKind(key_kind, value_kind)
 
         return (array_parser | dictionary_parser | simple_kind_parser).parse(name)  # type: ignore
 
@@ -186,7 +186,7 @@ class Kind(ABC):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: list[str] = js.get("bases")  # type: ignore
             allow_unknown_props = js.get("allow_unknown_props", False)
-            return Complex(js["fqn"], bases, props, allow_unknown_props)
+            return ComplexKind(js["fqn"], bases, props, allow_unknown_props)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -467,7 +467,7 @@ class ArrayKind(Kind):
         return kind if depth == 0 else ArrayKind(ArrayKind.mk_array(kind, depth - 1))
 
 
-class Dictionary(Kind):
+class DictionaryKind(Kind):
     def __init__(self, key_kind: Kind, value_kind: Kind):
         super().__init__(f"dictionary[{key_kind.fqn}, {value_kind.fqn}]")
         self.key_kind = key_kind
@@ -492,7 +492,7 @@ class Dictionary(Kind):
         self.value_kind.resolve(model)
 
 
-class Complex(Kind):
+class ComplexKind(Kind):
     def __init__(self, fqn: str, bases: list[str], properties: list[Property], allow_unknown_props: bool = False):
         super().__init__(fqn)
         self.bases = bases
@@ -521,7 +521,7 @@ class Complex(Kind):
                 for base_name in self.bases:
                     base: Kind = model[base_name]
                     base.resolve(model)
-                    if isinstance(base, Complex):
+                    if isinstance(base, ComplexKind):
                         self.__resolved_kinds |= base.__resolved_kinds
                         self.__all_props += base.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
@@ -539,9 +539,9 @@ class Complex(Kind):
                 return {relative if add_prop_to_path else path: kind}
             elif isinstance(kind, ArrayKind):
                 return path_for(prop, kind.inner, path, True)
-            elif isinstance(kind, Dictionary):
+            elif isinstance(kind, DictionaryKind):
                 return path_for(prop, kind.value_kind, relative.child(None), add_prop_to_path=False)
-            elif isinstance(kind, Complex):
+            elif isinstance(kind, ComplexKind):
                 return kind.__resolve_property_paths(relative)
             else:
                 return {}
@@ -568,6 +568,9 @@ class Complex(Kind):
         if not self.__resolved:
             raise AttributeError(f"property_kind_by_path {self.fqn}: References are not resolved yet!")
         return self.__properties_kind_by_path
+
+    def all_props(self) -> list[Property]:
+        return self.__all_props
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
@@ -616,7 +619,7 @@ predefined_kinds = [
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
-    Complex(
+    ComplexKind(
         "graph_root",
         [],
         [
@@ -625,7 +628,7 @@ predefined_kinds = [
         ],
         allow_unknown_props=True,
     ),
-    Complex(
+    ComplexKind(
         "predefined_properties",
         [],
         [
@@ -652,7 +655,7 @@ class Model:
 
     def __init__(self, kinds: dict[str, Kind]):
         self.kinds = kinds
-        complexes = (k for k in kinds.values() if isinstance(k, Complex))
+        complexes = (k for k in kinds.values() if isinstance(k, ComplexKind))
         paths: dict[PropertyPath, SimpleKind] = reduce(lambda res, k: res | k.property_kind_by_path(), complexes, {})
         self.__property_kind_by_path = paths
 
@@ -691,18 +694,18 @@ class Model:
     def graph(self) -> DiGraph:
         graph = DiGraph()
 
-        def handle_complex(cx: Complex) -> None:
+        def handle_complex(cx: ComplexKind) -> None:
             graph.add_node(cx.fqn, data=cx)
             if not cx.is_root():
                 for base in cx.bases:
                     graph.add_edge(cx.fqn, base)
 
         for kind in self.kinds.values():
-            if isinstance(kind, Complex):
+            if isinstance(kind, ComplexKind):
                 handle_complex(kind)
-            elif isinstance(kind, ArrayKind) and isinstance(kind.inner, Complex):
+            elif isinstance(kind, ArrayKind) and isinstance(kind.inner, ComplexKind):
                 handle_complex(kind.inner)
-            elif isinstance(kind, Dictionary) and isinstance(kind.value_kind, Complex):
+            elif isinstance(kind, DictionaryKind) and isinstance(kind.value_kind, ComplexKind):
                 handle_complex(kind.value_kind)
 
         return graph
@@ -717,7 +720,7 @@ class Model:
             # - no required property is removed or marked as not required
             if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
-            elif isinstance(from_kind, Complex) and isinstance(to_kind, Complex):
+            elif isinstance(from_kind, ComplexKind) and isinstance(to_kind, ComplexKind):
                 for prop in from_kind.properties:
                     if prop.required and (prop.name not in to_kind):
                         raise AttributeError(f"{hint()} existing required property {prop.name} cannot be removed!")
@@ -736,7 +739,7 @@ class Model:
 
         # check if no property path is overlapping
         def check(all_paths: dict[PropertyPath, SimpleKind], kind: Kind) -> dict[PropertyPath, SimpleKind]:
-            if isinstance(kind, Complex):
+            if isinstance(kind, ComplexKind):
                 paths = kind.property_kind_by_path()
                 intersect = paths.keys() & all_paths.keys()
 

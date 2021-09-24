@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from functools import reduce
 from typing import Optional, Generator, Any
 
@@ -38,6 +39,13 @@ class Section:
     # The set of all allowed sections
     all_ordered = [reported, desired, metadata]
     all = set(all_ordered)
+
+    # remove the section plus dot if it exists in the string: reported.foo => foo
+    __no_section = re.compile("^(" + "|".join(f"({s})" for s in all_ordered) + ")[.]")
+
+    @classmethod
+    def without_section(cls, path: str) -> str:
+        return cls.__no_section.sub("", path, 1)
 
 
 class EdgeType:

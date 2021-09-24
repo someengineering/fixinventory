@@ -17,9 +17,9 @@ from core.model.model import (
     DateTimeKind,
     ArrayKind,
     Property,
-    Complex,
+    ComplexKind,
     Model,
-    Dictionary,
+    DictionaryKind,
     predefined_kinds,
     PropertyPath,
 )
@@ -37,7 +37,7 @@ def test_json_marshalling() -> None:
     roundtrip(ArrayKind(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
     roundtrip(
-        Complex(
+        ComplexKind(
             "Test",
             ["Base"],
             [
@@ -118,14 +118,14 @@ def test_date() -> None:
 def test_dictionary() -> None:
     model = {k.fqn: k for k in predefined_kinds}
     result = Property.parse_kind("dictionary[string, string]", model)
-    assert isinstance(result, Dictionary)
+    assert isinstance(result, DictionaryKind)
     assert result.key_kind is model["string"]
     assert result.value_kind is model["string"]
     result = Property.parse_kind("dictionary[string, dictionary[string, float]]", model)
-    assert isinstance(result, Dictionary)
+    assert isinstance(result, DictionaryKind)
     assert result.key_kind is model["string"]
-    assert result.value_kind == Dictionary(model["string"], model["float"])
-    address = Complex(
+    assert result.value_kind == DictionaryKind(model["string"], model["float"])
+    address = ComplexKind(
         "Foo", [], [Property("tags", "dictionary[string, string]"), Property("anything", "dictionary[string, any]")]
     )
     address_model = Model.from_kinds([address])
@@ -143,8 +143,8 @@ def test_any() -> None:
 
 
 def test_array() -> None:
-    foo = Complex("Foo", [], [Property("tags", "dictionary[string, string]"), Property("kind", "string")])
-    complex_kind = Complex(
+    foo = ComplexKind("Foo", [], [Property("tags", "dictionary[string, string]"), Property("kind", "string")])
+    complex_kind = ComplexKind(
         "TestArray",
         [],
         [
@@ -240,12 +240,12 @@ def test_property_path_on_model(person_model: Model) -> None:
 
 def test_update(person_model: Model) -> None:
     with pytest.raises(AttributeError) as not_allowed:  # update city is removed
-        person_model.update_kinds([Complex("Address", ["Base"], [])])
+        person_model.update_kinds([ComplexKind("Address", ["Base"], [])])
     assert str(not_allowed.value) == "Update Address existing required property city cannot be removed!"
     with pytest.raises(AttributeError) as not_allowed:  # update city as not required
         person_model.update_kinds(
             [
-                Complex(
+                ComplexKind(
                     "Address",
                     ["Base"],
                     [
@@ -258,7 +258,7 @@ def test_update(person_model: Model) -> None:
     with pytest.raises(AttributeError) as not_allowed:  # update city with different type
         person_model.update_kinds(
             [
-                Complex(
+                ComplexKind(
                     "Address",
                     ["Base"],
                     [
@@ -275,10 +275,10 @@ def test_update(person_model: Model) -> None:
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
     with pytest.raises(AttributeError) as simple:
-        updated.update_kinds([Complex("Foo", [], [])])
+        updated.update_kinds([ComplexKind("Foo", [], [])])
     assert str(simple.value) == "Update Foo changes an existing property type Foo"
     with pytest.raises(AttributeError) as duplicate:
-        updated.update_kinds([Complex("Bla", [], [Property("id", "int32")])])
+        updated.update_kinds([ComplexKind("Bla", [], [Property("id", "int32")])])
     assert (
         str(duplicate.value)
         == "Update not possible. Bla: following properties would be non unique having the same path but different type: id (string -> int32)"
@@ -290,8 +290,8 @@ def test_load(model_json: str) -> None:
     model = Model.from_kinds(kinds)
     assert model.check_valid({"kind": "test.EC2", "id": "e1", "name": "e1", "cores": 1, "mem": 32, "tags": {}}) is None
 
-    base: Complex = model["test.Base"]  # type: ignore
-    ec2: Complex = model["test.EC2"]  # type: ignore
+    base: ComplexKind = model["test.Base"]  # type: ignore
+    ec2: ComplexKind = model["test.EC2"]  # type: ignore
     assert ec2.kind_hierarchy() == {"test.Compound", "test.BaseResource", "test.Base", "test.EC2"}
     assert ec2.allow_unknown_props is True
     assert base.allow_unknown_props is False
@@ -320,7 +320,7 @@ def expect_error(kind: Union[Kind, Model], obj: Any) -> str:
 @pytest.fixture
 def person_model() -> Model:
     zip = StringKind("zip")
-    base = Complex(
+    base = ComplexKind(
         "Base",
         [],
         [
@@ -331,7 +331,7 @@ def person_model() -> Model:
             Property("mtime", "datetime"),
         ],
     )
-    address = Complex(
+    address = ComplexKind(
         "Address",
         ["Base"],
         [
@@ -339,7 +339,7 @@ def person_model() -> Model:
             Property("city", "string", required=True),
         ],
     )
-    person = Complex(
+    person = ComplexKind(
         "Person",
         ["Base"],
         [
@@ -349,7 +349,7 @@ def person_model() -> Model:
             Property("any", "any"),
         ],
     )
-    any_foo = Complex(
+    any_foo = ComplexKind(
         "any_foo",
         ["Base"],
         [

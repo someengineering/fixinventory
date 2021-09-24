@@ -8,7 +8,7 @@ from core.db.async_arangodb import AsyncArangoDB
 from core.db.modeldb import ModelDb, EventModelDb
 from core.db.entitydb import EventEntityDb
 from core.event_bus import EventBus, Message
-from core.model.model import Complex, Property, StringKind, NumberKind, BooleanKind, Kind
+from core.model.model import ComplexKind, Property, StringKind, NumberKind, BooleanKind, Kind
 
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus, all_events
@@ -22,7 +22,7 @@ def test_model() -> list[Kind]:
     string_kind = StringKind("some.string", 0, 3, "\\w+")
     int_kind = NumberKind("some.int", "int32", 0, 100)
     bool_kind = BooleanKind("some.bool")
-    base = Complex(
+    base = ComplexKind(
         "base",
         [],
         [
@@ -30,7 +30,7 @@ def test_model() -> list[Kind]:
             Property("kind", "string", required=True),
         ],
     )
-    foo = Complex(
+    foo = ComplexKind(
         "foo",
         ["base"],
         [
@@ -40,7 +40,7 @@ def test_model() -> list[Kind]:
             Property("now_is", "datetime"),
         ],
     )
-    bla = Complex(
+    bla = ComplexKind(
         "bla",
         ["base"],
         [

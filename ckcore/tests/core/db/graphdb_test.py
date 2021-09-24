@@ -17,7 +17,7 @@ from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBat
 from core.event_bus import EventBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
-from core.model.model import Model, Complex, Property
+from core.model.model import Model, ComplexKind, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
@@ -159,7 +159,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 @pytest.fixture
 def foo_model() -> Model:
-    base = Complex(
+    base = ComplexKind(
         "base",
         [],
         [
@@ -167,7 +167,7 @@ def foo_model() -> Model:
             Property("kind", "string", required=True),
         ],
     )
-    foo = Complex(
+    foo = ComplexKind(
         "foo",
         ["base"],
         [
@@ -178,7 +178,7 @@ def foo_model() -> Model:
             Property("ctime", "datetime"),
         ],
     )
-    bla = Complex(
+    bla = ComplexKind(
         "bla",
         ["base"],
         [

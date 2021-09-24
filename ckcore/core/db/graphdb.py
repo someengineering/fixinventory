@@ -21,7 +21,7 @@ from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBa
 from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
-from core.model.model import Model, Complex
+from core.model.model import Model, ComplexKind
 from core.model.resolve_in_graph import NodePath, GraphResolver
 from core.query.model import (
     Predicate,
@@ -407,7 +407,7 @@ class ArangoGraphDB(GraphDB):
         # preserve ctime in reported: if it is not set, use the creation time of the object
         if not reported.get("ctime", None):
             kind = model[reported]
-            if isinstance(kind, Complex) and "ctime" in kind:
+            if isinstance(kind, ComplexKind) and "ctime" in kind:
                 reported["ctime"] = created_at
 
         # adjuster has the option to manipulate the resulting json
@@ -711,7 +711,7 @@ class ArangoGraphDB(GraphDB):
             # key of the predicate is the len of the dict as string
             length = str(len(bind_vars))
             # if no section is given, the path is prefixed by the section: remove the section
-            lookup = path if query_model.query_section else self.no_section.sub("", path, 1)
+            lookup = path if query_model.query_section else Section.without_section(path)
             kind = model.kind_by_path(lookup)
             if (p.op == "in" or p.op == "not in") and isinstance(p.value, list):
                 bind_vars[length] = [kind.coerce(a) for a in p.value]
@@ -1064,9 +1064,6 @@ class ArangoGraphDB(GraphDB):
         FILTER @root_node_ids any in change.parent_node_ids OR @root_node_ids any in change.root_node_ids
         RETURN change
         """
-
-    # remove the section plus dot if it exists in the string: reported.foo => foo
-    no_section = re.compile("^(" + "|".join(f"({s})" for s in Section.all) + ")[.]")
 
 
 class EventGraphDB(GraphDB):
