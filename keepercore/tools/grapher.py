@@ -2,6 +2,8 @@ import json
 from argparse import ArgumentParser
 from random import randint
 
+from typing import Optional
+
 parser = ArgumentParser()
 parser.add_argument("-c", "--collector", type=str, default="dummy_collector_1")
 parser.add_argument("-d", "--depth", type=int, default=10)
@@ -36,10 +38,12 @@ by_idx = {
 }
 
 
-def node(level, identity, merge: bool = False):
+def node(level, identity, merge: bool = False, kind: Optional[str] = None):
     idjs = {"name": f"name: {identity} at level: {level}", "tags": {}}
     num = randint(0, 100) if wild else level
     reported = by_idx[num % len(by_idx)] | idjs
+    if kind:
+        reported["kind"] = kind
     metadata = {"level": level}
     desired = {"name": f"some cool name", "age": 29}
     js = {"id": identity, "reported": reported, "metadata": metadata}
@@ -53,7 +57,7 @@ def edge(from_node, to_node, edge_type):
 
 root = f"root"
 collector_root = f"{collector}_root"
-node(0, root)
+node(0, root, kind="graph_root")
 node(0, collector_root, merge=True)
 edge(root, collector_root, "dependency")
 

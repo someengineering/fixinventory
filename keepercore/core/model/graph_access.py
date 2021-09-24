@@ -161,7 +161,23 @@ class GraphBuilder:
         al = EdgeType.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
-        GraphAccess.root_id(self.graph)
+        rid = GraphAccess.root_id(self.graph)
+        root_node = self.graph.nodes[rid]
+
+        # make sure the root
+        if value_in_path(root_node, NodePath.reported_kind) == "graph_root" and rid != "root":
+            # remove node with wrong id +
+            root_node = self.graph.nodes[rid]
+            root_node["id"] = "root"
+            self.graph.add_node("root", **root_node)
+
+            for succ in list(self.graph.successors(rid)):
+                for edge_type in EdgeType.all:
+                    key = GraphAccess.edge_key(rid, succ, edge_type)
+                    if self.graph.has_edge(rid, succ, key):
+                        self.graph.remove_edge(rid, succ, key)
+                        self.graph.add_edge("root", succ, GraphAccess.edge_key("root", succ, edge_type))
+            self.graph.remove_node(rid)
 
 
 NodeData = tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, list[str], str]

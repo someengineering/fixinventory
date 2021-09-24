@@ -134,8 +134,8 @@ def node(access: GraphAccess, node_id: str) -> Optional[Json]:
 def test_builder(person_model: Model) -> None:
     max_m = {"id": "max", "kind": "Person", "name": "Max"}
     builder = GraphBuilder(person_model)
-    builder.add_from_json({"id": "1", "reported": max_m})
-    builder.add_from_json({"from": "1", "to": "2"})
+    builder.add_from_json({"id": "root", "reported": max_m})
+    builder.add_from_json({"from": "root", "to": "2"})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
     assert str(no_node.value) == "2 was used in an edge definition but not provided as vertex!"
@@ -143,9 +143,23 @@ def test_builder(person_model: Model) -> None:
     builder.add_from_json({"id": "3", "reported": max_m})
     with pytest.raises(AssertionError) as no_node:
         builder.check_complete()
-    assert str(no_node.value) == "Given subgraph has more than one root: ['1', '3']"
-    builder.add_from_json({"from": "1", "to": "3"})
+    assert str(no_node.value) == "Given subgraph has more than one root: ['root', '3']"
+    builder.add_from_json({"from": "root", "to": "3"})
     builder.check_complete()
+
+
+def test_reassign_root(person_model: Model) -> None:
+    max_m = {"id": "max", "kind": "Person", "name": "Max"}
+    builder = GraphBuilder(person_model)
+    builder.add_from_json({"id": "should_be_root", "reported": {"kind": "graph_root"}})
+    builder.add_from_json({"id": "2", "reported": max_m})
+    builder.add_from_json({"id": "3", "reported": max_m})
+    builder.add_from_json({"from": "should_be_root", "to": "2"})
+    builder.add_from_json({"from": "should_be_root", "to": "3"})
+    builder.check_complete()
+    access = GraphAccess(builder.graph)
+    assert access.root() == "root"
+    assert set(access.successors("root", EdgeType.default)) == {"2", "3"}
 
 
 def multi_cloud_graph(merge_on: str) -> MultiDiGraph:
