@@ -624,7 +624,7 @@ class Api:
                 sep = "---\n" if flag else ""
                 flag = True
                 js = to_js(item)
-                if isinstance(js, dict):
+                if isinstance(js, (dict, list)):
                     yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
                     await response.write(f"{sep}{yml}".encode("utf-8"))
                 else:

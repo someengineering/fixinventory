@@ -6,7 +6,7 @@ from plantuml import PlantUML
 
 from core.async_extensions import run_async
 from core.db.modeldb import ModelDb
-from core.model.model import Model, Kind, Complex
+from core.model.model import Model, Kind, ComplexKind
 from core.util import exist
 
 log = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class ModelHandlerDB(ModelHandler):
         def edge_visible(edge: tuple[str, str]) -> bool:
             return node_visible(edge[0]) and node_visible(edge[1])
 
-        def class_node(cpx: Complex) -> str:
+        def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"+ {p.name}: {p.kind}" for p in cpx.properties])
             return f"class {cpx.fqn} {{\n{props}\n}}"
 

@@ -13,6 +13,7 @@ from core.cli.cli import CLI, CLIDependencies
 from core.cli.command import ListSink
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
+from core.model.model import predefined_kinds
 from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
 from core.types import Json
@@ -302,3 +303,16 @@ async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow:
     assert len(result[0]) == 1
     task = AccessJson(result[0][0])
     assert task.descriptor.id == "test_workflow"
+
+
+@pytest.mark.asyncio
+async def test_kind_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command("kind", stream.list)
+    for kind in predefined_kinds:
+        assert kind.fqn in result[0][0]
+    result = await cli.execute_cli_command("kind string", stream.list)
+    assert result[0][0] == {"name": "string", "runtime_kind": "string"}
+    result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)
+    assert result[0][0] == {"name": "datetime", "runtime_kind": "datetime"}
+    with pytest.raises(Exception):
+        await cli.execute_cli_command("kind foo bla bar", stream.list)

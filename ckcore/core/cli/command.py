@@ -38,7 +38,7 @@ from core.cli.cli import (
 from core.db.model import QueryModel
 from core.error import CLIParseError, DatabaseError
 from core.model.graph_access import Section
-from core.model.model import Model
+from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
 from core.parse_util import quoted_or_simple_string_dp
@@ -397,7 +397,7 @@ class UniqCommand(CLICommand):
         return "uniq"
 
     def info(self) -> str:
-        return "Remove all duplicated objects from the stream"
+        return "Remove all duplicated objects from the stream."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         visited = set()
@@ -420,7 +420,84 @@ class UniqCommand(CLICommand):
         return lambda in_stream: stream.filter(in_stream, has_not_seen)
 
 
-class SetDesiredState(CLICommand, ABC):
+class KindCommand(CLISource):
+    """
+    Usage: kind [-p property_path] [name_of_kind]
+
+    kind gives information about the graph data kinds.
+
+    Use case 1: show all available kinds:
+    $> kind
+    This will list all available kinds and print the name as list.
+
+    Use case 2: show all details about a specific kind:
+    $> kind graph_root
+    This will show all available information about the given kind.
+
+    Use case 3: I want to know the kind of a property in my model
+    $> kind reported.tags.owner
+    Lookup the type of the given property in the model.
+    Assume a complex model A with reported properties: name:string, tags:dictionary[string, string]
+    A lookup of property name reported.tags.owner will yield the type string
+
+
+    Parameter:
+        name_of_kind: the name of the kind to show more detailed information.
+        -p <path>: the path of the property where want to know the kind
+
+
+    Example:
+        kind                   # will result in the list of kinds e.g. [ cloud, account, region ... ]
+        kind graph_root        # will show information about graph root. { "name": "graph_root", .... }
+        kind -p reported.tags  # will show the kind of the property with this path.
+    """
+
+    @property
+    def name(self) -> str:
+        return "kind"
+
+    def info(self) -> str:
+        return "Retrieves information about the graph data kinds."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        show_path: Optional[str] = None
+        show_kind: Optional[str] = None
+
+        if arg:
+            args = arg.strip().split(" ")
+            if len(args) == 1:
+                show_kind = arg
+            elif len(args) == 2 and args[0] == "-p":
+                show_path = args[1]
+            else:
+                raise AttributeError(f"Don't know what to do with: {arg}")
+
+        def kind_to_js(kind: Kind) -> Json:
+            if isinstance(kind, SimpleKind):
+                return {"name": kind.fqn, "runtime_kind": kind.runtime_kind}
+            elif isinstance(kind, DictionaryKind):
+                return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
+            elif isinstance(kind, ComplexKind):
+                props = to_js(sorted(kind.all_props(), key=lambda k: k.name))
+                return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": props}
+            else:
+                return {"name": kind.fqn}
+
+        def with_dependencies(model: Model) -> Stream:
+            if show_kind:
+                result = kind_to_js(model[show_kind]) if arg in model else f"No kind with this name: {show_kind}"
+            elif show_path:
+                result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
+            else:
+                result = sorted(list(model.kinds.keys()))
+
+            return stream.just(result)
+
+        dependencies = stream.call(self.dependencies.model_handler.load_model)
+        return stream.flatmap(dependencies, with_dependencies)
+
+
+class SetDesiredStateBase(CLICommand, ABC):
     @abstractmethod
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         # deriving classes need to define how to patch
@@ -445,7 +522,7 @@ class SetDesiredState(CLICommand, ABC):
             yield update
 
 
-class SetDesiredCommand(SetDesiredState):
+class SetDesiredCommand(SetDesiredStateBase):
     """
     Usage: set_desired [property]=[value]
 
@@ -500,7 +577,7 @@ class SetDesiredCommand(SetDesiredState):
             return {}
 
 
-class CleanCommand(SetDesiredState):
+class CleanCommand(SetDesiredStateBase):
     """
     Usage: clean [reason]
 
@@ -563,7 +640,7 @@ class CleanCommand(SetDesiredState):
             yield elem
 
 
-class SetMetadataState(CLICommand, ABC):
+class SetMetadataStateBase(CLICommand, ABC):
     @abstractmethod
     def patch(self, arg: Optional[str] = None, **env: str) -> Json:
         # deriving classes need to define how to patch
@@ -586,7 +663,7 @@ class SetMetadataState(CLICommand, ABC):
             yield update
 
 
-class SetMetadataCommand(SetMetadataState):
+class SetMetadataCommand(SetMetadataStateBase):
     """
     Usage: set_metadata [property]=[value]
 
@@ -638,7 +715,7 @@ class SetMetadataCommand(SetMetadataState):
             return {}
 
 
-class ProtectCommand(SetMetadataState):
+class ProtectCommand(SetMetadataStateBase):
     """
     Usage: protect
 
@@ -1094,6 +1171,7 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        KindCommand(d),
         ProtectCommand(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
