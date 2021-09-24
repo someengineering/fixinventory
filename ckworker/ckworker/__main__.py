@@ -18,7 +18,6 @@ from cklib.graph import GraphContainer, Graph, sanitize, GraphExportIterator
 from cklib.graph.export import optional_origin, node_to_dict
 from cklib.pluginloader import PluginLoader
 from cklib.baseplugin import BaseCollectorPlugin, PluginType
-from cklib.args import get_arg_parser
 from cklib.utils import log_stats, increase_limits, str2timedelta, str2timezone
 from cklib.args import ArgumentParser
 from cklib.cleaner import Cleaner
@@ -51,12 +50,22 @@ def main() -> None:
     cklib.signal.parent_pid = os.getpid()
 
     # Add cli args
-    collector_arg_parser = get_arg_parser(add_help=False)
+    # The following double parsing of cli args is done so that when
+    # a user specifies e.g. `--collector aws --help`  they would
+    # no longer be shown cli args for other collectors like gcp.
+    collector_arg_parser = ArgumentParser(
+        description="Cloudkeeper Worker",
+        env_args_prefix="CKWORKER_",
+        add_help=False,
+    )
     PluginLoader.add_args(collector_arg_parser)
     (args, _) = collector_arg_parser.parse_known_args()
     ArgumentParser.args = args
 
-    arg_parser = get_arg_parser()
+    arg_parser = ArgumentParser(
+        description="Cloudkeeper Worker",
+        env_args_prefix="CKWORKER_",
+    )
     logging.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     GraphContainer.add_args(arg_parser)
