@@ -10,7 +10,7 @@ from cklib.event import CkEvents
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
-from cklib.args import get_arg_parser, ArgumentParser
+from cklib.args import ArgumentParser
 from typing import Dict, Iterator, Tuple
 from signal import signal, SIGTERM, SIGINT
 
@@ -42,7 +42,9 @@ def main() -> None:
     signal(SIGINT, handler)
     signal(SIGTERM, handler)
 
-    arg_parser = get_arg_parser()
+    arg_parser = ArgumentParser(
+        description="Cloudkeeper Metrics Exporter", env_args_prefix="CKMETRICS_"
+    )
     add_args(arg_parser)
     logging_add_args(arg_parser)
     arg_parser.parse_args()
@@ -220,14 +222,14 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--ckcore-uri",
-        help="ckcore URI (default: http://localhost:8080)",
-        default="http://localhost:8080",
+        help="ckcore URI (default: http://localhost:8900)",
+        default="http://localhost:8900",
         dest="ckcore_uri",
     )
     arg_parser.add_argument(
         "--ckcore-ws-uri",
-        help="ckcore Websocket URI (default: ws://localhost:8080)",
-        default="ws://localhost:8080",
+        help="ckcore Websocket URI (default: ws://localhost:8900)",
+        default="ws://localhost:8900",
         dest="ckcore_ws_uri",
     )
     arg_parser.add_argument(

@@ -1,2 +1,2 @@
 # ckcore
-Keeps all the things in cloudkeeper.
+The Cloudkeeper graph platform.

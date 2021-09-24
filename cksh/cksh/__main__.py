@@ -5,7 +5,7 @@ import requests
 from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
-from cklib.args import get_arg_parser, ArgumentParser
+from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
 from typing import Dict
 from urllib.parse import urlencode
@@ -13,7 +13,9 @@ from urllib.parse import urlencode
 
 def main() -> None:
     shutdown_event = Event()
-    arg_parser = get_arg_parser()
+    arg_parser = ArgumentParser(
+        description="Cloudkeeper Shell", env_args_prefix="CKSH_"
+    )
     add_args(arg_parser)
     logging_add_args(arg_parser)
     arg_parser.parse_args()
@@ -106,14 +108,14 @@ def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--ckcore-uri",
-        help="ckcore URI (default: http://localhost:8080)",
-        default="http://localhost:8080",
+        help="ckcore URI (default: http://localhost:8900)",
+        default="http://localhost:8900",
         dest="ckcore_uri",
     )
     arg_parser.add_argument(
         "--ckcore-ws-uri",
-        help="ckcore Websocket URI (default: ws://localhost:8080)",
-        default="ws://localhost:8080",
+        help="ckcore Websocket URI (default: ws://localhost:8900)",
+        default="ws://localhost:8900",
         dest="ckcore_ws_uri",
     )
     arg_parser.add_argument(

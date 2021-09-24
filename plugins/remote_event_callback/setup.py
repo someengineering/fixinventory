@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-remote_event_callback",
-    version="0.0.2",
+    version="2.0.0a1",
     description="Cloudkeeper Remote Event Callback Plugin",
     license="Apache 2.0",
     packages=find_packages(),
