@@ -312,9 +312,10 @@ class Part:
     navigation: Optional[Navigation] = None
 
     def __str__(self) -> str:
+        with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
         pin = "+" if self.pinned else ""
-        return f"{self.term}{nav}{pin}"
+        return f"{self.term}{with_clause}{nav}{pin}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
