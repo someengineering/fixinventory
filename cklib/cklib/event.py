@@ -369,8 +369,8 @@ class CkCoreTasks(threading.Thread):
 
     def connect(self) -> None:
         ckcore_ws_uri_split = urlsplit(self.ckcore_ws_uri)
-        scheme = ckcore_ws_uri_split[0]
-        netloc = ckcore_ws_uri_split[1]
+        scheme = ckcore_ws_uri_split.scheme
+        netloc = ckcore_ws_uri_split.netloc
         path = "/work/queue"
         query = urlencode({"task": ",".join(self.tasks)} | self.task_queue_filter)
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))

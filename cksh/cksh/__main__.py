@@ -8,7 +8,7 @@ from prompt_toolkit.history import FileHistory
 from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
 from typing import Dict
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 
 def main() -> None:
@@ -78,20 +78,30 @@ def send_command(
 
     log.debug(f'Sending command "{command}" to {execute_endpoint}')
 
-    r = requests.post(
-        execute_endpoint,
-        data=command,
-        headers=headers,
-        stream=True,
-    )
-    if r.status_code != 200:
-        print(r.text, file=sys.stderr)
-        return
+    try:
+        r = requests.post(
+            execute_endpoint,
+            data=command,
+            headers=headers,
+            stream=True,
+        )
+    except requests.exceptions.ConnectionError:
+        err = (
+            "Error: Could not communicate with ckcore"
+            f" at {urlsplit(execute_endpoint).netloc}."
+            " Is it up and reachable?"
+        )
+        print(err, file=sys.stderr)
+    else:
 
-    for line in r.iter_lines():
-        if not line:
-            continue
-        print(line.decode("utf-8"))
+        if r.status_code != 200:
+            print(r.text, file=sys.stderr)
+            return
+
+        for line in r.iter_lines():
+            if not line:
+                continue
+            print(line.decode("utf-8"))
 
 
 def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
