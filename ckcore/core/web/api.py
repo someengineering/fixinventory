@@ -621,14 +621,15 @@ class Api:
             await response.prepare(request)
             flag = False
             async for item in gen:
-                sep = "---\n" if flag else ""
-                flag = True
                 js = to_js(item)
                 if isinstance(js, (dict, list)):
+                    sep = "---\n" if flag else ""
                     yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
                     await response.write(f"{sep}{yml}".encode("utf-8"))
                 else:
+                    sep = "\n" if flag else ""
                     await response.write(f"{sep}{js}".encode("utf-8"))
+                flag = True
             await response.write_eof()
             return response
 
