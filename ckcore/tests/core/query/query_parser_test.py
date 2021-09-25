@@ -122,7 +122,7 @@ def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
     assert_round_trip(part_parser, Part(P.of_kind("test"), False, None, Navigation(1, 10, EdgeType.delete)))
     assert_round_trip(part_parser, Part(P.of_kind("test"), True, None, Navigation(1, 10, EdgeType.delete)))
-    with_clause = WithClause(WithClauseFilter("==", 0), Navigation())
+    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(edge_type=EdgeType.delete))
     assert_round_trip(part_parser, Part(P.of_kind("test"), True, with_clause, Navigation(1, 10, EdgeType.delete)))
 
 
@@ -133,9 +133,18 @@ def test_query() -> None:
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
         .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
+        .filter_with(WithClause(WithClauseFilter("==", 0), Navigation()))
         .group_by([AggregateVariable(AggregateVariableName("foo"))], [AggregateFunction("sum", "cpu")])
         .add_sort("test", "asc")
         .with_limit(10)
+    )
+    assert (
+        str(query)
+        == 'aggregate(foo: sum(cpu))(edge_type="dependency"):'
+        + '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
+        + "(some.int.value < 1 and some.other == 23) --> "
+        + '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
+        + "with(empty, -->) sort test asc limit 10"
     )
     assert_round_trip(query_parser, query)
 

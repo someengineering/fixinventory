@@ -456,6 +456,10 @@ class Query:
             parts.insert(0, Part(res))
         return replace(self, parts=parts)
 
+    def filter_with(self, clause: WithClause) -> Query:
+        first = replace(self.parts[0], with_clause=clause)
+        return replace(self, parts=[first, *self.parts[1:]])
+
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "out")
 
