@@ -2,6 +2,11 @@
 
 # Housekeeping for Clouds!
 
+| NOTICE |
+|----------|
+| We are currently working on Cloudkeeper v2. The documentation below is for v1 and will be replaced in the coming days. If you want to use the v1 container start it with `-e LEGACY_STARTUP=true` |
+
+
 ## Introduction
 Cloudkeeper is a standalone CLI tool that periodically collects a list of resources in cloud accounts, provides metrics about them, and can clean them up.
 
