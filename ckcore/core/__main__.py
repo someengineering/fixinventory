@@ -29,18 +29,30 @@ def parse_args() -> Namespace:
         description="Maintains graphs of documents of any shape.",
         epilog="Keeps all the things.",
     )
-    parser.add_argument("--log-level", default="info", help="The threshold log level for the application log.")
-    parser.add_argument("-s", "--arango-server", default="http://localhost:8529", help="The server to connect to.")
-    parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="The database to connect to.")
-    parser.add_argument("-u", "--arango-username", default="cloudkeeper", help="The username of the database.")
-    parser.add_argument("-p", "--arango-password", default="", help="The password the database.")
-    parser.add_argument("--arango-no-ssl-verify", action="store_true", help="If the connection should be verified.")
-    parser.add_argument("--arango-request-timeout", type=int, default=900, help="Request timeout in seconds.")
-    parser.add_argument("--port", type=int, default=8900, help="TCP Port to bind on.")
+    parser.add_argument("--log-level", default="info", help="Log level (default: info)")
+    parser.add_argument(
+        "-s",
+        "--arango-server",
+        default="http://localhost:8529",
+        help="Database server (default: http://localhost:8529)",
+    )
+    parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="Database name (default: cloudkeeper)")
+    parser.add_argument("-u", "--arango-username", default="cloudkeeper", help="Database login (default: cloudkeeper)")
+    parser.add_argument("-p", "--arango-password", default="", help='Database password (default: "")')
+    parser.add_argument(
+        "--arango-no-ssl-verify", action="store_true", help="If the connection should be verified (default: False)"
+    )
+    parser.add_argument(
+        "--arango-request-timeout", type=int, default=900, help="Request timeout in seconds (default: 900)"
+    )
+    parser.add_argument(
+        "--host", type=str, default=["localhost"], nargs="+", help="TCP host(s) to bind on (default: localhost)"
+    )
+    parser.add_argument("--port", type=int, default=8900, help="TCP port to bind on (default: 8900)")
     parser.add_argument(
         "--plantuml-server",
         default="https://www.plantuml.com/plantuml",
-        help="The plantuml server to render plantuml images",
+        help="PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)",
     )
     TaskHandler.add_args(parser)
     return parser.parse_args()  # type: ignore
@@ -86,7 +98,7 @@ def main() -> None:
         log.info("Initialization done. Starting API.")
         return api.app
 
-    web.run_app(async_initializer(), port=args.port)
+    web.run_app(async_initializer(), host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
