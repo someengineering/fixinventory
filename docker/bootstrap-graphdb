@@ -17,7 +17,7 @@ while [ $is_up = false ]; do
     fi
 done
 
-echo "Creating $CKCORE_GRAPHDB_LOGIN user and $CKCORE_GRAPHDB_DATABASE database"
+echo "Creating $CKCORE_GRAPHDB_LOGIN user and $CKCORE_GRAPHDB_DATABASE database if they do not yet exist."
 cat <<EOF | arangosh --console.history false --server.password "$GRAPHDB_ROOT_PASSWORD" > /dev/null 2>&1
 const users = require('@arangodb/users');
 users.save('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_PASSWORD');
