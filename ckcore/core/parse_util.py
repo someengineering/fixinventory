@@ -46,7 +46,7 @@ dot_dot_dp = string("..")
 equals_dp = string("=")
 integer_dp = regex(r"[+-]?[0-9]+").map(int)
 float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
-variable_dp = regex("[A-Za-z][A-Za-z0-9_.*\\[\\]`: ]*")
+variable_dp = regex("[A-Za-z][A-Za-z0-9_.*\\[\\]]*")
 literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
 
 allowed_characters = re.compile("[A-Za-z0-9_\\-:]")
