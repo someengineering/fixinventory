@@ -46,7 +46,7 @@ def parse_args() -> Namespace:
         "--arango-request-timeout", type=int, default=900, help="Request timeout in seconds (default: 900)"
     )
     parser.add_argument(
-        "--host", type=str, default=["localhost"], nargs="+", help="TCP host(s) to bind on (default: localhost)"
+        "--host", type=str, default="localhost", nargs="+", help="TCP host(s) to bind on (default: localhost)"
     )
     parser.add_argument("--port", type=int, default=8900, help="TCP port to bind on (default: 8900)")
     parser.add_argument(
