@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from argparse import Namespace
 
 from aiohttp import web
@@ -26,24 +27,46 @@ log = logging.getLogger(__name__)
 def parse_args() -> Namespace:
     parser = ArgumentParser(
         env_args_prefix="CKCORE_",
-        description="Maintains graphs of documents of any shape.",
+        description="Maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
     parser.add_argument("--log-level", default="info", help="Log level (default: info)")
     parser.add_argument(
-        "-s",
-        "--arango-server",
+        "--graphdb-server",
         default="http://localhost:8529",
-        help="Database server (default: http://localhost:8529)",
-    )
-    parser.add_argument("-db", "--arango-database", default="cloudkeeper", help="Database name (default: cloudkeeper)")
-    parser.add_argument("-u", "--arango-username", default="cloudkeeper", help="Database login (default: cloudkeeper)")
-    parser.add_argument("-p", "--arango-password", default="", help='Database password (default: "")')
-    parser.add_argument(
-        "--arango-no-ssl-verify", action="store_true", help="If the connection should be verified (default: False)"
+        dest="graphdb_server",
+        help="Graph database server (default: http://localhost:8529)",
     )
     parser.add_argument(
-        "--arango-request-timeout", type=int, default=900, help="Request timeout in seconds (default: 900)"
+        "--graphdb-database",
+        default="cloudkeeper",
+        dest="graphdb_database",
+        help="Graph database name (default: cloudkeeper)",
+    )
+    parser.add_argument(
+        "--graphdb-username",
+        default="cloudkeeper",
+        dest="graphdb_username",
+        help="Graph database login (default: cloudkeeper)",
+    )
+    parser.add_argument(
+        "--graphdb-password", default="", dest="graphdb_password", help='Graph database password (default: "")'
+    )
+    parser.add_argument(
+        "--graphdb-type", default="arangodb", dest="graphdb_type", help="Graph database type (default: arangodb)"
+    )
+    parser.add_argument(
+        "--graphdb-no-ssl-verify",
+        action="store_true",
+        dest="graphdb_no_ssl_verify",
+        help="If the connection should be verified (default: False)",
+    )
+    parser.add_argument(
+        "--graphdb-request-timeout",
+        type=int,
+        default=900,
+        dest="graphdb_request_timeout",
+        help="Request timeout in seconds (default: 900)",
     )
     parser.add_argument(
         "--host", type=str, default="localhost", nargs="+", help="TCP host(s) to bind on (default: localhost)"
@@ -65,12 +88,16 @@ def main() -> None:
     log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
     logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
 
+    if args.graphdb_type not in ("arangodb"):
+        log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
+        sys.exit(1)
+
     scheduler = Scheduler()
     event_bus = EventBus()
     worker_task_queue = WorkerTaskQueue()
-    http_client = ArangoHTTPClient(args.arango_request_timeout, not args.arango_no_ssl_verify)
-    client = ArangoClient(hosts=args.arango_server, http_client=http_client)
-    database = client.db(args.arango_database, username=args.arango_username, password=args.arango_password)
+    http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
+    client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)
+    database = client.db(args.graphdb_database, username=args.graphdb_username, password=args.graphdb_password)
     adjuster = DirectAdjuster()
     db = DbAccess(database, event_bus, adjuster)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
