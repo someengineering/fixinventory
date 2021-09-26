@@ -481,6 +481,9 @@ class HelpCommand(CLISource):
         return "Shows available commands, as well as help for any specific command."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
+        def show_cmd(cmd: CLIPart) -> str:
+            return f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
+
         if not arg:
             all_parts = sorted(self.parts.values(), key=lambda p: p.name)
             parts = (p for p in all_parts if isinstance(p, (CLISource, CLICommand)))
@@ -496,8 +499,11 @@ class HelpCommand(CLISource):
                 f"and chain multiple commands using the semicolon (;)."
             )
         elif arg and arg in self.parts:
-            cmd = self.parts[arg]
-            result = f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
+            result = show_cmd(self.parts[arg])
+        elif arg and arg in self.aliases:
+            alias = self.aliases[arg]
+            explain = f"{arg} is an alias for {alias}\n\n"
+            result = explain + show_cmd(self.parts[alias])
         else:
             result = f"No command found with this name: {arg}"
 
