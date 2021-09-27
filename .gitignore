@@ -22,3 +22,5 @@ venv*
 .vscode/
 /config/
 *.code-workspace
+docs/build/
+.DS_Store
