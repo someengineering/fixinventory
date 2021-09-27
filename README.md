@@ -12,7 +12,7 @@ Cloudkeeper fixes that gap in your environment.
 In this quick start guide, we’re showing you three things, how to:
 
     1. install Cloudkeeper for AWS with docker
-    2. use the Cloudkeeper CLI to run your first `collect` process
+    2. use the Cloudkeeper CLI to run your first collect process
     3. query the results of the collect process 
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 2-5 minutes. 
