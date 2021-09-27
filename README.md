@@ -20,7 +20,6 @@ The docker set-up takes 2-5 minutes. The duration of the first collect process d
 Examples and data in this documentation are based on a small AWS [cloud9](https://aws.amazon.com/cloud9/) environment.  
 To start exploring you need AWS credentials and a working docker environment with access to AWS APIs.  
 We assume you are familiar with basic docker operations and how to operate a linux shell.
-You find our current Documentation over here:  
 
 **Continue reading your Quick start tutorial**  
 --> https://docs.some.engineering
