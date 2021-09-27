@@ -46,7 +46,7 @@ from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 
 @fixture
 def json_source() -> str:
-    nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a}}}}}' for a in range(0, 100)])
+    nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
 
 
@@ -99,23 +99,25 @@ async def test_sleep_source(cli: CLI) -> None:
 async def test_count_command(cli: CLI, json_source: str) -> None:
     # count instances
     result = await cli.execute_cli_command(f"{json_source} | count", stream.list)
-    assert len(result[0]) == 1
-    assert result[0][0] == {"matched": 200, "not_matched": 0}
+    assert len(result[0]) == 2
+    assert result[0] == ["total matched: 200", "total unmatched: 0"]
 
     # count attributes
     result = await cli.execute_cli_command(f"{json_source} | count num", stream.list)
-    assert len(result[0]) == 1
-    assert result[0][0] == {"matched": 9900, "not_matched": 0}
+    assert len(result[0]) == 102
+    assert result[0][-2] == "total matched: 200"
+    assert result[0][-1] == "total unmatched: 0"
 
     # count attributes with path
     result = await cli.execute_cli_command(f"{json_source} | count inner.num", stream.list)
-    assert len(result[0]) == 1
-    assert result[0][0] == {"matched": 9900, "not_matched": 0}
+    assert len(result[0]) == 12
+    assert result[0][-2] == "total matched: 200"
+    assert result[0][-1] == "total unmatched: 0"
 
     # count unknown attributes
     result = await cli.execute_cli_command(f"{json_source} | count does_not_exist", stream.list)
-    assert len(result[0]) == 1
-    assert result[0][0] == {"matched": 0, "not_matched": 200}
+    assert len(result[0]) == 2
+    assert result[0] == ["total matched: 0", "total unmatched: 200"]
 
 
 @pytest.mark.asyncio

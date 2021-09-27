@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from abc import abstractmethod, ABC
+from collections import defaultdict
 from datetime import timedelta
 from functools import partial
 from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
@@ -212,15 +213,15 @@ class CountCommand(CLICommand):
     Usage: count [arg]
 
     In case no arg is given: it counts the number of instances provided to count.
-    In case of arg: it pulls the property with the name of arg, translates it to a number and sums it.
+    In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
 
     Parameter:
-        arg [optional]: Instead of counting the instances, sum the property of all objects with this name.
+        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
 
     Example:
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
     """
 
     @property
@@ -232,34 +233,42 @@ class CountCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         get_path = arg.split(".") if arg else None
+        counter: dict[str, int] = defaultdict(int)
+        matched = 0
+        unmatched = 0
 
-        def inc_prop(o: JsonElement) -> tuple[int, int]:
-            def prop_value(path: list[str]) -> tuple[int, int]:
-                try:
-                    if isinstance(o, dict):
-                        return int(value_in_path(o, path)), 0  # type: ignore
-                    else:
-                        return 0, 1
-                except Exception:
-                    return 0, 1
+        def inc_prop(o: JsonElement) -> None:
+            nonlocal matched
+            nonlocal unmatched
+            value = value_in_path(o, get_path)  # type:ignore
+            if value is not None:
+                if isinstance(value, str):
+                    pass
+                elif isinstance(value, (dict, list)):
+                    value = json.dumps(value)
+                else:
+                    value = str(value)
+                matched += 1
+                counter[value] += 1
+            else:
+                unmatched += 1
 
-            return prop_value(get_path) if get_path else (0, 1)
-
-        def inc_identity(_: Any) -> tuple[int, int]:
-            return 1, 0
+        def inc_identity(_: Any) -> None:
+            nonlocal matched
+            matched += 1
 
         fn = inc_prop if arg else inc_identity
 
         async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
-            counter = 0
-            no_match = 0
-
             async with content.stream() as in_stream:
                 async for element in in_stream:
-                    cnt, not_matched = fn(element)
-                    counter += cnt
-                    no_match += not_matched
-            yield {"matched": counter, "not_matched": no_match}
+                    fn(element)
+
+            for key, value in sorted(counter.items(), key=lambda x: x[1]):
+                yield f"{key}: {value}"
+
+            yield f"total matched: {matched}"
+            yield f"total unmatched: {unmatched}"
 
         # noinspection PyTypeChecker
         return count_in_stream
