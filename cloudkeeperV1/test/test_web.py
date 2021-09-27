@@ -4,7 +4,7 @@ import time
 import cklib.logging as logging
 from cklib.args import ArgumentParser, get_arg_parser
 from cklib.event import add_args as event_add_args, Event, EventType
-from cloudkeeper.web import WebServer, CloudkeeperWebApp
+from cloudkeeperv1.web import WebServer, CloudkeeperWebApp
 from cklib.graph import GraphContainer
 
 logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)

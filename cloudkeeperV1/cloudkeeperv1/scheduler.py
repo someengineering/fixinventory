@@ -5,7 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.job import Job
 from typing import Iterable
-from cloudkeeper.cli import register_cli_action, cli_event_handler
+from cloudkeeperv1.cli import register_cli_action, cli_event_handler
 from cklib.args import ArgumentParser
 from cklib.event import Event, EventType, add_event_listener
 from cklib.logging import log

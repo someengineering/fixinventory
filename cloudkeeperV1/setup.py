@@ -15,7 +15,7 @@ setup(
     long_description=read("README.md"),
     entry_points={
         "console_scripts": [
-            "cloudkeeper = cloudkeeper.__main__:main",
+            "cloudkeeperV1 = cloudkeeperv1.__main__:main",
         ]
     },
     include_package_data=True,
