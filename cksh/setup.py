@@ -20,7 +20,7 @@ setup(
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "ck = cksh.__main__:main",
+            "cksh = cksh.__main__:main",
         ]
     },
     include_package_data=True,
