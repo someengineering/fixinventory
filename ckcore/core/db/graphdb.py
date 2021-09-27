@@ -786,7 +786,7 @@ class ArangoGraphDB(GraphDB):
                 def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
                     nav = cl.navigation
                     crsr = f"l{depth}crsr"
-                    direction = "OUTBOUND" if nav.is_out() else "INBOUND"
+                    direction = self.__navigation_lookup[nav.direction]
                     unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
                     filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                     inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
@@ -832,7 +832,7 @@ class ArangoGraphDB(GraphDB):
                 out = f"step{idx}_navigation"
                 out_crsr = f"n{idx}"
                 link = f"link{idx}"
-                direction = "OUTBOUND" if navigation.is_out() else "INBOUND"
+                direction = self.__navigation_lookup[navigation.direction]
                 unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
                 query_part += (
                     f"LET {out} =( FOR in{idx} in {in_crsr} "
@@ -989,6 +989,9 @@ class ArangoGraphDB(GraphDB):
         LIMIT @limit
         RETURN doc
         """
+
+    # lookup table
+    __navigation_lookup = {"in": "INBOUND", "out": "OUTBOUND", "inout": "ANY"}
 
     # parameter: rid
     # return: the complete document

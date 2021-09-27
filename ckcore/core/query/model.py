@@ -257,12 +257,6 @@ class Navigation:
     edge_type: str = EdgeType.default
     direction: str = "out"
 
-    def is_out(self) -> bool:
-        return self.direction == "out"
-
-    def is_in(self) -> bool:
-        return self.direction == "in"
-
     def __str__(self) -> str:
         start = self.start
         until = self.until
