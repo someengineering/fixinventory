@@ -23,7 +23,10 @@ The docker set-up takes 2-5 minutes. The duration of the first collect process d
 
 You can find your Quick start tutorial here
 
+.. class:: center
+
 https://docs.some.engineering
+
 
 | Reach out to us if you have any questions, improvements, bugs!
 | Contributions are very much appreciated.
