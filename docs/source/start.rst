@@ -35,7 +35,7 @@ Start the Cloudkeeper CLI
 You interact with `ckcore <https://github.com/someengineering/cloudkeeper/tree/main/ckcore>`_ via `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_
 ::
 
-    $ docker exec -it cloudkeeper ck
+    $ docker exec -it cloudkeeper cksh
 
 Collect AWS Inventory
 ---------------------
