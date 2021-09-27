@@ -1,4 +1,4 @@
-name: Pull Request documentation check
+name: Check PR (Documentation)
 
 on: [pull_request]
 
