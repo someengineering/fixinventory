@@ -4,7 +4,7 @@
 
 | NOTICE |
 |--------|
-| This is the legacy version of Cloudkeeper. It is here for backwards compatibility to existing deployments. |
+| This is the legacy version of Cloudkeeper. It is here for backwards compatibility with existing deployments. |
 
 
 ## Introduction
