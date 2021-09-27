@@ -8,12 +8,12 @@ from concurrent import futures
 from networkx.algorithms.dag import is_directed_acyclic_graph
 import requests
 import json
-import cklib.logging as logging
 import cklib.signal
 from pydoc import locate
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict
 from dataclasses import fields
+from cklib.logging import log, add_args as logging_add_args
 from cklib.graph import GraphContainer, Graph, sanitize, GraphExportIterator
 from cklib.graph.export import optional_origin, node_to_dict
 from cklib.pluginloader import PluginLoader
@@ -30,8 +30,6 @@ from cklib.event import (
     add_args as event_add_args,
 )
 
-
-log = logging.getLogger(__name__)
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
@@ -66,7 +64,7 @@ def main() -> None:
         description="Cloudkeeper Worker",
         env_args_prefix="CKWORKER_",
     )
-    logging.add_args(arg_parser)
+    logging_add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     GraphContainer.add_args(arg_parser)
     Cleaner.add_args(arg_parser)
@@ -274,7 +272,14 @@ def cleanup():
     ckcore_graph = ArgumentParser.args.ckcore_graph
     graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     query_uri = f"{graph_uri}/query/graph"
-    query = "desired.clean==true -[0:]-"
+    if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
+        clouds = '["' + '", "'.join(ArgumentParser.args.collector) + '"]'
+        query = (
+            f"desired.clean == true and metadata.ancestors.cloud.id in {clouds} -[0:]-"
+        )
+    else:
+        query = "desired.clean == true -[0:]-"
+    log.debug(f"Sending query {query}")
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
     )
