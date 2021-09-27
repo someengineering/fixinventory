@@ -1,9 +1,13 @@
 name: Check PR (Documentation)
 
-on: [pull_request]
+on: 
+  push:
+    paths:
+      - 'documentation/**'
 
 jobs:
-  build:
+  documentation:
+    name: "documentation"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
