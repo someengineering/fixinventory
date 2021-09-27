@@ -90,13 +90,13 @@ def test_datetime() -> None:
     assert a.coerce("2021-06-08T08:56:15.0000+02:00") == "2021-06-08T06:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000-02:00") == "2021-06-08T10:56:15Z"
     assert a.coerce("2021-06-08T08:56:15.0000+0000") == "2021-06-08T08:56:15Z"
-    assert a.coerce("2021-06-08 08:56:15").startswith("2021-06-08T")
-    assert a.coerce("2021-06-08 08:56:15").endswith(":56:15Z")  # ignore the hours, time zone dependant
+    assert a.coerce("2021-06-08 08:56:15").startswith("2021-06-08T")  # type: ignore
+    assert a.coerce("2021-06-08 08:56:15").endswith(":56:15Z")  # type: ignore # ignore the hours, time zone dependant
     today = datetime.today().replace(hour=6, minute=56, second=15).strftime(DateTimeKind.Format)
-    assert a.coerce("08:56:15").startswith(today[0:11])
-    assert a.coerce("08:56:15").endswith(":56:15Z")  # ignore the hours, time zone dependant
-    assert a.coerce("-12d").startswith("20")
-    assert a.coerce("12w").startswith("20")
+    assert a.coerce("08:56:15").startswith(today[0:11])  # type: ignore
+    assert a.coerce("08:56:15").endswith(":56:15Z")  # type: ignore# ignore the hours, time zone dependant
+    assert a.coerce("-12d").startswith("20")  # type: ignore
+    assert a.coerce("12w").startswith("20")  # type: ignore
     with pytest.raises(AttributeError) as no_date:
         a.coerce("simply no date")
     assert str(no_date.value) == f"Expected datetime but got: >simply no date<"
@@ -108,8 +108,8 @@ def test_date() -> None:
     assert expect_error(a, True) == "Expected type date but got bool"
     assert a.coerce("2021-06-08") == "2021-06-08"
     assert a.coerce("2021 06 08") == "2021-06-08"
-    assert a.coerce("-12d").startswith("20")
-    assert a.coerce("12w").startswith("20")
+    assert a.coerce("-12d").startswith("20")  # type: ignore
+    assert a.coerce("12w").startswith("20")  # type: ignore
     with pytest.raises(AttributeError) as no_date:
         a.coerce("simply no date")
     assert str(no_date.value) == f"Expected date but got: >simply no date<"

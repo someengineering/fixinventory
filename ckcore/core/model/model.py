@@ -209,7 +209,7 @@ class SimpleKind(Kind, ABC):
     }
 
     # noinspection PyMethodMayBeStatic
-    def coerce(self, value: object) -> object:
+    def coerce(self, value: object) -> Any:
         return value
 
     def as_json(self) -> Json:
@@ -267,7 +267,9 @@ class StringKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value: Any) -> object:
+    def coerce(self, value: Any) -> Optional[str]:
+        if value is None:
+            return value
         if isinstance(value, str):
             return value
         else:
@@ -316,8 +318,10 @@ class NumberKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value: object) -> object:
-        if isinstance(value, (int, float)):
+    def coerce(self, value: object) -> Optional[Union[int, float]]:
+        if value is None:
+            return value
+        elif isinstance(value, (int, float)):
             return value
         else:
             return float(value)  # type: ignore
@@ -341,8 +345,10 @@ class BooleanKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value: Any) -> object:
-        if isinstance(value, bool):
+    def coerce(self, value: Any) -> Optional[bool]:
+        if value is None:
+            return value
+        elif isinstance(value, bool):
             return value
         else:
             return str(value).lower() == "true"
@@ -376,9 +382,11 @@ class DateTimeKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value: Any) -> str:
+    def coerce(self, value: Any) -> Optional[str]:
         try:
-            if self.DateTimeRe.fullmatch(value):
+            if value is None:
+                return value
+            elif self.DateTimeRe.fullmatch(value):
                 return value  # type: ignore
             elif self.DurationRe.fullmatch(value):
                 return self.from_duration(value)
@@ -424,9 +432,11 @@ class DateKind(SimpleKind):
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
-    def coerce(self, value: Any) -> str:
+    def coerce(self, value: Any) -> Optional[str]:
         try:
-            if DateTimeKind.DurationRe.fullmatch(value):
+            if value is None:
+                return value
+            elif DateTimeKind.DurationRe.fullmatch(value):
                 # in case of duration, compute the timestamp as: today + duration
                 delta = relativedelta(seconds=Duration(value).seconds)
                 at = date.today() + delta

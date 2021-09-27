@@ -1,7 +1,14 @@
 import pytest
 from parsy import ParseError
 
-from core.parse_util import integer_dp, float_dp, json_value_p, unquoted_string_dp, unquoted_string_p
+from core.parse_util import integer_dp, float_dp, json_value_p, unquoted_string_dp, unquoted_string_p, variable_p
+
+
+def test_variable_p() -> None:
+    assert variable_p.parse("foo.bla.bar") == "foo.bla.bar"
+    assert variable_p.parse("foo.bla.bar[*]") == "foo.bla.bar[*]"
+    assert variable_p.parse("foo.bla.`foo-bar`") == "foo.bla.`foo-bar`"
+    assert variable_p.parse("foo.bla.bar[*].`:-)`.bla[1].test") == "foo.bla.bar[*].`:-)`.bla[1].test"
 
 
 def test_number_parse() -> None:
