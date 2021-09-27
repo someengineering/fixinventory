@@ -241,7 +241,7 @@ class CountCommand(CLICommand):
             nonlocal matched
             nonlocal unmatched
             value = value_in_path(o, get_path)  # type:ignore
-            if value:
+            if value is not None:
                 if isinstance(value, str):
                     pass
                 elif isinstance(value, (dict, list)):
