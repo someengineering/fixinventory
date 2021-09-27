@@ -10,7 +10,7 @@ from cloudkeeper_plugin_aws.resources import (
     AWSEC2NetworkAcl,
     AWSVPC,
 )
-from cloudkeeperV1.paralleltagger import ParallelTagger
+from cloudkeeperv1.paralleltagger import ParallelTagger
 from cklib.args import ArgumentParser
 from cklib.event import (
     Event,
