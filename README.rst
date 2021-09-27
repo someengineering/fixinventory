@@ -1,7 +1,4 @@
-.. figure:: https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png
-    :align: center
-    :target: https://docs.some.engineering
-    :alt: Cloudkeeper Sheep Logo
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png" /><h1 align="center">Cloudkeeper</h1></p>
 
 Cloudkeeper
 ===========
