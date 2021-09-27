@@ -63,9 +63,9 @@ WORKDIR /usr/src/ckcore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pip wheel -w /build -f /build .
 
-# Build cloudkeeper
-COPY cloudkeeper /usr/src/cloudkeeper
-WORKDIR /usr/src/cloudkeeper
+# Build cloudkeeperV1
+COPY cloudkeeperV1 /usr/src/cloudkeeperV1
+WORKDIR /usr/src/cloudkeeperV1
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
 
@@ -187,6 +187,6 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-EXPOSE 8080 8529 9955 9090
+EXPOSE 8900 8529 9955 9090
 VOLUME ["/data"]
 ENTRYPOINT ["/usr/local/sbin/bootstrap"]
