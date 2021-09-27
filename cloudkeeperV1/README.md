@@ -37,7 +37,7 @@ It can however be used without any programming experience just using the include
 
 ## tl;dr - show me something worthwhile
 ```
-$ docker run -it ghcr.io/someengineering/cloudkeeper --verbose \
+$ docker run -it -e LEGACY_STARTUP=true ghcr.io/someengineering/cloudkeeper --verbose \
     --cleanup --no-cli --one-shot --interval 0 \
     --collector aws \
     --aws-access-key-id AKIAIO5FODNN7EXAMPLE \
