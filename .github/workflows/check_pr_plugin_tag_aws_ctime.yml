@@ -6,6 +6,7 @@ on:
   push:
     paths:
       - 'cklib/**'
+      - 'cloudkeeperV1/**'
       - 'plugins/tag_aws_ctime/**'
       - '.github/**'
 
