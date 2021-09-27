@@ -190,8 +190,10 @@ class Graph(networkx.DiGraph):
             )
             return ()
         log.debug(
-            f"Searching graph for nodes with attribute values {attr}: {value}"
-            f" (regex: {regex_search})"
+            (
+                f"Searching graph for nodes with attribute values {attr}: {value}"
+                f" (regex: {regex_search})"
+            )
         )
         with self.lock.read_access:
             for node in self.nodes():
@@ -483,8 +485,10 @@ def graph2metrics(graph):
                     for labels, value in data.items():
                         if metric not in num:
                             log.error(
-                                f"Couldn't find metric {metric} in num when"
-                                f" processing node {node}"
+                                (
+                                    f"Couldn't find metric {metric} in num when"
+                                    f" processing node {node}"
+                                )
                             )
                             continue
                         num[metric][mtags(labels, node)] += value
