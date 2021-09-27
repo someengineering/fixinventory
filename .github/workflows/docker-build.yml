@@ -30,7 +30,7 @@ jobs:
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
                         type=pep440,pattern={{major}}
-                        type=sha
+                        type=sha,prefix=
 
             -   name: Set up Docker Buildx
                 id: buildx
