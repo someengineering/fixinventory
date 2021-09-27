@@ -268,7 +268,7 @@ class Navigation:
         elif self.direction == "in":
             return f"<-{nav}-"
         else:
-            return f"-{nav}-"
+            return f"<-{nav}->"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
