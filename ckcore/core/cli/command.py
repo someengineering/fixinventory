@@ -213,15 +213,15 @@ class CountCommand(CLICommand):
     Usage: count [arg]
 
     In case no arg is given: it counts the number of instances provided to count.
-    In case of arg: it pulls the property with the name of arg, translates it to a number and sums it.
+    In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
 
     Parameter:
-        arg [optional]: Instead of counting the instances, sum the property of all objects with this name.
+        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
 
     Example:
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [{ "matched": 3, "not_matched": 0 }]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [{ "matched": 6, "not_matched": 0 }]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [{ "matched": 0, "not_matched": 3 }]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
     """
 
     @property
