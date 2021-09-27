@@ -14,6 +14,6 @@ pip install --editable ckcore/
 pip install --editable cksh/
 pip install --editable ckmetrics/
 pip install --editable ckworker/
-pip install --editable cloudkeeper/
+pip install --editable cloudkeeperV1/
 pip install --editable plugins/aws/
 find plugins/ -maxdepth 1 -mindepth 1 -type d -exec pip install --editable "{}" \;

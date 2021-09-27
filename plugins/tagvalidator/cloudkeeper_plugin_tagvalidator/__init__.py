@@ -13,7 +13,7 @@ from cklib.event import (
     remove_event_listener,
 )
 from cklib.utils import parse_delta
-from cloudkeeper.paralleltagger import ParallelTagger
+from cloudkeeperv1.paralleltagger import ParallelTagger
 from prometheus_client import Summary, Counter
 
 log = cklib.logging.getLogger("cloudkeeper." + __name__)

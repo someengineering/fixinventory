@@ -5,15 +5,15 @@ import cklib.signal
 from cklib.graph import GraphContainer
 from cklib.pluginloader import PluginLoader
 from cklib.baseplugin import PluginType
-from cloudkeeper.web import WebServer, CloudkeeperWebApp
-from cloudkeeper.scheduler import Scheduler
+from cloudkeeperv1.web import WebServer, CloudkeeperWebApp
+from cloudkeeperv1.scheduler import Scheduler
 from cklib.args import get_arg_parser, ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
-from cloudkeeper.processor import Processor
+from cloudkeeperv1.processor import Processor
 from cklib.cleaner import Cleaner
-from cloudkeeper.metrics import GraphCollector
+from cloudkeeperv1.metrics import GraphCollector
 from cklib.utils import log_stats, increase_limits
-from cloudkeeper.cli import Cli
+from cloudkeeperv1.cli import Cli
 from cklib.event import (
     add_event_listener,
     dispatch_event,

@@ -7,7 +7,7 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper",
+    name="cloudkeeperV1",
     version="0.0.17",
     description="Housekeeping for Clouds",
     license="Apache 2.0",
@@ -15,7 +15,7 @@ setup(
     long_description=read("README.md"),
     entry_points={
         "console_scripts": [
-            "cloudkeeper = cloudkeeper.__main__:main",
+            "cloudkeeperV1 = cloudkeeperv1.__main__:main",
         ]
     },
     include_package_data=True,

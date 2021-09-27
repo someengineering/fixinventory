@@ -1,14 +1,14 @@
-name: Check PR (cloudkeeper)
+name: Check PR (cloudkeeperV1)
 on:
   push:
     paths:
-      - 'cloudkeeper/**'
+      - 'cloudkeeperV1/**'
       - 'cklib/**'
       - '.github/**'
 
 jobs:
-  cloudkeeper:
-    name: "cloudkeeper"
+  cloudkeeperV1:
+    name: "cloudkeeperV1"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,7 +32,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade --editable cklib/
-          pip install --upgrade --editable cloudkeeper/
+          pip install --upgrade --editable cloudkeeperV1/
           pip install tox wheel flake8
 
       - name: Build cklib
@@ -42,11 +42,11 @@ jobs:
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 
-      - name: Build cloudkeeper
-        working-directory: ./cloudkeeper
+      - name: Build cloudkeeperV1
+        working-directory: ./cloudkeeperV1
         run: |
           pip wheel -w /build -f /build .
 
       - name: Run tests
-        working-directory: ./cloudkeeper
+        working-directory: ./cloudkeeperV1
         run: tox

@@ -1,4 +1,4 @@
-from cloudkeeper.processor import Processor
+from cloudkeeperv1.processor import Processor
 from cklib.graph import GraphContainer
 from cklib.baseplugin import BaseCollectorPlugin
 from cklib.baseresources import BaseResource

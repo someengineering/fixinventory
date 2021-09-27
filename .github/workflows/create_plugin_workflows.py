@@ -50,6 +50,13 @@ jobs:
           pip wheel -w /build .
 """
 
+step_cloudkeeperV1 = """
+      - name: Build cloudkeeperV1
+        working-directory: ./cloudkeeperV1
+        run: |
+          pip wheel -w /build -f /build .
+"""
+
 step_aws = """
       - name: Build aws
         working-directory: ./plugins/aws
@@ -68,6 +75,8 @@ for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
           yml.write(install.replace("@name@", plugin))
+          if plugin in ("tag_aws_ctime", "tagvalidator"):
+            yml.write(step_cloudkeeperV1)
           # aws is a dependency that needs to be installed for all aws related plugins.
           if "aws" in plugin and plugin != "aws":
               yml.write(step_aws)

@@ -1,4 +1,4 @@
-from cloudkeeper.metrics import GraphCollector
+from cloudkeeperv1.metrics import GraphCollector
 from cklib.graph import GraphContainer
 from prometheus_client.core import GaugeMetricFamily
 

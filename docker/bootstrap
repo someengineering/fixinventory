@@ -11,7 +11,7 @@ main() {
     apply_permissions
     configure_timezone
     if [ "$LEGACY_STARTUP" = true ]; then
-        exec /usr/local/bin/cloudkeeper "$@"
+        exec /usr/local/bin/cloudkeeperV1 "$@"
     else
         setup_dnsmasq
         setup_syslog
