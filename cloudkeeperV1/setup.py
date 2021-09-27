@@ -7,7 +7,7 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper",
+    name="cloudkeeperV1",
     version="0.0.17",
     description="Housekeeping for Clouds",
     license="Apache 2.0",
