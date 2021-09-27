@@ -28,8 +28,8 @@ jobs:
                         ghcr.io/someengineering/cloudkeeper
                     tags: |
                         type=pep440,pattern={{version}}
-                        type=semver,pattern={{major}}.{{minor}}
-                        type=semver,pattern={{major}}
+                        type=pep440,pattern={{major}}.{{minor}}
+                        type=pep440,pattern={{major}}
                         type=sha
 
             -   name: Set up Docker Buildx
