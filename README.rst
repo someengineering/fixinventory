@@ -1,5 +1,13 @@
+.. figure:: https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png
+    :align: center
+    :target: https://docs.some.engineering
+    :alt: Cloudkeeper Sheep Logo
+
+Cloudkeeper
+===========
+
 Getting started
-===============
+---------------
 Cloudkeeper is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up. 
 
 Infrastructure management tools like Terraform and CloudFormation do a good job at managing resources they know about. But they do a poor job at managing resources they did not create. 
@@ -8,7 +16,7 @@ You can see drift in your environment, but only if the tool itself created the l
 Cloudkeeper fixes that gap in your environment.
 
 Quick start
-===========
+-----------
 In this quick start guide, we’re showing you three things, how to:
 
     #. install Cloudkeeper for AWS with docker
