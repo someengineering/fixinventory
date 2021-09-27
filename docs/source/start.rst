@@ -18,9 +18,9 @@ AWS Credentials
 ---------------
 For this demo you need an `AWS IAM User <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html>`_ with `Access Key <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_.
 
-Run cloudkeeper
+Run Cloudkeeper
 ---------------
-Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest cloudkeeper release:
+Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest Cloudkeeper release:
 
 ::
 
@@ -30,7 +30,7 @@ Assuming `docker <https://www.docker.com/get-started>`_ is already present, run 
     --name cloudkeeper ghcr.io/someengineering/cloudkeeper > cloudkeeper.log
 
 
-Start the cloudkeeper CLI
+Start the Cloudkeeper CLI
 -------------------------
 You interact with `ckcore <https://github.com/someengineering/cloudkeeper/tree/main/ckcore>`_ via `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_
 ::
@@ -74,7 +74,7 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
 
 Almost done
 -----------
-Count the resources available in cloudkeeper
+Count the resources available in Cloudkeeper
 ::
 
     > match is(resource) | count

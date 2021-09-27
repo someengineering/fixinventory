@@ -4,7 +4,7 @@ Usage
 =====
 Selecting, filtering and counting your resources
 ------------------------------------------------
-In this section we show you how to use cloudkeeper CLI(`cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_) to discover your infrastructure by selecting, filtering and counting your resources.
+In this section we show you how to use Cloudkeeper CLI(`cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_) to discover your infrastructure by selecting, filtering and counting your resources.
 
 | `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_ ``help`` command list all commands available.
 | Guidance for a specific command is ``help <command>``
