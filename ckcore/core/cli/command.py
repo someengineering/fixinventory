@@ -264,7 +264,7 @@ class CountCommand(CLICommand):
                 async for element in in_stream:
                     fn(element)
 
-            for key, value in sorted(counter.items(), key=lambda x: -x[1]):
+            for key, value in sorted(counter.items(), key=lambda x: x[1]):
                 yield f"{key}: {value}"
 
             yield f"total matched: {matched}"
