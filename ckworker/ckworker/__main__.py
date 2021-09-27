@@ -272,13 +272,11 @@ def cleanup():
     ckcore_graph = ArgumentParser.args.ckcore_graph
     graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     query_uri = f"{graph_uri}/query/graph"
+    query_filter = ""
     if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
         clouds = '["' + '", "'.join(ArgumentParser.args.collector) + '"]'
-        query = (
-            f"desired.clean == true and metadata.ancestors.cloud.id in {clouds} -[0:]-"
-        )
-    else:
-        query = "desired.clean == true -[0:]-"
+        query_filter = f"and metadata.ancestors.cloud.id in {clouds} "
+    query = f"desired.clean == true {query_filter}-[0:]-"
     log.debug(f"Sending query {query}")
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
