@@ -256,10 +256,6 @@ def cleanup():
             if node.kind == "graph_root":
                 log.debug(f"Setting graph root {node}")
                 graph.root = node
-            if node_id != node.sha256:
-                log.warning(
-                    f"ID {node_id} of node {node} does not match checksum {node.sha256}"
-                )
         elif data.get("type") == "edge":
             node_from = data.get("from")
             node_to = data.get("to")
