@@ -21,12 +21,8 @@ The docker set-up takes 2-5 minutes. The duration of the first collect process d
 | To start exploring you need AWS credentials and a working docker environment with access to AWS APIs.
 | We assume you are familiar with basic docker operations and how to operate a linux shell.You find our current Documentation over here:
 
-You can find your Quick start tutorial here
-
-.. class:: center
-
+You can continue reading our Quick start tutorial on our documentatation page:
 https://docs.some.engineering
-
 
 | Reach out to us if you have any questions, improvements, bugs!
 | Contributions are very much appreciated.
