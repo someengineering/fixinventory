@@ -786,7 +786,7 @@ class ArangoGraphDB(GraphDB):
                 def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
                     nav = cl.navigation
                     crsr = f"l{depth}crsr"
-                    direction = self.__navigation_lookup[nav.direction]
+                    direction = "OUTBOUND" if nav.direction == "out" else "INBOUND"
                     unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
                     filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                     inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
@@ -827,24 +827,37 @@ class ArangoGraphDB(GraphDB):
                 )
                 return out
 
-            def inout(in_crsr: str, navigation: Navigation) -> str:
+            def inout(in_crsr: str, start: int, until: int, edge_type: str, direction: str) -> str:
                 nonlocal query_part
-                out = f"step{idx}_navigation"
+                out = f"step{idx}_navigation_{direction}"
                 out_crsr = f"n{idx}"
                 link = f"link{idx}"
-                direction = self.__navigation_lookup[navigation.direction]
                 unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                dir_bound = "OUTBOUND" if direction == "out" else "INBOUND"
                 query_part += (
                     f"LET {out} =( FOR in{idx} in {in_crsr} "
-                    f"FOR {out_crsr}, {link} IN {navigation.start}..{navigation.until} {direction} in{idx} "
-                    f"{self.edge_collection(navigation.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                    f"FOR {out_crsr}, {link} IN {start}..{until} {dir_bound} in{idx} "
+                    f"{self.edge_collection(edge_type)} OPTIONS {{ bfs: true, {unique} }} "
                     f"RETURN MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})) "
                 )
                 return out
 
+            def navigation(in_crsr: str, nav: Navigation) -> str:
+                nonlocal query_part
+                if nav.direction == "inout":
+                    # traverse to root
+                    to_in = inout(in_crsr, nav.start, nav.until, nav.edge_type, "in")
+                    # traverse to leaf (in case of 0: use 1 to not have the current element twice)
+                    to_out = inout(in_crsr, max(1, nav.start), nav.until, nav.edge_type, "out")
+                    nav_crsr = f"step{idx}_navigation"
+                    query_part += f"LET {nav_crsr} = UNION({to_in}, {to_out})"
+                    return nav_crsr
+                else:
+                    return inout(in_crsr, nav.start, nav.until, nav.edge_type, nav.direction)
+
             cursor = filter_statement()
             cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
-            cursor = inout(cursor, p.navigation) if p.navigation else cursor
+            cursor = navigation(cursor, p.navigation) if p.navigation else cursor
             return p, cursor, query_part
 
         def merge_ancestors(cursor: str, part_str: str, ancestor_names: list[str]) -> tuple[str, str]:
@@ -989,9 +1002,6 @@ class ArangoGraphDB(GraphDB):
         LIMIT @limit
         RETURN doc
         """
-
-    # lookup table
-    __navigation_lookup = {"in": "INBOUND", "out": "OUTBOUND", "inout": "ANY"}
 
     # parameter: rid
     # return: the complete document
