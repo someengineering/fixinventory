@@ -104,10 +104,7 @@ class Graph(networkx.DiGraph):
             getattr(graph, "root", None), BaseResource
         ):
             log.debug(
-                (
-                    f"Merging graph of {graph.root.rtdname}"
-                    f" into graph of {self.root.rtdname}"
-                )
+                f"Merging graph of {graph.root.rtdname} into graph of {self.root.rtdname}"
             )
             self.add_edge(self.root, graph.root)
         else:
@@ -754,9 +751,9 @@ class GraphExportIterator:
         with self.graph.lock.read_access:
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
-                if getattr(node, "_merge", None):
-                    log.debug(f"Merging graph above {node.rtdname}")
-                    node_dict.update({"merge": True})
+                if getattr(node, "_replace", None):
+                    log.debug(f"Replace graph on node {node.rtdname}")
+                    node_dict.update({"replace": True})
                 node_json = json.dumps(node_dict) + "\n"
                 self.nodes_sent += 1
                 if (

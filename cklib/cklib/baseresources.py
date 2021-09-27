@@ -768,7 +768,7 @@ class BaseInstanceType(BaseType):
 class BaseCloud(BaseResource):
     kind: ClassVar[str] = "base_cloud"
 
-    _merge: bool = field(default=False, repr=False)
+    _replace: bool = field(default=False, repr=False)
 
     def cloud(self, graph=None):
         return self
@@ -790,7 +790,7 @@ class BaseAccount(BaseResource):
         },
     }
 
-    _merge: bool = field(default=False, repr=False)
+    _replace: bool = field(default=False, repr=False)
 
     def account(self, graph=None):
         return self
@@ -804,7 +804,7 @@ class BaseAccount(BaseResource):
 class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
 
-    _merge: bool = field(default=False, repr=False)
+    _replace: bool = field(default=False, repr=False)
 
     def region(self, graph=None):
         return self

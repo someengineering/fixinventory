@@ -162,13 +162,13 @@ def test_reassign_root(person_model: Model) -> None:
     assert set(access.successors("root", EdgeType.default)) == {"2", "3"}
 
 
-def multi_cloud_graph(merge_on: str) -> MultiDiGraph:
+def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
     g = MultiDiGraph()
     root = "root"
 
     def add_node(node_id: str) -> None:
         reported = {"some": {"deep": {"nested": node_id}}}
-        g.add_node(node_id, merge=node_id.startswith(merge_on), reported=reported, kind=node_id, kinds=[node_id])
+        g.add_node(node_id, replace=node_id.startswith(replace_on), reported=reported, kind=node_id, kinds=[node_id])
 
     def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
@@ -207,44 +207,35 @@ def test_sub_graphs_from_graph_collector() -> None:
     graph = multi_cloud_graph("collector")
     merges, parent, graph_it = GraphAccess.merge_graphs(graph)
     graphs = list(graph_it)
-    assert len(graphs) == 6
+    assert len(graphs) == 2
     for root, succ in graphs:
-        assert len(parent.nodes) == 3
-        assert succ.root().startswith("account")
-        assert len(list(succ.not_visited_nodes())) == 79
-        assert len(succ.nodes) == 82
+        print(parent.nodes)
+        assert len(parent.nodes) == 3  # root + 2 x collector
+        assert succ.root().startswith("collector")
+        assert len(list(succ.not_visited_nodes())) == 237
+        assert len(succ.nodes) == 240
         # make sure there is no node from another subgraph
         for node_id in succ.not_visited_nodes():
             assert succ.root() in node_id["id"]
-        assert len(list(succ.not_visited_edges(EdgeType.default))) == 79
-        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 79
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 237
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 237
 
 
 def test_sub_graphs_from_graph_account() -> None:
     graph = multi_cloud_graph("account")
     merges, parent, graph_it = GraphAccess.merge_graphs(graph)
     graphs = list(graph_it)
-    assert len(graphs) == 36
+    assert len(graphs) == 6
     for root, succ in graphs:
-        assert len(parent.nodes) == 9  # root + collector + account
-        assert succ.root().startswith("region")
-        assert len(list(succ.not_visited_nodes())) == 13
-        assert len(succ.nodes) == 22
+        assert len(parent.nodes) == 9
+        assert succ.root().startswith("account")
+        assert len(list(succ.not_visited_nodes())) == 78
+        assert len(succ.nodes) == 87
         # make sure there is no node from another subgraph
         for node_id in succ.not_visited_nodes():
             assert succ.root() in node_id["id"]
-        assert len(list(succ.not_visited_edges(EdgeType.default))) == 13
-        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 13
-
-
-def test_sub_graphs_with_cycle() -> None:
-    graph = multi_cloud_graph("account")
-    # add an edge from one merge graph to another merge graph
-    graph.add_edge("parent_region_account_collector_aws_0_asia_1", "parent_region_account_collector_aws_0_africa_1")
-    # the cycle should fail creating sub-graphs
-    with pytest.raises(AttributeError):
-        _, _, graph_it = GraphAccess.merge_graphs(graph)
-        list(graph_it)
+        assert len(list(succ.not_visited_edges(EdgeType.default))) == 78
+        assert len(list(succ.not_visited_edges(EdgeType.delete))) == 78
 
 
 def test_predecessors() -> None:

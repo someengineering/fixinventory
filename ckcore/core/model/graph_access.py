@@ -81,7 +81,7 @@ class GraphBuilder:
                 js[Section.reported],
                 js.get(Section.desired, None),
                 js.get(Section.metadata, None),
-                js.get("merge", None) is True,
+                js.get("replace", None) is True,
             )
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
@@ -94,7 +94,7 @@ class GraphBuilder:
         reported: Json,
         desired: Optional[Json] = None,
         metadata: Optional[Json] = None,
-        merge: bool = False,
+        replace: bool = False,
     ) -> None:
         self.nodes += 1
         # validate kind of this reported json
@@ -115,7 +115,7 @@ class GraphBuilder:
             kind=kind,
             kinds=list(kind.kind_hierarchy()),
             flat=flat,
-            merge=merge,
+            replace=replace,
         )
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
@@ -307,38 +307,37 @@ class GraphAccess:
     ) -> tuple[list[str], GraphAccess, Generator[tuple[str, GraphAccess], None, None]]:
         """
         Find all merge graphs in the provided graph.
-        A merge graph is a self contained graph under a node which is marked with merge=true.
-        Such nodes are merged with the merge node in the database.
+        A merge graph is a self contained graph under a node which is marked with replace=true.
+        Such nodes are replaced with the replace node in the database.
         Example:
-        A -> B -> C(merge=true) -> E -> E1 -> E2
-                                -> F -> F1
-               -> D(merge=true) -> G -> G1 -> G2 -> G3 -> G4
+        A -> B -> C(replace=true) -> E -> E1 -> E2
+                                  -> F -> F1
+               -> D(replace=true) -> G -> G1 -> G2 -> G3 -> G4
 
-        This will result in 3 merge roots:
-            E: [A, B, C]
-            F: [A, B, C]
-            G: [A, B, D]
+        This will result in 2 merge roots:
+            C: [A, B]
+            D: [A, B]
 
         Note that all successors of a merge node that is also a predecessors of the merge node is sorted out.
-        Example: A -> B -> C(merge=true) -> A  ==> A is not considered merge root.
 
         :param graph: the incoming multi graph update.
         :return: the list of all merge roots, the expected parent graph and all merge root graphs.
         """
 
-        # Find merge nodes: all nodes that are marked as merge node -> all children (merge roots) should be merged.
-        # This method returns all merge roots as key, with the respective predecessors nodes as value.
-        def merge_roots() -> dict[str, set[str]]:
+        # Find replace nodes: all nodes that are marked as replace node.
+        # This method returns all replace roots as key, with the respective predecessors nodes as value.
+        def replace_roots() -> dict[str, set[str]]:
             graph_root = GraphAccess.root_id(graph)
-            merge_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("merge", False)]
-            assert len(merge_nodes) > 0, "No merge nodes provided in the graph. Mark at least one node with merge=true!"
+            replace_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("replace", False)]
+            assert (
+                len(replace_nodes) > 0
+            ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"
             result: dict[str, set[str]] = {}
-            for node in merge_nodes:
-                # compute the shortest path from root to here and sort out all successors that are also predecessors
+            for node in replace_nodes:
+                # compute the shortest path from root to here
                 pres: set[str] = reduce(lambda res, p: res | set(p), all_shortest_paths(graph, graph_root, node), set())
-                for a in graph.successors(node):
-                    if a not in pres:
-                        result[a] = pres
+                result[node] = pres
+
             return result
 
         # Walk the graph from given starting node and return all successors.
@@ -377,7 +376,7 @@ class GraphAccess:
                 sub = GraphAccess(graph.subgraph(successors | parent_nodes), root, parent_nodes, parent_edges)
                 yield root, sub
 
-        roots = merge_roots()
+        roots = replace_roots()
         parents: set[str] = reduce(lambda res, ps: res | ps, roots.values(), set())
         parent_graph = graph.subgraph(parents)
         graphs = merge_sub_graphs(roots, parents, set(parent_graph.edges(data="edge_type")))
