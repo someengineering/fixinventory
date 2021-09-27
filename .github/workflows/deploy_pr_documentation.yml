@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master
       with:
-        docs-folder: "documentation/"
+        docs-folder: "docs/"
 
     # Publish built docs to gh-pages branch.
     # ===============================
@@ -20,7 +20,7 @@ jobs:
       run: |
         apt-get update -y && apt-get install -y git
         git clone https://github.com/someengineering/cloudkeeper.git --branch gh-pages --single-branch gh-pages
-        cp -r documentation/_build/html/* gh-pages/
+        cp -r docs/_build/html/* gh-pages/
         cd gh-pages
         touch .nojekyll
         git config --local user.email "action@github.com"

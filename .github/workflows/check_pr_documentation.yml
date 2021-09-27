@@ -3,7 +3,7 @@ name: Check PR (Documentation)
 on: 
   push:
     paths:
-      - 'documentation/**'
+      - 'docs/**'
 
 jobs:
   documentation:
@@ -13,4 +13,4 @@ jobs:
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master
       with:
-        docs-folder: "documentation/"
+        docs-folder: "docs/"
