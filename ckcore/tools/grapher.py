@@ -38,7 +38,7 @@ by_idx = {
 }
 
 
-def node(level, identity, merge: bool = False, kind: Optional[str] = None):
+def node(level, identity, replace: bool = False, kind: Optional[str] = None):
     idjs = {"name": f"name: {identity} at level: {level}", "tags": {}}
     num = randint(0, 100) if wild else level
     reported = by_idx[num % len(by_idx)] | idjs
@@ -47,7 +47,7 @@ def node(level, identity, merge: bool = False, kind: Optional[str] = None):
     metadata = {"level": level}
     desired = {"name": f"some cool name", "age": 29}
     js = {"id": identity, "reported": reported, "metadata": metadata}
-    js = js | {"merge": True} if merge else js
+    js = js | {"replace": True} if replace else js
     print(json.dumps(js))
 
 
@@ -58,7 +58,7 @@ def edge(from_node, to_node, edge_type):
 root = f"root"
 collector_root = f"{collector}_root"
 node(0, root, kind="graph_root")
-node(0, collector_root, merge=True)
+node(0, collector_root, replace=True)
 edge(root, collector_root, "dependency")
 
 for o in range(0, depth):

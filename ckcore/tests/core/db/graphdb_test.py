@@ -89,7 +89,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(uid: str, kind: str, node: Optional[Json] = None, merge: bool = False) -> None:
+    def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
         reported = node if node else to_json(Foo(uid))
         graph.add_node(
             uid,
@@ -97,12 +97,12 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             reported=reported,
             desired={"node_id": uid},
             metadata={"node_id": uid},
-            merge=merge,
+            replace=replace,
         )
 
     # root -> collector -> sub_root -> **rest
     add_node("root", "foo")
-    add_node("collector", "foo", merge=True)
+    add_node("collector", "foo", replace=True)
     add_node("sub_root", "foo")
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
@@ -125,8 +125,8 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(node_id: str, merge: bool = False) -> str:
-        graph.add_node(node_id, reported=to_json(Foo(node_id)), merge=merge, kinds=["foo"])
+    def add_node(node_id: str, replace: bool = False) -> str:
+        graph.add_node(node_id, reported=to_json(Foo(node_id)), replace=replace, kinds=["foo"])
         return node_id
 
     root = add_node("root")
@@ -135,12 +135,12 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         add_edge(root, collector)
         for account_num in range(0, 2):
             aid = f"{collector_num}:{account_num}"
-            account = add_node(f"account_{aid}", merge=True)
+            account = add_node(f"account_{aid}")
             add_edge(collector, account)
             add_edge(account, collector, EdgeType.delete)
             for region_num in range(0, 2):
                 rid = f"{aid}:{region_num}"
-                region = add_node(f"region_{rid}")
+                region = add_node(f"region_{rid}", replace=True)
                 add_edge(account, region)
                 add_edge(region, account, EdgeType.delete)
                 for parent_num in range(0, width):
@@ -242,7 +242,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     g = create_graph("yes or no")
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.merge_graph(g, foo_model, batch_id) == (["sub_root"], GraphUpdate(112, 1, 0, 112, 0, 0))
+    assert await graph_db.merge_graph(g, foo_model, batch_id) == (["collector"], GraphUpdate(112, 1, 0, 112, 0, 0))
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
     with pytest.raises(NoSuchBatchError):
@@ -266,7 +266,7 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     def create(txt: str, width: int = 10) -> MultiDiGraph:
         return create_graph(txt, width=width)
 
-    p = ["sub_root"]
+    p = ["collector"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
     assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(112, 1, 0, 112, 0, 0))
     # exactly the same graph is updated: expect no changes
