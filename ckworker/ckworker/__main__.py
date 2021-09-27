@@ -272,7 +272,7 @@ def cleanup():
     if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
         clouds = '["' + '", "'.join(ArgumentParser.args.collector) + '"]'
         query_filter = f"and metadata.ancestors.cloud.id in {clouds} "
-    query = f"desired.clean == true {query_filter}-[0:]-"
+    query = f"desired.clean == true {query_filter}<-[0:]->"
     log.debug(f"Sending query {query}")
     r = requests.post(
         query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
