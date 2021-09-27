@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from abc import abstractmethod, ABC
+from collections import defaultdict
 from datetime import timedelta
 from functools import partial
 from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
@@ -232,34 +233,42 @@ class CountCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         get_path = arg.split(".") if arg else None
+        counter: dict[str, int] = defaultdict(int)
+        matched = 0
+        unmatched = 0
 
-        def inc_prop(o: JsonElement) -> tuple[int, int]:
-            def prop_value(path: list[str]) -> tuple[int, int]:
-                try:
-                    if isinstance(o, dict):
-                        return int(value_in_path(o, path)), 0  # type: ignore
-                    else:
-                        return 0, 1
-                except Exception:
-                    return 0, 1
+        def inc_prop(o: JsonElement) -> None:
+            nonlocal matched
+            nonlocal unmatched
+            value = value_in_path(o, get_path)  # type:ignore
+            if value:
+                if isinstance(value, str):
+                    pass
+                elif isinstance(value, (dict, list)):
+                    value = json.dumps(value)
+                else:
+                    value = str(value)
+                matched += 1
+                counter[value] += 1
+            else:
+                unmatched += 1
 
-            return prop_value(get_path) if get_path else (0, 1)
-
-        def inc_identity(_: Any) -> tuple[int, int]:
-            return 1, 0
+        def inc_identity(_: Any) -> None:
+            nonlocal matched
+            matched += 1
 
         fn = inc_prop if arg else inc_identity
 
         async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
-            counter = 0
-            no_match = 0
-
             async with content.stream() as in_stream:
                 async for element in in_stream:
-                    cnt, not_matched = fn(element)
-                    counter += cnt
-                    no_match += not_matched
-            yield {"matched": counter, "not_matched": no_match}
+                    fn(element)
+
+            for key, value in counter.items():
+                yield f"{key}: {value}"
+
+            yield f"total matched: {matched}"
+            yield f"total unmatched: {unmatched}"
 
         # noinspection PyTypeChecker
         return count_in_stream
