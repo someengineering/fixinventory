@@ -184,7 +184,7 @@ class GraphBuilder:
                     key = GraphAccess.edge_key(rid, succ, edge_type)
                     if self.graph.has_edge(rid, succ, key):
                         self.graph.remove_edge(rid, succ, key)
-                        self.graph.add_edge("root", succ, GraphAccess.edge_key("root", succ, edge_type))
+                        self.add_edge("root", succ, edge_type)
             self.graph.remove_node(rid)
 
 
