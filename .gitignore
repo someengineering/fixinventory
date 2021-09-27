@@ -23,3 +23,4 @@ venv*
 /config/
 *.code-workspace
 docs/build/
+.DS_Store
