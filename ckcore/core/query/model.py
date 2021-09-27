@@ -268,7 +268,7 @@ class Navigation:
         elif self.direction == "in":
             return f"<-{nav}-"
         else:
-            return f"-{nav}-"
+            return f"<-{nav}->"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -459,6 +459,9 @@ class Query:
 
     def traverse_in(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, "in")
+
+    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
+        return self.traverse(start, until, edge_type, "inout")
 
     def traverse(self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = "out") -> Query:
         parts = self.parts.copy()

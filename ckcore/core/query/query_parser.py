@@ -139,10 +139,10 @@ out_p = lexeme(string("-") >> edge_definition << string("->")).map(
     lambda nav: Navigation(nav[0], nav[1], nav[2], "out")
 )
 in_p = lexeme(string("<-") >> edge_definition << string("-")).map(lambda nav: Navigation(nav[0], nav[1], nav[2], "in"))
-in_out_p = lexeme(string("-") >> edge_definition << string("-")).map(
+in_out_p = lexeme(string("<-") >> edge_definition << string("->")).map(
     lambda nav: Navigation(nav[0], nav[1], nav[2], "inout")
 )
-navigation_parser = out_p | in_p | in_out_p
+navigation_parser = in_out_p | out_p | in_p
 
 pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
 
