@@ -1,30 +1,30 @@
 openapi: 3.0.0
 servers:
-    - url: ../
-      description: current system
+    -   url: ../
+        description: current system
 info:
     description: API provided by keeper-core
     version: V1
     title: keeper-core REST API
 tags:
-    - name: model
-      description: Endpoints to maintain the schema and model of the entities inside a graph.
-    - name: graph_management
-      description: Create wipe or delete a complete graph.
-    - name: graph
-      description: Endpoints to query all sections of the graph
-    - name: graph_section
-      description: Endpoints to manipulate the reported data in the graph.
-    - name: cli
-      description: Endpoints to evaluate and execute cli commands
-    - name: subscriptions
-      description: Endpoints to manipulate event subscriptions
-    - name: work_queue
-      description: Endpoints to attach to the work queue
-    - name: system
-      description: Endpoints to get information about the system.
-    - name: debug
-      description: Endpoints to debug the system
+    -   name: graph_query
+        description: Endpoints to query all sections of the graph
+    -   name: graph_management
+        description: Create, update wipe or delete a complete graph.
+    -   name: node_management
+        description: Create, update, delete and get a node in the graph.
+    -   name: model
+        description: Endpoints to maintain the schema and model of the entities inside a graph.
+    -   name: cli
+        description: Endpoints to evaluate and execute cli commands
+    -   name: subscriptions
+        description: Endpoints to manipulate event subscriptions
+    -   name: work_queue
+        description: Endpoints to attach to the work queue
+    -   name: system
+        description: Endpoints to get information about the system.
+    -   name: debug
+        description: Endpoints to debug the system
 
 paths:
 
@@ -96,12 +96,12 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "The graph with the root node"
@@ -116,12 +116,12 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "The created graph with the root node"
@@ -134,148 +134,36 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: truncate
-                  in: query
-                  schema:
-                      type: boolean
-                  description: "If this parameter is set, leave the graph definition, but wipe the data."
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: truncate
+                    in: query
+                    schema:
+                        type: boolean
+                    description: "If this parameter is set, leave the graph definition, but wipe the data."
             responses:
                 "200":
                     description: "Ok when the delete operation was successful"
                     content:
                         text/plain:
                             example: "Graph deleted."
-    /graph/{graph_id}/node/{node_id}/under/{parent_node_id}:
-        post:
-            summary: "Create a new node under the given parent node"
-            tags:
-                - graph_management
-            parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: node_id
-                  in: path
-                  description: "The identifier of the node"
-                  required: true
-                  schema:
-                      type: string
-                - name: parent_node_id
-                  in: path
-                  description: "The identifier of the parent node"
-                  required: true
-                  schema:
-                      type: string
-            requestBody:
-                description: "The node document to create."
-                content:
-                    application/json:
-                        schema:
-                            $ref: "#/components/schemas/Node"
-            responses:
-                "200":
-                    description: "Return the created node"
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/Node"
-    /graph/{graph_id}/node/{node_id}:
-        get:
-            summary: "Get a node with the given node id"
-            tags:
-                - graph_management
-            parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: node_id
-                  in: path
-                  description: "The identifier of the node"
-                  required: true
-                  schema:
-                      type: string
-            responses:
-                "200":
-                    description: "Return the defined node"
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/Node"
-        patch:
-            summary: "Update a node with the given node id"
-            tags:
-                - graph_management
-            parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: node_id
-                  in: path
-                  description: "The identifier of the node"
-                  required: true
-                  schema:
-                      type: string
-            requestBody:
-                description: "The partial object data to patch."
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            additionalProperties: true
-            responses:
-                "200":
-                    description: "Return the patched node"
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/Node"
-        delete:
-            summary: "Delete a node with the given node id."
-            tags:
-                - graph_management
-            parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: node_id
-                  in: path
-                  description: "The identifier of the node"
-                  required: true
-                  schema:
-                      type: string
-            responses:
-                "204":
-                    description: "Node is deleted"
+
     /graph/{graph_id}/merge:
         post:
             summary: "Merge a given graph with the existing graph under marked merge nodes."
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description:
                     "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
@@ -284,8 +172,8 @@ paths:
                     application/x-ndjson:
                         schema:
                             oneOf:
-                                - $ref: "#/components/schemas/NodeInGraph"
-                                - $ref: "#/components/schemas/Edge"
+                                -   $ref: "#/components/schemas/NodeInGraph"
+                                -   $ref: "#/components/schemas/Edge"
                         example:
                           # TODO: is there a way to show ndjson instead of json?
                           [
@@ -308,22 +196,22 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: batch_id
-                  in: query
-                  description: >
-                      A batch identifier is a string that uniquely identifies the batch update.
-                      If this parameter is omitted, a new batch identifier is created automatically.
-                      The resulting batch identifier can be retrieved via the response message.
-                  required: false
-                  schema:
-                      default: null
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: batch_id
+                    in: query
+                    description: >
+                        A batch identifier is a string that uniquely identifies the batch update.
+                        If this parameter is omitted, a new batch identifier is created automatically.
+                        The resulting batch identifier can be retrieved via the response message.
+                    required: false
+                    schema:
+                        default: null
+                        type: string
             requestBody:
                 description:
                     "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
@@ -332,8 +220,8 @@ paths:
                     application/x-ndjson:
                         schema:
                             oneOf:
-                                - $ref: "#/components/schemas/NodeInGraph"
-                                - $ref: "#/components/schemas/Edge"
+                                -   $ref: "#/components/schemas/NodeInGraph"
+                                -   $ref: "#/components/schemas/Edge"
                         example:
                           # TODO: is there a way to show ndjson instead of json?
                           [
@@ -356,12 +244,12 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "Ok message"
@@ -375,18 +263,18 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: batch_id
-                  in: path
-                  description: "A batch identifier is a string that uniquely identifies the batch update."
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: batch_id
+                    in: path
+                    description: "A batch identifier is a string that uniquely identifies the batch update."
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "Ok message"
@@ -400,18 +288,18 @@ paths:
             tags:
                 - graph_management
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: batch_id
-                  in: path
-                  description: "A batch identifier is a string that uniquely identifies the batch update."
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: batch_id
+                    in: path
+                    description: "A batch identifier is a string that uniquely identifies the batch update."
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "Ok message"
@@ -422,6 +310,166 @@ paths:
                                 example: "Batch aborted."
     # endregion
 
+    # region node management
+    /graph/{graph_id}/node/{node_id}/under/{parent_node_id}:
+        post:
+            summary: "Create a new node under the given parent node"
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: node_id
+                    in: path
+                    description: "The identifier of the node"
+                    required: true
+                    schema:
+                        type: string
+                -   name: parent_node_id
+                    in: path
+                    description: "The identifier of the parent node"
+                    required: true
+                    schema:
+                        type: string
+            requestBody:
+                description: "The node document to create."
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Node"
+            responses:
+                "200":
+                    description: "Return the created node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+    /graph/{graph_id}/node/{node_id}:
+        get:
+            summary: "Get a node with the given node id"
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: node_id
+                    in: path
+                    description: "The identifier of the node"
+                    required: true
+                    schema:
+                        type: string
+            responses:
+                "200":
+                    description: "Return the defined node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+        patch:
+            summary: "Update a node with the given node id"
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: node_id
+                    in: path
+                    description: "The identifier of the node"
+                    required: true
+                    schema:
+                        type: string
+            requestBody:
+                description: "The partial object data to patch."
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: "Return the patched node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+        delete:
+            summary: "Delete a node with the given node id."
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: node_id
+                    in: path
+                    description: "The identifier of the node"
+                    required: true
+                    schema:
+                        type: string
+            responses:
+                "204":
+                    description: "Node is deleted"
+
+    /graph/{graph_id}/node/{node_id}/section/{section}:
+        patch:
+            summary: "Patch a node with the given node id in given section"
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: node_id
+                    in: path
+                    description: "The identifier of the node"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
+            requestBody:
+                description: "The partial object data to patch."
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: "Return the patched node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+
+    # endregion
+
     # region graph no section
     /graph/{graph_id}/query:
         post:
@@ -430,24 +478,24 @@ paths:
                 Query the graph by all sections. This means that properties have to be prefixed by the section name.
                 Example: reported.age>23 and desired.clean==true and metadata.version==2
             tags:
-                - graph
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: format
-                  in: header
-                  description: "The format of the result to return"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - graph
-                          - list
-                          - cytoscape
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: format
+                    in: header
+                    description: "The format of the result to return"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - graph
+                            - list
+                            - cytoscape
             requestBody:
                 description: "The query to perform"
                 content:
@@ -462,15 +510,15 @@ paths:
                         application/json:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/Graph"
-                                    - type: array
-                                      items:
-                                          $ref: "#/components/schemas/Node"
+                                    -   $ref: "#/components/schemas/Graph"
+                                    -   type: array
+                                        items:
+                                            $ref: "#/components/schemas/Node"
                         application/x-ndjson:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/NodeInGraph"
-                                    - $ref: "#/components/schemas/Edge"
+                                    -   $ref: "#/components/schemas/NodeInGraph"
+                                    -   $ref: "#/components/schemas/Edge"
     /graph/{graph_id}/query/raw:
         post:
             summary: "Transform the query into the raw database query"
@@ -480,12 +528,12 @@ paths:
             tags:
                 - debug
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The query to perform"
                 content:
@@ -507,14 +555,14 @@ paths:
                 Query the graph by all sections. This means that properties have to be prefixed by the section name.
                 Example: reported.age>23 and desired.clean==true and metadata.version==2
             tags:
-                - graph
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The query to perform"
                 content:
@@ -541,14 +589,14 @@ paths:
                 Query the graph by all sections. This means that properties have to be prefixed by the section name.
                 Example: reported.age>23 and desired.clean==true and metadata.version==2
             tags:
-                - graph
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The query to perform"
                 content:
@@ -566,8 +614,8 @@ paths:
                         application/x-ndjson:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/NodeInGraph"
-                                    - $ref: "#/components/schemas/Edge"
+                                    -   $ref: "#/components/schemas/NodeInGraph"
+                                    -   $ref: "#/components/schemas/Edge"
     /graph/{graph_id}/query/aggregate:
         post:
             summary: "Query the aggregate function on the specified graph and return the aggregation result."
@@ -575,14 +623,14 @@ paths:
                 Query the graph by all sections. This means that properties have to be prefixed by the section name.
                 Example: reported.age>23 and desired.clean==true and metadata.version==2
             tags:
-                - graph
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The aggregation query to perform"
                 content:
@@ -611,12 +659,12 @@ paths:
             tags:
                 - debug
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The query to perform"
                 content:
@@ -636,20 +684,20 @@ paths:
         get:
             summary: "Search the graph"
             tags:
-                - graph
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: term
-                  in: query
-                  description: "The term to search for"
-                  required: true
-                  schema:
-                      type: string
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: term
+                    in: query
+                    description: "The term to search for"
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "All matching documents"
@@ -670,34 +718,34 @@ paths:
         post:
             summary: "Query this graph"
             tags:
-                - graph_section
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
-                - name: format
-                  in: header
-                  description: "The format of the result to return"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - graph
-                          - list
-                          - cytoscape
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
+                -   name: format
+                    in: header
+                    description: "The format of the result to return"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - graph
+                            - list
+                            - cytoscape
             requestBody:
                 description: "The query to perform"
                 content:
@@ -712,37 +760,37 @@ paths:
                         application/json:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/Graph"
-                                    - type: array
-                                      items:
-                                          $ref: "#/components/schemas/Node"
+                                    -   $ref: "#/components/schemas/Graph"
+                                    -   type: array
+                                        items:
+                                            $ref: "#/components/schemas/Node"
                         application/x-ndjson:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/NodeInGraph"
-                                    - $ref: "#/components/schemas/Edge"
+                                    -   $ref: "#/components/schemas/NodeInGraph"
+                                    -   $ref: "#/components/schemas/Edge"
     /graph/{graph_id}/{section}/query/raw:
         post:
             summary: "Transform the query into the raw database query"
             tags:
                 - debug
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -761,24 +809,24 @@ paths:
         post:
             summary: "Query the graph and return all nodes as list (this will not contain any edges)"
             tags:
-                - graph_section
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -802,24 +850,24 @@ paths:
         post:
             summary: "Query the graph and return the resulting graph."
             tags:
-                - graph_section
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -837,30 +885,30 @@ paths:
                         application/x-ndjson:
                             schema:
                                 oneOf:
-                                    - $ref: "#/components/schemas/NodeInGraph"
-                                    - $ref: "#/components/schemas/Edge"
+                                    -   $ref: "#/components/schemas/NodeInGraph"
+                                    -   $ref: "#/components/schemas/Edge"
     /graph/{graph_id}/{section}/query/aggregate:
         post:
             summary: "Query the aggregate function on the specified graph and return the aggregation result."
             tags:
-                - graph_section
+                - graph_query
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The aggregation query to perform"
                 content:
@@ -886,22 +934,22 @@ paths:
             tags:
                 - debug
             parameters:
-                - name: graph_id
-                  in: path
-                  description: "The identifier of the graph"
-                  required: true
-                  schema:
-                      type: string
-                - name: section
-                  in: path
-                  description: "The identifier of the section"
-                  required: true
-                  schema:
-                      type: string
-                      enum:
-                          - reported
-                          - desired
-                          - metadata
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+                -   name: section
+                    in: path
+                    description: "The identifier of the section"
+                    required: true
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -930,13 +978,13 @@ paths:
                 **Note this can not be tested from within swagger!**
 
             parameters:
-                - name: show
-                  in: query
-                  description: "All events to show as a comma separated list"
-                  required: false
-                  explode: false
-                  schema:
-                      type: string
+                -   name: show
+                    in: query
+                    description: "All events to show as a comma separated list"
+                    required: false
+                    explode: false
+                    schema:
+                        type: string
             tags:
                 - system
             responses:
@@ -969,12 +1017,12 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: event_type
-                  in: path
-                  description: "The type of message"
-                  required: true
-                  schema:
-                      type: string
+                -   name: event_type
+                    in: path
+                    description: "The type of message"
+                    required: true
+                    schema:
+                        type: string
 
             responses:
                 "200":
@@ -993,12 +1041,12 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
 
             responses:
                 "200":
@@ -1023,12 +1071,12 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 description: "The list of all subscriptions."
                 content:
@@ -1050,12 +1098,12 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
 
             responses:
                 "204":
@@ -1068,37 +1116,37 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
-                - name: event_type
-                  in: path
-                  description: "The action event type."
-                  required: true
-                  schema:
-                      type: string
-                - name: timeout
-                  in: query
-                  required: false
-                  description: |
-                      This is the duration in seconds this subscriber has time to execute the action.
-                      After this time the sender assumes a failure and rejects the result of this actor.
-                  schema:
-                      type: number
-                      default: 60
-                - name: wait_for_completion
-                  in: query
-                  required: false
-                  description: |
-                      If an action is sent to this subscriber, the event sender should wait until this
-                      subscriber has processed the message and send a done message.
-                      This is the expected behaviour of every actor and defaults to true.
-                  schema:
-                      type: boolean
-                      default: true
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
+                -   name: event_type
+                    in: path
+                    description: "The action event type."
+                    required: true
+                    schema:
+                        type: string
+                -   name: timeout
+                    in: query
+                    required: false
+                    description: |
+                        This is the duration in seconds this subscriber has time to execute the action.
+                        After this time the sender assumes a failure and rejects the result of this actor.
+                    schema:
+                        type: number
+                        default: 60
+                -   name: wait_for_completion
+                    in: query
+                    required: false
+                    description: |
+                        If an action is sent to this subscriber, the event sender should wait until this
+                        subscriber has processed the message and send a done message.
+                        This is the expected behaviour of every actor and defaults to true.
+                    schema:
+                        type: boolean
+                        default: true
             responses:
                 "200":
                     description: "The subscriber"
@@ -1112,18 +1160,18 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
-                - name: event_type
-                  in: path
-                  description: "The action event type."
-                  required: true
-                  schema:
-                      type: string
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
+                -   name: event_type
+                    in: path
+                    description: "The action event type."
+                    required: true
+                    schema:
+                        type: string
             responses:
                 "200":
                     description: "The subscriber"
@@ -1147,12 +1195,12 @@ paths:
             tags:
                 - subscriptions
             parameters:
-                - name: subscriber_id
-                  in: path
-                  description: "The identifier of the subscriber"
-                  required: true
-                  schema:
-                      type: string
+                -   name: subscriber_id
+                    in: path
+                    description: "The identifier of the subscriber"
+                    required: true
+                    schema:
+                        type: string
 
             responses:
                 "404":
@@ -1186,30 +1234,30 @@ paths:
                 are outstanding.
 
             parameters:
-                - name: task
-                  description: "The name of all tasks that this worker is able to perform."
-                  in: query
-                  style: form
-                  explode: false
-                  schema:
-                      type: array
-                      items:
-                          type: string
-                - name: filter
-                  description: |
-                      Additional properties to filter tasks of provided task name.
-                      Example: the worker is able to perform tasks of type tag, but only for cloud AWS.
-                               cloud=aws could be an additional filter criteria.
-                               Maybe the worker is only capable to perform the work in a specific account.
-                               cloud=aws&account=123 could be specified to only filter for tasks in this cloud in this
-                               account. The available filter criteria are derived from the metadata section of the
-                               node.
-                  in: query
-                  required: false
-                  schema:
-                      type: object
-                      additionalProperties: true
-                      example: {"cloud": "aws", "account": "123"}
+                -   name: task
+                    description: "The name of all tasks that this worker is able to perform."
+                    in: query
+                    style: form
+                    explode: false
+                    schema:
+                        type: array
+                        items:
+                            type: string
+                -   name: filter
+                    description: |
+                        Additional properties to filter tasks of provided task name.
+                        Example: the worker is able to perform tasks of type tag, but only for cloud AWS.
+                                 cloud=aws could be an additional filter criteria.
+                                 Maybe the worker is only capable to perform the work in a specific account.
+                                 cloud=aws&account=123 could be specified to only filter for tasks in this cloud in this
+                                 account. The available filter criteria are derived from the metadata section of the
+                                 node.
+                    in: query
+                    required: false
+                    schema:
+                        type: object
+                        additionalProperties: true
+                        example: { "cloud": "aws", "account": "123" }
             tags:
                 - work_queue
             responses:
@@ -1269,12 +1317,12 @@ paths:
                 This method can be used to analyze if the command can be interpreted without executing it.
                 When this method returns a 200 OK, the command can be parsed and evaluated.
             parameters:
-                - name: env
-                  description: "All query parameter form the environment passed to the CLI interpreter."
-                  in: query
-                  schema:
-                      type: object
-                      additionalProperties: true
+                -   name: env
+                    description: "All query parameter form the environment passed to the CLI interpreter."
+                    in: query
+                    schema:
+                        type: object
+                        additionalProperties: true
             requestBody:
                 description: |
                     The command will be sent as request body.
@@ -1307,17 +1355,17 @@ paths:
     /cli/execute:
         post:
             summary: "Execute a cli command"
-            description:  |
+            description: |
                 The body defines the command to execute.
                 The command is executed and the result is returned to the client.
                 Request and execution are synchronized: the request is done, when the command is done.
             parameters:
-                - name: env
-                  description: "All query parameter form the environment passed to the CLI interpreter."
-                  in: query
-                  schema:
-                      type: object
-                      additionalProperties: true
+                -   name: env
+                    description: "All query parameter form the environment passed to the CLI interpreter."
+                    in: query
+                    schema:
+                        type: object
+                        additionalProperties: true
             requestBody:
                 description: |
                     The command will be sent as request body.
@@ -1416,7 +1464,7 @@ components:
               ]
         Node:
             type: object
-            additionalProperties:  true
+            additionalProperties: true
             properties:
                 kind:
                     type: string
@@ -1505,8 +1553,8 @@ components:
                         "node": "#/components/schemas/NodeInGraph"
                         "edge": "#/components/schemas/Edge"
                 oneOf:
-                    - $ref: "#/components/schemas/NodeInGraph"
-                    - $ref: "#/components/schemas/Edge"
+                    -   $ref: "#/components/schemas/NodeInGraph"
+                    -   $ref: "#/components/schemas/Edge"
         GraphUpdate:
             description: "Summary of a graph change action"
             type: object
@@ -1608,7 +1656,7 @@ components:
         SimpleKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/KindBase'
+                -   $ref: '#/components/schemas/KindBase'
             discriminator:
                 propertyName: runtime_kind
                 mapping:
@@ -1637,7 +1685,7 @@ components:
         StringKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/SimpleKind'
+                -   $ref: '#/components/schemas/SimpleKind'
             properties:
                 min_length:
                     type: string
@@ -1656,17 +1704,17 @@ components:
         NumberKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/SimpleKind'
+                -   $ref: '#/components/schemas/SimpleKind'
             properties:
                 minimum:
                     oneOf:
-                        - type: integer
-                        - type: number
+                        -   type: integer
+                        -   type: number
                     description: "The minimal value of this number"
                 maximum:
                     oneOf:
-                        - type: integer
-                        - type: number
+                        -   type: integer
+                        -   type: number
                     description: "The maximum value of this number"
                 enum:
                     type: array
@@ -1676,19 +1724,19 @@ components:
         BooleanKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/SimpleKind'
+                -   $ref: '#/components/schemas/SimpleKind'
         DateTimeKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/SimpleKind'
+                -   $ref: '#/components/schemas/SimpleKind'
         DateKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/SimpleKind'
+                -   $ref: '#/components/schemas/SimpleKind'
         ArrayKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/KindBase'
+                -   $ref: '#/components/schemas/KindBase'
             properties:
                 inner:
                     $ref: "#/components/schemas/KindBase"
@@ -1711,7 +1759,7 @@ components:
         ComplexKind:
             type: object
             allOf:
-                - $ref: '#/components/schemas/KindBase'
+                -   $ref: '#/components/schemas/KindBase'
             properties:
                 base:
                     type: string
@@ -1725,7 +1773,7 @@ components:
             type: object
             description: "A simple dictionary where all keys and values are strings"
             allOf:
-                - $ref: '#/components/schemas/KindBase'
+                -   $ref: '#/components/schemas/KindBase'
 
         RawQuery:
             type: object

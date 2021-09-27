@@ -100,12 +100,13 @@ class Api:
                 web.get("/graph/{graph_id}/batch", self.list_batches),
                 web.post("/graph/{graph_id}/batch/{batch_id}", self.commit_batch),
                 web.delete("/graph/{graph_id}/batch/{batch_id}", self.abort_batch),
+                # node specific actions
                 web.post("/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", self.create_node),
                 web.get("/graph/{graph_id}/node/{node_id}", self.get_node),
                 web.patch("/graph/{graph_id}/node/{node_id}", self.update_node),
                 web.delete("/graph/{graph_id}/node/{node_id}", self.delete_node),
+                web.patch("/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
                 # specific section of the graph
-                web.patch("/graph/{graph_id}/{section}/node/{node_id}", self.update_node),
                 web.post("/graph/{graph_id}/{section}/query", self.query),
                 web.post("/graph/{graph_id}/{section}/query/raw", self.raw),
                 web.post("/graph/{graph_id}/{section}/query/explain", self.explain),
