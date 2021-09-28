@@ -2,6 +2,8 @@ name: Check PR (Documentation)
 
 on: 
   push:
+    branches: 
+      - '!main'
     paths:
       - 'docs/**'
 
@@ -10,7 +12,8 @@ jobs:
     name: "documentation"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: ammaraskar/sphinx-action@master
+    - uses: actions/checkout@v2
+    - name: Build documentation
+      uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
