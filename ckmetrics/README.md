@@ -55,8 +55,16 @@ For right now you can use the aggregate API at `{ckcore}:8900/graph/{graph}/repo
 ### Example
 Enter the following commands into `cksh`
 ```
-> query is(instance) | merge_ancestors cloud,account,region | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type : sum(1
-) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes
+> query is(instance) | merge_ancestors cloud,account,region | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type : sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes
+```
+
+Here is the same query with line feeds for readability (can not be copy'pasted)
+```
+> query is(instance) | merge_ancestors cloud,account,region \
+  | aggregate reported.cloud.name as cloud, reported.account.name as account, \
+  reported.region.name as region, reported.instance_type as type : \
+  sum(1) as instances_total, sum(reported.instance_cores) as cores_total, \
+  sum(reported.instance_memory*1024*1024*1024) as memory_bytes
 ```
 
 If your graph contains any compute instances the resulting output will look something like this
@@ -99,8 +107,16 @@ Let us dissect what we've written here:
 
 ### Taking it one step further
 ```
-> query is(instance) and reported.instance_status = running | merge_ancestors cloud,account,region,instance_type as parent_instance_type | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region,
-reported.instance_type as type : sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
+> query is(instance) and reported.instance_status = running | merge_ancestors cloud,account,region,instance_type as parent_instance_type | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type : sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
+```
+
+Again the same query with line feeds for readbility (can not be copy'pasted)
+```
+> query is(instance) and reported.instance_status = running | \
+  merge_ancestors cloud,account,region,instance_type as parent_instance_type | \
+  aggregate reported.cloud.name as cloud, reported.account.name as account, \
+  reported.region.name as region, reported.instance_type as type : \
+  sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
 ```
 
 Outputs something like
