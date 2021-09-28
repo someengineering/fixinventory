@@ -46,11 +46,14 @@ scrape_configs:
 ```
 
 ## Details
-Cloudkeeper core supports aggregated queries. Our common library [`cklib`](../cklib/) define a number of base resources that are common to a lot of cloud proviers, like say compute instances, subnets, routers, load balancers, and so on. All of those ship with a standard set of metrics specific to each resource.
+Cloudkeeper core supports aggregated queries to produce metrics. Our common library [`cklib`](../cklib/) define a number of base resources that are common to a lot of cloud proviers, like say compute instances, subnets, routers, load balancers, and so on. All of those ship with a standard set of metrics specific to each resource.
 
 For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of Cloudkeeper will allow you to define your own metrics in `ckcore` and have `ckmetrics` export them.
 
-For right now you can use the aggregate API at `{ckcore}:8900/graph/{graph}/reported/query/aggregate` or the `aggregate` CLI command to generate your own metrics.
+For right now you can use the aggregate API at `{ckcore}:8900/graph/{graph}/reported/query/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `ckcore` API documentation as well as the Swagger UI at `{ckcore}:8900/api-doc/`.
+
+In the following we will be using the Cloudkeeper shell `cksh` and the `aggregate` command.
+
 
 ### Example
 Enter the following commands into `cksh`
