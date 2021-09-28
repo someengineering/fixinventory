@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-cleanup_aws_vpcs",
-    version="2.0.0a1",
+    version="2.0.0a2",
     description="AWS VPC Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),
