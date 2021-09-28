@@ -30,7 +30,11 @@ def parse_args() -> Namespace:
         description="Maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
-    parser.add_argument("--log-level", default="info", help="Log level (default: info)")
+    parser.add_argument(
+        "--log-level",
+        default="info",
+        help="Log level (default: info)",
+    )
     parser.add_argument(
         "--graphdb-server",
         default="http://localhost:8529",
@@ -50,10 +54,16 @@ def parse_args() -> Namespace:
         help="Graph database login (default: cloudkeeper)",
     )
     parser.add_argument(
-        "--graphdb-password", default="", dest="graphdb_password", help='Graph database password (default: "")'
+        "--graphdb-password",
+        default="",
+        dest="graphdb_password",
+        help='Graph database password (default: "")',
     )
     parser.add_argument(
-        "--graphdb-type", default="arangodb", dest="graphdb_type", help="Graph database type (default: arangodb)"
+        "--graphdb-type",
+        default="arangodb",
+        dest="graphdb_type",
+        help="Graph database type (default: arangodb)",
     )
     parser.add_argument(
         "--graphdb-no-ssl-verify",
@@ -69,7 +79,12 @@ def parse_args() -> Namespace:
         help="Request timeout in seconds (default: 900)",
     )
     parser.add_argument(
-        "--host", type=str, default="localhost", nargs="+", help="TCP host(s) to bind on (default: localhost)"
+        # Explicitly use the ipv4 loopback address. There are scenarios where aiohttp can not bind to the ipv6 address.
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        nargs="+",
+        help="TCP host(s) to bind on (default: 127.0.0.1)",
     )
     parser.add_argument("--port", type=int, default=8900, help="TCP port to bind on (default: 8900)")
     parser.add_argument(
