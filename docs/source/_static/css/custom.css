@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@200&family=Lato&family=Source+Code+Pro&display=swap');
+
+.wy-nav-content {
+    background: #0a253f;
+}
+
+.wy-side-nav-search {
+    background-color: transparent;
+    padding-top: 0;
+}
+
+.wy-side-nav-search .icon{
+    color: #ffe797;
+    font-size: 3rem;
+    font-family: 'Gemunu Libre', sans-serif;
+    text-decoration: none;
+}
+
+.wy-side-nav-search .icon:hover{
+    background-color: transparent;
+    color: #fff4ce;
+}
+
+.logo {
+    margin-top: 0 !important;
+    width: 90% !important;
+}
+
+
+.wy-side-nav-search .icon-home::before {
+    display: none;
+}
+
+.wy-nav-side {
+    background-color: #001930;
+}
+
+.wy-nav-content-wrap {
+    background-color: #001930;
+}
+
+.wy-nav-top {
+    background-color: #001930;
+    font-size: 1.5rem;
+}
+
+i.fa.fa-bars {
+    color: #ffe797;
+}
+
+@media only screen and (min-width: 769px) {
+    .wy-body-for-nav {
+        /* Center the page on wide displays for better readability */
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+    .wy-nav-side {
+        left: inherit;
+    }
+}
+
+body {
+    color: #6daac5;
+    font-family: 'Lato', sans-serif;
+}
+
+h1, h2, h3 {
+    color: #ffe797;
+    font-family: 'Gemunu Libre', sans-serif;
+    letter-spacing: 0.05rem;
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+h2 {
+    margin-top: 4rem;
+    font-size: 1.6rem;
+}
+
+h3 {
+    font-size: 1.3rem;
+    color: #dda045;
+}
+
+.wy-body-for-nav {
+    background: #000d19;
+}
+
+nav.wy-nav-side {
+    padding-bottom: 3em;
+}
+
+a:link
+{
+    color: #35b0e6;
+    text-decoration: underline;
+}
+
+a:visited
+{
+	color:#35b0e6;
+}
+
+a:hover
+{
+    color: #ffaf37;
+    background-color: transparent;
+}
+
+.reference.internal:hover {
+    color: #ffe797;
+    background-color: black !important;
+}
+
+a:active
+{
+	color:#1a83af;
+}
+
+footer {
+    color: #0054a3
+}
+
+hr {
+    border-top: 1px solid #dda045;
+}
+
+
+.btn-neutral
+{
+	border:2px solid #ffaf37;
+	font-size:1.25rem;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+	border-radius:5px;
+	letter-spacing:.03em;
+    color:#0a253f;
+    text-decoration-line: none !important;
+	background-color:#ffe797 !important;
+	box-sizing:border-box;
+	height:2.5rem;
+	line-height:32px;
+	padding:0 18px;
+	display:inline-block;
+	margin:0;
+}
+
+.btn:hover
+{
+	background-color:#fff4d0 !important;
+	cursor:pointer;
+}
+
+input
+{
+	font-size:1.25rem;
+	border:1px solid #ffaf37 !important;
+	-webkit-border-radius:5px !important;
+	-moz-border-radius:5px !important;
+	border-radius:5px !important;
+	color:#ffe797;
+	background-color:#081e32;
+	box-sizing:border-box;
+	height:2.5rem;
+	padding:0 .4em;
+	display:inline-block;
+	margin:0;
+	width:350px;
+    vertical-align:top;
+    box-shadow: none !important;
+}
+
+input::placeholder
+{
+	color:#0054a3;
+}
+
+
+.rst-content div[class^=highlight], .rst-content pre.literal-block {
+    background-color: #000c18;
+    border-width: 0;
+    
+}
+
+.highlight .nv {
+    color: #dda045;
+}
+
+.highlight .m {
+    color: #1ba2e6;
+}
+
+.highlight .s1 {
+    color: #df8500;
+}
+
+.rst-content .linenodiv pre, .rst-content div[class^=highlight] pre, .rst-content pre.literal-block {
+    font-family: 'Source Code Pro', monospace;
+}
+
+.rst-content code {
+    color: #000;
+    background: #000c18;
+    border: 0;
+    font-family: 'Source Code Pro', monospace;
+    padding: 2px 5px;
+}
+
+.rst-content code.literal {
+    color: #ffe797;
+    white-space: normal;
+}
+
+::-webkit-scrollbar-track
+{
+	border: 1px solid#6daac5;
+	background-color: #000d19;
+}
+
+::-webkit-scrollbar
+{
+	width: 10px;
+	background-color: #000d19;
+}
+
+::-webkit-scrollbar-thumb
+{
+	background-color: #6daac5;	
+}
+
+.wy-menu-vertical li.current>a, .wy-menu-vertical li.on a {
+    color: #ffe797;
+    background: #113a62;
+}
+
+button.toctree-expand:before {
+    color: #dda045;
+    text-decoration: none !important;
+}
+
+.wy-menu-vertical li.current {
+    background: #000c18;
+}
+
+.wy-menu-vertical li.toctree-l1.current>a {
+    border-bottom: 0px solid #c9c9c9;
+    border-top: 0px solid #c9c9c9;
+}
+
+.wy-menu-vertical li.toctree-l2 a {
+    color: #d6a045;
+    border-right: 0px solid #c9c9c9;
+}
+
+.wy-menu-vertical li.toctree-l2.current>a, .wy-menu-vertical li.toctree-l2.current li.toctree-l3>a {
+    background-color: #001932;
+}
+
+.wy-menu-vertical li.current>a, .wy-menu-vertical li.on a {
+    color: #ffe797;
+}

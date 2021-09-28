@@ -17,7 +17,7 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'cloudkeeper'
+project = 'Cloudkeeper'
 copyright = '2021, Some Engineering Inc.'
 author = 'Some Engineering Inc.'
 
@@ -59,8 +59,15 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_css_files = ['css/custom.css']
+
+html_logo = '_static/images/SomeEngineering_Logo_m.png'
+
 html_theme_options = {
     'collapse_navigation': False,
     'display_version': True,
     'collapse_navigation': False,
 }
+
+def setup(app):
+    app.add_css_file('css/custom.css')  # may also be an URL
