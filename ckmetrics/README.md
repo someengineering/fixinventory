@@ -107,7 +107,7 @@ memory_bytes: 193273528320
 Let us dissect what we've written here:
 - `query is(instance)` fetch all the resources that inherit from base kind `instance`. This would be compute instances like `aws_ec2_instance` or `gcp_instance`.
 - `merge_ancestors cloud,account,region` merge the resulting instances with their ancestor resources (meaning their parents higher up the graph going towards the graph root) so that we can aggregate by cloud name, account name and so on.
-- `aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type` aggregate the instance metrics by `cloud`, `account`, and `region` name as well as `instance_type`.
+- `aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type` aggregate the instance metrics by `cloud`, `account`, and `region` name as well as `instance_type` (think `GROUP_BY` in SQL).
 - `sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes` sum up the total number of instances, number of instance cores and memory. The later is stored in GB and here we convert it to bytes as is customary in Prometheus exporters.
 
 
