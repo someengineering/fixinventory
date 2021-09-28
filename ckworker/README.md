@@ -16,7 +16,7 @@ Cloudkeeper worker daemon
 
 
 ## Overview
-`ckworker` does all the collection and cleanup work in Cloudkeeper. It is connected to [`ckcore`](../ckcore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` tasks as well as `tag` jobs.
+`ckworker` does all the collection and cleanup work in Cloudkeeper. It is connected to [`ckcore`](../ckcore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` actions as well as `tag` tasks.
 
 `ckworker` loads collector [`plugins`](../plugins/) like AWS, GCP, Slack, Onelogin, etc.
 Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
