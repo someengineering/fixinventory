@@ -9,6 +9,7 @@ on:
     pull_request:
         paths:
             - 'Dockerfile'
+            - 'docker/**'
             - '.github/workflows/docker-build.yml'
     workflow_dispatch:
 
