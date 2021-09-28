@@ -87,8 +87,8 @@ Count the resources available in Cloudkeeper
 ::
 
     > match is(resource) | count
-    matched: 278
-    not_matched: 0
+    total matched: 280
+    total unmatched: 0
 
 What is your number? Let us know in `Discord <https://discord.gg/3G3sX6y3bt>`_!
 
@@ -217,35 +217,36 @@ This provides information on the number of items you are interacting with.
 
     > help count
     > match is(aws_ec2_instance) | count
-    matched: 1
-    not_matched: 0
+    total matched: 1
+    total unmatched: 0
 
 This will count all ``aws_ec2_instance`` that are older than 24h.
 Both commands are identical, the 2nd one makes use of predefined placeholder strings.
 ::
 
-    > match is(aws_ec2_instance) reported.ctime < -1d | count
-    > match is(aws_ec2_instance) reported.ctime < "@YESTERDAY@" | count
+    > match is(aws_ec2_instance) ctime < -1d | count
+    > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count
 
 | ``help`` provides all available placeholder strings in section ``Valid placeholder string``
-| ``match`` automatically filters for the ``reported`` section of the response. ``reported.ctime`` can be shortened to ``ctime``.
-| We will omit this starting with our next example.
+| ``match`` automatically filters for the ``reported`` section of the response. With commands like ``query`` you need to explicitly select the reported section.  ``ctime`` is then selected via ``reported.ctime``.
 
-| ``count`` has another handy feature: building a sum over a provided parameter.
+| ``count`` has another handy feature: building a sum over a provided parameter results. 
 | In this case: ``reported.instance_cores``.
-| This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday.
+| This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday, groups them by reported.instance_cores results and counts the occurences of them.
 
 ::
 
     > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count reported.instance_cores
-    matched: 3                   ← sum of 2+1 instance_cores, see output below
-    not_matched: 0
+    2: 1                         ← Number of occurences of reported.instance_cores = 2
+    1: 1                         ← Number of occurences of reported.instance_cores = 1
+    total matched: 2
+    total unmatched: 0
 
 As a small reminder: ``reported.instance_cores`` references to data from matched ``aws_ec2_instances``
 
 ::
 
-    > reported is(aws_ec2_instance)
+    > match is(aws_ec2_instance)
     reported:
     kind: aws_ec2_instance
     [...]
