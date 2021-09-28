@@ -13,6 +13,7 @@ main() {
     if [ "$LEGACY_STARTUP" = true ]; then
         exec /usr/local/bin/cloudkeeperV1 "$@"
     else
+        setup_etc_hosts || true
         setup_dnsmasq
         setup_syslog
         setup_supervisor_http_server
@@ -93,17 +94,29 @@ EOF
 
 # Enable/disable IP protocols in /etc/hosts
 setup_etc_hosts() {
+    local temp_hosts
+    temp_hosts="$(mktemp)"
+    cat /etc/hosts > "$temp_hosts"
+
     if ipv4_enabled; then
-        sed -i -E "s/^#(127\.0\.0\.1.*)/\1/" /etc/hosts
+        sed -i -E "s/^#(127\.0\.0\.1.*)/\1/" "$temp_hosts"
     else
-        sed -i -E "s/^(127\.0\.0\.1.*)/#\1/" /etc/hosts
+        sed -i -E "s/^(127\.0\.0\.1.*)/#\1/" "$temp_hosts"
     fi
 
     if ipv6_enabled; then
-        sed -i -E "s/^#(::1.*)/\1/" /etc/hosts
+        sed -i -E "s/^#(::1.*)/\1/" "$temp_hosts"
     else
-        sed -i -E "s/^(::1.*)/#\1/" /etc/hosts
+        sed -i -E "s/^(::1.*)/#\1/" "$temp_hosts"
     fi
+
+    # /etc/hosts is singularly mounted into the container.
+    # sed -i is not really working in-place but instead
+    # creates a temp file and then moves it. So would fail
+    # on /etc/hosts. Instead of atomically moving
+    # we cat the temp file into the destination.
+    cat "$temp_hosts" > /etc/hosts
+    rm -f "$temp_hosts"
 }
 
 
