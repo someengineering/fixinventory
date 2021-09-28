@@ -88,7 +88,7 @@ Once `ckworker` is started you do not have to interact with it at all. It will j
 
 
 ### Actions and Tasks
-Think of actions and tasks like topics and queues in a messaging system.
+Think of actions and tasks like topics and queues in a messaging system. Actions are broadcast to everyone subscribed for that action. A task is always given to exactly one worker that knows how to handle it.
 
 
 #### Actions
@@ -101,7 +101,7 @@ When a plugin or a user decides that a resource tag should be added, changed or 
 ```
 match id = i-039e06bb2539e5484 | tag update owner lukas
 ```
-`ckcore` will put this tagging task onto a task queue. This queue is then consumed by a `ckworker` that knows how to perform tagging for that particular resource and its particular cloud and account. In or example above where we are setting the tag `owner: lukas` for an AWS EC2 instance with ID `i-039e06bb2539e5484` the task would be given to a `ckworker` that knows how to update AWS EC2 instance tags in that resources account.
+`ckcore` will put this tagging task onto a task queue. This task is then consumed by a `ckworker` that knows how to perform tagging for that particular resource and its particular cloud and account. In our example above where we are setting the tag `owner: lukas` for an AWS EC2 instance with ID `i-039e06bb2539e5484` the task would be given to a `ckworker` that knows how to update AWS EC2 instance tags in that resources account.
 
 
 ## Contact
