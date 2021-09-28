@@ -13,7 +13,6 @@ main() {
     if [ "$LEGACY_STARTUP" = true ]; then
         exec /usr/local/bin/cloudkeeperV1 "$@"
     else
-        setup_etc_hosts
         setup_dnsmasq
         setup_syslog
         setup_supervisor_http_server
