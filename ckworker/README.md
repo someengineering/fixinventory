@@ -49,7 +49,7 @@ There can be one or more instances of `ckworker` in a Cloudkeeper deployment. A 
   --debug-dump-json     Dump the generated json data (default: False)
   ```
 
-ENV Prefix: `CKWORKER_`
+ENV Prefix: `CKWORKER_`  
 Every CLI arg can also be specified using ENV variables.
 
 For instance the boolean `--fork` would become `CKWORKER_FORK=true` or `--collector aws gcp` would become `CKWORKER_COLLECTOR="aws gcp"`.
