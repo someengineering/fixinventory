@@ -108,3 +108,20 @@ iec_size_format() {
     done
     printf "%.2f YiB\\n" $byte_size
 }
+
+
+ipv_enabled() {
+    local ip_version=$1
+    if [ "$(ip -$ip_version addr | wc -l)" -gt 0 ]; then
+        return 0
+    fi
+    return 1
+}
+
+ipv4_enabled() {
+    ipv_enabled 4
+}
+
+ipv6_enabled() {
+    ipv_enabled 6
+}
