@@ -6,6 +6,9 @@ Cloudkeeper Prometheus exporter
 
 * [Overview](#overview)
 * [Usage](#usage)
+* [Details](#details)
+    * [Example](#example)
+    * [Taking it one step further](#taking-it-one-step-further)
 * [Contact](#contact)
 * [License](#license)
 
@@ -94,7 +97,7 @@ Let us dissect what we've written here:
 - `sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes` sum up the total number of instances, number of instance cores and memory. The later is stored in GB and here we convert it to bytes as is customary in Prometheus exporters.
 
 
-#### Taking it one step further
+### Taking it one step further
 ```
 > query is(instance) and reported.instance_status = running | merge_ancestors cloud,account,region,instance_type as parent_instance_type | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region,
 reported.instance_type as type : sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
@@ -138,7 +141,7 @@ reported:
   ctime: '2021-09-28T13:10:08Z'
 ```
 
-As you can see, the instance type resource has a float attribute called `ondemand_cost` which is the hourly cost the cloud provider charges for this particular type of instance. In our aggregation query we now sum up the hourly cost of all running compute instances and export them as a metric `instances_hourly_cost_estimate`.
+As you can see, the instance type resource has a float attribute called `ondemand_cost` which is the hourly cost a cloud provider charges for this particular type of compute instance. In our aggregation query we now sum up the hourly cost of all running compute instances and export them as a metric named `instances_hourly_cost_estimate`.
 
 
 ## Contact
