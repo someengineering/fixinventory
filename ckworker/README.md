@@ -89,7 +89,7 @@ Think of tasks and jobs like topics and queues in a messaging system.
 
 #### Tasks
 When the `collect` workflow within `ckcore` is triggered (bei either an event or a schedule or because the user manually triggered it), `ckcore` will broadcast a ***"start collecting all the cloud accounts you know about"*** message to all the subscribed workers.
-Once all the workers finish collecting and sent their graph to the core, the workflow will proceed to the next step which would be `plan_cleanup`. This one tells anyone interested to start planing their cleanup based on the just collected graph data. Once everyone has planed their cleanup and flagged resources that should get cleaned up with the `desired.clean = true` flag, the workflow proceeds to the `cleanup` step which again notifies anyone subscribed to now perform cleanup.
+Once all the workers finish collecting and sent their graph to the core, the workflow will proceed to the next step which would be `plan_cleanup`. This one tells anyone interested to start planing their cleanup based on the just collected graph data. Once everyone has planed their cleanup and flagged resources that should get cleaned up with the `desired.clean = true` flag, the workflow proceeds to the `cleanup` step which again notifies anyone subscribed to now perform cleanup of those flagged resources. Because the cleaner within `ckworker` has knowledge of all dependencies in the graph, it will ensure that resources are cleaned up in the right order.
 
 
 #### Jobs
