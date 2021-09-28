@@ -5,11 +5,11 @@ on:
     branches: [ main ]
 
 jobs:
-  documentation:
-    name: "documentation"
+  deploy_documentation:
+    name: "deploy_documentation"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
@@ -18,8 +18,10 @@ jobs:
     # ===============================
     - name: Commit documentation changes
       run: |
-        apt-get update -y && apt-get install -y git
-        git clone https://github.com/someengineering/cloudkeeper.git --branch gh-pages --single-branch gh-pages
+        git clone https://github.com/someengineering/cloudkeeper.git --single-branch gh-pages
+        cd gh-pages
+        git switch --orphan gh-pages
+        cd ..
         cp -r docs/_build/html/* gh-pages/
         cd gh-pages
         touch .nojekyll
