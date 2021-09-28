@@ -1,19 +1,17 @@
-Getting started
-===============
+Housekeeping for Clouds!
+########################
+Contents
+********
+.. toctree::
+   :maxdepth: 1
+
+   start
+   component-list
+
+Overview
+********
 Cloudkeeper is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up. 
 
-Infrastructure management tools like Terraform and CloudFormation do a good job at managing resources they know about. But they do a poor job at managing resources they did not create. 
+Cloudkeeper indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
 
-You can see drift in your environment, but only if the tool itself created the left-behind artifacts. The unknown drift makes it hard for developers and engineers to discover, understand and take action on resources. 
-Cloudkeeper fixes that gap in your environment.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   
-Contents
---------
-.. toctree::
-   start
-   usage
-   end
+Cloudkeeper consists of multiple components described in the :ref:`component-list`.
