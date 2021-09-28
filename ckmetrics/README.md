@@ -34,6 +34,11 @@ can be changed using the `--web-port` argument.
   --logfile LOGFILE     Logfile to log into
 ```
 
+ENV Prefix: `CKMETRICS_`
+Every CLI arg can also be specified using ENV variables.
+
+For instance the boolean `--verbose` would become `CKWORKER_VERBOSE=true` or `--timeout 300` would become `CKWORKER_TIMEOUT=300`.
+
 Once started `ckmetrics` will register for `generate_metrics` core events. When such an event is received it will
 generate Cloudkeeper metrics and provide them at the `/metrics` endpoint.
 
