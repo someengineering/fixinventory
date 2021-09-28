@@ -6,7 +6,7 @@ on:
       - 'docs/**'
 
 jobs:
-  documentation:
+  test_documentation:
     name: "test_documentation"
     runs-on: ubuntu-latest
     steps:
