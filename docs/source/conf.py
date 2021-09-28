@@ -13,7 +13,6 @@
 import os
 import sys
 import sphinx_rtd_theme
-sys.path.insert(0, os.path.abspath('../ckcore'))
 
 
 # -- Project information -----------------------------------------------------
@@ -23,7 +22,7 @@ copyright = '2021, Some Engineering Inc.'
 author = 'Some Engineering Inc.'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = 'v2.0.0a1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -62,5 +61,6 @@ html_static_path = ['_static']
 
 html_theme_options = {
     'collapse_navigation': False,
-    'prev_next_buttons_location': 'both',
+    'display_version': True,
+    'collapse_navigation': False,
 }
