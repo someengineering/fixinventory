@@ -90,10 +90,55 @@ memory_bytes: 193273528320
 Let us dissect what we've written here:
 - `query is(instance)` fetch all the resources that inherit from base kind `instance`. This would be compute instances like `aws_ec2_instance` or `gcp_instance`.
 - `merge_ancestors cloud,account,region` merge the resulting instances with their ancestor nodes (meaning their parents higher up the graph going towards the graph root) so that we can aggregate by cloud name, account name and so on.
-- `aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type` aggregate the instance metrics by cloud account and region name as well as instance type.
+- `aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region, reported.instance_type as type` aggregate the instance metrics by `cloud`, `account`, and `region` name as well as `instance_type`.
 - `sum(1) as instances_total, sum(reported.instance_cores) as cores_total, sum(reported.instance_memory*1024*1024*1024) as memory_bytes` sum up the total number of instances, number of instance cores and memory. The later is stored in GB and here we convert it to bytes as is customary in Prometheus exporters.
 
 
+#### Taking it one step further
+```
+> query is(instance) and reported.instance_status = running | merge_ancestors cloud,account,region,instance_type as parent_instance_type | aggregate reported.cloud.name as cloud, reported.account.name as account, reported.region.name as region,
+reported.instance_type as type : sum(reported.parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate
+```
+
+Outputs something like
+```
+---
+group:
+  cloud: gcp
+  account: maestro-229419
+  region: us-central1
+  type: n1-standard-4
+instances_hourly_cost_estimate: 0.949995
+```
+
+What did we do here? We told Cloudkeeper to find all resource of type compute instance (`query is(instance)`) with a status of `running` and then merge the result with ancestors (parents) of type `cloud`, `account`, `region` and now also `instance_type`.
+
+Let us look at two things here. First in the previous example we already aggregated by `instance_type`. However this was the string attribute called `instance_type` that is part of every instance resource and contains strings like `m5.xlarge` (AWS) or `n1-standard-4` (GCP).
+
+Example
+```
+> query is(instance) | tail -1 | format {reported.kind} {reported.name} {reported.instance_type}
+aws_ec2_instance i-039e06bb2539e5484 t2.micro
+```
+
+What we did now however was ask Cloudkeeper to go up the graph and find the directly connected resource of kind `instance_type`.
+
+An `instance_type` resource looks something like this
+```
+> query is(instance_type) | tail -1
+reported:
+  kind: aws_ec2_instance_type
+  id: t2.micro
+  tags: {}
+  name: t2.micro
+  instance_type: t2.micro
+  instance_cores: 1
+  instance_memory: 1
+  ondemand_cost: 0.0116
+  ctime: '2021-09-28T13:10:08Z'
+```
+
+As you can see, the instance type resource has a float attribute called `ondemand_cost` which is the hourly cost the cloud provider charges for this particular type of instance. In our aggregation query we now sum up the hourly cost of all running compute instances and export them as a metric `instances_hourly_cost_estimate`.
 
 
 ## Contact
