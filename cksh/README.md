@@ -7,14 +7,15 @@ Cloudkeeper Shell
 * [Overview](#overview)
 * [Usage](#usage)
 * [Examples](#examples)
+    * [Basics](#basics)
+    * [Intermediate](#intermediate)
+    * [Advanced](#advanced)
 * [Contact](#contact)
 * [License](#license)
 
 
 ## Overview
-`ckmetrics` takes [`ckcore`](../ckcore/) graph data and runs aggregation functions on it. Those aggregated metrics
-are then exposed in a [Prometheus](https://prometheus.io/) compatible format. The default TCP port is `9955` but
-can be changed using the `--web-port` argument.
+`cksh` starts the Cloudkeeper shell. It is used to interact with `ckcore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
 
 ## Usage
@@ -40,6 +41,7 @@ For instance `--ckcore-uri http://foobar.tld:8900` would become `CKSH_CKCORE_URI
 
 
 ## Examples
+### Basics
 Enter `help` into `cksh` to get an overview of all available commands
 ```
 > help
@@ -126,6 +128,27 @@ Example:
 Environment Variables:
     graph [mandatory]: the name of the graph to operate on
 ```
+
+
+### Intermediate
+Show all storage volumes that are in use
+```
+> match is(volume) and volume_status = in-use
+```
+
+Show all storage volumes in use and format the output as CSV
+```
+> match is(volume) and volume_status = in-use | format {reported.kind},{reported.id},{reported.name},{reported.ctime}
+```
+
+Show all storage volumes not in use with a size of more than 10 GB
+```
+> match is(volume) and volume_status = available and volume_size > 10
+```
+
+
+### Advanced
+
 
 
 ## Contact
