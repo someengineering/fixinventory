@@ -13,6 +13,7 @@ main() {
     if [ "$LEGACY_STARTUP" = true ]; then
         exec /usr/local/bin/cloudkeeperV1 "$@"
     else
+        setup_etc_hosts
         setup_dnsmasq
         setup_syslog
         setup_supervisor_http_server
@@ -88,6 +89,22 @@ autostart=true
 autorestart=true
 priority=10
 EOF
+}
+
+
+# Enable/disable IP protocols in /etc/hosts
+setup_etc_hosts() {
+    if ipv4_enabled; then
+        sed -i -E "s/^#(127\.0\.0\.1.*)/\1/" /etc/hosts
+    else
+        sed -i -E "s/^(127\.0\.0\.1.*)/#\1/" /etc/hosts
+    fi
+
+    if ipv6_enabled; then
+        sed -i -E "s/^#(::1.*)/\1/" /etc/hosts
+    else
+        sed -i -E "s/^(::1.*)/#\1/" /etc/hosts
+    fi
 }
 
 
