@@ -84,8 +84,12 @@ The reason for using forked processes instead of threads is to work around perfo
 
 
 ## Details
+Once `ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job. The following are details on how `ckworker` works internally and how it integrates with `ckcore`.
+
+
 ### Tasks and jobs
 Think of tasks and jobs like topics and queues in a messaging system.
+
 
 #### Tasks
 When the `collect` workflow within `ckcore` is triggered (bei either an event or a schedule or because the user manually triggered it), `ckcore` will broadcast a ***"start collecting all the cloud accounts you know about"*** message to all the subscribed workers.
