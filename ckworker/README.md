@@ -16,10 +16,12 @@ Cloudkeeper worker daemon
 
 
 ## Overview
-`ckworker` does all the collection and cleanup work in Cloudkeeper. It is connected to [`ckcore`](../ckcore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` tasks as well as `tag` jobs. There can be just one or many instances of `ckworker` in a Cloudkeeper deployment.
+`ckworker` does all the collection and cleanup work in Cloudkeeper. It is connected to [`ckcore`](../ckcore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` tasks as well as `tag` jobs.
 
 `ckworker` loads collector [`plugins`](../plugins/) like AWS, GCP, Slack, Onelogin, etc.
 Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
+
+There can be one or more instances of `ckworker` in a Cloudkeeper deployment. A single `ckworker` can collect many clouds or you could have multiple `ckworker` collecting one cloud or even one account in one cloud each.
 
 
 ## Usage
@@ -53,6 +55,7 @@ Every CLI arg can also be specified using ENV variables.
 For instance the boolean `--fork` would become `CKWORKER_FORK=true` or `--collector aws gcp` would become `CKWORKER_COLLECTOR="aws gcp"`.
 
 *Important* Every plugin will add its own CLI args to those of `ckworker`. Check the individual plugin documentation for details or use `ckworker --help` to see the complete list.
+
 
 ### Usage examples
 ```
