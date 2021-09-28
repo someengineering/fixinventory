@@ -237,11 +237,11 @@ in the graph until we find an account.
     The result will contain the current node plus all nodes one level outbound.
     The same applies for inbound  with this statement `<-[0:1]-`.
 
-    Example: ``is(aws_region) -[0:1]->`
+    Example: ``is(aws_region) -[0:1]->``
 
     This will return a list of all resources "under" a aws_region together with the matching aws_region.
 
-    Example: ``is(aws_region) and reported.name==global <-[0:1]-`
+    Example: ``is(aws_region) and reported.name==global <-[0:1]-``
 
     This will return a list of all aws_regions with name ``global`` together with all accounts.
 
@@ -251,7 +251,7 @@ in the graph until we find an account.
     The graph will be traversed from the current node according to this specification. All matching nodes will be returned.
     The same applies for inbound traversals with ``<-[start:until]-``.
 
-    Example: ``is(aws_alb_target_groups) <-[2:2]- is(aws_iam_instance_profile) ``
+    Example: ``is(aws_alb_target_groups) <-[2:2]- is(aws_iam_instance_profile)``
 
     This query can answer the question: which instance profile is used for ec2 instances connected to an alb target group.
     It selects all aws_alb_target_groups and than traverses 2 levels inbound in the graph and filters for aws_iam_instance_profiles.
@@ -264,7 +264,7 @@ in the graph until we find an account.
     The graph will be traversed from the current node according to this specification. All matching nodes will be returned.
     The same applies for inbound traversals with ``<-[start:]-``.
 
-    Example: ``is(aws_account) and reported.name==sunshine -[0:]-> ``
+    Example: ``is(aws_account) and reported.name==sunshine -[0:]->``
 
     This query will select the aws account with name ``sunshine`` and then select all nodes outbound to this node.
     This will select everything Cloudkeeper knows about nodes in this account.
