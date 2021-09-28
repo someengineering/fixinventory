@@ -8,9 +8,9 @@ Cloudkeeper worker daemon
 * [Usage](#usage)
     * [Example usage](#example-usage)
 * [Details](#details)
-    * [Tasks and jobs](#tasks-and-jobs)
+    * [Actions and Tasks](#actions-and-tasks)
+        * [Actions](#actions)
         * [Tasks](#tasks)
-        * [Jobs](#jobs)
 * [Contact](#contact)
 * [License](#license)
 
@@ -87,21 +87,21 @@ The reason for using forked processes instead of threads is to work around perfo
 Once `ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job. The following are details on how `ckworker` works internally and how it integrates with `ckcore`.
 
 
-### Tasks and jobs
-Think of tasks and jobs like topics and queues in a messaging system.
+### Actions and Tasks
+Think of actions and tasks like topics and queues in a messaging system.
 
 
-#### Tasks
+#### Actions
 When the `collect` workflow within `ckcore` is triggered (bei either an event or a schedule or because the user manually triggered it), `ckcore` will broadcast a ***"start collecting all the cloud accounts you know about"*** message to all the subscribed workers.
 Once all the workers finish collecting and sent their graph to the core, the workflow will proceed to the next step which would be `plan_cleanup`. This one tells anyone interested to start planing their cleanup based on the just collected graph data. Once everyone has planed their cleanup and flagged resources that should get cleaned up with the `desired.clean = true` flag, the workflow proceeds to the `cleanup` step which again notifies anyone subscribed to now perform cleanup of those flagged resources. Because the cleaner within `ckworker` has knowledge of all dependencies in the graph, it will ensure that resources are cleaned up in the right order.
 
 
-#### Jobs
+#### Tasks
 When a plugin or a user decides that a resource tag should be added, changed or removed, e.g. by running
 ```
 match id = i-039e06bb2539e5484 | tag update owner lukas
 ```
-`ckcore` will puth this tagging job onto a queue. This queue is then consumed by a `ckworker` that knows how to perform tagging for that particular resource and its particular cloud and account. In or example above where we are setting the tag `owner: lukas` for an AWS EC2 instance with ID `i-039e06bb2539e5484` the job would be given to a `ckworker` that knows how to update AWS EC2 instance tags in that resources account.
+`ckcore` will put this tagging task onto a task queue. This queue is then consumed by a `ckworker` that knows how to perform tagging for that particular resource and its particular cloud and account. In or example above where we are setting the tag `owner: lukas` for an AWS EC2 instance with ID `i-039e06bb2539e5484` the task would be given to a `ckworker` that knows how to update AWS EC2 instance tags in that resources account.
 
 
 ## Contact
