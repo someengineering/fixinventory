@@ -148,11 +148,11 @@ Show all storage volumes not in use with a size of more than 10 GB
 
 
 ### Advanced
-The `match` command is an alias for `reported` meaning it is searching in the reported section of the resource. To query outside the reported section we have to use the `query` command. The syntax is like before just that now whenever we want to filter for an attribute within the reported section we will have to prefix that attribute.
+The `match` command is an alias for `reported` meaning it is searching in the reported section of the resource. To query outside the reported section we have to use the `query` command. The syntax is like before just that now whenever we want to filter for an attribute within the reported section we will have to prefix that attribute accordingly.
 
 Find volumes in cloud AWS that are in use
 ```
-query is(volume) and reported.volume_status = in-use and metadata.ancestors.cloud.name == aws
+query is(volume) and reported.volume_status = in-use and metadata.ancestors.cloud.name = aws
 ```
 
 Alternatively instead of filtering for storage volumes of the generic `volume` kind we can also be more specific
@@ -160,7 +160,7 @@ Alternatively instead of filtering for storage volumes of the generic `volume` k
 match is(aws_ec2_volume) and volume_status = in-use
 ```
 
-Find unused AWS volumes older than 30 days with no IO in the past 7
+Find unused AWS volumes older than 30 days with no I/O in the past 7 days
 ```
 match is(aws_ec2_volume) and volume_status = available and ctime < -30d and atime < -7d and mtime < -7d
 ```
