@@ -54,7 +54,7 @@ Every CLI arg can also be specified using ENV variables.
 
 For instance the boolean `--fork` would become `CKWORKER_FORK=true` or `--collector aws gcp` would become `CKWORKER_COLLECTOR="aws gcp"`.
 
-*Important* Every plugin will add its own CLI args to those of `ckworker`. Check the individual plugin documentation for details or use `ckworker --help` to see the complete list.
+*Important*: Every plugin will add its own CLI args to those of `ckworker`. Check the individual plugin documentation for details or use `ckworker --help` to see the complete list.
 
 
 ### Usage examples
@@ -76,7 +76,7 @@ Let us unpack this command
 - `fork` makes `ckworker` fork each collector plugin instead of using threads
 - `collector aws` loads the AWS collector plugin
 - `aws-fork` tells the AWS collector plugin to also use forked processes instead of threads
-- `aws-access-key-id/-secret-access-key` AWS credentials for API acces. Instead of using credentials directly you can also opt to inherit them from the environment e.g. using an `AWS_PROFILE` or when running on EC2 using an instance profile.
+- `aws-access-key-id/-secret-access-key` AWS credentials for API acces. Instead of using credentials directly you can also opt to inherit them from the [`awscli`](https://aws.amazon.com/cli/) environment or when running on EC2 using an instance profile.
 - `aws-role` the IAM role Cloudkeeper should assume when making API requests
 - `aws-scrape-org` tells the AWS collector plugin to retrieve a list of all org accounts and then assume into each one of them.
 
