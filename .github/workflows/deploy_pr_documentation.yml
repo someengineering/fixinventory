@@ -31,7 +31,7 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
-        git commit -m "Update documentation" -a || true
+        git commit -m "Update documentation" -a --allow-empty
         # The above command will fail if no changes were present, so we ignore
         # that.
     - name: Push documentation
