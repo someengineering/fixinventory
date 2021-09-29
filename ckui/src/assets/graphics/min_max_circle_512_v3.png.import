@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4d79a0b810850b21a693aad04d79086c78d76e0df9da3a6aaaa8477da55d2e57
-size 740
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/min_max_circle_512_v3.png-2f187c53c63434e164e07f3abba5e263.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/min_max_circle_512_v3.png"
+dest_files=[ "res://.import/min_max_circle_512_v3.png-2f187c53c63434e164e07f3abba5e263.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

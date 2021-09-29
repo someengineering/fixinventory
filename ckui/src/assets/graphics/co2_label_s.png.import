@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c60501cf09d1aaf8701045ff7fd3341a9c7e3dd5a1a006d77a74aff5abd9140a
-size 710
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/co2_label_s.png-bee0d8b0d5e2ad7f0bfa76873541da66.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/co2_label_s.png"
+dest_files=[ "res://.import/co2_label_s.png-bee0d8b0d5e2ad7f0bfa76873541da66.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

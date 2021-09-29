@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a598d3324f2cc70885711e45f776f135cc8fcda0f8b15cba4aa084b8a1bf287a
-size 286
+[gd_resource type="ShaderMaterial" load_steps=2 format=2]
+
+[sub_resource type="Shader" id=7]
+code = "shader_type canvas_item;
+render_mode unshaded;
+
+void fragment() {
+	COLOR = texture(TEXTURE, UV);
+	COLOR.a = clamp(abs(1.0 - UV.y)*2.5, 0., 1.);
+}"
+
+[resource]
+shader = SubResource( 7 )

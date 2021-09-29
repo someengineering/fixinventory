@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2716902a4291d449e81040944dedf259521ac0420de1d1ed9aefd39518a6fcf2
-size 755
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/outline_share_white_24dp.png-243a18b11f94c0122e3a19eee926ed66.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/icons/outline_share_white_24dp.png"
+dest_files=[ "res://.import/outline_share_white_24dp.png-243a18b11f94c0122e3a19eee926ed66.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0
