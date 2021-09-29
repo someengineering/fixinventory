@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from functools import reduce
-from typing import Optional, Generator, Any
+from typing import Optional, Generator, Any, Iterable
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
@@ -255,16 +255,20 @@ class GraphAccess:
                 yield succ_id
 
     def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
-        for p_id in self.predecessors(node_id, edge_type):
-            p: Json = self.nodes[p_id]
-            kinds: Optional[list[str]] = value_in_path(p, NodePath.kinds)
-            if kinds and kind in kinds:
-                return p
-            else:
-                # return if the parent has this value, otherwise walk all branches
-                parent = self.ancestor_of(p_id, edge_type, kind)
-                if parent:
-                    return parent
+        # note: we are using breadth first search here on purpose.
+        # if there is an ancestor with less distance to this node, we should use this one
+        next_level: Iterable[str] = self.predecessors(node_id, edge_type)
+
+        while next_level:
+            parents: list[str] = []
+            for p_id in next_level:
+                p: Json = self.nodes[p_id]
+                kinds: Optional[list[str]] = value_in_path(p, NodePath.kinds)
+                if kinds and kind in kinds:
+                    return p
+                else:
+                    parents.extend(self.predecessors(p_id, edge_type))
+            next_level = parents
         return None
 
     @staticmethod
