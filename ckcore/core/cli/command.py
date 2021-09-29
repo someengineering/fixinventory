@@ -810,6 +810,10 @@ list_arg_parse = list_single_arg_parse.sep_by(space_dp, min=1)
 
 
 class ListCommand(CLICommand):
+    """
+    TODO: write me.
+    """
+
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
         ("reported.kind", "kind"),
