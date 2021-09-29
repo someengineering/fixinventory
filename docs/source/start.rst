@@ -28,10 +28,10 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
 
 ::
 
-    $ docker run -t -v "${HOME}"/data/test:/data:rw \
+    $ docker run -td -v "${HOME}"/data/test:/data:rw \
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
     -e CKWORKER_COLLECTOR=”aws example” \
-    --name cloudkeeper ghcr.io/someengineering/cloudkeeper > cloudkeeper.log
+    --name cloudkeeper ghcr.io/someengineering/cloudkeeper
 
 
 Start the Cloudkeeper CLI
@@ -69,7 +69,7 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
 
 ::
 
-    $ grep ckcore cloudkeeper.log | grep 501d6048-1e2e-11ec-ace0-330e870b1c75
+    $ docker logs -f cloudkeeper | grep ckcore cloudkeeper.log | grep 501d6048-1e2e-11ec-ace0-330e870b1c75
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: pre_collect [core.task.task_description]
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: collect [core.task.task_description]
     [INFO] Start new task: collect with id 501d6048-1e2e-11ec-ace0-330e870b1c75 [core.task.task_handler]
