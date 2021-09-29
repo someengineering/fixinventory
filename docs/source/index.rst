@@ -7,8 +7,8 @@ Contents
 
    start
    component-list
-   query
    model
+   query
 
 Overview
 ********
