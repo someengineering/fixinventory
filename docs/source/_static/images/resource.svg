@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="318px" preserveAspectRatio="none" style="width:416px;height:318px;background:#00000000;" version="1.1" viewBox="0 0 416 318" width="416px" zoomAndPan="magnify"><defs><filter height="300%" id="f14hymg47t1nrq" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="4.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="8.0" dy="8.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[7f0ecf5f554433d3f2e1213379ac821c]
+class resource--><rect codeLine="3" fill="#FEFECE" filter="url(#f14hymg47t1nrq)" height="277.3711" id="resource" style="stroke:#A80036;stroke-width:3.0;" width="374" x="14" y="14"/><ellipse cx="142.5" cy="46" fill="#ADD1B2" rx="22" ry="22" style="stroke:#A80036;stroke-width:2.0;"/><path d="M147.4463,58.2861 Q146.2842,58.8838 145.0059,59.1826 Q143.7275,59.4814 142.3164,59.4814 Q137.3027,59.4814 134.6631,56.1777 Q132.0234,52.874 132.0234,46.6318 Q132.0234,40.373 134.6631,37.0693 Q137.3027,33.7656 142.3164,33.7656 Q143.7275,33.7656 145.0225,34.0645 Q146.3174,34.3633 147.4463,34.9609 L147.4463,40.4063 Q146.1846,39.2441 144.9976,38.7046 Q143.8105,38.165 142.5488,38.165 Q139.8594,38.165 138.4897,40.2983 Q137.1201,42.4316 137.1201,46.6318 Q137.1201,50.8154 138.4897,52.9487 Q139.8594,55.082 142.5488,55.082 Q143.8105,55.082 144.9976,54.5425 Q146.1846,54.0029 147.4463,52.8408 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="24" lengthAdjust="spacing" textLength="100" x="183.5" y="55.0703">resource</text><line style="stroke:#A80036;stroke-width:3.0;" x1="16" x2="386" y1="78" y2="78"/><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="94"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="96" x="54" y="107.2695">id: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="119.9102"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="134" x="54" y="133.1797">name: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="145.8203"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="122" x="54" y="159.0898">kind: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="171.7305"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="322" x="54" y="185">tags: dictionary[string, string]</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="197.6406"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="162" x="54" y="210.9102">ctime: datetime</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="223.5508"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="170" x="54" y="236.8203">mtime: datetime</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="249.4609"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="162" x="54" y="262.7305">atime: datetime</text><line style="stroke:#A80036;stroke-width:3.0;" x1="16" x2="386" y1="275.3711" y2="275.3711"/><!--MD5=[d06a29ddcdfeeffe768c08501e14c106]
+@startuml
+    skinparam backgroundColor transparent
+
+    class resource {
+    - id: string
+    - name: string
+    - kind: string
+    - tags: dictionary[string, string]
+    - ctime: datetime
+    - mtime: datetime
+    - atime: datetime
+    }
+    @enduml
+
+PlantUML version 1.2021.7(Sun May 23 14:40:07 CEST 2021)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: DE
+--></g></svg>
