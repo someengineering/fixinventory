@@ -34,6 +34,7 @@ _global_script_class_icons={
 
 config/name="Cloudkeeper UI - Prototype"
 run/main_scene="res://ui/CloudkeeperUI.tscn"
+config/icon="res://icon.png"
 
 [autoload]
 
