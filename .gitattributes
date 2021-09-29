@@ -1,1 +1,2 @@
-ckui/src/assets/** filter=lfs diff=lfs merge=lfs -text
+ckui/src/assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+ckui/src/assets/**/*.ttf filter=lfs diff=lfs merge=lfs -text
