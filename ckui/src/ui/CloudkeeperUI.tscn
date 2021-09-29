@@ -168,6 +168,7 @@ z_as_relative = false
 texture = ExtResource( 2 )
 
 [node name="UIDashboard" parent="UI" instance=ExtResource( 5 )]
+visible = false
 margin_left = -1920.0
 margin_right = -1920.0
 rect_min_size = Vector2( 1920, 1080 )
@@ -178,6 +179,7 @@ margin_right = 1920.0
 margin_bottom = 1080.0
 
 [node name="UIQueryEngine" parent="UI" instance=ExtResource( 13 )]
+visible = false
 margin_left = 1920.0
 margin_right = 1920.0
 

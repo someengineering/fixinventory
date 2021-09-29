@@ -26,21 +26,24 @@ var drag_power := Vector2.ZERO
 
 func _ready() -> void:
 	_g.interface = self
-	ui_dashboard.rect_global_position = Vector2(-1920,0)
-	graph_cam.zoom = Vector2.ONE*0.8
-	ui_search.modulate.a = 0
 	_g.emit_signal("load_nodes")
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("load_query", self, "load_query")
+	ui_dashboard.show()
+	ui_dashboard.rect_global_position = Vector2(-1920,0)
+	ui_query.show()
+	graph_cam.zoom = Vector2.ONE*0.8
+	ui_search.modulate.a = 0
+	graph_cam.global_position = _g.nodes[ _g.nodes.keys()[1] ].icon.global_position
+	
+	set_state(states.GRAPH)
+	
 	if _g.ee:
 		graph_cam.zoom = Vector2.ONE*0.1
 		$Graph/Spaceship.show()
 		$Graph/Spaceship/RemoteTransform2D.update_position = true
 	else:
 		$Graph/Spaceship.queue_free()
-	
-	set_state(states.GRAPH)
-	graph_cam.global_position = _g.nodes[ _g.nodes.keys()[1] ].icon.global_position
 
 
 func _physics_process(delta):
@@ -64,7 +67,6 @@ func _physics_process(delta):
 			graph_cam.zoom = max(graph_cam.zoom.x * 0.95, 0.3) * Vector2.ONE
 		elif Input.is_action_just_released("zoom_out"):
 			graph_cam.zoom = min(graph_cam.zoom.x * 1.05, 4) * Vector2.ONE
-	
 
 
 func _input(event) -> void:
@@ -73,9 +75,6 @@ func _input(event) -> void:
 	if event.is_action_pressed("ui_left"):
 		if state == states.GRAPH:
 			set_state(states.DASHBOARD)
-#		elif state == states.QUERY:
-#			set_state(states.GRAPH)
-		
 	elif event.is_action_pressed("ui_right"):
 		if state == states.DASHBOARD:
 			set_state(states.GRAPH)
