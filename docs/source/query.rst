@@ -111,7 +111,7 @@ Selecting Nodes
 
     Every node has a kind, which describes the structure of this node.
     The model supports inheritance: every specific type is also an instance of
-    every more general type of this specific type. In out example above, the resource
+    every more general type of this specific type. In our example above, the resource
     is of type ``aws_ec2_instance``.
     This type is subtype of the types: ``instance``, ``aws_resource`` and ``resource``.
 
@@ -136,14 +136,14 @@ Selecting Nodes
 
     The ``operation`` is one of the following options:
 
-    - ``=`` or ``==`` : the property is equal to provided value.
-    - ``!=`` : the property is not equal to provided value.
-    - ``<=`` : the property is less then or equal to provided value.
-    - ``>=`` : the property is greater then or equal to provided value.
-    - ``>``  : the property is greater then the provided value.
+    - ``=`` or ``==`` : the property is equal to the provided value.
+    - ``!=`` : the property is not equal to the provided value.
+    - ``<=`` : the property is less than or equal to the provided value.
+    - ``>=`` : the property is greater than or equal to the provided value.
+    - ``>``  : the property is greater than the provided value.
     - ``<``  : the property is less than the provided value.
-    - ``~`` or ``=~``   : the property is conform to given regexp. Only applicable to strings.
-    - ``!~``  : the property is not conform to given regexp. Only applicable to strings.
+    - ``~`` or ``=~``   : the property conforms to the given regexp. Only applicable to strings.
+    - ``!~``  : the property is not conform to the given regexp. Only applicable to strings.
     - ``in``  : the property is one of the following values. The value has to be an array.
     - ``not in`` : the property is not one of the following values. The value has to be an array.
 
@@ -160,7 +160,7 @@ Selecting Nodes
 
 #.  Select nodes by id:
 
-    Nodes can be selected by its id via the `id(xyz)` function.
+    Nodes can be selected by their id via the `id(xyz)` function.
     This function can be used globally no matter which section is used.
 
 #.  Combine selections
@@ -233,7 +233,7 @@ in the graph until we find an account.
 
 #. Select nodes that include the current node
 
-    ``-[0:1]->`` traverse the graph outbound starting from the current node until the next level.
+    ``-[0:1]->`` traverse the graph outbound starting from the current node **(0)** until the next level **(1)**.
     The result will contain the current node plus all nodes one level outbound.
     The same applies for inbound  with this statement `<-[0:1]-`.
 
@@ -245,6 +245,13 @@ in the graph until we find an account.
 
     This will return a list of all aws_regions with name ``global`` together with all accounts.
 
+    At this point another detail to ``-->``.
+    ``-->`` and ``<--`` are abbreviations to ``-[1:1]->`` and ``<-[1:1]-``
+    
+    Example: ``is(aws_account) -->`` is equivalent to ``is(aws_account) -[1:1]->``
+    
+    Example: ``is(aws_ec2_instance) <-- is(aws_region)`` is equivalent to ``is(aws_ec2_instance) <-[1:1]- is(aws_region)``
+    
 #. Select nodes with a defined depth in the graph
 
     ``-[start:until]->`` traverses the graph outbound starting from a user defined depth to a user defined depth.
@@ -278,6 +285,7 @@ There are certain scenarios, where nodes need to be selected that have defined r
 graph without selecting the related nodes.
 
 Example: We want to select all ALB target groups where there is no EC2 instance using the ALB.
+
 ::
 
     is(aws_alb_target_group) with (empty, <-- is(aws_ec2_instance))
