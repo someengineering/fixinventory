@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 [gd_resource type="Theme" load_steps=6 format=2]
 
 [sub_resource type="StyleBoxFlat" id=4]
@@ -42,7 +41,7 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="DynamicFontData" id=1]
-font_path = "res://assets/fonts/Ubuntu-Medium.ttf"
+font_path = "GemunuLibre-Light.ttf"
 
 [sub_resource type="DynamicFont" id=2]
 size = 26
@@ -55,8 +54,3 @@ VScrollBar/styles/grabber_highlight = SubResource( 5 )
 VScrollBar/styles/grabber_pressed = SubResource( 5 )
 VScrollBar/styles/scroll = SubResource( 3 )
 VScrollBar/styles/scroll_focus = SubResource( 3 )
-=======
-version https://git-lfs.github.com/spec/v1
-oid sha256:b7846d33b46a1868a2e3ca8d19cee52854c755f81fd2a898f276109d6ea8d308
-size 1629
->>>>>>> 12741d6 (Added example data)
