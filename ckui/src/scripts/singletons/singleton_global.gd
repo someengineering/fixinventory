@@ -9,6 +9,7 @@ var nodes := {}
 var connections := {}
 var ee := false
 var interface : Object = null
+var use_example_data := false
 
 
 var queries := {

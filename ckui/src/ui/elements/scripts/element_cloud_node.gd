@@ -77,7 +77,7 @@ func set_node_type(value:String) -> void:
 		scale = Vector2.ONE
 
 
-func _on_Area2D_input_event(viewport, event, shape_idx) -> void:
+func _on_Area2D_input_event(_viewport, event, _shape_idx) -> void:
 	if event is InputEventMouseButton and !event.pressed:
 		# left click
 		if event.button_index == 1:

@@ -52,11 +52,12 @@ texture = ExtResource( 1 )
 offset = Vector2( -1621.33, 298.667 )
 
 [node name="UserNameLabel" type="Label" parent="."]
+modulate = Color( 0.603922, 0.905882, 1, 1 )
 use_parent_material = true
 margin_left = 1400.0
-margin_top = 8.0
+margin_top = 2.0
 margin_right = 1856.0
-margin_bottom = 60.0
+margin_bottom = 54.0
 custom_fonts/font = SubResource( 25 )
 text = "Lars Kamp"
 align = 2
