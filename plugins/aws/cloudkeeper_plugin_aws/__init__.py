@@ -97,8 +97,8 @@ class AWSPlugin(BaseCollectorPlugin):
         arg_parser.add_argument(
             "--aws-dont-scrape-current",
             help="Don't scrape current account (default: False)",
-            dest="aws_scrape_current",
-            action="store_false",
+            dest="aws_dont_scrape_current",
+            action="store_true",
         )
         arg_parser.add_argument(
             "--aws-account-pool-size",
@@ -140,7 +140,7 @@ class AWSPlugin(BaseCollectorPlugin):
 
         if (
             ArgumentParser.args.aws_assume_current
-            and ArgumentParser.args.aws_scrape_current
+            and not ArgumentParser.args.aws_dont_scrape_current
         ):
             log.warning(
                 "You specified --aws-assume-current but not --aws-dont-scrape-current! "
@@ -155,7 +155,7 @@ class AWSPlugin(BaseCollectorPlugin):
                 )
                 if aws_account_id not in ArgumentParser.args.aws_scrape_exclude_account
             ]
-            if ArgumentParser.args.aws_scrape_current:
+            if not ArgumentParser.args.aws_dont_scrape_current:
                 accounts.append(AWSAccount(current_account_id(), {}))
         elif ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
             accounts = [
