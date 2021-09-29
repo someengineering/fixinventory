@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8d3e70c0538aaf75a74f05744385848663f11933bd4ba7979cffb55bfe596e9e
-size 716
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/leaf_outlines.png-527d6949258ba91392f26f32fe115dd6.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/leaf_outlines.png"
+dest_files=[ "res://.import/leaf_outlines.png-527d6949258ba91392f26f32fe115dd6.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

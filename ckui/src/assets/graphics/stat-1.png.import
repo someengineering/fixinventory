@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:101b024460165d0d1de1101f2343d5842bd60ad2f49962c00b078e20c29a8b1b
-size 696
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/stat-1.png-cf0dbdc1c67192f324a56974e2c9cf02.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/stat-1.png"
+dest_files=[ "res://.import/stat-1.png-cf0dbdc1c67192f324a56974e2c9cf02.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=false
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8f0791d1a22b2c298b9d16b9b98ab3b2ac2c27c7bd6761a289a575237adfe4eb
-size 720
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/extra_border.png-8913b5f5027f6e1b9715f631f74356df.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/sci-fi/extra_border.png"
+dest_files=[ "res://.import/extra_border.png-8913b5f5027f6e1b9715f631f74356df.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

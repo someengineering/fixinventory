@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:59bffdfe9ca53943028f9959c837de2ff275055e4917de420fc93a865f09e5fb
-size 725
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/icon_dashboard.png-9357bdd3e976bfc9fc3a58dec92a2508.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/icons/icon_dashboard.png"
+dest_files=[ "res://.import/icon_dashboard.png-9357bdd3e976bfc9fc3a58dec92a2508.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

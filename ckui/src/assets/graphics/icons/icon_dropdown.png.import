@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b1ee11046f9510f4847da5aba3b2b47efabb6fb22a797c3fa1f50e925efd1fb8
-size 722
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/icons/icon_dropdown.png"
+dest_files=[ "res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8595e3226fd004a8dcadeb50b0003ee89cdff41742d0a1e1ba333a6021b2b19b
-size 734
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/search_clear_thin_s.png-0b3b821a37f9603e4bbe726408403896.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/graphics/search_clear_thin_s.png"
+dest_files=[ "res://.import/search_clear_thin_s.png-0b3b821a37f9603e4bbe726408403896.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=true
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+process/normal_map_invert_y=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0
