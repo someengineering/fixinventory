@@ -15,6 +15,6 @@ def test_args():
     assert ArgumentParser.args.aws_scrape_org is False
     assert len(ArgumentParser.args.aws_scrape_exclude_account) == 0
     assert ArgumentParser.args.aws_assume_current is False
-    assert ArgumentParser.args.aws_scrape_current is True
+    assert ArgumentParser.args.aws_dont_scrape_current is False
     assert ArgumentParser.args.aws_account_pool_size == 5
     assert ArgumentParser.args.aws_region_pool_size == 20
