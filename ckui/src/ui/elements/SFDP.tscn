@@ -1,0 +1,77 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://scripts/sfdp_test.gd" type="Script" id=1]
+[ext_resource path="res://assets/graphics/bg2.png" type="Texture" id=2]
+[ext_resource path="res://assets/graphics/spotlight_1.png" type="Texture" id=3]
+[ext_resource path="res://assets/graphics/noise.png" type="Texture" id=4]
+
+[sub_resource type="CanvasItemMaterial" id=1]
+blend_mode = 1
+
+[sub_resource type="Environment" id=2]
+background_mode = 4
+background_canvas_max_layer = 1
+glow_enabled = true
+glow_levels/1 = true
+glow_levels/2 = true
+glow_levels/4 = true
+glow_intensity = 0.2
+glow_bloom = 0.01
+glow_blend_mode = 0
+glow_bicubic_upscale = true
+
+[node name="SFDP" type="Node2D"]
+script = ExtResource( 1 )
+
+[node name="BG" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="BG" type="TextureRect" parent="BG"]
+margin_left = -112.0
+margin_top = -48.0
+margin_right = 1952.0
+margin_bottom = 1160.0
+mouse_filter = 2
+texture = ExtResource( 2 )
+expand = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Noise" type="Sprite" parent="BG"]
+modulate = Color( 1, 1, 1, 0.0196078 )
+z_index = 99
+z_as_relative = false
+texture = ExtResource( 4 )
+centered = false
+
+[node name="Center" type="Node2D" parent="."]
+position = Vector2( 936, 544 )
+
+[node name="Graph" type="Node2D" parent="Center"]
+
+[node name="LineGroup" type="Node2D" parent="Center/Graph"]
+
+[node name="NodeGroup" type="Node2D" parent="Center/Graph"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2( 936, 544 )
+current = true
+zoom = Vector2( 0.5, 0.5 )
+
+[node name="Spotlight1" type="Sprite" parent="."]
+modulate = Color( 0.298039, 0.737255, 1, 1 )
+material = SubResource( 1 )
+position = Vector2( -2128, 1512 )
+scale = Vector2( 5.40625, 5.40625 )
+texture = ExtResource( 3 )
+
+[node name="Spotlight2" type="Sprite" parent="."]
+modulate = Color( 1, 0.513726, 0.298039, 1 )
+material = SubResource( 1 )
+position = Vector2( 5208, 432 )
+scale = Vector2( 7.375, 7.375 )
+texture = ExtResource( 3 )
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource( 2 )

@@ -1,0 +1,102 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=4
+
+_global_script_classes=[ {
+"base": "Node",
+"class": "CloudConnection",
+"language": "GDScript",
+"path": "res://scripts/classes/class_cloud_connection.gd"
+}, {
+"base": "Node",
+"class": "CloudNode",
+"language": "GDScript",
+"path": "res://scripts/classes/class_cloud_node.gd"
+}, {
+"base": "Node",
+"class": "Utils",
+"language": "GDScript",
+"path": "res://scripts/tools/utils.gd"
+} ]
+_global_script_class_icons={
+"CloudConnection": "",
+"CloudNode": "",
+"Utils": ""
+}
+
+[application]
+
+config/name="Cloudkeeper UI"
+run/main_scene="res://ui/CloudkeeperUI.tscn"
+config/icon="res://icon.png"
+
+[autoload]
+
+_g="*res://scripts/singletons/singleton_global.gd"
+_e="*res://scripts/singletons/singleton_events.gd"
+
+[debug]
+
+gdscript/warnings/unused_signal=false
+gdscript/warnings/return_value_discarded=false
+
+[display]
+
+window/size/width=1920
+window/size/height=1080
+window/size/test_width=1440
+window/size/test_height=810
+window/dpi/allow_hidpi=true
+window/stretch/mode="2d"
+window/stretch/aspect="keep"
+
+[global]
+
+max_remote_stdout_chars_per_second=false
+second=false
+
+[input]
+
+zoom_in={
+"deadzone": 0.5,
+"events": [ Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":4,"pressed":false,"doubleclick":false,"script":null)
+, Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":4,"pressed":false,"doubleclick":false,"script":null)
+ ]
+}
+left_mouse={
+"deadzone": 0.5,
+"events": [ Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":1,"pressed":false,"doubleclick":false,"script":null)
+ ]
+}
+zoom_out={
+"deadzone": 0.5,
+"events": [ Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":5,"pressed":false,"doubleclick":false,"script":null)
+, Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":5,"pressed":false,"doubleclick":false,"script":null)
+ ]
+}
+
+[network]
+
+limits/debugger_stdout/max_chars_per_second=32000
+limits/debugger_stdout/max_messages_per_frame=300
+
+[physics]
+
+common/enable_pause_aware_picking=true
+
+[rendering]
+
+quality/filters/anisotropic_filter_level=16
+2d/options/ninepatch_mode=0
+limits/buffers/blend_shape_max_buffer_size_kb=8192
+limits/buffers/canvas_polygon_buffer_size_kb=1024
+limits/buffers/canvas_polygon_index_buffer_size_kb=1024
+limits/buffers/immediate_buffer_size_kb=4096
+quality/filters/msaa=2
+environment/default_environment="res://default_env.tres"
