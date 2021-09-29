@@ -11,6 +11,7 @@ from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Cal
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
+from parsy import Parser, string
 
 from core.cli.cli import (
     CLISource,
@@ -42,11 +43,9 @@ from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
-from core.parse_util import quoted_or_simple_string_dp
+from core.parse_util import quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp
 from core.query.model import Query, P
-from core.query.query_parser import (
-    parse_query,
-)
+from core.query.query_parser import parse_query
 from core.types import Json, JsonElement
 from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path
 from core.worker_task_queue import WorkerTask
@@ -800,6 +799,71 @@ class FormatCommand(CLICommand):
         return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
 
 
+@make_parser
+def list_single_arg_parse() -> Parser:
+    name = yield variable_dp
+    as_name = yield (space_dp >> string("as") >> space_dp >> literal_dp).optional()
+    return name, as_name
+
+
+list_arg_parse = list_single_arg_parse.sep_by(space_dp, min=1)
+
+
+class ListCommand(CLICommand):
+    # This is the list of properties to show in the list command by default
+    default_properties_to_show = [
+        ("reported.kind", "kind"),
+        ("reported.id", "id"),
+        ("reported.name", "name"),
+        ("reported.ctime", "ctime"),
+        ("reported.mtime", "mtime"),
+        ("reported.atime", "atime"),
+    ]
+    dot_re = re.compile("[.]")
+
+    @property
+    def name(self) -> str:
+        return "list"
+
+    def info(self) -> str:
+        return "Transform incoming objects as string with defined properties."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        def adjust_path(p: list[str]) -> list[str]:
+            root = p[0]
+            if root in Section.all or root == "id" or root == "kinds":
+                return p
+            else:
+                return [Section.reported, *p]
+
+        def to_str(name: str, elem: JsonElement) -> str:
+            if isinstance(elem, dict):
+                return ", ".join(f"{to_str(k, v)}" for k, v in sorted(elem.items()))
+            elif isinstance(elem, list):
+                return f"{name}=[" + ", ".join(str(e) for e in elem) + "]"
+            else:
+                return f"{name}={elem}"
+
+        props: list[tuple[list[str], str]] = []
+        for prop, as_name in list_arg_parse.parse(arg) if arg else self.default_properties_to_show:
+            path = adjust_path(self.dot_re.split(prop))
+            as_name = path[-1] if prop == as_name or as_name is None else as_name
+            props.append((path, as_name))
+
+        def fmt(elem: JsonElement) -> str:
+            result = ""
+            first = True
+            for path, name in props:
+                value = value_in_path(elem, path)
+                if value is not None:
+                    delim = "" if first else ", "
+                    result += f"{delim}{to_str(name, value)}"
+                    first = False
+            return result
+
+        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
+
+
 class JobsSource(CLISource):
     """
     Usage: jobs
@@ -1181,6 +1245,7 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        ListCommand(d),
         ProtectCommand(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
