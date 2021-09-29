@@ -13,19 +13,21 @@ At the moment, this is just a prototype with no functionality except the visual 
  - Easy and useful ways of searching the graph and integrate queries into this concept.
 
 ## Disclaimer
-This UI is *not* providing any additional things you can do with Cloudkeeper - right now! 
-If you are a user that deployed Cloudkeeper or is evaluating it, this UI will give you no real benefit.
-
-It's here to get an idea of how the UI will be looking and feeling and to start early working on it in the frame of the project.
+This UI currently has no backend connection to Cloudkeeper. It uses static .json files in the src/data/ directory.
+It is here to give an idea of how the UI will be looking and feeling and to start early working on it in the frame of the project.
 
 ## How to get the UI running
-It's a Godot project, to open and run it you either need an exported version (Win, Mac, Linux, web assembly, ... Nintendo Switch?) or you open the project for yourself.
-
-**As we don't provide exported binaries yet, you have to do the latter following these steps:**
+**Follow these steps:**
 - Download the [latest Godot 3.x stable](https://godotengine.org/download) (We develop in the standard version).
 - Start the engine and import the project in the Project Manager (click import, select the 'project.godot' file).
 - Open the project from the Project Manager.
 - Run the Project by clicking on the "Play" button in the upper right corner.
-- 
+
 ## How to get your Cloud data into the UI?
-Right now it is not possible to get your data into the UI. This will be one of our next steps.
+Right now it is not possible to get your data into the UI as the format of the json files has changed in Cloudkeeper core.
+We will add instructions of how to generate your own .json files soon.
+
+Until then look at the format inside the 'example_data.gd' file to get an idea of the required input.
+The UI uses two files for the data it processes:
+data/graph_dump.json - This is a dump of the whole node graph from Cloudkeeper
+data/prometheus_metrics.json - This is an export from the Prometheus tsdb
