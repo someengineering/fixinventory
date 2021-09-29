@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-protect_snowflakes",
-    version="2.0.0a2",
+    version="2.0.0a3",
     description="Cloudkeeper Snowflake Protection Plugin",
     license="Apache 2.0",
     packages=find_packages(),
