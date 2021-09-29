@@ -820,8 +820,10 @@ class ListCommand(CLICommand):
         ("reported.id", "id"),
         ("reported.name", "name"),
         ("reported.ctime", "ctime"),
-        ("reported.mtime", "mtime"),
-        ("reported.atime", "atime"),
+        ("metadata.ancestors.cloud.name", "cloud"),
+        ("metadata.ancestors.account.name", "account"),
+        ("metadata.ancestors.region.name", "region"),
+        ("metadata.ancestors.zone.name", "zone"),
     ]
     dot_re = re.compile("[.]")
 
