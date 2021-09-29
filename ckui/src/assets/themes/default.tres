@@ -41,7 +41,7 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="DynamicFontData" id=1]
-font_path = "res://assets/fonts/Ubuntu-Medium.ttf"
+font_path = "GemunuLibre-Light.ttf"
 
 [sub_resource type="DynamicFont" id=2]
 size = 26

@@ -40,8 +40,8 @@ func play_anim():
 	$Tween.start()
 
 
-func count_up(value):
-	var text = str(round(value))
+func count_up(_value):
+	var text = str(round(_value))
 	metric_label.text = text
 	$MarginContainer/CenterContainer/Scaler/TextureProgress.value = value
 	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(value, 0, 100, -224, 45)

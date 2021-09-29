@@ -1,8 +1,8 @@
 [gd_scene load_steps=16 format=2]
 
 [ext_resource path="res://ui/metricviz_components/scripts/metricviz_number_minmax.gd" type="Script" id=1]
-[ext_resource path="res://assets/graphics/min_max_circle_512_bg_v2.png" type="Texture" id=2]
-[ext_resource path="res://assets/graphics/min_max_circle_512_v3.png" type="Texture" id=3]
+[ext_resource path="res://assets/graphics/min_max_circle_bg.png" type="Texture" id=2]
+[ext_resource path="res://assets/graphics/min_max_circle.png" type="Texture" id=3]
 
 [sub_resource type="DynamicFontData" id=34]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"

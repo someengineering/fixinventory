@@ -32,7 +32,7 @@ _global_script_class_icons={
 
 [application]
 
-config/name="Cloudkeeper UI"
+config/name="Cloudkeeper UI - Prototype"
 run/main_scene="res://ui/CloudkeeperUI.tscn"
 config/icon="res://icon.png"
 
@@ -99,4 +99,4 @@ limits/buffers/canvas_polygon_buffer_size_kb=1024
 limits/buffers/canvas_polygon_index_buffer_size_kb=1024
 limits/buffers/immediate_buffer_size_kb=4096
 quality/filters/msaa=2
-environment/default_environment="res://default_env.tres"
+quality/filters/use_debanding=true

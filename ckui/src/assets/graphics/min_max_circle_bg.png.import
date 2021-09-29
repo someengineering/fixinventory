@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/stat-3.png-c1b2ca827f527303f3be97a85bb202f7.stex"
+path="res://.import/min_max_circle_bg.png-120bbbc2c1c7321e5db49f36511db97b.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/stat-3.png"
-dest_files=[ "res://.import/stat-3.png-c1b2ca827f527303f3be97a85bb202f7.stex" ]
+source_file="res://assets/graphics/min_max_circle_bg.png"
+dest_files=[ "res://.import/min_max_circle_bg.png-120bbbc2c1c7321e5db49f36511db97b.stex" ]
 
 [params]
 

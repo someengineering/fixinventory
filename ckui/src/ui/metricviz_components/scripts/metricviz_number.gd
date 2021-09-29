@@ -31,5 +31,5 @@ func play_anim():
 	$Tween.start()
 
 
-func count_up(value):
-	metric_label.text = str(round(value))
+func count_up(_value):
+	metric_label.text = str(round(_value))

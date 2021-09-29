@@ -42,8 +42,8 @@ func play_anim():
 	$Tween.start()
 
 
-func count_up(value):
-	var text = str(stepify(value, 0.1))
+func count_up(_value):
+	var text = str(stepify(_value, 0.1))
 	metric_label.text = text
-	progress.value = stepify(value, 0.1)
+	progress.value = stepify(_value, 0.1)
 	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(stepify(value, 0.1), progress.min_value, progress.max_value, -224, 45)

@@ -18,5 +18,5 @@ func load_query(query_id):
 
 	$QueryEditor/Background/MarginContainer/LineEdit.text = query.query.format([edit_field.text],"{_}")
 
-func _on_LineEdit_text_changed(new_text):
+func _on_LineEdit_text_changed(_new_text):
 	$QueryEditor/Background/MarginContainer/LineEdit.text = query.query.format([edit_field.text],"{_}")
