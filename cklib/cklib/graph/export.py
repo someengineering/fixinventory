@@ -182,5 +182,10 @@ def node_to_dict(node: BaseResource) -> Dict:
     return {
         "id": node.sha256,
         "reported": get_node_attributes(node),
-        "metadata": {"python_type": type_str(node)},
+        "metadata": {
+            "python_type": type_str(node),
+            "cleaned": node.cleaned,
+            "phantom": node.phantom,
+            "protected": node.protected,
+        },
     }

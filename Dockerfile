@@ -5,7 +5,7 @@ ARG SOURCE_COMMIT
 ARG SUPERVISOR_VERSION=4.2.2
 ARG BUSYBOX_VERSION=1.33.1
 ARG ARANGODB_VERSION=3.8.1
-ARG PROMETHEUS_VERSION=2.29.2
+ARG PROMETHEUS_VERSION=2.30.1
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies

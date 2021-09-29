@@ -41,6 +41,9 @@ class AsyncArangoDBBase:
         skip_inaccessible_cols: Optional[bool] = None,
         max_runtime: Optional[Number] = None,
     ) -> Cursor:
+        # TODO: remove the 2 lines once this fix: https://github.com/arangodb/arangodb/pull/14801 is released
+        opt = ["-reduce-extraction-to-projection"]
+        optimizer_rules = list(optimizer_rules) + opt if optimizer_rules else opt
         return await run_async(
             self.db.aql.execute,
             query,

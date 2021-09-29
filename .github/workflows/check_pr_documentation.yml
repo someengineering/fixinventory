@@ -8,8 +8,8 @@ on:
       - 'docs/**'
 
 jobs:
-  documentation:
-    name: "documentation"
+  test_documentation:
+    name: "test_documentation"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
