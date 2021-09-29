@@ -60,13 +60,13 @@ expand_margin_bottom = 5.0
 [sub_resource type="CanvasItemMaterial" id=15]
 blend_mode = 1
 
-[sub_resource type="DynamicFontData" id=19]
-font_path = "res://assets/fonts/Ubuntu-Light.ttf"
+[sub_resource type="DynamicFontData" id=33]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
 [sub_resource type="DynamicFont" id=18]
-size = 29
+size = 32
 extra_spacing_top = -7
-font_data = SubResource( 19 )
+font_data = SubResource( 33 )
 
 [sub_resource type="StyleBoxEmpty" id=12]
 content_margin_bottom = 4.0

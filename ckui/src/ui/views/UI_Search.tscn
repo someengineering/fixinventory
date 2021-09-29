@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=2]
+[gd_scene load_steps=25 format=2]
 
 [ext_resource path="res://assets/graphics/search_clear_thin.png" type="Texture" id=1]
 [ext_resource path="res://ui/views/scripts/ui_search.gd" type="Script" id=2]
@@ -100,13 +100,6 @@ expand_margin_bottom = 5.0
 
 [sub_resource type="StyleBoxEmpty" id=22]
 
-[sub_resource type="DynamicFontData" id=10]
-font_path = "res://assets/fonts/Ubuntu-Medium.ttf"
-
-[sub_resource type="DynamicFont" id=17]
-size = 32
-font_data = SubResource( 10 )
-
 [sub_resource type="DynamicFontData" id=40]
 font_path = "res://assets/fonts/Lato-Regular.ttf"
 
@@ -115,13 +108,6 @@ size = 26
 use_mipmaps = true
 use_filter = true
 font_data = SubResource( 40 )
-
-[sub_resource type="DynamicFontData" id=5]
-font_path = "res://assets/fonts/Ubuntu-Regular.ttf"
-
-[sub_resource type="DynamicFont" id=24]
-size = 20
-font_data = SubResource( 5 )
 
 [node name="UISearch" type="Control"]
 anchor_right = 1.0
@@ -289,21 +275,6 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="MetricNameLabel" type="Label" parent="ResultContainer/Background"]
-visible = false
-margin_left = 4.0
-margin_top = -40.0
-margin_right = 1724.0
-margin_bottom = 15.0
-rect_min_size = Vector2( 0, 55 )
-mouse_filter = 1
-custom_fonts/font = SubResource( 17 )
-text = "Results"
-align = 1
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
 [node name="Results" type="ScrollContainer" parent="ResultContainer"]
 margin_left = 100.0
 margin_top = 40.0
@@ -352,15 +323,6 @@ text = "Queries"
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
-[node name="ItemButton" type="Button" parent="ResultContainer/Results"]
-visible = false
-margin_right = 19.0
-margin_bottom = 8.0
-custom_fonts/font = SubResource( 24 )
-text = "Example"
-flat = true
-align = 0
 
 [node name="HBoxContainer" type="VBoxContainer" parent="ResultContainer/Results"]
 margin_right = 1720.0

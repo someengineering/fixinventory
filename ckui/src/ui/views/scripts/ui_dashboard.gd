@@ -1,5 +1,7 @@
 extends Control
 
+const PROMETHEUS_METRICS_JSON_PATH = "res://data/prometheus_metrics.json"
+
 var data := {}
 var accounts := []
 var clouds := []
@@ -8,17 +10,20 @@ func _ready():
 	read_data()
 	
 	for linechart in get_tree().get_nodes_in_group("metricviz_linechart"):
-		linechart.set_data( get_metric_data( "", clouds[linechart.cloud_type] ) )
-	
-#	$MetricVizLineChartFullscreen.
+		linechart.set_data( get_metric_data( "", clouds[ min(linechart.cloud_type, clouds.size()-1) ] ) )
 
 
 func read_data():
 	var file = File.new()
-	file.open("res://data/prometheus_metrics.json", file.READ)
-	var text = file.get_as_text()
-	data = parse_json(text)
-	file.close()
+	if file.file_exists(PROMETHEUS_METRICS_JSON_PATH) and !_g.use_example_data:
+		file.open(PROMETHEUS_METRICS_JSON_PATH, file.READ)
+		var text = file.get_as_text()
+		data = parse_json(text)
+		file.close()
+	else:
+		var example_data_file = load("res://scripts/tools/example_data.gd")
+		var example_data = example_data_file.new()
+		data = example_data.tsdb_data.duplicate()
 	
 	for i in data.data.result:
 		if !accounts.has(i.metric.account):

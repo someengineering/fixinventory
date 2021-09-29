@@ -120,10 +120,6 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 			var current_node_position = node.icon.position
 			var net_force = Vector2.ZERO
 			
-			if i == 2:
-				$Camera2D.global_position = node.icon.global_position
-				$Camera2D.zoom *= 1.01
-			
 			
 			for other_node in nodes.values():
 				if node != other_node:

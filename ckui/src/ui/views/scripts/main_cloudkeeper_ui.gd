@@ -34,6 +34,7 @@ func _ready() -> void:
 	_e.connect("load_query", self, "load_query")
 	if _g.ee:
 		graph_cam.zoom = Vector2.ONE*0.1
+		$Graph/Spaceship.show()
 		$Graph/Spaceship/RemoteTransform2D.update_position = true
 	else:
 		$Graph/Spaceship.queue_free()
@@ -187,10 +188,9 @@ func _on_CamMoveTween_tween_all_completed() -> void:
 		ui_nodeinfo.show_info(target_node)
 
 
-func _on_MouseDetector_input_event(viewport, event, shape_idx):
+func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 	if event is InputEventMouseButton:
 		if !event.pressed and !selected_new_node and target_node != null:
-			var ui_tween = ui_graph.get_node("AnimTween")
 			cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 			cam_tween.start()
 			target_node.icon.is_selected = false

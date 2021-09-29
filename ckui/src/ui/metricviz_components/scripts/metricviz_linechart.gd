@@ -98,8 +98,8 @@ func show_total() -> void:
 	var line = plot_visual_data.keys()[-1]
 	var poly = plot_visual_data[line].poly
 	var positions = plot_visual_data[line].points
-	var polygon : PoolVector2Array
-	var polygon_uvs : PoolVector2Array
+	var polygon : PoolVector2Array = []
+	var polygon_uvs : PoolVector2Array = []
 	var new_line_data = []
 	
 	poly.modulate = Color.from_hsv(0.5, 1, 1.0, 1)
@@ -210,7 +210,7 @@ func create_plot(id := -1):
 		new_poly.material = new_poly.material.duplicate()
 		
 		plot_visual_data[new_line] = { "metrics" : d.metrics, "values" : d.values, "poly" : new_poly }
-		var points : Array
+		var points : Array = []
 		
 		for i in values_total.size():
 			var new_point : Vector2
@@ -275,9 +275,6 @@ func _on_ColorRect_gui_input(event):
 	
 	if is_active and event is InputEventMouseMotion: 
 		show_detail()
-		var closest_dist := -1.0
-		var closest_curve : Object = null
-		var closest_pos : Vector2
 		var mouse_pos = get_global_mouse_position()
 		var values_total_amount = values_total.size()-1
 		var values_total_y_pos = Array( values_total.values() )
@@ -313,7 +310,7 @@ func _on_ColorRect_gui_input(event):
 		var current_time = values_total.keys()[x_id]
 		var current_value_info : String = "Timestamp: " + Utils.to_date_unix(current_time) + "\n\n"
 		var plot_visual_data_values = Array( plot_visual_data.values() )
-		var current_value_data : Array
+		var current_value_data : Array = []
 		for i in plot_visual_data_values.size():
 			var current_value = 0.0
 			for v in plot_visual_data_values[i].values:

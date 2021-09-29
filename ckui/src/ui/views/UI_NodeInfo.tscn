@@ -239,11 +239,11 @@ margin_right = 1361.0
 margin_bottom = 64.0
 
 [node name="ButtonLabel" parent="Background/ContactOwnerButton/CenterContainer" index="0"]
-margin_left = 88.0
+margin_left = 69.0
 margin_top = 2.0
-margin_right = 224.0
+margin_right = 243.0
 margin_bottom = 30.0
-text = "Find owner"
+text = "Contact owner"
 
 [node name="MarkForCleanupButton" parent="Background" instance=ExtResource( 5 )]
 margin_left = 1049.0

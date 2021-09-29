@@ -1,5 +1,7 @@
 extends Node2D
 
+const GRAPH_DUMP_JSON_PATH = "res://data/graph_dump.json"
+
 var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
 
 onready var line_group = $LineGroup
@@ -13,19 +15,25 @@ func _ready():
 
 func read_data():
 	var file = File.new()
-	file.open("res://data/graph_dump.json", file.READ)
-	
 	var new_data := {}
-	var index = 0
-	while not file.eof_reached():
-		var line = file.get_line()
-		if line == "":
-			index += 1
-			continue
-		new_data[index] = parse_json(line)
-		index += 1
 	
-	file.close()
+	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
+		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
+		
+		var index = 0
+		while not file.eof_reached():
+			var line = file.get_line()
+			if line == "":
+				index += 1
+				continue
+			new_data[index] = parse_json(line)
+			index += 1
+	
+		file.close()
+	else:
+		var example_data_file = load("res://scripts/tools/example_data.gd")
+		var example_data = example_data_file.new()
+		new_data = example_data.graph_data.duplicate()
 	
 	for data in new_data.values():
 		if data != null and data.has("id"):
