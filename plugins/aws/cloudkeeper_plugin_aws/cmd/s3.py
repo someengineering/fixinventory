@@ -19,7 +19,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import WordCompleter
 import cklib.logging
-from cloudkeeper.cli import replace_placeholder
+from cloudkeeperv1.cli import replace_placeholder
 from cklib.utils import split_esc, iec_size_format
 from cklib.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws.utils import aws_session
@@ -287,7 +287,7 @@ def get_accounts():
 
     if (
         ArgumentParser.args.aws_assume_current
-        and ArgumentParser.args.aws_scrape_current
+        and not ArgumentParser.args.aws_dont_scrape_current
     ):
         log.warning(
             "You specified --aws-assume-current but not --aws-dont-scrape-current! "
@@ -302,7 +302,7 @@ def get_accounts():
             )
             if aws_account_id not in ArgumentParser.args.aws_scrape_exclude_account
         ]
-        if ArgumentParser.args.aws_scrape_current:
+        if not ArgumentParser.args.aws_dont_scrape_current:
             accounts.append(AWSAccount(current_account_id(), {}))
     elif ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
         accounts = [
