@@ -43,7 +43,7 @@ from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
-from core.parse_util import quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp
+from core.parse_util import quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
 from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.types import Json, JsonElement
@@ -806,12 +806,70 @@ def list_single_arg_parse() -> Parser:
     return name, as_name
 
 
-list_arg_parse = list_single_arg_parse.sep_by(space_dp, min=1)
+list_arg_parse = list_single_arg_parse.sep_by(comma_p, min=1)
 
 
 class ListCommand(CLICommand):
     """
-    TODO: write me.
+    Usage: list [props_to_show]
+
+    This command creates a string from the json input based on the defined properties to show.
+
+    If no prop is defined a predefined list of properties will be shown:
+        - reported.kind
+        - reported.id
+        - reported.name
+        - reported.ctime
+        - metadata.ancestors.cloud.name as cloud
+        - metadata.ancestors.account.name as account
+        - metadata.ancestors.region.name as region
+        - metadata.ancestors.zone.name as zone
+
+    If props_to_show is defined, it will override the default and will show the defined properties.
+    The syntax for props_to_show is a comma delimited list of property paths.
+    The property path can be absolute, meaning it includes the section name (reported, desired, metadata).
+    In case the section name is not defined, the reported section is assumed automatically.
+
+    The defined property path will be looked for every element in the incoming json.
+    If the value is defined, it will be part of the list line.
+    Undefined values are filtered out and will not be printed.
+
+    The property name can be defined via an `as` clause.
+    `reported.kind as kind` would look up the path reported.kind and if the value is defined write kind={value}
+    If no as clause is defined, the name of the last element of property path is taken.
+    In the example above we could write `reported.kind` or `reported.kind as kind` - both would end in the same result.
+    The `as` clause is important, in case the last part of the property path is not sufficient as property name.
+
+
+    Parameter:
+        props_to_show [optional]: a space delimited definition of properties to show
+
+    Example:
+        $> query is(aws_ec2_instance) limit 3 | list
+          kind=aws_ec2_instance, id=1, name=sun, ctime=2020-09-10T13:24:45Z, cloud=aws, account=prod, region=us-west-2
+          kind=aws_ec2_instance, id=2, name=moon, ctime=2021-09-21T01:08:11Z, cloud=aws, account=dev, region=us-west-2
+          kind=aws_ec2_instance, id=3, name=star, ctime=2021-09-25T23:28:40Z, cloud=aws, account=int, region=us-east-1
+
+        $> query is(aws_ec2_instance) limit 3 | list reported.name
+          name=sun
+          name=moon
+          name=star
+
+        # section name is missing, reported is used automatically
+        $> query is(aws_ec2_instance) limit 3 | list kind, name
+          kind=aws_ec2_instance, name=sun
+          kind=aws_ec2_instance, name=moon
+          kind=aws_ec2_instance, name=star
+
+        $> query is(aws_ec2_instance) limit 3 | list kind as a, name as b
+          a=aws_ec2_instance, b=sun
+          a=aws_ec2_instance, b=moon
+          a=aws_ec2_instance, b=star
+
+        $> query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
+          a=aws_ec2_instance, b=sun
+          a=aws_ec2_instance, b=moon
+          a=aws_ec2_instance, b=star
     """
 
     # This is the list of properties to show in the list command by default
