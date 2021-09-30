@@ -400,7 +400,8 @@ class ArangoGraphDB(GraphDB):
             )
 
     async def refresh_marked_update(self, change_id: str) -> None:
-        await self.db.aql(self.update_active_change(), bind_vars={"change": change_id})
+        with await self.db.aql(self.update_active_change(), bind_vars={"change": change_id}):
+            return None
 
     async def delete_marked_update(self, change_id: str, tx: Optional[AsyncArangoTransactionDB] = None) -> None:
         db = tx if tx else self.db
