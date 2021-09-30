@@ -11,8 +11,7 @@ import json
 from cklib.logging import log
 from functools import wraps
 from pprint import pformat
-from pympler import asizeof
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Callable, Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
 
 
@@ -272,7 +271,6 @@ def get_stats(graph=None) -> Dict:
         stats = {
             "active_threads": threading.active_count(),
             "thread_names": [thread.name for thread in threading.enumerate()],
-            "graph_size_bytes": asizeof.asizeof(graph),
             "garbage_collector": garbage_collector.get_stats(),
             "process": get_all_process_info(),
         }
@@ -305,7 +303,6 @@ def get_stats(graph=None) -> Dict:
         )
         stats.update(
             {
-                "graph_size_human_readable": iec_size_format(stats["graph_size_bytes"]),
                 "maxrss_parent_human_readable": iec_size_format(
                     stats["maxrss_parent_bytes"]
                 ),
@@ -633,3 +630,20 @@ def type_str(o):
     if module == "builtins":
         return cls.__qualname__
     return module + "." + cls.__qualname__
+
+
+class defaultlist(list):
+    def __init__(self, func: Callable) -> None:
+        self._func = func
+
+    def _fill(self, index: int) -> None:
+        while len(self) <= index:
+            self.append(self._func())
+
+    def __setitem__(self, index: int, value: Any) -> None:
+        self._fill(index)
+        list.__setitem__(self, index, value)
+
+    def __getitem__(self, index: int) -> Any:
+        self._fill(index)
+        return list.__getitem__(self, index)

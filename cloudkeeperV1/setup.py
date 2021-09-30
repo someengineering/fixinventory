@@ -6,6 +6,11 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
+
 setup(
     name="cloudkeeperV1",
     version="0.0.17",
@@ -20,17 +25,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=[
-        "cklib",
-        "cherrypy",
-        "requests",
-        "prometheus_client",
-        "apscheduler",
-        "prompt_toolkit",
-        "tzlocal==2.1",
-        "pyyaml",
-        "PyJWT",
-    ],
+    install_requires=requirements,
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

@@ -1,6 +1,10 @@
 import os
 from setuptools import setup, find_packages
 
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -20,7 +24,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cklib", "kubernetes"],
+    install_requires=requirements,
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[
