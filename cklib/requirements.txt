@@ -1,7 +1,7 @@
-networkx
-defaultlist
-typeguard
-websocket-client
-psutil
-requests
-prometheus_client
+networkx==2.6.3
+defaultlist==1.0.0
+typeguard==2.12.1
+websocket-client==1.2.1
+psutil==5.8.0
+requests==2.26.0
+prometheus-client==0.11.0
