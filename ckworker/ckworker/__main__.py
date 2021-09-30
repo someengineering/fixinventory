@@ -132,8 +132,6 @@ def tasks_processor(message: Dict) -> None:
     delete_tags = task_data.get("delete", [])
     update_tags = task_data.get("update", {})
     node_data = task_data.get("node")
-    node_id = node_data.get("id")
-    node_revision = node_data.get("revision")
     result = "done"
     extra_data = {}
 
@@ -145,10 +143,8 @@ def tasks_processor(message: Dict) -> None:
         for k, v in update_tags.items():
             node.tags[k] = v
 
-        if node_id and node_revision:
-            node_dict = node_to_dict(node)
-            node_dict.update({"id": node_id, "revision": node_revision})
-            extra_data.update({"data": node_dict})
+        node_dict = node_to_dict(node)
+        extra_data.update({"data": node_dict})
     except Exception as e:
         log.exception("Error while updating tags")
         result = "error"
@@ -228,8 +224,15 @@ def node_from_dict(node_data: Dict) -> BaseResource:
                 }
             )
     new_node_data.update(ancestors)
+    new_node_data.update(
+        {
+            "_ckcore_id": node_data.get("id"),
+            "_ckcore_revision": node_data.get("revision"),
+        }
+    )
 
     node = node_type(**new_node_data)
+    node._raise_tags_exceptions = True
 
     protect_node = node_data_metadata.get("protected", False)
     if protect_node:
@@ -237,7 +240,6 @@ def node_from_dict(node_data: Dict) -> BaseResource:
     clean_node = node_data_desired.get("clean", False)
     if clean_node:
         node.clean = clean_node
-    node._raise_tags_exceptions = True
     return node
 
 

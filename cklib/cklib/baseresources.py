@@ -97,6 +97,8 @@ class BaseResource(ABC):
     _account: object = field(default=None, repr=False)
     _region: object = field(default=None, repr=False)
     _zone: object = field(default=None, repr=False)
+    _ckcore_id: Optional[str] = field(default=None, repr=False)
+    _ckcore_revision: Optional[str] = field(default=None, repr=False)
     ctime: Optional[datetime] = None
     mtime: Optional[datetime] = None
     atime: Optional[datetime] = None
