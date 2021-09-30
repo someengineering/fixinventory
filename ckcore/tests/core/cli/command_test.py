@@ -318,3 +318,13 @@ async def test_kind_command(cli: CLI) -> None:
     assert result[0][0] == {"name": "datetime", "runtime_kind": "datetime"}
     with pytest.raises(Exception):
         await cli.execute_cli_command("kind foo bla bar", stream.list)
+
+
+@pytest.mark.asyncio
+async def test_list_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command('reported is (foo) and identifier=="4" | list', stream.list)
+    assert len(result[0]) == 1
+    assert result[0][0].startswith("kind=foo, ctime=")
+    list_cmd = "list some_int as si, reported.some_string"
+    result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
+    assert result[0] == ["si=0, some_string=hello"]
