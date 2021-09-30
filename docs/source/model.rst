@@ -186,7 +186,7 @@ Example:
 
 
 Complex and simple kinds
------------------
+------------------------
 
 | We have looked at complex kinds so far: a complex kind has a name and a set of properties.
 | Each property has a name and also a kind.
