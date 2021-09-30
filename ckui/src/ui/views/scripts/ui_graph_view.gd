@@ -3,15 +3,31 @@ extends Node2D
 const GRAPH_DUMP_JSON_PATH = "res://data/graph_dump.json"
 
 var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
+var root_node : Object = null
 
 onready var line_group = $LineGroup
 onready var node_group = $NodeGroup
+
+export (NodePath) onready var graph_cam = get_node(graph_cam)
+export (NodePath) onready var graph_bg = get_node(graph_bg)
 
 
 func _ready():
 	_g.connect("load_nodes", self, "read_data")
 	_e.connect("hovering_node", self, "hovering_node")
 	_e.connect("show_connected_nodes", self, "show_connected_nodes")
+
+
+func _process(delta):
+	if root_node == null:
+		return
+	
+	# move the center of the background gradient in the direction of the root node
+	var dist_to_root_node = min(root_node.global_position.distance_to(graph_cam.global_position), 2000)
+	var dir_to_root_node = root_node.global_position.direction_to(graph_cam.global_position)
+	var zoom_factor = range_lerp(graph_cam.zoom.x, 0.5, 4, 1, 0.1)
+	graph_bg.material.set_shader_param("center", -dir_to_root_node * ease(range_lerp(dist_to_root_node, 0, 2000, 0, 1), 0.7) * zoom_factor)
+
 
 func read_data():
 	var file = File.new()
@@ -38,6 +54,8 @@ func read_data():
 	for data in new_data.values():
 		if data != null and data.has("id"):
 			_g.nodes[data.id] = create_new_node(data)
+			if root_node == null:
+				root_node = _g.nodes[data.id].icon
 		elif _g.nodes.has(data.from) and _g.nodes.has(data.to):
 			_g.connections[str(data.from + data.to)] = add_connection(data)
 	
@@ -94,7 +112,8 @@ func update_connection_lines() -> void:
 
 func layout_graph() -> void:
 	var graph_node_positions = Utils.load_json(_g.GRAPH_NODE_JSON_PATH)
-	if graph_node_positions.empty():
+	
+	if graph_node_positions.empty() or graph_node_positions.size() != _g.nodes.size():
 		for node in _g.nodes.values():
 			node.icon.position = Vector2(rand_range(1000, 5760-1000), rand_range(550, 3240-550)) + Vector2(-2880, -1630)
 	else:

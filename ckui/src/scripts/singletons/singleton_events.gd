@@ -6,3 +6,6 @@ signal hovering_node
 signal show_node
 signal hide_nodes
 signal show_connected_nodes
+signal graph_spaceship
+signal graph_randomize
+signal graph_order

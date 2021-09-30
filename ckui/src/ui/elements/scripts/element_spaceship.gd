@@ -12,13 +12,14 @@ var scanning_nodes := []
 var ship_active := false
 
 func _ready():
-	if _g.ee:
+	if _g.spaceship_mode:
 		ship_active = true
 	var ship_scale = scale.x
 	THRUST *= ship_scale
 	
 
 func _physics_process(delta):
+	$SpaceshipAppear.global_rotation = 0
 	if !ship_active:
 		return
 	velocity *= DAMPING
@@ -44,6 +45,14 @@ func _physics_process(delta):
 	
 	for i in scanning_nodes:
 		i.scanning(delta)
+
+
+func vanish():
+	$AnimationPlayer.play("vanish")
+
+
+func appear():
+	$AnimationPlayer.play("appear")
 
 
 func _on_Scanner_area_entered(area):

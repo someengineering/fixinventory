@@ -4,6 +4,8 @@ var scanned := 0.0
 var is_scanned := false
 var is_selected := false setget set_is_selected
 var cloud_node : CloudNode = null setget set_cloud_node
+var random_pos := Vector2.ZERO
+var graph_pos := Vector2.ZERO
 
 onready var marker = $Marker
 onready var reveal = $Reveal
@@ -11,14 +13,14 @@ onready var reveal = $Reveal
 func _ready() -> void:
 	_e.connect("show_node", self, "show_detail")
 	_e.connect("hide_nodes", self, "hide_detail")
-	
-	if _g.ee:
-		$ScannerBar.show()
-		$LabelKind.modulate.a = 0
-		$LabelName.modulate.a = 0
-		$ScannerBar.modulate.a = 0
-	else:
-		$ScannerBar.queue_free()
+#
+#	if _g.spaceship_mode:
+#		$ScannerBar.show()
+#		$LabelKind.modulate.a = 0
+#		$LabelName.modulate.a = 0
+#		$ScannerBar.modulate.a = 0
+#	else:
+#		$ScannerBar.queue_free()
 	set_hover_power(0)
 
 

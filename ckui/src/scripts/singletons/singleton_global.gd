@@ -7,7 +7,7 @@ signal load_nodes
 
 var nodes := {}
 var connections := {}
-var ee := false
+var spaceship_mode := false
 var interface : Object = null
 var use_example_data := false
 

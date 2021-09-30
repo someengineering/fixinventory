@@ -1,6 +1,7 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://assets/graphics/sci-fi/icon_dropdown.png" type="Texture" id=1]
+[ext_resource path="res://ui/views/scripts/ui_command_line.gd" type="Script" id=2]
 [ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=7]
 
 [sub_resource type="Gradient" id=22]
@@ -41,10 +42,32 @@ font_data = SubResource( 41 )
 content_margin_left = 8.0
 content_margin_right = 8.0
 
+[sub_resource type="DynamicFontData" id=45]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=46]
+size = 18
+extra_spacing_top = -3
+font_data = SubResource( 45 )
+
+[sub_resource type="StyleBoxFlat" id=47]
+bg_color = Color( 0, 0, 0, 0.337255 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 1
+
 [node name="UICommandLine" type="Control"]
 margin_right = 1920.0
 margin_bottom = 80.0
 rect_min_size = Vector2( 1920, 80 )
+script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -105,7 +128,7 @@ __meta__ = {
 [node name="Background" type="Panel" parent="."]
 margin_left = 48.0
 margin_top = 8.0
-margin_right = 1912.0
+margin_right = 1816.0
 margin_bottom = 32.0
 mouse_filter = 1
 size_flags_horizontal = 3
@@ -133,3 +156,61 @@ editable = false
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="ButtonSpaceship" type="Button" parent="."]
+margin_left = 1824.0
+margin_top = 8.0
+margin_right = 1848.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "S"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonRandomize" type="Button" parent="."]
+margin_left = 1856.0
+margin_top = 8.0
+margin_right = 1880.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "R"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonOrder" type="Button" parent="."]
+margin_left = 1888.0
+margin_top = 8.0
+margin_right = 1912.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "O"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[connection signal="pressed" from="ButtonSpaceship" to="." method="_on_ButtonSpaceship_pressed"]
+[connection signal="pressed" from="ButtonRandomize" to="." method="_on_ButtonRandomize_pressed"]
+[connection signal="pressed" from="ButtonOrder" to="." method="_on_ButtonOrder_pressed"]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=2]
+[gd_scene load_steps=24 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -12,7 +12,6 @@
 [ext_resource path="res://ui/views/UI_NodeInfo.tscn" type="PackedScene" id=11]
 [ext_resource path="res://assets/graphics/noise.png" type="Texture" id=12]
 [ext_resource path="res://ui/views/UI_QueryEngine.tscn" type="PackedScene" id=13]
-[ext_resource path="res://ui/elements/Element_Spaceship.tscn" type="PackedScene" id=14]
 
 [sub_resource type="Shader" id=17]
 code = "shader_type canvas_item;
@@ -115,19 +114,11 @@ z_as_relative = false
 scale = Vector2( 0.1, 0.1 )
 current = true
 
-[node name="Spaceship" parent="Graph" instance=ExtResource( 14 )]
-visible = false
-
-[node name="RemoteTransform2D" type="RemoteTransform2D" parent="Graph/Spaceship"]
-remote_path = NodePath("../../GraphCam")
-update_position = false
-update_rotation = false
-update_scale = false
-
 [node name="GraphView" parent="Graph" instance=ExtResource( 9 )]
+graph_cam = NodePath("../GraphCam")
+graph_bg = NodePath("../../BG/BG")
 
 [node name="Spotlight1" type="Sprite" parent="Graph"]
-visible = false
 modulate = Color( 0.298039, 0.737255, 1, 1 )
 material = SubResource( 3 )
 position = Vector2( -1912, 1524 )
@@ -135,7 +126,6 @@ scale = Vector2( 5.40625, 5.40625 )
 texture = ExtResource( 4 )
 
 [node name="Spotlight2" type="Sprite" parent="Graph"]
-visible = false
 modulate = Color( 1, 0.513726, 0.298039, 1 )
 material = SubResource( 3 )
 position = Vector2( 2488, -244 )

@@ -39,7 +39,7 @@ blend_mode = 1
 script = ExtResource( 1 )
 
 [node name="BG" type="Polygon2D" parent="."]
-modulate = Color( 0.129412, 0.564706, 0.713726, 1 )
+modulate = Color( 0.262745, 0.682353, 0.823529, 1 )
 polygon = PoolVector2Array( -24, 0, 0, -24, 24, 0, 0, 24 )
 
 [node name="LabelName" type="Label" parent="."]
