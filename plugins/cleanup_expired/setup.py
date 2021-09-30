@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-cleanup_expired",
-    version="2.0.0a3",
+    version="2.0.0a4",
     description="Cloudkeeper Expired Resource Cleanup Plugin",
     license="Apache 2.0",
     packages=find_packages(),

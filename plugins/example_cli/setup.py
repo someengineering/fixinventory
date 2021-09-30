@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-example_cli",
-    version="2.0.0a3",
+    version="2.0.0a4",
     description="Cloudkeeper Example CLI Plugin",
     license="Apache 2.0",
     packages=find_packages(),
