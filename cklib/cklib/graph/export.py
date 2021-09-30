@@ -179,8 +179,8 @@ def get_node_attributes(node: BaseResource) -> Dict:
 
 
 def node_to_dict(node: BaseResource) -> Dict:
-    return {
-        "id": node.sha256,
+    node_dict = {
+        "id": node._ckcore_id if node._ckcore_id else node.sha256,
         "reported": get_node_attributes(node),
         "metadata": {
             "python_type": type_str(node),
@@ -189,3 +189,10 @@ def node_to_dict(node: BaseResource) -> Dict:
             "protected": node.protected,
         },
     }
+    if node._ckcore_revision:
+        node_dict.update(
+            {
+                "revision": node._ckcore_revision,
+            }
+        )
+    return node_dict
