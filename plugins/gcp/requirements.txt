@@ -1,0 +1,6 @@
+cklib
+google-api-python-client
+oauth2client
+prometheus_client
+retrying
+tenacity
