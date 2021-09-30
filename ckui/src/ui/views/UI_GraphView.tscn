@@ -7,6 +7,10 @@ z_index = -2
 z_as_relative = false
 script = ExtResource( 1 )
 
-[node name="LineGroup" type="Node2D" parent="."]
+[node name="Center" type="Node2D" parent="."]
 
-[node name="NodeGroup" type="Node2D" parent="."]
+[node name="Graph" type="Node2D" parent="Center"]
+
+[node name="LineGroup" type="Node2D" parent="Center/Graph"]
+
+[node name="NodeGroup" type="Node2D" parent="Center/Graph"]

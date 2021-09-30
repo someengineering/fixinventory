@@ -1,13 +1,11 @@
 extends Node
 
-const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
-
 signal nodes_changed
 signal load_nodes
 
 var nodes := {}
 var connections := {}
-var ee := false
+var spaceship_mode := false
 var interface : Object = null
 var use_example_data := false
 

@@ -4,6 +4,8 @@ var scanned := 0.0
 var is_scanned := false
 var is_selected := false setget set_is_selected
 var cloud_node : CloudNode = null setget set_cloud_node
+var random_pos := Vector2.ZERO
+var graph_pos := Vector2.ZERO
 
 onready var marker = $Marker
 onready var reveal = $Reveal
@@ -11,42 +13,56 @@ onready var reveal = $Reveal
 func _ready() -> void:
 	_e.connect("show_node", self, "show_detail")
 	_e.connect("hide_nodes", self, "hide_detail")
-	
-	if _g.ee:
-		$ScannerBar.show()
-		$LabelKind.modulate.a = 0
-		$LabelName.modulate.a = 0
-		$ScannerBar.modulate.a = 0
-	else:
-		$ScannerBar.queue_free()
+	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	set_hover_power(0)
 
 
+func update_spaceship_mode():
+	if _g.spaceship_mode:
+		is_selected = false
+		set_hovering(false)
+		$LabelKind.modulate.a = 0
+		$LabelName.modulate.a = 0
+		$LabelKind.rect_position.y = -33
+	else:
+		$Area2D.set_collision_layer_bit(1, true)
+		$LabelName.modulate.a = 0
+		$LabelKind.rect_position.y = -11
+		$LabelKind.modulate.a = 1
+		$LabelName.percent_visible = 1
+		$LabelKind.percent_visible = 1
+
+
 func _process(delta) -> void:
-	if (hovering and hover_power < 1):
-		hover_power = min(hover_power + delta * speed, 1.0)
-	elif (!hovering and hover_power > 0):
-		set_hover_power( max(hover_power - delta * (speed * 0.3), 0.0) )
-	if hovering:
+	if !_g.spaceship_mode:
+		if (hovering and hover_power < 1):
+			hover_power = min(hover_power + delta * speed, 1.0)
+		elif (!hovering and hover_power > 0):
+			set_hover_power( max(hover_power - delta * (speed * 0.3), 0.0) )
+		if hovering:
+			set_hover_power(hover_power)
+	elif hover_power > 0:
+		hover_power = 0
 		set_hover_power(hover_power)
 
 
 func scanning(delta) -> void:
 	if is_scanned:
 		return
-	if scanned >= 3:
+	if scanned >= 2:
 		is_scanned = true
-		reveal.interpolate_property($LabelKind, "modulate:a", 0, 1, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
-		reveal.interpolate_property($ScannerBar, "modulate:a", 1, 0, 0.3, Tween.TRANS_SINE, Tween.EASE_OUT)
-		reveal.interpolate_property($LabelName, "modulate:a", 0, 1, 1, Tween.TRANS_SINE, Tween.EASE_OUT, 0.4)
-		reveal.start()
 		$Area2D.set_collision_layer_bit(1, false)
+		$LabelKind.modulate.a = 1
+		$LabelName.modulate.a = 1
+		reveal.interpolate_property(self, "modulate", Color(1,2,3,1), Color.white, 1.5, Tween.TRANS_QUART, Tween.EASE_OUT)
+		reveal.start()
 	elif scanned <= 0:
-		reveal.interpolate_property($ScannerBar, "modulate:a", 0, 1, 0.3, Tween.TRANS_SINE, Tween.EASE_OUT)
+		reveal.interpolate_property($LabelKind, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
+		reveal.interpolate_property($LabelName, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
 		reveal.start()
 	scanned += delta
-	$ScannerBar.value = scanned
-
+	$LabelName.percent_visible = clamp(scanned, 1, 2)-1
+	$LabelKind.percent_visible = clamp(scanned, 0, 1)
 
 func set_cloud_node(value:CloudNode) -> void:
 	cloud_node = value
@@ -96,7 +112,8 @@ var speed := 15.0
 
 
 func _on_Area2D_mouse_entered():
-	set_hovering(true)
+	if !_g.spaceship_mode:
+		set_hovering(true)
 
 
 func _on_Area2D_mouse_exited():
