@@ -59,7 +59,7 @@ func _physics_process(delta):
 	
 	if state == states.GRAPH:
 		if Input.is_action_just_released("zoom_in"):
-			graph_cam.zoom = max(graph_cam.zoom.x * 0.95, 0.3) * Vector2.ONE
+			graph_cam.zoom = max(graph_cam.zoom.x * 0.95, 0.2) * Vector2.ONE
 		elif Input.is_action_just_released("zoom_out"):
 			graph_cam.zoom = min(graph_cam.zoom.x * 1.05, 4) * Vector2.ONE
 	
@@ -208,7 +208,7 @@ func set_spaceship_mode():
 		spaceship.global_position = graph_cam.global_position
 		spaceship.appear()
 		cam_tween.remove_all()
-		cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2(0.1,0.1), 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+		cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2(0.2,0.2), 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 		cam_tween.start()
 	else:
 		cam_tween.remove_all()

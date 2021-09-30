@@ -1,7 +1,5 @@
 extends Node
 
-const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
-
 signal nodes_changed
 signal load_nodes
 

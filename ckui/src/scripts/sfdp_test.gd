@@ -1,5 +1,7 @@
 extends Node2D
 
+const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
+
 var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
 
 const ATTRACTION_CONSTANT := 0.3*0.05
@@ -20,7 +22,7 @@ func _ready():
 	nodes = _g.nodes.duplicate()
 	center_diagram()
 	yield(get_tree().create_timer(10), "timeout")
-	arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true);
+	arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
 
 
 func read_data():
