@@ -4,6 +4,7 @@ import re
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import timedelta
 from functools import partial
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union
 
@@ -17,7 +18,7 @@ from core.constants import less_greater_then_operations
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
-from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchBatchError, OptimisticLockingFailed
+from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from core.event_bus import EventBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
@@ -41,7 +42,7 @@ from core.query.model import (
     AggregateVariableCombined,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first, value_in_path_get, utc_str
+from core.util import first, value_in_path_get, utc_str, Periodic
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def list_in_progress_batch_updates(self) -> list[Json]:
+    async def list_in_progress_updates(self) -> list[Json]:
         pass
 
     @abstractmethod
@@ -89,7 +90,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def abort_batch_update(self, batch_id: str) -> None:
+    async def abort_update(self, batch_id: str) -> None:
         pass
 
     @abstractmethod
@@ -327,8 +328,8 @@ class ArangoGraphDB(GraphDB):
 
         return render_prop
 
-    async def list_in_progress_batch_updates(self) -> list[Json]:
-        with await self.db.aql(self.query_active_batches()) as cursor:
+    async def list_in_progress_updates(self) -> list[Json]:
+        with await self.db.aql(self.query_active_updates()) as cursor:
             return list(cursor)
 
     async def get_tmp_collection(self, change_id: str, create: bool = True) -> StandardCollection:
@@ -341,7 +342,7 @@ class ArangoGraphDB(GraphDB):
             temp.add_persistent_index(["action"])
             return temp
         else:
-            raise NoSuchBatchError(change_id)
+            raise NoSuchChangeError(change_id)
 
     async def move_temp_to_proper(self, change_id: str, temp_name: str) -> None:
         change_key = str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))
@@ -389,13 +390,17 @@ class ArangoGraphDB(GraphDB):
             await tx.insert(
                 self.in_progress,
                 {
+                    "_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id)),
                     "root_node_ids": list(root_node_ids),
                     "parent_node_ids": list(parent_node_ids),
                     "change": change_id,
+                    "created": utc_str(),
                     "is_batch": is_batch,
-                    "_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id)),
                 },
             )
+
+    async def refresh_marked_update(self, change_id: str) -> None:
+        await self.db.aql(self.update_active_change(), bind_vars={"change": change_id})
 
     async def delete_marked_update(self, change_id: str, tx: Optional[AsyncArangoTransactionDB] = None) -> None:
         db = tx if tx else self.db
@@ -505,6 +510,9 @@ class ArangoGraphDB(GraphDB):
     ) -> tuple[list[str], GraphUpdate]:
         is_batch = maybe_batch is not None
         change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
+        update_in_progress = Periodic(
+            f"mark_{change_id}", lambda: self.refresh_marked_update(change_id), timedelta(seconds=60)
+        )
 
         async def prepare_graph(
             sub: GraphAccess, node_query: tuple[str, Json], edge_query: Callable[[str], tuple[str, Json]]
@@ -547,6 +555,7 @@ class ArangoGraphDB(GraphDB):
 
         # this will throw an exception, in case of a conflicting update (--> outside try block)
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
+        await update_in_progress.start()
         try:
             parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
@@ -567,6 +576,8 @@ class ArangoGraphDB(GraphDB):
         except Exception as ex:
             await self.delete_marked_update(change_id)
             raise ex
+        finally:
+            await update_in_progress.stop()
 
     async def persist_update(
         self,
@@ -641,6 +652,7 @@ class ArangoGraphDB(GraphDB):
 
         if is_batch:
             await update_batch()
+            await self.refresh_marked_update(change_id)
         elif info.all_changes() < 100000:  # work around to not run into the 128MB tx limit
             await update_directly()
         else:
@@ -651,10 +663,13 @@ class ArangoGraphDB(GraphDB):
         await self.move_temp_to_proper(batch_id, temp_table.name)
         await self.db.delete_collection(temp_table.name)
 
-    async def abort_batch_update(self, batch_id: str) -> None:
-        temp_table = await self.get_tmp_collection(batch_id, False)
+    async def abort_update(self, batch_id: str) -> None:
+        try:
+            temp_table = await self.get_tmp_collection(batch_id, False)
+            await self.db.delete_collection(temp_table.name)
+        except NoSuchChangeError:
+            pass
         await self.delete_marked_update(batch_id)
-        await self.db.delete_collection(temp_table.name)
 
     def to_query(self, query_model: QueryModel, all_edges: bool = False) -> tuple[str, Json]:
         query = query_model.query
@@ -1065,10 +1080,10 @@ class ArangoGraphDB(GraphDB):
         RETURN length
         """
 
-    def query_active_batches(self) -> str:
+    def query_active_updates(self) -> str:
         return f"""
-        FOR c IN {self.in_progress} FILTER c.batch==true
-        RETURN {{id: c.change, created: c.created, affected_nodes: c.root_nodes}}
+        FOR c IN {self.in_progress}
+        RETURN {{id: c.change, created: c.created, affected_nodes: c.root_nodes, is_batch: c.is_batch}}
         """
 
     def query_active_change(self) -> str:
@@ -1076,6 +1091,13 @@ class ArangoGraphDB(GraphDB):
         FOR change IN {self.in_progress}
         FILTER @root_node_ids any in change.parent_node_ids OR @root_node_ids any in change.root_node_ids
         RETURN change
+        """
+
+    def update_active_change(self) -> str:
+        return f"""
+        FOR d in {self.in_progress}
+        FILTER d.change == @change
+        UPDATE d WITH {{created: DATE_ISO8601(DATE_NOW())}} in {self.in_progress}
         """
 
 
@@ -1144,17 +1166,17 @@ class EventGraphDB(GraphDB):
             await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
         return roots, info
 
-    async def list_in_progress_batch_updates(self) -> list[Json]:
-        return await self.real.list_in_progress_batch_updates()
+    async def list_in_progress_updates(self) -> list[Json]:
+        return await self.real.list_in_progress_updates()
 
     async def commit_batch_update(self, batch_id: str) -> None:
-        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_batch_updates())  # type: ignore
+        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
         await self.real.commit_batch_update(batch_id)
         await self.event_bus.emit_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
 
-    async def abort_batch_update(self, batch_id: str) -> None:
-        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_batch_updates())  # type: ignore
-        await self.real.abort_batch_update(batch_id)
+    async def abort_update(self, batch_id: str) -> None:
+        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
+        await self.real.abort_update(batch_id)
         await self.event_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
     def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
