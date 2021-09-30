@@ -1,2 +1,2 @@
-cklib
-jq
+cklib==2.0.0a4
+jq==1.2.1

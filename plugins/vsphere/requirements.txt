@@ -1,2 +1,2 @@
-cklib
-pyvmomi
+cklib==2.0.0a4
+pyvmomi==7.0.2

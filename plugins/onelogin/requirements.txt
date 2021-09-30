@@ -1,2 +1,2 @@
-cklib
-onelogin
+cklib==2.0.0a4
+onelogin==2.0.2

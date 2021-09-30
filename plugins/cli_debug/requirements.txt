@@ -1,2 +1,2 @@
-cklib
-Pympler
+cklib==2.0.0a4
+Pympler==0.9

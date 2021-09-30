@@ -1,2 +1,2 @@
-cklib
-paramiko
+cklib==2.0.0a4
+paramiko==2.7.2

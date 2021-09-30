@@ -1,1 +1,1 @@
-cklib
+cklib==2.0.0a4

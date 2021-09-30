@@ -1,2 +1,2 @@
-cklib
-PyGithub
+cklib==2.0.0a4
+PyGithub==1.55

@@ -1,2 +1,2 @@
-cklib
-pyyaml
+cklib==2.0.0a4
+PyYAML==5.4.1
