@@ -2,7 +2,13 @@ import os
 from setuptools import setup, find_packages
 
 
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
+
 def read(fname):
+
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
@@ -19,7 +25,7 @@ setup(
             "slack_collector = cloudkeeper_plugin_slack:SlackCollectorPlugin",
         ]
     },
-    install_requires=["cklib", "slack_sdk", "retrying"],
+    install_requires=requirements,
     include_package_data=True,
     zip_safe=False,
     setup_requires=["pytest-runner"],
