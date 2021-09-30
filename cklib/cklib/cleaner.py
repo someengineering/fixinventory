@@ -2,7 +2,7 @@ from cklib.args import ArgumentParser
 from cklib.graph import Graph
 from cklib.event import dispatch_event, Event, EventType
 from cklib.baseresources import BaseResource
-from defaultlist import defaultlist
+from cklib.utils import defaultlist
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
 from cklib.logging import log

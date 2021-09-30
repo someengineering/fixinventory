@@ -11,7 +11,7 @@ import json
 from cklib.logging import log
 from functools import wraps
 from pprint import pformat
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Callable, Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
 
 
@@ -630,3 +630,20 @@ def type_str(o):
     if module == "builtins":
         return cls.__qualname__
     return module + "." + cls.__qualname__
+
+
+class defaultlist(list):
+    def __init__(self, func: Callable) -> None:
+        self._func = func
+
+    def _fill(self, index: int) -> None:
+        while len(self) <= index:
+            self.append(self._func())
+
+    def __setitem__(self, index: int, value: Any) -> None:
+        self._fill(index)
+        list.__setitem__(self, index, value)
+
+    def __getitem__(self, index: int) -> Any:
+        self._fill(index)
+        return list.__getitem__(self, index)
