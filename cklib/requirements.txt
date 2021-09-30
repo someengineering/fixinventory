@@ -2,7 +2,6 @@ networkx
 defaultlist
 typeguard
 websocket-client
-Pympler
 psutil
 requests
 prometheus_client

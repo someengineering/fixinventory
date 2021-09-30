@@ -11,7 +11,6 @@ import json
 from cklib.logging import log
 from functools import wraps
 from pprint import pformat
-from pympler import asizeof
 from typing import Dict, List, Tuple, Optional
 from datetime import date, datetime, timezone, timedelta
 
@@ -272,7 +271,6 @@ def get_stats(graph=None) -> Dict:
         stats = {
             "active_threads": threading.active_count(),
             "thread_names": [thread.name for thread in threading.enumerate()],
-            "graph_size_bytes": asizeof.asizeof(graph),
             "garbage_collector": garbage_collector.get_stats(),
             "process": get_all_process_info(),
         }
@@ -305,7 +303,6 @@ def get_stats(graph=None) -> Dict:
         )
         stats.update(
             {
-                "graph_size_human_readable": iec_size_format(stats["graph_size_bytes"]),
                 "maxrss_parent_human_readable": iec_size_format(
                     stats["maxrss_parent_bytes"]
                 ),
