@@ -16,7 +16,7 @@ var old_state = -1
 
 func _ready() -> void:
 	_g.interface = self
-	_g.emit_signal("load_nodes")
+	_e.emit_signal("load_nodes")
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("load_query", self, "load_query")
@@ -114,7 +114,7 @@ func show_interface(state_id:int) -> void:
 		ui_tween.start()
 
 
-func go_to_graph_node(node_id) -> void:
+func go_to_graph_node(_node_id) -> void:
 	set_state(states.GRAPH)
 
 func load_query(_query_id) -> void:

@@ -11,3 +11,5 @@ signal graph_randomize
 signal graph_order
 signal nodeinfo_show
 signal nodeinfo_hide
+signal nodes_changed
+signal load_nodes

@@ -1,8 +1,5 @@
 extends Node
 
-signal nodes_changed
-signal load_nodes
-
 var main_graph : CloudGraph setget set_main_graph
 var spaceship_mode := false
 var interface : Object = null
@@ -24,4 +21,4 @@ func set_spaceship_mode():
 
 func set_main_graph( value : CloudGraph ):
 	main_graph = value
-	emit_signal("nodes_changed")
+	_e.emit_signal("nodes_changed")

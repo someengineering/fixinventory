@@ -1,6 +1,8 @@
 extends Node
 class_name CloudGraph
 
+signal order_done
+
 var graph_data := {
 	"nodes" : {},
 	"connections" : {}
@@ -21,6 +23,7 @@ var root_node : Object = null
 
 onready var node_group = $Center/Graph/NodeGroup
 onready var line_group = $Center/Graph/LineGroup
+
 
 func _ready():
 	_e.connect("hovering_node", self, "hovering_node")
@@ -81,9 +84,9 @@ func show_connected_nodes(node_id):
 		_e.emit_signal("show_node", n)
 
 
-func graph_calc_layout() -> Dictionary:
+func graph_calc_layout():
 	center_diagram()
-	return arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
+	arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
 
 
 func graph_rand_layout():
@@ -113,6 +116,7 @@ func layout_graph(graph_node_positions := {}) -> void:
 			node.icon.position = str2var(graph_node_positions[node.id])
 			node.icon.graph_pos = node.icon.position
 	update_connection_lines()
+	center_diagram()
 
 
 func get_random_pos() -> Vector2:
@@ -127,21 +131,21 @@ func hovering_node(node_id, power) -> void:
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
-	var proximity : int = max( node_a_pos.distance_to(node_b_pos), 1 )
+	var proximity : float = max( node_a_pos.distance_to(node_b_pos), 1 )
 	var force = -REPULSION_CONSTANT/proximity
 	var dir = node_a_pos.direction_to(node_b_pos)
 	return dir*force
 
 
 func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
-	var proximity : int = max( node_a_pos.distance_to(node_b_pos), 1 )
+	var proximity : float = max( node_a_pos.distance_to(node_b_pos), 1 )
 	var force = ATTRACTION_CONSTANT * max(proximity - spring_length, 0)
 	var dir = node_a_pos.direction_to(node_b_pos)
 	return dir*force
 
 # Arrange the graph using SFDP
 # returning the nodes positions
-func arrange(damping, spring_length, max_iterations, deterministic := false) -> Dictionary:
+func arrange(damping, spring_length, max_iterations, deterministic := false):
 	if !deterministic:
 		randomize()
 	
@@ -192,12 +196,35 @@ func arrange(damping, spring_length, max_iterations, deterministic := false) -> 
 		update_connection_lines()
 		yield(get_tree(), "idle_frame")
 	
-	var saved_node_positions : Dictionary
+	var saved_node_positions := {}
 	for node in graph_data.nodes.values():
 		saved_node_positions[node.id] = var2str(node.icon.position)
 		node.icon.graph_pos = node.icon.position
 	
-	return saved_node_positions
+	emit_signal("order_done", saved_node_positions)
+
 
 func center_diagram():
 	$Center/Graph.position = -root_node.position# + Vector2(1920, 1080)/2
+
+
+func create_cloudgraph_from_selection(node_id) -> Dictionary:
+	var new_cloudgraph := {
+	"nodes" : {},
+	"connections" : {}
+	}
+	
+	var connection_keys = _g.main_graph.graph_data.connections.keys()
+	for connection_key in connection_keys:
+		var connection = _g.main_graph.graph_data.connections[ connection_keys ]
+		if [connection.from, connection.to].has(node_id):
+			new_cloudgraph.graph_data.connections[connection_key] = connection.duplicate()
+	
+	var nodes = _g.main_graph.graph_data.nodes
+	for connection in new_cloudgraph.graph_data.connections.values():
+		if nodes.has(connection.from) and !new_cloudgraph.graph_data.nodes.has(connection.from):
+			new_cloudgraph.graph_data.nodes[connection.from] = nodes[connection.from].duplicate()
+		elif nodes.has(connection.to) and !new_cloudgraph.graph_data.nodes.has(connection.to):
+			new_cloudgraph.graph_data.nodes[connection.to] = nodes[connection.to].duplicate()
+	
+	return new_cloudgraph

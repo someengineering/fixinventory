@@ -25,14 +25,15 @@ export (NodePath) onready var main_ui = get_node(main_ui)
 
 func _ready():
 	_g.main_graph = $GraphView
-	_g.connect("load_nodes", self, "read_data")
+	_g.main_graph.connect("order_done", self, "save_order")
+	_e.connect("load_nodes", self, "read_data")
 	_e.connect("graph_order", self, "main_graph_order")
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 
 
-func _process(delta):
+func _process(_delta):
 	if root_node == null:
 		return
 	
@@ -65,16 +66,26 @@ func read_data():
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
 	
-	var graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
+	
+	var graph_node_positions := {}
+	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
+		var new_graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
+		if typeof(new_graph_node_positions) == TYPE_DICTIONARY:
+			graph_node_positions = new_graph_node_positions
 	_g.main_graph.create_graph(new_data)
 	_g.main_graph.layout_graph(graph_node_positions)
 	root_node = _g.main_graph.root_node
 	graph_cam.global_position = root_node.global_position
 	graph_cam.zoom = Vector2.ONE*0.8
+	
+	_e.emit_signal("nodes_changed")
 
 
 func main_graph_order():
-	var saved_node_positions = _g.main_graph.graph_calc_layout()
+	_g.main_graph.graph_calc_layout()
+
+
+func save_order(saved_node_positions):
 	Utils.save_json(GRAPH_NODE_JSON_PATH, saved_node_positions)
 
 
@@ -107,6 +118,7 @@ func _physics_process(delta):
 	
 	if _g.spaceship_mode:
 		graph_cam.global_position = spaceship.global_position
+
 
 func update_spaceship_mode():
 	if _g.spaceship_mode:
@@ -156,6 +168,8 @@ func go_to_graph_node(node_id) -> void:
 	cam_tween.start()
 	target_node.icon.is_selected = true
 	cam_moving = true
+	
+	print(_g.main_graph.create_cloudgraph_from_selection(node_id))
 
 
 func _on_CamMoveTween_tween_all_completed() -> void:
