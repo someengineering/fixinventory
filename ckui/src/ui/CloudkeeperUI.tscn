@@ -135,10 +135,8 @@ layer = -2
 
 [node name="BG" type="ColorRect" parent="UIGraph/BG"]
 material = SubResource( 4 )
-margin_left = -71.0
-margin_top = -73.7308
-margin_right = 1986.0
-margin_bottom = 1132.27
+margin_right = 1920.0
+margin_bottom = 1080.0
 mouse_filter = 2
 __meta__ = {
 "_edit_use_anchors_": false
@@ -190,8 +188,8 @@ script = ExtResource( 3 )
 
 [node name="BlurTopBar" type="Sprite" parent="UI"]
 material = SubResource( 16 )
-position = Vector2( 960, 32 )
-scale = Vector2( 1920, 71 )
+position = Vector2( 960, 33.5 )
+scale = Vector2( 1920, 67 )
 z_as_relative = false
 texture = ExtResource( 2 )
 
@@ -214,12 +212,11 @@ margin_right = 1920.0
 [node name="UINodeInfo" parent="UI" instance=ExtResource( 11 )]
 
 [node name="UITopbar" parent="UI" instance=ExtResource( 8 )]
-margin_right = 1920.0
 margin_bottom = 70.0
 
 [node name="UICommandLine" parent="UI" instance=ExtResource( 1 )]
-margin_top = 1040.0
-margin_bottom = 1120.0
+margin_top = 1048.0
+margin_bottom = 1080.0
 
 [node name="Noise" type="TextureRect" parent="UI"]
 modulate = Color( 1, 1, 1, 0.0392157 )

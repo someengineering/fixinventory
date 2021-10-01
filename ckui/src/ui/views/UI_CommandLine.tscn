@@ -9,6 +9,7 @@ colors = PoolColorArray( 0.00392157, 0.105882, 0.184314, 0.823529, 0.00392157, 0
 
 [sub_resource type="GradientTexture" id=2]
 gradient = SubResource( 1 )
+width = 32
 
 [sub_resource type="CanvasItemMaterial" id=3]
 blend_mode = 1
@@ -65,27 +66,28 @@ font_data = SubResource( 10 )
 
 [node name="UICommandLine" type="Control"]
 margin_right = 1920.0
-margin_bottom = 80.0
-rect_min_size = Vector2( 1920, 80 )
+margin_bottom = 32.0
+rect_min_size = Vector2( 1920, 32 )
 script = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Sprite" type="Sprite" parent="."]
-position = Vector2( 967.905, 44.7979 )
+position = Vector2( 960, 16 )
 rotation = 1.57079
-scale = Vector2( 0.0428915, 1951.81 )
+scale = Vector2( 1, 1920 )
 texture = SubResource( 2 )
 
 [node name="AnimTween" type="Tween" parent="."]
 
 [node name="TextureRect2" type="TextureRect" parent="."]
+modulate = Color( 0.172549, 0.513726, 0.592157, 1 )
 use_parent_material = true
 margin_left = 40.0
-margin_top = 40.0
+margin_top = 32.0
 margin_right = 80.0
-margin_bottom = 80.0
+margin_bottom = 72.0
 rect_min_size = Vector2( 40, 40 )
 rect_rotation = -180.0
 rect_scale = Vector2( 0.8, 0.8 )
@@ -97,14 +99,14 @@ __meta__ = {
 
 [node name="Polygon2D" type="Polygon2D" parent="."]
 material = SubResource( 3 )
-position = Vector2( -24.9897, 73 )
+position = Vector2( -25, 72 )
 scale = Vector2( 1, -1 )
 color = Color( 0, 0.368627, 0.470588, 1 )
 polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
 
 [node name="Polygon2D2" type="Polygon2D" parent="."]
 material = SubResource( 3 )
-position = Vector2( 1946.01, 73 )
+position = Vector2( 1945, 72 )
 scale = Vector2( -1, -1 )
 color = Color( 0, 0.368627, 0.470588, 1 )
 polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
@@ -114,10 +116,7 @@ modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
 material = SubResource( 4 )
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 0.0103149
-margin_top = -8.0
-margin_right = 0.0102539
-margin_bottom = 28.0
+margin_bottom = -8.0
 mouse_filter = 2
 texture = ExtResource( 7 )
 stretch_mode = 2
@@ -127,9 +126,9 @@ __meta__ = {
 
 [node name="Background" type="Panel" parent="."]
 margin_left = 48.0
-margin_top = 8.0
+margin_top = 4.0
 margin_right = 1816.0
-margin_bottom = 32.0
+margin_bottom = 28.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -159,9 +158,9 @@ __meta__ = {
 
 [node name="ButtonSpaceship" type="Button" parent="."]
 margin_left = 1824.0
-margin_top = 8.0
+margin_top = 4.0
 margin_right = 1848.0
-margin_bottom = 32.0
+margin_bottom = 28.0
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
@@ -177,9 +176,9 @@ __meta__ = {
 
 [node name="ButtonRandomize" type="Button" parent="."]
 margin_left = 1856.0
-margin_top = 8.0
+margin_top = 4.0
 margin_right = 1880.0
-margin_bottom = 32.0
+margin_bottom = 28.0
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
@@ -195,9 +194,9 @@ __meta__ = {
 
 [node name="ButtonOrder" type="Button" parent="."]
 margin_left = 1888.0
-margin_top = 8.0
+margin_top = 4.0
 margin_right = 1912.0
-margin_bottom = 32.0
+margin_bottom = 28.0
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
