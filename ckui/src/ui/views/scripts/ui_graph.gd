@@ -169,7 +169,7 @@ func go_to_graph_node(node_id) -> void:
 	target_node.icon.is_selected = true
 	cam_moving = true
 	
-	print(_g.main_graph.create_cloudgraph_from_selection(node_id))
+	_g.main_graph.get_blastradius_from_selection(node_id)
 
 
 func _on_CamMoveTween_tween_all_completed() -> void:
