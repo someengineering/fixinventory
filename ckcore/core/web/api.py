@@ -18,8 +18,10 @@ from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx import MultiDiGraph
 from networkx.readwrite import cytoscape_data
+import multiprocessing as mp
 
 from core import feature
+from core.async_extensions import run_async
 from core.cli.cli import CLI
 from core.cli.command import is_node
 from core.constants import plain_text_whitelist
@@ -27,6 +29,7 @@ from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
+from core.model.db_updater import DbUpdater, ReadLine, MergeGraph
 from core.model.graph_access import GraphBuilder, Section
 from core.model.model import Kind, Model
 from core.worker_task_queue import (
@@ -388,10 +391,12 @@ class Api:
 
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
-        md = await self.model_handler.load_model()
-        graph = await self.read_graph(request, md)
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        _, info = await graph_db.merge_graph(graph, md)
+        # md = await self.model_handler.load_model()
+        # graph = await self.read_graph(request, md)
+        # graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        # _, info = await graph_db.merge_graph(graph, md)
+        _, info = await self.merge_graph_process(request, request.match_info.get("graph_id", "ns"), None)
+
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -529,6 +534,21 @@ class Api:
         result = stream.concat(stream.iterate(p.generator for p in parsed))
         async with result.stream() as streamer:
             return await self.stream_response_from_gen(request, streamer)
+
+    @staticmethod
+    async def merge_graph_process(request: Request, graph: str, maybe_batch: Optional[str]):
+        write = mp.Queue()
+        read = mp.Queue()
+        updater = DbUpdater(write, read)  # the process reads from our write queue and vice versa
+        updater.start()
+        async for line in request.content:
+            if len(line.strip()) == 0:
+                continue
+            await run_async(write.put, ReadLine(line))
+        await run_async(write.put, MergeGraph(graph, maybe_batch))
+        await run_async(updater.join)
+        result = await run_async(read.get)
+        return result.get_value()
 
     @staticmethod
     async def read_graph(request: Request, md: Model) -> MultiDiGraph:
