@@ -18,13 +18,13 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
     return key, salt
 
 
-def make_jwt(payload: dict[str, str], psk: str) -> str:
+def encode_jwt(payload: dict[str, str], psk: str) -> str:
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
     return jwt.encode(payload, key, algorithm="HS256", headers={"salt": salt_encoded})
 
 
-def verify_jwt(encoded_jwt: str, psk: str) -> dict:
+def decode_jwt(encoded_jwt: str, psk: str) -> dict:
     salt_encoded = jwt.get_unverified_header(encoded_jwt).get("salt")
     salt = base64.standard_b64decode(salt_encoded)
     key, _ = key_from_psk(psk, salt)
