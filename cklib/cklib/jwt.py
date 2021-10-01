@@ -1,6 +1,7 @@
 import os
 import jwt
 import base64
+from datetime import datetime
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Optional
@@ -23,13 +24,18 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
     return key, salt
 
 
-def encode_jwt(payload: dict[str, str], psk: str) -> str:
+def encode_jwt(
+    payload: dict[str, str], psk: str, headers: Optional[dict[str, str]] = None
+) -> str:
     """Encodes a payload into a JWT and signs using a key derived from a pre-shared-key.
     Stores the key's salt in the JWT headers.
     """
+    if headers is None:
+        headers = {}
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
-    return jwt.encode(payload, key, algorithm="HS256", headers={"salt": salt_encoded})
+    headers.update({"salt": salt_encoded})
+    return jwt.encode(payload, key, algorithm="HS256", headers=headers)
 
 
 def decode_jwt(encoded_jwt: str, psk: str) -> dict:
@@ -47,11 +53,14 @@ def encode_jwt_to_headers(
     payload: dict[str, str],
     psk: str,
     scheme: str = "Bearer",
+    headers: Optional[dict[str, str]] = None,
 ) -> dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary.
     """
-    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, psk)}"})
+    http_headers.update(
+        {"Authorization": f"{scheme} {encode_jwt(payload, psk, headers)}"}
+    )
     return http_headers
 
 
@@ -72,8 +81,7 @@ def decode_jwt_from_headers(
 def decode_jwt_from_header_value(
     authorization_header: str, psk: str, scheme: str = "Bearer"
 ) -> Optional[dict[str, str]]:
-    """Decodes a JWT payload from a http Authorization header value.
-    """
+    """Decodes a JWT payload from a http Authorization header value."""
     if (
         len(authorization_header) <= len(scheme) + 1
         or str(authorization_header[0 : len(scheme)]).lower() != scheme.lower()
