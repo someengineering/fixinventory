@@ -7,7 +7,7 @@ from typing import Optional
 
 
 def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
-    """Derive a 256 bit key from a passphrase.
+    """Derive a 256 bit key from a passphrase/pre-shared-key.
     A salt can be optionally provided. If not one will be generated.
     """
     if salt is None:
