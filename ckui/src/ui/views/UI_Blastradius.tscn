@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://ui/views/scripts/ui_blastradius.gd" type="Script" id=1]
+[ext_resource path="res://ui/elements/Element_GraphView.tscn" type="PackedScene" id=2]
+
+[node name="UIBlastradius" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="GraphView" parent="." instance=ExtResource( 2 )]
+position = Vector2( 960, 540 )
+z_index = 5
+z_as_relative = true

@@ -72,13 +72,14 @@ func read_data():
 		var new_graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
 		if typeof(new_graph_node_positions) == TYPE_DICTIONARY:
 			graph_node_positions = new_graph_node_positions
-	_g.main_graph.create_graph(new_data)
+	_g.main_graph.create_graph_raw(new_data)
 	_g.main_graph.layout_graph(graph_node_positions)
 	root_node = _g.main_graph.root_node
 	graph_cam.global_position = root_node.global_position
 	graph_cam.zoom = Vector2.ONE*0.8
 	
 	_e.emit_signal("nodes_changed")
+	_e.emit_signal("hide_nodes")
 
 
 func main_graph_order():
@@ -168,8 +169,6 @@ func go_to_graph_node(node_id) -> void:
 	cam_tween.start()
 	target_node.icon.is_selected = true
 	cam_moving = true
-	
-	_g.main_graph.get_blastradius_from_selection(node_id)
 
 
 func _on_CamMoveTween_tween_all_completed() -> void:

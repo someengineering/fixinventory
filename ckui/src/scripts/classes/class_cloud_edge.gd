@@ -1,5 +1,5 @@
 extends Node
-class_name CloudConnection
+class_name CloudEdge
 
 var from : CloudNode = null
 var to : CloudNode = null

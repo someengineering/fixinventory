@@ -67,18 +67,18 @@ func create_new_node(_data:Dictionary) -> CloudNode:
 	return new_cloud_node
 
 
-func add_connection(_data:Dictionary) -> CloudConnection:
-	var new_connection = CloudConnection.new()
-	new_connection.from = _g.nodes[_data.from]
-	new_connection.to = _g.nodes[_data.to]
+func add_connection(_data:Dictionary) -> CloudEdge:
+	var new_edge = CloudEdge.new()
+	new_edge.from = _g.nodes[_data.from]
+	new_edge.to = _g.nodes[_data.to]
 	
-	var new_connection_line = Line2D.new()
-	new_connection_line.width = 2
-	new_connection_line.default_color = Color(0.7,0.9,1,0.2)
-	new_connection.line = new_connection_line
-	line_group.add_child(new_connection_line)
+	var new_edge_line = Line2D.new()
+	new_edge_line.width = 2
+	new_edge_line.default_color = Color(0.7,0.9,1,0.2)
+	new_edge.line = new_edge_line
+	line_group.add_child(new_edge_line)
 	
-	return new_connection
+	return new_edge
 
 
 func update_connection_lines() -> void:

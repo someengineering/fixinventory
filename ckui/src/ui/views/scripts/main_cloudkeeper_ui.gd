@@ -1,6 +1,6 @@
 extends Node2D
 
-enum states {GRAPH, SEARCH, DASHBOARD, QUERY}
+enum states {GRAPH, SEARCH, DASHBOARD, QUERY, BLASTRADIUS}
 
 onready var blur = $UI/Blur
 onready var ui_graph = $UIGraph
@@ -20,6 +20,7 @@ func _ready() -> void:
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("load_query", self, "load_query")
+	_e.connect("show_blastradius", self, "show_blastradius")
 	
 	ui_dashboard.show()
 	ui_dashboard.rect_global_position = Vector2(-1920,0)
@@ -114,8 +115,13 @@ func show_interface(state_id:int) -> void:
 		ui_tween.start()
 
 
+func show_blastradius(_id) -> void:
+	set_state(states.BLASTRADIUS)
+
+
 func go_to_graph_node(_node_id) -> void:
 	set_state(states.GRAPH)
+
 
 func load_query(_query_id) -> void:
 	set_state(states.QUERY)

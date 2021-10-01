@@ -172,12 +172,12 @@ margin_right = 243.0
 margin_bottom = 71.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
-custom_fonts/font = SubResource( 10 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 10 )
 text = "Total Instances"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -190,11 +190,11 @@ margin_top = 30.2906
 margin_right = 225.0
 margin_bottom = 67.2906
 mouse_filter = 1
-custom_fonts/font = SubResource( 12 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_y = 5
 custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 12 )
 text = "Date range"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -208,9 +208,9 @@ margin_top = 80.0
 margin_right = -400.0
 margin_bottom = -32.0
 theme = ExtResource( 6 )
+custom_colors/default_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_fonts/bold_font = SubResource( 14 )
 custom_fonts/normal_font = SubResource( 16 )
-custom_colors/default_color = Color( 0.517647, 0.901961, 1, 1 )
 bbcode_enabled = true
 bbcode_text = "Info
 Info
@@ -292,6 +292,7 @@ default_color = Color( 0.517647, 0.901961, 1, 0.32549 )
 
 [node name="AnimTween" type="Tween" parent="."]
 
+[connection signal="pressed" from="Background/MarkForCleanupButton" to="." method="_on_MarkForCleanupButton_pressed"]
 [connection signal="tween_all_completed" from="AnimTween" to="." method="_on_AnimTween_tween_all_completed"]
 
 [editable path="Background/ContactOwnerButton"]

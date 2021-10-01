@@ -2,7 +2,7 @@ extends Control
 
 enum states {GRAPH, SEARCH, DASHBOARD, QUERY}
 
-onready var buttons = [$Buttons/TopButton_Nodes, $Buttons/TopButton_Search, $Buttons/TopButton_Dashboard, $Buttons/TopButton_Query]
+onready var buttons = [$Buttons/TopButton_Nodes, $Buttons/TopButton_Search, $Buttons/TopButton_Dashboard, $Buttons/TopButton_Query, $Buttons/TopButton_Dashboard]
 
 func _ready():
 	for i in buttons.size():

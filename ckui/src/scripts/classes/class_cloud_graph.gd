@@ -30,7 +30,7 @@ func _ready():
 	_e.connect("show_connected_nodes", self, "show_connected_nodes")
 
 
-func create_graph(raw_data : Dictionary):
+func create_graph_raw(raw_data : Dictionary):
 	for data in raw_data.values():
 		if data != null and data.has("id"):
 			graph_data.nodes[data.id] = create_new_node(data)
@@ -42,6 +42,31 @@ func create_graph(raw_data : Dictionary):
 			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
 			# For connection lines
 			graph_data.edges[str(data.from + data.to)] = add_connection(data)
+
+
+func create_graph_direct(_graph_data : Dictionary):
+	var node_keys = _graph_data.nodes.keys()
+	for node_key in node_keys:
+		var node = _graph_data.nodes[node_key]
+		node.icon = cloud_node_icon.instance()
+		node.icon.cloud_node = node
+		node.icon.position = Vector2(1920,1080*1.8)*0.5
+		node_group.add_child(node.icon)
+	
+	var edge_keys = _graph_data.edges.keys()
+	for edge_key in edge_keys:
+		var edge = _graph_data.edges[edge_key]
+		var new_edge_line = Line2D.new()
+		new_edge_line.width = 2
+		new_edge_line.default_color = edge.color
+		edge.line = new_edge_line
+		line_group.add_child(new_edge_line)
+	
+	if root_node == null:
+		root_node = _graph_data.nodes[ node_keys[0] ].icon
+	
+	graph_data.nodes = _graph_data.nodes.duplicate()
+	graph_data.edges = _graph_data.edges.duplicate()
 
 
 func create_new_node(_data:Dictionary) -> CloudNode:
@@ -58,18 +83,18 @@ func create_new_node(_data:Dictionary) -> CloudNode:
 	return new_cloud_node
 
 
-func add_connection(_data:Dictionary) -> CloudConnection:
-	var new_connection = CloudConnection.new()
-	new_connection.from = graph_data.nodes[_data.from]
-	new_connection.to = graph_data.nodes[_data.to]
+func add_connection(_data:Dictionary) -> CloudEdge:
+	var new_edge = CloudEdge.new()
+	new_edge.from = graph_data.nodes[_data.from]
+	new_edge.to = graph_data.nodes[_data.to]
 	
-	var new_connection_line = Line2D.new()
-	new_connection_line.width = 2
-	new_connection_line.default_color = new_connection.color
-	new_connection.line = new_connection_line
-	line_group.add_child(new_connection_line)
+	var new_edge_line = Line2D.new()
+	new_edge_line.width = 2
+	new_edge_line.default_color = new_edge.color
+	new_edge.line = new_edge_line
+	line_group.add_child(new_edge_line)
 	
-	return new_connection
+	return new_edge
 
 
 func show_connected_nodes(node_id):
@@ -214,11 +239,11 @@ func get_cloudgraph_from_selection(node_id) -> Dictionary:
 		"edges" : {}
 		}
 	
-	var connection_keys = _g.main_graph.graph_data.edges.keys()
-	for connection_key in connection_keys:
-		var connection = _g.main_graph.graph_data.edges[ connection_key ]
-		if [connection.from.id, connection.to.id].has(node_id) and !new_cloudgraph.edges.has(connection_key):
-			new_cloudgraph.edges[connection_key] = connection
+	var edge_keys = _g.main_graph.graph_data.edges.keys()
+	for edge_key in edge_keys:
+		var connection = _g.main_graph.graph_data.edges[ edge_key ]
+		if [connection.from.id, connection.to.id].has(node_id) and !new_cloudgraph.edges.has(edge_key):
+			new_cloudgraph.edges[edge_key] = connection
 	
 	var nodes = _g.main_graph.graph_data.nodes
 	for connection in new_cloudgraph.edges.values():
@@ -229,58 +254,4 @@ func get_cloudgraph_from_selection(node_id) -> Dictionary:
 		elif nodes.has(connection_id_to) and !new_cloudgraph.nodes.has(connection_id_to):
 			new_cloudgraph.nodes[connection_id_to] = nodes[connection_id_to].duplicate()
 
-	return new_cloudgraph
-
-
-func get_blastradius_from_selection(node_id):
-	var new_cloudgraph = {
-		"nodes" : {},
-		"edges" : {}
-		}
-	new_cloudgraph.nodes[node_id] = _g.main_graph.graph_data.nodes[node_id]
-	var iterations := 0
-	var all_children_resolved := false
-	var next_layer : Dictionary = new_cloudgraph.duplicate()
-	var last_layer := { "nodes" : {},"edges" : {} }
-	while !all_children_resolved:
-		all_children_resolved = true
-		last_layer = { "nodes" : {},"edges" : {} }
-		
-		for node in new_cloudgraph.nodes.values():
-			var connection_keys = _g.main_graph.graph_data.edges.keys()
-			for connection_key in connection_keys:
-				var connection = _g.main_graph.graph_data.edges[ connection_key ]
-				
-				if connection.from.id == node.id and !next_layer.edges.has(connection_key):
-					next_layer = get_children_from_selection(node.id, next_layer)
-					
-					all_children_resolved = false
-		new_cloudgraph = merge_cloudgraphs(new_cloudgraph, next_layer)
-		iterations += 1
-	return new_cloudgraph
-
-
-func merge_cloudgraphs(original:Dictionary, update:Dictionary) -> Dictionary:
-	for node in update.nodes.keys():
-		original.nodes[node] = update.nodes[node]
-	
-	for edge in update.edges.keys():
-		original.edges[edge] = update.edges[edge]
-	
-	return original
-
-
-func get_children_from_selection(node_id, new_cloudgraph) -> Dictionary:
-	var connection_keys = _g.main_graph.graph_data.edges.keys()
-	for connection_key in connection_keys:
-		var connection = _g.main_graph.graph_data.edges[ connection_key ]
-		if connection.from.id == node_id:
-			new_cloudgraph.edges[connection_key] = connection
-	
-	var nodes = _g.main_graph.graph_data.nodes
-	for connection in new_cloudgraph.edges.values():
-		var connection_id = connection.to.id
-		if nodes.has(connection_id):
-			new_cloudgraph.nodes[connection_id] = nodes[connection_id]
-	
 	return new_cloudgraph

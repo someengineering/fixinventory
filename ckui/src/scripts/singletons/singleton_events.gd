@@ -13,3 +13,4 @@ signal nodeinfo_show
 signal nodeinfo_hide
 signal nodes_changed
 signal load_nodes
+signal show_blastradius
