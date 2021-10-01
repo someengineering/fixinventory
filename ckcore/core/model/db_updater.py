@@ -84,13 +84,13 @@ class Result(ProcessAction):
 
 
 class DbUpdaterProcess(Process):
-    def __init__(self, read_queue: Queue[ProcessAction], write_queue: Queue[ProcessAction]) -> None:
+    def __init__(self, read_queue: Queue, write_queue: Queue) -> None:  # type: ignore
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
 
     def next_action(self) -> ProcessAction:
-        return self.read_queue.get(True, 30)
+        return self.read_queue.get(True, 30)  # type: ignore
 
     def forward_events(self, bus: EventBus) -> Task[None]:
         async def forward_events_forever() -> None:
@@ -149,8 +149,8 @@ async def merge_graph_process(
     max_wait: timedelta,
     maybe_batch: Optional[str],
 ) -> GraphUpdate:
-    write = Queue[ProcessAction]()
-    read = Queue[ProcessAction]()
+    write = Queue()  # type: ignore
+    read = Queue()  # type: ignore
     updater = DbUpdaterProcess(write, read)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
 
