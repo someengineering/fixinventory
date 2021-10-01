@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=2]
 
-[ext_resource path="res://ui/views/scripts/ui_graph_view.gd" type="Script" id=1]
+[ext_resource path="res://scripts/classes/class_cloud_graph.gd" type="Script" id=1]
 
 [node name="GraphView" type="Node2D"]
 z_index = -2

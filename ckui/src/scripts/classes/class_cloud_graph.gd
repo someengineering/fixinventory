@@ -1,7 +1,10 @@
-extends Node2D
+extends Node
+class_name CloudGraph
 
-const GRAPH_DUMP_JSON_PATH = "res://data/graph_dump.json"
-const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
+var graph_data := {
+	"nodes" : {},
+	"connections" : {}
+	}
 
 const ATTRACTION_CONSTANT := 0.3*0.05
 const REPULSION_CONSTANT := 400.0
@@ -19,82 +22,23 @@ var root_node : Object = null
 onready var node_group = $Center/Graph/NodeGroup
 onready var line_group = $Center/Graph/LineGroup
 
-export (NodePath) onready var graph_cam = get_node(graph_cam)
-export (NodePath) onready var graph_bg = get_node(graph_bg)
-
-
 func _ready():
-	_g.connect("load_nodes", self, "read_data")
 	_e.connect("hovering_node", self, "hovering_node")
 	_e.connect("show_connected_nodes", self, "show_connected_nodes")
-	_e.connect("graph_order", self, "graph_calc_layout")
-	_e.connect("graph_randomize", self, "graph_rand_layout")
 
 
-func _process(delta):
-	if root_node == null:
-		return
-	
-	# move the center of the background gradient in the direction of the root node
-	var dist_to_root_node = min(root_node.global_position.distance_to(graph_cam.global_position), 2000)
-	var dir_to_root_node = root_node.global_position.direction_to(graph_cam.global_position)
-	var zoom_factor = range_lerp(graph_cam.zoom.x, 0.5, 4, 1, 0.1)
-	graph_bg.material.set_shader_param("center", -dir_to_root_node * ease(range_lerp(dist_to_root_node, 0, 2000, 0, 1), 0.7) * zoom_factor)
-
-
-func graph_calc_layout():
-	center_diagram()
-	arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
-
-
-func graph_rand_layout():
-	for node in _g.nodes.values():
-		if node.icon.random_pos == Vector2.ZERO:
-			node.icon.random_pos = get_random_pos()
-		node.icon.position = node.icon.random_pos
-	root_node.position = Vector2.ZERO
-	root_node.random_pos = Vector2.ZERO
-	center_diagram()
-	update_connection_lines()
-
-
-func read_data():
-	var file = File.new()
-	var new_data := {}
-	
-	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
-		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
-		
-		var index = 0
-		while not file.eof_reached():
-			var line = file.get_line()
-			if line == "":
-				index += 1
-				continue
-			new_data[index] = parse_json(line)
-			index += 1
-	
-		file.close()
-	else:
-		var example_data_file = load("res://scripts/tools/example_data.gd")
-		var example_data = example_data_file.new()
-		new_data = example_data.graph_data.duplicate()
-	
-	for data in new_data.values():
+func create_graph(raw_data : Dictionary):
+	for data in raw_data.values():
 		if data != null and data.has("id"):
-			_g.nodes[data.id] = create_new_node(data)
+			graph_data.nodes[data.id] = create_new_node(data)
 			if root_node == null:
-				root_node = _g.nodes[data.id].icon
-		elif _g.nodes.has(data.from) and _g.nodes.has(data.to):
+				root_node = graph_data.nodes[data.id].icon
+		elif graph_data.nodes.has(data.from) and graph_data.nodes.has(data.to):
 			# For SFDP creation
-			_g.nodes[data.from].to.append( _g.nodes[data.to].icon )
-			_g.nodes[data.to].from.append( _g.nodes[data.from].icon )
+			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
+			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
 			# For connection lines
-			_g.connections[str(data.from + data.to)] = add_connection(data)
-	
-	_g.emit_signal("nodes_changed")
-	layout_graph()
-	update_connection_lines()
+			graph_data.connections[str(data.from + data.to)] = add_connection(data)
 
 
 func create_new_node(_data:Dictionary) -> CloudNode:
@@ -113,8 +57,8 @@ func create_new_node(_data:Dictionary) -> CloudNode:
 
 func add_connection(_data:Dictionary) -> CloudConnection:
 	var new_connection = CloudConnection.new()
-	new_connection.from = _g.nodes[_data.from]
-	new_connection.to = _g.nodes[_data.to]
+	new_connection.from = graph_data.nodes[_data.from]
+	new_connection.to = graph_data.nodes[_data.to]
 	
 	var new_connection_line = Line2D.new()
 	new_connection_line.width = 2
@@ -127,7 +71,7 @@ func add_connection(_data:Dictionary) -> CloudConnection:
 
 func show_connected_nodes(node_id):
 	var nodes_to_activate = [node_id]
-	for connection in _g.connections.values():
+	for connection in graph_data.connections.values():
 		if connection.from.id == node_id and !nodes_to_activate.has(connection.to.id):
 			nodes_to_activate.append(connection.to.id)
 		elif connection.to.id == node_id and !nodes_to_activate.has(connection.from.id):
@@ -137,31 +81,46 @@ func show_connected_nodes(node_id):
 		_e.emit_signal("show_node", n)
 
 
+func graph_calc_layout() -> Dictionary:
+	center_diagram()
+	return arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
+
+
+func graph_rand_layout():
+	for node in graph_data.nodes.values():
+		if node.icon.random_pos == Vector2.ZERO:
+			node.icon.random_pos = get_random_pos()
+		node.icon.position = node.icon.random_pos
+	root_node.position = Vector2.ZERO
+	root_node.random_pos = Vector2.ZERO
+	center_diagram()
+	update_connection_lines()
+
+
 func update_connection_lines() -> void:
-	for connection in _g.connections.values():
+	for connection in graph_data.connections.values():
 		connection.line.global_position = connection.from.icon.global_position
 		connection.line.points = PoolVector2Array( [Vector2.ZERO, connection.to.icon.global_position - connection.line.global_position ] )
 
 
-func layout_graph() -> void:
-	var graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
-	
-	if graph_node_positions.empty() or graph_node_positions.size() != _g.nodes.size():
-		for node in _g.nodes.values():
+func layout_graph(graph_node_positions := {}) -> void:
+	if graph_node_positions.empty() or graph_node_positions.size() != graph_data.nodes.size():
+		for node in graph_data.nodes.values():
 			node.icon.position = get_random_pos()
 			node.icon.random_pos = node.icon.position
 	else:
-		for node in _g.nodes.values():
+		for node in graph_data.nodes.values():
 			node.icon.position = str2var(graph_node_positions[node.id])
 			node.icon.graph_pos = node.icon.position
+	update_connection_lines()
 
 
 func get_random_pos() -> Vector2:
-	return Vector2(rand_range(1000, 5760-1000), rand_range(550, 3240-550)) + Vector2(-2880, -1630)
+	return Vector2(randf()*2000 + 100, 0).rotated(randf()*TAU)
 
 
 func hovering_node(node_id, power) -> void:
-	for connection in _g.connections.values():
+	for connection in graph_data.connections.values():
 		if connection.to.id == node_id or connection.from.id == node_id:
 			var line_color = Color(5,3,1,1) if connection.to.id == node_id else Color(3,4,5,1)
 			connection.line.self_modulate = lerp(Color.white, line_color*1.5, power)
@@ -180,26 +139,27 @@ func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
 	var dir = node_a_pos.direction_to(node_b_pos)
 	return dir*force
 
-
-func arrange(damping, spring_length, max_iterations, deterministic := false):
+# Arrange the graph using SFDP
+# returning the nodes positions
+func arrange(damping, spring_length, max_iterations, deterministic := false) -> Dictionary:
 	if !deterministic:
 		randomize()
 	
 	var stop_count = 0
 	var iterations = 0
 	
-	var nodes_keys : Array = Array( _g.nodes.keys() )
+	var nodes_keys : Array = Array( graph_data.nodes.keys() )
 	
 	while true:
 		var total_displacement := 0.0
 		
-		for i in _g.nodes.size():
-			var node = _g.nodes[ nodes_keys[i] ]
+		for i in graph_data.nodes.size():
+			var node = graph_data.nodes[ nodes_keys[i] ]
 			var current_node_position = node.icon.position
 			var net_force = Vector2.ZERO
 			
 			
-			for other_node in _g.nodes.values():
+			for other_node in graph_data.nodes.values():
 				if node != other_node:
 					var other_node_pos = other_node.icon.position
 					if current_node_position.distance_to(other_node_pos) > MAX_DISTANCE:
@@ -216,9 +176,9 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 			node.next_pos = (current_node_position + node.velocity)
 			total_displacement += node.velocity.length()
 		
-		for i in _g.nodes.size():
-			var node = _g.nodes[ nodes_keys[i] ]
-			_g.nodes[ nodes_keys[i] ].icon.position = node.next_pos
+		for i in graph_data.nodes.size():
+			var node = graph_data.nodes[ nodes_keys[i] ]
+			graph_data.nodes[ nodes_keys[i] ].icon.position = node.next_pos
 
 		iterations += 1
 		if total_displacement < 10:
@@ -233,12 +193,11 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 		yield(get_tree(), "idle_frame")
 	
 	var saved_node_positions : Dictionary
-	for node in _g.nodes.values():
+	for node in graph_data.nodes.values():
 		saved_node_positions[node.id] = var2str(node.icon.position)
 		node.icon.graph_pos = node.icon.position
 	
-	Utils.save_json(GRAPH_NODE_JSON_PATH, saved_node_positions)
-	
+	return saved_node_positions
 
 func center_diagram():
 	$Center/Graph.position = -root_node.position# + Vector2(1920, 1080)/2

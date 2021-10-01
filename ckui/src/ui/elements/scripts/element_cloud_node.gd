@@ -10,10 +10,15 @@ var graph_pos := Vector2.ZERO
 onready var marker = $Marker
 onready var reveal = $Reveal
 
+onready var label_kind = $Labels/LabelKind
+onready var label_name = $Labels/LabelName
+
 func _ready() -> void:
 	_e.connect("show_node", self, "show_detail")
 	_e.connect("hide_nodes", self, "hide_detail")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
+	label_name.text = cloud_node.reported.name
+	label_kind.text = cloud_node.reported.kind
 	set_hover_power(0)
 
 
@@ -21,16 +26,16 @@ func update_spaceship_mode():
 	if _g.spaceship_mode:
 		is_selected = false
 		set_hovering(false)
-		$LabelKind.modulate.a = 0
-		$LabelName.modulate.a = 0
-		$LabelKind.rect_position.y = -33
+		label_kind.modulate.a = 0
+		label_name.modulate.a = 0
+		label_kind.rect_position.y = -127
 	else:
 		$Area2D.set_collision_layer_bit(1, true)
-		$LabelName.modulate.a = 0
-		$LabelKind.rect_position.y = -11
-		$LabelKind.modulate.a = 1
-		$LabelName.percent_visible = 1
-		$LabelKind.percent_visible = 1
+		label_name.modulate.a = 0
+		label_kind.rect_position.y = -52
+		label_kind.modulate.a = 1
+		label_name.percent_visible = 1
+		label_kind.percent_visible = 1
 
 
 func _process(delta) -> void:
@@ -52,22 +57,21 @@ func scanning(delta) -> void:
 	if scanned >= 2:
 		is_scanned = true
 		$Area2D.set_collision_layer_bit(1, false)
-		$LabelKind.modulate.a = 1
-		$LabelName.modulate.a = 1
+		label_kind.modulate.a = 1
+		label_name.modulate.a = 1
 		reveal.interpolate_property(self, "modulate", Color(1,2,3,1), Color.white, 1.5, Tween.TRANS_QUART, Tween.EASE_OUT)
 		reveal.start()
 	elif scanned <= 0:
-		reveal.interpolate_property($LabelKind, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
-		reveal.interpolate_property($LabelName, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
+		reveal.interpolate_property(label_kind, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
+		reveal.interpolate_property(label_name, "modulate:a", 0, 0.5, 1, Tween.TRANS_SINE, Tween.EASE_OUT)
 		reveal.start()
 	scanned += delta
-	$LabelName.percent_visible = clamp(scanned, 1, 2)-1
-	$LabelKind.percent_visible = clamp(scanned, 0, 1)
+	label_name.percent_visible = clamp(scanned, 1, 2)-1
+	label_kind.percent_visible = clamp(scanned, 0, 1)
+
 
 func set_cloud_node(value:CloudNode) -> void:
 	cloud_node = value
-	$LabelName.text = cloud_node.reported.name
-	$LabelKind.text = cloud_node.reported.kind
 	set_node_type(cloud_node.reported.kind)
 
 
@@ -152,13 +156,13 @@ func show_detail(node_id):
 	if node_id != cloud_node.id:
 		return
 	reveal.remove_all()
-	reveal.interpolate_property($LabelName, "modulate:a", $LabelName.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
-	reveal.interpolate_property($LabelKind, "rect_position:y", $LabelKind.rect_position.y, -33, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -127, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
 
 
 func hide_detail():
 	reveal.remove_all()
-	reveal.interpolate_property($LabelName, "modulate:a", $LabelName.modulate.a, 0, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
-	reveal.interpolate_property($LabelKind, "rect_position:y", $LabelKind.rect_position.y, -11, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 0, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -52, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()

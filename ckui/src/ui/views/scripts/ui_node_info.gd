@@ -9,6 +9,8 @@ onready var orig_pos = rect_position
 func _ready() -> void:
 	hide()
 	rect_position.y = orig_pos.y + 300
+	_e.connect("nodeinfo_show", self, "show_info")
+	_e.connect("nodeinfo_hide", self, "hide_info")
 
 
 func hide_info() -> void:
