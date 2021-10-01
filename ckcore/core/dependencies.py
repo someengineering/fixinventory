@@ -15,7 +15,7 @@ from core.task.task_handler import TaskHandler
 log = logging.getLogger(__name__)
 
 
-def parse_args() -> Namespace:
+def parse_args(args: Optional[list[str]] = None, namespace: Optional[str] = None) -> Namespace:
     parser = ArgumentParser(
         env_args_prefix="CKCORE_",
         description="Maintains graphs of resources of any shape.",
@@ -95,7 +95,7 @@ def parse_args() -> Namespace:
     )
 
     TaskHandler.add_args(parser)
-    return parser.parse_args()  # type: ignore
+    return parser.parse_args(args, namespace)  # type: ignore
 
 
 def setup_logging(args: Namespace, child_process: Optional[str] = None) -> None:

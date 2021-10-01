@@ -76,6 +76,7 @@ class Api:
         self.event_bus = event_bus
         self.worker_task_queue = worker_task_queue
         self.cli = cli
+        self.args = args
         self.app = web.Application(middlewares=[self.error_handler])
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
@@ -393,7 +394,7 @@ class Api:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "ns")
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(self.event_bus, it, graph_id, self.merge_max_wait_time, None)
+        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -402,7 +403,7 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(self.event_bus, it, graph_id, self.merge_max_wait_time, batch_id)
+        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

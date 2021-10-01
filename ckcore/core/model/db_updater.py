@@ -13,7 +13,7 @@ from typing import Optional, Union, AsyncGenerator
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
 from core.db.model import GraphUpdate
-from core.dependencies import db_access, setup_logging, parse_args
+from core.dependencies import db_access, setup_logging
 from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
@@ -84,10 +84,11 @@ class Result(ProcessAction):
 
 
 class DbUpdaterProcess(Process):
-    def __init__(self, read_queue: Queue, write_queue: Queue) -> None:  # type: ignore
+    def __init__(self, read_queue: Queue, write_queue: Queue, args: Namespace) -> None:  # type: ignore
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
+        self.args = args
 
     def next_action(self) -> ProcessAction:
         return self.read_queue.get(True, 30)  # type: ignore
@@ -117,9 +118,9 @@ class DbUpdaterProcess(Process):
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.maybe_batch)
             return result
 
-    async def setup_and_merge(self, args: Namespace) -> GraphUpdate:
+    async def setup_and_merge(self) -> GraphUpdate:
         bus = EventBus()
-        db = db_access(args, bus)
+        db = db_access(self.args, bus)
         task = self.forward_events(bus)
         result = await self.merge_graph(db)
         await asyncio.sleep(0.1)  # yield current process to drain event bus
@@ -128,22 +129,22 @@ class DbUpdaterProcess(Process):
 
     def run(self) -> None:
         try:
-            args = parse_args()
             # Entrypoint of the new service
-            setup_logging(args, f"merge_update_{self.pid}")
+            setup_logging(self.args, f"merge_update_{self.pid}")
             log.info("Import process started")
-            result = asyncio.run(self.setup_and_merge(args))
+            result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
             log.info("Update process done. Exit.")
             sys.exit(0)
         except Exception as ex:
             self.write_queue.put(Result(ex))
-            log.info("Update process interrupted. Preemptive Exit.")
+            log.info("Update process interrupted. Preemptive Exit.", exc_info=ex)
             sys.exit(1)
 
 
 async def merge_graph_process(
     bus: EventBus,
+    args: Namespace,
     content: AsyncGenerator[Union[bytes, Json], None],
     graph: str,
     max_wait: timedelta,
@@ -151,7 +152,7 @@ async def merge_graph_process(
 ) -> GraphUpdate:
     write = Queue()  # type: ignore
     read = Queue()  # type: ignore
-    updater = DbUpdaterProcess(write, read)  # the process reads from our write queue and vice versa
+    updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
 
     async def send_to_child(pa: ProcessAction) -> None:

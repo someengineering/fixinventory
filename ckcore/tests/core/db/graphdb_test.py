@@ -17,7 +17,7 @@ from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBat
 from core.event_bus import EventBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
-from core.model.model import Model, ComplexKind, Property
+from core.model.model import Model, ComplexKind, Property, Kind
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
@@ -93,6 +93,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         reported = node if node else to_json(Foo(uid))
         graph.add_node(
             uid,
+            id=uid,
             kinds=[kind],
             reported=reported,
             desired={"node_id": uid},
@@ -158,7 +159,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 @pytest.fixture
-def foo_model() -> Model:
+def foo_kinds() -> list[Kind]:
     base = ComplexKind(
         "base",
         [],
@@ -188,7 +189,12 @@ def foo_model() -> Model:
             Property("g", "int32[]"),
         ],
     )
-    return Model.from_kinds([base, foo, bla])
+    return [base, foo, bla]
+
+
+@pytest.fixture
+def foo_model(foo_kinds: list[Kind]) -> Model:
+    return Model.from_kinds(foo_kinds)
 
 
 @pytest.fixture
