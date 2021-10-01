@@ -11,6 +11,6 @@ def test_jwt():
     assert j1 != j2
     assert verify_jwt(j1, psk) == payload
     assert verify_jwt(j2, psk) == payload
-    with pytest.raises(InvalidSignatureError) as excinfo:
+    with pytest.raises(InvalidSignatureError) as e:
         verify_jwt(j1, "wrongpsk")
-    assert str(excinfo.value) == "Signature verification failed"
+    assert str(e.value) == "Signature verification failed"
