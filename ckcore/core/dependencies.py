@@ -1,6 +1,7 @@
 import logging
 import sys
 from argparse import Namespace
+from typing import Optional
 
 from arango import ArangoClient
 from cklib.args import ArgumentParser
@@ -69,28 +70,46 @@ def parse_args() -> Namespace:
         help="Request timeout in seconds (default: 900)",
     )
     parser.add_argument(
-        # Explicitly use the ipv4 loopback address. There are scenarios where aiohttp can not bind to the ipv6 address.
-        "--host",
-        type=str,
-        default="127.0.0.1",
-        nargs="+",
-        help="TCP host(s) to bind on (default: 127.0.0.1)",
-    )
-    parser.add_argument("--port", type=int, default=8900, help="TCP port to bind on (default: 8900)")
-    parser.add_argument(
         "--plantuml-server",
         default="https://www.plantuml.com/plantuml",
         help="PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)",
     )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        nargs="+",
+        help="TCP host(s) to bind on (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8900,
+        help="TCP port to bind on (default: 8900)",
+    )
+    parser.add_argument(
+        "--merge_max_wait_time_seconds",
+        type=int,
+        default=3600,
+        help="Max waiting time to complete a merge graph action.",
+    )
+
     TaskHandler.add_args(parser)
     return parser.parse_args()  # type: ignore
 
 
-args = parse_args()
+def setup_logging(args: Namespace, child_process: Optional[str] = None) -> None:
+    # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
+    # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
+    if child_process:
+        log_format = f"%(asctime)s [{child_process}][%(levelname)s] %(message)s [%(name)s]"
+    else:
+        log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
+    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
 
 
-def db_access(event_bus: EventBus) -> DbAccess:
-    if args.graphdb_type not in ("arangodb"):
+def db_access(args: Namespace, event_bus: EventBus) -> DbAccess:
+    if args.graphdb_type not in "arangodb":
         log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
         sys.exit(1)
 

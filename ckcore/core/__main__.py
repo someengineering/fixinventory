@@ -6,7 +6,7 @@ from aiohttp.web_app import Application
 
 from core.cli.cli import CLIDependencies, CLI
 from core.cli.command import all_parts, aliases
-from core.dependencies import db_access, args
+from core.dependencies import db_access, setup_logging, parse_args
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandlerDB
 from core.task.scheduler import Scheduler
@@ -19,15 +19,14 @@ log = logging.getLogger(__name__)
 
 
 def main() -> None:
+    args = parse_args()
+    setup_logging(args)
     log.info("Starting up...")
-
-    log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
-    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
 
     scheduler = Scheduler()
     event_bus = EventBus()
     worker_task_queue = WorkerTaskQueue()
-    db = db_access(event_bus)
+    db = db_access(args, event_bus)
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies()
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
@@ -41,7 +40,7 @@ def main() -> None:
         "job_handler": task_handler,
         "worker_task_queue": worker_task_queue,
     }
-    api = Api(db, model, subscriptions, task_handler, event_bus, worker_task_queue, cli)
+    api = Api(db, model, subscriptions, task_handler, event_bus, worker_task_queue, cli, args)
 
     async def async_initializer() -> Application:
         await db.start()
