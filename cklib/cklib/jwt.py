@@ -7,6 +7,9 @@ from typing import Optional
 
 
 def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
+    """Derive a 256 bit key from a passphrase.
+    A salt can be optionally provided. If not one will be generated.
+    """
     if salt is None:
         salt = os.urandom(16)
     kdf = PBKDF2HMAC(
@@ -20,12 +23,18 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
 
 
 def encode_jwt(payload: dict[str, str], psk: str) -> str:
+    """Encodes a payload into a JWT and signs using a key derived from a pre-shared-key.
+    Stores the key's salt in the JWT headers.
+    """
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
     return jwt.encode(payload, key, algorithm="HS256", headers={"salt": salt_encoded})
 
 
 def decode_jwt(encoded_jwt: str, psk: str) -> dict:
+    """Decode a JWT using a key derived from a pre-shared-key and a salt stored
+    in the JWT headers.
+    """
     salt_encoded = jwt.get_unverified_header(encoded_jwt).get("salt")
     salt = base64.standard_b64decode(salt_encoded)
     key, _ = key_from_psk(psk, salt)
@@ -38,6 +47,9 @@ def encode_jwt_to_headers(
     psk: str,
     scheme: str = "Bearer",
 ) -> dict[str, str]:
+    """Takes a payload and psk turns them into a JWT and adds that to a http headers
+    dictionary.
+    """
     http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, psk)}"})
     return http_headers
 
@@ -45,6 +57,9 @@ def encode_jwt_to_headers(
 def decode_jwt_from_headers(
     http_headers: dict[str, str], psk: str, scheme: str = "Bearer"
 ) -> Optional[dict[str, str]]:
+    """Retrieves the Authorization header from a http headers dictionary and
+    passes it to `decode_jwt_from_header_value()` to return the decoded payload.
+    """
     authorization_header = {
         str(k).capitalize(): v for k, v in http_headers.items()
     }.get("Authorization")
@@ -56,6 +71,8 @@ def decode_jwt_from_headers(
 def decode_jwt_from_header_value(
     authorization_header: str, psk: str, scheme: str = "Bearer"
 ) -> Optional[dict[str, str]]:
+    """Decodes a JWT payload from a http Authorization header value.
+    """
     if (
         len(authorization_header) <= len(scheme) + 1
         or str(authorization_header[0 : len(scheme)]).lower() != scheme.lower()
