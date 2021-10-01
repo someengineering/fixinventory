@@ -3,6 +3,8 @@ name: Compile Documentation
 on: 
   push:
     branches: [ main ]
+    paths:
+      - 'docs/**'
 
 jobs:
   deploy_documentation:
@@ -10,13 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: ammaraskar/sphinx-action@master
+    - name: Build documentation
+      uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
 
     # Publish built docs to gh-pages branch.
     # ===============================
-    - name: Commit documentation changes
+    - name: Commit documentation
       run: |
         git clone https://github.com/someengineering/cloudkeeper.git --single-branch gh-pages
         cd gh-pages
@@ -29,10 +32,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
-        git commit -m "Update documentation" -a || true
+        git commit -m "Update documentation" -a --allow-empty
         # The above command will fail if no changes were present, so we ignore
         # that.
-    - name: Push changes
+    - name: Push documentation
       uses: ad-m/github-push-action@master
       with:
         branch: gh-pages
