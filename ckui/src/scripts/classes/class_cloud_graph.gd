@@ -5,7 +5,7 @@ signal order_done
 
 var graph_data := {
 	"nodes" : {},
-	"connections" : {}
+	"edges" : {}
 	}
 
 const ATTRACTION_CONSTANT := 0.3*0.05
@@ -41,7 +41,7 @@ func create_graph(raw_data : Dictionary):
 			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
 			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
 			# For connection lines
-			graph_data.connections[str(data.from + data.to)] = add_connection(data)
+			graph_data.edges[str(data.from + data.to)] = add_connection(data)
 
 
 func create_new_node(_data:Dictionary) -> CloudNode:
@@ -74,7 +74,7 @@ func add_connection(_data:Dictionary) -> CloudConnection:
 
 func show_connected_nodes(node_id):
 	var nodes_to_activate = [node_id]
-	for connection in graph_data.connections.values():
+	for connection in graph_data.edges.values():
 		if connection.from.id == node_id and !nodes_to_activate.has(connection.to.id):
 			nodes_to_activate.append(connection.to.id)
 		elif connection.to.id == node_id and !nodes_to_activate.has(connection.from.id):
@@ -101,7 +101,7 @@ func graph_rand_layout():
 
 
 func update_connection_lines() -> void:
-	for connection in graph_data.connections.values():
+	for connection in graph_data.edges.values():
 		connection.line.global_position = connection.from.icon.global_position
 		connection.line.points = PoolVector2Array( [Vector2.ZERO, connection.to.icon.global_position - connection.line.global_position ] )
 
@@ -124,7 +124,7 @@ func get_random_pos() -> Vector2:
 
 
 func hovering_node(node_id, power) -> void:
-	for connection in graph_data.connections.values():
+	for connection in graph_data.edges.values():
 		if connection.to.id == node_id or connection.from.id == node_id:
 			var line_color = Color(5,3,1,1) if connection.to.id == node_id else Color(3,4,5,1)
 			connection.line.self_modulate = lerp(Color.white, line_color*1.5, power)
@@ -211,17 +211,17 @@ func center_diagram():
 func get_cloudgraph_from_selection(node_id) -> Dictionary:
 	var new_cloudgraph = {
 		"nodes" : {},
-		"connections" : {}
+		"edges" : {}
 		}
 	
-	var connection_keys = _g.main_graph.graph_data.connections.keys()
+	var connection_keys = _g.main_graph.graph_data.edges.keys()
 	for connection_key in connection_keys:
-		var connection = _g.main_graph.graph_data.connections[ connection_key ]
-		if [connection.from.id, connection.to.id].has(node_id) and !new_cloudgraph.connections.has(connection_key):
-			new_cloudgraph.connections[connection_key] = connection
+		var connection = _g.main_graph.graph_data.edges[ connection_key ]
+		if [connection.from.id, connection.to.id].has(node_id) and !new_cloudgraph.edges.has(connection_key):
+			new_cloudgraph.edges[connection_key] = connection
 	
 	var nodes = _g.main_graph.graph_data.nodes
-	for connection in new_cloudgraph.connections.values():
+	for connection in new_cloudgraph.edges.values():
 		var connection_id_from = connection.from.id
 		var connection_id_to = connection.to.id
 		if nodes.has(connection_id_from) and !new_cloudgraph.nodes.has(connection_id_from):
@@ -235,23 +235,23 @@ func get_cloudgraph_from_selection(node_id) -> Dictionary:
 func get_blastradius_from_selection(node_id):
 	var new_cloudgraph = {
 		"nodes" : {},
-		"connections" : {}
+		"edges" : {}
 		}
 	new_cloudgraph.nodes[node_id] = _g.main_graph.graph_data.nodes[node_id]
 	var iterations := 0
 	var all_children_resolved := false
 	var next_layer : Dictionary = new_cloudgraph.duplicate()
-	var last_layer := { "nodes" : {},"connections" : {} }
+	var last_layer := { "nodes" : {},"edges" : {} }
 	while !all_children_resolved:
 		all_children_resolved = true
-		last_layer = { "nodes" : {},"connections" : {} }
+		last_layer = { "nodes" : {},"edges" : {} }
 		
 		for node in new_cloudgraph.nodes.values():
-			var connection_keys = _g.main_graph.graph_data.connections.keys()
+			var connection_keys = _g.main_graph.graph_data.edges.keys()
 			for connection_key in connection_keys:
-				var connection = _g.main_graph.graph_data.connections[ connection_key ]
+				var connection = _g.main_graph.graph_data.edges[ connection_key ]
 				
-				if connection.from.id == node.id and !next_layer.connections.has(connection_key):
+				if connection.from.id == node.id and !next_layer.edges.has(connection_key):
 					next_layer = get_children_from_selection(node.id, next_layer)
 					
 					all_children_resolved = false
@@ -259,25 +259,26 @@ func get_blastradius_from_selection(node_id):
 		iterations += 1
 	return new_cloudgraph
 
+
 func merge_cloudgraphs(original:Dictionary, update:Dictionary) -> Dictionary:
 	for node in update.nodes.keys():
 		original.nodes[node] = update.nodes[node]
 	
-	for edge in update.connections.keys():
-		original.connections[edge] = update.connections[edge]
+	for edge in update.edges.keys():
+		original.edges[edge] = update.edges[edge]
 	
 	return original
 
 
 func get_children_from_selection(node_id, new_cloudgraph) -> Dictionary:
-	var connection_keys = _g.main_graph.graph_data.connections.keys()
+	var connection_keys = _g.main_graph.graph_data.edges.keys()
 	for connection_key in connection_keys:
-		var connection = _g.main_graph.graph_data.connections[ connection_key ]
+		var connection = _g.main_graph.graph_data.edges[ connection_key ]
 		if connection.from.id == node_id:
-			new_cloudgraph.connections[connection_key] = connection
+			new_cloudgraph.edges[connection_key] = connection
 	
 	var nodes = _g.main_graph.graph_data.nodes
-	for connection in new_cloudgraph.connections.values():
+	for connection in new_cloudgraph.edges.values():
 		var connection_id = connection.to.id
 		if nodes.has(connection_id):
 			new_cloudgraph.nodes[connection_id] = nodes[connection_id]
