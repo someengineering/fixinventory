@@ -1,0 +1,216 @@
+[gd_scene load_steps=15 format=2]
+
+[ext_resource path="res://assets/graphics/sci-fi/icon_dropdown.png" type="Texture" id=1]
+[ext_resource path="res://ui/views/scripts/ui_command_line.gd" type="Script" id=2]
+[ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=7]
+
+[sub_resource type="Gradient" id=22]
+colors = PoolColorArray( 0.00392157, 0.105882, 0.184314, 0.823529, 0.00392157, 0.105882, 0.184314, 0.823529 )
+
+[sub_resource type="GradientTexture" id=23]
+gradient = SubResource( 22 )
+
+[sub_resource type="CanvasItemMaterial" id=26]
+blend_mode = 1
+
+[sub_resource type="CanvasItemMaterial" id=27]
+blend_mode = 1
+
+[sub_resource type="StyleBoxFlat" id=42]
+bg_color = Color( 0.223529, 0.588235, 0.87451, 0.0509804 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 1
+
+[sub_resource type="DynamicFontData" id=41]
+font_path = "res://assets/fonts/SourceCodePro-Regular.ttf"
+
+[sub_resource type="DynamicFont" id=44]
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -24
+font_data = SubResource( 41 )
+
+[sub_resource type="StyleBoxEmpty" id=43]
+content_margin_left = 8.0
+content_margin_right = 8.0
+
+[sub_resource type="DynamicFontData" id=45]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=46]
+size = 18
+extra_spacing_top = -3
+font_data = SubResource( 45 )
+
+[sub_resource type="StyleBoxFlat" id=47]
+bg_color = Color( 0, 0, 0, 0.337255 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 1
+
+[node name="UICommandLine" type="Control"]
+margin_right = 1920.0
+margin_bottom = 80.0
+rect_min_size = Vector2( 1920, 80 )
+script = ExtResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Sprite" type="Sprite" parent="."]
+position = Vector2( 967.905, 44.7979 )
+rotation = 1.57079
+scale = Vector2( 0.0428915, 1951.81 )
+texture = SubResource( 23 )
+
+[node name="AnimTween" type="Tween" parent="."]
+
+[node name="TextureRect2" type="TextureRect" parent="."]
+use_parent_material = true
+margin_left = 40.0
+margin_top = 40.0
+margin_right = 80.0
+margin_bottom = 80.0
+rect_min_size = Vector2( 40, 40 )
+rect_rotation = -180.0
+rect_scale = Vector2( 0.8, 0.8 )
+texture = ExtResource( 1 )
+expand = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+material = SubResource( 26 )
+position = Vector2( -24.9897, 73 )
+scale = Vector2( 1, -1 )
+color = Color( 0, 0.368627, 0.470588, 1 )
+polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
+
+[node name="Polygon2D2" type="Polygon2D" parent="."]
+material = SubResource( 26 )
+position = Vector2( 1946.01, 73 )
+scale = Vector2( -1, -1 )
+color = Color( 0, 0.368627, 0.470588, 1 )
+polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
+
+[node name="TextureRect" type="TextureRect" parent="."]
+modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
+material = SubResource( 27 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 0.0103149
+margin_top = -8.0
+margin_right = 0.0102539
+margin_bottom = 28.0
+mouse_filter = 2
+texture = ExtResource( 7 )
+stretch_mode = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Background" type="Panel" parent="."]
+margin_left = 48.0
+margin_top = 8.0
+margin_right = 1816.0
+margin_bottom = 32.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/panel = SubResource( 42 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Background"]
+margin_right = 1848.0
+margin_bottom = 48.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_colors/selection_color = Color( 0.603922, 0.870588, 1, 0.0392157 )
+custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
+custom_fonts/font = SubResource( 44 )
+custom_styles/read_only = SubResource( 43 )
+custom_styles/focus = SubResource( 43 )
+custom_styles/normal = SubResource( 43 )
+text = "Show the current operation as a query/CLI"
+editable = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonSpaceship" type="Button" parent="."]
+margin_left = 1824.0
+margin_top = 8.0
+margin_right = 1848.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "S"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonRandomize" type="Button" parent="."]
+margin_left = 1856.0
+margin_top = 8.0
+margin_right = 1880.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "R"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonOrder" type="Button" parent="."]
+margin_left = 1888.0
+margin_top = 8.0
+margin_right = 1912.0
+margin_bottom = 32.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 46 )
+custom_styles/hover = SubResource( 47 )
+custom_styles/pressed = SubResource( 47 )
+custom_styles/focus = SubResource( 47 )
+custom_styles/disabled = SubResource( 47 )
+custom_styles/normal = SubResource( 47 )
+text = "O"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[connection signal="pressed" from="ButtonSpaceship" to="." method="_on_ButtonSpaceship_pressed"]
+[connection signal="pressed" from="ButtonRandomize" to="." method="_on_ButtonRandomize_pressed"]
+[connection signal="pressed" from="ButtonOrder" to="." method="_on_ButtonOrder_pressed"]

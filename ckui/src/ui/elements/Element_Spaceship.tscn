@@ -1,0 +1,184 @@
+[gd_scene load_steps=12 format=2]
+
+[ext_resource path="res://ui/elements/scripts/element_spaceship.gd" type="Script" id=1]
+[ext_resource path="res://assets/graphics/spaceship_appear.png" type="Texture" id=2]
+
+[sub_resource type="Gradient" id=2]
+offsets = PoolRealArray( 0, 0.089404, 0.586093, 1 )
+colors = PoolColorArray( 5, 5, 5, 0, 5, 1, 0.5, 1, 1, 0.421875, 0, 1, 1, 0.4, 0, 0 )
+
+[sub_resource type="GradientTexture" id=3]
+gradient = SubResource( 2 )
+
+[sub_resource type="ParticlesMaterial" id=4]
+emission_shape = 1
+emission_sphere_radius = 10.0
+flag_disable_z = true
+direction = Vector3( 0, 1, 0 )
+spread = 5.0
+gravity = Vector3( 0, 0, 0 )
+initial_velocity = 700.0
+initial_velocity_random = 0.3
+orbit_velocity = 0.0
+orbit_velocity_random = 0.0
+damping = 50.0
+angle = 360.0
+angle_random = 1.0
+scale = 0.2
+scale_random = 0.2
+color_ramp = SubResource( 3 )
+
+[sub_resource type="CanvasItemMaterial" id=1]
+blend_mode = 1
+
+[sub_resource type="CircleShape2D" id=5]
+radius = 600.0
+
+[sub_resource type="CanvasItemMaterial" id=6]
+blend_mode = 1
+
+[sub_resource type="Animation" id=7]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath("SpaceshipAppear:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector2( 0, 0 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector2( 0.1, 0.1 ) ]
+}
+
+[sub_resource type="Animation" id=8]
+resource_name = "appear"
+length = 0.1
+step = 0.01
+tracks/0/type = "value"
+tracks/0/path = NodePath("SpaceshipAppear:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.1 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 5, 5 ), Vector2( 1e-05, 1e-05 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.01 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 0.1, 0.1 ) ]
+}
+
+[sub_resource type="Animation" id=9]
+resource_name = "vanish"
+length = 0.1
+step = 0.01
+tracks/0/type = "value"
+tracks/0/path = NodePath("SpaceshipAppear:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.1 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 5, 5 ) ]
+}
+tracks/1/type = "method"
+tracks/1/path = NodePath(".")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0.1 ),
+"transitions": PoolRealArray( 1 ),
+"values": [ {
+"args": [  ],
+"method": "queue_free"
+} ]
+}
+
+[node name="Spaceship" type="Node2D"]
+scale = Vector2( 0.1, 0.1 )
+script = ExtResource( 1 )
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+position = Vector2( 0, -16 )
+color = Color( 0.603922, 0.870588, 1, 1 )
+antialiased = true
+polygon = PoolVector2Array( -32, 40, 0, -64, 32, 40, 16, 40, 0, 56, -16, 40 )
+
+[node name="Polygon2D" type="Polygon2D" parent="Polygon2D"]
+antialiased = true
+polygon = PoolVector2Array( 0, 32, -8, 16, 0, -8, 8, 16 )
+
+[node name="Engine_Particles" type="Particles2D" parent="."]
+position = Vector2( 0, 48 )
+amount = 50
+visibility_rect = Rect2( -1000, -1000, 2000, 2000 )
+local_coords = false
+process_material = SubResource( 4 )
+
+[node name="Engine" type="Polygon2D" parent="."]
+material = SubResource( 1 )
+position = Vector2( 0, 32 )
+z_index = -1
+color = Color( 1, 0.4, 0, 1 )
+antialiased = true
+polygon = PoolVector2Array( 0, 0, -16, 16, 0, 56, 16, 16 )
+
+[node name="Engine" type="Polygon2D" parent="Engine"]
+material = SubResource( 1 )
+z_index = -1
+color = Color( 3, 1, 0.5, 1 )
+antialiased = true
+polygon = PoolVector2Array( 0, 0, -8, 8, 0, 24, 8, 8 )
+
+[node name="Scanner" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Scanner"]
+visible = false
+shape = SubResource( 5 )
+
+[node name="SpaceshipAppear" type="Sprite" parent="."]
+modulate = Color( 0.2, 1.3, 2, 1 )
+material = SubResource( 6 )
+scale = Vector2( 1e-05, 1e-05 )
+texture = ExtResource( 2 )
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+anims/RESET = SubResource( 7 )
+anims/appear = SubResource( 8 )
+anims/vanish = SubResource( 9 )
+
+[connection signal="area_entered" from="Scanner" to="." method="_on_Scanner_area_entered"]
+[connection signal="area_exited" from="Scanner" to="." method="_on_Scanner_area_exited"]

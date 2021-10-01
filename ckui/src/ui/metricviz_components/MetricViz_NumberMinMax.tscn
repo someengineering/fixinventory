@@ -1,0 +1,239 @@
+[gd_scene load_steps=16 format=2]
+
+[ext_resource path="res://ui/metricviz_components/scripts/metricviz_number_minmax.gd" type="Script" id=1]
+[ext_resource path="res://assets/graphics/min_max_circle_bg.png" type="Texture" id=2]
+[ext_resource path="res://assets/graphics/min_max_circle.png" type="Texture" id=3]
+
+[sub_resource type="DynamicFontData" id=34]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=29]
+size = 28
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -6
+extra_spacing_char = 1
+font_data = SubResource( 34 )
+
+[sub_resource type="Shader" id=13]
+code = "shader_type canvas_item;
+render_mode blend_add;
+
+void fragment() {
+	COLOR = texture(TEXTURE, UV);
+	COLOR.a = abs((0.8 - UV.y)*1.5);
+}"
+
+[sub_resource type="ShaderMaterial" id=14]
+shader = SubResource( 13 )
+
+[sub_resource type="StyleBoxFlat" id=10]
+bg_color = Color( 1, 1, 1, 0.0392157 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="CanvasItemMaterial" id=15]
+blend_mode = 1
+
+[sub_resource type="DynamicFontData" id=30]
+font_path = "res://assets/fonts/GemunuLibre-Medium.ttf"
+
+[sub_resource type="DynamicFont" id=31]
+size = 64
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -8
+font_data = SubResource( 30 )
+
+[sub_resource type="DynamicFont" id=33]
+size = 36
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -8
+font_data = SubResource( 30 )
+
+[sub_resource type="CanvasItemMaterial" id=37]
+blend_mode = 1
+
+[sub_resource type="DynamicFontData" id=28]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=36]
+size = 22
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -6
+extra_spacing_char = 1
+font_data = SubResource( 28 )
+
+[node name="MetricViz-NumberMinMax" type="VBoxContainer" groups=[
+"metricviz",
+"metricviz_number_minmax",
+]]
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+descr_name = "CPU"
+
+[node name="DescriptionLabel" type="Label" parent="."]
+use_parent_material = true
+margin_right = 122.0
+margin_bottom = 25.0
+mouse_filter = 1
+custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
+custom_constants/shadow_offset_y = 5
+custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 29 )
+text = "Descr"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+margin_top = 29.0
+margin_right = 122.0
+margin_bottom = 147.0
+rect_min_size = Vector2( 118, 118 )
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BackgroundShader" type="Panel" parent="MarginContainer"]
+visible = false
+modulate = Color( 0.176471, 0.827451, 1, 0.129412 )
+material = SubResource( 14 )
+margin_right = 122.0
+margin_bottom = 118.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/panel = SubResource( 10 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Background" type="Panel" parent="MarginContainer"]
+visible = false
+margin_right = 122.0
+margin_bottom = 118.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/panel = SubResource( 10 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CenterContainer" type="CenterContainer" parent="MarginContainer"]
+margin_right = 122.0
+margin_bottom = 118.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/CenterContainer"]
+modulate = Color( 0.603922, 0.870037, 1, 1 )
+material = SubResource( 15 )
+margin_top = 28.0
+margin_right = 122.0
+margin_bottom = 90.0
+custom_constants/separation = -1
+
+[node name="MetricLabel" type="Label" parent="MarginContainer/CenterContainer/HBoxContainer"]
+use_parent_material = true
+margin_right = 97.0
+margin_bottom = 62.0
+custom_colors/font_color = Color( 0.752941, 0.94902, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
+custom_constants/shadow_offset_y = 10
+custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 31 )
+text = "100"
+align = 1
+valign = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MetricLabelPercent" type="Label" parent="MarginContainer/CenterContainer/HBoxContainer"]
+use_parent_material = true
+margin_left = 96.0
+margin_top = 15.0
+margin_right = 122.0
+margin_bottom = 47.0
+custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
+custom_constants/shadow_offset_y = 10
+custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 33 )
+text = "%"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Scaler" type="Node2D" parent="MarginContainer/CenterContainer"]
+scale = Vector2( 0.23, 0.23 )
+
+[node name="TextureProgress" type="TextureProgress" parent="MarginContainer/CenterContainer/Scaler"]
+material = SubResource( 37 )
+margin_right = 1024.0
+margin_bottom = 1024.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+step = 0.1
+value = 50.0
+texture_under = ExtResource( 2 )
+texture_progress = ExtResource( 3 )
+fill_mode = 4
+tint_under = Color( 0.290196, 0.643137, 1, 0.317647 )
+tint_progress = Color( 0.372549, 0.796078, 1, 1 )
+radial_initial_angle = 224.0
+radial_fill_degrees = 271.5
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Control" type="Control" parent="MarginContainer/CenterContainer"]
+margin_left = 61.0
+margin_top = 59.0
+margin_right = 61.0
+margin_bottom = 59.0
+
+[node name="Marker" type="Line2D" parent="MarginContainer/CenterContainer/Control"]
+rotation = 0.785398
+scale = Vector2( 0.23, 0.23 )
+points = PoolVector2Array( 185, 0, 256.522, 0 )
+width = 5.0
+default_color = Color( 0.6, 2.325, 3, 1 )
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="DescrLabel" type="Label" parent="MarginContainer/CenterContainer/Control"]
+modulate = Color( 0.596078, 0.905882, 1, 1 )
+use_parent_material = true
+margin_left = -121.0
+margin_top = 21.0
+margin_right = 118.0
+margin_bottom = 48.0
+custom_fonts/font = SubResource( 36 )
+text = "Description"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Tween" type="Tween" parent="."]

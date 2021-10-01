@@ -1,6 +1,10 @@
 import os
 from setuptools import setup, find_packages
 
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -8,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-logdump",
-    version="2.0.0a2",
+    version="2.0.0a4",
     description="Event Log Dumper Plugin",
     license="Apache 2.0",
     packages=find_packages(),
@@ -18,7 +22,7 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    install_requires=["cklib"],
+    install_requires=requirements,
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=[

@@ -1,0 +1,56 @@
+[gd_resource type="Theme" load_steps=6 format=2]
+
+[sub_resource type="StyleBoxFlat" id=4]
+bg_color = Color( 0, 1, 0.996078, 0.207843 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0 )
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id=5]
+bg_color = Color( 0, 1, 0.996078, 0.470588 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0 )
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id=3]
+content_margin_left = 10.0
+content_margin_right = 10.0
+content_margin_top = 0.0
+content_margin_bottom = 0.0
+bg_color = Color( 1, 1, 1, 0.0392157 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="DynamicFontData" id=1]
+font_path = "GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=2]
+size = 26
+font_data = SubResource( 1 )
+
+[resource]
+default_font = SubResource( 2 )
+VScrollBar/styles/grabber = SubResource( 4 )
+VScrollBar/styles/grabber_highlight = SubResource( 5 )
+VScrollBar/styles/grabber_pressed = SubResource( 5 )
+VScrollBar/styles/scroll = SubResource( 3 )
+VScrollBar/styles/scroll_focus = SubResource( 3 )

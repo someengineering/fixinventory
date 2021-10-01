@@ -1,6 +1,10 @@
 import os
 from setuptools import setup, find_packages
 
+requirements = []
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -8,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-slack",
-    version="2.0.0a2",
+    version="2.0.0a4",
     description="Cloudkeeper Slack Plugin",
     license="Apache 2.0",
     packages=find_packages(),
@@ -19,7 +23,7 @@ setup(
             "slack_collector = cloudkeeper_plugin_slack:SlackCollectorPlugin",
         ]
     },
-    install_requires=["cklib", "slack_sdk", "retrying"],
+    install_requires=requirements,
     include_package_data=True,
     zip_safe=False,
     setup_requires=["pytest-runner"],

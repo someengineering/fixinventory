@@ -1,0 +1,165 @@
+[gd_scene load_steps=14 format=2]
+
+[ext_resource path="res://assets/graphics/user_icon.png" type="Texture" id=1]
+[ext_resource path="res://ui/elements/Element_TopButton.tscn" type="PackedScene" id=2]
+[ext_resource path="res://ui/views/scripts/ui_topbar.gd" type="Script" id=3]
+[ext_resource path="res://assets/graphics/icons/icon_code.png" type="Texture" id=4]
+[ext_resource path="res://assets/graphics/icons/icon_search.png" type="Texture" id=5]
+[ext_resource path="res://assets/graphics/icons/icon_nodes.png" type="Texture" id=6]
+[ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=7]
+
+[sub_resource type="Gradient" id=22]
+colors = PoolColorArray( 0.00392157, 0.105882, 0.184314, 0.823529, 0.00392157, 0.105882, 0.184314, 0.823529 )
+
+[sub_resource type="GradientTexture" id=23]
+gradient = SubResource( 22 )
+
+[sub_resource type="DynamicFontData" id=24]
+font_path = "res://assets/fonts/GemunuLibre-VariableFont_wght.ttf"
+
+[sub_resource type="DynamicFont" id=25]
+size = 38
+use_mipmaps = true
+use_filter = true
+font_data = SubResource( 24 )
+
+[sub_resource type="CanvasItemMaterial" id=26]
+blend_mode = 1
+
+[sub_resource type="CanvasItemMaterial" id=27]
+blend_mode = 1
+
+[node name="UITopbar" type="Control"]
+margin_right = 40.0
+margin_bottom = 40.0
+rect_min_size = Vector2( 1920, 70 )
+script = ExtResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Sprite" type="Sprite" parent="."]
+position = Vector2( 967.895, 22.7977 )
+rotation = 1.57079
+scale = Vector2( 0.0428915, 1951.81 )
+texture = SubResource( 23 )
+
+[node name="UserIcon" type="Sprite" parent="."]
+modulate = Color( 0.603922, 0.905882, 1, 1 )
+position = Vector2( 2192, -24 )
+scale = Vector2( 0.1875, 0.1875 )
+texture = ExtResource( 1 )
+offset = Vector2( -1621.33, 298.667 )
+
+[node name="UserNameLabel" type="Label" parent="."]
+modulate = Color( 0.603922, 0.905882, 1, 1 )
+use_parent_material = true
+margin_left = 1400.0
+margin_top = 2.0
+margin_right = 1856.0
+margin_bottom = 54.0
+custom_fonts/font = SubResource( 25 )
+text = "Lars Kamp"
+align = 2
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="AnimTween" type="Tween" parent="."]
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+margin_left = 256.0
+margin_top = 13.0
+margin_right = 1664.0
+margin_bottom = 64.0
+custom_constants/separation = 70
+alignment = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TopButton_Dashboard" parent="Buttons" instance=ExtResource( 2 )]
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 519.0
+margin_right = 559.0
+margin_bottom = 40.0
+max_width = 160.0
+
+[node name="Label" parent="Buttons/TopButton_Dashboard/HBoxContainer" index="1"]
+text = "Dashboard "
+
+[node name="TopButton_Nodes" parent="Buttons" instance=ExtResource( 2 )]
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 629.0
+margin_right = 669.0
+margin_bottom = 40.0
+max_width = 90.0
+
+[node name="TextureRect" parent="Buttons/TopButton_Nodes/HBoxContainer" index="0"]
+texture = ExtResource( 6 )
+
+[node name="Label" parent="Buttons/TopButton_Nodes/HBoxContainer" index="1"]
+text = "Graph "
+
+[node name="TopButton_Search" parent="Buttons" instance=ExtResource( 2 )]
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 739.0
+margin_right = 779.0
+margin_bottom = 40.0
+max_width = 105.0
+
+[node name="TextureRect" parent="Buttons/TopButton_Search/HBoxContainer" index="0"]
+texture = ExtResource( 5 )
+
+[node name="Label" parent="Buttons/TopButton_Search/HBoxContainer" index="1"]
+text = "Search "
+
+[node name="TopButton_Query" parent="Buttons" instance=ExtResource( 2 )]
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 849.0
+margin_right = 889.0
+margin_bottom = 40.0
+max_width = 95.0
+
+[node name="TextureRect" parent="Buttons/TopButton_Query/HBoxContainer" index="0"]
+texture = ExtResource( 4 )
+
+[node name="Label" parent="Buttons/TopButton_Query/HBoxContainer" index="1"]
+text = "Query "
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+material = SubResource( 26 )
+position = Vector2( -25, -5 )
+color = Color( 0, 0.368627, 0.470588, 1 )
+polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
+
+[node name="Polygon2D2" type="Polygon2D" parent="."]
+material = SubResource( 26 )
+position = Vector2( 1946, -5 )
+scale = Vector2( -1, 1 )
+color = Color( 0, 0.368627, 0.470588, 1 )
+polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
+
+[node name="TextureRect" type="TextureRect" parent="."]
+modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
+material = SubResource( 27 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = -30.0
+margin_bottom = 6.0
+mouse_filter = 2
+texture = ExtResource( 7 )
+stretch_mode = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[editable path="Buttons/TopButton_Dashboard"]
+[editable path="Buttons/TopButton_Nodes"]
+[editable path="Buttons/TopButton_Search"]
+[editable path="Buttons/TopButton_Query"]

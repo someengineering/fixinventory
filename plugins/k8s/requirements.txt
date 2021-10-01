@@ -1,0 +1,2 @@
+cklib==2.0.0a4
+kubernetes==18.20.0

@@ -31,12 +31,12 @@ A node in a graph is a json document with a well defined structure and those top
   structure of the reported section is described in the model :doc:`model<./model>`.
 - ``desired`` : This section is a json document and shows desired changes of this node.
   Desired changes are reflected by humans and tools via the API or command line.
-  The desired section is not described via a `kind` model and allows arbitrary data.
+  The desired section is not described via a ``kind`` model and allows arbitrary data.
 - ``metadata`` : This section is a json document and shows metadata of this resource.
   The metadata section is intended to keep data attached to this resource, but not
   originating from the resource or the provider itself.
   metadata is created by humans and/or tools via the API or command line.
-  The metadata section is not described via a `kind` model and allows arbitrary data.
+  The metadata section is not described via a ``kind`` model and allows arbitrary data.
 
 Example node data showing data from an `AWS EC2 Instance <https://aws.amazon.com/ec2>`_
 We use this example in the following sections to show query capabilities.
@@ -120,7 +120,7 @@ Selecting Nodes
     instances, e.g. google cloud instances. The term ``is(aws_ec2_instance)`` would select only
     ec2 instances from aws.
 
-    Since the `is(kind)` does not belong to any section, it can be used on every level.
+    Since the ``is(kind)`` does not belong to any section, it can be used on every level.
 
 #.  Select nodes by predicate:
 
@@ -128,11 +128,11 @@ Selecting Nodes
     A predicate always has the syntax: ``<property_path> <operation> <value>``.
 
     The ``property_path`` is the path to the property in the json structure.
-    A nested attribute is accessed via the `.`.
-    To access the name in the reported section, one would write `reported.name`.
-    A property inside an array is accessed via `[position]`.
-    So to access the first element of an array we can write `[0]`.
-    If the position is not known or does not matter we can write `[*]`.
+    A nested attribute is accessed via the ``.``.
+    To access the name in the reported section, one would write ``reported.name``.
+    A property inside an array is accessed via ``[position]``.
+    So to access the first element of an array we can write ``[0]``.
+    If the position is not known or does not matter we can write ``[*]``.
 
     The ``operation`` is one of the following options:
 
@@ -235,7 +235,7 @@ in the graph until we find an account.
 
     ``-[0:1]->`` traverse the graph outbound starting from the current node **(0)** until the next level **(1)**.
     The result will contain the current node plus all nodes one level outbound.
-    The same applies for inbound  with this statement `<-[0:1]-`.
+    The same applies for inbound  with this statement ``<-[0:1]-``.
 
     Example: ``is(aws_region) -[0:1]->``
 
@@ -292,7 +292,7 @@ Example: We want to select all ALB target groups where there is no EC2 instance 
 
 
 The ``is(aws_alb_target_group)`` part selects all aws_alb_target_groups.
-The `with` part filters this list by ensuring a defined graph structure.
+The ``with`` part filters this list by ensuring a defined graph structure.
 The defined graph structure is described by ``(empty, <-- is(aws_ec2_instance))`` and says:
 
 - traverse the graph inbound and filter all aws_ec2_instances

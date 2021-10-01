@@ -1,4 +1,5 @@
 import collections
+import re
 from datetime import date
 
 import jsons
@@ -168,7 +169,10 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
 
     def add_node(node_id: str) -> None:
         reported = {"some": {"deep": {"nested": node_id}}}
-        g.add_node(node_id, replace=node_id.startswith(replace_on), reported=reported, kind=node_id, kinds=[node_id])
+        kind = re.sub("_.*$", "", node_id)
+        g.add_node(
+            node_id, id=node_id, replace=node_id.startswith(replace_on), reported=reported, kind=kind, kinds=[kind]
+        )
 
     def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
@@ -258,9 +262,19 @@ def test_predecessors() -> None:
 
 
 def test_ancestor_with() -> None:
-    graph = GraphAccess(multi_cloud_graph("account"))
-    nid = "child_parent_region_account_collector_gcp_2_europe_1_0"
-    assert graph.ancestor_of(nid, EdgeType.dependency, "root") is not None
-    assert graph.ancestor_of(nid, EdgeType.delete, "root") is None
-    assert graph.ancestor_of(nid, EdgeType.dependency, "foo") is None
-    assert graph.ancestor_of(nid, EdgeType.dependency, "foo") is None
+    nid1 = "child_parent_region_account_collector_gcp_1_europe_1_0"
+    acc1 = "account_collector_gcp_1"
+    acc2 = "account_collector_gcp_2"
+    g = multi_cloud_graph("account")
+
+    graph = GraphAccess(g)
+    assert graph.ancestor_of(nid1, EdgeType.dependency, "root") is not None
+    assert graph.ancestor_of(nid1, EdgeType.delete, "root") is None
+    assert graph.ancestor_of(nid1, EdgeType.dependency, "foo") is None
+    assert graph.ancestor_of(nid1, EdgeType.dependency, "foo") is None
+    assert graph.ancestor_of(nid1, EdgeType.dependency, "account")["id"] == acc1  # type: ignore
+
+    # add another "shorter" edge from acc2 -> nid1, so it is shorter that from acc1 -> nid1
+    key = GraphAccess.edge_key(acc2, nid1, EdgeType.dependency)
+    g.add_edge(acc2, nid1, key, edge_type=EdgeType.dependency)
+    assert graph.ancestor_of(nid1, EdgeType.dependency, "account")["id"] == acc2  # type: ignore
