@@ -1,4 +1,3 @@
-from typing_extensions import ParamSpecKwargs
 from cklib.args import ArgumentParser
 from ckmetrics.__main__ import add_args
 from ckmetrics.web import WebServer
