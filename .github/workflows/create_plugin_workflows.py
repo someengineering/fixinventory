@@ -70,14 +70,16 @@ step_run_test = """
 """
 
 
-plugins_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../plugins")
+plugins_path = os.path.abspath(
+    os.path.dirname(os.path.abspath(__file__)) + "/../../plugins"
+)
 for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
-          yml.write(install.replace("@name@", plugin))
-          if plugin in ("tag_aws_ctime", "tagvalidator"):
-            yml.write(step_cloudkeeperV1)
-          # aws is a dependency that needs to be installed for all aws related plugins.
-          if "aws" in plugin and plugin != "aws":
-              yml.write(step_aws)
-          yml.write(step_run_test.replace("@directory@", f"./plugins/{plugin}"))
+            yml.write(install.replace("@name@", plugin))
+            if plugin in ("tag_aws_ctime", "tagvalidator"):
+                yml.write(step_cloudkeeperV1)
+            # aws is a dependency that needs to be installed for all aws related plugins.
+            if "aws" in plugin and plugin != "aws":
+                yml.write(step_aws)
+            yml.write(step_run_test.replace("@directory@", f"./plugins/{plugin}"))

@@ -2,7 +2,6 @@ import sys
 import shutil
 import pathlib
 import requests
-import datetime
 from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -79,9 +78,7 @@ def send_command(
         update_headers_with_terminal_size(headers)
 
     if ArgumentParser.args.psk:
-        jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
-        payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     log.debug(f'Sending command "{command}" to {execute_endpoint}')
 

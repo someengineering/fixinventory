@@ -280,9 +280,7 @@ def cleanup():
 
     headers = {"accept": "application/x-ndjson"}
     if getattr(ArgumentParser.args, "psk", None):
-        jwt_exp = datetime.now() + timedelta(minutes=10)
-        jwt_payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.post(query_uri, data=query, headers=headers, stream=True)
     if r.status_code != 200:
@@ -419,9 +417,7 @@ def create_graph():
 
     headers = {"accept": "application/json"}
     if getattr(ArgumentParser.args, "psk", None):
-        jwt_exp = datetime.now() + timedelta(minutes=10)
-        jwt_payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.post(graph_uri, data="", headers=headers)
     if r.status_code != 200:
@@ -442,9 +438,7 @@ def update_model(graph: Graph):
 
     headers = {}
     if getattr(ArgumentParser.args, "psk", None):
-        jwt_exp = datetime.now() + timedelta(minutes=10)
-        jwt_payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.patch(model_uri, data=model_json, headers=headers)
     if r.status_code != 200:
@@ -468,9 +462,7 @@ def send_graph(graph: Graph):
 
         headers = {"Content-Type": "application/x-ndjson"}
         if getattr(ArgumentParser.args, "psk", None):
-            jwt_exp = datetime.now() + timedelta(minutes=10)
-            jwt_payload = {"exp": jwt_exp}
-            encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = requests.post(
             merge_uri,

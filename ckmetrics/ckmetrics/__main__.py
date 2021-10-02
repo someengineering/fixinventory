@@ -3,7 +3,6 @@ import requests
 import json
 import time
 import inspect
-import datetime
 import cklib.baseresources
 from cklib.logging import log, add_args as logging_add_args
 from functools import partial
@@ -114,9 +113,7 @@ def ckcore_message_processor(metrics: Metrics, query_uri: str, message: Dict) ->
 def query(query_str: str, query_uri: str) -> Iterator:
     headers = {"Accept": "application/x-ndjson"}
     if ArgumentParser.args.psk:
-        jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
-        payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
     r = requests.post(
         query_uri,
