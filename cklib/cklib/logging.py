@@ -3,8 +3,6 @@ import os
 from logging import (
     basicConfig,
     getLogger,
-    Formatter,
-    FileHandler,
     DEBUG,
     INFO,
     WARNING,
@@ -28,16 +26,6 @@ if (
 ):
     getLogger("cloudkeeper").setLevel(DEBUG)
 
-logfile_arg = "--logfile"
-if logfile_arg in argv:
-    idx = argv.index(logfile_arg)
-    if len(argv) > idx + 1:
-        logfile = argv[idx + 1]
-        log_formatter = Formatter(log_format)
-        fh = FileHandler(logfile)
-        fh.setFormatter(log_formatter)
-        getLogger().addHandler(fh)
-
 
 log = getLogger("cloudkeeper")
 
@@ -50,7 +38,4 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="verbose",
         action="store_true",
         default=False,
-    )
-    arg_parser.add_argument(
-        logfile_arg, help="Logfile to log into", dest="logfile", default=None
     )
