@@ -2,11 +2,13 @@ import sys
 import shutil
 import pathlib
 import requests
+import datetime
 from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
+from cklib.jwt import encode_jwt_to_headers
 from typing import Dict
 from urllib.parse import urlencode, urlsplit
 
@@ -76,7 +78,12 @@ def send_command(
     if tty:
         update_headers_with_terminal_size(headers)
 
-    log.debug(f'Sending command "{command}" to {execute_endpoint}')
+    if ArgumentParser.args.psk:
+        jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+
+    log.debug(f'Sending command "{command}" to {execute_endpoint} {headers}')
 
     try:
         r = requests.post(
@@ -133,6 +140,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="ckcore graph name (default: ck)",
         default="ck",
         dest="ckcore_graph",
+    )
+    arg_parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
     )
     arg_parser.add_argument(
         "--stdin",

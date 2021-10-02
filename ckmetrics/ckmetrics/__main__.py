@@ -3,10 +3,12 @@ import requests
 import json
 import time
 import inspect
+import datetime
 import cklib.baseresources
 from cklib.logging import log, add_args as logging_add_args
 from functools import partial
 from cklib.event import CkEvents
+from cklib.jwt import encode_jwt_to_headers
 from prometheus_client import Summary, start_http_server, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
@@ -110,10 +112,16 @@ def ckcore_message_processor(metrics: Metrics, query_uri: str, message: Dict) ->
 
 
 def query(query_str: str, query_uri: str) -> Iterator:
+    headers = {"Accept": "application/x-ndjson"}
+    if ArgumentParser.args.psk:
+        jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+
     r = requests.post(
         query_uri,
         data=query_str,
-        headers={"accept": "application/x-ndjson"},
+        headers=headers,
         stream=True,
     )
     if r.status_code != 200:
@@ -237,6 +245,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="ckcore graph name (default: ck)",
         default="ck",
         dest="ckcore_graph",
+    )
+    arg_parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
     )
     arg_parser.add_argument(
         "--timeout",
