@@ -182,6 +182,7 @@ setup_ckcore() {
             -e "s#@CKCORE_GRAPHDB_DATABASE@#$CKCORE_GRAPHDB_DATABASE#" \
             -e "s#@CKCORE_GRAPHDB_LOGIN@#$CKCORE_GRAPHDB_LOGIN#" \
             -e "s#@CKCORE_GRAPHDB_PASSWORD@#$CKCORE_GRAPHDB_PASSWORD#" \
+            -e "s#@CKCORE_PSK@#$CKCORE_PSK#" \
             "$supervisor_ckcore_conf_in" > "$supervisor_ckcore_conf"
     fi
 }
@@ -192,6 +193,7 @@ setup_ckworker() {
         info "ckworker activated"
         sed -e "s#@CKWORKER_CKCORE_URI@#$CKWORKER_CKCORE_URI#" \
             -e "s#@CKWORKER_CKCORE_WS_URI@#$CKWORKER_CKCORE_WS_URI#" \
+            -e "s#@CKWORKER_PSK@#$CKWORKER_PSK#" \
             "$supervisor_ckworker_conf_in" > "$supervisor_ckworker_conf"
     fi
 }
@@ -202,6 +204,7 @@ setup_ckmetrics() {
         info "ckmetrics activated"
         sed -e "s#@CKMETRICS_CKCORE_URI@#$CKMETRICS_CKCORE_URI#" \
             -e "s#@CKMETRICS_CKCORE_WS_URI@#$CKMETRICS_CKCORE_WS_URI#" \
+            -e "s#@CKMETRICS_PSK@#$CKMETRICS_PSK#" \
             "$supervisor_ckmetrics_conf_in" > "$supervisor_ckmetrics_conf"
     fi
 }

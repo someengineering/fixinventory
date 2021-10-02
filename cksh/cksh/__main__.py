@@ -83,7 +83,7 @@ def send_command(
         payload = {"exp": jwt_exp}
         encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
 
-    log.debug(f'Sending command "{command}" to {execute_endpoint} {headers}')
+    log.debug(f'Sending command "{command}" to {execute_endpoint}')
 
     try:
         r = requests.post(
