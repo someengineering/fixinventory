@@ -1,6 +1,7 @@
 import os
 import jwt
 import base64
+import time
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Any, Optional
@@ -24,13 +25,19 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
 
 
 def encode_jwt(
-    payload: dict[str, str], psk: str, headers: Optional[dict[str, str]] = None
+    payload: dict[str, str],
+    psk: str,
+    headers: Optional[dict[str, str]] = None,
+    expire_in: int = 300,
 ) -> str:
     """Encodes a payload into a JWT and signs using a key derived from a pre-shared-key.
     Stores the key's salt in the JWT headers.
     """
+    payload = dict(payload)
     if headers is None:
         headers = {}
+    if expire_in > 0 and "exp" not in payload:
+        payload.update({"exp": int(time.time()) + expire_in})
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
     headers.update({"salt": salt_encoded})
@@ -55,12 +62,13 @@ def encode_jwt_to_headers(
     psk: str,
     scheme: str = "Bearer",
     headers: Optional[dict[str, str]] = None,
+    expire_in: int = 300,
 ) -> dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary.
     """
     http_headers.update(
-        {"Authorization": f"{scheme} {encode_jwt(payload, psk, headers)}"}
+        {"Authorization": f"{scheme} {encode_jwt(payload, psk, headers, expire_in)}"}
     )
     return http_headers
 

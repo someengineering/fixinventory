@@ -18,8 +18,8 @@ from jwt import (
 def test_jwt():
     psk = "somesecret"
     payload = {"Hello": "World"}
-    j1 = encode_jwt(payload, psk)
-    j2 = encode_jwt(payload, psk)
+    j1 = encode_jwt(payload, psk, expire_in=-1)
+    j2 = encode_jwt(payload, psk, expire_in=-1)
     past_date = datetime.datetime.now() - datetime.timedelta(30)
     future_date = datetime.datetime.now() + datetime.timedelta(30)
 
@@ -30,7 +30,7 @@ def test_jwt():
     valid_jwt = encode_jwt(future_payload, psk)
     not_yet_valid_jwt = encode_jwt(nbf_payload, psk)
 
-    h1 = encode_jwt_to_headers({}, payload, psk)
+    h1 = encode_jwt_to_headers({}, payload, psk, expire_in=-1)
 
     assert j1 != j2
     assert decode_jwt(j1, psk) == payload
