@@ -1,9 +1,12 @@
 from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import reduce
+from pydoc import locate
 from typing import List, MutableSet, get_args, get_origin, Union, Tuple, Dict, Set, Any
 from cklib.baseresources import BaseResource
-from cklib.utils import type_str
+from cklib.utils import type_str, str2timedelta, str2timezone
+from cklib.logging import log
+
 
 Json = Dict[str, Any]
 
@@ -196,3 +199,91 @@ def node_to_dict(node: BaseResource) -> Dict:
             }
         )
     return node_dict
+
+
+def node_from_dict(node_data: Dict) -> BaseResource:
+    """Create a resource from ckcore graph node data"""
+    log.debug(f"Making node from {node_data}")
+    node_data_reported = node_data.get("reported", {})
+    if node_data_reported is None:
+        node_data_reported = {}
+    node_data_desired = node_data.get("desired", {})
+    if node_data_desired is None:
+        node_data_desired = {}
+    node_data_metadata = node_data.get("metadata", {})
+    if node_data_metadata is None:
+        node_data_metadata = {}
+
+    new_node_data = dict(node_data_reported)
+    del new_node_data["kind"]
+
+    python_type = node_data_metadata.get("python_type", "NoneExisting")
+    node_type = locate(python_type)
+    if node_type is None:
+        raise ValueError(f"Do not know how to handle {node_data_reported}")
+
+    restore_node_field_types(node_type, new_node_data)
+    cleanup_node_field_types(node_type, new_node_data)
+
+    ancestors = {}
+    for ancestor in ("cloud", "account", "region", "zone"):
+        if node_data_reported.get(ancestor) and node_data_metadata.get(ancestor):
+            ancestors[f"_{ancestor}"] = node_from_dict(
+                {
+                    "reported": node_data_reported[ancestor],
+                    "metadata": node_data_metadata[ancestor],
+                }
+            )
+    new_node_data.update(ancestors)
+    new_node_data.update(
+        {
+            "_ckcore_id": node_data.get("id"),
+            "_ckcore_revision": node_data.get("revision"),
+        }
+    )
+
+    node = node_type(**new_node_data)
+    node._raise_tags_exceptions = True
+
+    protect_node = node_data_metadata.get("protected", False)
+    if protect_node:
+        node.protected = protect_node
+    clean_node = node_data_desired.get("clean", False)
+    if clean_node:
+        node.clean = clean_node
+    return node
+
+
+def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
+    valid_fields = set(field.name for field in fields(node_type))
+    for field_name in list(node_data_reported.keys()):
+        if field_name not in valid_fields:
+            log.debug(
+                f"Removing extra field {field_name} from new node of type {node_type}"
+            )
+            del node_data_reported[field_name]
+
+
+def restore_node_field_types(node_type: BaseResource, node_data_reported: Dict):
+    for field in fields(node_type):
+        if field.name not in node_data_reported:
+            continue
+        field_type = optional_origin(field.type)
+
+        if field_type == datetime:
+            datetime_str = str(node_data_reported[field.name])
+            if datetime_str.endswith("Z"):
+                datetime_str = datetime_str[:-1] + "+00:00"
+            node_data_reported[field.name] = datetime.fromisoformat(datetime_str)
+        elif field_type == date:
+            node_data_reported[field.name] = date.fromisoformat(
+                node_data_reported[field.name]
+            )
+        elif field_type == timedelta:
+            node_data_reported[field.name] = str2timedelta(
+                node_data_reported[field.name]
+            )
+        elif field_type == timezone:
+            node_data_reported[field.name] = str2timezone(
+                node_data_reported[field.name]
+            )
