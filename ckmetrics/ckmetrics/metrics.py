@@ -1,5 +1,6 @@
 from cklib.logging import log
 
+
 class Metrics:
     def __init__(self) -> None:
         self.live = {}

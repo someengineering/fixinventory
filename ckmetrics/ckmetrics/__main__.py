@@ -6,7 +6,12 @@ from cklib.logging import log, add_args as logging_add_args
 from functools import partial
 from cklib.event import CkEvents
 from ckmetrics.metrics import Metrics, GraphCollector
-from ckmetrics.query import query, get_labels_from_result, get_metrics_from_result, get_label_values_from_result
+from ckmetrics.query import (
+    query,
+    get_labels_from_result,
+    get_metrics_from_result,
+    get_label_values_from_result,
+)
 from ckmetrics.web import WebServer, CloudkeeperMetricsWebApp
 from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily

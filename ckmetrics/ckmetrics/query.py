@@ -38,7 +38,6 @@ def get_labels_from_result(result: dict):
     return labels
 
 
-
 def get_label_values_from_result(result: dict, labels: tuple):
     label_values = []
     for label in labels:
