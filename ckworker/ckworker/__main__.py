@@ -281,12 +281,10 @@ def cleanup():
     headers = {"accept": "application/x-ndjson"}
     if getattr(ArgumentParser.args, "psk", None):
         jwt_exp = datetime.now() + timedelta(minutes=10)
-        payload = {"exp": jwt_exp}
-        encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+        jwt_payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
 
-    r = requests.post(
-        query_uri, data=query, headers=headers, stream=True
-    )
+    r = requests.post(query_uri, data=query, headers=headers, stream=True)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to query graph: {r.content}")
@@ -411,6 +409,7 @@ def collect_plugin_graph(
         log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
         return None
 
+
 def create_graph():
     base_uri = ArgumentParser.args.ckcore_uri.strip("/")
     ckcore_graph = ArgumentParser.args.ckcore_graph
@@ -452,6 +451,7 @@ def update_model(graph: Graph):
         log.error(r.content)
         raise RuntimeError(f"Failed to create model: {r.content}")
 
+
 def send_graph(graph: Graph):
     base_uri = ArgumentParser.args.ckcore_uri.strip("/")
     ckcore_graph = ArgumentParser.args.ckcore_graph
@@ -490,7 +490,6 @@ def send_graph(graph: Graph):
             graph_outfile.close()
 
 
-
 def send_to_ckcore(graph: Graph):
     if not ArgumentParser.args.ckcore_uri:
         return
@@ -526,6 +525,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="pool_size",
         default=5,
         type=int,
+    )
+    arg_parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
     )
     arg_parser.add_argument(
         "--fork",
