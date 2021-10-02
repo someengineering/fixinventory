@@ -21,6 +21,7 @@ from cklib.baseplugin import BaseCollectorPlugin, PluginType
 from cklib.utils import log_stats, increase_limits, str2timedelta, str2timezone
 from cklib.args import ArgumentParser
 from cklib.cleaner import Cleaner
+from cklib.jwt import encode_jwt_to_headers
 from cklib.event import (
     add_event_listener,
     Event,
@@ -276,9 +277,14 @@ def cleanup():
         query_filter = f"and metadata.ancestors.cloud.id in {clouds} "
     query = f"desired.clean == true {query_filter}<-[0:]->"
     log.debug(f"Sending query {query}")
-    r = requests.post(
-        query_uri, data=query, headers={"accept": "application/x-ndjson"}, stream=True
-    )
+
+    headers = {"accept": "application/x-ndjson"}
+    if getattr(ArgumentParser.args, "psk", None):
+        jwt_exp = datetime.now() + timedelta(minutes=10)
+        jwt_payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+
+    r = requests.post(query_uri, data=query, headers=headers, stream=True)
     if r.status_code != 200:
         log.error(r.content)
         raise RuntimeError(f"Failed to query graph: {r.content}")
@@ -404,49 +410,94 @@ def collect_plugin_graph(
         return None
 
 
+def create_graph():
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    ckcore_graph = ArgumentParser.args.ckcore_graph
+    graph_uri = f"{base_uri}/graph/{ckcore_graph}"
+
+    log.debug(f"Creating graph {ckcore_graph} via {graph_uri}")
+
+    headers = {"accept": "application/json"}
+    if getattr(ArgumentParser.args, "psk", None):
+        jwt_exp = datetime.now() + timedelta(minutes=10)
+        jwt_payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+
+    r = requests.post(graph_uri, data="", headers=headers)
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to create graph: {r.content}")
+
+
+def update_model(graph: Graph):
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    model_uri = f"{base_uri}/model"
+
+    log.debug(f"Updating model via {model_uri}")
+
+    model_json = json.dumps(graph.export_model(), indent=4)
+    if ArgumentParser.args.debug_dump_json:
+        with open("model.dump.json", "w") as model_outfile:
+            model_outfile.write(model_json)
+
+    headers = {}
+    if getattr(ArgumentParser.args, "psk", None):
+        jwt_exp = datetime.now() + timedelta(minutes=10)
+        jwt_payload = {"exp": jwt_exp}
+        encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+
+    r = requests.patch(model_uri, data=model_json, headers=headers)
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to create model: {r.content}")
+
+
+def send_graph(graph: Graph):
+    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+    ckcore_graph = ArgumentParser.args.ckcore_graph
+    merge_uri = f"{base_uri}/graph/{ckcore_graph}/merge"
+
+    log.debug(f"Sending graph via {merge_uri}")
+
+    graph_outfile = None
+    if ArgumentParser.args.debug_dump_json:
+        graph_outfile = open("graph.dump.json", "w")
+
+    try:
+        graph_export_iterator = GraphExportIterator(graph, graph_outfile)
+
+        headers = {"Content-Type": "application/x-ndjson"}
+        if getattr(ArgumentParser.args, "psk", None):
+            jwt_exp = datetime.now() + timedelta(minutes=10)
+            jwt_payload = {"exp": jwt_exp}
+            encode_jwt_to_headers(headers, jwt_payload, ArgumentParser.args.psk)
+
+        r = requests.post(
+            merge_uri,
+            data=graph_export_iterator,
+            headers=headers,
+        )
+        if r.status_code != 200:
+            log.error(r.content)
+            raise RuntimeError(f"Failed to send graph: {r.content}")
+        log.debug(f"ckcore reply: {r.content.decode()}")
+        log.debug(
+            f"Sent {graph_export_iterator.nodes_sent} nodes and"
+            f" {graph_export_iterator.edges_sent} edges to ckcore"
+        )
+    finally:
+        if graph_outfile is not None:
+            graph_outfile.close()
+
+
 def send_to_ckcore(graph: Graph):
     if not ArgumentParser.args.ckcore_uri:
         return
 
     log.info("ckcore Event Handler called")
-    base_uri = ArgumentParser.args.ckcore_uri.strip("/")
-    ckcore_graph = ArgumentParser.args.ckcore_graph
-    model_uri = f"{base_uri}/model"
-    graph_uri = f"{base_uri}/graph/{ckcore_graph}"
-    merge_uri = f"{graph_uri}/merge"
-    log.debug(f"Creating graph {ckcore_graph} via {graph_uri}")
-    r = requests.post(graph_uri, data="", headers={"accept": "application/json"})
-    if r.status_code != 200:
-        log.error(r.content)
-        raise RuntimeError(f"Failed to create graph: {r.content}")
-    log.debug(f"Updating model via {model_uri}")
-    model_json = json.dumps(graph.export_model(), indent=4)
-    if ArgumentParser.args.debug_dump_json:
-        with open("model.dump.json", "w") as model_outfile:
-            model_outfile.write(model_json)
-    r = requests.patch(model_uri, data=model_json)
-    if r.status_code != 200:
-        log.error(r.content)
-        raise RuntimeError(f"Failed to create model: {r.content}")
-    graph_outfile = None
-    if ArgumentParser.args.debug_dump_json:
-        graph_outfile = open("graph.dump.json", "w")
-    graph_export_iterator = GraphExportIterator(graph, graph_outfile)
-    log.debug(f"Sending subgraph via {merge_uri}")
-    r = requests.post(
-        merge_uri,
-        data=graph_export_iterator,
-        headers={"Content-Type": "application/x-ndjson"},
-    )
-    if graph_outfile is not None:
-        graph_outfile.close()
-    if r.status_code != 200:
-        log.error(r.content)
-        raise RuntimeError(f"Failed to send graph: {r.content}")
-    log.debug(f"ckcore reply: {r.content.decode()}")
-    log.debug(
-        f"Sent {graph_export_iterator.nodes_sent} nodes and {graph_export_iterator.edges_sent} edges to ckcore"
-    )
+    create_graph()
+    update_model(graph)
+    send_graph(graph)
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
@@ -474,6 +525,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="pool_size",
         default=5,
         type=int,
+    )
+    arg_parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
     )
     arg_parser.add_argument(
         "--fork",

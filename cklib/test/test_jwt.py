@@ -7,7 +7,12 @@ from cklib.jwt import (
     decode_jwt,
     encode_jwt_to_headers,
 )
-from jwt import InvalidSignatureError, ExpiredSignatureError, ImmatureSignatureError, MissingRequiredClaimError
+from jwt import (
+    InvalidSignatureError,
+    ExpiredSignatureError,
+    ImmatureSignatureError,
+    MissingRequiredClaimError,
+)
 
 
 def test_jwt():
@@ -36,7 +41,10 @@ def test_jwt():
     with pytest.raises(InvalidSignatureError) as e:
         decode_jwt(j1, "wrongpsk")
     assert str(e.value) == "Signature verification failed"
-    assert decode_jwt(expired_jwt, psk, options={"verify_exp": False}).get("Hello") == "World"
+    assert (
+        decode_jwt(expired_jwt, psk, options={"verify_exp": False}).get("Hello")
+        == "World"
+    )
     with pytest.raises(ExpiredSignatureError) as e:
         decode_jwt(expired_jwt, psk)
     assert str(e.value) == "Signature has expired"

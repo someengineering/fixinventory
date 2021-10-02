@@ -79,6 +79,12 @@ def parse_args() -> Namespace:
         help="Request timeout in seconds (default: 900)",
     )
     parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
+    )
+    parser.add_argument(
         # Explicitly use the ipv4 loopback address. There are scenarios where aiohttp can not bind to the ipv6 address.
         "--host",
         type=str,
