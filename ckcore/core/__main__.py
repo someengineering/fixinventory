@@ -1,6 +1,6 @@
 import logging
 import os
-from multiprocessing import set_start_method
+import multiprocessing as mp
 
 from aiohttp import web
 from aiohttp.web_app import Application
@@ -59,5 +59,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     # set default process start method (will be detected by os otherwise)
-    set_start_method("spawn")
+    mp.set_start_method("spawn", force=True)
     main()

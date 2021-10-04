@@ -121,12 +121,16 @@ class DbUpdaterProcess(Process):
         model = Model.from_kinds([kind async for kind in db.model_db.all()])
         builder = GraphBuilder(model)
         nxt = self.next_action()
+        counter = 0
         while isinstance(nxt, ReadElement):
+            counter += 1
+            if counter % 100000 == 0:
+                log.info("Read 100K elements in process")
             builder.add_from_json(nxt.json())
             nxt = self.next_action()
         if isinstance(nxt, PoisonPill):
             log.info("Got poison pill - going to die.")
-            sys.exit(1)
+            sys.exit(0)
         elif isinstance(nxt, MergeGraph):
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
@@ -190,11 +194,10 @@ async def merge_graph_process(
             elif isinstance(action, Result):
                 return action.get_value()
     finally:
-        if updater.is_alive():
-            log.debug(f"Process is still active - send poison pill {updater.pid}")
-            await send_to_child(PoisonPill())
+        await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
         if updater.is_alive():
             log.warning(f"Process is still active after poison pill. Kill process {updater.pid}")
             updater.kill()
+            await asyncio.sleep(5)
         updater.close()
