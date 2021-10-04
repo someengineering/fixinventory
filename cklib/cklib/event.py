@@ -5,7 +5,6 @@ import time
 import websocket
 import requests
 import json
-import datetime
 from cklib.logging import log
 from cklib.utils import RWLock
 from cklib.args import ArgumentParser
@@ -245,8 +244,12 @@ class CkEvents(threading.Thread):
 
         ws_uri = f"{self.ckcore_ws_uri}/subscriber/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
+        headers = {}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         self.ws = websocket.WebSocketApp(
             ws_uri,
+            header=headers,
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
@@ -260,7 +263,10 @@ class CkEvents(threading.Thread):
         if self.ws:
             self.ws.close()
         for core_event in self.events.keys():
-            self.unregister(core_event)
+            try:
+                self.unregister(core_event)
+            except RuntimeError as e:
+                log.error(e)
 
     def register(self, event: str, data: Optional[Dict] = None) -> bool:
         log.debug(f"{self.identifier} registering for {event} events ({data})")
@@ -277,14 +283,14 @@ class CkEvents(threading.Thread):
         headers = {"accept": "application/json"}
 
         if getattr(ArgumentParser.args, "psk", None):
-            jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
-            payload = {"exp": jwt_exp}
-            encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = client(url, headers=headers, params=data)
         if r.status_code != 200:
-            log.error(r.content)
-            return False
+            raise RuntimeError(
+                f'Error during registration/unregistration of "{event}"'
+                f" events: {r.content.decode('utf-8')}"
+            )
         return True
 
     def dispatch_event(self, message: Dict) -> bool:
@@ -385,8 +391,12 @@ class CkCoreTasks(threading.Thread):
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))
 
         log.debug(f"{self.identifier} connecting to {ws_uri}")
+        headers = {}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         self.ws = websocket.WebSocketApp(
             ws_uri,
+            header=headers,
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
