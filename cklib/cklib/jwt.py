@@ -25,7 +25,7 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
 
 
 def encode_jwt(
-    payload: dict[str, str],
+    payload: dict[str, Any],
     psk: str,
     headers: Optional[dict[str, str]] = None,
     expire_in: int = 300,
@@ -58,7 +58,7 @@ def decode_jwt(
 
 def encode_jwt_to_headers(
     http_headers: dict[str, str],
-    payload: dict[str, str],
+    payload: dict[str, Any],
     psk: str,
     scheme: str = "Bearer",
     headers: Optional[dict[str, str]] = None,
