@@ -1,5 +1,4 @@
 import json
-from networkx.classes.function import number_of_nodes
 import requests
 from cklib.args import ArgumentParser
 from cklib.logging import log
