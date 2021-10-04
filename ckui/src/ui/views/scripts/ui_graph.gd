@@ -16,6 +16,7 @@ var selected_new_node := false
 var original_zoom := Vector2.ONE
 var spaceship : Object = null
 var Spaceship = preload("res://ui/elements/Element_Spaceship.tscn")
+var is_active := true setget set_is_active
 
 onready var graph_cam = $GraphCam
 onready var cam_tween = $CamMoveTween
@@ -31,10 +32,16 @@ func _ready():
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
+	_e.connect("nodeinfo_hide", self, "hide_info")
+
+
+func set_is_active(value:bool):
+	is_active = value
+	_g.main_graph.is_active = value
 
 
 func _process(_delta):
-	if root_node == null:
+	if root_node == null or !is_active:
 		return
 	
 	# move the center of the background gradient in the direction of the root node
@@ -79,7 +86,7 @@ func read_data():
 	graph_cam.zoom = Vector2.ONE*0.8
 	
 	_e.emit_signal("nodes_changed")
-	_e.emit_signal("hide_nodes")
+	_g.main_graph.emit_signal("hide_nodes")
 
 
 func main_graph_order():
@@ -95,6 +102,8 @@ func main_graph_rand():
 
 
 func _physics_process(delta):
+	if !is_active:
+		return
 	mouse_is_pressed = Input.is_action_pressed("left_mouse")
 	var is_in_graph = main_ui.state == main_ui.states.GRAPH
 	if mouse_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
@@ -152,12 +161,14 @@ func zoom_in():
 
 
 func go_to_graph_node(node_id) -> void:
+	if !is_active:
+		return
 	if target_node != null:
 		target_node.icon.is_selected = false
 	
 	target_node = _g.main_graph.graph_data.nodes[node_id]
-	_e.emit_signal("hide_nodes")
-	_e.emit_signal("show_node", node_id)
+	_g.main_graph.emit_signal("hide_nodes")
+	_g.main_graph.emit_signal("show_node", node_id)
 	
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
@@ -174,6 +185,8 @@ func go_to_graph_node(node_id) -> void:
 func _on_CamMoveTween_tween_all_completed() -> void:
 	if target_node != null and cam_moving:
 		cam_moving = false
+		if !is_active:
+			return
 		_e.emit_signal("nodeinfo_show", target_node)
 
 
@@ -182,6 +195,8 @@ func _on_NewNodeSelectionTimer_timeout():
 
 
 func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
+	if !is_active:
+		return
 	if event is InputEventMouseButton:
 		if !event.pressed and !selected_new_node and target_node != null:
 			cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
@@ -190,3 +205,6 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 			target_node = null
 			cam_moving = false
 			_e.emit_signal("nodeinfo_hide")
+
+func hide_info():
+	pass

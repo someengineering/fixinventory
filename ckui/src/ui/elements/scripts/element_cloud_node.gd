@@ -6,6 +6,7 @@ var is_selected := false setget set_is_selected
 var cloud_node : CloudNode = null setget set_cloud_node
 var random_pos := Vector2.ZERO
 var graph_pos := Vector2.ZERO
+var parent_graph : Object = null
 
 onready var marker = $Marker
 onready var reveal = $Reveal
@@ -14,12 +15,16 @@ onready var label_kind = $Labels/LabelKind
 onready var label_name = $Labels/LabelName
 
 func _ready() -> void:
-	_e.connect("show_node", self, "show_detail")
-	_e.connect("hide_nodes", self, "hide_detail")
+	parent_graph.connect("show_node", self, "show_detail")
+	parent_graph.connect("hide_nodes", self, "hide_detail")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	label_name.text = cloud_node.reported.name
 	label_kind.text = cloud_node.reported.kind
 	set_hover_power(0)
+
+
+func labels_unisize(font_scale := 0.5):
+	$Labels.global_scale = Vector2.ONE * font_scale
 
 
 func update_spaceship_mode():
@@ -28,7 +33,7 @@ func update_spaceship_mode():
 		set_hovering(false)
 		label_kind.modulate.a = 0
 		label_name.modulate.a = 0
-		label_kind.rect_position.y = -127
+		label_kind.rect_position.y = -140
 	else:
 		$Area2D.set_collision_layer_bit(1, true)
 		label_name.modulate.a = 0
@@ -129,9 +134,9 @@ func set_hovering(value:bool) -> void:
 	if hovering != value:
 		hovering = value
 		if hovering:
-			_e.emit_signal("show_connected_nodes", cloud_node.id)
+			parent_graph.emit_signal("show_connected_nodes", cloud_node.id)
 		else:
-			_e.emit_signal("hide_nodes")
+			parent_graph.emit_signal("hide_nodes")
 
 
 func set_is_selected(value:bool) -> void:
@@ -139,7 +144,7 @@ func set_is_selected(value:bool) -> void:
 	if !is_selected:
 		set_hovering(false)
 	else:
-		_e.emit_signal("show_connected_nodes", cloud_node.id)
+		parent_graph.emit_signal("show_connected_nodes", cloud_node.id)
 
 
 func set_hover_power(value:float) -> void:
@@ -149,7 +154,7 @@ func set_hover_power(value:float) -> void:
 	marker.modulate = lerp( Color.transparent, Color.white, eased_hover_power )
 	marker.width = range_lerp(eased_hover_power, 0, 1, 1, 0.5)
 	marker.rotation = eased_hover_power * PI * 0.5
-	_e.emit_signal("hovering_node", cloud_node.id, eased_hover_power)
+	parent_graph.emit_signal("hovering_node", cloud_node.id, eased_hover_power)
 
 
 func show_detail(node_id):
@@ -157,7 +162,7 @@ func show_detail(node_id):
 		return
 	reveal.remove_all()
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
-	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -127, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -140, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
 
 

@@ -1,6 +1,10 @@
 extends Node
 class_name CloudGraph
 
+signal hovering_node
+signal show_node
+signal hide_nodes
+signal show_connected_nodes
 signal order_done
 
 var graph_data := {
@@ -20,17 +24,20 @@ const DEFAULT_MAX_ITERATIONS := 200
 
 var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
 var root_node : Object = null
+var is_removed := false
+var is_active := true
 
 onready var node_group = $Center/Graph/NodeGroup
 onready var line_group = $Center/Graph/LineGroup
 
 
 func _ready():
-	_e.connect("hovering_node", self, "hovering_node")
-	_e.connect("show_connected_nodes", self, "show_connected_nodes")
+	connect("hovering_node", self, "hovering_node")
+	connect("show_connected_nodes", self, "show_connected_nodes")
 
 
 func create_graph_raw(raw_data : Dictionary):
+	raw_data = raw_data.duplicate(true)
 	for data in raw_data.values():
 		if data != null and data.has("id"):
 			graph_data.nodes[data.id] = create_new_node(data)
@@ -51,11 +58,15 @@ func create_graph_direct(_graph_data : Dictionary):
 		node.icon = cloud_node_icon.instance()
 		node.icon.cloud_node = node
 		node.icon.position = Vector2(1920,1080*1.8)*0.5
+		node.icon.parent_graph = self
 		node_group.add_child(node.icon)
 	
 	var edge_keys = _graph_data.edges.keys()
 	for edge_key in edge_keys:
 		var edge = _graph_data.edges[edge_key]
+		edge.from = _graph_data.nodes[edge.from.id]
+		edge.to = _graph_data.nodes[edge.to.id]
+		
 		var new_edge_line = Line2D.new()
 		new_edge_line.width = 2
 		new_edge_line.default_color = edge.color
@@ -65,8 +76,8 @@ func create_graph_direct(_graph_data : Dictionary):
 	if root_node == null:
 		root_node = _graph_data.nodes[ node_keys[0] ].icon
 	
-	graph_data.nodes = _graph_data.nodes.duplicate()
-	graph_data.edges = _graph_data.edges.duplicate()
+	graph_data.nodes = _graph_data.nodes
+	graph_data.edges = _graph_data.edges
 
 
 func create_new_node(_data:Dictionary) -> CloudNode:
@@ -76,6 +87,7 @@ func create_new_node(_data:Dictionary) -> CloudNode:
 	new_cloud_node.kind = _data.reported.kind
 	
 	new_cloud_node.icon = cloud_node_icon.instance()
+	new_cloud_node.icon.parent_graph = self
 	new_cloud_node.icon.cloud_node = new_cloud_node
 	new_cloud_node.icon.position = Vector2(1920,1080*1.8)*0.5
 	node_group.add_child(new_cloud_node.icon)
@@ -98,15 +110,17 @@ func add_connection(_data:Dictionary) -> CloudEdge:
 
 
 func show_connected_nodes(node_id):
+	if !is_active:
+		return
 	var nodes_to_activate = [node_id]
 	for connection in graph_data.edges.values():
 		if connection.from.id == node_id and !nodes_to_activate.has(connection.to.id):
 			nodes_to_activate.append(connection.to.id)
 		elif connection.to.id == node_id and !nodes_to_activate.has(connection.from.id):
 			nodes_to_activate.append(connection.from.id)
-	_e.emit_signal("hide_nodes")
+	emit_signal("hide_nodes")
 	for n in nodes_to_activate:
-		_e.emit_signal("show_node", n)
+		emit_signal("show_node", n)
 
 
 func graph_calc_layout():
@@ -149,10 +163,23 @@ func get_random_pos() -> Vector2:
 
 
 func hovering_node(node_id, power) -> void:
+	if !is_active:
+		return
 	for connection in graph_data.edges.values():
-		if connection.to.id == node_id or connection.from.id == node_id:
+		if connection.to.id == node_id or connection.from.id == node_id and !is_removed:
 			var line_color = Color(5,3,1,1) if connection.to.id == node_id else Color(3,4,5,1)
-			connection.line.self_modulate = lerp(Color.white, line_color*1.5, power)
+			if is_instance_valid(connection.line):
+				connection.line.self_modulate = lerp(Color.white, line_color*1.5, power)
+
+
+func show_all() -> void:
+	emit_signal("hide_nodes")
+	for connection in graph_data.edges.values():
+		var line_color = Color(1,0.2,0.2,0.5)
+		#connection.line.self_modulate = line_color
+		connection.line.default_color = line_color
+	for node in graph_data.nodes.values():
+		node.icon.labels_unisize(0.25)
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
@@ -233,25 +260,8 @@ func center_diagram():
 	$Center/Graph.position = -root_node.position# + Vector2(1920, 1080)/2
 
 
-func get_cloudgraph_from_selection(node_id) -> Dictionary:
-	var new_cloudgraph = {
-		"nodes" : {},
-		"edges" : {}
-		}
-	
-	var edge_keys = _g.main_graph.graph_data.edges.keys()
-	for edge_key in edge_keys:
-		var connection = _g.main_graph.graph_data.edges[ edge_key ]
-		if [connection.from.id, connection.to.id].has(node_id) and !new_cloudgraph.edges.has(edge_key):
-			new_cloudgraph.edges[edge_key] = connection
-	
-	var nodes = _g.main_graph.graph_data.nodes
-	for connection in new_cloudgraph.edges.values():
-		var connection_id_from = connection.from.id
-		var connection_id_to = connection.to.id
-		if nodes.has(connection_id_from) and !new_cloudgraph.nodes.has(connection_id_from):
-			new_cloudgraph.nodes[connection_id_from] = nodes[connection_id_from].duplicate()
-		elif nodes.has(connection_id_to) and !new_cloudgraph.nodes.has(connection_id_to):
-			new_cloudgraph.nodes[connection_id_to] = nodes[connection_id_to].duplicate()
-
-	return new_cloudgraph
+func remove_graph():
+	is_removed = true
+	disconnect("hovering_node", self, "hovering_node")
+	disconnect("show_connected_nodes", self, "show_connected_nodes")
+	queue_free()

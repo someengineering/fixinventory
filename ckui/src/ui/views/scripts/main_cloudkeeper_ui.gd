@@ -8,6 +8,7 @@ onready var ui_dashboard = $UI/UIDashboard
 onready var ui_query = $UI/UIQueryEngine
 onready var ui_topbar = $UI/UITopbar
 onready var ui_search = $UI/UISearch
+onready var ui_blastradius = $UI/UIBlastradius
 
 
 var state = -1 setget set_state
@@ -84,8 +85,12 @@ func hide_interface(state_id:int) -> void:
 		_e.emit_signal("nodeinfo_hide")
 		var ui_tween = ui_graph.get_node("AnimTween")
 		ui_graph.zoom_out()
+		ui_graph.is_active = false
 		ui_tween.interpolate_method(blur, "set_blur", blur.blur_power, 1, 0.7, Tween.TRANS_QUAD, Tween.EASE_OUT)
 		ui_tween.start()
+		
+	elif state_id == states.BLASTRADIUS:
+		ui_blastradius.hide()
 
 
 func show_interface(state_id:int) -> void:
@@ -110,9 +115,13 @@ func show_interface(state_id:int) -> void:
 		
 	elif state_id == states.GRAPH:
 		var ui_tween = ui_graph.get_node("AnimTween")
+		ui_graph.is_active = true
 		ui_graph.zoom_in()
 		ui_tween.interpolate_method(blur, "set_blur", blur.blur_power, 0, 0.7, Tween.TRANS_QUAD, Tween.EASE_OUT)
 		ui_tween.start()
+	
+	elif state_id == states.BLASTRADIUS:
+		ui_blastradius.show()
 
 
 func show_blastradius(_id) -> void:
@@ -128,4 +137,8 @@ func load_query(_query_id) -> void:
 
 
 func update_spaceship_mode():
-	state = states.GRAPH
+	set_state(states.GRAPH)
+
+
+func _on_UIBlastradius_close_blast_radius():
+	set_state(states.GRAPH)

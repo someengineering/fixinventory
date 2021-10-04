@@ -1,24 +1,108 @@
 extends Control
 
-var node_distance := {}
+signal close_blast_radius
 
-onready var graph_view = $GraphView
+var GraphView = preload("res://ui/elements/Element_GraphView.tscn")
+var node_distance := {}
+var sort_dict := {}
+var blastradius_diameter := 400.0
+var graph_view : Object = null
+
+onready var blast_info = $BlastLabel/BlastNodeInfo
 
 func _ready():
 	_e.connect("show_blastradius", self, "show_blastradius")
-	_e.disconnect("hovering_node", graph_view, "hovering_node")
-	_e.disconnect("show_connected_nodes", graph_view, "show_connected_nodes")
 
 
 func show_blastradius(node_id):
+	graph_view = GraphView.instance()
+	add_child(graph_view)
+	graph_view.z_index = 5
+	graph_view.z_as_relative = false
+	graph_view.position = Vector2(1920, 1080)*0.5
 	var blastradius = get_blastradius_from_selection(node_id)
 	graph_view.create_graph_direct(blastradius)
-	graph_view.graph_rand_layout()
-	graph_view.graph_calc_layout()
+	layout_blastradius()
 	graph_view.update_connection_lines()
-	for node in graph_view.graph_data.nodes.values():
-		node.icon.show_detail(node.id)
+	graph_view.show_all()
+	$BlastLabel/BlastNodeName.text = "Origin: " + _g.main_graph.graph_data.nodes[node_id].reported.name
 
+
+func layout_blastradius():
+	var keys = graph_view.graph_data.nodes.keys()
+	var nodes = graph_view.graph_data.nodes
+	var node_amount = keys.size()
+	
+	if node_amount == 1:
+		return
+	
+	var largest_dist := 0
+	for i in node_distance.values():
+		if i > largest_dist:
+			largest_dist = i
+	
+	sort_dict = {}
+	for i in largest_dist+1:
+		sort_dict[i] = []
+	
+	var dist_keys = node_distance.keys()
+	for i in sort_dict.keys():
+		for d in dist_keys:
+			if node_distance[d] == i:
+				sort_dict[i].append(d)
+	
+	for dist in sort_dict.values():
+		var nodes_on_ring = dist.size()
+		var i := 0
+		for node in dist:
+			var node_obj = nodes[ node ]
+			var node_dist = node_distance[ node ]
+			node_obj.icon.position = Vector2( (blastradius_diameter/largest_dist) * node_dist, 0).rotated( PI + PI/2 + ((TAU/nodes_on_ring) * i) )
+			node_obj.icon.scale = Vector2.ONE * range_lerp( node_dist, 0, largest_dist, 1.5, 0.5)
+			node_obj.icon.modulate = Color(1.3, 0.6, 0.6, min(node_obj.icon.scale.x+0.2, 1))
+			i += 1
+			
+	draw_blastradius(Vector2(1920, 1080)*0.5, blastradius_diameter+20)
+
+
+func draw_blastradius(center, radius):
+	var resolution = 128
+	var points = PoolVector2Array()
+	var uvs = PoolVector2Array()
+
+	for i in resolution+1:
+		var angle_point = i * (TAU / resolution)
+		points.append(center + Vector2(cos(angle_point), sin(angle_point)) * radius)
+		uvs.append( Vector2(0.5,0.5) + Vector2(cos(angle_point), sin(angle_point)) )
+	
+	
+	$BlastUIElements/Polygon2D.polygon = points
+	$BlastUIElements/Polygon2D.uv = uvs
+	blast_info.text = "Nodes in blast radius:\n"
+	
+	var largest_dist := 0
+	for i in node_distance.values():
+		if i > largest_dist:
+			largest_dist = i
+	
+	for i in largest_dist+1:
+		if i == 0:
+			continue
+		var new_line = $BlastUIElements/Line2D.duplicate()
+		var new_points = PoolVector2Array()
+		for x in resolution+1:
+			var angle_point = x * (TAU / resolution)
+			new_points.append(center + Vector2(cos(angle_point), sin(angle_point)) * ((radius / largest_dist) * i))
+		new_line.points = new_points
+		new_line.show()
+		new_line.self_modulate.a = ease((1.0  / (largest_dist)) * i, 3)
+		new_line.get_node("Blastlevel").text = str(i) + " edges" if i > 1 else str(i) + " edge"
+		new_line.get_node("Blastlevel").rect_position = new_points[0] + Vector2(5,0)
+		new_line.show()
+		$BlastUIElements/Instanced.add_child(new_line)
+		
+		blast_info.text += str(sort_dict[i].size()) + " nodes in " + str(i) + " edge radius\n"
+	
 
 func get_blastradius_from_selection(node_id):
 	node_distance.clear()
@@ -26,17 +110,21 @@ func get_blastradius_from_selection(node_id):
 		"nodes" : {},
 		"edges" : {}
 		}
-	new_cloudgraph.nodes[node_id] = _g.main_graph.graph_data.nodes[node_id]
+	
+	# create the root node
+	new_cloudgraph.nodes[node_id] = CloudNode.new()
+	new_cloudgraph.nodes[node_id].clone( _g.main_graph.graph_data.nodes[node_id] )
+	
 	var iterations := 0
 	var all_children_resolved := false
-	var next_layer : Dictionary = new_cloudgraph.duplicate()
+	var next_layer : Dictionary = new_cloudgraph.duplicate(true)
 	var current_layer : Dictionary = {}
 	current_layer["nodes"] = []
 	
 	while !all_children_resolved:
 		all_children_resolved = true
 		current_layer["nodes"].clear()
-		current_layer["nodes"] = next_layer.nodes.duplicate()
+		current_layer["nodes"] = next_layer.nodes.duplicate(true)
 		
 		for node in next_layer.nodes.values():
 			# set the node distance from center
@@ -47,12 +135,19 @@ func get_blastradius_from_selection(node_id):
 				if connection.from.id == node.id and !next_layer.edges.has(edge_key):
 					next_layer = get_children_from_selection(node.id, next_layer)
 					all_children_resolved = false
-		
+
 		new_cloudgraph = merge_cloudgraphs(new_cloudgraph, next_layer, iterations)
 		next_layer = clean_duplicate_nodes(next_layer, current_layer)
 		iterations += 1
-
+	
+	#update_edges(new_cloudgraph)
+	
 	return new_cloudgraph
+
+
+func update_edges(original:Dictionary):
+	for e in original.edges:
+		prints("Clean edge: ", e.from, e.to)
 
 
 func merge_cloudgraphs(original:Dictionary, update:Dictionary, iterations:int) -> Dictionary:
@@ -64,9 +159,7 @@ func merge_cloudgraphs(original:Dictionary, update:Dictionary, iterations:int) -
 	for edge in update.edges.keys():
 		if !original.edges.has(edge):
 			original.edges[edge] = update.edges[edge]
-	
-	original["nodes"] = original["nodes"].duplicate()
-	original["edges"] = original["edges"].duplicate()
+			
 	return original
 
 
@@ -88,12 +181,26 @@ func get_children_from_selection(node_id, new_cloudgraph) -> Dictionary:
 	for edge_key in edge_keys:
 		var connection = _g.main_graph.graph_data.edges[ edge_key ]
 		if connection.from.id == node_id:
-			new_cloudgraph.edges[edge_key] = connection
+			new_cloudgraph.edges[edge_key] = CloudEdge.new()
+			new_cloudgraph.edges[edge_key].clone( connection )
 	
 	var nodes = _g.main_graph.graph_data.nodes
 	for connection in new_cloudgraph.edges.values():
 		var connection_id = connection.to.id
 		if nodes.has(connection_id) and connection_id != node_id:
-			new_cloudgraph.nodes[connection_id] = nodes[connection_id]
+			new_cloudgraph.nodes[connection_id] = CloudNode.new()
+			new_cloudgraph.nodes[connection_id].clone( nodes[connection_id] )
 	
 	return new_cloudgraph
+
+
+func clear_blastradius():
+	for i in $BlastUIElements/Instanced.get_children():
+		i.queue_free()
+	graph_view.remove_graph()
+	graph_view = null
+	
+
+func _on_StartQueryButton_pressed():
+	clear_blastradius()
+	emit_signal("close_blast_radius")

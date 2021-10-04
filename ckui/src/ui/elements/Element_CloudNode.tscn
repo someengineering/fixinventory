@@ -14,7 +14,7 @@ use_filter = true
 font_data = SubResource( 14 )
 
 [sub_resource type="DynamicFont" id=15]
-size = 64
+size = 90
 outline_size = 4
 outline_color = Color( 0.0980392, 0.184314, 0.313726, 1 )
 use_mipmaps = true
@@ -51,9 +51,9 @@ __meta__ = {
 
 [node name="LabelKind" type="Label" parent="Labels"]
 margin_left = -677.0
-margin_top = -127.0
+margin_top = -140.0
 margin_right = 672.0
-margin_bottom = -37.0
+margin_bottom = -42.0
 custom_fonts/font = SubResource( 15 )
 text = "test"
 align = 1

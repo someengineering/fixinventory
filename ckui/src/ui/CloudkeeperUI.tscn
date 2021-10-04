@@ -114,6 +114,7 @@ shader = SubResource( 15 )
 
 [sub_resource type="Environment" id=17]
 background_mode = 4
+background_canvas_max_layer = 10
 glow_enabled = true
 glow_levels/1 = true
 glow_levels/2 = true
@@ -238,3 +239,4 @@ environment = SubResource( 17 )
 [connection signal="input_event" from="UIGraph/BG/MouseDetector" to="UIGraph" method="_on_MouseDetector_input_event"]
 [connection signal="tween_all_completed" from="UIGraph/CamMoveTween" to="UIGraph" method="_on_CamMoveTween_tween_all_completed"]
 [connection signal="timeout" from="UIGraph/NewNodeSelectionTimer" to="UIGraph" method="_on_NewNodeSelectionTimer_timeout"]
+[connection signal="close_blast_radius" from="UI/UIBlastradius" to="." method="_on_UIBlastradius_close_blast_radius"]
