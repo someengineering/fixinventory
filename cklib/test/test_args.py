@@ -10,7 +10,6 @@ def test_args():
     add_args(arg_parser)
     arg_parser.parse_args()
     assert ArgumentParser.args.verbose is False
-    assert ArgumentParser.args.logfile is None
 
     os.environ["CLOUDKEEPER_VERBOSE"] = "true"
     os.environ["CLOUDKEEPER_TEST_INT"] = "123"
