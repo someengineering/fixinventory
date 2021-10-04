@@ -5,11 +5,47 @@ Cloudkeeper core graph platform
 ## Table of contents
 
 * [Overview](#overview)
+* [Usage](#usage)
 * [Contact](#contact)
 * [License](#license)
 
 
 ## Overview
+The Cloudkeeper graph platfrom `ckcore` is the persistance and query backend of Cloudkeeper. It maintains the graph
+of resources and provides APIs to update and access them. Within `ckcore` there are workflows consisting of steps
+that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
+like [`ckworker`](../ckworker/) and [`ckmetrics`](../ckmetrics/).
+
+`ckcore` also provides the CLI API that [`cksh`](../cksh/) calls.
+
+
+## Usage
+```
+  -h, --help            show this help message and exit
+  --log-level LOG_LEVEL
+                        Log level (default: info)
+  --graphdb-server GRAPHDB_SERVER
+                        Graph database server (default: http://localhost:8529)
+  --graphdb-database GRAPHDB_DATABASE
+                        Graph database name (default: cloudkeeper)
+  --graphdb-username GRAPHDB_USERNAME
+                        Graph database login (default: cloudkeeper)
+  --graphdb-password GRAPHDB_PASSWORD
+                        Graph database password (default: "")
+  --graphdb-type GRAPHDB_TYPE
+                        Graph database type (default: arangodb)
+  --graphdb-no-ssl-verify
+                        If the connection should be verified (default: False)
+  --graphdb-request-timeout GRAPHDB_REQUEST_TIMEOUT
+                        Request timeout in seconds (default: 900)
+  --psk PSK             Pre-shared key
+  --host HOST [HOST ...]
+                        TCP host(s) to bind on (default: 127.0.0.1)
+  --port PORT           TCP port to bind on (default: 8900)
+  --plantuml-server PLANTUML_SERVER
+                        PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)
+  --jobs [JOBS ...]
+```
 
 
 ## Contact

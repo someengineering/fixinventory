@@ -244,7 +244,7 @@ class Periodic:
                 if isinstance(result, Awaitable):
                     await result
             except Exception as ex:
-                log.error(f"Periodic function {self.name} caught an exception: {ex}", ex)
+                log.error(f"Periodic function {self.name} caught an exception: {ex}", exc_info=ex)
 
 
 class AccessNone:

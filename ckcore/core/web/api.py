@@ -408,8 +408,8 @@ class Api:
 
     async def list_batches(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        batch_updates = await graph_db.list_in_progress_batch_updates()
-        return web.json_response(batch_updates)
+        batch_updates = await graph_db.list_in_progress_updates()
+        return web.json_response([b for b in batch_updates if b.get("is_batch")])
 
     async def commit_batch(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
@@ -420,7 +420,7 @@ class Api:
     async def abort_batch(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         batch_id = request.match_info.get("batch_id", "some_existing")
-        await graph_db.abort_batch_update(batch_id)
+        await graph_db.abort_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
     async def raw(self, request: Request) -> StreamResponse:

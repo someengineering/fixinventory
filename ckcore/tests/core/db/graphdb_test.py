@@ -13,7 +13,7 @@ from networkx import DiGraph, MultiDiGraph
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from core.error import ConflictingChangeInProgress, NoSuchBatchError, InvalidBatchUpdate
+from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from core.event_bus import EventBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
@@ -251,7 +251,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     assert await graph_db.merge_graph(g, foo_model, batch_id) == (["collector"], GraphUpdate(112, 1, 0, 112, 0, 0))
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
-    with pytest.raises(NoSuchBatchError):
+    with pytest.raises(NoSuchChangeError):
         await graph_db.commit_batch_update("does_not_exist")
     # commit the batch and see the changes reflected in the database
     await graph_db.commit_batch_update(batch_id)
@@ -261,7 +261,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
     await graph_db.merge_graph(g, foo_model, batch_id)
-    await graph_db.abort_batch_update(batch_id)
+    await graph_db.abort_update(batch_id)
     assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
 
 

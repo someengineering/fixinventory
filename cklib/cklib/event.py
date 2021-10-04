@@ -5,9 +5,11 @@ import time
 import websocket
 import requests
 import json
+import datetime
 from cklib.logging import log
 from cklib.utils import RWLock
 from cklib.args import ArgumentParser
+from cklib.jwt import encode_jwt_to_headers
 from collections import defaultdict
 from threading import Thread, Lock
 from typing import Callable, Dict, Iterable, Optional, List
@@ -272,7 +274,14 @@ class CkEvents(threading.Thread):
         self, event: str, client: Callable, data: Optional[Dict] = None
     ) -> bool:
         url = f"{self.ckcore_uri}/subscriber/{self.identifier}/{event}"
-        r = client(url, headers={"accept": "application/json"}, params=data)
+        headers = {"accept": "application/json"}
+
+        if getattr(ArgumentParser.args, "psk", None):
+            jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
+            payload = {"exp": jwt_exp}
+            encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+
+        r = client(url, headers=headers, params=data)
         if r.status_code != 200:
             log.error(r.content)
             return False
