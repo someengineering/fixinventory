@@ -121,7 +121,7 @@ Assume a CFO wants to know the cost of all AWS compute instances that are runnin
     aggregate
       reported.account.name as account,
       reported.region.name as region,
-      reported.instance_type.name as type
+      reported.instance_type.name as type :
     sum(reported.instance_type.ondemand_cost) as instances_hourly_cost_estimate
 ```
 
