@@ -288,7 +288,7 @@ class CkEvents(threading.Thread):
         r = client(url, headers=headers, params=data)
         if r.status_code != 200:
             raise RuntimeError(
-                f'Error during registration/unregistration for "{action}"'
+                f'Error during (un)registration for "{action}"'
                 f" actions: {r.content.decode('utf-8')}"
             )
         return True
