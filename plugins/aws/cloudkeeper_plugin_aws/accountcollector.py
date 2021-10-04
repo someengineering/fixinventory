@@ -1192,6 +1192,15 @@ class AWSAccountCollector:
                         ctime=access_key.get("CreateDate"),
                     )
                     ak.access_key_status = access_key.get("Status")
+
+                    last_used_response = user_client.get_access_key_last_used(
+                        AccessKeyId=access_key.get("AccessKeyId")
+                    )
+                    luk = last_used_response.get("AccessKeyLastUsed", {})
+                    if luk.get("LastUsedDate"):
+                        ak.atime = luk.get("LastUsedDate")
+                        ak.access_key_last_used_region = luk.get("Region")
+                        ak.access_key_last_used_service_name = luk.get("ServiceName")
                     log.debug(
                         (
                             f"Found IAM Access Key {ak.id} for user {u.name} in "

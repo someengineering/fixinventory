@@ -831,6 +831,8 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
 class AWSIAMAccessKey(AWSResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
     user_name: Optional[str] = None
+    access_key_last_used_region: Optional[str] = None
+    access_key_last_used_service_name: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
