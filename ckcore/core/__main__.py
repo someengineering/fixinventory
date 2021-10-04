@@ -1,5 +1,6 @@
 import logging
 import os
+from multiprocessing import set_start_method
 
 from aiohttp import web
 from aiohttp.web_app import Application
@@ -19,10 +20,14 @@ log = logging.getLogger(__name__)
 
 
 def main() -> None:
+
     args = parse_args()
     setup_logging(args)
-    log.info("Starting up...")
 
+    # set default process start method (will be detected by os otherwise)
+    set_start_method("spawn")
+
+    log.info("Starting up...")
     scheduler = Scheduler()
     event_bus = EventBus()
     worker_task_queue = WorkerTaskQueue()

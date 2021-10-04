@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from multiprocessing import set_start_method
 from typing import AsyncGenerator
 
 import pytest
@@ -27,6 +28,8 @@ async def test_merge_process(
     foo_kinds: list[Kind],
     all_events: list[Message],
 ) -> None:
+    # set explicitly (is done in main explicitly as well)
+    set_start_method("spawn")
 
     # wipe any existing data
     await graph_db.wipe()
