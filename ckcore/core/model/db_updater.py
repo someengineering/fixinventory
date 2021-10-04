@@ -197,7 +197,12 @@ async def merge_graph_process(
         await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
         if updater.is_alive():
-            log.warning(f"Process is still active after poison pill. Kill process {updater.pid}")
+            log.warning(f"Process is still alive after poison pill. Terminate process {updater.pid}")
+            updater.terminate()
+            await asyncio.sleep(3)
+        if updater.is_alive():
+            log.warning(f"Process is still alive after terminate. Kill process {updater.pid}")
             updater.kill()
-            await asyncio.sleep(5)
-        updater.close()
+            await asyncio.sleep(3)
+        if not updater.is_alive():
+            updater.close()
