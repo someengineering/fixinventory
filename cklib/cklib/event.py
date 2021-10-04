@@ -5,7 +5,6 @@ import time
 import websocket
 import requests
 import json
-import datetime
 from cklib.logging import log
 from cklib.utils import RWLock
 from cklib.args import ArgumentParser
@@ -281,9 +280,7 @@ class CkEvents(threading.Thread):
         headers = {"accept": "application/json"}
 
         if getattr(ArgumentParser.args, "psk", None):
-            jwt_exp = datetime.datetime.now() + datetime.timedelta(minutes=10)
-            payload = {"exp": jwt_exp}
-            encode_jwt_to_headers(headers, payload, ArgumentParser.args.psk)
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = client(url, headers=headers, params=data)
         if r.status_code != 200:
