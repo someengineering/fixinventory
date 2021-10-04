@@ -1,19 +1,12 @@
 import os
-import threading
-import queue
 import time
-import websocket
-import requests
-import json
 from cklib.logging import log
 from cklib.utils import RWLock
 from cklib.args import ArgumentParser
-from cklib.jwt import encode_jwt_to_headers
 from collections import defaultdict
 from threading import Thread, Lock
-from typing import Callable, Dict, Iterable, Optional, List
+from typing import Callable, Iterable
 from enum import Enum
-from urllib.parse import urlunsplit, urlencode, urlsplit
 
 
 class EventType(Enum):

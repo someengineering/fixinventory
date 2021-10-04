@@ -632,7 +632,7 @@ def type_str(o):
     return module + "." + cls.__qualname__
 
 
-class defaultlist(list):
+class defaultlist(list):  # noqa: N801
     def __init__(self, func: Callable) -> None:
         self._func = func
 
