@@ -30,7 +30,7 @@ class DbAccess(ABC):
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
-        batch_outdated: timedelta = timedelta(minutes=30),
+        update_outdated: timedelta = timedelta(minutes=30),
     ):
         self.event_bus = event_bus
         self.database = arango_database
@@ -41,14 +41,17 @@ class DbAccess(ABC):
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
         self.graph_dbs: dict[str, GraphDB] = {}
-        self.batch_outdated = batch_outdated
-        self.cleaner = Periodic("batch_cleaner", self.check_outdated_batches, timedelta(seconds=60))
+        self.update_outdated = update_outdated
+        self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
         await self.model_db.create_update_schema()
         await self.subscribers_db.create_update_schema()
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
+        for graph in self.database.graphs():
+            log.info(f'Found graph: {graph["name"]}')
+            self.get_graph_db(graph["name"])
         await self.cleaner.start()
 
     async def create_graph(self, name: str) -> GraphDB:
@@ -81,12 +84,12 @@ class DbAccess(ABC):
     def get_model_db(self) -> ModelDb:
         return self.model_db
 
-    async def check_outdated_batches(self) -> None:
+    async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)
         for db in self.graph_dbs.values():
-            for batch in await db.list_in_progress_batch_updates():
-                created = datetime.fromtimestamp(parse(batch["created"]).timestamp(), timezone.utc)
-                if (now - created) > self.batch_outdated:
-                    batch_id = batch["id"]
-                    log.warning(f"Given batch is too old: {batch_id}. Will abort the batch.")
-                    await db.abort_batch_update(batch_id)
+            for update in await db.list_in_progress_updates():
+                created = datetime.fromtimestamp(parse(update["created"]).timestamp(), timezone.utc)
+                if (now - created) > self.update_outdated:
+                    batch_id = update["id"]
+                    log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
+                    await db.abort_update(batch_id)
