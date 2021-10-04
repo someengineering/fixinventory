@@ -864,13 +864,19 @@ class AWSAccountCollector:
         self.account.users = int(sm.get("Users", 0))
         self.account.groups = int(sm.get("Groups", 0))
         self.account.account_mfa_enabled = int(sm.get("AccountMFAEnabled", 0))
-        self.account.account_access_keys_present = int(sm.get("AccountAccessKeysPresent", 0))
-        self.account.account_signing_certificates_present = int(sm.get("AccountSigningCertificatesPresent", 0))
+        self.account.account_access_keys_present = int(
+            sm.get("AccountAccessKeysPresent", 0)
+        )
+        self.account.account_signing_certificates_present = int(
+            sm.get("AccountSigningCertificatesPresent", 0)
+        )
         self.account.mfa_devices = int(sm.get("MFADevices", 0))
         self.account.mfa_devices_in_use = int(sm.get("MFADevicesInUse", 0))
         self.account.policies = int(sm.get("Policies", 0))
         self.account.policy_versions_in_use = int(sm.get("PolicyVersionsInUse", 0))
-        self.account.global_endpoint_token_version = int(sm.get("GlobalEndpointTokenVersion", 0))
+        self.account.global_endpoint_token_version = int(
+            sm.get("GlobalEndpointTokenVersion", 0)
+        )
         self.account.server_certificates = int(sm.get("ServerCertificates", 0))
 
     @metrics_collect_iam_server_certificates.time()
@@ -1226,7 +1232,7 @@ class AWSAccountCollector:
                         ak.atime = luk.get("LastUsedDate")
                         ak.access_key_last_used_region = luk.get("Region")
                         ak.access_key_last_used_service_name = luk.get("ServiceName")
-                        
+
                     log.debug(
                         (
                             f"Found IAM Access Key {ak.id} for user {u.name} in "
