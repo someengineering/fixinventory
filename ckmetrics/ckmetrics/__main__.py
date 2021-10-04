@@ -4,7 +4,7 @@ import inspect
 import cklib.baseresources
 from cklib.logging import log, add_args as logging_add_args
 from functools import partial
-from cklib.event import CkEvents
+from cklib.core.actions import CoreActions
 from ckmetrics.metrics import Metrics, GraphCollector
 from ckmetrics.query import (
     query,
@@ -54,12 +54,12 @@ def main() -> None:
     graph_uri = f"{base_uri}/graph/{ckcore_graph}"
     query_uri = f"{graph_uri}/reported/query/aggregate"
 
-    message_processor = partial(ckcore_message_processor, metrics, query_uri)
-    ke = CkEvents(
+    message_processor = partial(core_actions_processor, metrics, query_uri)
+    core_actions = CoreActions(
         identifier="ckmetrics",
         ckcore_uri=ArgumentParser.args.ckcore_uri,
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
-        events={
+        actions={
             "generate_metrics": {
                 "timeout": ArgumentParser.args.timeout,
                 "wait_for_completion": True,
@@ -67,17 +67,17 @@ def main() -> None:
         },
         message_processor=message_processor,
     )
-    webserver = WebServer(CloudkeeperMetricsWebApp())
-    webserver.daemon = True
-    webserver.start()
-    ke.start()
+    web_server = WebServer(CloudkeeperMetricsWebApp())
+    web_server.daemon = True
+    web_server.start()
+    core_actions.start()
     shutdown_event.wait()
-    webserver.shutdown()
-    ke.shutdown()
+    web_server.shutdown()
+    core_actions.shutdown()
     sys.exit(0)
 
 
-def ckcore_message_processor(metrics: Metrics, query_uri: str, message: dict) -> None:
+def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> None:
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return
