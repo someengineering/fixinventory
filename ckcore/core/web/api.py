@@ -1,19 +1,19 @@
 import asyncio
 import json
 import logging
+import os
 import re
 import string
 import uuid
-import os
+from argparse import Namespace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
+from typing import AsyncGenerator, Any, Optional, Sequence
 
 import yaml
 from aiohttp import web, WSMsgType, WSMessage
-from aiohttp.web_exceptions import HTTPRedirection
-from aiohttp.web_request import Request
-from aiohttp.web_response import StreamResponse
+from aiohttp.web import Request, StreamResponse, HTTPRedirection
+from aiohttp.web_middlewares import middleware
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx import MultiDiGraph
@@ -29,6 +29,15 @@ from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
 from core.model.graph_access import GraphBuilder, Section
 from core.model.model import Kind, Model
+from core.model.model_handler import ModelHandler
+from core.model.typed_model import to_js, from_js, to_js_str
+from core.query.query_parser import parse_query
+from core.task.model import Subscription
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_handler import TaskHandler
+from core.types import Json, JsonElement
+from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
+from core.web import auth, RequestHandler
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
@@ -36,17 +45,8 @@ from core.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from core.types import Json, JsonElement
-from core.model.model_handler import ModelHandler
-from core.model.typed_model import to_js, from_js, to_js_str
-from core.query.query_parser import parse_query
-from core.task.model import Subscription
-from core.task.subscribers import SubscriptionHandler
-from core.task.task_handler import TaskHandler
-from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
 
 log = logging.getLogger(__name__)
-RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
 
 
 def section_of(request: Request) -> Optional[str]:
@@ -66,6 +66,7 @@ class Api:
         event_bus: EventBus,
         worker_task_queue: WorkerTaskQueue,
         cli: CLI,
+        args: Namespace,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -74,7 +75,8 @@ class Api:
         self.event_bus = event_bus
         self.worker_task_queue = worker_task_queue
         self.cli = cli
-        self.app = web.Application(middlewares=[self.error_handler])
+        self.args = args
+        self.app = web.Application(middlewares=[auth.auth_handler(args), self.error_handler])
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(
             [
@@ -647,23 +649,21 @@ class Api:
             return await respond_json()
 
     @staticmethod
-    async def error_handler(_: Any, handler: RequestHandler) -> RequestHandler:
-        async def middleware_handler(request: Request) -> StreamResponse:
-            try:
-                response = await handler(request)
-                return response
-            except HTTPRedirection as e:
-                # redirects are implemented as exceptions in aiohttp for whatever reason...
-                raise e
-            except NotFoundError as e:
-                kind = type(e).__name__
-                message = f"Error: {kind}\nMessage: {str(e)}"
-                log.info(f"Request {request} has failed with exception: {message}", exc_info=e)
-                return web.HTTPNotFound(text=message)
-            except Exception as e:
-                kind = type(e).__name__
-                message = f"Error: {kind}\nMessage: {str(e)}"
-                log.warning(f"Request {request} has failed with exception: {message}", exc_info=e)
-                return web.HTTPBadRequest(text=message)
-
-        return middleware_handler
+    @middleware
+    async def error_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+        try:
+            response = await handler(request)
+            return response
+        except HTTPRedirection as e:
+            # redirects are implemented as exceptions in aiohttp for whatever reason...
+            raise e
+        except NotFoundError as e:
+            kind = type(e).__name__
+            message = f"Error: {kind}\nMessage: {str(e)}"
+            log.info(f"Request {request} has failed with exception: {message}", exc_info=e)
+            return web.HTTPNotFound(text=message)
+        except Exception as e:
+            kind = type(e).__name__
+            message = f"Error: {kind}\nMessage: {str(e)}"
+            log.warning(f"Request {request} has failed with exception: {message}", exc_info=e)
+            return web.HTTPBadRequest(text=message)

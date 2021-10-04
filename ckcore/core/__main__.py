@@ -134,7 +134,7 @@ def main() -> None:
         "job_handler": task_handler,
         "worker_task_queue": worker_task_queue,
     }
-    api = Api(db, model, subscriptions, task_handler, event_bus, worker_task_queue, cli)
+    api = Api(db, model, subscriptions, task_handler, event_bus, worker_task_queue, cli, args)
 
     async def async_initializer() -> Application:
         await db.start()
