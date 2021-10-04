@@ -180,19 +180,26 @@ async def merge_graph_process(
             await run_async(write.put, pa, True, stale)
         return alive
 
+    def read_results() -> Task[GraphUpdate]:
+        async def read_forever() -> GraphUpdate:
+            while True:
+                action = await run_async(read.get, True, max_wait.total_seconds())
+                if isinstance(action, EmitMessage):
+                    await bus.emit(action.event)
+                elif isinstance(action, Result):
+                    return action.get_value()
+
+        return asyncio.create_task(read_forever())
+
     try:
         updater.start()
+        task = read_results()  # concurrently read result queue
         async for line in content:
             if not await send_to_child(ReadElement(line)):
                 # in case the child is dead, we should stop
                 break
         await send_to_child(MergeGraph(graph, maybe_batch))
-        while True:
-            action = await run_async(read.get, True, max_wait.total_seconds())
-            if isinstance(action, EmitMessage):
-                await bus.emit(action.event)
-            elif isinstance(action, Result):
-                return action.get_value()
+        return await task  # wait for final result
     finally:
         await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
