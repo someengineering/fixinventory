@@ -37,7 +37,7 @@ from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
 from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
-from core.web import auth
+from core.web import auth, RequestHandler
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
