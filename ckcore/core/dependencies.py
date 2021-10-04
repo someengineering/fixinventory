@@ -88,6 +88,12 @@ def parse_args(args: Optional[list[str]] = None, namespace: Optional[str] = None
         help="TCP port to bind on (default: 8900)",
     )
     parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        default=None,
+        dest="psk",
+    )
+    parser.add_argument(
         "--merge_max_wait_time_seconds",
         type=int,
         default=3600,

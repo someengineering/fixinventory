@@ -84,6 +84,21 @@ class Result(ProcessAction):
 
 
 class DbUpdaterProcess(Process):
+    """
+    This update class implements Process and is supposed to run as separate process.
+    Note: default starting method is supposed to be "spawn".
+
+    This process has 2 queues to read input from and write output to.
+    All elements in either queues are of type ProcessAction.
+
+    The parent process should stream the raw parts of graph to this process via ReadElement objects.
+    Once the MergeGraph action is received, the graph gets imported.
+    From here the parent expects result messages from the child.
+    All events happen in the child are forwarded to the parent via EmitEvent.
+    Once the graph update is done, a result is send.
+    The result is either an exception in case of failure or a graph update in success case.
+    """
+
     def __init__(self, read_queue: Queue, write_queue: Queue, args: Namespace) -> None:  # type: ignore
         super().__init__(name="merge_update")
         self.read_queue = read_queue
@@ -155,14 +170,18 @@ async def merge_graph_process(
     updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
 
-    async def send_to_child(pa: ProcessAction) -> None:
-        if updater.is_alive():
+    async def send_to_child(pa: ProcessAction) -> bool:
+        alive = updater.is_alive()
+        if alive:
             await run_async(write.put, pa, True, stale)
+        return alive
 
     try:
         updater.start()
         async for line in content:
-            await send_to_child(ReadElement(line))
+            if not await send_to_child(ReadElement(line)):
+                # in case the child is dead, we should stop
+                break
         await send_to_child(MergeGraph(graph, maybe_batch))
         while True:
             action = await run_async(read.get, True, max_wait.total_seconds())
