@@ -7,7 +7,6 @@ Contents
 
    start
    setup
-   component-list
    model
    query
 
