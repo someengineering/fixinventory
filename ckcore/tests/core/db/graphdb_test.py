@@ -17,7 +17,7 @@ from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBa
 from core.event_bus import EventBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
-from core.model.model import Model, ComplexKind, Property, Kind
+from core.model.model import Model, ComplexKind, Property
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
@@ -93,7 +93,6 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         reported = node if node else to_json(Foo(uid))
         graph.add_node(
             uid,
-            id=uid,
             kinds=[kind],
             reported=reported,
             desired={"node_id": uid},
@@ -159,7 +158,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 @pytest.fixture
-def foo_kinds() -> list[Kind]:
+def foo_model() -> Model:
     base = ComplexKind(
         "base",
         [],
@@ -189,12 +188,7 @@ def foo_kinds() -> list[Kind]:
             Property("g", "int32[]"),
         ],
     )
-    return [base, foo, bla]
-
-
-@pytest.fixture
-def foo_model(foo_kinds: list[Kind]) -> Model:
-    return Model.from_kinds(foo_kinds)
+    return Model.from_kinds([base, foo, bla])
 
 
 @pytest.fixture
@@ -458,11 +452,12 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 @pytest.mark.asyncio
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: list[Message]) -> None:
+    graph = create_graph("yes or no", width=0)
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     await event_graph_db.delete_node("some_other")
-    await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
-    await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1")
+    await event_graph_db.merge_graph(graph, foo_model)
+    await event_graph_db.merge_graph(graph, foo_model, "batch1")
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

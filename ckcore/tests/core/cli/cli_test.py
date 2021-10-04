@@ -24,7 +24,7 @@ from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 from tests.core.model import ModelHandlerStatic
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_kinds, foo_model
+from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
 
 # noinspection PyUnresolvedReferences
 from tests.core.event_bus_test import event_bus
