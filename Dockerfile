@@ -108,7 +108,9 @@ COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/bootstrap /usr/local/sbin/bootstrap
 COPY docker/bootstrap-graphdb /usr/local/sbin/bootstrap-graphdb
 COPY docker/startup /usr/local/bin/startup
+COPY docker/cksh-shim /usr/local/bin/cksh-shim
 RUN chmod 755 /usr/local/bin/startup \
+    /usr/local/bin/cksh-shim \
     /usr/local/sbin/bootstrap \
     /usr/local/sbin/bootstrap-graphdb
 RUN if [ "${TESTS:-false}" = true ]; then \
@@ -128,7 +130,7 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 FROM debian:stable
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=build-env /usr/local /usr/local
-ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/db/bin:/usr/local/sbin:/usr/local/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home cloudkeeper \
@@ -184,6 +186,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && ln -s /usr/local/bin/busybox /usr/local/bin/pstree \
     && ln -s /usr/local/bin/busybox /usr/local/bin/killall \
     && ln -s /usr/local/bin/busybox /usr/local/bin/bc \
+    && ln -s /usr/local/bin/cksh-shim /usr/bin/cksh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

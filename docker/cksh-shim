@@ -1,0 +1,4 @@
+#!/bin/bash
+. /usr/local/etc/cloudkeeper/defaults
+export CKSH_PSK
+exec /usr/local/bin/cksh "$@"
