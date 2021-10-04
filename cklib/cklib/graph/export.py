@@ -1,6 +1,6 @@
 from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
-from functools import reduce
+from functools import lru_cache, reduce
 from pydoc import locate
 from typing import List, MutableSet, get_args, get_origin, Union, Tuple, Dict, Set, Any
 from cklib.baseresources import BaseResource
@@ -201,6 +201,11 @@ def node_to_dict(node: BaseResource) -> Dict:
     return node_dict
 
 
+@lru_cache(maxsize=None)
+def locate_python_type(python_type: str) -> Any:
+    return locate(python_type)
+
+
 def node_from_dict(node_data: Dict) -> BaseResource:
     """Create a resource from ckcore graph node data"""
     log.debug(f"Making node from {node_data}")
@@ -215,10 +220,11 @@ def node_from_dict(node_data: Dict) -> BaseResource:
         node_data_metadata = {}
 
     new_node_data = dict(node_data_reported)
-    del new_node_data["kind"]
+    if "kind" in new_node_data:
+        del new_node_data["kind"]
 
     python_type = node_data_metadata.get("python_type", "NoneExisting")
-    node_type = locate(python_type)
+    node_type = locate_python_type(python_type)
     if node_type is None:
         raise ValueError(f"Do not know how to handle {node_data_reported}")
 
