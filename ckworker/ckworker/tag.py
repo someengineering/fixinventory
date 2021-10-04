@@ -2,7 +2,7 @@ from cklib.logging import log
 from cklib.graph.export import node_from_dict, node_to_dict
 
 
-def tasks_processor(message: dict) -> None:
+def core_tag_tasks_processor(message: dict) -> None:
     task_id = message.get("task_id")
     # task_name = message.get("task_name")
     # task_attrs = message.get("attrs", {})
