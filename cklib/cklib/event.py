@@ -263,7 +263,10 @@ class CkEvents(threading.Thread):
         if self.ws:
             self.ws.close()
         for core_event in self.events.keys():
-            self.unregister(core_event)
+            try:
+                self.unregister(core_event)
+            except RuntimeError as e:
+                log.error(e)
 
     def register(self, event: str, data: Optional[Dict] = None) -> bool:
         log.debug(f"{self.identifier} registering for {event} events ({data})")
@@ -284,8 +287,10 @@ class CkEvents(threading.Thread):
 
         r = client(url, headers=headers, params=data)
         if r.status_code != 200:
-            log.error(r.content)
-            return False
+            raise RuntimeError(
+                f'Error during registration/unregistration of "{event}"'
+                f" events: {r.content.decode('utf-8')}"
+            )
         return True
 
     def dispatch_event(self, message: Dict) -> bool:
