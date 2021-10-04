@@ -245,8 +245,12 @@ class CkEvents(threading.Thread):
 
         ws_uri = f"{self.ckcore_ws_uri}/subscriber/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
+        headers = {}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         self.ws = websocket.WebSocketApp(
             ws_uri,
+            header=headers,
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
@@ -385,8 +389,12 @@ class CkCoreTasks(threading.Thread):
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))
 
         log.debug(f"{self.identifier} connecting to {ws_uri}")
+        headers = {}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         self.ws = websocket.WebSocketApp(
             ws_uri,
+            header=headers,
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
