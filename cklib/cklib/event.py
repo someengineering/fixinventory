@@ -210,14 +210,14 @@ class CkEvents(threading.Thread):
         identifier: str,
         ckcore_uri: str,
         ckcore_ws_uri: str,
-        events: Dict,
+        actions: Dict,
         message_processor: Optional[Callable] = None,
     ) -> None:
         super().__init__()
         self.identifier = identifier
         self.ckcore_uri = ckcore_uri
         self.ckcore_ws_uri = ckcore_ws_uri
-        self.events = events
+        self.actions = actions
         self.message_processor = message_processor
         self.ws = None
         self.shutdown_event = threading.Event()
@@ -229,7 +229,7 @@ class CkEvents(threading.Thread):
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
         while not self.shutdown_event.is_set():
-            log.info("Connecting to ckcore event bus")
+            log.info("Connecting to ckcore message bus")
             try:
                 self.connect()
             except Exception as e:
@@ -237,7 +237,7 @@ class CkEvents(threading.Thread):
             time.sleep(10)
 
     def connect(self) -> None:
-        for event, data in self.events.items():
+        for event, data in self.actions.items():
             if not isinstance(data, dict):
                 data = None
             self.register(event, data)
@@ -258,28 +258,28 @@ class CkEvents(threading.Thread):
         self.ws.run_forever()
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug("Received shutdown event - shutting down ckcore event bus listener")
+        log.debug("Received shutdown event - shutting down ckcore message bus listener")
         self.shutdown_event.set()
-        if self.ws:
-            self.ws.close()
-        for core_event in self.events.keys():
+        for core_action in self.actions.keys():
             try:
-                self.unregister(core_event)
+                self.unregister(core_action)
             except RuntimeError as e:
                 log.error(e)
+        if self.ws:
+            self.ws.close()
 
-    def register(self, event: str, data: Optional[Dict] = None) -> bool:
-        log.debug(f"{self.identifier} registering for {event} events ({data})")
-        return self.registration(event, requests.post, data)
+    def register(self, action: str, data: Optional[Dict] = None) -> bool:
+        log.debug(f"{self.identifier} registering for {action} actions ({data})")
+        return self.registration(action, requests.post, data)
 
-    def unregister(self, event: str, data: Optional[Dict] = None) -> bool:
-        log.debug(f"{self.identifier} unregistering from {event} events ({data})")
-        return self.registration(event, requests.delete, data)
+    def unregister(self, action: str, data: Optional[Dict] = None) -> bool:
+        log.debug(f"{self.identifier} unregistering from {action} actions ({data})")
+        return self.registration(action, requests.delete, data)
 
     def registration(
-        self, event: str, client: Callable, data: Optional[Dict] = None
+        self, action: str, client: Callable, data: Optional[Dict] = None
     ) -> bool:
-        url = f"{self.ckcore_uri}/subscriber/{self.identifier}/{event}"
+        url = f"{self.ckcore_uri}/subscriber/{self.identifier}/{action}"
         headers = {"accept": "application/json"}
 
         if getattr(ArgumentParser.args, "psk", None):
@@ -288,8 +288,8 @@ class CkEvents(threading.Thread):
         r = client(url, headers=headers, params=data)
         if r.status_code != 200:
             raise RuntimeError(
-                f'Error during registration/unregistration of "{event}"'
-                f" events: {r.content.decode('utf-8')}"
+                f'Error during registration/unregistration for "{action}"'
+                f" actions: {r.content.decode('utf-8')}"
             )
         return True
 
@@ -317,13 +317,13 @@ class CkEvents(threading.Thread):
                 log.exception(f"Something went wrong while processing {message}")
 
     def on_error(self, ws, error):
-        log.error(f"{self.identifier} event bus error: {error}")
+        log.error(f"{self.identifier} message bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"{self.identifier} disconnected from ckcore event bus")
+        log.debug(f"{self.identifier} disconnected from ckcore message bus")
 
     def on_open(self, ws):
-        log.debug(f"{self.identifier} connected to ckcore event bus")
+        log.debug(f"{self.identifier} connected to ckcore message bus")
 
 
 class CkCoreTasks(threading.Thread):
