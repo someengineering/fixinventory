@@ -91,15 +91,19 @@ Why would this matter? Load balancers are not that expensive. But companies usua
 
 And so going through that decision loop to find unused ALBs without any automation is almost impossible. With graph traversal, we can write a query that finds unused load balancers, by determining if the target groups are empty, if the instances are not running anymore, or if they are connected but terminated. We define “unused” as “older than 7 days” `ctime < -7d` and “no backends attached”.
 
-    is(aws_alb) and ctime < -7d with(empty, <-- is(aws_alb_target_group) and
-    target_type = instance and ctime < -7d with(empty, <-- is(aws_ec2_instance) and
-    instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
+```
+is(aws_alb) and ctime < -7d with(empty, <-- is(aws_alb_target_group)
+  and target_type = instance and ctime < -7d with(empty, <-- is(aws_ec2_instance)
+  and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
+```
 
 That’s it! This query will generate a list of all orphaned load balancers that are candidates for clean-up. To actually clean up, we only need to add a ``| clean`` command at the end of the query.
 
-    is(aws_alb) and ctime < -7d with(empty, <-- is(aws_alb_target_group) and
-    target_type = instance and ctime < -7d with(empty, <-- is(aws_ec2_instance) and
-    instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb) | clean
+```
+is(aws_alb) and ctime < -7d with(empty, <-- is(aws_alb_target_group)
+  and target_type = instance and ctime < -7d with(empty, <-- is(aws_ec2_instance)
+  and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb) | clean
+```
 
 ##  Metrics - From Hard-coded To Query-Based
 
@@ -110,15 +114,16 @@ The benefit is that each audience (engineering, product, finance, etc. ) can cre
 
 Assume a CFO wants to know the cost of all AWS compute instances that are running, in nearn The query below calculates a total hourly on-demand cost estimate for all EC2 instances running in all AWS accounts, and aggregates the result by account, region and instance type.
 
-    query is(aws_ec2_instance) and reported.instance_status = running |
+```
+ query is(aws_ec2_instance) and reported.instance_status = running |
     merge_ancestors
-    account,region,instance_type |
+      account,region,instance_type |
     aggregate
-    reported.account.name as account,
-    reported.region.name as region,
-    reported.instance_type.name as type
+      reported.account.name as account,
+      reported.region.name as region,
+      reported.instance_type.name as type
     sum(reported.instance_type.ondemand_cost) as instances_hourly_cost_estimate
-
+```
 
 `instance_type` is a resource in the Cloudkeeper graph. The node for the resource contains a field for the on-demand cost. Cloudkeeper fetches the data for that field from the AWS Pricing API during each collection run.
 
