@@ -24,9 +24,6 @@ def main() -> None:
     args = parse_args()
     setup_logging(args)
 
-    # set default process start method (will be detected by os otherwise)
-    set_start_method("spawn")
-
     log.info("Starting up...")
     scheduler = Scheduler()
     event_bus = EventBus()
@@ -61,4 +58,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # set default process start method (will be detected by os otherwise)
+    set_start_method("spawn")
     main()
