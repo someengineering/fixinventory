@@ -23,7 +23,7 @@ from core.util import first, exist, AccessJson
 from tests.core.cli.cli_test import cli, cli_deps
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model
+from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model, foo_kinds
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db

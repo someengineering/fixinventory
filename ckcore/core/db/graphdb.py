@@ -1161,10 +1161,11 @@ class EventGraphDB(GraphDB):
     ) -> tuple[list[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_batch)
         even_data = {"graph": self.graph_name, "root_ids": roots}
-        if maybe_batch:
-            await self.event_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
-        else:
-            await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
+        if info.all_changes():  # do not emit an event in case nothing has changed
+            if maybe_batch:
+                await self.event_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
+            else:
+                await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
         return roots, info
 
     async def list_in_progress_updates(self) -> list[Json]:
