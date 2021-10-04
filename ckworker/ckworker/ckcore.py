@@ -70,7 +70,11 @@ def send_graph(
     try:
         graph_export_iterator = GraphExportIterator(graph, graph_outfile)
 
-        headers = {"Content-Type": "application/x-ndjson"}
+        headers = {
+            "Content-Type": "application/x-ndjson",
+            "Cloudkeeper-Ckworker-Nodes": str(graph.number_of_nodes()),
+            "Cloudkeeper-Ckworker-Edges": str(graph.number_of_edges()),
+        }
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
