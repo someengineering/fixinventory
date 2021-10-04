@@ -19,7 +19,6 @@ from retrying import retry
 from pprint import pformat
 from cklib.logging import log
 
-
 # boto3 has no way of converting between short and long region names
 # The pricing API expects long region names, whereas ever other API works with short region names.
 # The mapping can be found in one of the SDK's resource files 'endpoints.json' from where we read it.
@@ -188,6 +187,10 @@ metrics_collect_rds_metrics = Summary(
     "cloudkeeper_plugin_aws_collect_rds_metrics_seconds",
     "Time it took the collect_rds_metrics() method",
 )
+metrics_collect_iam_account_summary = Summary(
+    "cloudkeeper_plugin_aws_collect_iam_account_summary_seconds",
+    "Time it took the collect_iam_account_summary() method",
+)
 metrics_collect_iam_policies = Summary(
     "cloudkeeper_plugin_aws_collect_iam_policies_seconds",
     "Time it took the collect_iam_policies() method",
@@ -258,6 +261,7 @@ class AWSAccountCollector:
         self._price_info_lock = Lock()
 
         self.global_collectors = {
+            "iam_account_summary": self.collect_iam_account_summary,
             "iam_policies": self.collect_iam_policies,
             "iam_groups": self.collect_iam_groups,
             "iam_instance_profiles": self.collect_iam_instance_profiles,
@@ -848,6 +852,33 @@ class AWSAccountCollector:
             )
         return response
 
+    @metrics_collect_iam_account_summary.time()
+    def collect_iam_account_summary(self, region: AWSRegion, graph: Graph) -> None:
+        log.info(
+            f"Collecting AWS IAM Account Summary in account {self.account.dname} region {region.name}"
+        )
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("iam", region_name=region.id)
+        response = client.get_account_summary()
+        sm = response.get("SummaryMap", {})
+        self.account.users = int(sm.get("Users", 0))
+        self.account.groups = int(sm.get("Groups", 0))
+        self.account.account_mfa_enabled = int(sm.get("AccountMFAEnabled", 0))
+        self.account.account_access_keys_present = int(
+            sm.get("AccountAccessKeysPresent", 0)
+        )
+        self.account.account_signing_certificates_present = int(
+            sm.get("AccountSigningCertificatesPresent", 0)
+        )
+        self.account.mfa_devices = int(sm.get("MFADevices", 0))
+        self.account.mfa_devices_in_use = int(sm.get("MFADevicesInUse", 0))
+        self.account.policies = int(sm.get("Policies", 0))
+        self.account.policy_versions_in_use = int(sm.get("PolicyVersionsInUse", 0))
+        self.account.global_endpoint_token_version = int(
+            sm.get("GlobalEndpointTokenVersion", 0)
+        )
+        self.account.server_certificates = int(sm.get("ServerCertificates", 0))
+
     @metrics_collect_iam_server_certificates.time()
     def collect_iam_server_certificates(self, region: AWSRegion, graph: Graph) -> None:
         log.info(
@@ -1192,6 +1223,16 @@ class AWSAccountCollector:
                         ctime=access_key.get("CreateDate"),
                     )
                     ak.access_key_status = access_key.get("Status")
+
+                    last_used_response = user_client.get_access_key_last_used(
+                        AccessKeyId=access_key.get("AccessKeyId")
+                    )
+                    luk = last_used_response.get("AccessKeyLastUsed", {})
+                    if luk.get("LastUsedDate"):
+                        ak.atime = luk.get("LastUsedDate")
+                        ak.access_key_last_used_region = luk.get("Region")
+                        ak.access_key_last_used_service_name = luk.get("ServiceName")
+
                     log.debug(
                         (
                             f"Found IAM Access Key {ak.id} for user {u.name} in "
