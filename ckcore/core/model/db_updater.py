@@ -129,13 +129,13 @@ class DbUpdaterProcess(Process):
         while isinstance(nxt, ReadElement):
             for element in nxt.jsons():
                 builder.add_from_json(element)
-            log.info(f"Read {int(BatchSize / 1000)}K elements in process")
+            log.debug(f"Read {int(BatchSize / 1000)}K elements in process")
             nxt = self.next_action()
         if isinstance(nxt, PoisonPill):
-            log.info("Got poison pill - going to die.")
+            log.debug("Got poison pill - going to die.")
             sys.exit(0)
         elif isinstance(nxt, MergeGraph):
-            log.info(f"Graph read into memory")
+            log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.maybe_batch)
@@ -154,7 +154,7 @@ class DbUpdaterProcess(Process):
         try:
             # Entrypoint of the new service
             setup_logging(self.args, f"merge_update_{self.pid}")
-            log.info("Import process started")
+            log.debug("Import process started")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
             log.info("Update process done. Exit.")

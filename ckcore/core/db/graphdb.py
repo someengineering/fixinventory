@@ -523,7 +523,7 @@ class ArangoGraphDB(GraphDB):
             graph_info = GraphUpdate()
             # check all nodes for this subgraph
             query, bind = node_query
-            log.info(f"Query for nodes: {sub.root()}")
+            log.debug(f"Query for nodes: {sub.root()}")
             with await self.db.aql(query, bind_vars=bind) as node_cursor:
                 node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor, model)
                 graph_info += node_info
@@ -533,7 +533,7 @@ class ArangoGraphDB(GraphDB):
             edge_deletes = defaultdict(list)
             for edge_type in EdgeType.all:
                 query, bind = edge_query(edge_type)
-                log.info(f"Query for edges of type {edge_type}: {sub.root()}")
+                log.debug(f"Query for edges of type {edge_type}: {sub.root()}")
                 with await self.db.aql(query, bind_vars=bind) as ec:
                     edge_info, gei, ged = self.prepare_edges(sub, ec, edge_type)
                     graph_info += edge_info
@@ -559,14 +559,14 @@ class ArangoGraphDB(GraphDB):
             return result
 
         # this will throw an exception, in case of a conflicting update (--> outside try block)
-        log.info("Mark all parent nodes for this update to avoid conflicting changes")
+        log.debug("Mark all parent nodes for this update to avoid conflicting changes")
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
         await update_in_progress.start()
         try:
             parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
-                log.info(f"Update subgraph: root={root} ({num+1} of {len(roots)})")
+                log.debug(f"Update subgraph: root={root} ({num+1} of {len(roots)})")
                 node_query = self.query_update_nodes(), {"update_id": root}
                 edge_query = partial(merge_edges, root)
 
@@ -578,7 +578,7 @@ class ArangoGraphDB(GraphDB):
                 eis = combine_dict(eis, ei)
                 eds = combine_dict(eds, ed)
 
-            log.info(f"Update prepared: {info}. Going to persist the changes.")
+            log.debug(f"Update prepared: {info}. Going to persist the changes.")
             await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
             return roots, info
         except Exception as ex:
@@ -616,7 +616,7 @@ class ArangoGraphDB(GraphDB):
             await execute_many_async(async_fn, name, array)
 
         async def update_directly() -> None:
-            log.info("Persist the changes directly.")
+            log.debug("Persist the changes directly.")
             edge_collections = [self.edge_collection(a) for a in EdgeType.all]
             update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
@@ -654,7 +654,7 @@ class ArangoGraphDB(GraphDB):
                 await store_to_tmp_collection(temp)
                 await self.move_temp_to_proper(change_id, temp.name)
             finally:
-                log.info(f"Delete temp collection {temp.name}")
+                log.debug(f"Delete temp collection {temp.name}")
                 await self.db.delete_collection(temp.name)
 
         async def update_batch() -> None:
@@ -669,7 +669,7 @@ class ArangoGraphDB(GraphDB):
             await update_directly()
         else:
             await update_via_temp_collection()
-        log.info("Persist update done.")
+        log.debug("Persist update done.")
 
     async def commit_batch_update(self, batch_id: str) -> None:
         temp_table = await self.get_tmp_collection(batch_id, False)
