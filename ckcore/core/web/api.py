@@ -1,13 +1,14 @@
 import asyncio
 import json
 import logging
+import os
 import re
 import string
 import uuid
-import os
+from argparse import Namespace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence
+from typing import AsyncGenerator, Callable, Awaitable, Any, Optional, Sequence, Union
 
 import yaml
 from aiohttp import web, WSMsgType, WSMessage
@@ -16,7 +17,6 @@ from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
-from networkx import MultiDiGraph
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -27,8 +27,17 @@ from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
-from core.model.graph_access import GraphBuilder, Section
-from core.model.model import Kind, Model
+from core.model.db_updater import merge_graph_process
+from core.model.graph_access import Section
+from core.model.model import Kind
+from core.model.model_handler import ModelHandler
+from core.model.typed_model import to_js, from_js, to_js_str
+from core.query.query_parser import parse_query
+from core.task.model import Subscription
+from core.task.subscribers import SubscriptionHandler
+from core.task.task_handler import TaskHandler
+from core.types import Json, JsonElement
+from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
@@ -36,14 +45,6 @@ from core.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from core.types import Json, JsonElement
-from core.model.model_handler import ModelHandler
-from core.model.typed_model import to_js, from_js, to_js_str
-from core.query.query_parser import parse_query
-from core.task.model import Subscription
-from core.task.subscribers import SubscriptionHandler
-from core.task.task_handler import TaskHandler
-from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
 
 log = logging.getLogger(__name__)
 RequestHandler = Callable[[Request], Awaitable[StreamResponse]]
@@ -66,6 +67,7 @@ class Api:
         event_bus: EventBus,
         worker_task_queue: WorkerTaskQueue,
         cli: CLI,
+        args: Namespace,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -74,7 +76,9 @@ class Api:
         self.event_bus = event_bus
         self.worker_task_queue = worker_task_queue
         self.cli = cli
+        self.args = args
         self.app = web.Application(middlewares=[self.error_handler])
+        self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(
             [
@@ -388,20 +392,18 @@ class Api:
 
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
-        md = await self.model_handler.load_model()
-        graph = await self.read_graph(request, md)
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        _, info = await graph_db.merge_graph(graph, md)
+        graph_id = request.match_info.get("graph_id", "ns")
+        it = await self.to_graph_iterator(request)
+        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
-        md = await self.model_handler.load_model()
-        graph = await self.read_graph(request, md)
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_id = request.match_info.get("graph_id", "ns")
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
-        _, info = await graph_db.merge_graph(graph, md, batch_id)
+        it = await self.to_graph_iterator(request)
+        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
@@ -531,32 +533,24 @@ class Api:
             return await self.stream_response_from_gen(request, streamer)
 
     @staticmethod
-    async def read_graph(request: Request, md: Model) -> MultiDiGraph:
-        async def stream_to_graph() -> MultiDiGraph:
-            builder = GraphBuilder(md)
+    async def to_graph_iterator(request: Request) -> AsyncGenerator[Union[bytes, Json], None]:
+        async def stream_lines() -> AsyncGenerator[Union[bytes, Json], None]:
             async for line in request.content:
                 if len(line.strip()) == 0:
                     continue
-                builder.add_from_json(json.loads(line))
-            log.info(f"Graph read into memory ({builder.nodes} nodes, {builder.edges} edges)")
-            builder.check_complete()
-            return builder.graph
+                yield line
 
-        async def json_to_graph() -> MultiDiGraph:
+        async def stream_json_array() -> AsyncGenerator[Union[bytes, Json], None]:
             json_array = await request.json()
             log.info("Json read into memory")
-            builder = GraphBuilder(md)
             if isinstance(json_array, list):
                 for doc in json_array:
-                    builder.add_from_json(doc)
-            log.info(f"Graph read into memory ({builder.nodes} nodes, {builder.edges} edges)")
-            builder.check_complete()
-            return builder.graph
+                    yield doc
 
         if request.content_type == "application/json":
-            return await json_to_graph()
+            return stream_json_array()
         elif request.content_type == "application/x-ndjson":
-            return await stream_to_graph()
+            return stream_lines()
         else:
             raise AttributeError("Can not read graph. Currently supported formats: json and ndjson!")
 
