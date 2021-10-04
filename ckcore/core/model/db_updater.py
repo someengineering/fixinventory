@@ -8,7 +8,9 @@ from asyncio import Task
 from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
-from typing import Optional, Union, AsyncGenerator
+from typing import Optional, Union, AsyncGenerator, Any, Generator
+
+from aiostream import stream
 
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
@@ -38,10 +40,10 @@ class ReadElement(ProcessAction):
     Parent -> Child: for every incoming data line.
     """
 
-    element: Union[bytes, Json]
+    elements: list[Union[bytes, Json]]
 
-    def json(self) -> Json:
-        return self.element if isinstance(self.element, dict) else json.loads(self.element)  # type: ignore
+    def jsons(self) -> Generator[Json, Any, None]:
+        return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)  # type: ignore
 
 
 @dataclass
@@ -83,6 +85,9 @@ class Result(ProcessAction):
             return self.result
 
 
+BatchSize = 100000
+
+
 class DbUpdaterProcess(Process):
     """
     This update class implements Process and is supposed to run as separate process.
@@ -121,17 +126,16 @@ class DbUpdaterProcess(Process):
         model = Model.from_kinds([kind async for kind in db.model_db.all()])
         builder = GraphBuilder(model)
         nxt = self.next_action()
-        counter = 0
         while isinstance(nxt, ReadElement):
-            counter += 1
-            if counter % 100000 == 0:
-                log.info("Read 100K elements in process")
-            builder.add_from_json(nxt.json())
+            for element in nxt.jsons():
+                builder.add_from_json(element)
+            log.info(f"Read {int(BatchSize / 1000)}K elements in process")
             nxt = self.next_action()
         if isinstance(nxt, PoisonPill):
             log.info("Got poison pill - going to die.")
             sys.exit(0)
         elif isinstance(nxt, MergeGraph):
+            log.info(f"Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.maybe_batch)
@@ -194,10 +198,12 @@ async def merge_graph_process(
     try:
         updater.start()
         task = read_results()  # concurrently read result queue
-        async for line in content:
-            if not await send_to_child(ReadElement(line)):
-                # in case the child is dead, we should stop
-                break
+
+        async with stream.chunks(content, BatchSize).stream() as streamer:  # type: ignore
+            async for lines in streamer:
+                if not await send_to_child(ReadElement(lines)):
+                    # in case the child is dead, we should stop
+                    break
         await send_to_child(MergeGraph(graph, maybe_batch))
         return await task  # wait for final result
     finally:
