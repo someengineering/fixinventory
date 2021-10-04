@@ -20,6 +20,17 @@ class AWSAccount(BaseAccount):
     kind: ClassVar[str] = "aws_account"
     account_alias: Optional[str] = ""
     role: Optional[str] = None
+    users: Optional[int] = 0
+    groups: Optional[int] = 0
+    account_mfa_enabled: Optional[int] = 0
+    account_access_keys_present: Optional[int] = 0
+    account_signing_certificates_present: Optional[int] = 0
+    mfa_devices: Optional[int] = 0
+    mfa_devices_in_use: Optional[int] = 0
+    policies: Optional[int] = 0
+    policy_versions_in_use: Optional[int] = 0
+    global_endpoint_token_version: Optional[int] = 0
+    server_certificates: Optional[int] = 0
 
     def delete(self, graph) -> bool:
         return False
