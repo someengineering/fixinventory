@@ -879,7 +879,7 @@ class AWSAccountCollector:
         )
         self.account.server_certificates = int(sm.get("ServerCertificates", 0))
 
-        # boto will fail, when there is now Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
+        # boto will fail, when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
         try:
             response_app = client.get_account_password_policy()
             app = response_app.get("PasswordPolicy", {})
