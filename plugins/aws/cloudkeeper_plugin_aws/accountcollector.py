@@ -1,4 +1,3 @@
-import pprint
 import botocore.exceptions
 import concurrent.futures
 import socket
