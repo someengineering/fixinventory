@@ -90,6 +90,12 @@ func hide_interface(state_id:int) -> void:
 		ui_tween.start()
 		
 	elif state_id == states.BLASTRADIUS:
+		ui_blastradius.clear_blastradius()
+		ui_blastradius.clear_history()
+		var ui_tween = ui_blastradius.get_node("AnimTween")
+		ui_tween.interpolate_property(ui_blastradius, "modulate:a", ui_blastradius.modulate.a, 0, 0.3, Tween.TRANS_EXPO, Tween.EASE_OUT)
+		ui_tween.start()
+		yield(ui_tween, "tween_all_completed")
 		ui_blastradius.hide()
 
 
@@ -122,13 +128,18 @@ func show_interface(state_id:int) -> void:
 	
 	elif state_id == states.BLASTRADIUS:
 		ui_blastradius.show()
+		var ui_tween = ui_blastradius.get_node("AnimTween")
+		ui_tween.interpolate_property(ui_blastradius, "modulate:a", ui_blastradius.modulate.a, 1, 0.1, Tween.TRANS_EXPO, Tween.EASE_OUT)
+		ui_tween.start()
 
 
 func show_blastradius(_id) -> void:
 	set_state(states.BLASTRADIUS)
 
 
-func go_to_graph_node(_node_id) -> void:
+func go_to_graph_node(_node_id, graph) -> void:
+	if graph != _g.main_graph:
+		return
 	set_state(states.GRAPH)
 
 

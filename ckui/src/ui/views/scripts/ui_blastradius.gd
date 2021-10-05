@@ -1,20 +1,29 @@
 extends Control
 
 signal close_blast_radius
+signal closing_anim_done
 
 var GraphView = preload("res://ui/elements/Element_GraphView.tscn")
 var node_distance := {}
 var sort_dict := {}
 var blastradius_diameter := 400.0
 var graph_view : Object = null
+var is_closing := false
+var core_node_id := ""
+var last_node_id := ""
 
+onready var tween = $Tween
 onready var blast_info = $BlastLabel/BlastNodeInfo
 
 func _ready():
 	_e.connect("show_blastradius", self, "show_blastradius")
+	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 
 
-func show_blastradius(node_id):
+func show_blastradius(node_id) -> void:
+	last_node_id = core_node_id
+	$BackButton.visible = last_node_id != ""
+	core_node_id = node_id
 	graph_view = GraphView.instance()
 	add_child(graph_view)
 	graph_view.z_index = 5
@@ -28,13 +37,10 @@ func show_blastradius(node_id):
 	$BlastLabel/BlastNodeName.text = "Origin: " + _g.main_graph.graph_data.nodes[node_id].reported.name
 
 
-func layout_blastradius():
+func layout_blastradius() -> void:
 	var keys = graph_view.graph_data.nodes.keys()
 	var nodes = graph_view.graph_data.nodes
 	var node_amount = keys.size()
-	
-	if node_amount == 1:
-		return
 	
 	var largest_dist := 0
 	for i in node_distance.values():
@@ -51,21 +57,36 @@ func layout_blastradius():
 			if node_distance[d] == i:
 				sort_dict[i].append(d)
 	
+	# If the blast radius is not including any other nodes
+	if node_amount == 1:
+		largest_dist = 1
+	
 	for dist in sort_dict.values():
 		var nodes_on_ring = dist.size()
 		var i := 0
 		for node in dist:
 			var node_obj = nodes[ node ]
 			var node_dist = node_distance[ node ]
-			node_obj.icon.position = Vector2( (blastradius_diameter/largest_dist) * node_dist, 0).rotated( PI + PI/2 + ((TAU/nodes_on_ring) * i) )
+			var new_position = Vector2( (blastradius_diameter/largest_dist) * node_dist, 0).rotated( PI + PI/2 + ((TAU/nodes_on_ring) * i) )
+			tween.interpolate_property(node_obj.icon, "position", Vector2.ZERO, new_position, float(node_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
 			node_obj.icon.scale = Vector2.ONE * range_lerp( node_dist, 0, largest_dist, 1.5, 0.5)
 			node_obj.icon.modulate = Color(1.3, 0.6, 0.6, min(node_obj.icon.scale.x+0.2, 1))
 			i += 1
-			
-	draw_blastradius(Vector2(1920, 1080)*0.5, blastradius_diameter+20)
+	tween.interpolate_method(self, "update_lines", 0, 1, float(largest_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
+	draw_blastradius(Vector2.ZERO, blastradius_diameter+20, node_amount == 1)
+	tween.interpolate_property($BlastUIElements, "scale", Vector2.ZERO, Vector2.ONE, float(largest_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
+	tween.start()
+	
+	if node_amount == 1:
+		for node in graph_view.graph_data.nodes.values():
+			node.icon.modulate = Color.white
 
 
-func draw_blastradius(center, radius):
+func update_lines(_p) -> void:
+	graph_view.update_connection_lines()
+
+
+func draw_blastradius(center, radius, is_green:=false) -> void:
 	var resolution = 128
 	var points = PoolVector2Array()
 	var uvs = PoolVector2Array()
@@ -75,15 +96,25 @@ func draw_blastradius(center, radius):
 		points.append(center + Vector2(cos(angle_point), sin(angle_point)) * radius)
 		uvs.append( Vector2(0.5,0.5) + Vector2(cos(angle_point), sin(angle_point)) )
 	
-	
 	$BlastUIElements/Polygon2D.polygon = points
 	$BlastUIElements/Polygon2D.uv = uvs
-	blast_info.text = "Nodes in blast radius:\n"
+	
 	
 	var largest_dist := 0
 	for i in node_distance.values():
 		if i > largest_dist:
 			largest_dist = i
+	
+	if is_green:
+		largest_dist = 1
+		blast_info.text = "Blast radius is clear!"
+		$BlastLabel.modulate = Color(0.2, 1.3, 0.5, 1.0)
+		$BlastUIElements/Polygon2D.modulate = Color(0.2, 1.3, 0.5, 1.0)
+	else:
+		blast_info.text = "Nodes in blast radius:\n"
+		$BlastLabel.modulate = Color(1.5, 0.3, 0.3, 1.0)
+		$BlastUIElements/Polygon2D.modulate = Color(1.0, 0.0, 0.0, 1.0)
+	
 	
 	for i in largest_dist+1:
 		if i == 0:
@@ -95,16 +126,20 @@ func draw_blastradius(center, radius):
 			new_points.append(center + Vector2(cos(angle_point), sin(angle_point)) * ((radius / largest_dist) * i))
 		new_line.points = new_points
 		new_line.show()
+		new_line.default_color = Color(2, 0.2, 0.2, 1.0) if !is_green else Color(0.2, 1.3, 0.5, 1.0)
 		new_line.self_modulate.a = ease((1.0  / (largest_dist)) * i, 3)
 		new_line.get_node("Blastlevel").text = str(i) + " edges" if i > 1 else str(i) + " edge"
+		if is_green:
+			new_line.get_node("Blastlevel").text = ""
 		new_line.get_node("Blastlevel").rect_position = new_points[0] + Vector2(5,0)
 		new_line.show()
 		$BlastUIElements/Instanced.add_child(new_line)
 		
-		blast_info.text += str(sort_dict[i].size()) + " nodes in " + str(i) + " edge radius\n"
+		if !is_green:
+			blast_info.text += str(sort_dict[i].size()) + " nodes in " + str(i) + " edge radius\n"
 	
 
-func get_blastradius_from_selection(node_id):
+func get_blastradius_from_selection(node_id) -> Dictionary:
 	node_distance.clear()
 	var new_cloudgraph = {
 		"nodes" : {},
@@ -140,14 +175,7 @@ func get_blastradius_from_selection(node_id):
 		next_layer = clean_duplicate_nodes(next_layer, current_layer)
 		iterations += 1
 	
-	#update_edges(new_cloudgraph)
-	
 	return new_cloudgraph
-
-
-func update_edges(original:Dictionary):
-	for e in original.edges:
-		prints("Clean edge: ", e.from, e.to)
 
 
 func merge_cloudgraphs(original:Dictionary, update:Dictionary, iterations:int) -> Dictionary:
@@ -194,13 +222,48 @@ func get_children_from_selection(node_id, new_cloudgraph) -> Dictionary:
 	return new_cloudgraph
 
 
-func clear_blastradius():
+func clear_blastradius() -> void:
+	is_closing = true
+	var time_to_collapse = 0.1
+	tween.interpolate_property($BlastUIElements, "scale", Vector2.ONE, Vector2.ZERO, time_to_collapse*1.5, Tween.TRANS_QUAD, Tween.EASE_OUT)
+	tween.interpolate_method(self, "update_lines", 1, 0, time_to_collapse, Tween.TRANS_QUAD, Tween.EASE_OUT)
+	for node in graph_view.graph_data.nodes.values():
+		tween.interpolate_property(node.icon, "position", node.icon.position, Vector2.ZERO, time_to_collapse, Tween.TRANS_QUAD, Tween.EASE_OUT)
+	tween.start()
+
+
+func _on_CloseButton_pressed() -> void:
+	clear_history()
+	clear_blastradius()
+	emit_signal("close_blast_radius")
+
+
+func clear_history():
+	last_node_id = ""
+	core_node_id = ""
+
+
+func go_to_graph_node(node_id, graph) -> void:
+	if graph != graph_view:
+		return
+	if node_id == core_node_id:
+		_e.emit_signal("go_to_graph_node", core_node_id, _g.main_graph)
+	else:
+		clear_blastradius()
+		yield(self, "closing_anim_done")
+		show_blastradius(node_id)
+
+
+func _on_Tween_tween_all_completed() -> void:
+	if !is_closing:
+		return
 	for i in $BlastUIElements/Instanced.get_children():
 		i.queue_free()
 	graph_view.remove_graph()
 	graph_view = null
-	
+	is_closing = false
+	emit_signal("closing_anim_done")
 
-func _on_StartQueryButton_pressed():
-	clear_blastradius()
-	emit_signal("close_blast_radius")
+
+func _on_BackButton_pressed():
+	go_to_graph_node(last_node_id, graph_view)

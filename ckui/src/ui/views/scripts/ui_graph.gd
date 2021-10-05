@@ -160,8 +160,8 @@ func zoom_in():
 	cam_tween.start()
 
 
-func go_to_graph_node(node_id) -> void:
-	if !is_active:
+func go_to_graph_node(node_id, graph) -> void:
+	if !is_active or graph != _g.main_graph:
 		return
 	if target_node != null:
 		target_node.icon.is_selected = false
@@ -175,6 +175,7 @@ func go_to_graph_node(node_id) -> void:
 	var target_pos = target_node.icon.global_position
 	var target_zoom = target_node.icon.scale
 	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_position), 100, 1000), 100, 1000, 0.35, 1.5)
+	cam_tween.remove_all()
 	cam_tween.interpolate_property(graph_cam, "global_position", graph_cam.global_position, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, target_zoom*0.5, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()

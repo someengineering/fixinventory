@@ -39,7 +39,7 @@ void fragment() {
 
 [sub_resource type="Gradient" id=3]
 offsets = PoolRealArray( 0, 0.990099 )
-colors = PoolColorArray( 1, 0, 0, 0.156863, 1, 0, 0, 0.235294 )
+colors = PoolColorArray( 1, 1, 1, 0.0784314, 1, 1, 1, 0.235294 )
 
 [sub_resource type="GradientTexture" id=4]
 gradient = SubResource( 3 )
@@ -105,22 +105,39 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="StartQueryButton" parent="." instance=ExtResource( 6 )]
+[node name="CloseButton" parent="." instance=ExtResource( 6 )]
 margin_left = 1728.0
 margin_top = 96.0
 margin_right = 1856.0
 margin_bottom = 160.0
 
-[node name="ButtonLabel" parent="StartQueryButton/CenterContainer" index="0"]
+[node name="ButtonLabel" parent="CloseButton/CenterContainer" index="0"]
 margin_left = 32.0
 margin_top = 18.0
 margin_right = 96.0
 margin_bottom = 46.0
+rect_pivot_offset = Vector2( 32, 16 )
 text = "Close"
 
+[node name="BackButton" parent="." instance=ExtResource( 6 )]
+margin_left = 1584.0
+margin_top = 96.0
+margin_right = 1712.0
+margin_bottom = 160.0
+
+[node name="ButtonLabel" parent="BackButton/CenterContainer" index="0"]
+margin_left = 35.0
+margin_top = 18.0
+margin_right = 92.0
+margin_bottom = 46.0
+rect_pivot_offset = Vector2( 28, 16 )
+text = "Back"
+
 [node name="BlastUIElements" type="Node2D" parent="."]
+position = Vector2( 960, 540 )
 
 [node name="Polygon2D" type="Polygon2D" parent="BlastUIElements"]
+modulate = Color( 1, 0, 0, 1 )
 material = SubResource( 2 )
 antialiased = true
 texture = ExtResource( 3 )
@@ -142,6 +159,14 @@ __meta__ = {
 
 [node name="Instanced" type="Node2D" parent="BlastUIElements"]
 
-[connection signal="pressed" from="StartQueryButton" to="." method="_on_StartQueryButton_pressed"]
+[node name="Tween" type="Tween" parent="."]
 
-[editable path="StartQueryButton"]
+[node name="AnimTween" type="Tween" parent="."]
+
+[connection signal="pressed" from="CloseButton" to="." method="_on_CloseButton_pressed"]
+[connection signal="pressed" from="BackButton" to="." method="_on_BackButton_pressed"]
+[connection signal="tween_all_completed" from="Tween" to="." method="_on_Tween_tween_all_completed"]
+[connection signal="tween_all_completed" from="AnimTween" to="." method="_on_Tween_tween_all_completed"]
+
+[editable path="CloseButton"]
+[editable path="BackButton"]

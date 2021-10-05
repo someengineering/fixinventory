@@ -27,20 +27,68 @@ var root_node : Object = null
 var is_removed := false
 var is_active := true
 
-onready var node_group = $Center/Graph/NodeGroup
-onready var line_group = $Center/Graph/LineGroup
+var node_group : Node2D = null
+var line_group : Node2D = null
 
 
 func _ready():
+	add_structure()
 	connect("hovering_node", self, "hovering_node")
 	connect("show_connected_nodes", self, "show_connected_nodes")
+
+
+func add_structure():
+	var center = Node2D.new()
+	center.name = "Center"
+	add_child(center)
+	
+	var graph = Node2D.new()
+	graph.name = "Graph"
+	center.add_child(graph)
+	
+	line_group = Node2D.new()
+	line_group.name = "LineGroup"
+	graph.add_child(line_group)
+	
+	node_group = Node2D.new()
+	node_group.name = "NodeGroup"
+	graph.add_child(node_group)
+
+
+func add_node(_data:Dictionary) -> CloudNode:
+	var new_cloud_node = CloudNode.new()
+	new_cloud_node.id = _data.id
+	new_cloud_node.reported = _data.reported
+	new_cloud_node.kind = _data.reported.kind
+	
+	new_cloud_node.icon = cloud_node_icon.instance()
+	new_cloud_node.icon.parent_graph = self
+	new_cloud_node.icon.cloud_node = new_cloud_node
+	new_cloud_node.icon.position = Vector2(1920,1080*1.8)*0.5
+	node_group.add_child(new_cloud_node.icon)
+	
+	return new_cloud_node
+
+
+func add_edge(_data:Dictionary) -> CloudEdge:
+	var new_edge = CloudEdge.new()
+	new_edge.from = graph_data.nodes[_data.from]
+	new_edge.to = graph_data.nodes[_data.to]
+	
+	var new_edge_line = Line2D.new()
+	new_edge_line.width = 2
+	new_edge_line.default_color = new_edge.color
+	new_edge.line = new_edge_line
+	line_group.add_child(new_edge_line)
+	
+	return new_edge
 
 
 func create_graph_raw(raw_data : Dictionary):
 	raw_data = raw_data.duplicate(true)
 	for data in raw_data.values():
 		if data != null and data.has("id"):
-			graph_data.nodes[data.id] = create_new_node(data)
+			graph_data.nodes[data.id] = add_node(data)
 			if root_node == null:
 				root_node = graph_data.nodes[data.id].icon
 		elif graph_data.nodes.has(data.from) and graph_data.nodes.has(data.to):
@@ -48,7 +96,7 @@ func create_graph_raw(raw_data : Dictionary):
 			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
 			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
 			# For connection lines
-			graph_data.edges[str(data.from + data.to)] = add_connection(data)
+			graph_data.edges[str(data.from + data.to)] = add_edge(data)
 
 
 func create_graph_direct(_graph_data : Dictionary):
@@ -78,35 +126,6 @@ func create_graph_direct(_graph_data : Dictionary):
 	
 	graph_data.nodes = _graph_data.nodes
 	graph_data.edges = _graph_data.edges
-
-
-func create_new_node(_data:Dictionary) -> CloudNode:
-	var new_cloud_node = CloudNode.new()
-	new_cloud_node.id = _data.id
-	new_cloud_node.reported = _data.reported
-	new_cloud_node.kind = _data.reported.kind
-	
-	new_cloud_node.icon = cloud_node_icon.instance()
-	new_cloud_node.icon.parent_graph = self
-	new_cloud_node.icon.cloud_node = new_cloud_node
-	new_cloud_node.icon.position = Vector2(1920,1080*1.8)*0.5
-	node_group.add_child(new_cloud_node.icon)
-	
-	return new_cloud_node
-
-
-func add_connection(_data:Dictionary) -> CloudEdge:
-	var new_edge = CloudEdge.new()
-	new_edge.from = graph_data.nodes[_data.from]
-	new_edge.to = graph_data.nodes[_data.to]
-	
-	var new_edge_line = Line2D.new()
-	new_edge_line.width = 2
-	new_edge_line.default_color = new_edge.color
-	new_edge.line = new_edge_line
-	line_group.add_child(new_edge_line)
-	
-	return new_edge
 
 
 func show_connected_nodes(node_id):

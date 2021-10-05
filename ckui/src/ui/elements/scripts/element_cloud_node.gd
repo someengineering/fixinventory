@@ -103,10 +103,10 @@ func set_node_type(value:String) -> void:
 
 
 func _on_Area2D_input_event(_viewport, event, _shape_idx) -> void:
-	if event is InputEventMouseButton and !event.pressed:
+	if event is InputEventMouseButton and !event.pressed and parent_graph.is_active:
 		# left click
 		if event.button_index == 1:
-			_e.emit_signal("go_to_graph_node", cloud_node.id)
+			_e.emit_signal("go_to_graph_node", cloud_node.id, parent_graph)
 
 		#right click
 		elif event.button_index == 2:
@@ -121,7 +121,7 @@ var speed := 15.0
 
 
 func _on_Area2D_mouse_entered():
-	if !_g.spaceship_mode:
+	if !_g.spaceship_mode and parent_graph.is_active:
 		set_hovering(true)
 
 
