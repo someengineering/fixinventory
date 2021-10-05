@@ -17,7 +17,7 @@ from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
-from pprint import PrettyPrinter, pformat
+from pprint import pformat
 from cklib.logging import log
 
 # boto3 has no way of converting between short and long region names
