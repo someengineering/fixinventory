@@ -219,6 +219,7 @@ async def merge_graph_process(
         return asyncio.create_task(read_forever())
 
     task: Optional[Task[GraphUpdate]] = None
+    result: Optional[GraphUpdate] = None
     try:
         reset_process_start_method()  # other libraries might have tampered the value in the mean time
         updater.start()
@@ -230,14 +231,15 @@ async def merge_graph_process(
                     # in case the child is dead, we should stop
                     break
         await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
-        return await task  # wait for final result
-    except Exception as ex:
-        # make sure the change is aborted in case of transaction
-        await db.abort_update(change_id)
-        raise ex
+        result = await task  # wait for final result
+        return result
     finally:
         if task is not None and not task.done():
             task.cancel()
+        if not result:
+            # make sure the change is aborted in case of transaction
+            log.info(f"Abort update manually: {change_id}")
+            await db.abort_update(change_id)
         await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
         if updater.is_alive():
