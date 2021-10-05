@@ -4,10 +4,10 @@ import base64
 import time
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from typing import Any, Optional
+from typing import Any, Optional, Tuple, Dict
 
 
-def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
+def key_from_psk(psk: str, salt: bytes = None) -> Tuple[bytes, bytes]:
     """Derive a 256 bit key from a passphrase/pre-shared-key.
     A salt can be optionally provided. If not one will be generated.
     Returns both the key and the salt.
@@ -25,9 +25,9 @@ def key_from_psk(psk: str, salt: bytes = None) -> tuple[bytes, bytes]:
 
 
 def encode_jwt(
-    payload: dict[str, str],
+    payload: Dict[str, Any],
     psk: str,
-    headers: Optional[dict[str, str]] = None,
+    headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
 ) -> str:
     """Encodes a payload into a JWT and signs using a key derived from a pre-shared-key.
@@ -45,7 +45,7 @@ def encode_jwt(
 
 
 def decode_jwt(
-    encoded_jwt: str, psk: str, options: Optional[dict[str, Any]] = None
+    encoded_jwt: str, psk: str, options: Optional[Dict[str, Any]] = None
 ) -> dict:
     """Decode a JWT using a key derived from a pre-shared-key and a salt stored
     in the JWT headers.
@@ -57,13 +57,13 @@ def decode_jwt(
 
 
 def encode_jwt_to_headers(
-    http_headers: dict[str, str],
-    payload: dict[str, str],
+    http_headers: Dict[str, str],
+    payload: Dict[str, Any],
     psk: str,
     scheme: str = "Bearer",
-    headers: Optional[dict[str, str]] = None,
+    headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
-) -> dict[str, str]:
+) -> Dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary.
     """
@@ -74,11 +74,11 @@ def encode_jwt_to_headers(
 
 
 def decode_jwt_from_headers(
-    http_headers: dict[str, str],
+    http_headers: Dict[str, str],
     psk: str,
     scheme: str = "Bearer",
-    options: Optional[dict[str, Any]] = None,
-) -> Optional[dict[str, str]]:
+    options: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, str]]:
     """Retrieves the Authorization header from a http headers dictionary and
     passes it to `decode_jwt_from_header_value()` to return the decoded payload.
     """
@@ -94,8 +94,8 @@ def decode_jwt_from_header_value(
     authorization_header: str,
     psk: str,
     scheme: str = "Bearer",
-    options: Optional[dict[str, Any]] = None,
-) -> Optional[dict[str, str]]:
+    options: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, str]]:
     """Decodes a JWT payload from a http Authorization header value."""
     if (
         len(authorization_header) <= len(scheme) + 1

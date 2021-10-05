@@ -8,7 +8,7 @@ onready var cloud_results = $ResultContainer/Results/HBoxContainer/CloudResults/
 onready var query_results = $ResultContainer/Results/HBoxContainer/QueryResults/Items
 
 func _ready():
-	_g.connect("nodes_changed", self, "set_local_nodes")
+	_e.connect("nodes_changed", self, "set_local_nodes")
 
 func grab_focus():
 	$ResultContainer.hide()
@@ -22,7 +22,7 @@ func grab_focus():
 
 
 func set_local_nodes():
-	nodes = _g.nodes.duplicate()
+	nodes = _g.main_graph.graph_data.nodes.duplicate()
 
 
 func _on_LineEdit_text_changed(_new_text):

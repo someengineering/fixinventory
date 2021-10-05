@@ -10,9 +10,14 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Node",
-"class": "CloudConnection",
+"class": "CloudEdge",
 "language": "GDScript",
-"path": "res://scripts/classes/class_cloud_connection.gd"
+"path": "res://scripts/classes/class_cloud_edge.gd"
+}, {
+"base": "Node",
+"class": "CloudGraph",
+"language": "GDScript",
+"path": "res://scripts/classes/class_cloud_graph.gd"
 }, {
 "base": "Node",
 "class": "CloudNode",
@@ -25,7 +30,8 @@ _global_script_classes=[ {
 "path": "res://scripts/tools/utils.gd"
 } ]
 _global_script_class_icons={
-"CloudConnection": "",
+"CloudEdge": "",
+"CloudGraph": "",
 "CloudNode": "",
 "Utils": ""
 }
@@ -50,8 +56,8 @@ gdscript/warnings/return_value_discarded=false
 
 window/size/width=1920
 window/size/height=1080
-window/size/test_width=1440
-window/size/test_height=810
+window/size/test_width=1920
+window/size/test_height=1080
 window/dpi/allow_hidpi=true
 window/stretch/mode="2d"
 window/stretch/aspect="keep"

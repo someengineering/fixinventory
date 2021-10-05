@@ -19,6 +19,8 @@ Cloudkeeper indexes resources, captures dependencies and maps out your infrastru
 
 Cloudkeeper consists of multiple components described in [the component list below](#component-list)
 
+The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a3`
+
 
 ## Quick start
 In this quick start guide, we’re showing you three things, how to:

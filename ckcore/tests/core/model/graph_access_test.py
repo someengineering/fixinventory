@@ -217,7 +217,7 @@ def test_sub_graphs_from_graph_collector() -> None:
         assert len(parent.nodes) == 3  # root + 2 x collector
         assert succ.root().startswith("collector")
         assert len(list(succ.not_visited_nodes())) == 237
-        assert len(succ.nodes) == 240
+        assert len(succ.nodes) == 238
         # make sure there is no node from another subgraph
         for node_id in succ.not_visited_nodes():
             assert succ.root() in node_id["id"]
@@ -234,7 +234,7 @@ def test_sub_graphs_from_graph_account() -> None:
         assert len(parent.nodes) == 9
         assert succ.root().startswith("account")
         assert len(list(succ.not_visited_nodes())) == 78
-        assert len(succ.nodes) == 87
+        assert len(succ.nodes) == 79
         # make sure there is no node from another subgraph
         for node_id in succ.not_visited_nodes():
             assert succ.root() in node_id["id"]

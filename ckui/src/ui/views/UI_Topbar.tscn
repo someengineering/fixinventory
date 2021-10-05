@@ -8,41 +8,42 @@
 [ext_resource path="res://assets/graphics/icons/icon_nodes.png" type="Texture" id=6]
 [ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=7]
 
-[sub_resource type="Gradient" id=22]
+[sub_resource type="Gradient" id=1]
 colors = PoolColorArray( 0.00392157, 0.105882, 0.184314, 0.823529, 0.00392157, 0.105882, 0.184314, 0.823529 )
 
-[sub_resource type="GradientTexture" id=23]
-gradient = SubResource( 22 )
+[sub_resource type="GradientTexture" id=2]
+gradient = SubResource( 1 )
+width = 65
 
-[sub_resource type="DynamicFontData" id=24]
+[sub_resource type="DynamicFontData" id=3]
 font_path = "res://assets/fonts/GemunuLibre-VariableFont_wght.ttf"
 
-[sub_resource type="DynamicFont" id=25]
+[sub_resource type="DynamicFont" id=4]
 size = 38
 use_mipmaps = true
 use_filter = true
-font_data = SubResource( 24 )
+font_data = SubResource( 3 )
 
-[sub_resource type="CanvasItemMaterial" id=26]
+[sub_resource type="CanvasItemMaterial" id=5]
 blend_mode = 1
 
-[sub_resource type="CanvasItemMaterial" id=27]
+[sub_resource type="CanvasItemMaterial" id=6]
 blend_mode = 1
 
 [node name="UITopbar" type="Control"]
-margin_right = 40.0
-margin_bottom = 40.0
-rect_min_size = Vector2( 1920, 70 )
+margin_right = 1920.0
+margin_bottom = 66.0
+rect_min_size = Vector2( 1920, 66 )
 script = ExtResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Sprite" type="Sprite" parent="."]
-position = Vector2( 967.895, 22.7977 )
+position = Vector2( 960, 32.5 )
 rotation = 1.57079
-scale = Vector2( 0.0428915, 1951.81 )
-texture = SubResource( 23 )
+scale = Vector2( 1, 1920 )
+texture = SubResource( 2 )
 
 [node name="UserIcon" type="Sprite" parent="."]
 modulate = Color( 0.603922, 0.905882, 1, 1 )
@@ -58,8 +59,8 @@ margin_left = 1400.0
 margin_top = 2.0
 margin_right = 1856.0
 margin_bottom = 54.0
-custom_fonts/font = SubResource( 25 )
-text = "Lars Kamp"
+custom_fonts/font = SubResource( 4 )
+text = "Some Engineer"
 align = 2
 valign = 1
 __meta__ = {
@@ -133,25 +134,23 @@ texture = ExtResource( 4 )
 text = "Query "
 
 [node name="Polygon2D" type="Polygon2D" parent="."]
-material = SubResource( 26 )
-position = Vector2( -25, -5 )
+material = SubResource( 5 )
+position = Vector2( -25, -6 )
 color = Color( 0, 0.368627, 0.470588, 1 )
 polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
 
 [node name="Polygon2D2" type="Polygon2D" parent="."]
-material = SubResource( 26 )
-position = Vector2( 1946, -5 )
+material = SubResource( 5 )
+position = Vector2( 1946, -6 )
 scale = Vector2( -1, 1 )
 color = Color( 0, 0.368627, 0.470588, 1 )
 polygon = PoolVector2Array( 25, 70, 25, 73, 151, 73, 151, 72, 48, 72, 48, 70 )
 
 [node name="TextureRect" type="TextureRect" parent="."]
 modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
-material = SubResource( 27 )
+material = SubResource( 6 )
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_top = -30.0
-margin_bottom = 6.0
 mouse_filter = 2
 texture = ExtResource( 7 )
 stretch_mode = 2

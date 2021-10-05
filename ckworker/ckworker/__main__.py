@@ -9,16 +9,16 @@ from cklib.pluginloader import PluginLoader
 from cklib.baseplugin import BaseCollectorPlugin, PluginType
 from cklib.utils import log_stats, increase_limits
 from cklib.args import ArgumentParser
+from cklib.core.actions import CoreActions
+from cklib.core.tasks import CoreTasks
 from ckworker.collect import collect, add_args as collect_add_args
 from ckworker.cleanup import cleanup, add_args as cleanup_add_args
 from ckworker.ckcore import add_args as ckcore_add_args
-from ckworker.tag import tasks_processor
+from ckworker.tag import core_tag_tasks_processor
 from cklib.event import (
     add_event_listener,
     Event,
     EventType,
-    CkEvents,
-    CkCoreTasks,
     add_args as event_add_args,
 )
 
@@ -79,14 +79,11 @@ def main() -> None:
     # Try to increase nofile and nproc limits
     increase_limits()
 
-    all_collector_plugins = plugin_loader.plugins(PluginType.COLLECTOR)
-    message_processor = partial(ckcore_message_processor, all_collector_plugins)
-
-    ke = CkEvents(
+    core_actions = CoreActions(
         identifier="workerd-events",
         ckcore_uri=ArgumentParser.args.ckcore_uri,
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
-        events={
+        actions={
             "collect": {
                 "timeout": ArgumentParser.args.timeout,
                 "wait_for_completion": True,
@@ -96,17 +93,19 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=message_processor,
+        message_processor=partial(
+            core_actions_processor, plugin_loader.plugins(PluginType.COLLECTOR)
+        ),
     )
-    kt = CkCoreTasks(
+    core_tasks = CoreTasks(
         identifier="workerd-tasks",
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         tasks=["tag"],
         task_queue_filter={},
-        message_processor=tasks_processor,
+        message_processor=core_tag_tasks_processor,
     )
-    ke.start()
-    kt.start()
+    core_actions.start()
+    core_tasks.start()
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
@@ -117,7 +116,7 @@ def main() -> None:
     os._exit(0)
 
 
-def ckcore_message_processor(
+def core_actions_processor(
     collectors: List[BaseCollectorPlugin], message: Dict
 ) -> None:
     if not isinstance(message, dict):

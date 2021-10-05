@@ -8,17 +8,17 @@
 [ext_resource path="res://assets/themes/default.tres" type="Theme" id=6]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=7]
 
-[sub_resource type="Shader" id=40]
+[sub_resource type="Shader" id=1]
 code = "shader_type canvas_item;
 
 void fragment() {
 	COLOR = textureLod(SCREEN_TEXTURE, SCREEN_UV, 3.0);
 }"
 
-[sub_resource type="ShaderMaterial" id=41]
-shader = SubResource( 40 )
+[sub_resource type="ShaderMaterial" id=2]
+shader = SubResource( 1 )
 
-[sub_resource type="StyleBoxFlat" id=14]
+[sub_resource type="StyleBoxFlat" id=3]
 bg_color = Color( 0.00392157, 0.105882, 0.184314, 0.823529 )
 border_width_left = 2
 border_width_top = 2
@@ -31,13 +31,13 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="CanvasItemMaterial" id=15]
+[sub_resource type="CanvasItemMaterial" id=4]
 blend_mode = 1
 
-[sub_resource type="CanvasItemMaterial" id=16]
+[sub_resource type="CanvasItemMaterial" id=5]
 blend_mode = 1
 
-[sub_resource type="StyleBoxTexture" id=17]
+[sub_resource type="StyleBoxTexture" id=6]
 texture = ExtResource( 2 )
 region_rect = Rect2( 0, 0, 64, 64 )
 margin_left = 50.0
@@ -47,7 +47,7 @@ expand_margin_right = 5.0
 expand_margin_top = 5.0
 expand_margin_bottom = 5.0
 
-[sub_resource type="StyleBoxTexture" id=18]
+[sub_resource type="StyleBoxTexture" id=7]
 texture = ExtResource( 3 )
 region_rect = Rect2( 0, 0, 64, 64 )
 margin_right = 50.0
@@ -57,50 +57,50 @@ expand_margin_right = 5.0
 expand_margin_top = 5.0
 expand_margin_bottom = 5.0
 
-[sub_resource type="CanvasItemMaterial" id=33]
+[sub_resource type="CanvasItemMaterial" id=8]
 blend_mode = 1
 
-[sub_resource type="DynamicFontData" id=31]
+[sub_resource type="DynamicFontData" id=9]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
-[sub_resource type="DynamicFont" id=34]
+[sub_resource type="DynamicFont" id=10]
 size = 38
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -9
 extra_spacing_char = 2
-font_data = SubResource( 31 )
+font_data = SubResource( 9 )
 
-[sub_resource type="DynamicFontData" id=32]
+[sub_resource type="DynamicFontData" id=11]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
-[sub_resource type="DynamicFont" id=35]
+[sub_resource type="DynamicFont" id=12]
 size = 28
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -6
 extra_spacing_char = 1
-font_data = SubResource( 32 )
+font_data = SubResource( 11 )
 
-[sub_resource type="DynamicFontData" id=38]
+[sub_resource type="DynamicFontData" id=13]
 font_path = "res://assets/fonts/GemunuLibre-Bold.ttf"
 
-[sub_resource type="DynamicFont" id=6]
+[sub_resource type="DynamicFont" id=14]
 size = 30
 use_mipmaps = true
 use_filter = true
-font_data = SubResource( 38 )
+font_data = SubResource( 13 )
 
-[sub_resource type="DynamicFontData" id=36]
+[sub_resource type="DynamicFontData" id=15]
 font_path = "res://assets/fonts/GemunuLibre-Medium.ttf"
 
-[sub_resource type="DynamicFont" id=37]
+[sub_resource type="DynamicFont" id=16]
 size = 26
 use_mipmaps = true
 use_filter = true
-font_data = SubResource( 36 )
+font_data = SubResource( 15 )
 
-[sub_resource type="CanvasItemMaterial" id=39]
+[sub_resource type="CanvasItemMaterial" id=17]
 blend_mode = 1
 
 [node name="UINodeInfo" type="Control"]
@@ -110,7 +110,7 @@ __meta__ = {
 }
 
 [node name="BackgroundBlur" type="Sprite" parent="."]
-material = SubResource( 41 )
+material = SubResource( 2 )
 position = Vector2( 960, 864 )
 scale = Vector2( 1401, 323.5 )
 z_as_relative = false
@@ -125,14 +125,14 @@ rect_min_size = Vector2( 200, 200 )
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 14 )
+custom_styles/panel = SubResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="TextureRect" type="TextureRect" parent="Background"]
 modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
-material = SubResource( 15 )
+material = SubResource( 4 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -144,28 +144,28 @@ __meta__ = {
 
 [node name="Extra" type="Panel" parent="Background"]
 modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
-material = SubResource( 16 )
+material = SubResource( 5 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-custom_styles/panel = SubResource( 17 )
+custom_styles/panel = SubResource( 6 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Extra2" type="Panel" parent="Background"]
 modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
-material = SubResource( 16 )
+material = SubResource( 5 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-custom_styles/panel = SubResource( 18 )
+custom_styles/panel = SubResource( 7 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="NodeNameLabel" type="Label" parent="Background"]
-material = SubResource( 33 )
+material = SubResource( 8 )
 margin_left = 17.0
 margin_top = 16.0
 margin_right = 243.0
@@ -177,7 +177,7 @@ custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 34 )
+custom_fonts/font = SubResource( 10 )
 text = "Total Instances"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -194,7 +194,7 @@ custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_y = 5
 custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 35 )
+custom_fonts/font = SubResource( 12 )
 text = "Date range"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -209,8 +209,8 @@ margin_right = -400.0
 margin_bottom = -32.0
 theme = ExtResource( 6 )
 custom_colors/default_color = Color( 0.517647, 0.901961, 1, 1 )
-custom_fonts/bold_font = SubResource( 6 )
-custom_fonts/normal_font = SubResource( 37 )
+custom_fonts/bold_font = SubResource( 14 )
+custom_fonts/normal_font = SubResource( 16 )
 bbcode_enabled = true
 bbcode_text = "Info
 Info
@@ -285,13 +285,14 @@ margin_bottom = 30.0
 text = "Manage tags"
 
 [node name="Line2D" type="Line2D" parent="Background"]
-material = SubResource( 39 )
+material = SubResource( 17 )
 points = PoolVector2Array( 1025, 32, 1025, 288 )
 width = 2.0
 default_color = Color( 0.517647, 0.901961, 1, 0.32549 )
 
 [node name="AnimTween" type="Tween" parent="."]
 
+[connection signal="pressed" from="Background/MarkForCleanupButton" to="." method="_on_MarkForCleanupButton_pressed"]
 [connection signal="tween_all_completed" from="AnimTween" to="." method="_on_AnimTween_tween_all_completed"]
 
 [editable path="Background/ContactOwnerButton"]
