@@ -135,6 +135,10 @@ hr {
     background-color: #001930;
 }
 
+.wy-menu-vertical li.toctree-l3.current>a, .wy-menu-vertical li.toctree-l3.current li.toctree-l4>a {
+    background: #001526;
+}
+
 .rst-content table.docutils td, .wy-table-bordered-all td {
     border-bottom: 1px solid #000d19;
     border-left: 1px solid #000d19;
