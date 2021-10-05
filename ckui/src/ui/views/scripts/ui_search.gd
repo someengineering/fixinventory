@@ -15,7 +15,7 @@ func grab_focus():
 	line_edit.grab_focus()
 	line_edit.text = ""
 	for c in cloud_results.get_children():
-		if !c.has_signal("pressed"):
+		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
 			continue
 		c.disconnect("pressed", self, "result_pressed")
 		c.queue_free()
@@ -27,12 +27,12 @@ func set_local_nodes():
 
 func _on_LineEdit_text_changed(_new_text):
 	for c in cloud_results.get_children():
-		if !c.has_signal("pressed"):
+		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
 			continue
 		c.disconnect("pressed", self, "result_node_pressed")
 		c.queue_free()
 	for c in query_results.get_children():
-		if !c.has_signal("pressed"):
+		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
 			continue
 		c.disconnect("pressed", self, "result_query_pressed")
 		c.queue_free()
@@ -70,7 +70,7 @@ func _on_LineEdit_text_changed(_new_text):
 	$ResultContainer.visible = has_query_result or has_node_result
 
 func result_node_pressed(node_id):
-	_e.emit_signal("go_to_graph_node", node_id)
+	_e.emit_signal("go_to_graph_node", node_id, _g.main_graph)
 
 func result_query_pressed(query_id):
 	_e.emit_signal("load_query", query_id)
