@@ -4,7 +4,6 @@ import re
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import timedelta
 from functools import partial
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union
 
@@ -42,7 +41,7 @@ from core.query.model import (
     AggregateVariableCombined,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first, value_in_path_get, utc_str, Periodic
+from core.util import first, value_in_path_get, utc_str
 
 log = logging.getLogger(__name__)
 
@@ -513,9 +512,6 @@ class ArangoGraphDB(GraphDB):
     ) -> tuple[list[str], GraphUpdate]:
         is_batch = maybe_batch is not None
         change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
-        update_in_progress = Periodic(
-            f"mark_{change_id}", lambda: self.refresh_marked_update(change_id), timedelta(seconds=60)
-        )
 
         async def prepare_graph(
             sub: GraphAccess, node_query: tuple[str, Json], edge_query: Callable[[str], tuple[str, Json]]
@@ -561,7 +557,6 @@ class ArangoGraphDB(GraphDB):
         # this will throw an exception, in case of a conflicting update (--> outside try block)
         log.debug("Mark all parent nodes for this update to avoid conflicting changes")
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
-        await update_in_progress.start()
         try:
             parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
@@ -579,13 +574,12 @@ class ArangoGraphDB(GraphDB):
                 eds = combine_dict(eds, ed)
 
             log.debug(f"Update prepared: {info}. Going to persist the changes.")
+            await self.refresh_marked_update(change_id)
             await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
             return roots, info
         except Exception as ex:
             await self.delete_marked_update(change_id)
             raise ex
-        finally:
-            await update_in_progress.stop()
 
     async def persist_update(
         self,

@@ -5,6 +5,7 @@ import sys
 from abc import ABC
 from argparse import Namespace
 from asyncio import Task
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
@@ -80,11 +81,11 @@ class PoisonPill(ProcessAction):
 
 @dataclass
 class Result(ProcessAction):
-    result: Union[GraphUpdate, Exception]
+    result: Union[GraphUpdate, str]
 
     def get_value(self) -> GraphUpdate:
-        if isinstance(self.result, Exception):
-            raise self.result
+        if isinstance(self.result, str):
+            raise ImportAborted(self.result)
         else:
             return self.result
 
@@ -164,8 +165,9 @@ class DbUpdaterProcess(Process):
             log.info(f"Update process done: {self.pid} Exit.")
             sys.exit(0)
         except Exception as ex:
-            self.write_queue.put(Result(ex))
-            log.info("Update process interrupted. Preemptive Exit.", exc_info=ex)
+            # not all exceptions can be pickled. Use string representation.
+            self.write_queue.put(Result(str(ex)))
+            log.info("Update process interrupted. Preemptive Exit.")
             sys.exit(1)
 
 
@@ -213,6 +215,7 @@ async def merge_graph_process(
 
         return asyncio.create_task(read_forever())
 
+    task: Optional[Task[GraphUpdate]] = None
     try:
         reset_process_start_method()  # other libraries might have tampered the value in the mean time
         updater.start()
@@ -226,15 +229,20 @@ async def merge_graph_process(
         await send_to_child(MergeGraph(graph, maybe_batch))
         return await task  # wait for final result
     finally:
+        if task is not None and not task.done():
+            task.cancel()
         await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
         if updater.is_alive():
             log.warning(f"Process is still alive after poison pill. Terminate process {updater.pid}")
-            updater.terminate()
+            with suppress(Exception):
+                updater.terminate()
             await asyncio.sleep(3)
         if updater.is_alive():
             log.warning(f"Process is still alive after terminate. Kill process {updater.pid}")
-            updater.kill()
+            with suppress(Exception):
+                updater.kill()
             await asyncio.sleep(3)
         if not updater.is_alive():
-            updater.close()
+            with suppress(Exception):
+                updater.close()
