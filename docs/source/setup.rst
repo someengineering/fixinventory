@@ -435,15 +435,15 @@ For instance the boolean ``--verbose`` would become ``CKMETRICS_VERBOSE=true`` o
 Once started :ref:`ckmetrics` will register for ``generate_metrics`` core events. When such an event is received it will
 generate Cloudkeeper metrics and provide them at the ``/metrics`` endpoint.
 
-A prometheus config could look like this:
+As mentioned in the :ref:`prometheus` setup your configuration needs to contain this configuration snippet.
 
 .. code-block:: yaml
     :caption: :ref:`prometheus` configuration snippet
 
     scrape_configs:
-        - job_name: "ckmetrics"
-            static_configs:
-            - targets: ["localhost:9955"]
+    - job_name: "ckmetrics"
+        static_configs:
+        - targets: ["localhost:9955"]
 
 Run ckmetrics
 -------------
