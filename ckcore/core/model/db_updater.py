@@ -17,6 +17,7 @@ from aiostream.core import Stream
 
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
+from core.db.graphdb import GraphDB
 from core.db.model import GraphUpdate
 from core.dependencies import db_access, setup_process, reset_process_start_method
 from core.error import ImportAborted
@@ -24,7 +25,7 @@ from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
-from core.util import utc
+from core.util import utc, uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,8 @@ class MergeGraph(ProcessAction):
     """
 
     graph: str
-    maybe_batch: Optional[str]
+    change_id: str
+    is_batch: bool = False
 
 
 @dataclass
@@ -143,7 +145,7 @@ class DbUpdaterProcess(Process):
             log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
-            _, result = await graphdb.merge_graph(builder.graph, model, nxt.maybe_batch)
+            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
@@ -172,13 +174,14 @@ class DbUpdaterProcess(Process):
 
 
 async def merge_graph_process(
+    db: GraphDB,
     bus: EventBus,
     args: Namespace,
     content: AsyncGenerator[Union[bytes, Json], None],
-    graph: str,
     max_wait: timedelta,
     maybe_batch: Optional[str],
 ) -> GraphUpdate:
+    change_id = maybe_batch if maybe_batch else uuid_str()
     write = Queue()  # type: ignore
     read = Queue()  # type: ignore
     updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
@@ -226,8 +229,12 @@ async def merge_graph_process(
                 if not await send_to_child(ReadElement(lines)):
                     # in case the child is dead, we should stop
                     break
-        await send_to_child(MergeGraph(graph, maybe_batch))
+        await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
         return await task  # wait for final result
+    except Exception as ex:
+        # make sure the change is aborted in case of transaction
+        await db.abort_update(change_id)
+        raise ex
     finally:
         if task is not None and not task.done():
             task.cancel()

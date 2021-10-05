@@ -377,7 +377,7 @@ class GraphAccess:
                     raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
                 all_successors |= successors
                 # create subgraph with all successors and all parents, where all parents are already marked as visited
-                sub = GraphAccess(graph.subgraph(successors | parent_nodes), root, parent_nodes, parent_edges)
+                sub = GraphAccess(graph.subgraph(successors), root, parent_nodes, parent_edges)
                 yield root, sub
 
         roots = replace_roots()

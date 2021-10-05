@@ -392,17 +392,19 @@ class Api:
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "ns")
+        db = self.db.get_graph_db(graph_id)
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, None)
+        info = await merge_graph_process(db, self.event_bus, self.args, it, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
         graph_id = request.match_info.get("graph_id", "ns")
+        db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(self.event_bus, self.args, it, graph_id, self.merge_max_wait_time, batch_id)
+        info = await merge_graph_process(db, self.event_bus, self.args, it, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

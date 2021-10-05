@@ -41,12 +41,17 @@ from core.query.model import (
     AggregateVariableCombined,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first, value_in_path_get, utc_str
+from core.util import first, value_in_path_get, utc_str, uuid_str
 
 log = logging.getLogger(__name__)
 
 
 class GraphDB(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
     @abstractmethod
     async def get_node(self, node_id: str) -> Optional[Json]:
         pass
@@ -76,7 +81,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> tuple[list[str], GraphUpdate]:
         pass
 
@@ -128,11 +133,15 @@ class GraphDB(ABC):
 class ArangoGraphDB(GraphDB):
     def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode) -> None:
         super().__init__()
-        self.name = name
+        self._name = name
         self.node_adjuster = adjust_node
         self.vertex_name = name
         self.in_progress = f"{name}_in_progress"
         self.db = db
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def edge_collection(self, edge_type: str) -> str:
         return f"{self.name}_{edge_type}"
@@ -508,10 +517,9 @@ class ArangoGraphDB(GraphDB):
         return info, edges_inserts, edges_deletes
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> tuple[list[str], GraphUpdate]:
-        is_batch = maybe_batch is not None
-        change_id = maybe_batch if maybe_batch else str(uuid.uuid1())
+        change_id = maybe_change_id if maybe_change_id else uuid_str()
 
         async def prepare_graph(
             sub: GraphAccess, node_query: tuple[str, Json], edge_query: Callable[[str], tuple[str, Json]]
@@ -1114,6 +1122,10 @@ class EventGraphDB(GraphDB):
         self.event_bus = event_bus
         self.graph_name = real.name
 
+    @property
+    def name(self) -> str:
+        return self.real.name
+
     async def get_node(self, node_id: str) -> Optional[Json]:
         return await self.real.get_node(node_id)
 
@@ -1163,12 +1175,12 @@ class EventGraphDB(GraphDB):
         return self.real.search(tokens, limit)
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_batch: Optional[str] = None
+        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> tuple[list[str], GraphUpdate]:
-        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_batch)
+        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
         even_data = {"graph": self.graph_name, "root_ids": roots}
         if info.all_changes():  # do not emit an event in case nothing has changed
-            if maybe_batch:
+            if is_batch:
                 await self.event_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
             else:
                 await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
