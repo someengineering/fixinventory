@@ -8,6 +8,7 @@ from asyncio import Task
 from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
+from queue import Empty
 from typing import Optional, Union, AsyncGenerator, Any, Generator
 
 from aiostream import stream
@@ -17,10 +18,12 @@ from core.async_extensions import run_async
 from core.db.db_access import DbAccess
 from core.db.model import GraphUpdate
 from core.dependencies import db_access, setup_process, reset_process_start_method
+from core.error import ImportAborted
 from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
+from core.util import utc
 
 log = logging.getLogger(__name__)
 
@@ -155,10 +158,10 @@ class DbUpdaterProcess(Process):
         try:
             # Entrypoint of the new service
             setup_process(self.args, f"merge_update_{self.pid}")
-            log.debug("Import process started")
+            log.info(f"Import process started: {self.pid}")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
-            log.info("Update process done. Exit.")
+            log.info(f"Update process done: {self.pid} Exit.")
             sys.exit(0)
         except Exception as ex:
             self.write_queue.put(Result(ex))
@@ -178,6 +181,8 @@ async def merge_graph_process(
     read = Queue()  # type: ignore
     updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
+    deadline = utc() + max_wait
+    dead_adjusted = False
 
     async def send_to_child(pa: ProcessAction) -> bool:
         alive = updater.is_alive()
@@ -187,12 +192,24 @@ async def merge_graph_process(
 
     def read_results() -> Task[GraphUpdate]:
         async def read_forever() -> GraphUpdate:
-            while True:
-                action = await run_async(read.get, True, max_wait.total_seconds())
-                if isinstance(action, EmitMessage):
-                    await bus.emit(action.event)
-                elif isinstance(action, Result):
-                    return action.get_value()
+            nonlocal deadline
+            nonlocal dead_adjusted
+            while utc() < deadline:
+                # After exit of updater: adjust the deadline once
+                if not updater.is_alive() and not dead_adjusted:
+                    log.debug("Import process done or dead. Adjust deadline.")
+                    deadline = utc() + timedelta(seconds=30)
+                    dead_adjusted = True
+                try:
+                    action = await run_async(read.get, True, stale)
+                    if isinstance(action, EmitMessage):
+                        await bus.emit(action.event)
+                    elif isinstance(action, Result):
+                        return action.get_value()
+                except Empty:
+                    # empty is fine
+                    pass
+            raise ImportAborted(f"Import process died. (ExitCode: {updater.exitcode})")
 
         return asyncio.create_task(read_forever())
 

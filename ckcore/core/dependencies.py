@@ -114,7 +114,12 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
         log_format = f"%(asctime)s [{child_process}][%(levelname)s] %(message)s [%(name)s]"
     else:
         log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
-    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
+    logging.basicConfig(
+        format=log_format,
+        datefmt="%H:%M:%S",
+        level=logging.getLevelName(args.log_level.upper()),
+        force=child_process is not None,  # forked processes need to be forced
+    )
 
     # set/reset process creation method
     reset_process_start_method()
@@ -126,9 +131,9 @@ def reset_process_start_method() -> None:
     preferred = "spawn"
     current = mp.get_start_method(True)
     if current != preferred:
-        if "spawn" in mp.get_all_start_methods():
+        if preferred in mp.get_all_start_methods():
             log.info(f"Set process start method to {preferred}")
-            mp.set_start_method("spawn", True)
+            mp.set_start_method(preferred, True)
             return
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
