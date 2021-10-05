@@ -48,6 +48,10 @@ class NoSuchChangeError(DatabaseError, NotFoundError):
         self.change_id = change_id
 
 
+class ImportAborted(CoreException):
+    pass
+
+
 class CLIParseError(DomainError):
     pass
 

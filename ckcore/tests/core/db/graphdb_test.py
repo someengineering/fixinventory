@@ -248,7 +248,10 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     g = create_graph("yes or no")
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.merge_graph(g, foo_model, batch_id) == (["collector"], GraphUpdate(112, 1, 0, 112, 0, 0))
+    assert await graph_db.merge_graph(g, foo_model, batch_id, True) == (
+        ["collector"],
+        GraphUpdate(112, 1, 0, 112, 0, 0),
+    )
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
     with pytest.raises(NoSuchChangeError):
@@ -260,7 +263,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
-    await graph_db.merge_graph(g, foo_model, batch_id)
+    await graph_db.merge_graph(g, foo_model, batch_id, True)
     await graph_db.abort_update(batch_id)
     assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
 
@@ -462,7 +465,7 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
     await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     await event_graph_db.delete_node("some_other")
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
-    await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1")
+    await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events

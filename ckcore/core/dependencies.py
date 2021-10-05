@@ -1,11 +1,13 @@
 import logging
 import sys
+import multiprocessing as mp
 from argparse import Namespace
 from typing import Optional
 
 from arango import ArangoClient
 from cklib.args import ArgumentParser
 
+from core import async_extensions
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.event_bus import EventBus
@@ -104,14 +106,36 @@ def parse_args(args: Optional[list[str]] = None, namespace: Optional[str] = None
     return parser.parse_args(args, namespace)  # type: ignore
 
 
-def setup_logging(args: Namespace, child_process: Optional[str] = None) -> None:
+# Note: this method should be called from every started process as early as possible
+def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
     if child_process:
         log_format = f"%(asctime)s [{child_process}][%(levelname)s] %(message)s [%(name)s]"
     else:
         log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
-    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
+    logging.basicConfig(
+        format=log_format,
+        datefmt="%H:%M:%S",
+        level=logging.getLevelName(args.log_level.upper()),
+        force=child_process is not None,  # forked processes need to be forced
+    )
+
+    # set/reset process creation method
+    reset_process_start_method()
+    # reset global async thread pool (forked processes need to create a fresh pool)
+    async_extensions.GlobalAsyncPool = None
+
+
+def reset_process_start_method() -> None:
+    preferred = "spawn"
+    current = mp.get_start_method(True)
+    if current != preferred:
+        if preferred in mp.get_all_start_methods():
+            log.info(f"Set process start method to {preferred}")
+            mp.set_start_method(preferred, True)
+            return
+        log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
 def db_access(args: Namespace, event_bus: EventBus) -> DbAccess:

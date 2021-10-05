@@ -46,5 +46,5 @@ async def test_merge_process(
         for from_node, to_node in graph.edges():
             yield bytes(json.dumps({"from": from_node, "to": to_node}), "utf-8")
 
-    result = await merge_graph_process(event_bus, args, iterator(), "ns", timedelta(seconds=30), None)
+    result = await merge_graph_process(graph_db, event_bus, args, iterator(), timedelta(seconds=30), None)
     assert result == GraphUpdate(112, 1, 0, 112, 0, 0)

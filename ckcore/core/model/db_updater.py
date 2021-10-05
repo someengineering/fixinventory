@@ -5,19 +5,27 @@ import sys
 from abc import ABC
 from argparse import Namespace
 from asyncio import Task
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
-from typing import Optional, Union, AsyncGenerator
+from queue import Empty
+from typing import Optional, Union, AsyncGenerator, Any, Generator
+
+from aiostream import stream
+from aiostream.core import Stream
 
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
+from core.db.graphdb import GraphDB
 from core.db.model import GraphUpdate
-from core.dependencies import db_access, setup_logging
+from core.dependencies import db_access, setup_process, reset_process_start_method
+from core.error import ImportAborted
 from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
+from core.util import utc, uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -38,10 +46,10 @@ class ReadElement(ProcessAction):
     Parent -> Child: for every incoming data line.
     """
 
-    element: Union[bytes, Json]
+    elements: list[Union[bytes, Json]]
 
-    def json(self) -> Json:
-        return self.element if isinstance(self.element, dict) else json.loads(self.element)  # type: ignore
+    def jsons(self) -> Generator[Json, Any, None]:
+        return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
 
 
 @dataclass
@@ -52,7 +60,8 @@ class MergeGraph(ProcessAction):
     """
 
     graph: str
-    maybe_batch: Optional[str]
+    change_id: str
+    is_batch: bool = False
 
 
 @dataclass
@@ -74,13 +83,16 @@ class PoisonPill(ProcessAction):
 
 @dataclass
 class Result(ProcessAction):
-    result: Union[GraphUpdate, Exception]
+    result: Union[GraphUpdate, str]
 
     def get_value(self) -> GraphUpdate:
-        if isinstance(self.result, Exception):
-            raise self.result
+        if isinstance(self.result, str):
+            raise ImportAborted(self.result)
         else:
             return self.result
+
+
+BatchSize = 100000
 
 
 class DbUpdaterProcess(Process):
@@ -122,15 +134,18 @@ class DbUpdaterProcess(Process):
         builder = GraphBuilder(model)
         nxt = self.next_action()
         while isinstance(nxt, ReadElement):
-            builder.add_from_json(nxt.json())
+            for element in nxt.jsons():
+                builder.add_from_json(element)
+            log.debug(f"Read {int(BatchSize / 1000)}K elements in process")
             nxt = self.next_action()
         if isinstance(nxt, PoisonPill):
-            log.info("Got poison pill - going to die.")
-            sys.exit(1)
+            log.debug("Got poison pill - going to die.")
+            sys.exit(0)
         elif isinstance(nxt, MergeGraph):
+            log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
-            _, result = await graphdb.merge_graph(builder.graph, model, nxt.maybe_batch)
+            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
@@ -145,30 +160,34 @@ class DbUpdaterProcess(Process):
     def run(self) -> None:
         try:
             # Entrypoint of the new service
-            setup_logging(self.args, f"merge_update_{self.pid}")
-            log.info("Import process started")
+            setup_process(self.args, f"merge_update_{self.pid}")
+            log.info(f"Import process started: {self.pid}")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
-            log.info("Update process done. Exit.")
+            log.info(f"Update process done: {self.pid} Exit.")
             sys.exit(0)
         except Exception as ex:
-            self.write_queue.put(Result(ex))
-            log.info("Update process interrupted. Preemptive Exit.", exc_info=ex)
+            # not all exceptions can be pickled. Use string representation.
+            self.write_queue.put(Result(repr(ex)))
+            log.info("Update process interrupted. Preemptive Exit.")
             sys.exit(1)
 
 
 async def merge_graph_process(
+    db: GraphDB,
     bus: EventBus,
     args: Namespace,
     content: AsyncGenerator[Union[bytes, Json], None],
-    graph: str,
     max_wait: timedelta,
     maybe_batch: Optional[str],
 ) -> GraphUpdate:
+    change_id = maybe_batch if maybe_batch else uuid_str()
     write = Queue()  # type: ignore
     read = Queue()  # type: ignore
     updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
+    deadline = utc() + max_wait
+    dead_adjusted = False
 
     async def send_to_child(pa: ProcessAction) -> bool:
         alive = updater.is_alive()
@@ -176,25 +195,63 @@ async def merge_graph_process(
             await run_async(write.put, pa, True, stale)
         return alive
 
+    def read_results() -> Task[GraphUpdate]:
+        async def read_forever() -> GraphUpdate:
+            nonlocal deadline
+            nonlocal dead_adjusted
+            while utc() < deadline:
+                # After exit of updater: adjust the deadline once
+                if not updater.is_alive() and not dead_adjusted:
+                    log.debug("Import process done or dead. Adjust deadline.")
+                    deadline = utc() + timedelta(seconds=30)
+                    dead_adjusted = True
+                try:
+                    action = await run_async(read.get, True, stale)
+                    if isinstance(action, EmitMessage):
+                        await bus.emit(action.event)
+                    elif isinstance(action, Result):
+                        return action.get_value()
+                except Empty:
+                    # empty is fine
+                    pass
+            raise ImportAborted(f"Import process died. (ExitCode: {updater.exitcode})")
+
+        return asyncio.create_task(read_forever())
+
+    task: Optional[Task[GraphUpdate]] = None
+    result: Optional[GraphUpdate] = None
     try:
+        reset_process_start_method()  # other libraries might have tampered the value in the mean time
         updater.start()
-        async for line in content:
-            if not await send_to_child(ReadElement(line)):
-                # in case the child is dead, we should stop
-                break
-        await send_to_child(MergeGraph(graph, maybe_batch))
-        while True:
-            action = await run_async(read.get, True, max_wait.total_seconds())
-            if isinstance(action, EmitMessage):
-                await bus.emit(action.event)
-            elif isinstance(action, Result):
-                return action.get_value()
+        task = read_results()  # concurrently read result queue
+        chunked: Stream = stream.chunks(content, BatchSize)
+        async with chunked.stream() as streamer:  # pylint: disable=no-member
+            async for lines in streamer:
+                if not await send_to_child(ReadElement(lines)):
+                    # in case the child is dead, we should stop
+                    break
+        await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
+        result = await task  # wait for final result
+        return result
     finally:
-        if updater.is_alive():
-            log.debug(f"Process is still active - send poison pill {updater.pid}")
-            await send_to_child(PoisonPill())
+        if task is not None and not task.done():
+            task.cancel()
+        if not result:
+            # make sure the change is aborted in case of transaction
+            log.info(f"Abort update manually: {change_id}")
+            await db.abort_update(change_id)
+        await send_to_child(PoisonPill())
         await run_async(updater.join, stale)
         if updater.is_alive():
-            log.warning(f"Process is still active after poison pill. Kill process {updater.pid}")
-            updater.kill()
-        updater.close()
+            log.warning(f"Process is still alive after poison pill. Terminate process {updater.pid}")
+            with suppress(Exception):
+                updater.terminate()
+            await asyncio.sleep(3)
+        if updater.is_alive():
+            log.warning(f"Process is still alive after terminate. Kill process {updater.pid}")
+            with suppress(Exception):
+                updater.kill()
+            await asyncio.sleep(3)
+        if not updater.is_alive():
+            with suppress(Exception):
+                updater.close()
