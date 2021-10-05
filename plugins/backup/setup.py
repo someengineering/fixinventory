@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-backup",
-    version="2.0.0a4",
+    version="2.0.0a5",
     description="Cloudkeeper Backup Plugin",
     license="Apache 2.0",
     packages=find_packages(),
