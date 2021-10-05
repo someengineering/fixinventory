@@ -166,7 +166,7 @@ class DbUpdaterProcess(Process):
             sys.exit(0)
         except Exception as ex:
             # not all exceptions can be pickled. Use string representation.
-            self.write_queue.put(Result(str(ex)))
+            self.write_queue.put(Result(repr(ex)))
             log.info("Update process interrupted. Preemptive Exit.")
             sys.exit(1)
 
