@@ -101,44 +101,20 @@ In this example we expect a configuration at ``/usr/local/tsdb/prometheus.yml`` 
       --web.enable-lifecycle \
       --web.enable-admin-api
 
-.. _component-list:
+Install Cloudkeeper components
+******************************
 
-Cloudkeeper components
-**********************
-
-These are the moving parts of cloudkeeper.
-We will now guide you through the setup and run procedure for each one.
-:ref:`plugins` have no extra section, as they are integrated via :ref:`ckworker`
-
-- :ref:`ckcore`: the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
-- :ref:`cksh`: the Cloudkeeper shell to interact with the core.
-- :ref:`ckworker` provides workers that load `plugins <https://github.com/someengineering/cloudkeeper/tree/main/plugins>`_ to perform collect and cleanup operations.
-- :ref:`ckmetrics` is a `Prometheus <https://prometheus.io/>`_ `exporter <https://prometheus.io/docs/instrumenting/exporters/>`_.
-- :ref:`plugins` are a collection of worker plugins like `AWS <plugins/aws/>`_
-
-To give you a better understanding of how cloudkeepers components interact with each other and where prometheus and arangod come in, we have prepared this Visualisation for you.
-
-.. image:: _static/images/query_documentation2x_10.png
-  :alt: Component connection
-
-.. _ckcore:
+.. _setup-ckcore:
 
 ckcore
 ======
-
-The Cloudkeeper graph platform :ref:`ckcore` is the persistence and query backend of Cloudkeeper. It maintains the graph
-of resources and provides APIs to update and access them. Within :ref:`ckcore` there are workflows consisting of steps
-that result in actions like ``collect``, ``cleanup`` or ``generate_metrics``. These actions are being received by components
-like :ref:`ckworker` and :ref:`ckmetrics`.
-
-:ref:`ckcore` also provides the CLI API that :ref:`cksh` calls.
 
 Install ckcore
 --------------
 
 You install ckcore via python pip directly from our git repository.
 Please make sure you have git installed.
-First you need to install :ref:`cklib` as a dependency to :ref:`ckcore`.
+First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckcore`.
 
 .. code-block:: bash
     :caption: Install cklib und ckcore
@@ -148,10 +124,10 @@ First you need to install :ref:`cklib` as a dependency to :ref:`ckcore`.
 
 Usage
 -----
-:ref:`ckcore` uses the following command line arguments:
+:ref:`setup-ckcore` uses the following command line arguments:
 
 .. code-block:: bash
-    :caption: :ref:`ckcore` parameters
+    :caption: :ref:`setup-ckcore` parameters
 
     -h, --help            show this help message and exit
     --log-level LOG_LEVEL
@@ -187,7 +163,7 @@ For instance ``--graphdb-server http://foobar.tld:8529`` would become ``CKCORE_G
 
 Run ckcore
 ----------
-Now you can start and connect :ref:`ckcore` to the previous setup of :ref:`arangodb`.
+Now you can start and connect :ref:`setup-ckcore` to the previous setup of :ref:`arangodb`.
 Please match your parameter values with the ones used while preparing :ref:`arangodb`.
 
 We add the ``--log-level debug`` on first start to get used to what is happening exactly.
@@ -223,24 +199,17 @@ Add --graphdb-server if :ref:`arangodb` is running on another instance or port.
     ======== Running on http://localhost:8900 ========
     (Press CTRL+C to quit)
 
-.. _ckworker:
+.. _setup-ckworker:
 
 ckworker
 ========
 
-:ref:`ckworker` does all the collection and cleanup work in Cloudkeeper. It is connected to :ref:`ckcore` over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` actions as well as `tag` tasks.
-
-:ref:`ckworker` loads collector :ref:`plugins` like AWS, GCP, Slack, Onelogin, etc.
-Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
-
-There can be one or more instances of :ref:`ckworker` in a Cloudkeeper deployment. A single :ref:`ckworker` can collect many clouds or you could have multiple :ref:`ckworker` collecting one cloud or even one account in one cloud each.
-
 Install ckworker
 ----------------
 
-You install :ref:`ckworker` via python pip directly from our git repository.
+You install :ref:`setup-ckworker` via python pip directly from our git repository.
 Please make sure you have git installed.
-First you need to install :ref:`cklib` as a dependency to :ref:`ckworker` as well.
+First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckworker` as well.
 
 .. code-block:: bash
     :caption: Install cklib und ckworker
@@ -251,11 +220,11 @@ First you need to install :ref:`cklib` as a dependency to :ref:`ckworker` as wel
 
 .. _plugins:
 
-Install ckworker plugins
-------------------------
+ckworker plugins
+----------------
 
-As :ref:`ckworker` needs plugins to actually do something you need to install them, too.
-A full list of available plugins can be found in your `repository <https://github.com/someengineering/cloudkeeper/tree/main/plugins>`_
+As :ref:`setup-ckworker` needs plugins to actually do something you need to install them, too.
+A full list of available plugins can be found in the cloudkeeper `repository <https://github.com/someengineering/cloudkeeper/tree/main/plugins>`_
 
 .. code-block:: bash
     :caption: Install plugins
@@ -294,7 +263,7 @@ Usage
 :ref:`worker` uses the following command line arguments:
 
 .. code-block:: bash
-    :caption: :ref:`ckworker` parameters
+    :caption: :ref:`setup-ckworker` parameters
     
     -h, --help            show this help message and exit
     --verbose, -v         Verbose logging
@@ -322,20 +291,20 @@ Every CLI arg can also be specified using ENV variables.
 
 For instance the boolean ``--fork`` would become ``CKWORKER_FORK=true`` or ``--collector aws gcp`` would become ``CKWORKER_COLLECTOR="aws gcp"``.
 
-*Important*: Every plugin will add its own CLI args to those of :ref:`ckworker`. Check the individual plugin documentation for details or use ``ckworker --help`` to see the complete list.
+*Important*: Every plugin will add its own CLI args to those of :ref:`setup-ckworker`. Check the individual plugin documentation for details or use ``ckworker --help`` to see the complete list.
 
 Run ckworker
 ------------
-Now you can connect :ref:`ckworker` to the previous setup :ref:`ckcore`.
-Please match your parameter values to reflect your environment while running :ref:`ckcore`.
+Now you can connect :ref:`setup-ckworker` to the previous setup :ref:`setup-ckcore`.
+Please match your parameter values to reflect your environment while running :ref:`setup-ckcore`.
 
 We add the ``--verbose`` on first start to get used to what is happening exactly.
 You can skip this argument later to reduce log output volume when all components are set up.
 
-Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`ckcore` is running on another instance or port.
+Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`setup-ckcore` is running on another instance or port.
 
 Add ``--ckcore-graph`` if you want to change the default name of the graph in the database to something other than 'ck'.
-Keep in mind that you need to adjust ``--ckcore-graph`` for :ref:`cksh` and :ref:`ckmetrics`, too.
+Keep in mind that you need to adjust ``--ckcore-graph`` for :ref:`setup-cksh` and :ref:`setup-ckmetrics`, too.
 
 As we are using AWS in this example, please replace ``--aws-access-key-id`` and ``--aws-secret-access-key`` with values matching your environment.
 
@@ -375,7 +344,7 @@ As we are using AWS in this example, please replace ``--aws-access-key-id`` and 
 
 Let us unpack this command
 
-- ``fork`` makes :ref:`ckworker` fork each collector plugin instead of using threads
+- ``fork`` makes :ref:`setup-ckworker` fork each collector plugin instead of using threads
 - ``collector aws`` loads the AWS collector plugin
 - ``aws-fork`` tells the AWS collector plugin to also use forked processes instead of threads
 - ``aws-access-key-id/-secret-access-key`` AWS credentials for API access. Instead of using credentials directly you can also opt to inherit them from the `awscli <https://aws.amazon.com/cli/>`_ environment or when running on EC2 using an instance profile.
@@ -384,14 +353,10 @@ Let us unpack this command
 
 The reason for using forked processes instead of threads is to work around performance limitations of Python's `GIL <https://en.wikipedia.org/wiki/Global_interpreter_lock>`_. By forking we almost scale linearly with the number of CPU cores when collecting many accounts at once. The default is to use threads to conserve system resources.
 
-.. _ckmetrics:
+.. _setup-ckmetrics:
 
 ckmetrics
 =========
-
-:ref:`ckmetrics` takes :ref:`ckcore` graph data and runs aggregation functions on it. Those aggregated metrics
-are then exposed in a :ref:`prometheus` compatible format. The default TCP port is ``9955`` but
-can be changed using the ``--web-port`` argument.
 
 Install ckmetrics
 -----------------
@@ -399,7 +364,7 @@ Install ckmetrics
 You install ckmetrics via python pip directly from our git repository.
 Please make sure you have git installed.
 
-If not already done in the :ref:`ckcore` section, you need to install :ref:`cklib` as dependency to :ref:`ckmetrics` as well.
+If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as dependency to :ref:`setup-ckmetrics` as well.
 
 .. code-block:: bash
     :caption: Install cklib und ckmetrics
@@ -410,10 +375,10 @@ If not already done in the :ref:`ckcore` section, you need to install :ref:`ckli
 Usage
 -----
 
-:ref:`ckmetrics` uses the following commandline arguments:
+:ref:`setup-ckmetrics` uses the following commandline arguments:
 
 .. code-block:: bash
-    :caption: :ref:`ckmetrics` parameters
+    :caption: :ref:`setup-ckmetrics` parameters
 
     -h, --help            show this help message and exit
     --ckcore-uri CKCORE_URI
@@ -434,7 +399,7 @@ Every CLI arg can also be specified using ENV variables.
 
 For instance the boolean ``--verbose`` would become ``CKMETRICS_VERBOSE=true`` or ``--timeout 300`` would become ``CKMETRICS_TIMEOUT=300``.
 
-Once started :ref:`ckmetrics` will register for ``generate_metrics`` core events. When such an event is received it will
+Once started :ref:`setup-ckmetrics` will register for ``generate_metrics`` core events. When such an event is received it will
 generate Cloudkeeper metrics and provide them at the ``/metrics`` endpoint.
 
 As mentioned in the :ref:`prometheus` setup your configuration needs to contain this configuration snippet.
@@ -449,14 +414,14 @@ As mentioned in the :ref:`prometheus` setup your configuration needs to contain 
 
 Run ckmetrics
 -------------
-Now you can connect :ref:`ckmetrics` to the previous setup :ref:`ckcore` as well as let your prometheus connect to :ref:`ckmetrics`.
-Please match your parameter values to reflect your environment while running :ref:`ckcore`.
+Now you can connect :ref:`setup-ckmetrics` to the previous setup :ref:`setup-ckcore` as well as let your prometheus connect to :ref:`setup-ckmetrics`.
+Please match your parameter values to reflect your environment while running :ref:`setup-ckcore`.
 
 We add the ``--verbose`` on first start to get used to what is happening exactly.
 You can skip this argument later to reduce log output volume when all components are set up.
 
-Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`ckcore` is running on another instance or port.
-Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`ckworker`
+Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`setup-ckcore` is running on another instance or port.
+Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`setup-ckworker`
 
 .. code-block:: bash
     :caption: Run ckmetrics
@@ -480,12 +445,10 @@ Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`ckwork
 
 You can now access the metrics interface via `ckmetrics <http://localhost:9955/metrics>`_.
 
-.. _cksh:
+.. _setup-cksh:
 
 cksh
 ====
-:ref:`cksh` starts the Cloudkeeper shell. It is used to interact with :ref:`ckcore`.
-It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
 Install cksh
 ------------
@@ -493,7 +456,7 @@ Install cksh
 You install cksh via python pip directly from our git repository.
 Please make sure you have git installed.
 
-If not already done in the :ref:`ckcore` section, you need to install :ref:`cklib` as a dependency to :ref:`cksh`.
+If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as a dependency to :ref:`setup-cksh`.
 
 .. code-block:: bash
     :caption: Install cklib und cksh
@@ -503,10 +466,10 @@ If not already done in the :ref:`ckcore` section, you need to install :ref:`ckli
 
 Usage
 -----
-:ref:`cksh` uses the following command line arguments:
+:ref:`setup-cksh` uses the following command line arguments:
 
 .. code-block:: bash
-    :caption: :ref:`cksh` parameters
+    :caption: :ref:`setup-cksh` parameters
 
     -h, --help            show this help message and exit
     --ckcore-uri CKCORE_URI
@@ -527,14 +490,14 @@ For instance ``--ckcore-uri http://foobar.tld:8900`` would become ``CKSH_CKCORE_
 
 Run cksh
 ----------
-Now you can connect :ref:`cksh` to the previous setup :ref:`ckcore`.
-Please match your parameter values to reflect your environment while running :ref:`ckcore`.
+Now you can connect :ref:`setup-cksh` to the previous setup :ref:`setup-ckcore`.
+Please match your parameter values to reflect your environment while running :ref:`setup-ckcore`.
 
 We add the ``--verbose`` on first start to get used to what is happening exactly.
 You can skip this argument later to reduce log output volume when all components are set up.
 
-Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`ckcore` is running on another instance or port.
-Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`ckworker`
+Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`setup-ckcore` is running on another instance or port.
+Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`setup-ckworker`
 
 .. code-block:: bash
     :caption: Run cksh
