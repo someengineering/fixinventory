@@ -1,13 +1,12 @@
 import logging
 import os
-import multiprocessing as mp
 
 from aiohttp import web
 from aiohttp.web_app import Application
 
 from core.cli.cli import CLIDependencies, CLI
 from core.cli.command import all_parts, aliases
-from core.dependencies import db_access, setup_logging, parse_args
+from core.dependencies import db_access, setup_process, parse_args
 from core.event_bus import EventBus
 from core.model.model_handler import ModelHandlerDB
 from core.task.scheduler import Scheduler
@@ -22,7 +21,7 @@ log = logging.getLogger(__name__)
 def main() -> None:
 
     args = parse_args()
-    setup_logging(args)
+    setup_process(args)
 
     log.info("Starting up...")
     scheduler = Scheduler()
@@ -58,6 +57,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # set default process start method (will be detected by os otherwise)
-    mp.set_start_method("spawn", force=True)
     main()

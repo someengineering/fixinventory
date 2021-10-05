@@ -11,11 +11,12 @@ from multiprocessing import Process, Queue
 from typing import Optional, Union, AsyncGenerator, Any, Generator
 
 from aiostream import stream
+from aiostream.core import Stream
 
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
 from core.db.model import GraphUpdate
-from core.dependencies import db_access, setup_logging
+from core.dependencies import db_access, setup_process, reset_process_start_method
 from core.event_bus import EventBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
@@ -43,7 +44,7 @@ class ReadElement(ProcessAction):
     elements: list[Union[bytes, Json]]
 
     def jsons(self) -> Generator[Json, Any, None]:
-        return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)  # type: ignore
+        return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
 
 
 @dataclass
@@ -153,7 +154,7 @@ class DbUpdaterProcess(Process):
     def run(self) -> None:
         try:
             # Entrypoint of the new service
-            setup_logging(self.args, f"merge_update_{self.pid}")
+            setup_process(self.args, f"merge_update_{self.pid}")
             log.debug("Import process started")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
@@ -196,10 +197,11 @@ async def merge_graph_process(
         return asyncio.create_task(read_forever())
 
     try:
+        reset_process_start_method()  # other libraries might have tampered the value in the mean time
         updater.start()
         task = read_results()  # concurrently read result queue
-
-        async with stream.chunks(content, BatchSize).stream() as streamer:  # type: ignore
+        chunked: Stream = stream.chunks(content, BatchSize)
+        async with chunked.stream() as streamer:  # pylint: disable=no-member
             async for lines in streamer:
                 if not await send_to_child(ReadElement(lines)):
                     # in case the child is dead, we should stop
