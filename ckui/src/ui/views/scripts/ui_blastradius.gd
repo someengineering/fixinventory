@@ -247,7 +247,7 @@ func go_to_graph_node(node_id, graph) -> void:
 	if graph != graph_view:
 		return
 	if node_id == core_node_id:
-		_e.emit_signal("go_to_graph_node", core_node_id, _g.main_graph)
+		_e.emit_signal("go_to_graph_node", node_id, _g.main_graph)
 	else:
 		clear_blastradius()
 		yield(self, "closing_anim_done")
