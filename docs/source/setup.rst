@@ -117,7 +117,9 @@ We will now guide you through the setup and run procedure for each one.
 - :ref:`plugins` are a collection of worker plugins like `AWS <plugins/aws/>`_
 
 To give you a better understanding of how cloudkeepers components interact with each other and where prometheus and arangod come in, we have prepared this Visualisation for you.
-<insert Visualisation>.
+
+.. image:: _static/images/query_documentation2x_10.png
+  :alt: Component connection
 
 .. _ckcore:
 
