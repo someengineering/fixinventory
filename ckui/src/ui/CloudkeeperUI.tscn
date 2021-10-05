@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=2]
+[gd_scene load_steps=32 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -8,12 +8,14 @@
 [ext_resource path="res://ui/views/scripts/main_cloudkeeper_ui.gd" type="Script" id=6]
 [ext_resource path="res://ui/views/UI_Search.tscn" type="PackedScene" id=7]
 [ext_resource path="res://ui/views/UI_Topbar.tscn" type="PackedScene" id=8]
-[ext_resource path="res://ui/views/UI_GraphView.tscn" type="PackedScene" id=9]
+[ext_resource path="res://ui/elements/Element_GraphView.tscn" type="PackedScene" id=9]
+[ext_resource path="res://ui/views/scripts/ui_graph.gd" type="Script" id=10]
 [ext_resource path="res://ui/views/UI_NodeInfo.tscn" type="PackedScene" id=11]
 [ext_resource path="res://assets/graphics/noise.png" type="Texture" id=12]
 [ext_resource path="res://ui/views/UI_QueryEngine.tscn" type="PackedScene" id=13]
+[ext_resource path="res://ui/views/UI_Blastradius.tscn" type="PackedScene" id=14]
 
-[sub_resource type="Shader" id=17]
+[sub_resource type="Shader" id=1]
 code = "shader_type canvas_item;
 
 uniform vec2 center = vec2(0.0, 0.0);
@@ -28,24 +30,24 @@ void fragment() {
 	COLOR = color;
 }"
 
-[sub_resource type="Gradient" id=18]
+[sub_resource type="Gradient" id=2]
 colors = PoolColorArray( 0.0464516, 0.144741, 0.290039, 1, 0.027451, 0.0745098, 0.168627, 1 )
 
-[sub_resource type="GradientTexture" id=19]
-gradient = SubResource( 18 )
+[sub_resource type="GradientTexture" id=3]
+gradient = SubResource( 2 )
 width = 70
 
-[sub_resource type="ShaderMaterial" id=20]
-shader = SubResource( 17 )
+[sub_resource type="ShaderMaterial" id=4]
+shader = SubResource( 1 )
 shader_param/center = Vector2( 0, 0 )
 shader_param/size = 0.5
 shader_param/squishness = Vector2( 1.5, 1 )
-shader_param/gradient = SubResource( 19 )
+shader_param/gradient = SubResource( 3 )
 
-[sub_resource type="RectangleShape2D" id=15]
+[sub_resource type="RectangleShape2D" id=5]
 extents = Vector2( 960, 540 )
 
-[sub_resource type="Shader" id=21]
+[sub_resource type="Shader" id=6]
 code = "shader_type canvas_item;
 render_mode blend_add;
 
@@ -61,33 +63,33 @@ void fragment() {
 	COLOR = color;
 }"
 
-[sub_resource type="Gradient" id=22]
+[sub_resource type="Gradient" id=7]
 colors = PoolColorArray( 0, 0.407843, 1, 0.254902, 0, 0, 0, 0 )
 
-[sub_resource type="GradientTexture" id=23]
-gradient = SubResource( 22 )
+[sub_resource type="GradientTexture" id=8]
+gradient = SubResource( 7 )
 
-[sub_resource type="ShaderMaterial" id=24]
-shader = SubResource( 21 )
+[sub_resource type="ShaderMaterial" id=9]
+shader = SubResource( 6 )
 shader_param/center = Vector2( 0, 0 )
 shader_param/size = 1.0
 shader_param/squishness = Vector2( 1, 1 )
-shader_param/gradient = SubResource( 23 )
+shader_param/gradient = SubResource( 8 )
 
-[sub_resource type="Gradient" id=25]
+[sub_resource type="Gradient" id=10]
 colors = PoolColorArray( 1, 0.294118, 0, 0.211765, 0.149902, 0, 0, 0 )
 
-[sub_resource type="GradientTexture" id=26]
-gradient = SubResource( 25 )
+[sub_resource type="GradientTexture" id=11]
+gradient = SubResource( 10 )
 
-[sub_resource type="ShaderMaterial" id=27]
-shader = SubResource( 21 )
+[sub_resource type="ShaderMaterial" id=12]
+shader = SubResource( 6 )
 shader_param/center = Vector2( 0, 0 )
 shader_param/size = 1.0
 shader_param/squishness = Vector2( 1, 1 )
-shader_param/gradient = SubResource( 26 )
+shader_param/gradient = SubResource( 11 )
 
-[sub_resource type="Shader" id=10]
+[sub_resource type="Shader" id=13]
 code = "shader_type canvas_item;
 
 uniform float power;
@@ -96,22 +98,23 @@ void fragment() {
 	COLOR = textureLod(SCREEN_TEXTURE, SCREEN_UV, power);
 }"
 
-[sub_resource type="ShaderMaterial" id=11]
-shader = SubResource( 10 )
+[sub_resource type="ShaderMaterial" id=14]
+shader = SubResource( 13 )
 shader_param/power = 0.0
 
-[sub_resource type="Shader" id=14]
+[sub_resource type="Shader" id=15]
 code = "shader_type canvas_item;
 
 void fragment() {
 	COLOR = textureLod(SCREEN_TEXTURE, SCREEN_UV, 4.0);
 }"
 
-[sub_resource type="ShaderMaterial" id=13]
-shader = SubResource( 14 )
+[sub_resource type="ShaderMaterial" id=16]
+shader = SubResource( 15 )
 
-[sub_resource type="Environment" id=16]
+[sub_resource type="Environment" id=17]
 background_mode = 4
+background_canvas_max_layer = 10
 glow_enabled = true
 glow_levels/1 = true
 glow_levels/2 = true
@@ -122,65 +125,63 @@ glow_bicubic_upscale = true
 [node name="CloudkeeperUI" type="Node2D"]
 script = ExtResource( 6 )
 
-[node name="BG" type="CanvasLayer" parent="."]
+[node name="UIGraph" type="Node2D" parent="."]
+position = Vector2( 960, 540 )
+z_index = -1
+z_as_relative = false
+script = ExtResource( 10 )
+main_ui = NodePath("..")
+
+[node name="BG" type="CanvasLayer" parent="UIGraph"]
 layer = -2
 
-[node name="BG" type="ColorRect" parent="BG"]
-material = SubResource( 20 )
-margin_left = -71.0
-margin_top = -73.7308
-margin_right = 1986.0
-margin_bottom = 1132.27
+[node name="BG" type="ColorRect" parent="UIGraph/BG"]
+material = SubResource( 4 )
+margin_right = 1920.0
+margin_bottom = 1080.0
 mouse_filter = 2
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="MouseDetector" type="Area2D" parent="BG"]
+[node name="MouseDetector" type="Area2D" parent="UIGraph/BG"]
 position = Vector2( 960, 540 )
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="BG/MouseDetector"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="UIGraph/BG/MouseDetector"]
 visible = false
-shape = SubResource( 15 )
+shape = SubResource( 5 )
 
-[node name="Graph" type="Node2D" parent="."]
-position = Vector2( 960, 540 )
-z_index = -1
-z_as_relative = false
+[node name="GraphView" parent="UIGraph" instance=ExtResource( 9 )]
 
-[node name="GraphCam" type="Camera2D" parent="Graph"]
+[node name="GraphCam" type="Camera2D" parent="UIGraph"]
 scale = Vector2( 0.1, 0.1 )
 current = true
 
-[node name="GraphView" parent="Graph" instance=ExtResource( 9 )]
-graph_cam = NodePath("../GraphCam")
-graph_bg = NodePath("../../BG/BG")
-
-[node name="Spotlight1" type="Sprite" parent="Graph"]
-material = SubResource( 24 )
+[node name="Spotlight1" type="Sprite" parent="UIGraph"]
+material = SubResource( 9 )
 position = Vector2( -1912, 1524 )
 scale = Vector2( 5.40625, 5.40625 )
 texture = ExtResource( 4 )
 
-[node name="Spotlight2" type="Sprite" parent="Graph"]
-material = SubResource( 27 )
+[node name="Spotlight2" type="Sprite" parent="UIGraph"]
+material = SubResource( 12 )
 position = Vector2( 2391.89, -991.51 )
 scale = Vector2( 3.8125, 3.8125 )
 texture = ExtResource( 4 )
 
-[node name="AnimTween" type="Tween" parent="Graph"]
+[node name="AnimTween" type="Tween" parent="UIGraph"]
 
-[node name="CamMoveTween" type="Tween" parent="Graph"]
+[node name="CamMoveTween" type="Tween" parent="UIGraph"]
 
-[node name="NewNodeSelectionTimer" type="Timer" parent="Graph"]
+[node name="NewNodeSelectionTimer" type="Timer" parent="UIGraph"]
 wait_time = 0.05
 one_shot = true
 
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="Blur" type="Sprite" parent="UI"]
-material = SubResource( 11 )
+material = SubResource( 14 )
 position = Vector2( 960, 540 )
 scale = Vector2( 1920, 1080 )
 z_as_relative = false
@@ -188,9 +189,9 @@ texture = ExtResource( 2 )
 script = ExtResource( 3 )
 
 [node name="BlurTopBar" type="Sprite" parent="UI"]
-material = SubResource( 13 )
-position = Vector2( 960, 32 )
-scale = Vector2( 1920, 71 )
+material = SubResource( 16 )
+position = Vector2( 960, 33.5 )
+scale = Vector2( 1920, 67 )
 z_as_relative = false
 texture = ExtResource( 2 )
 
@@ -212,13 +213,14 @@ margin_right = 1920.0
 
 [node name="UINodeInfo" parent="UI" instance=ExtResource( 11 )]
 
+[node name="UIBlastradius" parent="UI" instance=ExtResource( 14 )]
+
 [node name="UITopbar" parent="UI" instance=ExtResource( 8 )]
-margin_right = 1920.0
 margin_bottom = 70.0
 
 [node name="UICommandLine" parent="UI" instance=ExtResource( 1 )]
-margin_top = 1040.0
-margin_bottom = 1120.0
+margin_top = 1048.0
+margin_bottom = 1080.0
 
 [node name="Noise" type="TextureRect" parent="UI"]
 modulate = Color( 1, 1, 1, 0.0392157 )
@@ -232,8 +234,9 @@ __meta__ = {
 }
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource( 16 )
+environment = SubResource( 17 )
 
-[connection signal="input_event" from="BG/MouseDetector" to="." method="_on_MouseDetector_input_event"]
-[connection signal="tween_all_completed" from="Graph/CamMoveTween" to="." method="_on_CamMoveTween_tween_all_completed"]
-[connection signal="timeout" from="Graph/NewNodeSelectionTimer" to="." method="_on_NewNodeSelectionTimer_timeout"]
+[connection signal="input_event" from="UIGraph/BG/MouseDetector" to="UIGraph" method="_on_MouseDetector_input_event"]
+[connection signal="tween_all_completed" from="UIGraph/CamMoveTween" to="UIGraph" method="_on_CamMoveTween_tween_all_completed"]
+[connection signal="timeout" from="UIGraph/NewNodeSelectionTimer" to="UIGraph" method="_on_NewNodeSelectionTimer_timeout"]
+[connection signal="close_blast_radius" from="UI/UIBlastradius" to="." method="_on_UIBlastradius_close_blast_radius"]

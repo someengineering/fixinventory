@@ -7,7 +7,7 @@
 [ext_resource path="res://assets/graphics/sci-fi/extra_border2.png" type="Texture" id=5]
 [ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=6]
 
-[sub_resource type="StyleBoxFlat" id=28]
+[sub_resource type="StyleBoxFlat" id=1]
 bg_color = Color( 0.223529, 0.588235, 0.87451, 0.0509804 )
 border_width_left = 2
 border_width_top = 2
@@ -20,35 +20,35 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="DynamicFontData" id=33]
+[sub_resource type="StyleBoxEmpty" id=2]
+
+[sub_resource type="StyleBoxEmpty" id=3]
+
+[sub_resource type="DynamicFontData" id=4]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
-[sub_resource type="DynamicFont" id=34]
+[sub_resource type="DynamicFont" id=5]
 size = 160
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -20
-font_data = SubResource( 33 )
+font_data = SubResource( 4 )
 
-[sub_resource type="StyleBoxEmpty" id=18]
-
-[sub_resource type="StyleBoxEmpty" id=19]
-
-[sub_resource type="CanvasItemMaterial" id=36]
+[sub_resource type="CanvasItemMaterial" id=6]
 blend_mode = 1
 
-[sub_resource type="DynamicFontData" id=41]
+[sub_resource type="DynamicFontData" id=7]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
-[sub_resource type="DynamicFont" id=38]
+[sub_resource type="DynamicFont" id=8]
 size = 38
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -9
 extra_spacing_char = 2
-font_data = SubResource( 41 )
+font_data = SubResource( 7 )
 
-[sub_resource type="Shader" id=13]
+[sub_resource type="Shader" id=9]
 code = "shader_type canvas_item;
 render_mode blend_add;
 
@@ -57,10 +57,10 @@ void fragment() {
 	COLOR.a = abs((0.8 - UV.y)*1.5);
 }"
 
-[sub_resource type="ShaderMaterial" id=15]
-shader = SubResource( 13 )
+[sub_resource type="ShaderMaterial" id=10]
+shader = SubResource( 9 )
 
-[sub_resource type="StyleBoxFlat" id=39]
+[sub_resource type="StyleBoxFlat" id=11]
 bg_color = Color( 1, 1, 1, 0.0392157 )
 border_width_left = 2
 border_width_top = 2
@@ -72,13 +72,13 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="CanvasItemMaterial" id=29]
+[sub_resource type="CanvasItemMaterial" id=12]
 blend_mode = 1
 
-[sub_resource type="CanvasItemMaterial" id=30]
+[sub_resource type="CanvasItemMaterial" id=13]
 blend_mode = 1
 
-[sub_resource type="StyleBoxTexture" id=31]
+[sub_resource type="StyleBoxTexture" id=14]
 texture = ExtResource( 4 )
 region_rect = Rect2( 0, 0, 64, 64 )
 margin_left = 50.0
@@ -88,7 +88,7 @@ expand_margin_right = 5.0
 expand_margin_top = 5.0
 expand_margin_bottom = 5.0
 
-[sub_resource type="StyleBoxTexture" id=32]
+[sub_resource type="StyleBoxTexture" id=15]
 texture = ExtResource( 5 )
 region_rect = Rect2( 0, 0, 64, 64 )
 margin_right = 50.0
@@ -98,16 +98,16 @@ expand_margin_right = 5.0
 expand_margin_top = 5.0
 expand_margin_bottom = 5.0
 
-[sub_resource type="StyleBoxEmpty" id=22]
+[sub_resource type="StyleBoxEmpty" id=16]
 
-[sub_resource type="DynamicFontData" id=40]
+[sub_resource type="DynamicFontData" id=17]
 font_path = "res://assets/fonts/Lato-Regular.ttf"
 
-[sub_resource type="DynamicFont" id=26]
+[sub_resource type="DynamicFont" id=18]
 size = 26
 use_mipmaps = true
 use_filter = true
-font_data = SubResource( 40 )
+font_data = SubResource( 17 )
 
 [node name="UISearch" type="Control"]
 anchor_right = 1.0
@@ -137,7 +137,7 @@ margin_bottom = 440.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 28 )
+custom_styles/panel = SubResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -159,30 +159,30 @@ margin_left = 20.0
 margin_top = 20.0
 margin_right = 1700.0
 margin_bottom = 220.0
+custom_icons/clear = ExtResource( 1 )
+custom_styles/focus = SubResource( 2 )
+custom_styles/normal = SubResource( 3 )
+custom_fonts/font = SubResource( 5 )
 custom_colors/selection_color = Color( 0.603922, 0.870588, 1, 0.0392157 )
 custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
 custom_colors/font_color = Color( 1, 1, 1, 1 )
 custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
-custom_fonts/font = SubResource( 34 )
-custom_icons/clear = ExtResource( 1 )
-custom_styles/focus = SubResource( 18 )
-custom_styles/normal = SubResource( 19 )
 text = "test"
 clear_button_enabled = true
 
 [node name="SearchLabel" type="Label" parent="SearchContainer/Background"]
-material = SubResource( 36 )
+material = SubResource( 6 )
 margin_top = -43.0
 margin_right = 1720.0
 margin_bottom = 12.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
+custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 38 )
 text = "Search in Cloudkeeper"
 align = 1
 __meta__ = {
@@ -191,20 +191,20 @@ __meta__ = {
 
 [node name="BackgroundShader" type="Panel" parent="SearchContainer/Background"]
 modulate = Color( 0.176471, 0.827451, 1, 0.129412 )
-material = SubResource( 15 )
+material = SubResource( 10 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 39 )
+custom_styles/panel = SubResource( 11 )
 __meta__ = {
 "_edit_use_anchors_": true
 }
 
 [node name="TextureRect" type="TextureRect" parent="SearchContainer/Background"]
 modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
-material = SubResource( 29 )
+material = SubResource( 12 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -216,22 +216,22 @@ __meta__ = {
 
 [node name="Extra" type="Panel" parent="SearchContainer/Background"]
 modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
-material = SubResource( 30 )
+material = SubResource( 13 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-custom_styles/panel = SubResource( 31 )
+custom_styles/panel = SubResource( 14 )
 __meta__ = {
 "_edit_use_anchors_": true
 }
 
 [node name="Extra2" type="Panel" parent="SearchContainer/Background"]
 modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
-material = SubResource( 30 )
+material = SubResource( 13 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-custom_styles/panel = SubResource( 32 )
+custom_styles/panel = SubResource( 15 )
 __meta__ = {
 "_edit_use_anchors_": true
 }
@@ -258,7 +258,7 @@ margin_bottom = 560.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 22 )
+custom_styles/panel = SubResource( 16 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -305,7 +305,7 @@ margin_bottom = 36.0
 rect_min_size = Vector2( 400, 0 )
 size_flags_horizontal = 3
 theme = ExtResource( 3 )
-custom_fonts/font = SubResource( 26 )
+custom_fonts/font = SubResource( 18 )
 text = "Queries"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -318,7 +318,7 @@ margin_right = 495.0
 margin_bottom = 36.0
 size_flags_horizontal = 3
 theme = ExtResource( 3 )
-custom_fonts/font = SubResource( 26 )
+custom_fonts/font = SubResource( 18 )
 text = "Queries"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -339,16 +339,16 @@ __meta__ = {
 }
 
 [node name="QueriesLabel" type="Label" parent="ResultContainer/Results/HBoxContainer/QueryResults"]
-material = SubResource( 36 )
+material = SubResource( 6 )
 margin_right = 1720.0
 margin_bottom = 55.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
+custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 38 )
 text = "Queries"
 align = 1
 __meta__ = {
@@ -367,17 +367,17 @@ margin_bottom = 168.0
 size_flags_horizontal = 3
 
 [node name="NodesLabel" type="Label" parent="ResultContainer/Results/HBoxContainer/CloudResults"]
-material = SubResource( 36 )
+material = SubResource( 6 )
 margin_right = 1720.0
 margin_bottom = 55.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
+custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 38 )
 text = "Cloud Resources"
 align = 1
 __meta__ = {
