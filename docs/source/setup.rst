@@ -8,7 +8,7 @@ In this setup guide we're showing you three things:
     #. how to install each cloudkeeper component
     #. how to run & access each component
 
-All the installation will take place in your home directory ``~/cloudkeeper/``.
+All the installation will take place in your home directory ``~/cloudkeeper/``. Choose a different ``INSTALL_PREFIX`` below if you prefer another location.
 
 
 Prerequisites
@@ -16,6 +16,7 @@ Prerequisites
 
 Python >= 3.9 is required for all Cloudkeeper components. ArangoDB >= 3.8.1 is used as the ``ckcore`` graph storage.
 Optionally the Cloudkeeper Metrics Exporter ``ckmetrics`` can be installed and its metrics pulled by the Prometheus time series database.
+This guide uses ``curl`` to download components.
 
 The component set-up takes 20 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
@@ -49,29 +50,51 @@ Every CLI arg can also be specified using ENV variables.
 For instance ``--graphdb-server http://foobar.tld:8529`` would become ``CKCORE_GRAPHDB_SERVER=http://foobar.tld:8529``.
 
 .. code-block:: bash
-    :caption: Defining configurations for your environment
+    :caption: Prepare the environment
 
-    export GRAPHDB_DATABASE_DIRECTORY="~/cloudkeeper/db"   #<-- directory to store arangodb data
-    export GRAPHDB_SERVER_ENDPOINT="tcp://127.0.0.1:8529"  #<-- destination IP:Port to connect to arangodb
-    export GRAPHDB_ROOT_PASSWORD="changeme"                #<-- arangodb root password
+    INSTALL_PREFIX=$HOME/cloudkeeper
 
-    export CKCORE_GRAPHDB_LOGIN="cloudkeeper"              #<-- user for arangodb database
-    export CKCORE_GRAPHDB_PASSWORD="changeme"              #<-- password for arangodb user
-    export CKCORE_GRAPHDB_DATABASE="cloudkeeper"           #<-- database name in arangodb
-    export CKCORE_URI="http://127.0.0.1:8900"              #<-- destination IP:Port to connect to ckcore API
-    export CKCORE_WS_URI="ws://127.0.0.1:8900"             #<-- destination IP:Port to connect to ckcore API via Websocket
-    export CKCORE_GRAPH="ck"                               #<-- name of the graph to store your cloud data
+    # Create a new Python 3.9 virtual environment
+    cd "$INSTALL_PREFIX"
+    python3.9 -m venv venv
+    source venv/bin/activate
 
-    mkdir -p ${GRAPHDB_DATABASE_DIRECTORY}                 #<-- create data directory for arangodb
+
+    # Download and extract ArangoDB
+    ARANGODB_VERSION=3.8.1
+    GRAPHDB_DIRECTORY="$INSTALL_PREFIX/db"                #<-- directory to store ArangoDB
+    GRAPHDB_DATABASE_DIRECTORY="$INSTALL_PREFIX/data/db"  #<-- directory to store ArangoDB data
+    GRAPHDB_SERVER_ENDPOINT="tcp://127.0.0.1:8529"        #<-- IP:port for ArangoDB to listen on
+    GRAPHDB_ROOT_PASSWORD="changeme"                      #<-- ArangoDB root password
+
+    # Download and extract ArangoDB
+    mkdir -p "$GRAPHDB_DIRECTORY"                         #<-- directory to store ArangoDB
+    mkdir -p "$GRAPHDB_DATABASE_DIRECTORY"                #<-- create data directory for ArangoDB
+    curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
+    tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C "$GRAPHDB_DIRECTORY"
+    rm -f /tmp/arangodb.tar.gz
+
+    export CKCORE_GRAPHDB_LOGIN="cloudkeeper"             #<-- user for ArangoDB database
+    export CKCORE_GRAPHDB_PASSWORD="changeme"             #<-- password for ArangoDB user
+    export CKCORE_GRAPHDB_DATABASE="cloudkeeper"          #<-- database name in ArangoDB
+
 
 .. code-block:: bash
-    :caption: Optional preperations for :ref:`prometheus`
+    :caption: Optional download and install :ref:`prometheus`
 
-    export TSDB_DATABASE_DIRECTORY="~/cloudkeeper/tsdb"    #<-- directory to store prometheus data
-    export TSDB_CONFIG_FILE="/path/to/tsdb/prometheus.yml" #<-- location of prometheus configuration file
-    export TSDB_RETENTION_TIME="-730d"                     #<-- retention time for prometheus data
+    PROMETHEUS_VERSION=2.30.1
+    TSDB_DIRECTORY="$INSTALL_PREFIX/tsdb"                  #<-- directory to store Prometheus
+    TSDB_DATABASE_DIRECTORY="$INSTALL_PREFIX/data/tsdb"    #<-- directory to store Prometheus data
+    TSDB_CONFIG_FILE="$TSDB_DIRECTORY/prometheus.yml"      #<-- location of Prometheus configuration file
+    TSDB_RETENTION_TIME="-730d"                            #<-- retention time for Prometheus data
 
-    mkdir -p ${TSDB_DATABASE_DIRECTORY}                    #<-- create data directory for arangodb
+    # Download and extract Prometheus
+    mkdir -p "$TSDB_DIRECTORY"                             #<-- directory to store Prometheus
+    mkdir -p "$TSDB_DATABASE_DIRECTORY"                    #<-- create data directory for Prometheus
+    curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+    tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C "$TSDB_DIRECTORY"
+    rm -f /tmp/prometheus.tar.gz
+
 
 .. _arangodb:
 
@@ -81,32 +104,29 @@ ArangoDB
 Run
 ---
 
-Our defaults run fine but things like ``GRAPHDB_ROOT_PASSWORD`` need to be changed for non-laptop-environments.
-
 .. code-block:: bash
     :caption: run ArangoDB
 
-    $ /usr/local/db/bin/arangod --database.directory "${GRAPHDB_DATABASE_DIRECTORY}" \
-      --server.endpoint "${GRAPHDB_SERVER_ENDPOINT}" \
-      --database.password "${GRAPHDB_ROOT_PASSWORD}"
+    $ "$GRAPHDB_DIRECTORY/bin/arangod" \
+      --database.directory "$GRAPHDB_DATABASE_DIRECTORY" \
+      --server.endpoint "$GRAPHDB_SERVER_ENDPOINT" \
+      --database.password "$GRAPHDB_ROOT_PASSWORD"
 
 Prepare graph database for ``ckcore``
 -------------------------------------
 
-Now you need to prepare the graph database for ``ckcore``.
-
-You will add an user for ``ckcore``, create a database and grant privileges for the user to access the database.
-
-Our defaults run fine but things like ``GRAPHDB_ROOT_PASSWORD`` or ``CKCORE_GRAPHDB_PASSWORD`` need to be changed for non-laptop-environments.
+In this step we create the cloudkeeper database and user for ``ckcore`` to use.
 
 .. code-block:: bash
-    :caption: Run ArangoSH to configure graph database
+    :caption: Run ``arangosh`` to configure graph database
 
-    $ arangosh --console.history false --server.password "${GRAPHDB_ROOT_PASSWORD}"
-    > const users = require('@arangodb/users');
-    > users.save('<manually replace with CKCORE_GRAPHDB_LOGIN content>', '<manually replace with CKCORE_GRAPHDB_PASSWORD content>');
-    > db._createDatabase('<manually replace with CKCORE_GRAPHDB_DATABASE content>');
-    > users.grantDatabase('<manually replace with CKCORE_GRAPHDB_LOGIN content>', '<manually replace with CKCORE_GRAPHDB_DATABASE content>', 'rw');
+    cat <<EOF | "$GRAPHDB_DIRECTORY/bin/arangosh" --console.history false --server.password "$GRAPHDB_ROOT_PASSWORD"
+    const users = require('@arangodb/users');
+    users.save('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_PASSWORD');
+    db._createDatabase('$CKCORE_GRAPHDB_DATABASE');
+    users.grantDatabase('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_DATABASE', 'rw');
+    EOF
+
 
 Install Cloudkeeper components
 ******************************
@@ -119,15 +139,17 @@ ckcore
 Install ckcore
 --------------
 
-You install :ref:`component-ckcore` via python pip directly from our git repository.
+You install :ref:`component-ckcore` via Python pip directly from our git repository.
+
 Please make sure you have git installed.
+
 First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckcore`.
 
 .. code-block:: bash
     :caption: Install cklib und ckcore
 
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cklib&subdirectory=cklib"
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckcore&subdirectory=ckcore"
+    $ pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cklib&subdirectory=cklib"
+    $ pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckcore&subdirectory=ckcore"
 
 Usage
 -----
@@ -140,19 +162,17 @@ Run ckcore
 Now you can start and connect :ref:`setup-ckcore` to the previous setup of :ref:`arangodb`.
 Please match your parameter values with the ones used while preparing :ref:`arangodb`.
 
-We add the ``--log-level debug`` on first start to get used to what is happening exactly.
+We add the ``--log-level debug`` on first start to show what is happening exactly.
 You can skip this argument later to reduce log output volume when all components are set up.
-
-Add --graphdb-server if :ref:`arangodb` is running on another instance or port.
 
 .. code-block:: bash
     :caption: Run ckcore
 
     $ ckcore --log-level debug \
-      --graphdb-server ${GRAPHDB_SERVER_ENDPOINT:-tcp://127.0.0.1:8529} \
-      --graphdb-database ${CKCORE_GRAPHDB_DATABASE:-cloudkeeper} \
-      --graphdb-username ${CKCORE_GRAPHDB_LOGIN:-cloudkeeper} \
-      --graphdb-password ${CKCORE_GRAPHDB_PASSWORD:-changeme}
+      --graphdb-server "$GRAPHDB_SERVER_ENDPOINT" \
+      --graphdb-database "$CKCORE_GRAPHDB_DATABASE" \
+      --graphdb-username "$CKCORE_GRAPHDB_LOGIN" \
+      --graphdb-password "$CKCORE_GRAPHDB_PASSWORD"
 
 .. code-block:: console
     :caption: Successful launch log output
@@ -176,7 +196,7 @@ Add --graphdb-server if :ref:`arangodb` is running on another instance or port.
 Secure ckcore
 -------------
 
-To enforce authentication for connections to :ref:`setup-ckcore` provide ``--psk "YOURVERYSECUREPRESHAREDKEY"`` as parameter on startup.
+To enforce authentication for connections to :ref:`setup-ckcore` provide ``--psk "some-secret-pre-shared-key"`` as parameter on startup.
 
 .. _setup-cksh:
 
@@ -192,10 +212,9 @@ Please make sure you have git installed.
 If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as a dependency to :ref:`setup-cksh`.
 
 .. code-block:: bash
-    :caption: Install cklib und cksh
+    :caption: Install cksh
 
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cklib&subdirectory=cklib"
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cksh&subdirectory=cksh"
+    $ pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cksh&subdirectory=cksh"
 
 Usage
 -----
@@ -218,10 +237,7 @@ Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`setup-
 .. code-block:: bash
     :caption: Run cksh
 
-    $ cksh --verbose \
-      --ckcore-uri ${CKCORE_URI:-http://127.0.0.1:8900} \
-      --ckcore-ws-uri ${CKCORE_WS_URI:-ws://127.0.0.1:8900} \
-      --ckcore-graph ${CKCORE_GRAPH:-ck}
+    cksh
 
 .. code-block:: bash
     :caption: Verify cksh connection to ckcore
@@ -249,10 +265,9 @@ Please make sure you have git installed.
 First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckworker` as well.
 
 .. code-block:: bash
-    :caption: Install cklib und ckworker
+    :caption: Install ckworker
 
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cklib&subdirectory=cklib"
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckworker&subdirectory=ckworker"
+    $ pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckworker&subdirectory=ckworker"
 
 
 .. _plugins:
@@ -260,21 +275,21 @@ First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckworker` 
 ckworker plugins
 ----------------
 
-As :ref:`setup-ckworker` needs plugins to actually do something you need to install them, too.
+:ref:`setup-ckworker` requires collector plugins to actually do something.
 A full list of available plugins can be found in the cloudkeeper `repository <https://github.com/someengineering/cloudkeeper/tree/main/plugins>`_
 
 .. code-block:: bash
     :caption: Install plugins
 
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-aws&subdirectory=plugins/aws"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-example_collector&subdirectory=plugins/example_collector"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-gcp&subdirectory=plugins/gcp"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-github&subdirectory=plugins/github"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-k8s&subdirectory=plugins/k8s"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-onelogin&subdirectory=plugins/onelogin"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-onprem&subdirectory=plugins/onprem"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-slack&subdirectory=plugins/slack"
-    pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-vsphere&subdirectory=plugins/vsphere"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-aws&subdirectory=plugins/aws"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-example_collector&subdirectory=plugins/example_collector"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-gcp&subdirectory=plugins/gcp"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-github&subdirectory=plugins/github"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-k8s&subdirectory=plugins/k8s"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-onelogin&subdirectory=plugins/onelogin"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-onprem&subdirectory=plugins/onprem"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-slack&subdirectory=plugins/slack"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cloudkeeper-plugin-vsphere&subdirectory=plugins/vsphere"
 
 Usage
 -----
@@ -302,18 +317,11 @@ As we are using AWS in this example, please replace ``--aws-access-key-id`` and 
 .. code-block:: bash
     :caption: Run ckworker
 
-    $ ckworker --verbose \
-      --ckcore-uri ${CKCORE_URI:-http://127.0.0.1:8900} \
-      --ckcore-ws-uri ${CKCORE_WS_URI:-ws://127.0.0.1:8900} \
-      --ckcore-graph ${CKCORE_GRAPH:-ck}
-      --fork \
+    $ ckworker \
+      --verbose \
       --collector aws \
-      --aws-fork \
-      --aws-account-pool-size 50 \
       --aws-access-key-id AKIAZGZEXAMPLE \
-      --aws-secret-access-key vO51EW/8ILMGrSBV/Ia9FEXAMPLE \
-      --aws-role Cloudkeeper \
-      --aws-scrape-org
+      --aws-secret-access-key vO51EW/8ILMGrSBV/Ia9FEXAMPLE
 
 .. code-block:: console
     :caption: Successful launch log output
@@ -333,16 +341,7 @@ As we are using AWS in this example, please replace ``--aws-access-key-id`` and 
     2021-10-05 13:03:37,533 - DEBUG - 3189/workerd-events - workerd-events connecting to ws://localhost:8900/subscriber/workerd-events/handle
     2021-10-05 13:03:37,536 - DEBUG - 3189/workerd-events - workerd-events connected to ckcore message bus
 
-Let us unpack this command
 
-- ``fork`` makes :ref:`setup-ckworker` fork each collector plugin instead of using threads
-- ``collector aws`` loads the AWS collector plugin
-- ``aws-fork`` tells the AWS collector plugin to also use forked processes instead of threads
-- ``aws-access-key-id/-secret-access-key`` AWS credentials for API access. Instead of using credentials directly you can also opt to inherit them from the `awscli <https://aws.amazon.com/cli/>`_ environment or when running on EC2 using an instance profile.
-- ``aws-role`` the IAM role Cloudkeeper should assume when making API requests
-- ``aws-scrape-org`` tells the AWS collector plugin to retrieve a list of all org accounts and then assume into each one of them.
-
-The reason for using forked processes instead of threads is to work around performance limitations of Python's `GIL <https://en.wikipedia.org/wiki/Global_interpreter_lock>`_. By forking we almost scale linearly with the number of CPU cores when collecting many accounts at once. The default is to use threads to conserve system resources.
 
 .. _setup-ckmetrics:
 
@@ -358,10 +357,9 @@ Please make sure you have git installed.
 If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as dependency to :ref:`setup-ckmetrics` as well.
 
 .. code-block:: bash
-    :caption: Install cklib und ckmetrics
+    :caption: Install ckmetrics
 
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=cklib&subdirectory=cklib"
-    $ pip3 install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckmetrics&subdirectory=ckmetrics"
+    $ pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a4#egg=ckmetrics&subdirectory=ckmetrics"
 
 Usage
 -----
@@ -390,7 +388,7 @@ Run ckmetrics
 Now you can connect :ref:`setup-ckmetrics` to the previous setup :ref:`setup-ckcore` as well as let your prometheus connect to :ref:`setup-ckmetrics`.
 Please match your parameter values to reflect your environment while running :ref:`setup-ckcore`.
 
-We add the ``--verbose`` on first start to get used to what is happening exactly.
+We add the ``--verbose`` flag to show what is happening in more detail.
 You can skip this argument later to reduce log output volume when all components are set up.
 
 Add ``--ckcore-uri`` and ``--ckcore-ws-uri`` if :ref:`setup-ckcore` is running on another instance or port.
@@ -399,10 +397,7 @@ Add ``--ckcore-graph`` if you defined another name of the graph for :ref:`setup-
 .. code-block:: bash
     :caption: Run ckmetrics
 
-    $ ckmetrics --verbose \
-      --ckcore-uri ${CKCORE_URI:-http://127.0.0.1:8900} \
-      --ckcore-ws-uri ${CKCORE_WS_URI:-ws://127.0.0.1:8900} \
-      --ckcore-graph ${CKCORE_GRAPH:-ck}
+    $ ckmetrics --verbose
 
 .. code-block:: console
     :caption: Successful launch log output
@@ -460,9 +455,9 @@ In this example we expect a configuration at your location defined in ``TSDB_CON
 .. code-block:: bash
     :caption: Create data directory and run Prometheus
 
-    $ /usr/local/tsdb/prometheus --config.file=${TSDB_CONFIG_FILE} \
-      --storage.tsdb.path=${TSDB_DATABASE_DIRECTORY} \
-      --storage.tsdb.retention.time=${TSDB_RETENTION_TIME} \
+    "$TSDB_DIRECTORY/prometheus" --config.file="$TSDB_CONFIG_FILE" \
+      --storage.tsdb.path="$TSDB_DATABASE_DIRECTORY" \
+      --storage.tsdb.retention.time="$TSDB_RETENTION_TIME" \
       --web.console.libraries=/usr/local/tsdb/console_libraries \
       --web.console.templates=/usr/local/tsdb/consoles \
       --web.enable-lifecycle \
