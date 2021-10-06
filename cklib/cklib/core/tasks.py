@@ -17,7 +17,7 @@ class CoreTasks(threading.Thread):
         identifier: str,
         ckcore_ws_uri: str,
         tasks: List,
-        task_queue_filter: Optional[Dict[str, List]] = None,
+        task_queue_filter: Optional[Dict[str, List[str]]] = None,
         message_processor: Optional[Callable] = None,
         max_workers: int = 20,
     ) -> None:
