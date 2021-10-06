@@ -6,26 +6,26 @@ class NotFoundError(Exception):
     pass
 
 
-class DomainError(Exception):
+class ClientError(Exception):
     pass
 
 
-class DatabaseError(DomainError):
+class DatabaseError(ClientError):
     pass
 
 
-class InvalidBatchUpdate(DatabaseError):
+class InvalidBatchUpdate(ClientError):
     def __init__(self) -> None:
         super().__init__("The same batch can not update the same subgraph or any parent node!")
 
 
-class ConflictingChangeInProgress(DatabaseError):
+class ConflictingChangeInProgress(ClientError):
     def __init__(self, other_change_id: str):
         super().__init__(f"Conflicting change in progress: {other_change_id}!")
         self.other_change_id = other_change_id
 
 
-class OptimisticLockingFailed(DatabaseError):
+class OptimisticLockingFailed(ClientError):
     def __init__(self, uid: str, current_revision: str, read_revision: str) -> None:
         super().__init__(
             f"Node {uid}: The record to update has been changed since it was read!"
@@ -36,13 +36,13 @@ class OptimisticLockingFailed(DatabaseError):
         self.read_revision = read_revision
 
 
-class NoSuchGraph(DatabaseError, NotFoundError):
+class NoSuchGraph(ClientError, NotFoundError):
     def __init__(self, graph: str):
         super().__init__(f"No graph with this name {graph}")
         self.graph = graph
 
 
-class NoSuchChangeError(DatabaseError, NotFoundError):
+class NoSuchChangeError(ClientError, NotFoundError):
     def __init__(self, change_id: str):
         super().__init__(f"No batch with given id {change_id}")
         self.change_id = change_id
@@ -52,13 +52,13 @@ class ImportAborted(CoreException):
     pass
 
 
-class CLIParseError(DomainError):
+class CLIParseError(ClientError):
     pass
 
 
-class CLIExecutionError(DomainError):
+class CLIExecutionError(ClientError):
     pass
 
 
-class ParseError(DomainError):
+class ParseError(ClientError):
     pass

@@ -1,9 +1,12 @@
 import logging
+from typing import Optional, Callable, Awaitable
 
-from aiohttp.web import Request, HTTPRedirection, StreamResponse, HTTPNotFound, HTTPBadRequest, HTTPException
+from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException
 from aiohttp.web_middlewares import middleware
+from aiohttp.web_request import Request
+from aiohttp.web_response import StreamResponse
 
-from core.error import NotFoundError
+from core.error import NotFoundError, ClientError
 from core.metrics import RequestInProgress, RequestLatency, RequestCount, perf_now
 from core.web import RequestHandler
 
@@ -27,21 +30,34 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         RequestInProgress.labels(request.path, request.method).dec()
 
 
-@middleware
-async def error_handler(request: Request, handler: RequestHandler) -> StreamResponse:
-    try:
-        response = await handler(request)
-        return response
-    except HTTPRedirection as e:
-        # redirects are implemented as exceptions in aiohttp for whatever reason...
-        raise e
-    except NotFoundError as e:
-        kind = type(e).__name__
-        message = f"Error: {kind}\nMessage: {str(e)}"
-        log.info(f"Request {request} has failed with exception: {message}", exc_info=e)
-        raise HTTPNotFound(text=message) from e
-    except Exception as e:
-        kind = type(e).__name__
-        message = f"Error: {kind}\nMessage: {str(e)}"
-        log.warning(f"Request {request} has failed with exception: {message}", exc_info=e)
-        raise HTTPBadRequest(text=message) from e
+def error_handler() -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+    is_debug = logging.root.level < logging.INFO
+
+    def exc_info(ex: Exception) -> Optional[Exception]:
+        return ex if is_debug else None
+
+    @middleware
+    async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
+        try:
+            response = await handler(request)
+            return response
+        except HTTPRedirection as e:
+            # redirects are implemented as exceptions in aiohttp for whatever reason...
+            raise e
+        except NotFoundError as e:
+            kind = type(e).__name__
+            message = f"Error: {kind}\nMessage: {str(e)}"
+            log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
+            raise HTTPNotFound(text=message) from e
+        except ClientError as e:
+            kind = type(e).__name__
+            message = f"Error: {kind}\nMessage: {str(e)}"
+            log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
+            raise HTTPBadRequest(text=message) from e
+        except Exception as e:
+            kind = type(e).__name__
+            message = f"Error: {kind}\nMessage: {str(e)}"
+            log.warning(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
+            raise HTTPBadRequest(text=message) from e
+
+    return error_handler_middleware

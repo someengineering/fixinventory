@@ -132,6 +132,7 @@ class CLICommand(CLIPart, ABC):
     If a CLICommand wants to interact with the stream directly, tbe parse method has to be overridden.
     """
 
+    @abstractmethod
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         pass
 

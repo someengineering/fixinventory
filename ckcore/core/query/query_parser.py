@@ -1,9 +1,11 @@
 from dataclasses import replace
 from functools import reduce
 
+import parsy
 from parsy import string, Parser, regex
 from typing import Optional
 
+from core.error import ParseError
 from core.model.graph_access import EdgeType
 from core.parse_util import (
     lparen_p,
@@ -340,4 +342,7 @@ def query_parser() -> Parser:
 
 
 def parse_query(query: str) -> Query:
-    return query_parser.parse(query.strip())  # type: ignore
+    try:
+        return query_parser.parse(query.strip())  # type: ignore
+    except parsy.ParseError as ex:
+        raise ParseError(f"Can not parse query: {query}\n" + str(ex)) from ex

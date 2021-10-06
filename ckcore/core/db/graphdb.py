@@ -68,6 +68,7 @@ class GraphDB(ABC):
     def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         pass
 
+    @abstractmethod
     def update_nodes_metadata(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         pass
 
