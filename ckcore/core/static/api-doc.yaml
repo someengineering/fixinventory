@@ -1246,18 +1246,41 @@ paths:
                 -   name: filter
                     description: |
                         Additional properties to filter tasks of provided task name.
-                        Example: the worker is able to perform tasks of type tag, but only for cloud AWS.
-                                 cloud=aws could be an additional filter criteria.
+                        The value of the parameter is either a string or a list of strings separated by comma.
+                        The available filter criteria are defined by the specific task to execute.
+
+                        All specified filter criteria need to match by the task to execute.
+                        If a list of values is defined for a filter criteria, at least one needs to match.
+                        (e.g. cloud=aws,gcp would match a task for cloud=aws).
+
+                        Example:
+                                 The worker is able to perform tasks of type tag, but only for cloud AWS:
+                                 cloud=aws
+
+                                 The worker is able to perform tasks of type tag, for AWS and GCP:
+                                 cloud=aws,gcp
+
                                  Maybe the worker is only capable to perform the work in a specific account.
                                  cloud=aws&account=123 could be specified to only filter for tasks in this cloud in this
-                                 account. The available filter criteria are derived from the metadata section of the
-                                 node.
+                                 account.
+
+                        In case there are multiple workers that match the task criteria, the most specific
+                        worker is taken.
+
+                        Example:
+                                worker1: cloud=aws,gcp
+                                worker2: cloud=aws account=123
+
+                        If the task is for cloud=aws and account=123, then only worker2 would get the task to execute
+                        not worker1.
+
+
                     in: query
                     required: false
                     schema:
                         type: object
                         additionalProperties: true
-                        example: { "cloud": "aws", "account": "123" }
+                        example: { "cloud": "aws", "account": "123,124,125" }
             tags:
                 - work_queue
             responses:

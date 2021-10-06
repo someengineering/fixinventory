@@ -265,7 +265,7 @@ class Api:
         task_param = request.query.get("task")
         if not task_param:
             raise AttributeError("A worker needs to define at least one task that it can perform")
-        attrs = {k: v for k, v in request.query.items() if k != "task"}
+        attrs = {k: re.split("\\s*,\\s*", v) for k, v in request.query.items() if k != "task"}
         task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
 
         async def receive() -> None:
@@ -304,7 +304,7 @@ class Api:
     async def create_work(self, request: Request) -> StreamResponse:
         attrs = {k: v for k, v in request.query.items() if k != "task"}
         future = asyncio.get_event_loop().create_future()
-        task = WorkerTask(uuid_str(), "test", attrs, {"some": "data"}, future, timedelta(seconds=3))
+        task = WorkerTask(uuid_str(), "test", attrs, {"some": "data", "foo": "bla"}, future, timedelta(seconds=3))
         await self.worker_task_queue.add_task(task)
         await future
         return web.HTTPOk()
