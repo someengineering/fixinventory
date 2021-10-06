@@ -7,6 +7,8 @@ from typing import List, Dict
 from cklib.logging import log, add_args as logging_add_args
 from cklib.pluginloader import PluginLoader
 from cklib.baseplugin import BaseCollectorPlugin, PluginType
+from cklib.web import WebServer
+from cklib.web.metrics import WebApp
 from cklib.utils import log_stats, increase_limits
 from cklib.args import ArgumentParser
 from cklib.core.actions import CoreActions
@@ -60,6 +62,7 @@ def main() -> None:
     collect_add_args(arg_parser)
     cleanup_add_args(arg_parser)
     ckcore_add_args(arg_parser)
+    WebApp.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     event_add_args(arg_parser)
     add_args(arg_parser)
@@ -78,6 +81,10 @@ def main() -> None:
 
     # Try to increase nofile and nproc limits
     increase_limits()
+
+    web_server = WebServer(WebApp())
+    web_server.daemon = True
+    web_server.start()
 
     core_actions = CoreActions(
         identifier="workerd-actions",
@@ -114,6 +121,7 @@ def main() -> None:
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
     shutdown_event.wait()
+    web_server.shutdown()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     cklib.signal.kill_children(cklib.signal.SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
@@ -165,6 +173,20 @@ def add_args(arg_parser: ArgumentParser) -> None:
         default=10800,
         dest="timeout",
         type=int,
+    )
+    arg_parser.add_argument(
+        "--web-port",
+        help="Web Port (default 9955)",
+        default=9956,
+        dest="web_port",
+        type=int,
+    )
+    arg_parser.add_argument(
+        "--web-host",
+        help="IP to bind to (default: ::)",
+        default="::",
+        dest="web_host",
+        type=str,
     )
 
 
