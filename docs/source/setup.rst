@@ -8,6 +8,9 @@ In this setup guide we're showing you three things:
     #. how to install each cloudkeeper component
     #. how to run & access each component
 
+All the installation will take place in your home directory ``~/cloudkeeper/``.
+
+
 Prerequisites
 *************
 
@@ -27,9 +30,9 @@ Prepare your environment
 Configuration
 =============
 
-Every Cloudkeeper component can be configured via environment variables instead of parameters.
-In this section we will prepare all Configurations you need for your examples in one place.
-Each component has it's own prefix.
+Every Cloudkeeper component can be configured via environment variables instead of commandline arguments.
+In this section we will prepare all configuration required.
+Each component has its own prefix.
 
 * :ref:`component-ckcore`: ``CKCORE_``
 * :ref:`component-ckworker`: ``CKWORKER_``
@@ -37,7 +40,7 @@ Each component has it's own prefix.
 * :ref:`component-cksh`: ``CKSH_``
 
 Example for ``ckcore``
-------------------
+----------------------
 
 ENV Prefix: ``CKCORE_``
 
@@ -50,10 +53,10 @@ For instance ``--graphdb-server http://foobar.tld:8529`` would become ``CKCORE_G
 
     export GRAPHDB_DATABASE_DIRECTORY="~/cloudkeeper/db"   #<-- directory to store arangodb data
     export GRAPHDB_SERVER_ENDPOINT="tcp://127.0.0.1:8529"  #<-- destination IP:Port to connect to arangodb
-    export GRAPHDB_ROOT_PASSWORD="<SETTHISTOSTHSAFE>"      #<-- arangodb root password
+    export GRAPHDB_ROOT_PASSWORD="changeme"                #<-- arangodb root password
 
     export CKCORE_GRAPHDB_LOGIN="cloudkeeper"              #<-- user for arangodb database
-    export CKCORE_GRAPHDB_PASSWORD="<SETTHISTOSTHOTHER>"   #<-- password for arangodb user
+    export CKCORE_GRAPHDB_PASSWORD="changeme"              #<-- password for arangodb user
     export CKCORE_GRAPHDB_DATABASE="cloudkeeper"           #<-- database name in arangodb
     export CKCORE_URI="http://127.0.0.1:8900"              #<-- destination IP:Port to connect to ckcore API
     export CKCORE_WS_URI="ws://127.0.0.1:8900"             #<-- destination IP:Port to connect to ckcore API via Websocket
