@@ -38,7 +38,7 @@ from core.cli.cli import (
     QueryAllPart,
 )
 from core.db.model import QueryModel
-from core.error import CLIParseError, DatabaseError
+from core.error import CLIParseError, ClientError
 from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.resolve_in_graph import NodePath
@@ -1151,7 +1151,7 @@ class TagCommand(SendWorkerTaskCommand):
                 try:
                     updated: Json = await db.update_node(model, result["id"], result, None)
                     return updated
-                except DatabaseError as ex:
+                except ClientError as ex:
                     # if the change could not be reflected in database, show success
                     log.warning(
                         f"Tag update not reflected in db. Wait until next collector run. Reason: {str(ex)}", exc_info=ex
