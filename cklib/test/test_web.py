@@ -2,7 +2,8 @@ import socket
 import requests
 import time
 from cklib.args import ArgumentParser
-from ckmetrics.web import WebServer, CloudkeeperMetricsWebApp
+from cklib.web import WebServer
+from cklib.web.metrics import WebApp
 
 
 def test_web():
@@ -22,7 +23,7 @@ def test_web():
     tcp.close()
     # todo: race between closing socket and reusing free port in WebServer
 
-    web_server = WebServer(CloudkeeperMetricsWebApp())
+    web_server = WebServer(WebApp())
     web_server.daemon = True
     web_server.start()
     start_time = time.time()
