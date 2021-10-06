@@ -164,21 +164,21 @@ The ``value`` can be any json literal or any json conform value.
 Select nodes by id
 ------------------
 
-    Nodes can be selected by their id via the `id(xyz)` function.
-    This function can be used globally no matter which section is used.
+Nodes can be selected by their id via the `id(xyz)` function.
+This function can be used globally no matter which section is used.
 
 Combine selections
 ------------------
 
-    All listed selections can be combined with ``and`` and ``or`` clauses.
-    In order to define precedence, it is possible to put brackets around terms.
+All listed selections can be combined with ``and`` and ``or`` clauses.
+In order to define precedence, it is possible to put brackets around terms. 
 
-    .. hint::
-      Examples of combined terms:
+.. hint::
+  Examples of combined terms:
 
-      - ``reported.name == sunset or reported.name == sunrise`` select nodes where reported.name is either sunrise or sunset.
-      - ``is(aws_ec2_instance) and reported.name==sunrise`` select aws_ec2_instance nodes where reported.name is sunrise.
-      - ``is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` select aws_ec2_instance nodes of specific type or more than 2 cores.
+  - ``reported.name == sunset or reported.name == sunrise`` select nodes where reported.name is either sunrise or sunset.
+  - ``is(aws_ec2_instance) and reported.name==sunrise`` select aws_ec2_instance nodes where reported.name is sunrise.
+  - ``is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` select aws_ec2_instance nodes of specific type or more than 2 cores.
 
 
 Graph Edges
