@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import timedelta
 
 from aiohttp import web
 from aiohttp.web_app import Application
@@ -24,10 +25,12 @@ def main() -> None:
     setup_process(args)
 
     log.info("Starting up...")
-    scheduler = Scheduler()
     event_bus = EventBus()
-    worker_task_queue = WorkerTaskQueue()
     db = db_access(args, event_bus)
+    # wait here for an initial connection to the database before we continue
+    db.wait_for_initial_connect(timedelta(seconds=60))
+    scheduler = Scheduler()
+    worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies()
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())

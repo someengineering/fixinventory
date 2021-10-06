@@ -1,21 +1,23 @@
 import logging
 from abc import ABC
 from datetime import datetime, timezone, timedelta
+from time import sleep
 
 from arango.database import StandardDatabase
 from dateutil.parser import parse
+from requests.exceptions import ConnectionError as ArangoConnectionError
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
+from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.db.jobdb import job_db
 from core.db.modeldb import ModelDb, model_db
-from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
-from core.db.subscriberdb import subscriber_db
 from core.db.runningtaskdb import running_task_db
+from core.db.subscriberdb import subscriber_db
 from core.error import NoSuchGraph
 from core.event_bus import EventBus
 from core.model.adjust_node import AdjustNode
-from core.util import Periodic
+from core.util import Periodic, utc
 
 log = logging.getLogger(__name__)
 
@@ -93,3 +95,16 @@ class DbAccess(ABC):
                     batch_id = update["id"]
                     log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
                     await db.abort_update(batch_id)
+
+    # Only used during startup.
+    # Note: this call uses sleep and will block the current executing thread!
+    def wait_for_initial_connect(self, timeout: timedelta) -> None:
+        deadline = utc() + timeout
+        while utc() < deadline:
+            try:
+                self.db.db.echo()
+                return None
+            except ArangoConnectionError:
+                log.warning("Can not access database. Trying again in 5 seconds.")
+                sleep(5)
+        log.error("Can not connect to database. Give up.")
