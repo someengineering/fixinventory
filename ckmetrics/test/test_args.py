@@ -15,6 +15,3 @@ def test_args():
     assert ArgumentParser.args.ckcore_graph == "ck"
     assert ArgumentParser.args.psk is None
     assert ArgumentParser.args.timeout == 300
-    assert ArgumentParser.args.web_port == 9955
-    assert ArgumentParser.args.web_host == "::"
-    assert ArgumentParser.args.web_path == "/"
