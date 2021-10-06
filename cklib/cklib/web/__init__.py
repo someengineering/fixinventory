@@ -1,6 +1,5 @@
 import threading
 import cherrypy
-from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 from cklib.args import ArgumentParser
 from cklib.logging import log
 
