@@ -21,3 +21,7 @@ scrape_configs:
   - job_name: "ckmetrics"
     static_configs:
       - targets: ["localhost:9955"]
+
+  - job_name: "ckcore"
+    static_configs:
+      - targets: ["localhost:8900"]
