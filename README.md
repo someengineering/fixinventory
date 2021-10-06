@@ -7,6 +7,7 @@
 
 * [Overview](#overview)
 * [Quick Start](#quick-start)
+* [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)
 * [License](#license)
@@ -37,6 +38,21 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 
 **Continue reading the Quick Start Guide**  
 --> https://docs.some.engineering
+
+
+# Cloning this repository
+This Git repo uses [Git Large File Storage (LFS)](https://git-lfs.github.com/).
+
+Before cloning the repo make sure to have git-lfs installed!
+
+One time setup:
+```
+$ git clone https://github.com/someengineering/cloudkeeper.git
+$ cd cloudkeeper/
+$ git lfs install  # installs git-lfs hooks
+```
+
+Once setup you can interact with the repo like any other Git project. All large UI assets will be retrived from [Github's LFS servers](https://docs.github.com/en/repositories/working-with-files/managing-large-files).
 
 
 # Component list
