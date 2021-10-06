@@ -6,3 +6,4 @@ requests==2.26.0
 prometheus-client==0.11.0
 cryptography==35.0.0
 PyJWT==2.1.0
+CherryPy==18.6.1
