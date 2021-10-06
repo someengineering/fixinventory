@@ -1,4 +1,5 @@
 .. highlight:: bash
+.. _quickstart:
 
 Quick start
 ***********
@@ -32,7 +33,6 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
     -e CKWORKER_COLLECTOR=”aws example” \
     --name cloudkeeper ghcr.io/someengineering/cloudkeeper:2.0.0a5
-
 
 Start the Cloudkeeper CLI
 =========================

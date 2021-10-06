@@ -64,22 +64,31 @@ body {
     font-family: 'Lato', sans-serif;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
     color: #ffe797;
     font-family: 'Gemunu Libre', sans-serif;
     letter-spacing: 0.05rem;
 }
 
 h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
 }
 
 h2 {
     margin-top: 4rem;
-    font-size: 1.6rem;
+    font-size: 1.9rem;
+    border-bottom: 1px solid #ffe797;
+    float: left;
+    width: 100%;
+    padding-bottom: 0.5rem;
 }
 
 h3 {
+    margin-top: 3rem;
+    font-size: 1.6rem;
+}
+
+h4 {
     font-size: 1.3rem;
     color: #dda045;
 }
@@ -133,6 +142,10 @@ hr {
 
 .rst-content table.docutils:not(.field-list) tr:nth-child(2n-1) td, .wy-table-backed, .wy-table-odd td, .wy-table-striped tr:nth-child(2n-1) td {
     background-color: #001930;
+}
+
+.wy-menu-vertical li.toctree-l3.current>a, .wy-menu-vertical li.toctree-l3.current li.toctree-l4>a {
+    background: #001526;
 }
 
 .rst-content table.docutils td, .wy-table-bordered-all td {

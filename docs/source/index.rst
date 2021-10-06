@@ -6,7 +6,8 @@ Contents
    :maxdepth: 1
 
    start
-   component-list
+   components
+   setup
    model
    query
 
