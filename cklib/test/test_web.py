@@ -11,6 +11,7 @@ def test_web():
         description="Cloudkeeper Metrics Exporter", env_args_prefix="CKMETRICS_"
     )
     WebServer.add_args(arg_parser)
+    WebApp.add_args(arg_parser)
     arg_parser.parse_args()
 
     # Find a free local port to reuse when we bind the web server.
