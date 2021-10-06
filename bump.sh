@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <bump-from> <bump-to>"
-    echo "E.g. $0 2\\.0\\.0a5 2.0.0a6"
+    echo "E.g. $0 '2\\.0\\.0a5' 2.0.0a6"
     exit 1
 fi
 
