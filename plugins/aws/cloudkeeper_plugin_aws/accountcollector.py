@@ -883,8 +883,8 @@ class AWSAccountCollector:
         try:
             response_app = client.get_account_password_policy()
             app = response_app.get("PasswordPolicy", {})
-            self.account.minimum_password_length = str(
-                app.get("MinimumPasswordLength", None)
+            self.account.minimum_password_length = int(
+                app.get("MinimumPasswordLength", 0)
             )
             self.account.require_symbols = bool(app.get("RequireSymbols", None))
             self.account.require_numbers = bool(app.get("RequireNumbers", None))
