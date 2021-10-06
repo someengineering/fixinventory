@@ -1,7 +1,7 @@
-from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
-from cklib.args import ArgumentParser
 import os
 import cherrypy
+from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
+from cklib.args import ArgumentParser
 
 
 class WebApp:
