@@ -52,7 +52,7 @@ $ cd cloudkeeper/
 $ git lfs install  # installs git-lfs hooks
 ```
 
-Once setup you can interact with the repo like any other Git project. All large UI assets will be retrived from [Github's LFS servers](https://docs.github.com/en/repositories/working-with-files/managing-large-files).
+Once set up you can interact with the repo like any other Git project. All large UI assets will be retrived from [Github's LFS servers](https://docs.github.com/en/repositories/working-with-files/managing-large-files).
 
 
 # Component list
