@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta, datetime
+from functools import reduce
 from typing import Any, Optional, AsyncGenerator
 
 from core.types import Json
@@ -61,7 +62,7 @@ class WorkerTaskOnHold:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class WorkerTaskDescription:
     name: str
-    filter: dict[str, Any] = field(default_factory=dict)
+    filter: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -154,10 +155,20 @@ class WorkerTaskQueue:
         def can_perform(subscription: WorkerTaskSubscription) -> bool:
             # the filter criteria in the subscription needs to be matched by the task attributes
             # note: the task can define more attributes, that would be ignored
-            return all(item in task.attrs.items() for item in subscription.task.filter.items())
+            def matches_task_filter(name: str, filter_list: list[str]) -> bool:
+                value = task.attrs.get(name)
+                return value in filter_list if value else False
 
-        subscriptions = sorted(filter(can_perform, self.worker_by_task_name[task.name]), key=outstanding_tasks)
-        if subscriptions:
+            return all(matches_task_filter(n, f) for n, f in subscription.task.filter.items())
+
+        # all workers that match the task filter
+        matching_subscriptions = [wt for wt in self.worker_by_task_name[task.name] if can_perform(wt)]
+        if matching_subscriptions:
+            # filter the list for worker with the most specific filter (==most task filter)
+            max_filter_len = reduce(lambda res, x: max(res, len(x.task.filter)), matching_subscriptions, 0)
+            same_filter_len = (a for a in matching_subscriptions if len(a.task.filter) == max_filter_len)
+            # sort and use the one with the least amount of outstanding tasks
+            subscriptions = sorted(same_filter_len, key=outstanding_tasks)
             sub = subscriptions[0]  # this is the worker with the least amount of work
             # todo: store task in db
             self.outstanding_tasks[task.id] = WorkerTaskInProgress(task, sub, retry_count, utc() + task.timeout)
