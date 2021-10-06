@@ -10,10 +10,10 @@ from datetime import timedelta
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union
 
+import prometheus_client
 import yaml
 from aiohttp import web, WSMsgType, WSMessage
-from aiohttp.web import Request, StreamResponse, HTTPRedirection
-from aiohttp.web_middlewares import middleware
+from aiohttp.web import Request, StreamResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx.readwrite import cytoscape_data
@@ -24,7 +24,6 @@ from core.cli.command import is_node
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
-from core.error import NotFoundError
 from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
@@ -37,7 +36,8 @@ from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
 from core.util import force_gen, uuid_str, value_in_path, set_value_in_path
-from core.web import auth, RequestHandler
+from core.web import auth
+from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
@@ -76,7 +76,7 @@ class Api:
         self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.args = args
-        self.app = web.Application(middlewares=[auth.auth_handler(args), self.error_handler])
+        self.app = web.Application(middlewares=[metrics_handler, auth.auth_handler(args), error_handler])
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(
@@ -138,6 +138,8 @@ class Api:
                 # Serve static filed
                 web.get("", self.redirect_to_api_doc),
                 web.static("/static", static_path),
+                # metrics
+                web.get("/metrics", self.metrics),
             ]
         )
         SwaggerFile(
@@ -145,6 +147,12 @@ class Api:
             spec_file=f"{static_path}/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
+
+    @staticmethod
+    async def metrics(_: Request) -> StreamResponse:
+        resp = web.Response(body=prometheus_client.generate_latest())
+        resp.content_type = prometheus_client.CONTENT_TYPE_LATEST
+        return resp
 
     async def list_all_subscriptions(self, _: Request) -> StreamResponse:
         subscribers = await self.subscription_handler.all_subscribers()
@@ -640,23 +648,3 @@ class Api:
             return await respond_yaml(accept)
         else:
             return await respond_json()
-
-    @staticmethod
-    @middleware
-    async def error_handler(request: Request, handler: RequestHandler) -> StreamResponse:
-        try:
-            response = await handler(request)
-            return response
-        except HTTPRedirection as e:
-            # redirects are implemented as exceptions in aiohttp for whatever reason...
-            raise e
-        except NotFoundError as e:
-            kind = type(e).__name__
-            message = f"Error: {kind}\nMessage: {str(e)}"
-            log.info(f"Request {request} has failed with exception: {message}", exc_info=e)
-            return web.HTTPNotFound(text=message)
-        except Exception as e:
-            kind = type(e).__name__
-            message = f"Error: {kind}\nMessage: {str(e)}"
-            log.warning(f"Request {request} has failed with exception: {message}", exc_info=e)
-            return web.HTTPBadRequest(text=message)

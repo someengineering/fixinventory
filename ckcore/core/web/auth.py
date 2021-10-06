@@ -28,12 +28,17 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
     return await handler(request)
 
 
+AlwaysAllowed = {"/metrics"}
+
+
 def check_jwt(psk: str) -> Middleware:
     @middleware
     async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
         auth_header = request.headers.get("authorization")
 
-        if auth_header:
+        if request.path in AlwaysAllowed:
+            return await handler(request)
+        elif auth_header:
             try:
                 # note: the expiration is already checked by this function
                 jwt = ck_jwt.decode_jwt_from_header_value(auth_header, psk)
