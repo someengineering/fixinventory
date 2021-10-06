@@ -80,7 +80,7 @@ def main() -> None:
     increase_limits()
 
     core_actions = CoreActions(
-        identifier="workerd-events",
+        identifier="workerd-actions",
         ckcore_uri=ArgumentParser.args.ckcore_uri,
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         actions={
@@ -97,11 +97,15 @@ def main() -> None:
             core_actions_processor, plugin_loader.plugins(PluginType.COLLECTOR)
         ),
     )
+
+    task_queue_filter = {}
+    if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
+        task_queue_filter = {"cloud": list(ArgumentParser.args.collector)}
     core_tasks = CoreTasks(
         identifier="workerd-tasks",
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         tasks=["tag"],
-        task_queue_filter={},
+        task_queue_filter=task_queue_filter,
         message_processor=core_tag_tasks_processor,
     )
     core_actions.start()
