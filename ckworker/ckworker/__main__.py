@@ -31,7 +31,6 @@ collect_event = threading.Event()
 
 
 def main() -> None:
-    log.info("Cloudkeeper collectord initializing")
     # Try to run in a new process group and
     # ignore if not possible for whatever reason
     try:
@@ -49,6 +48,7 @@ def main() -> None:
         description="Cloudkeeper Worker",
         env_args_prefix="CKWORKER_",
         add_help=False,
+        add_machine_help=False,
     )
     PluginLoader.add_args(collector_arg_parser)
     (args, _) = collector_arg_parser.parse_known_args()

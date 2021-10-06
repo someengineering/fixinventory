@@ -11,6 +11,27 @@ class Namespace(argparse.Namespace):
         return None
 
 
+class _MachineHelpAction(argparse.Action):
+    def __init__(
+        self,
+        option_strings,
+        dest=argparse.SUPPRESS,
+        default=argparse.SUPPRESS,
+        help=None,
+    ):
+        super(_MachineHelpAction, self).__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=help,
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_machine_help()
+        parser.exit()
+
+
 class ArgumentParser(argparse.ArgumentParser):
     # Class variable containing the last return value of parse_args()
     # If parse_args() hasn't been called yet will return None for any
@@ -18,10 +39,30 @@ class ArgumentParser(argparse.ArgumentParser):
     args = Namespace()
 
     def __init__(
-        self, *args, env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX, **kwargs
+        self,
+        *args,
+        env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX,
+        add_machine_help: bool = True,
+        **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
         self.env_args_prefix = env_args_prefix
+        self.add_machine_help = add_machine_help
+        self.register("action", "machine_help", _MachineHelpAction)
+
+        if self.add_machine_help:
+            self.add_argument(
+                "--machine-help",
+                action="machine_help",
+                help="print machine readable help",
+            )
+
+    def print_machine_help(self):
+        for action in self._actions:
+            if action.default == argparse.SUPPRESS:
+                continue
+            for option_string in action.option_strings:
+                print(option_string)
 
     def parse_known_args(self, args=None, namespace=None):
         for action in self._actions:
