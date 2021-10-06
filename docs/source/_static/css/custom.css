@@ -78,7 +78,6 @@ h2 {
     margin-top: 4rem;
     font-size: 1.9rem;
     border-bottom: 1px solid #ffe797;
-    float: left;
     width: 100%;
     padding-bottom: 0.5rem;
 }
@@ -89,6 +88,8 @@ h3 {
 }
 
 h4 {
+    font-size: 1.3rem;
+    color: #dda045;
     font-size: 1.3rem;
     color: #dda045;
 }
@@ -288,7 +289,7 @@ button.toctree-expand:before {
 }
 
 .wy-menu-vertical li.toctree-l2 a {
-    color: #d6a045;
+    color: #dda045;
     border-right: 0px solid #c9c9c9;
 }
 
@@ -299,3 +300,16 @@ button.toctree-expand:before {
 .wy-menu-vertical li.current>a, .wy-menu-vertical li.on a {
     color: #ffe797;
 }
+
+
+.hint .admonition-title {
+    color: #dda045 !important;
+    background: #000c18 !important;
+    border-radius: 5px 5px 0 0;
+}
+
+.admonition.hint {
+    background: #001930 !important;
+    border-radius: 5px;
+}
+

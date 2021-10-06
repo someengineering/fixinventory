@@ -37,7 +37,7 @@ Each component has it's own prefix.
 * :ref:`component-cksh`: ``CKSH_``
 
 Example for ``ckcore``
-------------------
+----------------------
 
 ENV Prefix: ``CKCORE_``
 
