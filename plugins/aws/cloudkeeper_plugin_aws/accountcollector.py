@@ -903,7 +903,7 @@ class AWSAccountCollector:
                 app.get("PasswordReusePrevention", 0)
             )
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
-        except client.exceptions.NoSuchEntityException as err:
+        except client.exceptions.NoSuchEntityException:
             log.debug(
                 f"The Password Policy for account {self.account.dname} cannot be found."
             )
