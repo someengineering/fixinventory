@@ -1,5 +1,6 @@
+===========================
 Setup individual components
-###########################
+===========================
 
 The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Cloudkeeper environment.
 
@@ -37,7 +38,7 @@ Each component has it's own prefix.
 * :ref:`component-cksh`: ``CKSH_``
 
 Example for ``ckcore``
-------------------
+----------------------
 
 ENV Prefix: ``CKCORE_``
 

@@ -1,8 +1,8 @@
-.. highlight:: bash
 .. _quickstart:
 
+===========
 Quick start
-***********
+===========
 In this quick start guide, we’re showing you three things, how to:
 
     #. install Cloudkeeper for AWS with docker
@@ -27,18 +27,19 @@ Run Cloudkeeper
 Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest Cloudkeeper release.
 Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
 
-::
+.. code-block:: bash
+
     $ mkdir -p ~/data/test
     $ docker run -d -v "${HOME}/data/test":/data:rw \
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
     -e CKWORKER_COLLECTOR=”aws example” \
-    --name cloudkeeper ghcr.io/someengineering/cloudkeeper:2.0.0a5
+    --name cloudkeeper ghcr.io/someengineering/cloudkeeper:2.0.0a4
 
 Start the Cloudkeeper CLI
 =========================
 You interact with `ckcore <https://github.com/someengineering/cloudkeeper/tree/main/ckcore>`_ via `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_
 
-::
+.. code-block:: bash
 
     $ docker exec -it cloudkeeper cksh
 
@@ -48,7 +49,8 @@ You interact with `ckcore <https://github.com/someengineering/cloudkeeper/tree/m
 
 Collect AWS Inventory
 ---------------------
-::
+
+.. code-block:: bash
 
     > start_task collect
     > tasks
@@ -67,7 +69,7 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
 | *Hint:*
 | You can observe the collect process in the logs
 
-::
+.. code-block:: console
 
     $ docker logs -f cloudkeeper | grep ckcore cloudkeeper.log | grep 501d6048-1e2e-11ec-ace0-330e870b1c75
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: pre_collect [core.task.task_description]
@@ -81,18 +83,19 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: post_metrics [core.task.task_description]
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: task_end [core.task.task_description]
 
+
 You have this many ressources!
 ------------------------------
 Count the resources available in Cloudkeeper
-::
+
+.. code-block:: bash
 
     > match is(resource) | count
     total matched: 280
     total unmatched: 0
 
-What is your number? Let us know in `Discord <https://discord.gg/3G3sX6y3bt>`_!
+What is your number? Let us know on `Discord <https://discord.gg/3G3sX6y3bt>`_!
 
-.. highlight:: bash
 
 Usage of the Cloudkeeper CLI
 ============================
@@ -103,7 +106,7 @@ How to access help
 | `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_ ``help`` command list all commands available.
 | Guidance for a specific command is ``help <command>``
 
-::
+.. code-block:: bash
 
     > help
     ckcore CLI
@@ -124,7 +127,8 @@ This cksh output is shortened for readability.
 List your resource types
 ------------------------
 ``kind`` lists all resource types currently available for exploration.
-::
+
+.. code-block:: bash
 
     > help kind
     > kind
@@ -171,7 +175,8 @@ We add new resources every week. Please star this `repo <http://github.com/somee
 Query your resource types
 -------------------------
 ``match`` matches the collected values from your AWS Infrastructure
-::
+
+.. code-block:: bash
 
     > help match
     > match is(aws_ec2_instance) limit 1
@@ -213,7 +218,8 @@ Count and filter your resources
 -------------------------------
 ``count`` will give you the number of incoming elements.
 This provides information on the number of items you are interacting with.
-::
+
+.. code-block:: bash
 
     > help count
     > match is(aws_ec2_instance) | count
@@ -222,7 +228,8 @@ This provides information on the number of items you are interacting with.
 
 This will count all ``aws_ec2_instance`` that are older than 24h.
 Both commands are identical, the 2nd one makes use of predefined placeholder strings.
-::
+
+.. code-block:: bash
 
     > match is(aws_ec2_instance) ctime < -1d | count
     > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count
@@ -234,7 +241,7 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 | In this case: ``reported.instance_cores``.
 | This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday, groups them by reported.instance_cores results and counts the occurences of them.
 
-::
+.. code-block:: bash
 
     > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count reported.instance_cores
     2: 1                         ← Number of occurences of reported.instance_cores = 2
@@ -244,7 +251,7 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 
 As a small reminder: ``reported.instance_cores`` references to data from matched ``aws_ec2_instances``
 
-::
+.. code-block:: bash
 
     > match is(aws_ec2_instance)
     reported:
@@ -271,6 +278,7 @@ As a small reminder: ``reported.instance_cores`` references to data from matched
     - instance
     - aws_resource
 
+
 Output is shortened for documentation purposes
 
 You made it!
@@ -296,5 +304,5 @@ How you get more assistance
 | Discord:
 | https://discord.gg/3G3sX6y3bt
 
-| GitHub Issue:
+| GitHub Issues:
 | https://github.com/someengineering/cloudkeeper/issues/new
