@@ -1,9 +1,8 @@
 import os
 import jwt
 import base64
+import hashlib
 import time
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Any, Optional, Tuple, Dict
 
 
@@ -14,13 +13,7 @@ def key_from_psk(psk: str, salt: bytes = None) -> Tuple[bytes, bytes]:
     """
     if salt is None:
         salt = os.urandom(16)
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-    )
-    key = kdf.derive(psk.encode())
+    key = hashlib.pbkdf2_hmac('sha256', psk.encode(), salt, 100000)
     return key, salt
 
 
