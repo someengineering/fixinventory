@@ -15,6 +15,8 @@ tags:
         description: Create, update, delete and get a node in the graph.
     -   name: model
         description: Endpoints to maintain the schema and model of the entities inside a graph.
+    -   name: config
+        description: Endpoints to maintain configuration data
     -   name: cli
         description: Endpoints to evaluate and execute cli commands
     -   name: subscriptions
@@ -1332,6 +1334,116 @@ paths:
 
     # endregion
 
+    # region config
+    /configs:
+
+        get:
+            summary: "Get all configuration data"
+            description: Get all configuration data in the system.
+            tags:
+                - config
+            responses:
+                "200":
+                    description: All configuration objects by key.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Config"
+
+    /config/{config_id}:
+        get:
+            summary: "Get a configuration by its id"
+            description: Fetch a configuration by id.
+            tags:
+                - config
+            parameters:
+                - name: config_id
+                  required: true
+                  in: path
+                  description: the identifier of the config to get.
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: The configuration
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+                "404":
+                    description: No configuration for this key.
+
+        put:
+            summary: "Replace a configuration with given id"
+            description: Replace a configuration identified by id with provided value.
+            tags:
+                - config
+            parameters:
+                - name: config_id
+                  required: true
+                  in: path
+                  description: the identifier of the config to get.
+                  schema:
+                      type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: The configuration
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+        patch:
+            summary: "Patch a configuration by its id"
+            description: Patch a configuration identified by id with provided value.
+            tags:
+                - config
+            parameters:
+                - name: config_id
+                  required: true
+                  in: path
+                  description: the identifier of the config to get.
+                  schema:
+                      type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: The configuration
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: true
+        delete:
+            summary: "Delete a configuration by its id"
+            description: Delete a configuration identified by id with provided value.
+            tags:
+                - config
+            parameters:
+                - name: config_id
+                  in: path
+                  required: true
+                  description: the identifier of the config to get.
+                  schema:
+                      type: string
+            responses:
+                "204":
+                    description: Signals success of this operation.
+
+    # endregion
+
     # region cli
     /cli/evaluate:
         post:
@@ -1422,6 +1534,16 @@ paths:
 
 components:
     schemas:
+        Config:
+            description: "A config object"
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: The id of this config object.
+                config:
+                    type: object
+                    additionalProperties: true
         Subscriber:
             description: "A subscriber has a unique name and a list of subscriptions"
             type: object
