@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
-from typing import Optional, Union, AsyncGenerator, Any, Generator, List
+from typing import Optional, Union, AsyncGenerator, Any, Generator, List, cast
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -231,7 +231,7 @@ async def merge_graph_process(
                     # in case the child is dead, we should stop
                     break
         await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None))
-        result = await task  # wait for final result
+        result = cast(GraphUpdate, await task)  # wait for final result
         return result
     finally:
         if task is not None and not task.done():

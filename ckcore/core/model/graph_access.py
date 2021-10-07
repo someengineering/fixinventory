@@ -258,7 +258,7 @@ class GraphAccess:
     def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
         # note: we are using breadth first search here on purpose.
         # if there is an ancestor with less distance to this node, we should use this one
-        next_level = self.predecessors(node_id, edge_type)
+        next_level = list(self.predecessors(node_id, edge_type))
 
         while next_level:
             parents: List[str] = []

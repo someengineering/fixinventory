@@ -25,7 +25,7 @@ jobs:
             - name: Setup Python
               uses: actions/setup-python@v2
               with:
-                  python-version: '3.9'
+                  python-version: '3.7'
                   architecture: 'x64'
             - name: Restore dependency cache
               uses: actions/cache@v2
@@ -52,6 +52,6 @@ jobs:
                 flake8 core
                 pylint core
             - name: MyPy
-              run: mypy --strict core tests
+              run: mypy core tests
             - name: Run Tests
               run: pytest

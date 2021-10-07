@@ -105,7 +105,7 @@ def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
         return list(zip(elements, nxt))
 
 
-def exist(f: Callable[[AnyT], bool], iterable: Iterable) -> bool:
+def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.
@@ -119,7 +119,7 @@ def exist(f: Callable[[AnyT], bool], iterable: Iterable) -> bool:
     return False
 
 
-def first(f: Callable[[AnyT], bool], iterable: Iterable) -> Optional[AnyT]:
+def first(f: Callable[[Any], bool], iterable: Iterable) -> Optional[Any]:
     for a in iterable:
         if f(a):
             return a
