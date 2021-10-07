@@ -82,6 +82,7 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: post_metrics [core.task.task_description]
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: task_end [core.task.task_description]
 
+
 You have this many ressources!
 ------------------------------
 Count the resources available in Cloudkeeper
@@ -92,7 +93,8 @@ Count the resources available in Cloudkeeper
     total matched: 280
     total unmatched: 0
 
-What is your number? Let us know in `Discord <https://discord.gg/3G3sX6y3bt>`_!
+What is your number? Let us know on `Discord <https://discord.gg/3G3sX6y3bt>`_!
+
 
 Usage of the Cloudkeeper CLI
 ============================

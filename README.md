@@ -6,7 +6,7 @@
 ## Table of contents
 
 * [Overview](#overview)
-* [Quick Start](#quick-start)
+* [Docker based quick start](#docker-based-quick-start)
 * [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)
@@ -35,10 +35,11 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 Cloudkeeper consists of multiple components described in [the component list below](#component-list)
 
-The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a4`
+The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a4`  
+The latest Documentation can be found on [https://docs.some.engineering](https://docs.some.engineering)
 
 
-## Quick start
+## Docker based quick start
 In this quick start guide, we’re showing you three things, how to:
 
     1. install Cloudkeeper for AWS with docker
@@ -47,12 +48,12 @@ In this quick start guide, we’re showing you three things, how to:
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes. 
 
-Examples and data in this documentation are based on a small AWS [Cloud9](https://aws.amazon.com/cloud9/) environment.  
+Examples and data in this guide are based on a small AWS [Cloud9](https://aws.amazon.com/cloud9/) environment.  
 To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.  
 We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
 **Continue reading the Quick Start Guide**  
---> https://docs.some.engineering
+--> https://docs.some.engineering/start.html
 
 
 # Cloning this repository
