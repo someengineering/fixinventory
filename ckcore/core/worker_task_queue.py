@@ -23,7 +23,7 @@ class WorkerTask:
     name: str  # the well known name of the task to perform: the worker attaches to this name
     attrs: Dict[str, str]  # all worker attributes need to match those attrs (but the task can define more)
     data: Json
-    callback: Future  # the callers callback. Notify the caller once the task is dones
+    callback: Future  # type: ignore # pypy # the callers callback. Notify the caller once the task is dones
     timeout: timedelta  # timeout of this task to be performed
 
     def __eq__(self, other: Any) -> bool:

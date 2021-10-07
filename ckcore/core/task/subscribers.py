@@ -35,7 +35,7 @@ class SubscriptionHandler(ABC):
         log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
 
-    async def all_subscribers(self) -> Iterable:
+    async def all_subscribers(self) -> Iterable:  # type: ignore # pypy
         return self._subscribers_by_id.values()
 
     async def get_subscriber(self, subscriber_id: str) -> Optional[Subscriber]:
@@ -92,7 +92,7 @@ class SubscriptionHandler(ABC):
         return self._subscribers_by_event
 
     @staticmethod
-    def update_subscriber_by_event(subscribers: Iterable) -> Dict[str, List[Subscriber]]:
+    def update_subscriber_by_event(subscribers: Iterable) -> Dict[str, List[Subscriber]]:  # type: ignore # pypy
         result: Dict[str, List[Subscriber]] = defaultdict(list)
         for subscriber in subscribers:
             for subscription in subscriber.subscriptions.values():

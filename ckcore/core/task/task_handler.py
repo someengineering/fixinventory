@@ -77,7 +77,7 @@ class TaskHandler(JobHandler):
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
-        self.event_bus_watcher: Optional[Task] = None
+        self.event_bus_watcher: Optional[Task] = None  # type: ignore # pypy
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
@@ -123,25 +123,25 @@ class TaskHandler(JobHandler):
         updated.steps = [evaluate(step) for step in descriptor.steps]
         return updated
 
-    async def start_task(self, descriptor: TaskDescription) -> Optional[RunningTask]:
-        existing = first(lambda x: x.descriptor.id == descriptor.id and x.is_active, self.tasks.values())
+    async def start_task(self, desc: TaskDescription) -> Optional[RunningTask]:
+        existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())  # type: ignore
         if existing:
-            if descriptor.on_surpass == TaskSurpassBehaviour.Skip:
+            if desc.on_surpass == TaskSurpassBehaviour.Skip:
                 log.info(
-                    f"Task {descriptor.name} has been triggered. Since the last job is not finished, "
+                    f"Task {desc.name} has been triggered. Since the last job is not finished, "
                     f"the execution will be skipped, as defined by the task"
                 )
                 return None
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Replace:
-                log.info(f"New task {descriptor.name} should replace existing run: {existing.id}.")
+            elif desc.on_surpass == TaskSurpassBehaviour.Replace:
+                log.info(f"New task {desc.name} should replace existing run: {existing.id}.")
                 existing.end()
                 await self.store_running_task_state(existing)
-            elif descriptor.on_surpass == TaskSurpassBehaviour.Parallel:
-                log.info(f"New task {descriptor.name} will race with existing run {existing.id}.")
+            elif desc.on_surpass == TaskSurpassBehaviour.Parallel:
+                log.info(f"New task {desc.name} will race with existing run {existing.id}.")
             else:
-                raise AttributeError(f"Surpass behaviour not handled: {descriptor.on_surpass}")
+                raise AttributeError(f"Surpass behaviour not handled: {desc.on_surpass}")
 
-        updated = self.evaluate_task_definition(descriptor)
+        updated = self.evaluate_task_definition(desc)
         wi, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
         log.info(f"Start new task: {updated.name} with id {wi.id}")
         # store initial state in database
@@ -256,7 +256,7 @@ class TaskHandler(JobHandler):
         return list(self.tasks.values())
 
     async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
-        td = first(lambda t: t.id == uid, self.task_descriptions)
+        td = first(lambda t: t.id == uid, self.task_descriptions)  # type: ignore # pypy
         if td:
             return await self.start_task(td)
         else:
@@ -267,7 +267,7 @@ class TaskHandler(JobHandler):
 
     async def add_job(self, job: Job) -> None:
         descriptions = list(self.task_descriptions)
-        existing = first(lambda td: td.id == job.id, descriptions)
+        existing = first(lambda td: td.id == job.id, descriptions)  # type: ignore # pypy
         if existing:
             if not existing.mutable:
                 raise AttributeError(f"There is an existing job with this {job.id} which can not be deleted!")
@@ -388,7 +388,7 @@ class TaskHandler(JobHandler):
                     # if this was the last result the task was waiting for, delete the task
                     await self.store_running_task_state(wi, origin_message)
 
-        async def execute_in_order(task: Task) -> None:
+        async def execute_in_order(task: Task) -> None:  # type: ignore # pypy
             # make sure the last execution is finished, before the new execution starts
             await task
             await execute_commands()

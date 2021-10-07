@@ -52,12 +52,11 @@ clean-test: ## remove test and coverage artifacts
 clean-env: ## remove environment
 	rm -fr venv
 
-lint: ## check style with flake8
+lint: venv ## check style with flake8
 	black --line-length 120 --check core tests
 	flake8 core
 	pylint core
-	# TODO: add --strict again
-	mypy --python-version 3.7 core tests
+	mypy --python-version 3.7 --strict core tests
 
 test: venv ## run tests quickly with the default Python
 	pytest
@@ -82,11 +81,20 @@ dist: clean ## builds source and wheel package
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
+venv-pypy:
+	pypy -m venv venv-pypy
+	./venv-pypy/bin/python3 -m pip install --upgrade pip
+	./venv-pypy/bin/pip install --upgrade --editable ../cklib
+	./venv-pypy/bin/pip install -r requirements-test.txt
+	./venv-pypy/bin/pip install -r requirements.txt
+
+
 venv:
 	python3 -m venv venv
 	./venv/bin/python3 -m pip install --upgrade pip
 	./venv/bin/pip install --upgrade --editable ../cklib
 	./venv/bin/pip install -r requirements-dev.txt
+	./venv/bin/pip install -r requirements-test.txt
 	./venv/bin/pip install -r requirements.txt
 	./venv/bin/mypy --python-version 3.7 core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."

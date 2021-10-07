@@ -134,7 +134,7 @@ class SendMessage(TaskCommand):
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
-    env: frozendict  # dict[str, str]
+    env: frozendict  # type: ignore # pypy # dict[str, str]
 
 
 # endregion
@@ -211,7 +211,7 @@ class TaskDescription(ABC):
         self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
-        return first(lambda x: x.name == name, self.steps)
+        return first(lambda x: x.name == name, self.steps)  # type: ignore # pypy
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, TaskDescription) else False
@@ -577,7 +577,7 @@ class RunningTask:
         self.subscribers_by_event = subscribers_by_event
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
-        self.update_task: Optional[Task] = None
+        self.update_task: Optional[Task] = None  # type: ignore # pypy
         self.descriptor_alive = True
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
