@@ -1,14 +1,14 @@
 import json
 from datetime import timedelta
 from multiprocessing import set_start_method
-from typing import AsyncGenerator
+from typing import List, AsyncGenerator
 
 import pytest
 
 from core.db.graphdb import ArangoGraphDB
 from core.db.model import GraphUpdate
 from core.dependencies import parse_args
-from core.event_bus import EventBus, Message
+from core.event_bus import EventBus
 from core.model.db_updater import merge_graph_process
 from core.model.model import Kind
 from core.model.typed_model import to_js
@@ -18,16 +18,11 @@ from tests.core.db.graphdb_test import create_graph
 from tests.core.db.graphdb_test import graph_db, foo_kinds, test_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.event_bus_test import event_bus
 
 
 @pytest.mark.asyncio
-async def test_merge_process(
-    event_bus: EventBus,
-    graph_db: ArangoGraphDB,
-    foo_kinds: list[Kind],
-    all_events: list[Message],
-) -> None:
+async def test_merge_process(event_bus: EventBus, graph_db: ArangoGraphDB, foo_kinds: List[Kind]) -> None:
     # set explicitly (is done in main explicitly as well)
     set_start_method("spawn")
 

@@ -12,6 +12,8 @@ from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
+from typing import Dict, List, Tuple
+
 
 from core.cli.cli import (
     CLISource,
@@ -232,7 +234,7 @@ class CountCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
         get_path = arg.split(".") if arg else None
-        counter: dict[str, int] = defaultdict(int)
+        counter: Dict[str, int] = defaultdict(int)
         matched = 0
         unmatched = 0
 
@@ -517,7 +519,7 @@ class SetDesiredStateBase(CLICommand, ABC):
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: str, patch: Json, items: list[Json]
+        self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
     ) -> AsyncGenerator[Json, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
@@ -636,7 +638,7 @@ class CleanCommand(SetDesiredStateBase):
         return {"clean": True}
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: str, patch: Json, items: list[Json]
+        self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
     ) -> AsyncGenerator[Json, None]:
         reason = f"Reason: {arg}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
@@ -659,7 +661,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         func = partial(self.set_metadata, env["graph"], self.patch(arg, **env))
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
-    async def set_metadata(self, graph_name: str, patch: Json, items: list[Json]) -> AsyncGenerator[JsonElement, None]:
+    async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -893,7 +895,7 @@ class ListCommand(CLICommand):
         return "Transform incoming objects as string with defined properties."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        def adjust_path(p: list[str]) -> list[str]:
+        def adjust_path(p: List[str]) -> List[str]:
             root = p[0]
             if root in Section.all or root == "id" or root == "kinds":
                 return p
@@ -908,7 +910,7 @@ class ListCommand(CLICommand):
             else:
                 return f"{name}={elem}"
 
-        props: list[tuple[list[str], str]] = []
+        props: List[Tuple[List[str], str]] = []
         for prop, as_name in list_arg_parse.parse(arg) if arg else self.default_properties_to_show:
             path = adjust_path(self.dot_re.split(prop))
             as_name = path[-1] if prop == as_name or as_name is None else as_name
@@ -952,7 +954,7 @@ class JobsSource(CLISource):
     async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
         for job in await self.dependencies.job_handler.list_jobs():
             wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
-            yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command} | wait
+            yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command, **wait}
 
 
 class AddJobSource(CLISource):
@@ -1038,9 +1040,9 @@ class DeleteJobSource(CLISource):
 class SendWorkerTaskCommand(CLICommand, ABC):
     # Abstract base for all commands that send task to the work queue
 
-    # this method expects a stream of tuple[str, dict[str, str], Json]
+    # this method expects a stream of Tuple[str, Dict[str, str], Json]
     def send_to_queue_stream(self, in_stream: Stream) -> Stream:
-        async def send_to_queue(task_name: str, task_args: dict[str, str], data: Json) -> Any:
+        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> Any:
             future = asyncio.get_event_loop().create_future()
             task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
             # enqueue this task
@@ -1128,9 +1130,9 @@ class TagCommand(SendWorkerTaskCommand):
         return timedelta(seconds=30)
 
     def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
-        async def load_element(items: list[JsonElement]) -> AsyncGenerator[Json, None]:
+        async def load_element(items: List[JsonElement]) -> AsyncGenerator[Json, None]:
             # collect ids either from json dict or string
-            ids: list[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
+            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
             # one query to load all items that match given ids (max 1000 as defined in chunk size)
             query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
             query_model = QueryModel(query, model)
@@ -1170,7 +1172,7 @@ class TagCommand(SendWorkerTaskCommand):
         pl = len(parts)
         if pl == 2 and parts[0] == "delete":
             tag = parts[1]
-            fn: Callable[[Json], tuple[str, dict[str, str], Json]] = lambda item: (
+            fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
                 "tag",
                 self.carz_from_node(item),
                 {"delete": [tag], "node": item},
@@ -1277,11 +1279,11 @@ class ListSink(CLISink):
     def info(self) -> str:
         return "Creates a list of results."
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[list[JsonElement]]:
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[List[JsonElement]]:
         return stream.list  # type: ignore
 
 
-def all_sources(d: CLIDependencies) -> list[CLISource]:
+def all_sources(d: CLIDependencies) -> List[CLISource]:
     return [
         AddJobSource(d),
         DeleteJobSource(d),
@@ -1297,11 +1299,11 @@ def all_sources(d: CLIDependencies) -> list[CLISource]:
     ]
 
 
-def all_sinks(d: CLIDependencies) -> list[CLISink]:
+def all_sinks(d: CLIDependencies) -> List[CLISink]:
     return [ListSink(d)]
 
 
-def all_commands(d: CLIDependencies) -> list[CLICommand]:
+def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return [
         ChunkCommand(d),
         CleanCommand(d),
@@ -1319,7 +1321,7 @@ def all_commands(d: CLIDependencies) -> list[CLICommand]:
     ]
 
 
-def all_query_parts(d: CLIDependencies) -> list[QueryPart]:
+def all_query_parts(d: CLIDependencies) -> List[QueryPart]:
     return [
         QueryAllPart(d),
         ReportedPart(d),
@@ -1334,8 +1336,8 @@ def all_query_parts(d: CLIDependencies) -> list[QueryPart]:
     ]
 
 
-def all_parts(d: CLIDependencies) -> list[CLIPart]:
-    result: list[CLIPart] = []
+def all_parts(d: CLIDependencies) -> List[CLIPart]:
+    result: List[CLIPart] = []
     result.extend(all_query_parts(d))
     result.extend(all_sources(d))
     result.extend(all_commands(d))
@@ -1343,6 +1345,6 @@ def all_parts(d: CLIDependencies) -> list[CLIPart]:
     return result
 
 
-def aliases() -> dict[str, str]:
+def aliases() -> Dict[str, str]:
     # command alias -> command name
     return {"match": "reported", "start_workflow": "start_task", "start_job": "start_task"}

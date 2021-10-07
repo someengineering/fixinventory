@@ -3,7 +3,7 @@ import string
 from abc import ABC
 from datetime import date, datetime
 from random import SystemRandom
-from typing import Optional
+from typing import List, Optional
 
 import pytest
 from arango import ArangoClient
@@ -70,7 +70,7 @@ class Bla(BaseResource):
         name: Optional[str] = None,
         now: date = date.today(),
         f: int = 23,
-        g: Optional[list[int]] = None,
+        g: Optional[List[int]] = None,
     ) -> None:
         super().__init__(identifier)
         self.name = name
@@ -159,7 +159,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 @pytest.fixture
-def foo_kinds() -> list[Kind]:
+def foo_kinds() -> List[Kind]:
     base = ComplexKind(
         "base",
         [],
@@ -193,7 +193,7 @@ def foo_kinds() -> list[Kind]:
 
 
 @pytest.fixture
-def foo_model(foo_kinds: list[Kind]) -> Model:
+def foo_model(foo_kinds: List[Kind]) -> Model:
     return Model.from_kinds(foo_kinds)
 
 
@@ -387,7 +387,7 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
 
 @pytest.mark.asyncio
 async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    async def query(q: str) -> list[Json]:
+    async def query(q: str) -> List[Json]:
         agg_query = parse_query(q)
         return [bla async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported"))]
 
@@ -460,7 +460,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: list[Message]) -> None:
+async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Message]) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     await event_graph_db.delete_node("some_other")
@@ -479,7 +479,7 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
 
 
 def to_json(obj: BaseResource) -> Json:
-    return to_js(obj) | {"kind": obj.kind()}
+    return {"kind": obj.kind(), **to_js(obj)}
 
 
 def to_bla(json: Json) -> Bla:

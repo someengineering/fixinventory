@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta, datetime
 from functools import reduce
-from typing import Any, Optional, AsyncGenerator
+from typing import Any, Optional, AsyncGenerator, Dict, List
 
 from core.types import Json
 from core.util import utc, Periodic, set_future_result
@@ -21,9 +21,9 @@ log = logging.getLogger(__name__)
 class WorkerTask:
     id: str  # the unique id of the task
     name: str  # the well known name of the task to perform: the worker attaches to this name
-    attrs: dict[str, str]  # all worker attributes need to match those attrs (but the task can define more)
+    attrs: Dict[str, str]  # all worker attributes need to match those attrs (but the task can define more)
     data: Json
-    callback: Future[Optional[Json]]  # the callers callback. Notify the caller once the task is dones
+    callback: Future  # the callers callback. Notify the caller once the task is dones
     timeout: timedelta  # timeout of this task to be performed
 
     def __eq__(self, other: Any) -> bool:
@@ -62,7 +62,7 @@ class WorkerTaskOnHold:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class WorkerTaskDescription:
     name: str
-    filter: dict[str, list[str]] = field(default_factory=dict)
+    filter: Dict[str, List[str]] = field(default_factory=dict)
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -82,10 +82,10 @@ class WorkerTaskQueue:
 
     def __init__(self) -> None:
         # key is the task_name, value is the list of worker subscriptions
-        self.worker_by_task_name: dict[str, list[WorkerTaskSubscription]] = defaultdict(list)
-        self.work_count: dict[str, int] = defaultdict(lambda: 0)
-        self.outstanding_tasks: dict[str, WorkerTaskInProgress] = {}
-        self.unassigned_tasks: dict[str, WorkerTaskOnHold] = {}
+        self.worker_by_task_name: Dict[str, List[WorkerTaskSubscription]] = defaultdict(list)
+        self.work_count: Dict[str, int] = defaultdict(lambda: 0)
+        self.outstanding_tasks: Dict[str, WorkerTaskInProgress] = {}
+        self.unassigned_tasks: Dict[str, WorkerTaskOnHold] = {}
         self.lock = asyncio.Lock()  # note: this lock is not reentrant!
         self.outdated_checker: Periodic = Periodic(
             "check_outdated_tasks", self.check_outdated_unassigned_tasks, timedelta(seconds=5)
@@ -96,7 +96,7 @@ class WorkerTaskQueue:
 
     @asynccontextmanager
     async def attach(
-        self, worker_id: str, task_descriptions: list[WorkerTaskDescription], queue_size: int = 0
+        self, worker_id: str, task_descriptions: List[WorkerTaskDescription], queue_size: int = 0
     ) -> AsyncGenerator[Queue[WorkerTask], None]:
         queue: Queue[WorkerTask] = Queue(queue_size)
         subscriptions = [WorkerTaskSubscription(worker_id, td, queue) for td in task_descriptions]
@@ -155,7 +155,7 @@ class WorkerTaskQueue:
         def can_perform(subscription: WorkerTaskSubscription) -> bool:
             # the filter criteria in the subscription needs to be matched by the task attributes
             # note: the task can define more attributes, that would be ignored
-            def matches_task_filter(name: str, filter_list: list[str]) -> bool:
+            def matches_task_filter(name: str, filter_list: List[str]) -> bool:
                 value = task.attrs.get(name)
                 return value in filter_list if value else False
 
@@ -205,7 +205,7 @@ class WorkerTaskQueue:
             else:
                 log.info(f"Got error for task {task_id} from wrong worker {worker_id}. outdated?")
 
-    async def __retry_tasks(self, tasks: list[WorkerTaskInProgress]) -> None:
+    async def __retry_tasks(self, tasks: List[WorkerTaskInProgress]) -> None:
         for task in tasks:
             if task.retry_counter < 3:
                 # todo: maybe it still in the queue of the worker?

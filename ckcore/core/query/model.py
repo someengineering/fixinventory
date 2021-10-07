@@ -4,7 +4,7 @@ import abc
 import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
-from typing import Mapping, Union, Optional, Any, ClassVar
+from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple
 
 from jsons import set_deserializer
 
@@ -80,10 +80,10 @@ class P:
     def not_matches(self, regex: str) -> Predicate:
         return Predicate(self.name, "!~", regex, self.args)
 
-    def is_in(self, other: list[Any]) -> Predicate:
+    def is_in(self, other: List[Any]) -> Predicate:
         return Predicate(self.name, "in", other, self.args)
 
-    def is_not_in(self, other: list[Any]) -> Predicate:
+    def is_not_in(self, other: List[Any]) -> Predicate:
         return Predicate(self.name, "not in", other, self.args)
 
 
@@ -165,7 +165,7 @@ class Term(abc.ABC):
 
     # noinspection PyTypeChecker
     @staticmethod
-    def from_json(js: dict[str, Any], _: type = object, **kwargs: Any) -> Term:
+    def from_json(js: Dict[str, Any], _: type = object, **kwargs: Any) -> Term:
         if isinstance(js.get("left"), dict) and isinstance(js.get("right"), dict) and isinstance(js.get("op"), str):
             left = Term.from_json(js["left"])
             right = Term.from_json(js["right"])
@@ -239,7 +239,7 @@ class IsTerm(Term):
 class FunctionTerm(Term):
     fn: str
     property_path: str
-    args: list[Any]
+    args: List[Any]
 
     def __str__(self) -> str:
         args = ", ".join((Predicate.value_str_rep(a) for a in self.args))
@@ -325,7 +325,7 @@ class AggregateVariableName:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateVariableCombined:
-    parts: list[Union[str, AggregateVariableName]]
+    parts: List[Union[str, AggregateVariableName]]
 
     def __str__(self) -> str:
         return "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
@@ -357,7 +357,7 @@ class AggregateVariable:
 class AggregateFunction:
     function: str
     name: Union[str, int]
-    ops: list[tuple[str, Union[int, float]]] = field(default_factory=list)
+    ops: List[Tuple[str, Union[int, float]]] = field(default_factory=list)
     as_name: Optional[str] = None
 
     def __str__(self) -> str:
@@ -377,8 +377,8 @@ class AggregateFunction:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Aggregate:
-    group_by: list[AggregateVariable]
-    group_func: list[AggregateFunction]
+    group_by: List[AggregateVariable]
+    group_func: List[AggregateFunction]
 
     def __str__(self) -> str:
         group_by = ", ".join(str(a) for a in self.group_by)
@@ -411,10 +411,10 @@ class Sort:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
-    parts: list[Part]
-    preamble: dict[str, SimpleValue] = field(default_factory=dict)
+    parts: List[Part]
+    preamble: Dict[str, SimpleValue] = field(default_factory=dict)
     aggregate: Optional[Aggregate] = None
-    sort: list[Sort] = field(default_factory=list)
+    sort: List[Sort] = field(default_factory=list)
     limit: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -423,7 +423,7 @@ class Query:
 
     @staticmethod
     def by(
-        term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[dict[str, SimpleValue]] = None
+        term: Union[str, Term], *terms: Union[str, Term], preamble: Optional[Dict[str, SimpleValue]] = None
     ) -> Query:
         res = Query.mk_term(term, *terms)
         return Query([Part(res)], preamble if preamble else {})
@@ -479,7 +479,7 @@ class Query:
             parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
-    def group_by(self, group_by: list[AggregateVariable], funs: list[AggregateFunction]) -> Query:
+    def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
         aggregate = Aggregate(group_by, funs)
         return replace(self, aggregate=aggregate)
 
@@ -493,8 +493,8 @@ class Query:
     def with_limit(self, num: int) -> Query:
         return replace(self, limit=num)
 
-    def merge_preamble(self, preamble: dict[str, SimpleValue]) -> Query:
-        updated = self.preamble | preamble if self.preamble else preamble
+    def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
+        updated = {**self.preamble, **preamble} if self.preamble else preamble
         return replace(self, preamble=updated)
 
     def on_section(self, section: str) -> Query:
@@ -503,7 +503,7 @@ class Query:
         return replace(self, aggregate=aggregate, parts=parts)
 
     def combine(self, other: Query) -> Query:
-        preamble = self.preamble | other.preamble
+        preamble = {**self.preamble, **other.preamble}
         if self.aggregate and other.aggregate:
             raise AttributeError("Can not combine 2 aggregations!")
         aggregate = self.aggregate if self.aggregate else other.aggregate

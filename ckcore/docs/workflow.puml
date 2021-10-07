@@ -6,7 +6,7 @@ class MessageType {
   kind?: Kind
 }
 
-package Events {
+package Messages {
     interface Message {
     }
     interface ActionMessage {

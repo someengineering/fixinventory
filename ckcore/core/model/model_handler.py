@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple, List
 
 from plantuml import PlantUML
 
@@ -18,11 +18,11 @@ class ModelHandler(ABC):
         pass
 
     @abstractmethod
-    async def uml_image(self, show_packages: Optional[list[str]] = None, output: str = "svg") -> bytes:
+    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
         pass
 
     @abstractmethod
-    async def update_model(self, kinds: list[Kind]) -> Model:
+    async def update_model(self, kinds: List[Kind]) -> Model:
         pass
 
 
@@ -35,7 +35,7 @@ class ModelHandlerDB(ModelHandler):
         kinds = [kind async for kind in self.db.all()]
         return Model.from_kinds(list(kinds))
 
-    async def uml_image(self, show_packages: Optional[list[str]] = None, output: str = "svg") -> bytes:
+    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
         assert output in ("svg", "png"), "Only svg and png is supported!"
         model = await self.load_model()
         graph = model.graph()
@@ -47,14 +47,14 @@ class ModelHandlerDB(ModelHandler):
                 k: Kind = graph.nodes[key]["data"]
                 return exist(k.fqn.startswith, show_packages)
 
-        def edge_visible(edge: tuple[str, str]) -> bool:
+        def edge_visible(edge: Tuple[str, str]) -> bool:
             return node_visible(edge[0]) and node_visible(edge[1])
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"+ {p.name}: {p.kind}" for p in cpx.properties])
             return f"class {cpx.fqn} {{\n{props}\n}}"
 
-        def class_inheritance(edge: tuple[str, str]) -> str:
+        def class_inheritance(edge: Tuple[str, str]) -> str:
             return f"{edge[1]} <|--- {edge[0]}"
 
         nodes = "\n".join([class_node(graph.nodes[node]["data"]) for node in graph.nodes() if node_visible(node)])
@@ -62,7 +62,7 @@ class ModelHandlerDB(ModelHandler):
         puml = PlantUML(f"{self.plantuml_server}/{output}/")
         return await run_async(puml.processes, f"@startuml\n{nodes}\n{edges}\n@enduml")  # type: ignore
 
-    async def update_model(self, kinds: list[Kind]) -> Model:
+    async def update_model(self, kinds: List[Kind]) -> Model:
         # load existing model
         model = await self.load_model()
         # make sure the update is valid

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, List, Dict, Tuple
 
 from deepdiff import DeepDiff
 from frozendict import frozendict
@@ -57,7 +57,7 @@ def test_workflow() -> Workflow:
 @fixture
 def workflow_instance(
     test_workflow: Workflow,
-) -> tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]]:
+) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
     td = timedelta(seconds=100)
     sub1 = Subscription("start_collect", True, td)
     sub2 = Subscription("collect", True, td)
@@ -91,7 +91,7 @@ def test_eq() -> None:
     assert Workflow("a", "a", [s1, s2, s3, s4], trigger) == Workflow("a", "a", [s1, s2, s3, s4], trigger)
 
 
-def test_ack_for(workflow_instance: tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]]) -> None:
+def test_ack_for(workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     assert wi.ack_for("start_collect", s1) is not None
     assert wi.ack_for("start_collect", s2) is not None
@@ -100,7 +100,7 @@ def test_ack_for(workflow_instance: tuple[RunningTask, Subscriber, Subscriber, d
 
 
 def test_pending_action_for(
-    workflow_instance: tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]],
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]],
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # s1 already sent a done message for the current step
@@ -110,7 +110,7 @@ def test_pending_action_for(
 
 
 def test_handle_done(
-    workflow_instance: tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # we are in state collect. Another ack of start is ignored.
@@ -132,7 +132,7 @@ def test_handle_done(
 
 
 def test_handle_error(
-    workflow_instance: tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     wi, s1, s2, subscriptions = workflow_instance
     # this event is the last missing event in this step. It fails but the workflow should continue at that point
@@ -147,7 +147,7 @@ def test_handle_error(
 
 
 def test_complete_workflow(
-    workflow_instance: tuple[RunningTask, Subscriber, Subscriber, dict[str, list[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
 ) -> None:
     init, s1, s2, subscriptions = workflow_instance
     # start new workflow instance

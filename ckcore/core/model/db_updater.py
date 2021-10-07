@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
-from typing import Optional, Union, AsyncGenerator, Any, Generator
+from typing import Optional, Union, AsyncGenerator, Any, Generator, List
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -46,7 +46,7 @@ class ReadElement(ProcessAction):
     Parent -> Child: for every incoming data line.
     """
 
-    elements: list[Union[bytes, Json]]
+    elements: List[Union[bytes, Json]]
 
     def jsons(self) -> Generator[Json, Any, None]:
         return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
@@ -120,7 +120,7 @@ class DbUpdaterProcess(Process):
     def next_action(self) -> ProcessAction:
         return self.read_queue.get(True, 30)  # type: ignore
 
-    def forward_events(self, bus: EventBus) -> Task[None]:
+    def forward_events(self, bus: EventBus) -> Task:
         async def forward_events_forever() -> None:
             with bus.subscribe("event_forwarder") as events:
                 while True:
@@ -195,7 +195,7 @@ async def merge_graph_process(
             await run_async(write.put, pa, True, stale)
         return alive
 
-    def read_results() -> Task[GraphUpdate]:
+    def read_results() -> Task:
         async def read_forever() -> GraphUpdate:
             nonlocal deadline
             nonlocal dead_adjusted
@@ -218,7 +218,7 @@ async def merge_graph_process(
 
         return asyncio.create_task(read_forever())
 
-    task: Optional[Task[GraphUpdate]] = None
+    task: Optional[Task] = None
     result: Optional[GraphUpdate] = None
     try:
         reset_process_start_method()  # other libraries might have tampered the value in the mean time

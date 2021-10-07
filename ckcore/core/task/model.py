@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+from typing import Dict, List
 
 from datetime import timedelta
 
@@ -14,10 +15,10 @@ class Subscription:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Subscriber:
     id: str
-    subscriptions: dict[str, Subscription] = field(default_factory=dict)
+    subscriptions: Dict[str, Subscription] = field(default_factory=dict)
 
     @staticmethod
-    def from_list(uid: str, subscriptions: list[Subscription]) -> Subscriber:
+    def from_list(uid: str, subscriptions: List[Subscription]) -> Subscriber:
         return Subscriber(uid, {s.message_type: s for s in subscriptions})
 
     def add_subscription(self, message_type: str, wait_for_completion: bool, timeout: timedelta) -> Subscriber:
@@ -26,7 +27,7 @@ class Subscriber:
         if existing == subscription:
             return self
         else:
-            return Subscriber(self.id, self.subscriptions | {subscription.message_type: subscription})
+            return Subscriber(self.id, {**self.subscriptions, subscription.message_type: subscription})
 
     def remove_subscription(self, message_type: str) -> Subscriber:
         subs = self.subscriptions.copy()

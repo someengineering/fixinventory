@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 
 class NodePath:
@@ -16,10 +16,10 @@ class NodePath:
 @dataclass(frozen=True)
 class ResolveProp:
     # Path to the property that needs to be extracted
-    extract_path: list[str]
+    extract_path: List[str]
 
     # Path to write this property to
-    to_path: list[str]
+    to_path: List[str]
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class ResolveAncestor:
     # kind of ancestor. Stop at first occurrence.
     kind: str
     # List of all properties to be resolved.
-    resolve: list[ResolveProp]
+    resolve: List[ResolveProp]
 
     def resolves_id(self) -> Optional[ResolveProp]:
         for prop in self.resolve:

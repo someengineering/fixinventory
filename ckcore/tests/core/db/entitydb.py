@@ -1,4 +1,4 @@
-from typing import Union, Optional, AsyncGenerator, Type, Callable
+from typing import Union, Optional, AsyncGenerator, Type, Callable, Dict, List
 
 
 from core.db.entitydb import EntityDb, T
@@ -8,7 +8,7 @@ from core.types import Json
 
 class InMemoryDb(EntityDb[T]):
     def __init__(self, t_type: Type[T], key_fn: Callable[[T], str]):
-        self.items: dict[str, Json] = {}
+        self.items: Dict[str, Json] = {}
         self.t_type = t_type
         self.key_fn = key_fn
 
@@ -16,7 +16,7 @@ class InMemoryDb(EntityDb[T]):
         for js in self.items.values():
             yield from_js(js, self.t_type)
 
-    async def update_many(self, elements: list[T]) -> None:
+    async def update_many(self, elements: List[T]) -> None:
         for elem in elements:
             key = self.key_fn(elem)
             self.items[key] = to_js(key)

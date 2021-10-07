@@ -15,6 +15,9 @@ from typing import (
     Mapping,
     MutableSequence,
     AsyncGenerator,
+    Dict,
+    List,
+    Tuple,
 )
 
 from dateutil.parser import isoparse
@@ -31,7 +34,7 @@ def identity(o: Any) -> Any:
     return o
 
 
-def pop_keys(d: dict[AnyT, AnyR], keys: list[AnyT]) -> dict[AnyT, AnyR]:
+def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:
     res = dict(d)
     for key in keys:
         res.pop(key, None)  # type: ignore
@@ -60,7 +63,7 @@ def uuid_str(from_object: Optional[Any] = None) -> str:
         return str(uuid.uuid1())
 
 
-def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> dict[AnyR, list[AnyT]]:
+def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[AnyT]]:
     """
     Group iterable by key provided by given key function.
     :param f: the function to be applied on every element that yields the key.
@@ -74,11 +77,11 @@ def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable[AnyT]) -> dict[AnyR, 
     return v
 
 
-def non_empty(el: Iterable[AnyT]) -> bool:
+def non_empty(el: Iterable) -> bool:
     return bool(el)
 
 
-def empty(el: Iterable[AnyT]) -> bool:
+def empty(el: Iterable) -> bool:
     return not non_empty(el)
 
 
@@ -93,7 +96,7 @@ def combine_optional(
         return right
 
 
-def interleave(elements: list[AnyT]) -> list[tuple[AnyT, AnyT]]:
+def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
     if len(elements) < 2:
         return []
     else:
@@ -102,7 +105,7 @@ def interleave(elements: list[AnyT]) -> list[tuple[AnyT, AnyT]]:
         return list(zip(elements, nxt))
 
 
-def exist(f: Callable[[AnyT], bool], iterable: Iterable[AnyT]) -> bool:
+def exist(f: Callable[[AnyT], bool], iterable: Iterable) -> bool:
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.
@@ -116,7 +119,7 @@ def exist(f: Callable[[AnyT], bool], iterable: Iterable[AnyT]) -> bool:
     return False
 
 
-def first(f: Callable[[AnyT], bool], iterable: Iterable[AnyT]) -> Optional[AnyT]:
+def first(f: Callable[[AnyT], bool], iterable: Iterable) -> Optional[AnyT]:
     for a in iterable:
         if f(a):
             return a
@@ -134,12 +137,12 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     return func(x) if x is not None else if_not
 
 
-def value_in_path_get(element: JsonElement, path: list[str], if_none: AnyT) -> AnyT:
+def value_in_path_get(element: JsonElement, path: List[str], if_none: AnyT) -> AnyT:
     result = value_in_path(element, path)
     return result if result and isinstance(result, type(if_none)) else if_none
 
 
-def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
+def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
     # implementation without allocations (path is not changed)
     def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
         if len(path) == idx:
@@ -152,7 +155,7 @@ def value_in_path(element: JsonElement, path: list[str]) -> Optional[Any]:
     return at_idx(element, 0)
 
 
-def set_value_in_path(element: JsonElement, path: list[str], json: Optional[Json] = None) -> Json:
+def set_value_in_path(element: JsonElement, path: List[str], json: Optional[Json] = None) -> Json:
     def at_idx(current: Json, idx: int) -> None:
         if len(path) - 1 == idx:
             current[path[-1]] = element
@@ -168,13 +171,13 @@ def set_value_in_path(element: JsonElement, path: list[str], json: Optional[Json
     return js
 
 
-def split_esc(s: str, delim: str) -> list[str]:
+def split_esc(s: str, delim: str) -> List[str]:
     """Split with support for delimiter escaping
 
     Via: https://stackoverflow.com/a/29107566
     """
     i = 0
-    res: list[str] = []
+    res: List[str] = []
     buf = ""
     while True:
         j, e = s.find(delim, i), 0
@@ -203,7 +206,7 @@ async def force_gen(gen: AsyncGenerator[AnyT, None]) -> AsyncGenerator[AnyT, Non
         return gen
 
 
-def set_future_result(future: Future[Any], result: Any) -> None:
+def set_future_result(future: Future, result: Any) -> None:
     if not future.done():
         if isinstance(result, Exception):
             future.set_exception(result)
@@ -220,7 +223,7 @@ class Periodic:
         self.name = name
         self.func = func
         self.frequency = frequency
-        self._task: Optional[Task[Any]] = None
+        self._task: Optional[Task] = None
 
     async def start(self) -> None:
         if self._task is None:
@@ -261,7 +264,7 @@ class AccessNone:
         return str(self.__not_existent)
 
 
-class AccessJson(dict[Any, Any]):
+class AccessJson(Dict[Any, Any]):
     """
     Extend dict in order to allow python like property access
     as well as exception safe access for non existent properties.
