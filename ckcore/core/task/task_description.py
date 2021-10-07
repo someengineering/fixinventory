@@ -5,7 +5,7 @@ import uuid
 from abc import ABC
 from datetime import timedelta
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple
 
 from dataclasses import dataclass
 
@@ -134,7 +134,7 @@ class SendMessage(TaskCommand):
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
-    env: frozendict[str, str]
+    env: frozendict  # dict[str, str]
 
 
 # endregion
@@ -224,7 +224,7 @@ class Job(TaskDescription):
         command: ExecuteCommand,
         trigger: Trigger,
         timeout: timedelta,
-        wait: Optional[tuple[EventTrigger, timedelta]] = None,
+        wait: Optional[Tuple[EventTrigger, timedelta]] = None,
         mutable: bool = True,
     ):
         steps = []
@@ -248,7 +248,8 @@ class Job(TaskDescription):
             "command": to_js(o.command),
             "trigger": to_js(o.trigger),
             "timeout": to_js(o.timeout),
-        } | wait
+            **wait,
+        }
 
     @staticmethod
     def from_json(json: Json, _: type = object, **__: object) -> Job:
@@ -298,8 +299,8 @@ class Workflow(TaskDescription):
         return Workflow(
             json["id"],
             json["name"],
-            from_js(json["steps"], list[Step]),
-            from_js(json["triggers"], list[Trigger]),
+            from_js(json["steps"], List[Step]),
+            from_js(json["triggers"], List[Trigger]),
             from_js(json["on_surpass"], TaskSurpassBehaviour),
         )
 
@@ -331,7 +332,7 @@ class StepState(State):  # type: ignore
         return []
 
     # noinspection PyUnusedLocal
-    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+    def handle_command_results(self, results: Dict[TaskCommand, Any]) -> None:
         """
         Override this method in deriving classes to define behaviour based on command results.
         :param results: the results of emitted task commands.
@@ -422,7 +423,7 @@ class PerformActionState(StepState):
         The step behavior defines how to deal in case of an error.
         """
         msg_type = self.perform.message_type
-        in_step: set[str] = {
+        in_step: Set[str] = {
             x.subscriber_id
             for x in self.instance.received_messages
             if isinstance(x, (ActionDone, ActionError)) and x.step_name == self.step.name
@@ -508,7 +509,7 @@ class ExecuteCommandState(StepState):
         env = frozendict({"now": utc_str(self.instance.task_started_at)})
         return [ExecuteOnCLI(self.execute.command, env)]
 
-    def handle_command_results(self, results: dict[TaskCommand, Any]) -> None:
+    def handle_command_results(self, results: Dict[TaskCommand, Any]) -> None:
         found = first(lambda r: isinstance(r, ExecuteOnCLI) and r.command == self.execute.command, results.keys())
         if found:
             log.info(f"Result of command {self.execute.command} is {results[found]}")
@@ -558,8 +559,8 @@ class EndState(StepState):
 class RunningTask:
     @staticmethod
     def empty(
-        descriptor: TaskDescription, subscriber_by_event: Callable[[], dict[str, list[Subscriber]]]
-    ) -> tuple[RunningTask, Sequence[TaskCommand]]:
+        descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
+    ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = str(uuid.uuid1())
         wi = RunningTask(uid, descriptor, subscriber_by_event)
@@ -567,7 +568,7 @@ class RunningTask:
         return wi, messages
 
     def __init__(
-        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], dict[str, list[Subscriber]]]
+        self, uid: str, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
     ):
         self.id = uid
         self.is_error = False
@@ -576,13 +577,13 @@ class RunningTask:
         self.subscribers_by_event = subscribers_by_event
         self.task_started_at = utc()
         self.step_started_at = self.task_started_at
-        self.update_task: Optional[Task[None]] = None
+        self.update_task: Optional[Task] = None
         self.descriptor_alive = True
 
         steps = [StepState.from_step(step, self) for step in descriptor.steps]
         start = StartState(self)
         end = EndState(self)
-        states: list[StepState] = [start, *steps, end]
+        states: List[StepState] = [start, *steps, end]
         self.machine = Machine(self, states, start, auto_transitions=False, queued=True)
 
         for current_state, next_state in interleave(states):
@@ -604,7 +605,7 @@ class RunningTask:
             except MachineError:
                 return False
 
-        resulting_commands: list[TaskCommand] = []
+        resulting_commands: List[TaskCommand] = []
         while next_state():
             resulting_commands.extend(self.current_state.commands_to_execute())
         return resulting_commands
@@ -621,7 +622,7 @@ class RunningTask:
     def is_active(self) -> bool:
         return not isinstance(self.current_state, EndState)
 
-    def handle_event(self, event: Event) -> tuple[bool, Sequence[TaskCommand]]:
+    def handle_event(self, event: Event) -> Tuple[bool, Sequence[TaskCommand]]:
         if self.current_state.handle_event(event):
             return True, self.move_to_next_state()
         else:
@@ -655,7 +656,7 @@ class RunningTask:
             self.end()
             return []
 
-    def handle_command_results(self, results: dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
+    def handle_command_results(self, results: Dict[TaskCommand, Any]) -> Sequence[TaskCommand]:
         self.current_state.handle_command_results(results)
         return self.move_to_next_state()
 

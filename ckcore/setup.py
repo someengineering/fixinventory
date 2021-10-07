@@ -8,7 +8,7 @@ with open("requirements.txt") as f:
     required = f.read().splitlines()
 
 with open("requirements-dev.txt") as f:
-    test_required = f.read().splitlines()
+    dev_required = f.read().splitlines()
 
 with open("README.md") as f:
     readme = f.read()
@@ -31,6 +31,6 @@ setup(
     packages=find_packages(include=["core", "core.*"]),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=test_required,
+    tests_require=dev_required,
     url="https://github.com/someengineering/cloudkeeper/ckcore",
 )

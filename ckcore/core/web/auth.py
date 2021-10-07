@@ -1,7 +1,8 @@
 import logging
 from argparse import Namespace
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, Dict
+
 
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse
@@ -12,8 +13,8 @@ from jwt import PyJWTError
 from core.web import RequestHandler, Middleware
 
 log = logging.getLogger(__name__)
-JWT = dict[str, Any]
-__JWT_Context: ContextVar[JWT] = ContextVar("JWT", default=JWT())
+JWT = Dict[str, Any]
+__JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
 
 
 async def jwt_from_context() -> JWT:

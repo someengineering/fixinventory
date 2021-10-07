@@ -2,6 +2,7 @@ import asyncio
 import pytest
 from arango.database import StandardDatabase
 from datetime import timedelta
+from typing import List
 
 from core.db import jobdb
 from core.db.async_arangodb import AsyncArangoDB
@@ -32,7 +33,7 @@ def event_db(job_db: JobDb, event_bus: EventBus) -> EventJobDb:
 
 
 @pytest.fixture
-def jobs() -> list[Job]:
+def jobs() -> List[Job]:
     wait = (EventTrigger("wait"), timedelta(seconds=30))
     return [
         Job("id1", ExecuteCommand("echo hello"), EventTrigger("run_job"), timedelta(seconds=10)),
@@ -45,14 +46,14 @@ def job_id(job: Job) -> str:
 
 
 @pytest.mark.asyncio
-async def test_load(job_db: JobDb, jobs: list[Job]) -> None:
+async def test_load(job_db: JobDb, jobs: List[Job]) -> None:
     await job_db.update_many(jobs)
     loaded = [sub async for sub in job_db.all()]
     assert jobs.sort(key=job_id) == loaded.sort(key=job_id)
 
 
 @pytest.mark.asyncio
-async def test_update(job_db: JobDb, jobs: list[Job]) -> None:
+async def test_update(job_db: JobDb, jobs: List[Job]) -> None:
     # multiple updates should work as expected
     await job_db.update_many(jobs)
     await job_db.update_many(jobs)
@@ -62,7 +63,7 @@ async def test_update(job_db: JobDb, jobs: list[Job]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete(job_db: JobDb, jobs: list[Job]) -> None:
+async def test_delete(job_db: JobDb, jobs: List[Job]) -> None:
     await job_db.update_many(jobs)
     remaining = list(jobs)
     for _ in jobs:
@@ -74,7 +75,7 @@ async def test_delete(job_db: JobDb, jobs: list[Job]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventJobDb, jobs: list[Job], all_events: list[Message]) -> None:
+async def test_events(event_db: EventJobDb, jobs: List[Job], all_events: List[Message]) -> None:
     # 2 times update
     await event_db.update_many(jobs)
     await event_db.update_many(jobs)

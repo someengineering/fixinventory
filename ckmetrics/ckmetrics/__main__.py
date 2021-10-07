@@ -12,7 +12,8 @@ from ckmetrics.query import (
     get_metrics_from_result,
     get_label_values_from_result,
 )
-from ckmetrics.web import WebServer, CloudkeeperMetricsWebApp
+from cklib.web import WebServer
+from cklib.web.metrics import WebApp
 from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
@@ -43,6 +44,7 @@ def main() -> None:
     add_args(arg_parser)
     logging_add_args(arg_parser)
     WebServer.add_args(arg_parser)
+    WebApp.add_args(arg_parser)
     arg_parser.parse_args()
 
     metrics = Metrics()
@@ -67,7 +69,7 @@ def main() -> None:
         },
         message_processor=message_processor,
     )
-    web_server = WebServer(CloudkeeperMetricsWebApp())
+    web_server = WebServer(WebApp())
     web_server.daemon = True
     web_server.start()
     core_actions.start()

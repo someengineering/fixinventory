@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable
+from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable, List
 
 from jsons import JsonsError
 
@@ -20,7 +20,7 @@ class EntityDb(ABC, Generic[T]):
         yield None  # type: ignore
 
     @abstractmethod
-    async def update_many(self, elements: list[T]) -> None:
+    async def update_many(self, elements: List[T]) -> None:
         pass
 
     @abstractmethod
@@ -59,7 +59,7 @@ class ArangoEntityDb(EntityDb[T], ABC):
                 except JsonsError:
                     log.warning(f"Not able to parse {element} into {type_fqn(self.t_type)}. Ignore.")
 
-    async def update_many(self, elements: list[T]) -> None:
+    async def update_many(self, elements: List[T]) -> None:
         await self.db.insert_many(self.collection_name, [self.to_doc(e) for e in elements], overwrite=True)
 
     async def get(self, key: str) -> Optional[T]:
@@ -99,7 +99,7 @@ class EventEntityDb(EntityDb[T]):
         async for a in self.db.all():
             yield a
 
-    async def update_many(self, elements: list[T]) -> None:
+    async def update_many(self, elements: List[T]) -> None:
         result = await self.db.update_many(elements)
         await self.event_bus.emit_event(f"{self.entity_name}-updated-many", {"updated": [to_js(e) for e in elements]})
         return result

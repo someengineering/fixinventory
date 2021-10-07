@@ -1,8 +1,8 @@
 import logging
-import sys
 import multiprocessing as mp
+import sys
 from argparse import Namespace
-from typing import Optional
+from typing import Optional, List
 
 from arango import ArangoClient
 from cklib.args import ArgumentParser
@@ -17,7 +17,7 @@ from core.task.task_handler import TaskHandler
 log = logging.getLogger(__name__)
 
 
-def parse_args(args: Optional[list[str]] = None, namespace: Optional[str] = None) -> Namespace:
+def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
     parser = ArgumentParser(
         env_args_prefix="CKCORE_",
         description="Maintains graphs of resources of any shape.",
@@ -81,7 +81,7 @@ def parse_args(args: Optional[list[str]] = None, namespace: Optional[str] = None
         type=str,
         default="localhost",
         nargs="+",
-        help="TCP host(s) to bind on (default: 127.0.0.1)",
+        help="TCP host(s) to bind on (default: localhost)",
     )
     parser.add_argument(
         "--port",
@@ -114,12 +114,7 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
         log_format = f"%(asctime)s [{child_process}][%(levelname)s] %(message)s [%(name)s]"
     else:
         log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
-    logging.basicConfig(
-        format=log_format,
-        datefmt="%H:%M:%S",
-        level=logging.getLevelName(args.log_level.upper()),
-        force=child_process is not None,  # forked processes need to be forced
-    )
+    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
 
     # set/reset process creation method
     reset_process_start_method()

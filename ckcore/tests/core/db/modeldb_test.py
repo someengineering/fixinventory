@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 from arango.database import StandardDatabase
+from typing import List
 
 from core.db import modeldb
 from core.db.async_arangodb import AsyncArangoDB
@@ -18,7 +19,7 @@ from tests.core.db.graphdb_test import test_db
 
 
 @pytest.fixture
-def test_model() -> list[Kind]:
+def test_model() -> List[Kind]:
     string_kind = StringKind("some.string", 0, 3, "\\w+")
     int_kind = NumberKind("some.int", "int32", 0, 100)
     bool_kind = BooleanKind("some.bool")
@@ -68,14 +69,14 @@ def event_db(model_db: ModelDb, event_bus: EventBus) -> EventModelDb:
 
 
 @pytest.mark.asyncio
-async def test_load(model_db: ModelDb, test_model: list[Kind]) -> None:
+async def test_load(model_db: ModelDb, test_model: List[Kind]) -> None:
     await model_db.update_many(test_model)
     loaded = [kind async for kind in model_db.all()]
     assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_update(model_db: ModelDb, test_model: list[Kind]) -> None:
+async def test_update(model_db: ModelDb, test_model: List[Kind]) -> None:
     # multiple updates should work as expected
     await model_db.update_many(test_model)
     await model_db.update_many(test_model)
@@ -85,7 +86,7 @@ async def test_update(model_db: ModelDb, test_model: list[Kind]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete(model_db: ModelDb, test_model: list[Kind]) -> None:
+async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
     await model_db.update_many(test_model)
     remaining = list(test_model)
     for _ in test_model:
@@ -97,7 +98,7 @@ async def test_delete(model_db: ModelDb, test_model: list[Kind]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDb, test_model: list[Kind], all_events: list[Message]) -> None:
+async def test_events(event_db: EventModelDb, test_model: List[Kind], all_events: List[Message]) -> None:
     # 2 times update
     await event_db.update_many(test_model)
     await event_db.update_many(test_model)

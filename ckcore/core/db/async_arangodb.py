@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from numbers import Number
-from typing import Optional, MutableMapping, Sequence, Union, Any, AsyncGenerator
+from typing import Optional, MutableMapping, Sequence, Union, Any, AsyncGenerator, Dict, List
 
 from arango import ArangoServerError
 from arango.collection import StandardCollection, VertexCollection, EdgeCollection
@@ -26,7 +26,7 @@ class AsyncArangoDBBase:
         count: bool = False,
         batch_size: Optional[int] = None,
         ttl: Optional[Number] = None,
-        bind_vars: Optional[dict[str, Any]] = None,
+        bind_vars: Optional[Dict[str, Any]] = None,
         full_count: Optional[bool] = None,
         max_plans: Optional[int] = None,
         optimizer_rules: Optional[Sequence[str]] = None,
@@ -202,7 +202,7 @@ class AsyncArangoDBBase:
         silent: bool = False,
         overwrite: bool = False,
         return_old: bool = False,
-    ) -> Union[bool, list[Union[Json, ArangoServerError]]]:
+    ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
         fn = self.db.collection(collection).insert_many
         return await run_async(fn, documents, return_new, sync, silent, overwrite, return_old)  # type: ignore
 
@@ -218,7 +218,7 @@ class AsyncArangoDBBase:
         return_old: bool = False,
         sync: Optional[bool] = None,
         silent: bool = False,
-    ) -> Union[bool, list[Union[Json, ArangoServerError]]]:
+    ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
         fn = self.db.collection(collection).update_many
         return await run_async(  # type: ignore
             fn, documents, check_rev, merge, keep_none, return_new, return_old, sync, silent
@@ -233,7 +233,7 @@ class AsyncArangoDBBase:
         check_rev: bool = True,
         sync: Optional[bool] = None,
         silent: bool = False,
-    ) -> Union[bool, list[Union[Json, ArangoServerError]]]:
+    ) -> Union[bool, List[Union[Json, ArangoServerError]]]:
         fn = self.db.collection(collection).delete_many
         return await run_async(fn, documents, return_old, check_rev, sync, silent)  # type: ignore
 

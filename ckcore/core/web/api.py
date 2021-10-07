@@ -8,7 +8,7 @@ import uuid
 from argparse import Namespace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List
 
 import prometheus_client
 import yaml
@@ -171,7 +171,7 @@ class Api:
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         body = await request.json()
-        subscriptions = from_js(body, list[Subscription])
+        subscriptions = from_js(body, List[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
         return web.json_response(to_js(sub))
 
@@ -217,7 +217,7 @@ class Api:
         self,
         request: Request,
         listener_id: str,
-        event_types: list[str],
+        event_types: List[str],
         initial_messages: Optional[Sequence[Message]] = None,
     ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
@@ -343,7 +343,7 @@ class Api:
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await request.json()
-        kinds: list[Kind] = from_js(js, list[Kind])
+        kinds: List[Kind] = from_js(js, List[Kind])
         model = await self.model_handler.update_model(kinds)
         return web.json_response(to_js(model))
 

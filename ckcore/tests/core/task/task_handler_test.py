@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from argparse import ArgumentParser, Namespace
 from pytest import fixture
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 
 from core.cli.cli import CLI
 from core.db.jobdb import JobDb
@@ -94,7 +94,7 @@ def test_workflow() -> Workflow:
 
 
 @pytest.mark.asyncio
-async def test_run_job(task_handler: TaskHandler, all_events: list[Message]) -> None:
+async def test_run_job(task_handler: TaskHandler, all_events: List[Message]) -> None:
     await task_handler.handle_event(Event("start me up"))
     started: Event = await wait_for_message(all_events, "task_started", Event)
     await wait_for_message(all_events, "task_end", Event)
@@ -137,7 +137,7 @@ async def test_recover_workflow(
     job_db: JobDb,
     event_bus: EventBus,
     subscription_handler: SubscriptionHandler,
-    all_events: list[Message],
+    all_events: List[Message],
     cli: CLI,
     task_handler_args: Namespace,
     test_workflow: Workflow,

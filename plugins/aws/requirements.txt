@@ -3,4 +3,4 @@ retrying==1.3.3
 SQLAlchemy==1.4.25
 prometheus-client==0.11.0
 boto3==1.18.51
-botocore==1.21.51
+botocore==1.21.52

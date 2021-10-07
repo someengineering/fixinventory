@@ -1,20 +1,18 @@
-# test
+# test dependencies
 pytest==6.2.5
 pytest-cov==2.12.1
 pytest-runner==5.3.1
 pytest-asyncio==0.15.1
 deepdiff==5.5.0
-
-# development
-mypy==0.910
 pip==21.2.4
-bump2version==1.0.1
+
+# dev dependencies
+mypy==0.910
 wheel==0.37.0
 flake8==3.9.2
 pep8-naming==0.12.1
 tox==3.24.3
 coverage==5.5
-twine==3.4.2
 setuptools==57.4.0
 pylint==2.10.2
 black==21.7b0

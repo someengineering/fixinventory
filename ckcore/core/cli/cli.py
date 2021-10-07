@@ -27,6 +27,7 @@ from core.task.job_handler import JobHandler
 from core.types import JsonElement
 from core.util import split_esc, utc_str, utc, from_utc
 from core.worker_task_queue import WorkerTaskQueue
+from typing import Dict, List, Tuple
 
 try:
     # noinspection PyUnresolvedReferences
@@ -49,7 +50,7 @@ Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 
 class CLIDependencies:
     def __init__(self) -> None:
-        self.lookup: dict[str, Any] = {}
+        self.lookup: Dict[str, Any] = {}
 
     @property
     def event_bus(self) -> EventBus:
@@ -469,7 +470,7 @@ class HelpCommand(CLISource):
     Show help text for a command or general help information.
     """
 
-    def __init__(self, dependencies: CLIDependencies, parts: list[CLIPart], aliases: dict[str, str]):
+    def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: Dict[str, str]):
         super().__init__(dependencies)
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
@@ -521,14 +522,14 @@ class ParsedCommandLine:
     """
 
     env: JsonElement
-    parts_with_args: list[tuple[CLIPart, str]]
+    parts_with_args: List[Tuple[CLIPart, str]]
     generator: AsyncGenerator[JsonElement, None]
 
     async def to_sink(self, sink: Sink[T]) -> T:
         return await sink(self.generator)
 
     @property
-    def parts(self) -> list[CLIPart]:
+    def parts(self) -> List[CLIPart]:
         return [part for part, _ in self.parts_with_args]
 
 
@@ -541,7 +542,7 @@ def key_value_parser() -> Parser:
 
 
 key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
-CLIArg = tuple[CLIPart, str]
+CLIArg = Tuple[CLIPart, str]
 
 
 class CLI:
@@ -551,18 +552,18 @@ class CLI:
     """
 
     def __init__(
-        self, dependencies: CLIDependencies, parts: list[CLIPart], env: dict[str, Any], aliases: dict[str, str]
+        self, dependencies: CLIDependencies, parts: List[CLIPart], env: Dict[str, Any], aliases: Dict[str, str]
     ):
         help_cmd = HelpCommand(dependencies, parts, aliases)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
-        self.parts = cmds | alias_cmds
+        self.parts = {**cmds, **alias_cmds}
         self.cli_env = env
         self.dependencies = dependencies
         self.aliases = aliases
 
     @staticmethod
-    def create_query(parts: list[tuple[QueryPart, str]]) -> str:
+    def create_query(parts: List[Tuple[QueryPart, str]]) -> str:
         query: Query = Query.by(AllTerm())
         for part, arg_in in parts:
             arg = arg_in.strip()
@@ -586,15 +587,15 @@ class CLI:
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
                 query = Query(query.parts, query.preamble, Aggregate(group_vars, group_function_vars))
             elif isinstance(part, MergeAncestorsPart):
-                query = Query(query.parts, query.preamble | {"merge_with_ancestors": arg}, query.aggregate)
+                query = Query(query.parts, {**query.preamble, **{"merge_with_ancestors": arg}}, query.aggregate)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         return str(query.simplify())
 
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
-    ) -> list[ParsedCommandLine]:
-        def parse_single_command(command: str) -> tuple[CLIPart, str]:
+    ) -> List[ParsedCommandLine]:
+        def parse_single_command(command: str) -> Tuple[CLIPart, str]:
             p = command.strip().split(" ", 1)
             part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
             if part_str in self.parts:
@@ -603,7 +604,7 @@ class CLI:
             else:
                 raise CLIParseError(f"Command >{part_str}< is not known. typo?")
 
-        def combine_single_command(commands: list[CLIArg]) -> list[CLIArg]:
+        def combine_single_command(commands: List[CLIArg]) -> List[CLIArg]:
             parts = list(takewhile(lambda x: isinstance(x[0], QueryPart), commands))
             query = self.create_query(parts)  # type: ignore
 
@@ -631,7 +632,7 @@ class CLI:
                 return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
 
             parsed_env, rest = key_values_parser.parse_partial(line)
-            resulting_env = self.cli_env | env | parsed_env
+            resulting_env = {**self.cli_env, **env, **parsed_env}
             parts_with_args = combine_single_command([parse_single_command(cmd) for cmd in split_esc(rest, "|")])
 
             if parts_with_args:
@@ -652,11 +653,11 @@ class CLI:
         data = cli_input if keep_raw else replaced
         return [await parse_line(cmd_line) for cmd_line in split_esc(data, ";")]
 
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> list[Any]:
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]
 
     @staticmethod
-    def replacements(**env: str) -> dict[str, str]:
+    def replacements(**env: str) -> Dict[str, str]:
         now_string = env.get("now")
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()

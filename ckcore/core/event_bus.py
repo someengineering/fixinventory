@@ -4,13 +4,13 @@ import logging
 from abc import ABC
 from asyncio import Queue
 from contextlib import contextmanager
-from typing import Generator, Any, Optional
+from typing import Generator, Any, Optional, Dict, List
 
+from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 
 from core.types import Json
 from core.util import pop_keys
-from frozendict import frozendict
 
 log = logging.getLogger(__name__)
 
@@ -93,14 +93,14 @@ class Message(ABC):
             return {
                 "kind": "action",
                 "message_type": o.message_type,
-                "data": o.data | extra_data,
+                "data": {**o.data, **extra_data},
             }
         elif isinstance(o, ActionDone):
             extra_data = {"task": o.task_id, "step": o.step_name, "subscriber_id": o.subscriber_id}
             return {
                 "kind": "action_done",
                 "message_type": o.message_type,
-                "data": o.data | extra_data,
+                "data": {**o.data, **extra_data},
             }
         elif isinstance(o, ActionError):
             extra_data = {
@@ -112,7 +112,7 @@ class Message(ABC):
             return {
                 "kind": "action_error",
                 "message_type": o.message_type,
-                "data": o.data | extra_data,
+                "data": {**o.data, **extra_data},
             }
         else:
             raise AttributeError(f"No handler to marshal {type(o).__name__}")
@@ -170,13 +170,13 @@ class EventBus:
 
     def __init__(self) -> None:
         # key is the channel name, value is the list of queues
-        self.listeners: dict[str, list[Queue[Message]]] = {}
+        self.listeners: Dict[str, List[Queue[Message]]] = {}
         # key is the subscriber id, value is the list of queue names
-        self.active_listener: dict[str, list[str]] = {}
+        self.active_listener: Dict[str, List[str]] = {}
 
     @contextmanager
     def subscribe(
-        self, subscriber_id: str, channels: Optional[list[str]] = None, queue_size: int = 0
+        self, subscriber_id: str, channels: Optional[List[str]] = None, queue_size: int = 0
     ) -> Generator[Queue[Message], Any, None]:
         """
         Subscribe to a list of event channels.

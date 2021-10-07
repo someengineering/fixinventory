@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from core.model.graph_access import Section
 from core.model.model import DateTimeKind
@@ -34,7 +34,7 @@ class DirectAdjuster(AdjustNode):
     ]
 
     def adjust(self, json: Json) -> Json:
-        def first_matching(paths: list[list[str]]) -> Optional[str]:
+        def first_matching(paths: List[List[str]]) -> Optional[str]:
             for path in paths:
                 value: Optional[str] = value_in_path(json, path)
                 if value:

@@ -31,6 +31,16 @@ class AWSAccount(BaseAccount):
     policy_versions_in_use: Optional[int] = 0
     global_endpoint_token_version: Optional[int] = 0
     server_certificates: Optional[int] = 0
+    minimum_password_length: Optional[int] = None
+    require_symbols: Optional[bool] = None
+    require_numbers: Optional[bool] = None
+    require_uppercase_characters: Optional[bool] = None
+    require_lowercase_characters: Optional[bool] = None
+    allow_users_to_change_password: Optional[bool] = None
+    expire_passwords: Optional[bool] = None
+    max_password_age: Optional[int] = 0
+    password_reuse_prevention: Optional[int] = 0
+    hard_expiry: Optional[bool] = None
 
     def delete(self, graph) -> bool:
         return False

@@ -859,8 +859,8 @@ class AWSAccountCollector:
         )
         session = aws_session(self.account.id, self.account.role)
         client = session.client("iam", region_name=region.id)
-        response = client.get_account_summary()
-        sm = response.get("SummaryMap", {})
+        response_as = client.get_account_summary()
+        sm = response_as.get("SummaryMap", {})
         self.account.users = int(sm.get("Users", 0))
         self.account.groups = int(sm.get("Groups", 0))
         self.account.account_mfa_enabled = int(sm.get("AccountMFAEnabled", 0))
@@ -878,6 +878,35 @@ class AWSAccountCollector:
             sm.get("GlobalEndpointTokenVersion", 0)
         )
         self.account.server_certificates = int(sm.get("ServerCertificates", 0))
+
+        # boto will fail, when there is no Custom PasswordPolicy defined (only AWS Default). This is intended behaviour.
+        try:
+            response_app = client.get_account_password_policy()
+            app = response_app.get("PasswordPolicy", {})
+            self.account.minimum_password_length = int(
+                app.get("MinimumPasswordLength", 0)
+            )
+            self.account.require_symbols = bool(app.get("RequireSymbols", None))
+            self.account.require_numbers = bool(app.get("RequireNumbers", None))
+            self.account.require_uppercase_characters = bool(
+                app.get("RequireUppercaseCharacters", None)
+            )
+            self.account.require_lowercase_characters = bool(
+                app.get("RequireLowercaseCharacters", None)
+            )
+            self.account.allow_users_to_change_password = bool(
+                app.get("AllowUsersToChangePassword", None)
+            )
+            self.account.expire_passwords = bool(app.get("ExpirePasswords", None))
+            self.account.max_password_age = int(app.get("MaxPasswordAge", 0))
+            self.account.password_reuse_prevention = int(
+                app.get("PasswordReusePrevention", 0)
+            )
+            self.account.hard_expiry = bool(app.get("HardExpiry", None))
+        except client.exceptions.NoSuchEntityException:
+            log.debug(
+                f"The Password Policy for account {self.account.dname} cannot be found."
+            )
 
     @metrics_collect_iam_server_certificates.time()
     def collect_iam_server_certificates(self, region: AWSRegion, graph: Graph) -> None:

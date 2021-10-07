@@ -3,7 +3,6 @@ from functools import reduce
 
 import parsy
 from parsy import string, Parser, regex
-from typing import Optional
 
 from core.error import ParseError
 from core.model.graph_access import EdgeType
@@ -51,7 +50,6 @@ from core.query.model import (
     SortOrder,
     WithClauseFilter,
     WithClause,
-    Term,
     AggregateVariableName,
     AggregateVariableCombined,
 )
@@ -169,9 +167,9 @@ def with_clause_parser() -> Parser:
     yield lparen_p
     with_filter = yield len_empty | len_any | with_count_parser
     yield comma_p
-    nav: Navigation = yield navigation_parser
-    term: Optional[Term] = yield term_parser.optional()
-    with_clause: Optional[WithClause] = yield with_clause_parser.optional()
+    nav = yield navigation_parser
+    term = yield term_parser.optional()
+    with_clause = yield with_clause_parser.optional()
     yield rparen_p
     assert 0 <= nav.start <= 1, "with traversal need to start from 0 or 1"
     return WithClause(with_filter, nav, term, with_clause)
