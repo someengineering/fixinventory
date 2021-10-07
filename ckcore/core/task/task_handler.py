@@ -284,7 +284,7 @@ class TaskHandler(JobHandler):
         # remove tasks from list of running tasks
         self.tasks.pop(task.id, None)
         if task.update_task and not task.update_task.done():
-            task.update_task.cancel("task description is deleted")
+            task.update_task.cancel()
 
         # mark step as error
         task.end()
