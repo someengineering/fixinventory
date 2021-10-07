@@ -9,6 +9,7 @@ from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
 
 from core.db.async_arangodb import AsyncArangoDB
+from core.db.configdb import config_entity_db
 from core.db.entitydb import EventEntityDb
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.db.jobdb import job_db
@@ -33,6 +34,7 @@ class DbAccess(ABC):
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
+        config_entity: str = "configs",
         update_outdated: timedelta = timedelta(minutes=30),
     ):
         self.event_bus = event_bus
@@ -43,6 +45,7 @@ class DbAccess(ABC):
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_bus, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
+        self.config_entity_db = config_entity_db(self.db, config_entity)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.update_outdated = update_outdated
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -52,6 +55,7 @@ class DbAccess(ABC):
         await self.subscribers_db.create_update_schema()
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
+        await self.config_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             self.get_graph_db(graph["name"])

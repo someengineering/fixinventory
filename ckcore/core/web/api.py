@@ -14,6 +14,7 @@ import prometheus_client
 import yaml
 from aiohttp import web, WSMsgType, WSMessage
 from aiohttp.web import Request, StreamResponse
+from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx.readwrite import cytoscape_data
@@ -21,6 +22,7 @@ from networkx.readwrite import cytoscape_data
 from core import feature
 from core.cli.cli import CLI
 from core.cli.command import is_node
+from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
@@ -140,6 +142,12 @@ class Api:
                 web.static("/static", static_path),
                 # metrics
                 web.get("/metrics", self.metrics),
+                # config operations
+                web.get("/configs", self.list_configs),
+                web.put("/config/{config_id}", self.set_config),
+                web.get("/config/{config_id}", self.get_config),
+                web.patch("/config/{config_id}", self.patch_config),
+                web.delete("/config/{config_id}", self.delete_config),
             ]
         )
         SwaggerFile(
@@ -147,6 +155,34 @@ class Api:
             spec_file=f"{static_path}/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
+
+    async def list_configs(self, _: Request) -> StreamResponse:
+        configs = {config.id: config.config async for config in self.db.config_entity_db.all()}
+        return web.json_response(configs)
+
+    async def get_config(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        config = await self.db.config_entity_db.get(config_id)
+        return web.json_response(config.config) if config else HTTPNotFound(text="No config with this id")
+
+    async def set_config(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        config = await request.json()
+        result = await self.db.config_entity_db.update(ConfigEntity(config_id, config))
+        return web.json_response(result.config)
+
+    async def patch_config(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        patch = await request.json()
+        current = await self.db.config_entity_db.get(config_id)
+        config = current.config if current else {}
+        updated = await self.db.config_entity_db.update(ConfigEntity(config_id, {**config, **patch}))
+        return web.json_response(updated.config)
+
+    async def delete_config(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        await self.db.config_entity_db.delete(config_id)
+        return HTTPNoContent()
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
