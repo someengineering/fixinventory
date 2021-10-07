@@ -47,7 +47,7 @@ class ArgumentParser(argparse.ArgumentParser):
         *args,
         env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX,
         add_machine_help: bool = True,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.env_args_prefix = env_args_prefix
