@@ -47,7 +47,10 @@ There can be one or more instances of `ckworker` in a Cloudkeeper deployment. A 
   --fork                Use forked process instead of threads (default: False)
   --timeout TIMEOUT     Collection Timeout in seconds (default: 10800)
   --debug-dump-json     Dump the generated json data (default: False)
-  ```
+  --psk PSK             Pre-shared key
+  --web-port WEB_PORT   Web Port (default 9955)
+  --web-host WEB_HOST   IP to bind to (default: ::)
+```
 
 ENV Prefix: `CKWORKER_`  
 Every CLI arg can also be specified using ENV variables.
