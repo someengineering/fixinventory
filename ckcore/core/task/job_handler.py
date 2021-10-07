@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from core.task.task_description import Job, RunningTask
 
 
 class JobHandler(ABC):
     @abstractmethod
-    async def list_jobs(self) -> list[Job]:
+    async def list_jobs(self) -> List[Job]:
         pass
 
     @abstractmethod
@@ -26,5 +26,5 @@ class JobHandler(ABC):
         pass
 
     @abstractmethod
-    async def running_tasks(self) -> list[RunningTask]:
+    async def running_tasks(self) -> List[RunningTask]:
         pass

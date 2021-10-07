@@ -6,7 +6,8 @@ import re
 from asyncio import Task, CancelledError
 from datetime import timedelta
 from io import TextIOWrapper
-from typing import Optional, Any, Callable, Union, Sequence
+from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
+
 
 import argparse
 from aiostream import stream
@@ -75,11 +76,11 @@ class TaskHandler(JobHandler):
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
-        self.tasks: dict[str, RunningTask] = {}
-        self.event_bus_watcher: Optional[Task[Any]] = None
+        self.tasks: Dict[str, RunningTask] = {}
+        self.event_bus_watcher: Optional[Task] = None
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
-        self.registered_event_trigger: list[tuple[EventTrigger, TaskDescription]] = []
-        self.registered_event_trigger_by_message_type: dict[str, list[tuple[EventTrigger, TaskDescription]]] = {}
+        self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
+        self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
 
     # endregion
 
@@ -149,7 +150,7 @@ class TaskHandler(JobHandler):
         await self.execute_task_commands(wi, commands)
         return wi
 
-    async def start_interrupted_tasks(self) -> list[RunningTask]:
+    async def start_interrupted_tasks(self) -> List[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
 
         def reset_state(wi: RunningTask, task_data: RunningTaskData) -> RunningTask:
@@ -166,7 +167,7 @@ class TaskHandler(JobHandler):
             wi.move_to_next_state()
             return wi
 
-        instances: list[RunningTask] = []
+        instances: List[RunningTask] = []
         async for data in self.running_task_db.all():
             descriptor = descriptions.get(data.task_descriptor_id)
             if descriptor:
@@ -189,7 +190,7 @@ class TaskHandler(JobHandler):
 
         # load job descriptions from configuration files
         file_jobs = [await self.parse_job_file(file) for file in self.config.jobs] if self.config.jobs else []
-        jobs: list[Job] = reduce(lambda r, l: r + l, file_jobs, [])
+        jobs: List[Job] = reduce(lambda r, l: r + l, file_jobs, [])
 
         # load job descriptions from database
         db_jobs = [job async for job in self.job_db.all()]
@@ -206,6 +207,7 @@ class TaskHandler(JobHandler):
         async def listen_to_event_bus() -> None:
             with self.event_bus.subscribe("task_handler") as messages:
                 while True:
+                    message = None
                     try:
                         message = await messages.get()
                         if isinstance(message, Event):
@@ -214,8 +216,11 @@ class TaskHandler(JobHandler):
                             await self.handle_action(message)
                         elif isinstance(message, (ActionDone, ActionError)):
                             log.info(f"Ignore message via event bus: {message}")
+                    except asyncio.CancelledError as ex:
+                        # if we outer task is cancelled, give up
+                        raise ex
                     except Exception as ex:
-                        log.error(f"Could not handle event {message} - give up.", ex)
+                        log.error(f"Could not handle event {message} - give up.", exc_info=ex)
 
         self.event_bus_watcher = asyncio.create_task(listen_to_event_bus())
         return self
@@ -247,7 +252,7 @@ class TaskHandler(JobHandler):
 
     # region job handler
 
-    async def running_tasks(self) -> list[RunningTask]:
+    async def running_tasks(self) -> List[RunningTask]:
         return list(self.tasks.values())
 
     async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
@@ -257,7 +262,7 @@ class TaskHandler(JobHandler):
         else:
             raise NameError(f"No task with such id: {uid}")
 
-    async def list_jobs(self) -> list[Job]:
+    async def list_jobs(self) -> List[Job]:
         return [job for job in self.task_descriptions if isinstance(job, Job)]
 
     async def add_job(self, job: Job) -> None:
@@ -279,7 +284,7 @@ class TaskHandler(JobHandler):
         # remove tasks from list of running tasks
         self.tasks.pop(task.id, None)
         if task.update_task and not task.update_task.done():
-            task.update_task.cancel("task description is deleted")
+            task.update_task.cancel()
 
         # mark step as error
         task.end()
@@ -358,7 +363,7 @@ class TaskHandler(JobHandler):
     ) -> None:
         async def execute_commands() -> None:
             # execute and collect all task commands
-            results: dict[TaskCommand, Any] = {}
+            results: Dict[TaskCommand, Any] = {}
             for command in commands:
                 if isinstance(command, SendMessage):
                     await self.event_bus.emit(command.message)
@@ -383,7 +388,7 @@ class TaskHandler(JobHandler):
                     # if this was the last result the task was waiting for, delete the task
                     await self.store_running_task_state(wi, origin_message)
 
-        async def execute_in_order(task: Task[None]) -> None:
+        async def execute_in_order(task: Task) -> None:
             # make sure the last execution is finished, before the new execution starts
             await task
             await execute_commands()
@@ -398,7 +403,7 @@ class TaskHandler(JobHandler):
         elif wi.id in self.tasks:
             await self.running_task_db.delete(wi.id)
 
-    async def list_all_pending_actions_for(self, subscriber: Subscriber) -> list[Action]:
+    async def list_all_pending_actions_for(self, subscriber: Subscriber) -> List[Action]:
         pending = map(lambda x: x.pending_action_for(subscriber), self.tasks.values())
         return [x for x in pending if x]
 
@@ -440,7 +445,7 @@ class TaskHandler(JobHandler):
 
     # region parse job data
 
-    async def parse_job_file(self, file: TextIOWrapper) -> list[Job]:
+    async def parse_job_file(self, file: TextIOWrapper) -> List[Job]:
         """
         Parse a file with job definitions.
         Every line is either a blank line, a comment or a job definition.
@@ -483,7 +488,7 @@ class TaskHandler(JobHandler):
             parts = re.split("\\s+", stripped, 5)
             if len(parts) != 6:
                 raise ValueError(f"Invalid job {stripped}")
-            wait: Optional[tuple[EventTrigger, timedelta]] = None
+            wait: Optional[Tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
             command = parts[5]
             # check if we also need to wait for an event: name_of_event : command
@@ -511,7 +516,7 @@ class TaskHandler(JobHandler):
     # region known task descriptors
 
     @staticmethod
-    def known_jobs() -> list[Job]:
+    def known_jobs() -> List[Job]:
         return [
             Job(
                 "example-job",
@@ -531,7 +536,7 @@ class TaskHandler(JobHandler):
         ]
 
     @staticmethod
-    def known_workflows() -> list[Workflow]:
+    def known_workflows() -> List[Workflow]:
         collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),

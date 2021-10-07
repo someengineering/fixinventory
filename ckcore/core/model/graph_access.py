@@ -4,7 +4,8 @@ import hashlib
 import json
 import re
 from functools import reduce
-from typing import Optional, Generator, Any, Iterable
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple
+
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
@@ -152,7 +153,7 @@ class GraphBuilder:
             for value in js_doc.values():
                 dispatch(value)
 
-        def flatten_array(arr: list[Any]) -> None:
+        def flatten_array(arr: List[Any]) -> None:
             for value in arr:
                 dispatch(value)
 
@@ -188,7 +189,7 @@ class GraphBuilder:
             self.graph.remove_node(rid)
 
 
-NodeData = tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, list[str], str]
+NodeData = Tuple[str, Json, Optional[Json], Optional[Json], Optional[Json], str, List[str], str]
 
 
 class GraphAccess:
@@ -196,14 +197,14 @@ class GraphAccess:
         self,
         sub: MultiDiGraph,
         maybe_root_id: Optional[str] = None,
-        visited_nodes: Optional[set[Any]] = None,
-        visited_edges: Optional[set[tuple[Any, Any, str]]] = None,
+        visited_nodes: Optional[Set[Any]] = None,
+        visited_edges: Optional[Set[Tuple[Any, Any, str]]] = None,
     ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
-        self.visited_nodes: set[object] = visited_nodes if visited_nodes else set()
-        self.visited_edges: set[tuple[object, object, str]] = visited_edges if visited_edges else set()
+        self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
+        self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
@@ -257,13 +258,13 @@ class GraphAccess:
     def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
         # note: we are using breadth first search here on purpose.
         # if there is an ancestor with less distance to this node, we should use this one
-        next_level: Iterable[str] = self.predecessors(node_id, edge_type)
+        next_level = list(self.predecessors(node_id, edge_type))
 
         while next_level:
-            parents: list[str] = []
+            parents: List[str] = []
             for p_id in next_level:
                 p: Json = self.nodes[p_id]
-                kinds: Optional[list[str]] = value_in_path(p, NodePath.kinds)
+                kinds: Optional[List[str]] = value_in_path(p, NodePath.kinds)
                 if kinds and kind in kinds:
                     return p
                 else:
@@ -289,7 +290,7 @@ class GraphAccess:
     def not_visited_nodes(self) -> Generator[Json, None, None]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
-    def not_visited_edges(self, edge_type: str) -> Generator[tuple[str, str], None, None]:
+    def not_visited_edges(self, edge_type: str) -> Generator[Tuple[str, str], None, None]:
         # edge collection with (from, to, type): filter and drop type -> (from, to)
         edges = self.g.edges(data="edge_type")
         return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
@@ -301,14 +302,14 @@ class GraphAccess:
     @staticmethod
     def root_id(graph: DiGraph) -> str:
         # noinspection PyTypeChecker
-        roots: list[str] = [n for n, d in graph.in_degree if d == 0]
+        roots: List[str] = [n for n, d in graph.in_degree if d == 0]
         assert len(roots) == 1, f"Given subgraph has more than one root: {roots}"
         return roots[0]
 
     @staticmethod
     def merge_graphs(
         graph: DiGraph,
-    ) -> tuple[list[str], GraphAccess, Generator[tuple[str, GraphAccess], None, None]]:
+    ) -> Tuple[List[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
         """
         Find all merge graphs in the provided graph.
         A merge graph is a self contained graph under a node which is marked with replace=true.
@@ -330,27 +331,27 @@ class GraphAccess:
 
         # Find replace nodes: all nodes that are marked as replace node.
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
-        def replace_roots() -> dict[str, set[str]]:
+        def replace_roots() -> Dict[str, Set[str]]:
             graph_root = GraphAccess.root_id(graph)
             replace_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("replace", False)]
             assert (
                 len(replace_nodes) > 0
             ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"
-            result: dict[str, set[str]] = {}
+            result: Dict[str, Set[str]] = {}
             for node in replace_nodes:
                 # compute the shortest path from root to here
-                pres: set[str] = reduce(lambda res, p: res | set(p), all_shortest_paths(graph, graph_root, node), set())
+                pres: Set[str] = reduce(lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set())
                 result[node] = pres
 
             return result
 
         # Walk the graph from given starting node and return all successors.
         # A successor which is also a predecessors is not followed.
-        def sub_graph_nodes(from_node: str, parent_ids: set[str]) -> set[str]:
+        def sub_graph_nodes(from_node: str, parent_ids: Set[str]) -> Set[str]:
             to_visit = [from_node]
-            visited: set[str] = {from_node}
+            visited: Set[str] = {from_node}
 
-            def successors(node: str) -> list[str]:
+            def successors(node: str) -> List[str]:
                 return [a for a in graph.successors(node) if a not in visited and a not in parent_ids]
 
             while to_visit:
@@ -366,22 +367,22 @@ class GraphAccess:
         # This way it is possible to have nodes in the graph that will not be touched by the update
         # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(
-            root_nodes: dict[str, set[str]], parent_nodes: set[str], parent_edges: set[tuple[str, str, str]]
-        ) -> Generator[tuple[str, GraphAccess], None, None]:
-            all_successors: set[str] = set()
+            root_nodes: Dict[str, Set[str]], parent_nodes: Set[str], parent_edges: Set[Tuple[str, str, str]]
+        ) -> Generator[Tuple[str, GraphAccess], None, None]:
+            all_successors: Set[str] = set()
             for root, predecessors in root_nodes.items():
-                successors: set[str] = sub_graph_nodes(root, predecessors)
+                successors: Set[str] = sub_graph_nodes(root, predecessors)
                 # make sure nodes are not "mixed" between different merge nodes
                 overlap = successors & all_successors
                 if overlap:
                     raise AttributeError(f"Nodes are referenced in more than one merge node: {overlap}")
-                all_successors |= successors
+                all_successors.update(successors)
                 # create subgraph with all successors and all parents, where all parents are already marked as visited
                 sub = GraphAccess(graph.subgraph(successors), root, parent_nodes, parent_edges)
                 yield root, sub
 
         roots = replace_roots()
-        parents: set[str] = reduce(lambda res, ps: res | ps, roots.values(), set())
+        parents: Set[str] = reduce(lambda res, ps: {*res, *ps}, roots.values(), set())
         parent_graph = graph.subgraph(parents)
         graphs = merge_sub_graphs(roots, parents, set(parent_graph.edges(data="edge_type")))
         return list(roots.keys()), GraphAccess(parent_graph, GraphAccess.root_id(graph)), graphs

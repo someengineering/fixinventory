@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict
 from datetime import timedelta
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Dict, List, Tuple
 
 from pytest import fixture, mark
 
@@ -17,20 +17,20 @@ def task_queue() -> WorkerTaskQueue:
 
 
 @fixture
-def performed_by() -> dict[str, list[str]]:
+def performed_by() -> Dict[str, List[str]]:
     return defaultdict(list)
 
 
 @fixture
 async def worker(
-    task_queue: WorkerTaskQueue, performed_by: dict[str, list[str]]
-) -> AsyncGenerator[tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
+    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[str]]
+) -> AsyncGenerator[Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
     success = WorkerTaskDescription("success_task")
     fail = WorkerTaskDescription("fail_task")
     wait = WorkerTaskDescription("wait_task")
     tag = WorkerTaskDescription("tag")
 
-    async def do_work(worker_id: str, task_descriptions: list[WorkerTaskDescription]) -> None:
+    async def do_work(worker_id: str, task_descriptions: List[WorkerTaskDescription]) -> None:
         async with task_queue.attach(worker_id, task_descriptions) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
@@ -80,8 +80,8 @@ async def worker(
 @mark.asyncio
 async def test_handle_work_successfully(
     task_queue: WorkerTaskQueue,
-    worker: tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
-    performed_by: dict[str, list[str]],
+    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    performed_by: Dict[str, List[str]],
 ) -> None:
     success_task, _, _ = worker
 
@@ -102,7 +102,7 @@ async def test_handle_work_successfully(
 @mark.asyncio
 async def test_handle_failure(
     task_queue: WorkerTaskQueue,
-    worker: tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
 ) -> None:
     _, fail_task, _ = worker
 
@@ -119,8 +119,8 @@ async def test_handle_failure(
 @mark.asyncio
 async def test_handle_outdated(
     task_queue: WorkerTaskQueue,
-    worker: tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
-    performed_by: dict[str, list[str]],
+    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    performed_by: Dict[str, List[str]],
 ) -> None:
     _, _, outdated_task = worker
 

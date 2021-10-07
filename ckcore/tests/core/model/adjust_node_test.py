@@ -32,22 +32,22 @@ def test_adjust_expired() -> None:
 
     # test duration
     reported: Json = {"ctime": utc_str(created_at)}
-    expect_expires(reported | {"tags": {"expiration": "never"}}, None)  # never can not be parsed
-    expect_expires(reported | {"tags": {"cloudkeeper:expiration": "never"}}, None)  # never can not be parsed
+    expect_expires({**reported, "tags": {"expiration": "never"}}, None)  # never can not be parsed
+    expect_expires({**reported, "tags": {"cloudkeeper:expiration": "never"}}, None)  # never can not be parsed
     expect_expires({"tags": {"cloudkeeper:expiration": "12h"}}, None)  # no ctime given
     expect_expires({"tags": {"expiration": "2w3d4h5m"}}, None)  # no ctime given
-    expect_expires(reported | {"tags": {"cloudkeeper:expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
-    expect_expires(reported | {"tags": {"expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
+    expect_expires({**reported, "tags": {"cloudkeeper:expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
+    expect_expires({**reported, "tags": {"expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
 
     # multiple values given: use order: ck:expiration -> ck:expires -> expiration -> expires
     expect_expires(
-        reported
-        | {
+        {
+            **reported,
             "tags": {
                 "expiration": "2d",
                 "cloudkeeper:expires": "2021-01-01T11:20:00Z",
                 "cloudkeeper:expiration": "2w3d4h5m",
-            }
+            },
         },
         "2021-01-01T11:20:00Z",
     )
@@ -67,4 +67,4 @@ def test_no_adjust() -> None:
         assert value_in_path(result, ["metadata", "expires"]) == expires
 
     expect_expires({"tags": {"expires": utc_str(expires_at)}}, None)
-    expect_expires(reported | {"tags": {"cloudkeeper:expires": "2w3d4h5m"}}, None)
+    expect_expires({"tags": {"cloudkeeper:expires": "2w3d4h5m"}, **reported}, None)

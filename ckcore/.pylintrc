@@ -70,7 +70,8 @@ disable=
     useless-return,
     broad-except,
     too-many-statements,
-    invalid-overridden-method
+    invalid-overridden-method,
+    unsubscriptable-object
 
 
 [REPORTS]

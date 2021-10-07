@@ -1,6 +1,7 @@
 import asyncio
 import pytest
 from arango.database import StandardDatabase
+from typing import List
 
 from core.db import subscriberdb
 from core.db.async_arangodb import AsyncArangoDB
@@ -31,20 +32,20 @@ def event_db(subscriber_db: SubscriberDb, event_bus: EventBus) -> EventSubscribe
 
 
 @pytest.fixture
-def subscribers() -> list[Subscriber]:
+def subscribers() -> List[Subscriber]:
     subs = [Subscription("foo", True) for _ in range(0, 10)]
     return [Subscriber.from_list(str(a), subs) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio
-async def test_load(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
+async def test_load(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
     await subscriber_db.update_many(subscribers)
     loaded = [sub async for sub in subscriber_db.all()]
     assert subscribers.sort() == loaded.sort()
 
 
 @pytest.mark.asyncio
-async def test_update(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
+async def test_update(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
     # multiple updates should work as expected
     await subscriber_db.update_many(subscribers)
     await subscriber_db.update_many(subscribers)
@@ -54,7 +55,7 @@ async def test_update(subscriber_db: SubscriberDb, subscribers: list[Subscriber]
 
 
 @pytest.mark.asyncio
-async def test_delete(subscriber_db: SubscriberDb, subscribers: list[Subscriber]) -> None:
+async def test_delete(subscriber_db: SubscriberDb, subscribers: List[Subscriber]) -> None:
     await subscriber_db.update_many(subscribers)
     remaining = list(subscribers)
     for _ in subscribers:
@@ -66,7 +67,7 @@ async def test_delete(subscriber_db: SubscriberDb, subscribers: list[Subscriber]
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventSubscriberDb, subscribers: list[Subscriber], all_events: list[Message]) -> None:
+async def test_events(event_db: EventSubscriberDb, subscribers: List[Subscriber], all_events: List[Message]) -> None:
     # 2 times update
     await event_db.update_many(subscribers)
     await event_db.update_many(subscribers)

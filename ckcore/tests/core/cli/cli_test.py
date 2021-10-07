@@ -1,5 +1,6 @@
 import pytest
 from pytest import fixture
+from typing import Tuple, List
 
 from core.cli.cli import CLI, CLIDependencies, Sink
 from core.cli.command import (
@@ -39,7 +40,7 @@ def cli_deps(
     event_bus: EventBus,
     foo_model: Model,
     task_queue: WorkerTaskQueue,
-    worker: tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
 ) -> CLIDependencies:
     db_access = DbAccess(filled_graph_db.db.db, event_bus, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
@@ -60,7 +61,7 @@ def cli(cli_deps: CLIDependencies) -> CLI:
 
 
 @fixture
-async def sink(cli_deps: CLIDependencies) -> Sink[list[JsonElement]]:
+async def sink(cli_deps: CLIDependencies) -> Sink[List[JsonElement]]:
     return await ListSink(cli_deps).parse()
 
 
@@ -131,7 +132,7 @@ async def test_order_of_commands(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_help(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
+async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command("help", sink)
     assert len(result[0]) == 1
 
@@ -140,7 +141,7 @@ async def test_help(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_env_vars(cli: CLI, sink: Sink[list[JsonElement]]) -> None:
+async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
     result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()

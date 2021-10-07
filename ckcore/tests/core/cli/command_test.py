@@ -1,6 +1,7 @@
 import logging
 import re
 from datetime import timedelta
+from typing import List, Dict
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -136,7 +137,7 @@ async def test_tail_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_chunk_command(cli: CLI, json_source: str) -> None:
-    result: list[list[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", stream.list)
+    result: List[List[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", stream.list)
     assert len(result[0]) == 4  # 200 in chunks of 50
     for a in result[0]:
         assert len(a) == 50
@@ -249,7 +250,7 @@ async def test_delete_job_command(cli: CLI, task_handler: TaskHandler, job_db: J
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
     await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
-    result: list[Json] = (await cli.execute_cli_command("jobs", stream.list))[0]
+    result: List[Json] = (await cli.execute_cli_command("jobs", stream.list))[0]
     job = first(lambda x: x.get("id") == "c0fa3076", result)
     assert job is not None
     assert job["trigger"] == {"cron_expression": "23 1 * * *"}
@@ -257,7 +258,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
 
 
 @pytest.mark.asyncio
-async def test_tag_command(cli: CLI, performed_by: dict[str, list[str]], caplog: LogCaptureFixture) -> None:
+async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog: LogCaptureFixture) -> None:
     counter = 0
 
     def nr_of_performed() -> int:

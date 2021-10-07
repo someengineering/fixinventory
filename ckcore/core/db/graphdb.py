@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union
+from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union, Dict, List, Tuple
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -65,11 +65,11 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes_desired(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
-    def update_nodes_metadata(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes_metadata(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         pass
 
     @abstractmethod
@@ -83,11 +83,11 @@ class GraphDB(ABC):
     @abstractmethod
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
-    ) -> tuple[list[str], GraphUpdate]:
+    ) -> Tuple[List[str], GraphUpdate]:
         pass
 
     @abstractmethod
-    async def list_in_progress_updates(self) -> list[Json]:
+    async def list_in_progress_updates(self) -> List[Json]:
         pass
 
     @abstractmethod
@@ -103,7 +103,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[tuple[str, Json], None]:
+    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
         pass
 
     @abstractmethod
@@ -123,7 +123,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -186,9 +186,9 @@ class ArangoGraphDB(GraphDB):
         updated = node.copy()
         if section:
             existing_section = node[section] if section in node else {}
-            updated[section] = existing_section | patch
+            updated[section] = {**existing_section, **patch}
         else:
-            updated = node | patch
+            updated = {**node, **patch}
 
         # Only the reported section is defined by the model and can be coerced
         kind = model[updated[Section.reported]]
@@ -213,13 +213,13 @@ class ArangoGraphDB(GraphDB):
         trafo = self.document_to_instance_fn()
         return trafo(result["new"])
 
-    def update_nodes_desired(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes_desired(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section(Section.desired, patch, node_ids)
 
-    def update_nodes_metadata(self, patch: Json, node_ids: list[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
+    def update_nodes_metadata(self, patch: Json, node_ids: List[str], **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.update_nodes_section(Section.metadata, patch, node_ids)
 
-    async def update_nodes_section(self, section: str, patch: Json, node_ids: list[str]) -> AsyncGenerator[Json, None]:
+    async def update_nodes_section(self, section: str, patch: Json, node_ids: List[str]) -> AsyncGenerator[Json, None]:
         bind_var = {"patch": patch, "node_ids": node_ids}
         trafo = self.document_to_instance_fn()
         with await self.db.aql(query=self.query_update_desired_metadata_many(section), bind_vars=bind_var) as cursor:
@@ -260,7 +260,7 @@ class ArangoGraphDB(GraphDB):
 
     async def query_graph_gen(  # noqa: E501 pylint: disable=invalid-overridden-method
         self, query: QueryModel
-    ) -> AsyncGenerator[tuple[str, Json], None]:
+    ) -> AsyncGenerator[Tuple[str, Json], None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, all_edges=True)
         trafo = self.document_to_instance_fn()
@@ -337,7 +337,7 @@ class ArangoGraphDB(GraphDB):
 
         return render_prop
 
-    async def list_in_progress_updates(self) -> list[Json]:
+    async def list_in_progress_updates(self) -> List[Json]:
         with await self.db.aql(self.query_active_updates()) as cursor:
             return list(cursor)
 
@@ -389,7 +389,7 @@ class ArangoGraphDB(GraphDB):
         )
 
     async def mark_update(
-        self, root_node_ids: list[str], parent_node_ids: list[str], change_id: str, is_batch: bool
+        self, root_node_ids: List[str], parent_node_ids: List[str], change_id: str, is_batch: bool
     ) -> None:
         async with self.db.begin_transaction(read=[self.in_progress], write=[self.in_progress]) as tx:
             existing = next(await tx.aql(self.query_active_change(), bind_vars={"root_node_ids": root_node_ids}), None)
@@ -429,14 +429,14 @@ class ArangoGraphDB(GraphDB):
         return self.node_adjuster.adjust(json)
 
     def prepare_nodes(
-        self, access: GraphAccess, node_cursor: Iterable[Json], model: Model
-    ) -> tuple[GraphUpdate, list[Json], list[Json], list[Json]]:
+        self, access: GraphAccess, node_cursor: Iterable, model: Model
+    ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         sub_root_id = access.root()
         log.info(f"Prepare nodes for subgraph {access.root()}")
         info = GraphUpdate()
-        resource_inserts: list[Json] = []
-        resource_updates: list[Json] = []
-        resource_deletes: list[Json] = []
+        resource_inserts: List[Json] = []
+        resource_updates: List[Json] = []
+        resource_deletes: List[Json] = []
 
         optional_properties = [*Section.all, "refs", "kinds", "flat", "hash"]
 
@@ -482,13 +482,13 @@ class ArangoGraphDB(GraphDB):
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(
-        self, access: GraphAccess, edge_cursor: Iterable[Json], edge_type: str
-    ) -> tuple[GraphUpdate, list[Json], list[Json]]:
+        self, access: GraphAccess, edge_cursor: Iterable, edge_type: str
+    ) -> Tuple[GraphUpdate, List[Json], List[Json]]:
         sub_root_id = access.root()
         log.info(f"Prepare edges of type {edge_type} for subgraph {access.root()}")
         info = GraphUpdate()
-        edges_inserts: list[Json] = []
-        edges_deletes: list[Json] = []
+        edges_inserts: List[Json] = []
+        edges_deletes: List[Json] = []
 
         def insert_edge(from_node: str, to_node: str) -> None:
             key = self.db_edge_key(from_node, to_node)
@@ -519,17 +519,17 @@ class ArangoGraphDB(GraphDB):
 
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
-    ) -> tuple[list[str], GraphUpdate]:
+    ) -> Tuple[List[str], GraphUpdate]:
         change_id = maybe_change_id if maybe_change_id else uuid_str()
 
         async def prepare_graph(
-            sub: GraphAccess, node_query: tuple[str, Json], edge_query: Callable[[str], tuple[str, Json]]
-        ) -> tuple[GraphUpdate, list[Json], list[Json], list[Json], dict[str, list[Json]], dict[str, list[Json]]]:
+            sub: GraphAccess, node_query: Tuple[str, Json], edge_query: Callable[[str], Tuple[str, Json]]
+        ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json], Dict[str, List[Json]], Dict[str, List[Json]]]:
             graph_info = GraphUpdate()
             # check all nodes for this subgraph
             query, bind = node_query
             log.debug(f"Query for nodes: {sub.root()}")
-            with await self.db.aql(query, bind_vars=bind) as node_cursor:
+            with await self.db.aql(query, bind_vars=bind, batch_size=50000) as node_cursor:
                 node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor, model)
                 graph_info += node_info
 
@@ -539,7 +539,7 @@ class ArangoGraphDB(GraphDB):
             for edge_type in EdgeType.all:
                 query, bind = edge_query(edge_type)
                 log.debug(f"Query for edges of type {edge_type}: {sub.root()}")
-                with await self.db.aql(query, bind_vars=bind) as ec:
+                with await self.db.aql(query, bind_vars=bind, batch_size=50000) as ec:
                     edge_info, gei, ged = self.prepare_edges(sub, ec, edge_type)
                     graph_info += edge_info
                     edge_inserts[edge_type] = gei
@@ -549,14 +549,14 @@ class ArangoGraphDB(GraphDB):
         roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
         logging.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
 
-        def parent_edges(edge_type: str) -> tuple[str, Json]:
+        def parent_edges(edge_type: str) -> Tuple[str, Json]:
             edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
             return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
 
-        def merge_edges(merge_node: str, edge_type: str) -> tuple[str, Json]:
+        def merge_edges(merge_node: str, edge_type: str) -> Tuple[str, Json]:
             return self.query_update_edges(edge_type), {"update_id": merge_node}
 
-        def combine_dict(left: dict[str, list[Any]], right: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        def combine_dict(left: Dict[str, List[Any]], right: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
             result = dict(left)
             for key, right_values in right.items():
                 left_values = left.get(key)
@@ -595,13 +595,13 @@ class ArangoGraphDB(GraphDB):
         change_id: str,
         is_batch: bool,
         info: GraphUpdate,
-        resource_inserts: list[Json],
-        resource_updates: list[Json],
-        resource_deletes: list[Json],
-        edge_inserts: dict[str, list[Json]],
-        edge_deletes: dict[str, list[Json]],
+        resource_inserts: List[Json],
+        resource_updates: List[Json],
+        resource_deletes: List[Json],
+        edge_inserts: Dict[str, List[Json]],
+        edge_deletes: Dict[str, List[Json]],
     ) -> None:
-        async def execute_many_async(async_fn: Callable[[str, list[Json]], Any], name: str, array: list[Json]) -> None:
+        async def execute_many_async(async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json]) -> None:
             if array:
                 result = await async_fn(name, array)
                 ex: Optional[Exception] = first(lambda x: isinstance(x, Exception), result)
@@ -609,7 +609,7 @@ class ArangoGraphDB(GraphDB):
                     raise ex  # pylint: disable=raising-bad-type
 
         async def trafo_many(
-            async_fn: Callable[[str, list[Json]], Any], name: str, array: list[Json], template: Json
+            async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], template: Json
         ) -> None:
             # update the array in place to not create another intermediate array
             for idx, item in enumerate(array):
@@ -687,15 +687,15 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
         query = query_model.query
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
         mw = query.preamble.get("merge_with_ancestors")
-        merge_with: list[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
+        merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
         bind_vars: Json = {}
 
-        def aggregate(in_cursor: str, a: Aggregate) -> tuple[str, str]:
+        def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
             cursor = "rg"
 
             def var_name(n: Union[AggregateVariableName, AggregateVariableCombined]) -> str:
@@ -782,7 +782,7 @@ class ArangoGraphDB(GraphDB):
             else:
                 raise AttributeError(f"Do not understand: {ab_term}")
 
-        def part(p: Part, idx: int, in_cursor: str) -> tuple[Part, str, str]:
+        def part(p: Part, idx: int, in_cursor: str) -> Tuple[Part, str, str]:
             query_part = ""
 
             def filter_statement() -> str:
@@ -891,8 +891,8 @@ class ArangoGraphDB(GraphDB):
             cursor = navigation(cursor, p.navigation) if p.navigation else cursor
             return p, cursor, query_part
 
-        def merge_ancestors(cursor: str, part_str: str, ancestor_names: list[str]) -> tuple[str, str]:
-            ancestors: list[tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
+        def merge_ancestors(cursor: str, part_str: str, ancestor_names: List[str]) -> Tuple[str, str]:
+            ancestors: List[Tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
             m_parts = [f"FOR node in {cursor} "]
 
             # filter out resolved ancestors: all remaining ancestors need to be looked up in hierarchy
@@ -925,7 +925,7 @@ class ArangoGraphDB(GraphDB):
             m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
             return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
 
-        def sort(cursor: str, so: list[Sort], sect_dot: str) -> str:
+        def sort(cursor: str, so: List[Sort], sect_dot: str) -> str:
             sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
             return f" sort {sorts} "
 
@@ -968,7 +968,7 @@ class ArangoGraphDB(GraphDB):
 
         async def create_update_graph(
             graph_name: str, vertex_name: str, edge_name: str
-        ) -> tuple[Graph, VertexCollection, EdgeCollection]:
+        ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
             graph = db.graph(graph_name) if await db.has_graph(graph_name) else await db.create_graph(graph_name)
             vertex_collection = (
                 graph.vertex_collection(vertex_name)
@@ -1152,7 +1152,7 @@ class EventGraphDB(GraphDB):
     async def update_nodes_desired(
         self,
         patch: Json,
-        node_ids: list[str],
+        node_ids: List[str],
         **kwargs: Any,
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_desired(patch, node_ids, **kwargs)
@@ -1163,7 +1163,7 @@ class EventGraphDB(GraphDB):
             yield a
 
     async def update_nodes_metadata(
-        self, patch: Json, node_ids: list[str], **kwargs: Any
+        self, patch: Json, node_ids: List[str], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_metadata(patch, node_ids, **kwargs)
         await self.event_bus.emit_event(
@@ -1177,7 +1177,7 @@ class EventGraphDB(GraphDB):
 
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
-    ) -> tuple[list[str], GraphUpdate]:
+    ) -> Tuple[List[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
         even_data = {"graph": self.graph_name, "root_ids": roots}
         if info.all_changes():  # do not emit an event in case nothing has changed
@@ -1187,7 +1187,7 @@ class EventGraphDB(GraphDB):
                 await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
         return roots, info
 
-    async def list_in_progress_updates(self) -> list[Json]:
+    async def list_in_progress_updates(self) -> List[Json]:
         return await self.real.list_in_progress_updates()
 
     async def commit_batch_update(self, batch_id: str) -> None:
@@ -1203,7 +1203,7 @@ class EventGraphDB(GraphDB):
     def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.real.query_list(query, **kwargs)
 
-    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[tuple[str, Json], None]:
+    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
         return self.real.query_graph_gen(query)
 
     def query_aggregation(self, query: QueryModel) -> AsyncGenerator[Json, None]:
@@ -1220,7 +1220,7 @@ class EventGraphDB(GraphDB):
         await self.event_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
         return self.real.to_query(query_model, all_edges)
 
     async def create_update_schema(self) -> None:
