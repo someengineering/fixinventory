@@ -1,8 +1,8 @@
 .. _component-list:
 
-========
-Overview
-========
+==========
+Components
+==========
 
 These are the moving parts of cloudkeeper.
 We will now guide you through the setup and run procedure for each one.
@@ -29,7 +29,12 @@ of resources and provides APIs to update and access them. Within :ref:`ckcore` t
 that result in actions like ``collect``, ``cleanup`` or ``generate_metrics``. These actions are being received by components
 like :ref:`ckworker` and :ref:`ckmetrics`.
 
-You can find more information in the section about :ref:`ckcore_api`.
+You can find more information in the section about :ref:`ckcore_spotlight`.
+
+.. toctree::
+   :maxdepth: 1
+
+   ckcore_spotlight
 
 .. _component-cksh:
 
@@ -59,4 +64,10 @@ Only those plugins have knowledge about how to communicate with each cloud. How 
 
 There can be one or more instances of :ref:`component-ckworker` in a Cloudkeeper deployment. A single :ref:`component-ckworker` can collect many clouds or you could have multiple :ref:`component-ckworker` collecting one cloud or even one account in one cloud each.
 
-You can find more information in the section about :ref:`ckworker-deepdive`.
+You can find more information in the section about :ref:`ckworker-spotlight`.
+
+
+.. toctree::
+   :maxdepth: 1
+
+   ckworker_spotlight

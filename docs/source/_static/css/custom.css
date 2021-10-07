@@ -377,3 +377,17 @@ span.caption-text {
     background: var(--bg-dark) !important;
     border-radius: 5px;
 }
+
+.sparta {
+    color: #ffe797 !important;
+    text-align: center;
+    background-color: var(--nav-current);
+    border: 2px solid var(--bg-dark);
+    border-radius: 5px;
+    border-width: 1px 1px 3px 1px;
+    padding: 0.5rem;
+    font-family: 'Gemunu Libre', sans-serif;
+    letter-spacing: 0.05rem;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}

@@ -1,8 +1,8 @@
-.. _ckworker-deepdive:
+.. _ckworker-spotlight:
 
-====================
-ckworker - Deep Dive
-====================
+===================
+Spotlight: ckworker
+===================
 
 Once :ref:`component-ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job.
 
