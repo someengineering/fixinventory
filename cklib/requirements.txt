@@ -6,3 +6,5 @@ requests==2.26.0
 prometheus-client==0.11.0
 cryptography==35.0.0
 PyJWT==2.1.0
+# Only required for python < 3.8
+typing-compat==0.1.0
