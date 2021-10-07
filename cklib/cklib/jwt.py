@@ -13,7 +13,7 @@ def key_from_psk(psk: str, salt: bytes = None) -> Tuple[bytes, bytes]:
     """
     if salt is None:
         salt = os.urandom(16)
-    key = hashlib.pbkdf2_hmac('sha256', psk.encode(), salt, 100000)
+    key = hashlib.pbkdf2_hmac("sha256", psk.encode(), salt, 100000)
     return key, salt
 
 
