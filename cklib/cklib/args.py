@@ -1,7 +1,11 @@
 import os
 import ast
 import argparse
-
+import sys
+import shutil
+import subprocess
+from collections import defaultdict
+from typing import List, Dict
 
 DEFAULT_ENV_ARGS_PREFIX = "CLOUDKEEPER_"
 
@@ -132,3 +136,41 @@ def convert(value, type_goal):
     else:
         value = converted_value
     return value
+
+
+def args_dispatcher(
+    dispatch_to: List, use_which: bool = False, argv: List = sys.argv[1:]
+) -> Dict[str, List[str]]:
+    dispatch_args = defaultdict(list)
+    prog_args = defaultdict(list)
+
+    for prog in dispatch_to:
+        cmd = prog
+        if use_which:
+            cmd = shutil.which(prog)
+        result = subprocess.run([cmd, "--machine-help"], capture_output=True)
+        if result.returncode != 0:
+            continue
+        for arg in result.stdout.decode("utf8").splitlines():
+            prog_args[arg].append(prog)
+
+    args = defaultdict(list)
+    for i, arg in enumerate(argv):
+        if arg.startswith("-"):
+            arg_index = i + 1
+            if len(argv) > arg_index:
+                while not argv[arg_index].startswith("-"):
+                    args[arg].append(argv[arg_index])
+                    arg_index += 1
+                    if len(argv) <= arg_index:
+                        break
+            if arg not in args:
+                args[arg] = []
+
+    for main_arg, arg_list in args.items():
+        if main_arg in prog_args:
+            for prog in prog_args[main_arg]:
+                dispatch_args[prog].append(main_arg)
+                dispatch_args[prog].extend(arg_list)
+
+    return dict(dispatch_args)
