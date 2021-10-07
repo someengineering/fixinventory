@@ -7,6 +7,7 @@
 
 * [Overview](#overview)
 * [Quick Start](#quick-start)
+* [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)
 * [License](#license)
@@ -39,9 +40,25 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 --> https://docs.some.engineering
 
 
+# Cloning this repository
+This Git repo uses [Git Large File Storage (LFS)](https://git-lfs.github.com/).
+
+Before cloning the repo make sure to have git-lfs installed!
+
+One time setup:
+```
+$ git clone https://github.com/someengineering/cloudkeeper.git
+$ cd cloudkeeper/
+$ git lfs install  # installs git-lfs hooks
+```
+
+Once set up you can interact with the repo like any other Git project. All large UI assets will be retrived from [Github's LFS servers](https://docs.github.com/en/repositories/working-with-files/managing-large-files).
+
+
 # Component list
 - [`ckcore`](ckcore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
 - [`cksh`](cksh/) the Cloudkeeper shell to interact with the core.
+- [`ckui`](ckui/) a UI prototype that can load ckcore exported data but has no backend connection yet.
 - [`ckworker`](ckworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
 - [`ckmetrics`](ckmetrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)

@@ -101,7 +101,11 @@ h1 {
 h2 {
     margin-top: 4rem;
     font-size: 1.9rem;
+<<<<<<< HEAD
     border-bottom: 1px solid var(--text-highlight);
+=======
+    border-bottom: 1px solid #ffe797;
+>>>>>>> 5855619ddbdb8ba29805999c456aca0ff73a71c0
     width: 100%;
     padding-bottom: 0.5rem;
 }
@@ -113,7 +117,13 @@ h3 {
 
 h4 {
     font-size: 1.3rem;
+<<<<<<< HEAD
     color: var(--text-highlight-low);
+=======
+    color: #dda045;
+    font-size: 1.3rem;
+    color: #dda045;
+>>>>>>> 5855619ddbdb8ba29805999c456aca0ff73a71c0
 }
 
 .wy-body-for-nav {
@@ -391,3 +401,16 @@ span.caption-text {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
 }
+
+
+.hint .admonition-title {
+    color: #dda045 !important;
+    background: #000c18 !important;
+    border-radius: 5px 5px 0 0;
+}
+
+.admonition.hint {
+    background: #001930 !important;
+    border-radius: 5px;
+}
+
