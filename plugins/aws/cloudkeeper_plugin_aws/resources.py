@@ -297,7 +297,6 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
     network_interface_id: Optional[str] = None
     network_interface_owner_id: Optional[str] = None
     private_ip_address: Optional[str] = None
-    release_on_delete: bool = False
 
     def pre_delete(self, graph: Graph) -> bool:
         if self.association_id is not None:
@@ -308,13 +307,9 @@ class AWSEC2ElasticIP(AWSResource, BaseIPAddress):
         return True
 
     def delete(self, graph: Graph) -> bool:
-        if self.release_on_delete:
-            ec2 = aws_client(self, "ec2", graph=graph)
-            ec2.release_address(AllocationId=self.allocation_id)
-            return True
-        else:
-            log.debug(f"Attribute release_on_delete not set for {self.rtdname}")
-        return False
+        ec2 = aws_client(self, "ec2", graph=graph)
+        ec2.release_address(AllocationId=self.allocation_id)
+        return True
 
     def update_tag(self, key, value) -> bool:
         ec2 = aws_client(self, "ec2")
