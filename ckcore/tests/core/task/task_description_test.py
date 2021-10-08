@@ -7,7 +7,7 @@ from pytest import fixture
 
 from core.model.typed_model import to_js, from_js
 from tests.core.db.entitydb import InMemoryDb
-from core.event_bus import EventBus, Action, ActionDone, ActionError, Event
+from core.message_bus import MessageBus, Action, ActionDone, ActionError, Event
 from core.task.subscribers import SubscriptionHandler
 from core.task.model import Subscriber, Subscription
 from core.task.task_description import (
@@ -27,13 +27,13 @@ from core.task.task_description import (
 )
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus
+from tests.core.message_bus_test import message_bus
 
 
 @fixture
-async def subscription_handler(event_bus: EventBus) -> SubscriptionHandler:
+async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem, event_bus)
+    result = SubscriptionHandler(in_mem, message_bus)
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 

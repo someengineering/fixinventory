@@ -17,7 +17,7 @@ from core.cli.command import (
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
 from core.error import CLIParseError
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
 from core.model.model import Model
 from core.types import JsonElement
@@ -28,7 +28,7 @@ from tests.core.model import ModelHandlerStatic
 from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_kinds, foo_model
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus
+from tests.core.message_bus_test import message_bus
 
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
@@ -37,16 +37,16 @@ from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 @fixture
 def cli_deps(
     filled_graph_db: ArangoGraphDB,
-    event_bus: EventBus,
+    message_bus: MessageBus,
     foo_model: Model,
     task_queue: WorkerTaskQueue,
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
 ) -> CLIDependencies:
-    db_access = DbAccess(filled_graph_db.db.db, event_bus, NoAdjust())
+    db_access = DbAccess(filled_graph_db.db.db, message_bus, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
     deps = CLIDependencies()
     deps.lookup = {
-        "event_bus": event_bus,
+        "message_bus": message_bus,
         "db_access": db_access,
         "model_handler": model_handler,
         "worker_task_queue": task_queue,

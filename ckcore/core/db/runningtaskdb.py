@@ -9,7 +9,7 @@ from abc import abstractmethod
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EntityDb, ArangoEntityDb
-from core.event_bus import Message
+from core.message_bus import Message
 from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc

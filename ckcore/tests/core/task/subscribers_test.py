@@ -5,7 +5,7 @@ from deepdiff import DeepDiff
 from pytest import fixture, mark
 
 from core.db.subscriberdb import SubscriberDb
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from tests.core.db.entitydb import InMemoryDb
 from core.model.typed_model import to_js, from_js
 from core.task.model import Subscription, Subscriber
@@ -19,7 +19,7 @@ def in_mem_db() -> SubscriberDb:
 
 @fixture
 async def handler(in_mem_db: SubscriberDb) -> SubscriptionHandler:
-    result = SubscriptionHandler(in_mem_db, EventBus())
+    result = SubscriptionHandler(in_mem_db, MessageBus())
     await result.add_subscription("sub_1", "test", True, timedelta(seconds=3))
     return result
 

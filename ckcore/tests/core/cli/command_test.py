@@ -30,7 +30,7 @@ from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_m
 from tests.core.db.runningtaskdb_test import running_task_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus
+from tests.core.message_bus_test import message_bus
 
 # noinspection PyUnresolvedReferences
 from tests.core.task.task_handler_test import (

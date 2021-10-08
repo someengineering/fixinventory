@@ -16,7 +16,7 @@ from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
-from core.event_bus import Event, Action, ActionDone, Message, ActionError
+from core.message_bus import Event, Action, ActionDone, Message, ActionError
 from core.model.typed_model import to_js, from_js
 from core.types import Json
 from core.util import first, interleave, empty, exist, identity, utc, utc_str

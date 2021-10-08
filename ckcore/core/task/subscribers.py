@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from typing import Optional, Iterable, Dict, List
 
 from core.db.subscriberdb import SubscriberDb
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from core.util import utc, Periodic
 from core.task.model import Subscriber, Subscription
 
@@ -21,9 +21,9 @@ class SubscriptionHandler(ABC):
     This handler belongs to the event system, which assumes there is only one instance running in each cluster!
     """
 
-    def __init__(self, db: SubscriberDb, event_bus: EventBus) -> None:
+    def __init__(self, db: SubscriberDb, message_bus: MessageBus) -> None:
         self.db = db
-        self.event_bus = event_bus
+        self.message_bus = message_bus
         self._subscribers_by_id: Dict[str, Subscriber] = {}
         self._subscribers_by_event: Dict[str, List[Subscriber]] = {}
         self.started_at = utc()
@@ -109,7 +109,7 @@ class SubscriptionHandler(ABC):
         # do not remove any subscriptions during the first minutes.
         if (now - self.started_at) > timedelta(minutes=5):
             expected = set(self._subscribers_by_id.keys())
-            connected = set(self.event_bus.active_listener.keys())
+            connected = set(self.message_bus.active_listener.keys())
             # remove all connected subscriber from the not connected map
             for c in connected:
                 self.not_connected_since.pop(c, None)
