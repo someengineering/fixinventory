@@ -2,13 +2,25 @@
 Discovery
 =========
 
-Cloudkeeper maintains its data in a graph database. The graph can be accessed via a powerful query language.
-To get familiar with a Cloudkeeper query, it is important to understand the underlying data model and structure.
+You can search your cloud infrastructure and find the resources you are looking for using Cloudkeepers powerful query language.
+
+Cloudkeeper maintains its collected data in a graph database. This graph can be accessed via the query language.
+
+.. hint::
+  Sending a query in the :ref:`component-cksh` CLI is done by using the ``query`` command.
+
+  ``query is(aws_account)``
+
+Commands can be connected using a pipe to form complex and deep requests about resources, dependencies and connections in your infrastructure.
+
+To learn about your new superpowers and use them in the best way, it is important to understand the data model and structure.
+
+
+.. _graph_node:
 
 Graph Node
-**********
-
-A node in a graph is a json document with a well defined structure and those top level properties:
+==========
+A graph node is a json document with a well defined structure and these top level properties:
 
 ::
 
@@ -20,89 +32,91 @@ A node in a graph is a json document with a well defined structure and those top
       "metadata": { ... }
     }
 
-- ``id`` : This is a synthetic unique identifier of this node that is created by Cloudkeeper.
-  It is used to maintain the node as well as all edges from and to this node.
-- ``kinds``: This array contains all kinds of this node. It is derived from the kind of
-  this node and includes the current kind as well as all parent kinds.
-  See :doc:`model<./model>` for an explanation of kind.
-- ``reported`` : This section is a json document and shows the reported properties from the
-  collector. The data that is collected is specific to the cloud and the resource type.
-  The reported data is of a specific ``kind`` indicated by the same property. The complete
-  structure of the reported section is described in the model :doc:`model<./model>`.
-- ``desired`` : This section is a json document and shows desired changes of this node.
-  Desired changes are reflected by humans and tools via the API or command line.
-  The desired section is not described via a ``kind`` model and allows arbitrary data.
-- ``metadata`` : This section is a json document and shows metadata of this resource.
-  The metadata section is intended to keep data attached to this resource, but not
-  originating from the resource or the provider itself.
-  metadata is created by humans and/or tools via the API or command line.
-  The metadata section is not described via a ``kind`` model and allows arbitrary data.
 
-Example node data showing data from an `AWS EC2 Instance <https://aws.amazon.com/ec2>`_
-We use this example in the following sections to show query capabilities.
+Each graph node always has an ``id`` that is a unique id created by cloudkeeper as well as a ``kinds`` array containing the kind of the node including all it's parents kinds.
 
-::
+It also features three main sections: ``reported``, ``desired`` and ``metadata``.
 
-    {
-      "id": "c0a43527846739d88c9",
-      "kinds": [
-        "aws_ec2_instance",
-        "instance",
-        "resource",
-        "aws_resource"
-      ],
-      "reported": {
-        "kind": "aws_ec2_instance",
-        "id": "i-0994caaa55576a33d",
-        "tags": {
-          "expiration": "never",
-          "name": "sunset",
-          "owner": "nick"
-        },
-        "name": "sunset",
-        "ctime": "2019-12-20T10:14:19Z",
-        "instance_cores": 2,
-        "instance_memory": 8,
-        "instance_type": "m5a.large",
-        "instance_status": "running"
-      },
-      "desired": {
-        "clean": true
-      },
-      "metadata": {
-        "ancestors": {
-          "cloud": {
-            "name": "aws",
-            "id": "aws"
-          },
-          "account": {
-            "name": "eng-production",
-            "id": "139234212332"
-          },
-          "region": {
-            "name": "us-east-1",
-            "id": "us-east-1"
-          }
-        }
-      }
-    }
+You learn more about the structure and sections in our :ref:`graph_node_spotlight`.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   graph_node_spotlight
 
 
-Graph Node Sections
-===================
+Available Commands
+==================
+In the :ref:`component-cksh` CLI you have have a couple of commands available that help you accessing the graph database.
 
-A graph node has the 3 main sections: reported, desired and metadata.
+Commands can also be chained by using ``|`` pipes - and not just the following commands!
+Chaining is very powerful when used with other commands like ``count``.
+We advise to use ``help`` in the :ref:`component-cksh` CLI to get more information about the commands.
 
-The API allows to query either on the root level of the node or inside a specific section of
-the node. Same is true for querying on the CLI: the ``query`` command access the node on the root
-level, where the ``reported`` command accesses the node on the ``reported`` section (same goes
-for ``metadata`` and ``desired``).
+query
+-----
 
-In order to query for the reported name of the ec2 instance in the example we could
-query on global level via ``reported.name`` or reported level via ``name``.
-Inside ``metadata`` and ``desired`` is the ``reported`` section not reachable.
+Using the ``query`` command, you access the root level of the node.
 
-The following sections always assume the global level.
+.. admonition:: Example
+
+  ``query reported.kind == aws_region``
+
+  This will select all AWS regions
+
+reported
+--------
+
+``reported`` will directly access the ``reported`` section of a graph_node.
+
+.. admonition:: Example
+
+  ``reported kind == aws_account``
+
+  This will select all AWS accounts
+  
+  You can also use the command ``match`` as an abbreviation for ``reported``:
+
+  ``match kind == aws_account``
+  
+desired
+-------
+
+``desired`` will directly access the ``desired`` section of a graph node.
+
+.. admonition:: Example
+
+  ``desired clean = true``
+  
+  This will select all graph nodes that are marked for cleanup
+
+  You can also set properties in the ``desired`` section by using the ``set_desired`` command:
+
+  ``set_desired clean = false``
+
+  An example, selecting all graph nodes that are marked for cleanup and reversing this by chaining the two commands using a pipe:
+
+  ``desired clean == true  | set_desired clean = false``
+
+metadata
+--------
+
+``metadata`` will directely access the ``metadata`` section of a graph node.
+
+.. admonition:: Example
+
+  ``metadata ancestors.cloud.name == aws``
+
+  This will select all graph nodes that are part of AWS clouds
+
+  You can set metadata directly or add custom metadata by using the ``set_metadata`` command.
+
+  ``match kind == aws_region | set_metadata foo = "bar"``
+
+  This will set the field ``foo`` to the value ``bar`` inside the graph nodes ``metadata`` section.
+
+The following sections always assume the global level using the ``query`` command.
 
 Selecting Nodes
 ===============
@@ -112,16 +126,29 @@ Select nodes by kind
 
 Every node has a kind, which describes the structure of this node.
 The model supports inheritance: every specific type is also an instance of
-every more general type of this specific type. In our example above, the resource
-is of type ``aws_ec2_instance``.
+every more general type of this specific type. 
+
+Take a graph node with a type of ``aws_ec2_instance`` as an example.
 This type is subtype of the types: ``instance``, ``aws_resource`` and ``resource``.
 
 In order to select nodes by a specific type, the query language supports the ``is(kind)``
 function. The term ``is(instance)`` would select the ec2 instance above, but also all other
-instances, e.g. google cloud instances. The term ``is(aws_ec2_instance)`` would select only
+instances, e.g. google cloud instances.
+
+The term ``is(aws_ec2_instance)`` would select only
 ec2 instances from aws.
 
 Since the ``is(kind)`` does not belong to any section, it can be used on every level.
+
+.. admonition:: Example
+
+  ``query is(aws_ec2_instance)``
+
+  will select the same nodes as:
+
+  ``metadata is(aws_ec2_instance)``
+
+
 
 Select nodes by predicate
 -------------------------
@@ -129,36 +156,59 @@ Select nodes by predicate
 In order to filter for specific attributes of a node, it is possible to define predicates.
 A predicate always has the syntax: ``<property_path> <operation> <value>``.
 
+
+property_path
+^^^^^^^^^^^^^
+
 The ``property_path`` is the path to the property in the json structure.
 A nested attribute is accessed via the ``.``.
+
 To access the name in the reported section, one would write ``reported.name``.
+
 A property inside an array is accessed via ``[position]``.
 So to access the first element of an array we can write ``[0]``.
 If the position is not known or does not matter we can write ``[*]``.
 
+
+operation
+^^^^^^^^^
+
 The ``operation`` is one of the following options:
 
-- ``=`` or ``==`` : the property is equal to the provided value.
-- ``!=`` : the property is not equal to the provided value.
-- ``<=`` : the property is less than or equal to the provided value.
-- ``>=`` : the property is greater than or equal to the provided value.
-- ``>``  : the property is greater than the provided value.
-- ``<``  : the property is less than the provided value.
-- ``~`` or ``=~``   : the property conforms to the given regexp. Only applicable to strings.
-- ``!~``  : the property is not conform to the given regexp. Only applicable to strings.
-- ``in``  : the property is one of the following values. The value has to be an array.
-- ``not in`` : the property is not one of the following values. The value has to be an array.
+| ``=`` or ``==`` : Property is equal to the provided value.
+| ``!=`` : Property is not equal to the provided value.
+| ``<=`` : Property is less than or equal to the provided value.
+| ``>=`` : Property is greater than or equal to the provided value.
+| ``>`` : Property is greater than the provided value.
+| ``<`` : Property is less than the provided value.
+| ``~`` or ``=~`` : Property conforms to the given regexp. Only applicable to strings.
+| ``!~`` : Property is not conform to the given regexp. Only applicable to strings.
+| ``in`` : Property is one of the following values. The value has to be an array.
+| ``not in`` : Property is not one of the following values. The value has to be an array.
 
-The ``value`` can be any json literal or any json conform value.
+value
+^^^^^
 
-.. hint::
-  Example predicates:
+The ``value`` can be *any* json literal or *any* json conform value.
 
-  - ``reported.name == "sunset"`` would select all nodes where reported.name is exactly the string "name".
-  - ``reported.name == sunset`` same as above. parentheses are optional as long as the string is not a number and does not have special characters.
-  - ``reported.instance_cores > 2`` select nodes with more than 2 reported.instance_cores.
-  - ``reported.name =~ "sun.*"`` selects all nodes where reported.name adheres to the regular expression ``sun.*``.
-  - ``reported.name in ["sunset", "sunrise"]`` selects all nodes where reported.name is either sunset or sunrise.
+
+Example predicates
+^^^^^^^^^^^^^^^^^^
+
+  | ``reported.name == "sunset"`` 
+  | Select all nodes where reported.name is *exactly* the string "sunset".
+
+  | ``reported.name == sunset`` 
+  | Same as above. *parentheses are optional as long as the string is not a number and does not have special characters*.
+  
+  | ``reported.instance_cores > 2``
+  | Select nodes with more than 2 reported.instance_cores.
+
+  | ``reported.name =~ "sun.*"``
+  | Selects all nodes where reported.name adheres to the regular expression ``sun.*``.
+  
+  | ``reported.name in ["sunset", "sunrise"]``
+  | Selects all nodes where reported.name is either sunset or sunrise.
 
 
 Select nodes by id
@@ -173,8 +223,7 @@ Combine selections
 All listed selections can be combined with ``and`` and ``or`` clauses.
 In order to define precedence, it is possible to put brackets around terms. 
 
-.. hint::
-  Examples of combined terms:
+.. admonition:: Examples of combined terms
 
   - ``reported.name == sunset or reported.name == sunrise`` select nodes where reported.name is either sunrise or sunset.
   - ``is(aws_ec2_instance) and reported.name==sunrise`` select aws_ec2_instance nodes where reported.name is sunrise.
@@ -232,8 +281,9 @@ Select all direct nodes outbound of node
 
 ``-->`` traverse the graph outbound to the next level.
 
-.. hint::
-  ``is(aws_account) -->``
+.. admonition:: Example
+
+  ``query is(aws_account) -->``
 
   This will select all aws accounts and then traverse in the graph outbound.
   According to the model above, this query would return a list of all matching regions.
@@ -245,8 +295,9 @@ Select all direct nodes inbound of node
 
 ``<--`` traverse the graph inbound to the next level
 
-.. hint::
-  ``is(aws_ec2_instance) <-- is(aws_region)``
+.. admonition:: Example
+
+  ``query is(aws_ec2_instance) <-- is(aws_region)``
 
   This will select all aws ec2 instances in the database and then traverse in the graph inbound.
   According to the model above, this query would return a list of all matching regions and instance profiles.
@@ -261,15 +312,17 @@ Select nodes that include the current node
 The result will contain the current node plus all nodes one level outbound.
 The same applies for inbound  with this statement ``<-[0:1]-``.
 
-.. hint::
-  ``is(aws_region) -[0:1]->``
+.. admonition:: Example
+
+  ``query is(aws_region) -[0:1]->``
 
   This will return a list of all resources "under" a aws_region together with the matching aws_region.
 
   .. image:: img/graph_query_01.png
 
-.. hint::
-  ``is(aws_region) and reported.name==global <-[0:1]-``
+.. admonition:: Example
+
+  ``query is(aws_region) and reported.name==global <-[0:1]-``
 
   This will return a list of all aws_regions with name ``global`` together with all accounts.
 
@@ -282,22 +335,13 @@ The same applies for inbound traversals with ``<-[start:until]-``.
 
 .. image:: img/graph_query_startuntil.png
 
-.. hint::
-  ``is(aws_alb_target_groups) <-[2:2]- is(aws_iam_instance_profile)``
+.. admonition:: Example
+
+  ``query is(aws_alb_target_groups) <-[2:2]- is(aws_iam_instance_profile)``
 
   This query can answer the question: which instance profile is used for ec2 instances connected to an alb target group.
   It selects all aws_alb_target_groups and than traverses 2 levels inbound in the graph and filters for aws_iam_instance_profiles.
   The result is a list of aws_iam_instance_profiles.
-
-.. hint::
-  You may already observed it:
-
-  ``-->`` and ``<--`` are abbreviations to ``-[1:1]->`` and ``<-[1:1]-``
-
-  ``is(aws_account) -->`` is equivalent to ``is(aws_account) -[1:1]->``
-
-  ``is(aws_ec2_instance) <-- is(aws_region)`` is equivalent to ``is(aws_ec2_instance) <-[1:1]- is(aws_region)``
-
 
 Select nodes with an undefined depth in the graph
 -------------------------------------------------
@@ -306,12 +350,40 @@ Select nodes with an undefined depth in the graph
 The graph will be traversed from the current node according to this specification. All matching nodes will be returned.
 The same applies for inbound traversals with ``<-[start:]-``.
 
-.. hint::
+.. admonition:: Example
+
   ``is(aws_account) and reported.name==sunshine -[0:]->``
 
   This query will select the aws account with name ``sunshine`` and then select all nodes outbound to this node.
   This will select everything Cloudkeeper knows about nodes in this account.
 
+Select inbound and outbound nodes
+---------------------------------
+
+``<-[start:until]->`` traverses the graph inbound and outbound starting from a user defined depth to a user defined depth.
+The graph will be traversed from the current node according to this specification. All matching nodes will be returned.
+
+.. admonition:: Example
+
+  ``query reported.name="sunset" and is(aws_account) <-[0:]->``
+
+  This will select all nodes that are connected on any depth in any way to the AWS account with the name sunset.
+
+Abbreviations
+-------------
+
+There are abbreviations for the most common BLAs.
+
+.. admonition:: Example
+
+  | ``-->`` and ``<--`` are abbreviations to ``-[1:1]->`` and ``<-[1:1]-``
+  | ``query is(aws_account) -->`` is equivalent to ``is(aws_account) -[1:1]->``
+
+  | ``<-->`` is an abbreviation for ``<-[1:1]->``
+  | ``query is(aws_region) <-->`` is equivalent to ``is(aws_region) <-[1:1]->``
+
+  | ``<-[x]-`` is an abbreviation for ``<-[x:x]-``
+  | ``query is(aws_region) <-[3]->`` is equivalent to ``is(aws_region) <-[3:3]->``
 
 
 Ensuring an existing defined graph structure
@@ -324,7 +396,7 @@ Example: We want to select all ALB target groups where there is no EC2 instance 
 
 ::
 
-    is(aws_alb_target_group) with (empty, <-- is(aws_ec2_instance))
+    query is(aws_alb_target_group) with (empty, <-- is(aws_ec2_instance))
 
 
 The ``is(aws_alb_target_group)`` part selects all aws_alb_target_groups.

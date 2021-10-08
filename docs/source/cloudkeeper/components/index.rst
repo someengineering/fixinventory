@@ -33,6 +33,7 @@ You can find more information in the section about :ref:`ckcore_spotlight`.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    ckcore_spotlight
 
@@ -69,5 +70,6 @@ You can find more information in the section about :ref:`ckworker-spotlight`.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    ckworker_spotlight

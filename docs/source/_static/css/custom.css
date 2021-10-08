@@ -6,6 +6,7 @@
     --text-highlight: #ffe797;
     --text-highlight-low: #dda045;
     --text-darker: #0054a3;
+    --text-warn: #ff9e86;
 
     --link-default: #35b0e6;
     --link-hover: #ffaf37;
@@ -17,8 +18,13 @@
     --bg-dark: #001930;
     --bg-extra-dark: #000;
 
+    --scrollbar: #6daac5;
+
     --code-bg: #000c18;
     --code-highlight-1: #df8500;
+
+    --warn-bg: #742613;
+    --warn-bg-dark: #2a0c05;
 
     --nav-current: #082c4e;
     --external-reference-icon: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjEyIiB3aWR0aD0iMTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjk4MGI5Ij48cGF0aCBkPSJtNy41IDcuMXYzLjRoLTZ2LTZoMy40Ii8+PHBhdGggZD0ibTUuNzY1IDFoNS4yMzV2NS4zOWwtMS41NzMgMS41NDctMS4zMS0xLjMxLTIuNzI0IDIuNzIzLTIuNjktMi42ODggMi44MS0yLjgwOC0xLjMxMy0xLjMxeiIvPjwvZz48L3N2Zz4K");
@@ -101,11 +107,7 @@ h1 {
 h2 {
     margin-top: 4rem;
     font-size: 1.9rem;
-<<<<<<< HEAD
     border-bottom: 1px solid var(--text-highlight);
-=======
-    border-bottom: 1px solid #ffe797;
->>>>>>> 5855619ddbdb8ba29805999c456aca0ff73a71c0
     width: 100%;
     padding-bottom: 0.5rem;
 }
@@ -117,13 +119,7 @@ h3 {
 
 h4 {
     font-size: 1.3rem;
-<<<<<<< HEAD
     color: var(--text-highlight-low);
-=======
-    color: #dda045;
-    font-size: 1.3rem;
-    color: #dda045;
->>>>>>> 5855619ddbdb8ba29805999c456aca0ff73a71c0
 }
 
 .wy-body-for-nav {
@@ -282,7 +278,7 @@ input::placeholder
 
 ::-webkit-scrollbar-track
 {
-	border: 1px solid var(--text-default);
+	border: 1px solid var(--scrollbar);
 	background-color: var(--bg-extra-dark);
 }
 
@@ -294,7 +290,7 @@ input::placeholder
 
 ::-webkit-scrollbar-thumb
 {
-	background-color: var(--text-default);	
+	background-color: var(--scrollbar);	
 }
 
 button.toctree-expand:before {
@@ -377,13 +373,13 @@ span.caption-text {
     border-color: var(--text-highlight-low);
 }
 
-.hint .admonition-title {
+.admonition-title {
     color: var(--text-highlight-low) !important;
     background: var(--code-bg) !important;
     border-radius: 5px 5px 0 0;
 }
 
-.admonition.hint {
+.admonition {
     background: var(--bg-dark) !important;
     border-radius: 5px;
 }
@@ -402,15 +398,11 @@ span.caption-text {
     margin-bottom: 1.5rem;
 }
 
-
-.hint .admonition-title {
-    color: #dda045 !important;
-    background: #000c18 !important;
-    border-radius: 5px 5px 0 0;
+.admonition.warning .admonition-title {
+    color: var(--text-warn) !important;
+    background: var(--warn-bg) !important;
 }
 
-.admonition.hint {
-    background: #001930 !important;
-    border-radius: 5px;
+.admonition.warning {
+    background: var(--warn-bg-dark) !important;
 }
-
