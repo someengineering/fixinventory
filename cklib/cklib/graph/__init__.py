@@ -216,9 +216,7 @@ class Graph(networkx.DiGraph):
         return (
             node
             for node in self.nodes()
-            if all(
-                getattr(node, attr, None) == value for attr, value in match.items()
-            )
+            if all(getattr(node, attr, None) == value for attr, value in match.items())
         )
 
     @metrics_graph_search_first.time()
@@ -738,9 +736,7 @@ class GraphExportIterator:
             ):
                 percent = round(self.nodes_sent / self.nodes_total * 100)
                 elapsed = time() - self.last_sent
-                log.debug(
-                    f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
-                )
+                log.debug(f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s")
                 self.last_sent = time()
             if self.output is not None:
                 self.output.write(node_json)
@@ -762,9 +758,7 @@ class GraphExportIterator:
             ):
                 percent = round(self.edges_sent / self.edges_total * 100)
                 elapsed = time() - self.last_sent
-                log.debug(
-                    f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
-                )
+                log.debug(f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s")
                 self.last_sent = time()
             if self.output is not None:
                 self.output.write(edge_json)
