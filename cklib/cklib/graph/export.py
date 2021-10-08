@@ -105,8 +105,8 @@ def model_name(clazz: type) -> str:
         # since union types are not supported, we fallback to any here
         return "any"
     elif isinstance(to_check, TypeVar):
-        return model_name(type_arg(to_check))
-    elif issubclass(to_check, simple_type):
+        return model_name(get_args(to_check))
+    elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
     elif is_dataclass(to_check):
         name = getattr(to_check, "kind", None)
