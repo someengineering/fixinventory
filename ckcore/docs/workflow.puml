@@ -128,8 +128,13 @@ Workflow --> "1" SurpassBehaviour: next_run
 @enduml
 
 @startuml
-interface Step {
+class Workflow {
+}
+class Step {
+  name: string
   timeout: duration
+}
+interface StepAction {
 }
 class EmitAction {
   message_type: str
@@ -140,15 +145,15 @@ class ExecuteCommand {
 class WaitForEvent {
   message_type: str
 }
-Step <|-- EmitAction
-Step <|-- ExecuteCommand
-Step <|-- WaitForEvent
+StepAction <|-- EmitAction
+StepAction <|-- ExecuteCommand
+StepAction <|-- WaitForEvent
 
+Workflow *--> "*" Step
+Step --> StepAction
 note bottom of EmitAction {
 - Emits a specified action.
-- Waits for all subscribers
-  to respond with an ack.
-  (wait_for_complete==true)
+- Waits for all actors to respond with an ack.
 }
 note bottom of ExecuteCommand {
 - Executes a specified CLI command.
@@ -157,4 +162,17 @@ note bottom of ExecuteCommand {
 note bottom of WaitForEvent {
 - Waits for a specified event to arrive.
 }
+
+note top of Actor {
+- Is able to perform one or more dedicated action.
+- Subscribes to those actions via ckcore
+- Listens to the action topic from ckcore
+- Performs the action, when emitted on the action topic.
+- Signals to the core success or error
+}
+interface Actor
+Actor <|-- AWSCollector
+Actor <|-- GCPCollector
+
+Actor -> EmitAction: subscribe
 @enduml

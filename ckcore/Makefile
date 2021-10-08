@@ -51,6 +51,7 @@ clean-test: ## remove test and coverage artifacts
 
 clean-env: ## remove environment
 	rm -fr venv
+	rm -fr venv-pypy
 
 lint: venv ## check style with flake8
 	black --line-length 120 --check core tests
