@@ -6,7 +6,7 @@ import json
 import re
 from cklib.logging import log
 from cklib.baseresources import GraphRoot, Cloud, BaseResource
-from cklib.utils import RWLock, json_default, get_resource_attributes
+from cklib.utils import json_default, get_resource_attributes
 from cklib.args import ArgumentParser
 from cklib.graph.export import (
     dataclasses_to_ckcore_model,
@@ -85,7 +85,6 @@ class Graph(networkx.DiGraph):
 
     def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.lock = RWLock()
         self.root = None
         if isinstance(root, BaseResource):
             self.root = root
@@ -136,8 +135,7 @@ class Graph(networkx.DiGraph):
         self.add_edge(parent, node_for_adding)
 
     def add_node(self, node_for_adding, **attr):
-        with self.lock.write_access:
-            super().add_node(node_for_adding, **attr)
+        super().add_node(node_for_adding, **attr)
         if isinstance(node_for_adding, BaseResource):
             # We hand a reference to ourselve to the added BaseResource
             # which stores it as a weakref.
@@ -150,8 +148,7 @@ class Graph(networkx.DiGraph):
         if self.has_edge(src, dst):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
-        with self.lock.write_access:
-            super().add_edge(src, dst, **attr)
+        super().add_edge(src, dst, **attr)
         if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
             log.debug(f"Added edge from {src.rtdname} to {dst.rtdname}")
             try:
@@ -174,12 +171,10 @@ class Graph(networkx.DiGraph):
                 )
 
     def remove_node(self, *args, **kwargs):
-        with self.lock.write_access:
-            super().remove_node(*args, **kwargs)
+        super().remove_node(*args, **kwargs)
 
     def remove_edge(self, *args, **kwargs):
-        with self.lock.write_access:
-            super().remove_edge(*args, **kwargs)
+        super().remove_edge(*args, **kwargs)
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
@@ -195,18 +190,17 @@ class Graph(networkx.DiGraph):
                 f" (regex: {regex_search})"
             )
         )
-        with self.lock.read_access:
-            for node in self.nodes():
-                node_attr = getattr(node, attr, None)
-                if (
-                    node_attr is not None
-                    and not callable(node_attr)
-                    and (
-                        (regex_search is False and node_attr == value)
-                        or (regex_search is True and re.search(value, str(node_attr)))
-                    )
-                ):
-                    yield node
+        for node in self.nodes():
+            node_attr = getattr(node, attr, None)
+            if (
+                node_attr is not None
+                and not callable(node_attr)
+                and (
+                    (regex_search is False and node_attr == value)
+                    or (regex_search is True and re.search(value, str(node_attr)))
+                )
+            ):
+                yield node
 
     @metrics_graph_searchre.time()
     def searchre(self, attr, regex):
@@ -219,20 +213,18 @@ class Graph(networkx.DiGraph):
     @metrics_graph_searchall.time()
     def searchall(self, match: Dict):
         """Search for graph nodes by multiple attributes and values"""
-        with self.lock.read_access:
-            return (
-                node
-                for node in self.nodes()
-                if all(
-                    getattr(node, attr, None) == value for attr, value in match.items()
-                )
+        return (
+            node
+            for node in self.nodes()
+            if all(
+                getattr(node, attr, None) == value for attr, value in match.items()
             )
+        )
 
     @metrics_graph_search_first.time()
     def search_first(self, attr, value):
         """Return the first graph node that matches a certain attribute value"""
-        with self.lock.read_access:
-            node = next(iter(self.search(attr, value)), None)
+        node = next(iter(self.search(attr, value)), None)
         if node:
             log.debug(f"Found node {node} with {attr}: {value}")
         else:
@@ -242,8 +234,7 @@ class Graph(networkx.DiGraph):
     @metrics_graph_search_first_all.time()
     def search_first_all(self, match: Dict):
         """Return the first graph node that matches multiple attributes and values"""
-        with self.lock.read_access:
-            node = next(iter(self.searchall(match)), None)
+        node = next(iter(self.searchall(match)), None)
         if node:
             log.debug(f"Found node {node} with {match}")
         else:
@@ -281,9 +272,8 @@ class Graph(networkx.DiGraph):
     def export_model(self) -> List:
         """Return the graph node dataclass model in ckcore format"""
         classes = set()
-        with self.lock.read_access:
-            for node in self.nodes:
-                classes.add(type(node))
+        for node in self.nodes:
+            classes.add(type(node))
         model = dataclasses_to_ckcore_model(classes)
 
         # fixme: workaround to report kind
@@ -301,18 +291,6 @@ class Graph(networkx.DiGraph):
 
     def export_iterator(self) -> GraphExportIterator:
         return GraphExportIterator(self)
-
-    # We can't pickle a Lock() so we're removing it before pickling
-    # and recreating a fresh instance when unpickling
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        if "lock" in d:
-            del d["lock"]
-        return d
-
-    def __setstate__(self, d):
-        d["lock"] = RWLock()
-        self.__dict__.update(d)
 
 
 class GraphContainer:
