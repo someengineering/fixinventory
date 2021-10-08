@@ -726,48 +726,47 @@ class GraphExportIterator:
             log.debug(f"Writing graph json to file {self.output}")
 
     def __iter__(self):
-        with self.graph.lock.read_access:
-            for node in self.graph.nodes:
-                node_dict = node_to_dict(node)
-                if getattr(node, "_replace", None):
-                    log.debug(f"Replace graph on node {node.rtdname}")
-                    node_dict.update({"replace": True})
-                node_json = json.dumps(node_dict) + "\n"
-                self.nodes_sent += 1
-                if (
-                    self.report_every_n_nodes > 0
-                    and self.nodes_sent % self.report_every_n_nodes == 0
-                ):
-                    percent = round(self.nodes_sent / self.nodes_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-                if self.output is not None:
-                    self.output.write(node_json)
-                yield node_json.encode()
-            for edge in self.graph.edges:
-                from_node = edge[0]
-                to_node = edge[1]
-                if not isinstance(from_node, BaseResource) or not isinstance(
-                    to_node, BaseResource
-                ):
-                    log.error(f"One of {from_node} and {to_node} is no base resource")
-                    continue
-                edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
-                edge_json = json.dumps(edge_dict) + "\n"
-                self.edges_sent += 1
-                if (
-                    self.report_every_n_edges > 0
-                    and self.edges_sent % self.report_every_n_edges == 0
-                ):
-                    percent = round(self.edges_sent / self.edges_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-                if self.output is not None:
-                    self.output.write(edge_json)
-                yield edge_json.encode()
+        for node in self.graph.nodes:
+            node_dict = node_to_dict(node)
+            if getattr(node, "_replace", None):
+                log.debug(f"Replace graph on node {node.rtdname}")
+                node_dict.update({"replace": True})
+            node_json = json.dumps(node_dict) + "\n"
+            self.nodes_sent += 1
+            if (
+                self.report_every_n_nodes > 0
+                and self.nodes_sent % self.report_every_n_nodes == 0
+            ):
+                percent = round(self.nodes_sent / self.nodes_total * 100)
+                elapsed = time() - self.last_sent
+                log.debug(
+                    f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
+                )
+                self.last_sent = time()
+            if self.output is not None:
+                self.output.write(node_json)
+            yield node_json.encode()
+        for edge in self.graph.edges:
+            from_node = edge[0]
+            to_node = edge[1]
+            if not isinstance(from_node, BaseResource) or not isinstance(
+                to_node, BaseResource
+            ):
+                log.error(f"One of {from_node} and {to_node} is no base resource")
+                continue
+            edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
+            edge_json = json.dumps(edge_dict) + "\n"
+            self.edges_sent += 1
+            if (
+                self.report_every_n_edges > 0
+                and self.edges_sent % self.report_every_n_edges == 0
+            ):
+                percent = round(self.edges_sent / self.edges_total * 100)
+                elapsed = time() - self.last_sent
+                log.debug(
+                    f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
+                )
+                self.last_sent = time()
+            if self.output is not None:
+                self.output.write(edge_json)
+            yield edge_json.encode()
