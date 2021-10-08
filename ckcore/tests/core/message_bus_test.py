@@ -16,7 +16,7 @@ def message_bus() -> MessageBus:
 
 
 @fixture
-async def all_events(message_bus) -> AsyncGenerator[List[Message], None]:
+async def all_events(message_bus: MessageBus) -> AsyncGenerator[List[Message], None]:
     events: List[Message] = []
 
     async def gather_events() -> None:
@@ -50,7 +50,7 @@ async def wait_for_message(
 
 
 @mark.asyncio
-async def test_handler(message_bus) -> None:
+async def test_handler(message_bus: MessageBus) -> None:
     foos: List[Message] = []
     blas: List[Message] = []
 

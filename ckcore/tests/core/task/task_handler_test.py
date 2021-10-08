@@ -64,7 +64,7 @@ def task_handler_args() -> Namespace:
 async def task_handler(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
-    message_bus,
+    message_bus: MessageBus,
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
@@ -135,7 +135,7 @@ async def test_parse_job_line_event_trigger(task_handler: TaskHandler) -> None:
 async def test_recover_workflow(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
-    message_bus,
+    message_bus: MessageBus,
     subscription_handler: SubscriptionHandler,
     all_events: List[Message],
     cli: CLI,
