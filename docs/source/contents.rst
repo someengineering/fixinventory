@@ -25,6 +25,7 @@
 
    manual/discovery
    manual/action
+   manual/query_library
 
 .. toctree::
    :maxdepth: 1
