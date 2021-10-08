@@ -1,4 +1,4 @@
-name: Check PR (ckcore)
+name: Lint (ckcore)
 on:
     push:
         paths:
@@ -12,13 +12,6 @@ jobs:
         defaults:
             run:
                 working-directory: ./ckcore
-        services:
-            arangodb:
-                image: arangodb:3.8
-                env:
-                    ARANGO_ROOT_PASSWORD: root
-                ports:
-                    - 8529:8529
         steps:
             - name: Checkout
               uses: actions/checkout@v2
@@ -33,7 +26,7 @@ jobs:
                   # This path is specific to Ubuntu
                   path: ~/.cache/pip
                   # Look to see if there is a cache hit for the corresponding requirements file
-                  key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}
+                  key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}-${{hashFiles('requirements-test.txt')}}
                   restore-keys: |
                       ${{ runner.os }}-pip-
                       ${{ runner.os }}-
@@ -54,5 +47,3 @@ jobs:
                 pylint core
             - name: MyPy
               run: mypy core tests
-            - name: Run Tests
-              run: pytest
