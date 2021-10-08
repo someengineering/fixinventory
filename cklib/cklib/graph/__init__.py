@@ -6,7 +6,7 @@ import json
 import re
 from cklib.logging import log
 from cklib.baseresources import GraphRoot, Cloud, BaseResource
-from cklib.utils import RWLock, json_default, get_resource_attributes
+from cklib.utils import json_default, get_resource_attributes
 from cklib.args import ArgumentParser
 from cklib.graph.export import (
     dataclasses_to_ckcore_model,
@@ -85,7 +85,6 @@ class Graph(networkx.DiGraph):
 
     def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.lock = RWLock()
         self.root = None
         if isinstance(root, BaseResource):
             self.root = root
@@ -136,8 +135,7 @@ class Graph(networkx.DiGraph):
         self.add_edge(parent, node_for_adding)
 
     def add_node(self, node_for_adding, **attr):
-        with self.lock.write_access:
-            super().add_node(node_for_adding, **attr)
+        super().add_node(node_for_adding, **attr)
         if isinstance(node_for_adding, BaseResource):
             # We hand a reference to ourselve to the added BaseResource
             # which stores it as a weakref.
@@ -150,8 +148,7 @@ class Graph(networkx.DiGraph):
         if self.has_edge(src, dst):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
-        with self.lock.write_access:
-            super().add_edge(src, dst, **attr)
+        super().add_edge(src, dst, **attr)
         if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
             log.debug(f"Added edge from {src.rtdname} to {dst.rtdname}")
             try:
@@ -174,12 +171,10 @@ class Graph(networkx.DiGraph):
                 )
 
     def remove_node(self, *args, **kwargs):
-        with self.lock.write_access:
-            super().remove_node(*args, **kwargs)
+        super().remove_node(*args, **kwargs)
 
     def remove_edge(self, *args, **kwargs):
-        with self.lock.write_access:
-            super().remove_edge(*args, **kwargs)
+        super().remove_edge(*args, **kwargs)
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
@@ -195,18 +190,17 @@ class Graph(networkx.DiGraph):
                 f" (regex: {regex_search})"
             )
         )
-        with self.lock.read_access:
-            for node in self.nodes():
-                node_attr = getattr(node, attr, None)
-                if (
-                    node_attr is not None
-                    and not callable(node_attr)
-                    and (
-                        (regex_search is False and node_attr == value)
-                        or (regex_search is True and re.search(value, str(node_attr)))
-                    )
-                ):
-                    yield node
+        for node in self.nodes():
+            node_attr = getattr(node, attr, None)
+            if (
+                node_attr is not None
+                and not callable(node_attr)
+                and (
+                    (regex_search is False and node_attr == value)
+                    or (regex_search is True and re.search(value, str(node_attr)))
+                )
+            ):
+                yield node
 
     @metrics_graph_searchre.time()
     def searchre(self, attr, regex):
@@ -219,20 +213,16 @@ class Graph(networkx.DiGraph):
     @metrics_graph_searchall.time()
     def searchall(self, match: Dict):
         """Search for graph nodes by multiple attributes and values"""
-        with self.lock.read_access:
-            return (
-                node
-                for node in self.nodes()
-                if all(
-                    getattr(node, attr, None) == value for attr, value in match.items()
-                )
-            )
+        return (
+            node
+            for node in self.nodes()
+            if all(getattr(node, attr, None) == value for attr, value in match.items())
+        )
 
     @metrics_graph_search_first.time()
     def search_first(self, attr, value):
         """Return the first graph node that matches a certain attribute value"""
-        with self.lock.read_access:
-            node = next(iter(self.search(attr, value)), None)
+        node = next(iter(self.search(attr, value)), None)
         if node:
             log.debug(f"Found node {node} with {attr}: {value}")
         else:
@@ -242,8 +232,7 @@ class Graph(networkx.DiGraph):
     @metrics_graph_search_first_all.time()
     def search_first_all(self, match: Dict):
         """Return the first graph node that matches multiple attributes and values"""
-        with self.lock.read_access:
-            node = next(iter(self.searchall(match)), None)
+        node = next(iter(self.searchall(match)), None)
         if node:
             log.debug(f"Found node {node} with {match}")
         else:
@@ -281,9 +270,8 @@ class Graph(networkx.DiGraph):
     def export_model(self) -> List:
         """Return the graph node dataclass model in ckcore format"""
         classes = set()
-        with self.lock.read_access:
-            for node in self.nodes:
-                classes.add(type(node))
+        for node in self.nodes:
+            classes.add(type(node))
         model = dataclasses_to_ckcore_model(classes)
 
         # fixme: workaround to report kind
@@ -301,18 +289,6 @@ class Graph(networkx.DiGraph):
 
     def export_iterator(self) -> GraphExportIterator:
         return GraphExportIterator(self)
-
-    # We can't pickle a Lock() so we're removing it before pickling
-    # and recreating a fresh instance when unpickling
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        if "lock" in d:
-            del d["lock"]
-        return d
-
-    def __setstate__(self, d):
-        d["lock"] = RWLock()
-        self.__dict__.update(d)
 
 
 class GraphContainer:
@@ -468,36 +444,35 @@ def graph2metrics(graph):
     metrics = {}
     num = {}
 
-    with graph.lock.read_access:
-        for node in graph.nodes:
-            if not isinstance(node, BaseResource):
-                continue
-            try:
-                for metric, data in node.metrics_description.items():
-                    if metric not in metrics:
-                        metrics[metric] = GaugeMetricFamily(
-                            f"cloudkeeper_{metric}",
-                            data["help"],
-                            labels=mlabels(data["labels"]),
-                        )
-                        num[metric] = defaultdict(lambda: 0)
-                for metric, data in node.metrics(graph).items():
-                    for labels, value in data.items():
-                        if metric not in num:
-                            log.error(
-                                (
-                                    f"Couldn't find metric {metric} in num when"
-                                    f" processing node {node}"
-                                )
+    for node in graph.nodes:
+        if not isinstance(node, BaseResource):
+            continue
+        try:
+            for metric, data in node.metrics_description.items():
+                if metric not in metrics:
+                    metrics[metric] = GaugeMetricFamily(
+                        f"cloudkeeper_{metric}",
+                        data["help"],
+                        labels=mlabels(data["labels"]),
+                    )
+                    num[metric] = defaultdict(lambda: 0)
+            for metric, data in node.metrics(graph).items():
+                for labels, value in data.items():
+                    if metric not in num:
+                        log.error(
+                            (
+                                f"Couldn't find metric {metric} in num when"
+                                f" processing node {node}"
                             )
-                            continue
-                        num[metric][mtags(labels, node)] += value
-            except AttributeError:
-                log.exception(f"Encountered invalid node in graph {node}")
+                        )
+                        continue
+                    num[metric][mtags(labels, node)] += value
+        except AttributeError:
+            log.exception(f"Encountered invalid node in graph {node}")
 
-        for metric in metrics:
-            for labels, value in num[metric].items():
-                metrics[metric].add_metric(labels, value)
+    for metric in metrics:
+        for labels, value in num[metric].items():
+            metrics[metric].add_metric(labels, value)
 
     return metrics
 
@@ -748,48 +723,43 @@ class GraphExportIterator:
             log.debug(f"Writing graph json to file {self.output}")
 
     def __iter__(self):
-        with self.graph.lock.read_access:
-            for node in self.graph.nodes:
-                node_dict = node_to_dict(node)
-                if getattr(node, "_replace", None):
-                    log.debug(f"Replace graph on node {node.rtdname}")
-                    node_dict.update({"replace": True})
-                node_json = json.dumps(node_dict) + "\n"
-                self.nodes_sent += 1
-                if (
-                    self.report_every_n_nodes > 0
-                    and self.nodes_sent % self.report_every_n_nodes == 0
-                ):
-                    percent = round(self.nodes_sent / self.nodes_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-                if self.output is not None:
-                    self.output.write(node_json)
-                yield node_json.encode()
-            for edge in self.graph.edges:
-                from_node = edge[0]
-                to_node = edge[1]
-                if not isinstance(from_node, BaseResource) or not isinstance(
-                    to_node, BaseResource
-                ):
-                    log.error(f"One of {from_node} and {to_node} is no base resource")
-                    continue
-                edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
-                edge_json = json.dumps(edge_dict) + "\n"
-                self.edges_sent += 1
-                if (
-                    self.report_every_n_edges > 0
-                    and self.edges_sent % self.report_every_n_edges == 0
-                ):
-                    percent = round(self.edges_sent / self.edges_total * 100)
-                    elapsed = time() - self.last_sent
-                    log.debug(
-                        f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s"
-                    )
-                    self.last_sent = time()
-                if self.output is not None:
-                    self.output.write(edge_json)
-                yield edge_json.encode()
+        for node in self.graph.nodes:
+            node_dict = node_to_dict(node)
+            if getattr(node, "_replace", None):
+                log.debug(f"Replace graph on node {node.rtdname}")
+                node_dict.update({"replace": True})
+            node_json = json.dumps(node_dict) + "\n"
+            self.nodes_sent += 1
+            if (
+                self.report_every_n_nodes > 0
+                and self.nodes_sent % self.report_every_n_nodes == 0
+            ):
+                percent = round(self.nodes_sent / self.nodes_total * 100)
+                elapsed = time() - self.last_sent
+                log.debug(f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s")
+                self.last_sent = time()
+            if self.output is not None:
+                self.output.write(node_json)
+            yield node_json.encode()
+        for edge in self.graph.edges:
+            from_node = edge[0]
+            to_node = edge[1]
+            if not isinstance(from_node, BaseResource) or not isinstance(
+                to_node, BaseResource
+            ):
+                log.error(f"One of {from_node} and {to_node} is no base resource")
+                continue
+            edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
+            edge_json = json.dumps(edge_dict) + "\n"
+            self.edges_sent += 1
+            if (
+                self.report_every_n_edges > 0
+                and self.edges_sent % self.report_every_n_edges == 0
+            ):
+                percent = round(self.edges_sent / self.edges_total * 100)
+                elapsed = time() - self.last_sent
+                log.debug(f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s")
+                self.last_sent = time()
+            if self.output is not None:
+                self.output.write(edge_json)
+            yield edge_json.encode()

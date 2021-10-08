@@ -2,7 +2,6 @@ import os
 import inspect
 import cklib.logging
 from pprint import pformat
-from pympler import asizeof
 from typing import Iterable
 from cklib.baseplugin import BaseCliPlugin
 from cklib.args import ArgumentParser
@@ -49,18 +48,6 @@ class CliDebugPlugin(BaseCliPlugin):
         Show system information.
         """
         yield fmt_json(get_stats(self.graph))
-
-    def cmd_debug_calc_object_byte_size(self, items: Iterable, args: str) -> Iterable:
-        """Usage: | debug_calc_object_byte_size |
-
-        Calculate the resources in-memory size in bytes and add it
-        as a .debug_byte_size attribute which can then be viewed with
-        the dump command.
-        """
-        for item in items:
-            byte_size = asizeof.asizeof(item)
-            item.debug_object_byte_size = int(byte_size)
-            yield item
 
     def cmd_debug_dump_members(self, items: Iterable, args: str) -> Iterable:
         """Usage: | debug_getmembers
