@@ -72,10 +72,9 @@ class CoreTasks(threading.Thread):
         scheme = ckcore_ws_uri_split.scheme
         netloc = ckcore_ws_uri_split.netloc
         path = "/work/queue"
-        query = urlencode(
-            {"task": ",".join(self.tasks)}
-            | {k: ",".join(v) for k, v in self.task_queue_filter.items()}
-        )
+        query_dict = {"task": ",".join(self.tasks)}
+        query_dict.update({k: ",".join(v) for k, v in self.task_queue_filter.items()})
+        query = urlencode(query_dict)
         ws_uri = urlunsplit((scheme, netloc, path, query, ""))
 
         log.debug(f"{self.identifier} connecting to {ws_uri}")
