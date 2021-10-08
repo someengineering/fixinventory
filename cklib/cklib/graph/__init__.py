@@ -446,36 +446,35 @@ def graph2metrics(graph):
     metrics = {}
     num = {}
 
-    with graph.lock.read_access:
-        for node in graph.nodes:
-            if not isinstance(node, BaseResource):
-                continue
-            try:
-                for metric, data in node.metrics_description.items():
-                    if metric not in metrics:
-                        metrics[metric] = GaugeMetricFamily(
-                            f"cloudkeeper_{metric}",
-                            data["help"],
-                            labels=mlabels(data["labels"]),
-                        )
-                        num[metric] = defaultdict(lambda: 0)
-                for metric, data in node.metrics(graph).items():
-                    for labels, value in data.items():
-                        if metric not in num:
-                            log.error(
-                                (
-                                    f"Couldn't find metric {metric} in num when"
-                                    f" processing node {node}"
-                                )
+    for node in graph.nodes:
+        if not isinstance(node, BaseResource):
+            continue
+        try:
+            for metric, data in node.metrics_description.items():
+                if metric not in metrics:
+                    metrics[metric] = GaugeMetricFamily(
+                        f"cloudkeeper_{metric}",
+                        data["help"],
+                        labels=mlabels(data["labels"]),
+                    )
+                    num[metric] = defaultdict(lambda: 0)
+            for metric, data in node.metrics(graph).items():
+                for labels, value in data.items():
+                    if metric not in num:
+                        log.error(
+                            (
+                                f"Couldn't find metric {metric} in num when"
+                                f" processing node {node}"
                             )
-                            continue
-                        num[metric][mtags(labels, node)] += value
-            except AttributeError:
-                log.exception(f"Encountered invalid node in graph {node}")
+                        )
+                        continue
+                    num[metric][mtags(labels, node)] += value
+        except AttributeError:
+            log.exception(f"Encountered invalid node in graph {node}")
 
-        for metric in metrics:
-            for labels, value in num[metric].items():
-                metrics[metric].add_metric(labels, value)
+    for metric in metrics:
+        for labels, value in num[metric].items():
+            metrics[metric].add_metric(labels, value)
 
     return metrics
 
