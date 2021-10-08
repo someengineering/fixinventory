@@ -225,9 +225,9 @@ In order to define precedence, it is possible to put brackets around terms.
 
 .. admonition:: Examples of combined terms
 
-  - ``reported.name == sunset or reported.name == sunrise`` select nodes where reported.name is either sunrise or sunset.
-  - ``is(aws_ec2_instance) and reported.name==sunrise`` select aws_ec2_instance nodes where reported.name is sunrise.
-  - ``is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` select aws_ec2_instance nodes of specific type or more than 2 cores.
+  | ``query reported.name == sunset or reported.name == sunrise`` : Select nodes where reported.name is either sunrise or sunset.
+  | ``query is(aws_ec2_instance) and reported.name==sunrise`` : Select aws_ec2_instance nodes where reported.name is sunrise.
+  | ``query is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` : Select aws_ec2_instance nodes of specific type or more than 2 cores.
 
 
 Graph Edges
@@ -266,7 +266,7 @@ If we want to know all resources in the graph we need to walk *outbound* (follow
 If we want to know the account of a specific resource, we need to walk *inbound* (following the edge in reverse direction of the arrow)
 in the graph until we find an account.
 
-Walking along edges
+Traversal Selectors
 ===================
 
 Inbound and outbound
@@ -352,7 +352,7 @@ The same applies for inbound traversals with ``<-[start:]-``.
 
 .. admonition:: Example
 
-  ``is(aws_account) and reported.name==sunshine -[0:]->``
+  ``query is(aws_account) and reported.name==sunshine -[0:]->``
 
   This query will select the aws account with name ``sunshine`` and then select all nodes outbound to this node.
   This will select everything Cloudkeeper knows about nodes in this account.
@@ -372,18 +372,38 @@ The graph will be traversed from the current node according to this specificatio
 Abbreviations
 -------------
 
-There are abbreviations for the most common BLAs.
+There are abbreviations for the most common traversal selectors.
 
 .. admonition:: Example
 
   | ``-->`` and ``<--`` are abbreviations to ``-[1:1]->`` and ``<-[1:1]-``
-  | ``query is(aws_account) -->`` is equivalent to ``is(aws_account) -[1:1]->``
+  | ``query is(aws_account) -->`` is equivalent to ``query is(aws_account) -[1:1]->``
 
   | ``<-->`` is an abbreviation for ``<-[1:1]->``
-  | ``query is(aws_region) <-->`` is equivalent to ``is(aws_region) <-[1:1]->``
+  | ``query is(aws_region) <-->`` is equivalent to ``query is(aws_region) <-[1:1]->``
 
   | ``<-[x]-`` is an abbreviation for ``<-[x:x]-``
-  | ``query is(aws_region) <-[3]->`` is equivalent to ``is(aws_region) <-[3:3]->``
+  | ``query is(aws_region) <-[3]->`` is equivalent to ``query is(aws_region) <-[3:3]->``
+
+
+Traversal Selection Commands
+----------------------------
+
+There are also commands doing a traversal selection that you can chain using a pipe.
+
+.. admonition:: Example
+
+  | ``predecessors`` is a command being substituted for ``<--`` / ``<-[1:1]-``
+  | ``query is(aws_region) | predecessors`` is equivalent to ``query is(aws_region) <--``
+
+  | ``successors`` is a command being substituted for ``-->`` / ``-[1:1]->``
+  | ``query is(aws_region) | successors`` is equivalent to ``query is(aws_region) -->``
+
+  | ``ancestors`` is a command being substituted for ``<-[1:]-``
+  | ``query is(aws_region) | ancestors`` is equivalent to ``query is(aws_region) <-[1:]-``
+
+  | ``descendants`` is a command being substituted for ``-[1:]->``
+  | ``query is(aws_region) | descendants`` is equivalent to ``query is(aws_region) -[1:]->``
 
 
 Ensuring an existing defined graph structure
