@@ -23,7 +23,8 @@
    :caption: Manual
    :name: sec-manual
 
-   manual/query
+   manual/discovery
+   manual/action
 
 .. toctree::
    :maxdepth: 1
