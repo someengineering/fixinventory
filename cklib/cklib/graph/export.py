@@ -3,7 +3,7 @@ from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
 from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
 from cklib.baseresources import BaseResource
 from cklib.utils import type_str, str2timedelta, str2timezone
 from cklib.logging import log
@@ -104,7 +104,9 @@ def model_name(clazz: type) -> str:
         # this is a union of different types other than none.
         # since union types are not supported, we fallback to any here
         return "any"
-    elif issubclass(to_check, simple_type):
+    elif isinstance(to_check, TypeVar):
+        return model_name(get_args(to_check))
+    elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
     elif is_dataclass(to_check):
         name = getattr(to_check, "kind", None)
