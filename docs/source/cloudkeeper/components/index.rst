@@ -1,7 +1,8 @@
 .. _component-list:
 
-Cloudkeeper components
-######################
+==========
+Components
+==========
 
 These are the moving parts of cloudkeeper.
 We will now guide you through the setup and run procedure for each one.
@@ -15,7 +16,7 @@ We will now guide you through the setup and run procedure for each one.
 
 To give you a better understanding of how cloudkeepers components interact with each other and where prometheus and arangoDB come in, we have prepared this visualisation for you.
 
-.. image:: _static/images/query_documentation2x_10.png
+.. image:: img/component_graph.png
   :alt: Component connection
 
 .. _component-ckcore:
@@ -28,7 +29,13 @@ of resources and provides APIs to update and access them. Within :ref:`ckcore` t
 that result in actions like ``collect``, ``cleanup`` or ``generate_metrics``. These actions are being received by components
 like :ref:`ckworker` and :ref:`ckmetrics`.
 
-:ref:`ckcore` also provides the CLI API that :ref:`cksh` calls.
+You can find more information in the section about :ref:`ckcore_spotlight`.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   ckcore_spotlight
 
 .. _component-cksh:
 
@@ -57,3 +64,12 @@ ckworker
 Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
 
 There can be one or more instances of :ref:`component-ckworker` in a Cloudkeeper deployment. A single :ref:`component-ckworker` can collect many clouds or you could have multiple :ref:`component-ckworker` collecting one cloud or even one account in one cloud each.
+
+You can find more information in the section about :ref:`ckworker-spotlight`.
+
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   ckworker_spotlight
