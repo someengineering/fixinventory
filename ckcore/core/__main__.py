@@ -8,7 +8,7 @@ from aiohttp.web_app import Application
 from core.cli.cli import CLIDependencies, CLI
 from core.cli.command import all_parts, aliases
 from core.dependencies import db_access, setup_process, parse_args
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -25,8 +25,8 @@ def main() -> None:
     setup_process(args)
 
     log.info("Starting up...")
-    event_bus = EventBus()
-    db = db_access(args, event_bus)
+    message_bus = MessageBus()
+    db = db_access(args, message_bus)
     # wait here for an initial connection to the database before we continue
     db.wait_for_initial_connect(timedelta(seconds=60))
     scheduler = Scheduler()
@@ -35,16 +35,16 @@ def main() -> None:
     cli_deps = CLIDependencies()
     cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
 
-    subscriptions = SubscriptionHandler(db.subscribers_db, event_bus)
-    task_handler = TaskHandler(db.running_task_db, db.job_db, event_bus, subscriptions, scheduler, cli, args)
+    subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
+    task_handler = TaskHandler(db.running_task_db, db.job_db, message_bus, subscriptions, scheduler, cli, args)
     cli_deps.lookup = {
-        "event_bus": event_bus,
+        "message_bus": message_bus,
         "db_access": db,
         "model_handler": model,
         "job_handler": task_handler,
         "worker_task_queue": worker_task_queue,
     }
-    api = Api(db, model, subscriptions, task_handler, event_bus, worker_task_queue, cli, args)
+    api = Api(db, model, subscriptions, task_handler, message_bus, worker_task_queue, cli, args)
 
     async def async_initializer() -> Application:
         await db.start()

@@ -18,7 +18,7 @@ from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
-from core.event_bus import EventBus, CoreEvent
+from core.message_bus import MessageBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind
@@ -1118,9 +1118,9 @@ class ArangoGraphDB(GraphDB):
 
 
 class EventGraphDB(GraphDB):
-    def __init__(self, real: ArangoGraphDB, event_bus: EventBus):
+    def __init__(self, real: ArangoGraphDB, message_bus: MessageBus):
         self.real = real
-        self.event_bus = event_bus
+        self.message_bus = message_bus
         self.graph_name = real.name
 
     @property
@@ -1132,21 +1132,21 @@ class EventGraphDB(GraphDB):
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
-        await self.event_bus.emit_event(
+        await self.message_bus.emit_event(
             CoreEvent.NodeCreated, {"graph": self.graph_name, "id": node_id, "parent": under_node_id}
         )
         return result
 
     async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         result = await self.real.update_node(model, node_id, patch, section)
-        await self.event_bus.emit_event(
+        await self.message_bus.emit_event(
             CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
         )
         return result
 
     async def delete_node(self, node_id: str) -> None:
         result = await self.real.delete_node(node_id)
-        await self.event_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
+        await self.message_bus.emit_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
         return result
 
     async def update_nodes_desired(
@@ -1156,7 +1156,7 @@ class EventGraphDB(GraphDB):
         **kwargs: Any,
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_desired(patch, node_ids, **kwargs)
-        await self.event_bus.emit_event(
+        await self.message_bus.emit_event(
             CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
         )
         async for a in result:
@@ -1166,7 +1166,7 @@ class EventGraphDB(GraphDB):
         self, patch: Json, node_ids: List[str], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_metadata(patch, node_ids, **kwargs)
-        await self.event_bus.emit_event(
+        await self.message_bus.emit_event(
             CoreEvent.NodesMetadataUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
         )
         async for a in result:
@@ -1182,9 +1182,9 @@ class EventGraphDB(GraphDB):
         even_data = {"graph": self.graph_name, "root_ids": roots}
         if info.all_changes():  # do not emit an event in case nothing has changed
             if is_batch:
-                await self.event_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
+                await self.message_bus.emit_event(CoreEvent.BatchUpdateGraphMerged, even_data)
             else:
-                await self.event_bus.emit_event(CoreEvent.GraphMerged, even_data)
+                await self.message_bus.emit_event(CoreEvent.GraphMerged, even_data)
         return roots, info
 
     async def list_in_progress_updates(self) -> List[Json]:
@@ -1193,12 +1193,12 @@ class EventGraphDB(GraphDB):
     async def commit_batch_update(self, batch_id: str) -> None:
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
         await self.real.commit_batch_update(batch_id)
-        await self.event_bus.emit_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
+        await self.message_bus.emit_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
 
     async def abort_update(self, batch_id: str) -> None:
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
         await self.real.abort_update(batch_id)
-        await self.event_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
+        await self.message_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
     def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
         return self.real.query_list(query, **kwargs)
@@ -1217,7 +1217,7 @@ class EventGraphDB(GraphDB):
 
     async def wipe(self) -> None:
         result = await self.real.wipe()
-        await self.event_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
+        await self.message_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
     def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:

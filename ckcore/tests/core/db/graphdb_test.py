@@ -14,7 +14,7 @@ from networkx import DiGraph, MultiDiGraph
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
-from core.event_bus import EventBus, Message
+from core.message_bus import MessageBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType
 from core.model.model import Model, ComplexKind, Property, Kind
@@ -27,7 +27,7 @@ from core.util import AccessJson, utc
 from core.db.model import QueryModel, GraphUpdate
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.message_bus_test import message_bus, all_events
 
 
 class BaseResource(ABC):
@@ -231,8 +231,8 @@ async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGr
 
 
 @pytest.fixture
-async def event_graph_db(filled_graph_db: ArangoGraphDB, event_bus: EventBus) -> EventGraphDB:
-    return EventGraphDB(filled_graph_db, event_bus)
+async def event_graph_db(filled_graph_db: ArangoGraphDB, message_bus: MessageBus) -> EventGraphDB:
+    return EventGraphDB(filled_graph_db, message_bus)
 
 
 async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> DiGraph:

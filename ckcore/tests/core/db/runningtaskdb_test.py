@@ -5,7 +5,7 @@ from typing import List, Dict, Tuple
 from core.db import runningtaskdb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
-from core.event_bus import ActionDone
+from core.message_bus import ActionDone
 from core.util import utc
 from core.task.model import Subscriber
 
@@ -18,7 +18,7 @@ from tests.core.task.task_description_test import workflow_instance, test_workfl
 from tests.core.db.graphdb_test import test_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.message_bus_test import message_bus, all_events
 
 
 @pytest.fixture

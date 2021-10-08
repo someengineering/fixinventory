@@ -21,7 +21,7 @@ from core.db.graphdb import GraphDB
 from core.db.model import GraphUpdate
 from core.dependencies import db_access, setup_process, reset_process_start_method
 from core.error import ImportAborted
-from core.event_bus import EventBus, Message
+from core.message_bus import MessageBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
@@ -120,9 +120,9 @@ class DbUpdaterProcess(Process):
     def next_action(self) -> ProcessAction:
         return self.read_queue.get(True, 30)  # type: ignore
 
-    def forward_events(self, bus: EventBus) -> Task:  # type: ignore # pypy
+    def forward_events(self, bus: MessageBus) -> Task:  # type: ignore # pypy
         async def forward_events_forever() -> None:
-            with bus.subscribe("event_forwarder") as events:
+            async with bus.subscribe("event_forwarder") as events:
                 while True:
                     event = await events.get()
                     self.write_queue.put(EmitMessage(event))
@@ -149,7 +149,7 @@ class DbUpdaterProcess(Process):
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
-        bus = EventBus()
+        bus = MessageBus()
         db = db_access(self.args, bus)
         task = self.forward_events(bus)
         result = await self.merge_graph(db)
@@ -175,7 +175,7 @@ class DbUpdaterProcess(Process):
 
 async def merge_graph_process(
     db: GraphDB,
-    bus: EventBus,
+    bus: MessageBus,
     args: Namespace,
     content: AsyncGenerator[Union[bytes, Json], None],
     max_wait: timedelta,

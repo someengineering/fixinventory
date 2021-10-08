@@ -8,11 +8,11 @@ from core.db import modeldb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.modeldb import ModelDb, EventModelDb
 from core.db.entitydb import EventEntityDb
-from core.event_bus import EventBus, Message
+from core.message_bus import MessageBus, Message
 from core.model.model import ComplexKind, Property, StringKind, NumberKind, BooleanKind, Kind
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.message_bus_test import message_bus, all_events
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -64,8 +64,8 @@ async def model_db(test_db: StandardDatabase) -> ModelDb:
 
 
 @pytest.fixture
-def event_db(model_db: ModelDb, event_bus: EventBus) -> EventModelDb:
-    return EventEntityDb(model_db, event_bus, "model")
+def event_db(model_db: ModelDb, message_bus: MessageBus) -> EventModelDb:
+    return EventEntityDb(model_db, message_bus, "model")
 
 
 @pytest.mark.asyncio

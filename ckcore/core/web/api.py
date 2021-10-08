@@ -26,7 +26,7 @@ from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
-from core.event_bus import EventBus, Message, ActionDone, Action, ActionError
+from core.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
 from core.model.model import Kind
@@ -65,7 +65,7 @@ class Api:
         model_handler: ModelHandler,
         subscription_handler: SubscriptionHandler,
         workflow_handler: TaskHandler,
-        event_bus: EventBus,
+        message_bus: MessageBus,
         worker_task_queue: WorkerTaskQueue,
         cli: CLI,
         args: Namespace,
@@ -74,7 +74,7 @@ class Api:
         self.model_handler = model_handler
         self.subscription_handler = subscription_handler
         self.workflow_handler = workflow_handler
-        self.event_bus = event_bus
+        self.message_bus = message_bus
         self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.args = args
@@ -233,7 +233,7 @@ class Api:
     async def handle_subscribed(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
-        if subscriber_id in self.event_bus.active_listener:
+        if subscriber_id in self.message_bus.active_listener:
             log.info(f"There is already a listener for subscriber: {subscriber_id}. Reject.")
             return web.HTTPTooManyRequests(text="Only one connection per subscriber is allowed!")
         elif subscriber and subscriber.subscriptions:
@@ -275,21 +275,21 @@ class Api:
                         elif isinstance(message, ActionError):
                             await self.workflow_handler.handle_action_error(message)
                         else:
-                            await self.event_bus.emit(message)
+                            await self.message_bus.emit(message)
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
-                    log.info(f"Got an exception for event listener: {listener_id}. Hang up. {ex}")
+                    log.info(f"Got an exception for event listener: {listener_id}. Hang up. {ex}", exc_info=ex)
                     await ws.close()
 
         async def send() -> None:
             try:
-                with self.event_bus.subscribe(listener_id, event_types) as events:
+                async with self.message_bus.subscribe(listener_id, event_types) as events:
                     while True:
                         event = await events.get()
                         await ws.send_str(to_js_str(event) + "\n")
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Got an exception for event sender: {listener_id}. Hang up. {ex}")
+                log.info(f"Got an exception for event sender: {listener_id}. Hang up. {ex}", exc_info=ex)
                 await ws.close()
 
         if initial_messages:
@@ -438,7 +438,7 @@ class Api:
         graph_id = request.match_info.get("graph_id", "ns")
         db = self.db.get_graph_db(graph_id)
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(db, self.event_bus, self.args, it, self.merge_max_wait_time, None)
+        info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -448,7 +448,7 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = await self.to_graph_iterator(request)
-        info = await merge_graph_process(db, self.event_bus, self.args, it, self.merge_max_wait_time, batch_id)
+        info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

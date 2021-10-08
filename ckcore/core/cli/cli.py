@@ -16,7 +16,7 @@ from parsy import Parser
 
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from core.model.graph_access import EdgeType, Section
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import class_fqn
@@ -53,8 +53,8 @@ class CLIDependencies:
         self.lookup: Dict[str, Any] = {}
 
     @property
-    def event_bus(self) -> EventBus:
-        return self.lookup["event_bus"]  # type:ignore
+    def message_bus(self) -> MessageBus:
+        return self.lookup["message_bus"]  # type:ignore
 
     @property
     def db_access(self) -> DbAccess:
@@ -662,6 +662,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
+            # noinspection PyUnresolvedReferences
             n = get_localzone().localize(ut)
         except Exception:
             n = ut

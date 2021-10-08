@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Call
 from jsons import JsonsError
 
 from core.db.async_arangodb import AsyncArangoDB
-from core.event_bus import EventBus
+from core.message_bus import MessageBus
 from core.model.typed_model import from_js, to_js, type_fqn
 from core.types import Json
 
@@ -90,9 +90,9 @@ class ArangoEntityDb(EntityDb[T], ABC):
 
 
 class EventEntityDb(EntityDb[T]):
-    def __init__(self, db: EntityDb[T], event_bus: EventBus, entity_name: str):
+    def __init__(self, db: EntityDb[T], message_bus: MessageBus, entity_name: str):
         self.db = db
-        self.event_bus = event_bus
+        self.message_bus = message_bus
         self.entity_name = entity_name
 
     async def all(self) -> AsyncGenerator[T, None]:
@@ -101,7 +101,7 @@ class EventEntityDb(EntityDb[T]):
 
     async def update_many(self, elements: List[T]) -> None:
         result = await self.db.update_many(elements)
-        await self.event_bus.emit_event(f"{self.entity_name}-updated-many", {"updated": [to_js(e) for e in elements]})
+        await self.message_bus.emit_event(f"{self.entity_name}-updated-many", {"updated": [to_js(e) for e in elements]})
         return result
 
     async def get(self, key: str) -> Optional[T]:
@@ -109,12 +109,12 @@ class EventEntityDb(EntityDb[T]):
 
     async def update(self, t: T) -> T:
         result = await self.db.update(t)
-        await self.event_bus.emit_event(f"{self.entity_name}-updated", {"updated": to_js(result)})
+        await self.message_bus.emit_event(f"{self.entity_name}-updated", {"updated": to_js(result)})
         return result
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
         await self.db.delete(key_or_object)
-        await self.event_bus.emit_event(f"{self.entity_name}-deleted", {"deleted": to_js(key_or_object)})
+        await self.message_bus.emit_event(f"{self.entity_name}-deleted", {"deleted": to_js(key_or_object)})
 
     async def create_update_schema(self) -> None:
         return await self.db.create_update_schema()

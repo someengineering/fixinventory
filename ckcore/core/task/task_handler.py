@@ -21,7 +21,7 @@ from core.cli.cli import CLI
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.error import ParseError, CLIParseError
-from core.event_bus import EventBus, Event, Action, ActionDone, Message, ActionError
+from core.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
 from core.task.job_handler import JobHandler
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
@@ -60,7 +60,7 @@ class TaskHandler(JobHandler):
         self,
         running_task_db: RunningTaskDb,
         job_db: JobDb,
-        event_bus: EventBus,
+        message_bus: MessageBus,
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
         cli: CLI,
@@ -68,7 +68,7 @@ class TaskHandler(JobHandler):
     ):
         self.running_task_db = running_task_db
         self.job_db = job_db
-        self.event_bus = event_bus
+        self.message_bus = message_bus
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
@@ -77,7 +77,7 @@ class TaskHandler(JobHandler):
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
-        self.event_bus_watcher: Optional[Task] = None  # type: ignore # pypy
+        self.message_bus_watcher: Optional[Task] = None  # type: ignore # pypy
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
@@ -204,8 +204,8 @@ class TaskHandler(JobHandler):
         for descriptor in self.task_descriptions:
             await self.update_trigger(descriptor)
 
-        async def listen_to_event_bus() -> None:
-            with self.event_bus.subscribe("task_handler") as messages:
+        async def listen_to_message_bus() -> None:
+            async with self.message_bus.subscribe("task_handler") as messages:
                 while True:
                     message = None
                     try:
@@ -222,7 +222,7 @@ class TaskHandler(JobHandler):
                     except Exception as ex:
                         log.error(f"Could not handle event {message} - give up.", exc_info=ex)
 
-        self.event_bus_watcher = asyncio.create_task(listen_to_event_bus())
+        self.message_bus_watcher = asyncio.create_task(listen_to_message_bus())
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -235,10 +235,10 @@ class TaskHandler(JobHandler):
         await self.timeout_watcher.stop()
 
         # stop event listener
-        if self.event_bus_watcher:
-            self.event_bus_watcher.cancel()
+        if self.message_bus_watcher:
+            self.message_bus_watcher.cancel()
             try:
-                await self.event_bus_watcher
+                await self.message_bus_watcher
             except CancelledError:
                 log.info("task has been cancelled")
 
@@ -366,7 +366,7 @@ class TaskHandler(JobHandler):
             results: Dict[TaskCommand, Any] = {}
             for command in commands:
                 if isinstance(command, SendMessage):
-                    await self.event_bus.emit(command.message)
+                    await self.message_bus.emit(command.message)
                     results[command] = None
                 elif isinstance(command, ExecuteOnCLI):
                     # TODO: instead of executing it in process, we should do an http call here to a worker core.

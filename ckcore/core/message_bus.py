@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from asyncio import Queue
-from contextlib import contextmanager
-from typing import Generator, Any, Optional, Dict, List
+from contextlib import asynccontextmanager
+from typing import Any, Optional, Dict, List, AsyncGenerator
 
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
@@ -26,7 +26,8 @@ class CoreEvent:
     BatchUpdateCommitted = "batch-update-committed"
     BatchUpdateAborted = "batch-update-aborted"
     GraphDBWiped = "graphdb-wiped"
-    WorkflowFinished = "task-finished"
+    Connected = "message-listener-connected"
+    Disconnected = "message-listener-disconnected"
 
 
 class Message(ABC):
@@ -162,7 +163,7 @@ class ActionError(ActionMessage):
         self.error = error
 
 
-class EventBus:
+class MessageBus:
     """
     This class implements a simple event bus.
     Every subscriber is context managed and gets its own queue of events.
@@ -174,10 +175,10 @@ class EventBus:
         # key is the subscriber id, value is the list of queue names
         self.active_listener: Dict[str, List[str]] = {}
 
-    @contextmanager
-    def subscribe(
+    @asynccontextmanager
+    async def subscribe(
         self, subscriber_id: str, channels: Optional[List[str]] = None, queue_size: int = 0
-    ) -> Generator[Queue[Message], Any, None]:
+    ) -> AsyncGenerator[Queue[Message], None]:
         """
         Subscribe to a list of event channels.
         All events that match the channel will be written to this queue.
@@ -212,6 +213,7 @@ class EventBus:
         if len(ch_list) == 0:
             raise AttributeError("Need at least one channel to subscribe to!")
         try:
+            await self.emit_event(CoreEvent.Connected, {"subscriber_id": subscriber_id, "channels": channels})
             self.active_listener[subscriber_id] = ch_list
             for channel in ch_list:
                 add_listener(channel)
@@ -222,6 +224,7 @@ class EventBus:
             for channel in ch_list:
                 remove_listener(channel)
             self.active_listener.pop(subscriber_id, None)
+            await self.emit_event(CoreEvent.Disconnected, {"subscriber_id": subscriber_id, "channels": channels})
 
     async def emit_event(self, event_type: str, data: Json) -> None:
         return await self.emit(Event(event_type, data))

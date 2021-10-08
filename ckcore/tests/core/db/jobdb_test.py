@@ -8,11 +8,11 @@ from core.db import jobdb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
 from core.db.jobdb import JobDb, EventJobDb
-from core.event_bus import EventBus, Message
+from core.message_bus import MessageBus, Message
 from core.task.task_description import Job, ExecuteCommand, EventTrigger
 
 # noinspection PyUnresolvedReferences
-from tests.core.event_bus_test import event_bus, all_events
+from tests.core.message_bus_test import message_bus, all_events
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -28,8 +28,8 @@ async def job_db(test_db: StandardDatabase) -> JobDb:
 
 
 @pytest.fixture
-def event_db(job_db: JobDb, event_bus: EventBus) -> EventJobDb:
-    return EventEntityDb(job_db, event_bus, "job")
+def event_db(job_db: JobDb, message_bus: MessageBus) -> EventJobDb:
+    return EventEntityDb(job_db, message_bus, "job")
 
 
 @pytest.fixture
