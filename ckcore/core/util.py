@@ -63,7 +63,7 @@ def uuid_str(from_object: Optional[Any] = None) -> str:
         return str(uuid.uuid1())
 
 
-def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[AnyT]]:
+def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[AnyT]]:  # type: ignore # pypy
     """
     Group iterable by key provided by given key function.
     :param f: the function to be applied on every element that yields the key.
@@ -77,11 +77,11 @@ def group_by(f: Callable[[AnyT], AnyR], iterable: Iterable) -> Dict[AnyR, List[A
     return v
 
 
-def non_empty(el: Iterable) -> bool:
+def non_empty(el: Iterable) -> bool:  # type: ignore # pypy
     return bool(el)
 
 
-def empty(el: Iterable) -> bool:
+def empty(el: Iterable) -> bool:  # type: ignore # pypy
     return not non_empty(el)
 
 
@@ -105,7 +105,7 @@ def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
         return list(zip(elements, nxt))
 
 
-def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:
+def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:  # type: ignore # pypy
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.
@@ -119,7 +119,7 @@ def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:
     return False
 
 
-def first(f: Callable[[Any], bool], iterable: Iterable) -> Optional[Any]:
+def first(f: Callable[[Any], bool], iterable: Iterable) -> Optional[Any]:  # type: ignore # pypy
     for a in iterable:
         if f(a):
             return a
@@ -206,7 +206,7 @@ async def force_gen(gen: AsyncGenerator[AnyT, None]) -> AsyncGenerator[AnyT, Non
         return gen
 
 
-def set_future_result(future: Future, result: Any) -> None:
+def set_future_result(future: Future, result: Any) -> None:  # type: ignore # pypy
     if not future.done():
         if isinstance(result, Exception):
             future.set_exception(result)
@@ -223,7 +223,7 @@ class Periodic:
         self.name = name
         self.func = func
         self.frequency = frequency
-        self._task: Optional[Task] = None
+        self._task: Optional[Task] = None  # type: ignore # pypy
 
     async def start(self) -> None:
         if self._task is None:

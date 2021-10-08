@@ -1,4 +1,4 @@
-# Only list production dependencies. Everything else can be added to requirements-dev.txt
+# Only list production dependencies. Everything else can be added to requirements-test.txt and requirements-dev.txt.
 
 aiohttp-swagger3==0.6.0
 aiohttp[speedups]==3.7.4.post0

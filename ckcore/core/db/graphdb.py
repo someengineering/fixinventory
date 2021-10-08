@@ -429,7 +429,7 @@ class ArangoGraphDB(GraphDB):
         return self.node_adjuster.adjust(json)
 
     def prepare_nodes(
-        self, access: GraphAccess, node_cursor: Iterable, model: Model
+        self, access: GraphAccess, node_cursor: Iterable, model: Model  # type: ignore # pypy
     ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         sub_root_id = access.root()
         log.info(f"Prepare nodes for subgraph {access.root()}")
@@ -482,7 +482,7 @@ class ArangoGraphDB(GraphDB):
         return info, resource_inserts, resource_updates, resource_deletes
 
     def prepare_edges(
-        self, access: GraphAccess, edge_cursor: Iterable, edge_type: str
+        self, access: GraphAccess, edge_cursor: Iterable, edge_type: str  # type: ignore # pypy
     ) -> Tuple[GraphUpdate, List[Json], List[Json]]:
         sub_root_id = access.root()
         log.info(f"Prepare edges of type {edge_type} for subgraph {access.root()}")

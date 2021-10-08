@@ -244,14 +244,14 @@ async def test_delete_job_command(cli: CLI, task_handler: TaskHandler, job_db: J
     result = await cli.execute_cli_command("delete_job c0fa3076", stream.list)
     assert result == [["Job c0fa3076 deleted."]]
     assert await job_db.get("c0fa3076") is None
-    assert not exist(lambda x: x.id == "c0fa3076", task_handler.task_descriptions)
+    assert not exist(lambda x: x.id == "c0fa3076", task_handler.task_descriptions)  # type: ignore # pypy
 
 
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
     await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
     result: List[Json] = (await cli.execute_cli_command("jobs", stream.list))[0]
-    job = first(lambda x: x.get("id") == "c0fa3076", result)
+    job = first(lambda x: x.get("id") == "c0fa3076", result)  # type: ignore # pypy
     assert job is not None
     assert job["trigger"] == {"cron_expression": "23 1 * * *"}
     assert job["command"] == "echo Hello World"

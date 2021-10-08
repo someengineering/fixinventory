@@ -120,7 +120,7 @@ class DbUpdaterProcess(Process):
     def next_action(self) -> ProcessAction:
         return self.read_queue.get(True, 30)  # type: ignore
 
-    def forward_events(self, bus: EventBus) -> Task:
+    def forward_events(self, bus: EventBus) -> Task:  # type: ignore # pypy
         async def forward_events_forever() -> None:
             with bus.subscribe("event_forwarder") as events:
                 while True:
@@ -195,7 +195,7 @@ async def merge_graph_process(
             await run_async(write.put, pa, True, stale)
         return alive
 
-    def read_results() -> Task:
+    def read_results() -> Task:  # type: ignore # pypy
         async def read_forever() -> GraphUpdate:
             nonlocal deadline
             nonlocal dead_adjusted
@@ -218,7 +218,7 @@ async def merge_graph_process(
 
         return asyncio.create_task(read_forever())
 
-    task: Optional[Task] = None
+    task: Optional[Task] = None  # type: ignore # pypy
     result: Optional[GraphUpdate] = None
     try:
         reset_process_start_method()  # other libraries might have tampered the value in the mean time
