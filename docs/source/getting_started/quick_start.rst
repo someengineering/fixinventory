@@ -1,7 +1,8 @@
 .. _quickstart:
 
+===========
 Quick start
-***********
+===========
 In this quick start guide, we’re showing you three things, how to:
 
     #. install Cloudkeeper for AWS with docker
@@ -303,5 +304,5 @@ How you get more assistance
 | Discord:
 | https://discord.gg/3G3sX6y3bt
 
-| GitHub Issue:
+| GitHub Issues:
 | https://github.com/someengineering/cloudkeeper/issues/new

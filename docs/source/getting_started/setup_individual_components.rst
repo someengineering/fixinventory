@@ -1,5 +1,6 @@
+===========================
 Setup individual components
-###########################
+===========================
 
 The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Cloudkeeper environment.
 

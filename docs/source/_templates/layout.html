@@ -3,9 +3,9 @@
 {% block sidebartitle %}
 
 {% if logo and theme_logo_only %}
-  <a href="{{ pathto(master_doc) }}">
+  <a href="{{ pathto('index.html', 1) }}">
 {% else %}
-  <a href="{{ pathto(master_doc) }}" class="icon icon-home">
+  <a href="{{ pathto('index.html', 1) }}" class="icon icon-home">
   {% if logo %}
     <img src="{{ pathto('_static/' + logo, 1) }}" class="logo" alt="{{ _('Logo') }}"/>
   {% endif %}
