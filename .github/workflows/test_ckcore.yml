@@ -1,4 +1,4 @@
-name: Check PR (ckcore)
+name: Test (ckcore)
 on:
     push:
         paths:
@@ -25,7 +25,7 @@ jobs:
             - name: Setup Python
               uses: actions/setup-python@v2
               with:
-                  python-version: '3.7'
+                  python-version: 'pypy-3.7'
                   architecture: 'x64'
             - name: Restore dependency cache
               uses: actions/cache@v2
@@ -33,7 +33,7 @@ jobs:
                   # This path is specific to Ubuntu
                   path: ~/.cache/pip
                   # Look to see if there is a cache hit for the corresponding requirements file
-                  key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}
+                  key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}-${{hashFiles('requirements-test.txt')}}
                   restore-keys: |
                       ${{ runner.os }}-pip-
                       ${{ runner.os }}-
@@ -44,15 +44,5 @@ jobs:
                   pip install -r requirements-dev.txt
                   pip install -r requirements-test.txt
                   pip install -r requirements.txt
-                  mypy core tests > /dev/null 2>&1 || true
-                  mypy --install-types --non-interactive || true
-            - name: Check Formatting
-              run: black --line-length 120 --check core tests
-            - name: Lint
-              run: |
-                flake8 core
-                pylint core
-            - name: MyPy
-              run: mypy core tests
             - name: Run Tests
               run: pytest
