@@ -55,20 +55,20 @@ main() {
        set -- "${positional[@]}"
     fi
 
-    if [ -z "$install_path" ]; then
+    if [ -z "${install_path:-}" ]; then
         echo "Invalid install path $install_path"
         exit 1
     fi
 
-    if [ -z "$branch" ]; then
+    if [ -z "${branch:-}" ]; then
         echo "Invalid branch"
         exit 1
     fi
 
-    if [ -z "$python_cmd" ]; then
+    if [ -z "${python_cmd:-}" ]; then
         python_cmd="$(find_python)"
     fi
-    if [ -z "$python_cmd" ]; then
+    if [ -z "${python_cmd:-}" ]; then
         echo -e "Could not find a compatible Python interpreter!\nSupported versions are $supported_versions"
         exit 1
     fi
