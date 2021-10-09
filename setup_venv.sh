@@ -1,27 +1,130 @@
 #!/bin/bash
 set -euo pipefail
 
-SUPPORTED_VERSIONS="python3.9 python3.8 python3.7"
+declare supported_versions="python3.9 python3.8 python3.7"
+declare install_path="$HOME/cloudkeeper/"
+declare python_cmd
+declare git_install=false
+declare dev_mode=false
+declare venv=true
+declare branch=main
 
 main() {
-    echo "Cloudkeeper venv/ bootstrapper."
-    local python_cmd
-    python_cmd="$(find_python)"
-    if [ -z "$python_cmd" ]; then
-        echo -e "Could not find a compatible Python interpreter!\nSupported versions are $SUPPORTED_VERSIONS"
+    echo "Cloudkeeper bootstrapper"
+
+    if grep "url =.*cloudkeeper.git" "$PWD/.git/config" > /dev/null 2>&1; then
+        install_path="$PWD"
+    fi
+
+    local argv=()
+    local end_of_opt=
+    while [[ $# -gt 0 ]]; do
+    arg="$1"; shift
+    case "${end_of_opt}${arg}" in
+        --) argv+=("$arg"); end_of_opt=1 ;;
+        --*=*)argv+=("${arg%%=*}" "${arg#*=}") ;;
+        --*) argv+=("$arg") ;;
+        -*) for i in $(seq 2 ${#arg}); do argv+=("-${arg:i-1:1}"); done ;;
+        *) argv+=("$arg") ;;
+    esac
+    done
+    if [ ${#argv[@]} -gt 0 ]; then
+        set -- "${argv[@]}"
+    fi
+
+    end_of_opt=
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "${end_of_opt}${1}" in
+            -h|--help)      usage 0 ;;
+            --python)       shift; python_cmd="${1:-}" ;;
+            --path)         shift; install_path="${1:-}" ;;
+            --branch)       shift; branch="${1:-}" ;;
+            --no-venv)      venv=false ;;
+            --dev)          dev_mode=true ;;
+            --git)          git_install=true ;;
+            --)             end_of_opt=1 ;;
+            -*)             invalid "$1" ;;
+            *)              positional+=("$1") ;;
+        esac
+        if [ $# -gt 0 ]; then
+            shift
+        fi
+    done
+    if [ ${#positional[@]} -gt 0 ]; then
+       set -- "${positional[@]}"
+    fi
+
+    if [ -z "$install_path" ]; then
+        echo "Invalid install path $install_path"
         exit 1
     fi
-    echo -e "Using $python_cmd\n"
-    activate_venv "$python_cmd"
+
+    if [ -z "$branch" ]; then
+        echo "Invalid branch"
+        exit 1
+    fi
+
+    if [ -z "$python_cmd" ]; then
+        python_cmd="$(find_python)"
+    fi
+    if [ -z "$python_cmd" ]; then
+        echo -e "Could not find a compatible Python interpreter!\nSupported versions are $supported_versions"
+        exit 1
+    fi
+    if ! type "$python_cmd" > /dev/null 2>&1; then
+        echo -e "Unable to use Python interpreter $python_cmd"
+        exit 1
+    fi
+
+    echo "Using $python_cmd"
+
+    ensure_install_path
+    if [ "$venv" = true ]; then
+        activate_venv "$python_cmd"
+    fi
     ensure_pip
+    if [ "$dev_mode" = true ]; then
+        install_dev
+    fi
     install_cloudkeeper
     install_plugins
-    echo -e "Install/Update completed.\nRun\n\tsource venv/bin/activate\nto activate venv."
+    echo -e "Install/Update completed.\nRun\n\tsource $install_path/venv/bin/activate\nto activate venv."
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [options]
+
+Valid options:
+  -h, --help        show this help message and exit
+  --path <path>     install directory (default: . if in cloudkeeper git repo else ~/cloudkeeper/)
+  --python <path>   Python binary to use (default: search for best match)
+  --branch <branch> Git branch/tag to use (default: main)
+  --dev             install development dependencies (default: false)
+  --no-venv         do not create a Python venv for package installation (default: false)
+  --git             install from remote Git instead of local repo (default: false)
+EOF
+
+  if [ -n "$1" ]; then
+    exit "$1"
+  fi
+}
+
+invalid() {
+  echo "ERROR: Unrecognized argument: $1" >&2
+  usage 1
+}
+
+ensure_install_path() {
+    echo "Using install path $install_path"
+    mkdir -p "$install_path"
+    cd "$install_path"
 }
 
 find_python() {
     local version
-    for version in $SUPPORTED_VERSIONS; do
+    for version in $supported_versions; do
         if type "$version" > /dev/null 2>&1; then
             echo "$version"
             return 0
@@ -32,22 +135,36 @@ find_python() {
 
 activate_venv() {
     local python_cmd=$1
-    echo "Creating virtual Python env in venv/ using $python_cmd"
     if [ -d "venv/" ]; then
-        echo -e "Virtual Python env already exists!\nRun\n\trm -rf venv/\nif you want to recreate it.\n"
+        echo -e "Virtual Python env already exists!\nRun\n\trm -rf venv/\nif you want to recreate it."
     else
+        echo "Creating virtual Python env in venv/ using $python_cmd"
         "$python_cmd" -m venv venv
     fi
+    echo "Activating venv"
     source venv/bin/activate
 }
 
 ensure_pip() {
     echo "Ensuring Python pip is available and up to date."
     if ! python -m pip help > /dev/null 2>&1; then
-        python -m ensurepip -U
+        python -m ensurepip -q -U
     fi
-    pip install -U pip
-    echo
+    pip install -q -U pip wheel
+}
+
+install_dev() {
+    echo "Installing development dependencies"
+    if [ -f "ckcore/requirements-dev.txt" ]; then
+        pip install -q -r "ckcore/requirements-dev.txt"
+    else
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/cloudkeeper/main/ckcore/requirements-dev.txt"
+    fi
+    if [ -f "ckcore/requirements-test.txt" ]; then
+        pip install -q -r "ckcore/requirements-test.txt"
+    else
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/cloudkeeper/main/ckcore/requirements-test.txt"
+    fi
 }
 
 install_cloudkeeper() {
@@ -84,15 +201,15 @@ pip_install() {
     local package_name="${egg_prefix}${package}"
     package_name=${package_name//_/-}
     local relative_path="${path_prefix}${package}/"
-    if [ -d "$relative_path" ]; then
+    if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
-        pip install --editable "$relative_path"
+        pip install -q --editable "$relative_path"
     else
         ensure_git
-        local git_repo="git+https://github.com/someengineering/cloudkeeper.git@main#egg=${package_name}&subdirectory=${relative_path}"
-        echo "Installing $package_name from remote Git $git_repo"
-        pip install -U "$git_repo"
+        local git_repo="git+https://github.com/someengineering/cloudkeeper.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
+        echo "Installing $package_name from remote $git_repo"
+        pip install -q -U "$git_repo"
     fi
 }
 
-main
+main "$@"
