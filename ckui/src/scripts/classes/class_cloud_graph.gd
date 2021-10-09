@@ -15,7 +15,9 @@ var graph_data := {
 const ATTRACTION_CONSTANT := 0.3*0.05
 const REPULSION_CONSTANT := 400.0
 const MAX_DISTANCE := 1000.0
-const GRAPH_MOVE_SPEED := 1.2
+const GRAPH_MOVE_SPEED := 1.0
+
+const MAX_DISPLACE := 100.0
 
 const DEFAULT_DAMPING := 0.7
 const DEFAULT_SPRING_LENGTH := 200/3
@@ -84,14 +86,19 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	return new_edge
 
 
-func create_graph_raw(raw_data : Dictionary):
+func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	raw_data = raw_data.duplicate(true)
+	var index := 0
 	for data in raw_data.values():
-		if data != null and data.has("id"):
+		prints(index, " of ", total_nodes)
+		index += 1
+		if data == null:
+			continue
+		if data.type == "node":
 			graph_data.nodes[data.id] = add_node(data)
 			if root_node == null:
 				root_node = graph_data.nodes[data.id].icon
-		elif graph_data.nodes.has(data.from) and graph_data.nodes.has(data.to):
+		else:
 			# For SFDP creation
 			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
 			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
@@ -247,7 +254,7 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 			for parent in node.from:
 				net_force += calc_attraction_force_pos( current_node_position, parent.position, spring_length)
 			
-			node.velocity = (node.velocity + net_force) * damping * GRAPH_MOVE_SPEED
+			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped(500.0)
 			node.next_pos = (current_node_position + node.velocity)
 			total_displacement += node.velocity.length()
 		

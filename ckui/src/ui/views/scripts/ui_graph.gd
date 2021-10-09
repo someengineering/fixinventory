@@ -1,6 +1,6 @@
 extends Node2D
 
-const GRAPH_DUMP_JSON_PATH = "res://data/graph_dump.json"
+const GRAPH_DUMP_JSON_PATH = "res://data/graph.dump.json"
 const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
 
 var root_node : Object = null
@@ -54,11 +54,12 @@ func _process(_delta):
 func read_data():
 	var file = File.new()
 	var new_data := {}
+	var index = 0
 	
 	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
 		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
 		
-		var index = 0
+		print("Parsing file ...")
 		while not file.eof_reached():
 			var line = file.get_line()
 			if line == "":
@@ -66,20 +67,19 @@ func read_data():
 				continue
 			new_data[index] = parse_json(line)
 			index += 1
-	
+		prints("Parsing file done!", index, " Nodes in Graph")
 		file.close()
 	else:
 		var example_data_file = load("res://scripts/tools/example_data.gd")
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
 	
-	
 	var graph_node_positions := {}
 	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
 		var new_graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
 		if typeof(new_graph_node_positions) == TYPE_DICTIONARY:
 			graph_node_positions = new_graph_node_positions
-	_g.main_graph.create_graph_raw(new_data)
+	_g.main_graph.create_graph_raw(new_data, index)
 	_g.main_graph.layout_graph(graph_node_positions)
 	root_node = _g.main_graph.root_node
 	graph_cam.global_position = root_node.global_position
@@ -124,7 +124,7 @@ func _physics_process(delta):
 		if Input.is_action_just_released("zoom_in"):
 			graph_cam.zoom = max(graph_cam.zoom.x * 0.95, 0.2) * Vector2.ONE
 		elif Input.is_action_just_released("zoom_out"):
-			graph_cam.zoom = min(graph_cam.zoom.x * 1.05, 4) * Vector2.ONE
+			graph_cam.zoom = min(graph_cam.zoom.x * 1.05, 20) * Vector2.ONE
 	
 	if _g.spaceship_mode:
 		graph_cam.global_position = spaceship.global_position
