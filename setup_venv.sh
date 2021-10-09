@@ -4,8 +4,53 @@ set -euo pipefail
 SUPPORTED_VERSIONS="python3.9 python3.8 python3.7"
 
 main() {
-    echo "Cloudkeeper venv/ bootstrapper."
+    echo "Cloudkeeper bootstrapper."
     local python_cmd
+    local mode
+    local venv=true
+    local dev_mode=false
+    local git_install=false
+    local install_path
+    install_path="$HOME/cloudkeeper/"
+
+    local argv=()
+    local end_of_opt=
+    while [[ $# -gt 0 ]]; do
+    arg="$1"; shift
+    case "${end_of_opt}${arg}" in
+        --) argv+=("$arg"); end_of_opt=1 ;;
+        --*=*)argv+=("${arg%%=*}" "${arg#*=}") ;;
+        --*) argv+=("$arg") ;;
+        -*) for i in $(seq 2 ${#arg}); do argv+=("-${arg:i-1:1}"); done ;;
+        *) argv+=("$arg") ;;
+    esac
+    done
+    set -- "${argv[@]}"
+
+    end_of_opt=
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+    case "${end_of_opt}${1}" in
+        -h|--help)      usage 0 ;;
+        --python)       shift; python_cmd="$1" ;;
+        --path)         shift; install_path="$1" ;;
+        --no-venv)      venv=false ;;
+        --dev)          dev_mode=true ;;
+        --git)          git_install=true ;;
+        --)             end_of_opt=1 ;;
+        -*)             invalid "$1" ;;
+        *)              positional+=("$1") ;;
+    esac
+    shift
+    done
+
+    if [ ${#positional[@]} -gt 0 ]; then
+       set -- "${positional[@]}"
+    fi
+    echo "${USERNAME}"
+
+    exit 0
+
     python_cmd="$(find_python)"
     if [ -z "$python_cmd" ]; then
         echo -e "Could not find a compatible Python interpreter!\nSupported versions are $SUPPORTED_VERSIONS"
@@ -17,6 +62,29 @@ main() {
     install_cloudkeeper
     install_plugins
     echo -e "Install/Update completed.\nRun\n\tsource venv/bin/activate\nto activate venv."
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [options]
+
+Valid options:
+  -h, --help        show this help message and exit
+  --path <path>     install directory (default: ~/cloudkeeper/)
+  --python  <path>  Python binary to use (default: search for best match)
+  --dev             install development dependencies (default: false)
+  --no-venv         do not create a Python venv for package installation (default: false)
+  --git             install from remote Git instead of local repo (default: false)
+EOF
+
+  if [ -n "$1" ]; then
+    exit "$1"
+  fi
+}
+
+invalid() {
+  echo "ERROR: Unrecognized argument: $1" >&2
+  usage 1
 }
 
 find_python() {
@@ -95,4 +163,4 @@ pip_install() {
     fi
 }
 
-main
+main "$@"
