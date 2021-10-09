@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-declare supported_versions="python3.9 python3.8 python3.7"
-declare install_path="$HOME/cloudkeeper/"
+declare -a supported_versions=(python3.9 python3.8 python3.7)
+declare install_path="$HOME/cloudkeeper"
 declare python_cmd
 declare git_install=false
 declare dev_mode=false
@@ -15,27 +15,10 @@ main() {
     if grep "url =.*cloudkeeper.git" "$PWD/.git/config" > /dev/null 2>&1; then
         install_path="$PWD"
     fi
-
-    local argv=()
-    local end_of_opt=
-    while [[ $# -gt 0 ]]; do
-    arg="$1"; shift
-    case "${end_of_opt}${arg}" in
-        --) argv+=("$arg"); end_of_opt=1 ;;
-        --*=*)argv+=("${arg%%=*}" "${arg#*=}") ;;
-        --*) argv+=("$arg") ;;
-        -*) for i in $(seq 2 ${#arg}); do argv+=("-${arg:i-1:1}"); done ;;
-        *) argv+=("$arg") ;;
-    esac
-    done
-    if [ ${#argv[@]} -gt 0 ]; then
-        set -- "${argv[@]}"
-    fi
-
-    end_of_opt=
+    local end_of_opt
     local positional=()
     while [[ $# -gt 0 ]]; do
-        case "${end_of_opt}${1}" in
+        case "${end_of_opt:-}${1}" in
             -h|--help)      usage 0 ;;
             --python)       shift; python_cmd="${1:-}" ;;
             --path)         shift; install_path="${1:-}" ;;
@@ -55,6 +38,7 @@ main() {
        set -- "${positional[@]}"
     fi
 
+    install_path=${install_path%%+(/)}
     if [ -z "${install_path:-}" ]; then
         echo "Invalid install path $install_path"
         exit 1
@@ -78,7 +62,6 @@ main() {
     fi
 
     echo "Using $python_cmd"
-
     ensure_install_path
     if [ "$venv" = true ]; then
         activate_venv "$python_cmd"
@@ -89,7 +72,7 @@ main() {
     fi
     install_cloudkeeper
     install_plugins
-    echo -e "Install/Update completed.\nRun\n\tsource $install_path/venv/bin/activate\nto activate venv."
+    echo -e "Install/Update completed.\nRun\n\tsource ${install_path}/venv/bin/activate\nto activate venv."
 }
 
 usage() {
@@ -124,7 +107,7 @@ ensure_install_path() {
 
 find_python() {
     local version
-    for version in $supported_versions; do
+    for version in "${supported_versions[@]}"; do
         if type "$version" > /dev/null 2>&1; then
             echo "$version"
             return 0
@@ -169,15 +152,15 @@ install_dev() {
 
 install_cloudkeeper() {
     echo "Installing Cloudkeeper"
-    local cloudkeeper_components="cklib ckcore cksh ckworker ckmetrics"
-    for component in $cloudkeeper_components; do
+    local cloudkeeper_components=(cklib ckcore cksh ckworker ckmetrics)
+    for component in "${cloudkeeper_components[@]}"; do
         pip_install "$component"
     done
 }
 
 install_plugins() {
-    local collector_plugins="aws gcp slack onelogin k8s onprem github example_collector"
-    for plugin in $collector_plugins; do
+    local collector_plugins=(aws gcp slack onelogin k8s onprem github example_collector)
+    for plugin in "${collector_plugins[@]}"; do
         pip_install "$plugin" true
     done
 }
