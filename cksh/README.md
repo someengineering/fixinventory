@@ -167,7 +167,7 @@ match is(aws_ec2_volume) and volume_status = available and ctime < -30d and atim
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/3G3sX6y3bt) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
 
 
 ## License

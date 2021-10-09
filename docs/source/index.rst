@@ -70,7 +70,7 @@ Get in touch
 If you need support, have feedback, questions, plugins and everything else you can think of, don't hesitate to join our Discord - We're looking forward to talk!
 
 | Discord:
-| https://discord.gg/3G3sX6y3bt
+| https://discord.gg/someengineering
 
 You found a bug, have ideas or a proposal? Head over to our GitHub issues:
 
