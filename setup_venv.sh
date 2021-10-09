@@ -90,7 +90,7 @@ pip_install() {
     else
         ensure_git
         local git_repo="git+https://github.com/someengineering/cloudkeeper.git@main#egg=${package_name}&subdirectory=${relative_path}"
-        echo "Installing $package_name editable from remote Git $git_repo"
+        echo "Installing $package_name from remote Git $git_repo"
         pip install -U "$git_repo"
     fi
 }
