@@ -69,7 +69,7 @@ main() {
         python_cmd="$(find_python)"
     fi
     if [ -z "$python_cmd" ]; then
-        declare echo -e "Could not find a compatible Python interpreter!\nSupported versions are $supported_versions"
+        echo -e "Could not find a compatible Python interpreter!\nSupported versions are $supported_versions"
         exit 1
     fi
     if ! type "$python_cmd" > /dev/null 2>&1; then
