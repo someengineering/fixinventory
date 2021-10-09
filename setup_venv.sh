@@ -82,6 +82,7 @@ pip_install() {
         egg_prefix="cloudkeeper-plugin-"
     fi
     local package_name="${egg_prefix}${package}"
+    package_name=${package_name//_/-}
     local relative_path="${path_prefix}${package}/"
     if [ -d "$relative_path" ]; then
         echo "Installing $package_name editable from local path $relative_path"
