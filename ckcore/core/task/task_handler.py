@@ -25,6 +25,7 @@ from core.message_bus import MessageBus, Event, Action, ActionDone, Message, Act
 from core.task.job_handler import JobHandler
 from core.task.model import Subscriber
 from core.task.scheduler import Scheduler
+from core.task.start_workflow_on_first_subscriber import wait_and_start
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_description import (
     Workflow,
@@ -54,7 +55,18 @@ class TaskHandler(JobHandler):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"))
+        arg_parser.add_argument(
+            "--jobs",
+            nargs="*",
+            type=argparse.FileType("r"),
+            help="Read job definitions from given file.",
+        )
+        arg_parser.add_argument(
+            "--trigger-workflow-on-subscriber-connect",
+            default=False,
+            action="store_true",
+            help="One time action to trigger a workflow, when the first handling actor connects to the system.",
+        )
 
     def __init__(
         self,
@@ -64,7 +76,7 @@ class TaskHandler(JobHandler):
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
         cli: CLI,
-        config: Namespace,
+        args: Namespace,
     ):
         self.running_task_db = running_task_db
         self.job_db = job_db
@@ -72,12 +84,13 @@ class TaskHandler(JobHandler):
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
-        self.config = config
+        self.args = args
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
         self.tasks: Dict[str, RunningTask] = {}
         self.message_bus_watcher: Optional[Task] = None  # type: ignore # pypy
+        self.initial_start_workflow_task: Optional[Task] = None  # type: ignore # pypy
         self.timeout_watcher = Periodic("task_timeout_watcher", self.check_overdue_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
@@ -189,7 +202,7 @@ class TaskHandler(JobHandler):
         log.info("TaskHandler is starting up!")
 
         # load job descriptions from configuration files
-        file_jobs = [await self.parse_job_file(file) for file in self.config.jobs] if self.config.jobs else []
+        file_jobs = [await self.parse_job_file(file) for file in self.args.jobs] if self.args.jobs else []
         jobs: List[Job] = reduce(lambda r, l: r + l, file_jobs, [])
 
         # load job descriptions from database
@@ -203,6 +216,9 @@ class TaskHandler(JobHandler):
 
         for descriptor in self.task_descriptions:
             await self.update_trigger(descriptor)
+
+        if self.args.trigger_workflow_on_subscriber_connect:
+            self.initial_start_workflow_task = wait_and_start(self.known_workflows(), self, self.message_bus)
 
         async def listen_to_message_bus() -> None:
             async with self.message_bus.subscribe("task_handler") as messages:
@@ -247,6 +263,10 @@ class TaskHandler(JobHandler):
             if task.update_task:
                 await task.update_task
                 del self.tasks[task.id]
+
+        # in case the task is not done
+        if self.initial_start_workflow_task and not self.initial_start_workflow_task.done():
+            self.initial_start_workflow_task.cancel()
 
     # endregion
 

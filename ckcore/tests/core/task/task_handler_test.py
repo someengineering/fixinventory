@@ -89,7 +89,7 @@ def test_workflow() -> Workflow:
             Step("act", PerformAction("collect"), timedelta(seconds=10)),
             Step("done", PerformAction("collect_done"), timedelta(seconds=10), StepErrorBehaviour.Stop),
         ],
-        [EventTrigger("start me up")],
+        [EventTrigger("start me up"), TimeTrigger("1 1 1 1 1")],
     )
 
 
