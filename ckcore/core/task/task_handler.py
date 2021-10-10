@@ -62,10 +62,10 @@ class TaskHandler(JobHandler):
             help="Read job definitions from given file.",
         )
         arg_parser.add_argument(
-            "--trigger-collect-on-subscriber-connect",
+            "--start-collect-on-subscriber-connect",
             default=False,
             action="store_true",
-            help="One time action to trigger a collect workflow, when the first handling actor connects to the system.",
+            help="Start the collect workflow, when the first handling actor connects to the system.",
         )
 
     def __init__(
@@ -217,7 +217,7 @@ class TaskHandler(JobHandler):
         for descriptor in self.task_descriptions:
             await self.update_trigger(descriptor)
 
-        if self.args.trigger_collect_on_subscriber_connect:
+        if self.args.start_collect_on_subscriber_connect:
             filtered = [wf for wf in self.known_workflows() if wf.id == "collect"]
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 
