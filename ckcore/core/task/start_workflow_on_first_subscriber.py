@@ -6,8 +6,8 @@ from typing import Optional, List
 
 from core.message_bus import MessageBus, CoreEvent, Message
 from core.task.job_handler import JobHandler
-from core.task.task_description import PerformAction, Workflow, TimeTrigger
-from core.util import uuid_str, exist
+from core.task.task_description import PerformAction, Workflow
+from core.util import uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -31,10 +31,8 @@ def wait_and_start(
     """
 
     log.info("Wait for subscribing actors to start the related workflow")
-    # filter workflows that are timed (ignore all event based workflows)
-    timed = (wf for wf in workflows if exist(lambda t: isinstance(t, TimeTrigger), wf.triggers))
     # get all action message types the workflows are waiting for
-    wait_for = {s.action.message_type: wf for wf in timed for s in wf.steps if isinstance(s.action, PerformAction)}
+    wait_for = {s.action.message_type: wf for wf in workflows for s in wf.steps if isinstance(s.action, PerformAction)}
 
     def workflow_if_actor(msg: Message) -> Optional[Workflow]:
         channels: Optional[List[str]] = msg.data.get("channels")
