@@ -3,22 +3,22 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from functools import reduce
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
 
 from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 from durations_nlp import Duration
 from jsons import set_deserializer, set_serializer
 from networkx import DiGraph
 from parsy import regex, string, Parser
 
+from core.model.transform_kind_convert import converters
 from core.model.typed_model import from_js
+from core.parse_util import make_parser
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
 from core.util import if_set, utc
-from core.parse_util import make_parser
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -57,11 +57,31 @@ def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
     return check_defined if defined else always_valid
 
 
+class SyntheticProperty:
+    """
+    A synthetic property does not exist in the underlying data model.
+    It is defined by a function on an existing other property.
+    Example: age is a duration defined on ctime which is a datetime.
+             the function is age=now-ctime.
+    """
+
+    def __init__(self, existing_property: List[str]):
+        self.path = existing_property
+
+
 class Property:
-    def __init__(self, name: str, kind: str, required: bool = False, description: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        kind: str,
+        required: bool = False,
+        synthetic: Optional[SyntheticProperty] = None,
+        description: Optional[str] = None,
+    ):
         self.name = name
         self.kind = kind
         self.required = required
+        self.synthetic = synthetic
         self.description = description
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
@@ -74,7 +94,7 @@ class Property:
                 raise AttributeError(f"Property kind is not known: {kind_name}. Have you registered it?")
             return model[kind_name]
 
-        simple_kind_parser = regex("[A-Za-z][A-Za-z0-9]*").map(kind_by_name)
+        simple_kind_parser = regex("[A-Za-z][A-Za-z0-9_.]*").map(kind_by_name)
         bracket_parser = string("[]")
         dict_string_parser = string("dictionary[")
         comma_parser = regex("\\s*,\\s*")
@@ -96,6 +116,10 @@ class Property:
             return DictionaryKind(key_kind, value_kind)
 
         return (array_parser | dictionary_parser | simple_kind_parser).parse(name)  # type: ignore
+
+    @staticmethod
+    def any_prop() -> Property:
+        return Property("any", "any")
 
 
 class PropertyPath:
@@ -134,6 +158,12 @@ class PropertyPath:
 EmptyPath = PropertyPath([])
 
 
+class ResolvedProperty:
+    def __init__(self, prop: Property, kind: SimpleKind):
+        self.prop = prop
+        self.kind = kind
+
+
 class Kind(ABC):
     def __init__(self, fqn: str):
         self.fqn = fqn
@@ -163,7 +193,9 @@ class Kind(ABC):
         elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in SimpleKind.Kind_to_type:
             fqn = js["fqn"]
             rk = js["runtime_kind"]
-            if rk == "string":
+            if "source_fqn" in js and "converter" in js and "reverse_order" in js:
+                return TransformKind(fqn, rk, js["source_fqn"], js["converter"], js["reverse_order"])
+            elif rk == "string":
                 minimum = js.get("min_length")
                 maximum = js.get("max_length")
                 p = js.get("pattern")
@@ -178,6 +210,8 @@ class Kind(ABC):
                 return DateTimeKind(fqn)
             elif rk == "date":
                 return DateKind(fqn)
+            elif rk == "duration":
+                return DurationKind(fqn)
             elif rk == "boolean":
                 return BooleanKind(fqn)
             else:
@@ -192,10 +226,10 @@ class Kind(ABC):
 
 
 class SimpleKind(Kind, ABC):
-    def __init__(self, fqn: str, runtime_kind: str):
-        self.fqn = fqn
+    def __init__(self, fqn: str, runtime_kind: str, reverse_order: bool = False):
         super().__init__(fqn)
         self.runtime_kind = runtime_kind
+        self.reverse_order = reverse_order
 
     Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
         "string": str,
@@ -206,10 +240,21 @@ class SimpleKind(Kind, ABC):
         "boolean": bool,
         "date": str,
         "datetime": str,
+        "duration": str,
     }
 
     # noinspection PyMethodMayBeStatic
     def coerce(self, value: object) -> Any:
+        """
+        Take a user defined value and transform it into a machine queryable value.
+        Example:
+            - "10s" as string -> "10s"
+            - "10s" as boolean -> false
+            - "10s" as duration -> "10s"
+            - "10s" as date -> now + 10 seconds (depending on local time)
+        :param value: the value from the user
+        :return: the coerced value from the system
+        """
         return value
 
     def as_json(self) -> Json:
@@ -354,10 +399,30 @@ class BooleanKind(SimpleKind):
             return str(value).lower() == "true"
 
 
+class DurationKind(SimpleKind):
+    DurationRe = re.compile("^[+-]?([\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?)+$")
+
+    def __init__(self, fqn: str):
+        super().__init__(fqn, "duration")
+        self.valid_fn = validate_fn(check_type_fn(str, "duration"), self.check_duration)
+
+    def check_duration(self, v: Any) -> None:
+        if not self.DurationRe.fullmatch(v):
+            raise AttributeError(f"Wrong format for duration: {v}. Examples: 2w, 4h3m, 2weeks, 1second")
+
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        return self.valid_fn(obj)
+
+    def coerce(self, value: Any) -> Optional[str]:
+        try:
+            return f"{int(Duration(value).seconds)}s"
+        except Exception as ex:
+            raise AttributeError(f"Expected duration but got: >{value}<") from ex
+
+
 class DateTimeKind(SimpleKind):
     Format = "%Y-%m-%dT%H:%M:%SZ"
     DateTimeRe = re.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z")
-    DurationRe = re.compile("^[+-]?([\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?)+$")
 
     def __init__(self, fqn: str):
         super().__init__(fqn, "datetime")
@@ -388,7 +453,7 @@ class DateTimeKind(SimpleKind):
                 return value
             elif self.DateTimeRe.fullmatch(value):
                 return value  # type: ignore
-            elif self.DurationRe.fullmatch(value):
+            elif DurationKind.DurationRe.fullmatch(value):
                 return self.from_duration(value)
             else:
                 return self.from_datetime(value)
@@ -412,7 +477,7 @@ class DateTimeKind(SimpleKind):
     @staticmethod
     def from_duration(value: str, now: datetime = utc()) -> str:
         # in case of duration, compute the timestamp as: now + duration
-        delta = relativedelta(seconds=Duration(value).seconds)
+        delta = timedelta(seconds=Duration(value).seconds)
         instant = now + delta
         return instant.strftime(DateTimeKind.Format)
 
@@ -436,15 +501,83 @@ class DateKind(SimpleKind):
         try:
             if value is None:
                 return value
-            elif DateTimeKind.DurationRe.fullmatch(value):
+            elif DurationKind.DurationRe.fullmatch(value):
                 # in case of duration, compute the timestamp as: today + duration
-                delta = relativedelta(seconds=Duration(value).seconds)
+                delta = timedelta(seconds=Duration(value).seconds)
                 at = date.today() + delta
                 return at.isoformat()
             else:
                 return parse(value).date().strftime(DateKind.Format)
         except Exception as ex:
             raise AttributeError(f"Expected date but got: >{value}<") from ex
+
+
+class TransformKind(SimpleKind):
+    Synthetic = Any  # e.g. duration
+    Source = Any  # e.g. datetime
+
+    def __init__(
+        self,
+        fqn: str,
+        source_fqn: str,
+        destination_fqn: str,
+        converter: str,
+        reverse_order: bool,
+    ):
+        """
+        Transform kinds can be used to derive attributes in a complex kind from other attributes.
+        It is important, that the transformed attribute does not exist in the original complex kind!
+        It is a SimpleKind, since it can be queried directly as if it would be available as part of the json.
+
+        A transformed kind takes a source value of kind source_kind and transforms it using a function
+        into the destination kind.
+
+        :param fqn: the fully qualified name of this kind.
+        :param source_fqn: the underlying runtime kind.
+        :param destination_fqn: the destination kind that is used in the data store.
+        :param converter: name of converter. See transform_kind_convert.py for a dict of possible converter names.
+        """
+        # note: source_fqn and runtime_kind are considered the same.
+        # the synthetic property does not create new types, but translates types.s
+        super().__init__(fqn, source_fqn, reverse_order)
+        self.destination_fqn: str = destination_fqn
+        self.source_kind: Optional[SimpleKind] = None
+        self.destination_kind: Optional[SimpleKind] = None
+        self.converter = converter
+        self.source_to_destination, self.destination_to_source = converters[converter]
+
+    def coerce(self, value: object) -> Any:
+        if self.source_kind:
+            coerced_source = self.source_kind.coerce(value)
+            synthetic = self.source_to_destination(coerced_source)
+            return synthetic
+        else:
+            raise AttributeError(f"Synthetic kind is not resolved: {self.fqn}")
+
+    def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
+        # this function is called during import for supplied values.
+        # synthetic values are never supplied
+        raise AttributeError(f"TransformKind {self.fqn} is not allowed to be supplied.")
+
+    def resolve(self, model: Dict[str, Kind]) -> None:
+        source = model.get(self.runtime_kind)
+        destination = model.get(self.destination_fqn)
+        if source and destination and isinstance(source, SimpleKind) and isinstance(destination, SimpleKind):
+            source.resolve(model)
+            destination.resolve(model)
+            self.source_kind = source
+            self.destination_kind = destination
+        else:
+            raise AttributeError(f"Underlying kind not known: {self.destination_fqn}")
+
+    def as_json(self) -> Json:
+        return {
+            "fqn": self.fqn,
+            "runtime_kind": self.runtime_kind,
+            "source_fqn": self.destination_fqn,
+            "converter": self.converter,
+            "reverse_order": self.reverse_order,
+        }
 
 
 class ArrayKind(Kind):
@@ -513,7 +646,7 @@ class ComplexKind(Kind):
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__properties_kind_by_path: Dict[PropertyPath, SimpleKind] = {}
+        self.__property_by_path: Dict[PropertyPath, ResolvedProperty] = {}
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
@@ -524,7 +657,7 @@ class ComplexKind(Kind):
                 self.__resolved_kinds[prop.name] = (prop, kind)
 
             # property path -> kind
-            self.__properties_kind_by_path = self.__resolve_property_paths()
+            self.__property_by_path = self.__resolve_property_paths()
 
             # resolve the hierarchy
             if not self.is_root():
@@ -536,17 +669,17 @@ class ComplexKind(Kind):
                         self.__all_props += base.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
-                        self.__properties_kind_by_path.update(base.__properties_kind_by_path)
+                        self.__property_by_path.update(base.__property_by_path)
         self.__resolved = True
 
-    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, SimpleKind]:
+    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, ResolvedProperty]:
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
-        ) -> Dict[PropertyPath, SimpleKind]:
+        ) -> Dict[PropertyPath, ResolvedProperty]:
             arr = "[]" if array else ""
             relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
-                return {relative if add_prop_to_path else path: kind}
+                return {relative if add_prop_to_path else path: ResolvedProperty(prop, kind)}
             elif isinstance(kind, ArrayKind):
                 return path_for(prop, kind.inner, path, True)
             elif isinstance(kind, DictionaryKind):
@@ -556,7 +689,7 @@ class ComplexKind(Kind):
             else:
                 return {}
 
-        result: Dict[PropertyPath, SimpleKind] = {}
+        result: Dict[PropertyPath, ResolvedProperty] = {}
         for x in self.properties:
             result.update(path_for(x, self.__resolved_kinds[x.name][1], from_path))
 
@@ -574,10 +707,10 @@ class ComplexKind(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    def property_kind_by_path(self) -> Dict[PropertyPath, SimpleKind]:
+    def property_by_path(self) -> Dict[PropertyPath, ResolvedProperty]:
         if not self.__resolved:
-            raise AttributeError(f"property_kind_by_path {self.fqn}: References are not resolved yet!")
-        return self.__properties_kind_by_path
+            raise AttributeError(f"property_by_path {self.fqn}: References are not resolved yet!")
+        return self.__property_by_path
 
     def all_props(self) -> List[Property]:
         return self.__all_props
@@ -629,12 +762,14 @@ predefined_kinds = [
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
+    DurationKind("duration"),
+    TransformKind("trafo.duration_to_datetime", "duration", "datetime", "duration_to_datetime", reverse_order=True),
     ComplexKind(
         "graph_root",
         [],
         [
-            Property("name", "string", False, "The name of this node."),
-            Property("tags", "dictionary[string, string]", False, "All attached tags of this node."),
+            Property("name", "string", False, None, "The name of this node."),
+            Property("tags", "dictionary[string, string]", False, None, "All attached tags of this node."),
         ],
         allow_unknown_props=True,
     ),
@@ -642,9 +777,16 @@ predefined_kinds = [
         "predefined_properties",
         [],
         [
-            Property("kind", "string", False, "The kind property of every node."),
-            Property("ctime", "datetime", False, "datetime when the node has been created."),
-            Property("expires", "datetime", False, "datetime when the node expires."),
+            Property("kind", "string", False, None, "The kind property of every node."),
+            Property("ctime", "datetime", False, None, "datetime when the node has been created."),
+            Property(
+                "age",
+                "trafo.duration_to_datetime",
+                False,
+                SyntheticProperty(["ctime"]),
+                "synthesized property age based on ctime",
+            ),
+            Property("expires", "datetime", False, None, "datetime when the node expires."),
         ],
     ),
 ]
@@ -666,10 +808,9 @@ class Model:
     def __init__(self, kinds: Dict[str, Kind]):
         self.kinds = kinds
         complexes = (k for k in kinds.values() if isinstance(k, ComplexKind))
-        paths: Dict[PropertyPath, SimpleKind] = reduce(
-            lambda res, k: {**res, **k.property_kind_by_path()}, complexes, {}
+        self.__property_kind_by_path: Dict[PropertyPath, ResolvedProperty] = reduce(
+            lambda res, k: {**res, **k.property_by_path()}, complexes, {}
         )
-        self.__property_kind_by_path = paths
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
@@ -687,12 +828,15 @@ class Model:
         else:
             raise KeyError(f"Expected string or json with a 'kind' property as key but got: {name_or_object}")
 
-    def kind_by_path(self, path_: str) -> SimpleKind:
+    def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
         if path not in self.__property_kind_by_path:
             # path not known according to known model: it could be anything.
-            return AnyKind.any()
+            return ResolvedProperty(Property.any_prop(), AnyKind.any())
         return self.__property_kind_by_path[path]
+
+    def kind_by_path(self, path_: str) -> SimpleKind:
+        return self.property_by_path(path_).kind
 
     def check_valid(self, js: Json, **kwargs: bool) -> ValidationResult:
         try:
@@ -750,20 +894,20 @@ class Model:
             update_is_valid(self.kinds[name], updates[name])
 
         # check if no property path is overlapping
-        def check(all_paths: Dict[PropertyPath, SimpleKind], kind: Kind) -> Dict[PropertyPath, SimpleKind]:
+        def check(all_paths: Dict[PropertyPath, ResolvedProperty], kind: Kind) -> Dict[PropertyPath, ResolvedProperty]:
             if isinstance(kind, ComplexKind):
-                paths = kind.property_kind_by_path()
+                paths = kind.property_by_path()
                 intersect = paths.keys() & all_paths.keys()
 
                 def simple_kind_incompatible(p: PropertyPath) -> bool:
-                    left = paths[p]
-                    right = all_paths[p]
+                    left = paths[p].kind
+                    right = all_paths[p].kind
                     return (left.fqn != right.fqn) and not (isinstance(left, AnyKind) or isinstance(right, AnyKind))
 
                 # Filter out duplicates that have the same kind or any side is any
                 non_unique = list(filter(simple_kind_incompatible, intersect))
                 if non_unique:
-                    message = ", ".join(f"{a} ({all_paths[a].fqn} -> {paths[a].fqn})" for a in non_unique)
+                    message = ", ".join(f"{a} ({all_paths[a].kind.fqn} -> {paths[a].kind.fqn})" for a in non_unique)
                     raise AttributeError(
                         f"Update not possible. {kind.fqn}: following properties would be non unique having "
                         f"the same path but different type: {message}"

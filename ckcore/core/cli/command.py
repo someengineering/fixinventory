@@ -182,7 +182,7 @@ class ExecuteQuerySource(CLISource, InternalPart):
         query = parse_query(arg)
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
-        query_model = QueryModel(query, model, None)
+        query_model = QueryModel(query, model)
         db.to_query(query_model)  # only here to validate the query itself (can throw)
         return db.query_aggregation(query_model) if query.aggregate else db.query_list(query_model)
 
