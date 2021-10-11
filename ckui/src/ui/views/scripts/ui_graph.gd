@@ -19,6 +19,7 @@ var original_zoom := Vector2.ONE
 var spaceship : Object = null
 var Spaceship = preload("res://ui/elements/Element_Spaceship.tscn")
 var is_active := true setget set_is_active
+var loaded_data_filtered_ids := []
 
 onready var graph_cam = $GraphCam
 onready var cam_tween = $CamMoveTween
@@ -43,7 +44,7 @@ func set_is_active(value:bool):
 	_g.main_graph.is_active = value
 
 
-func _process(_delta):
+func _process(delta):
 	if root_node == null or !is_active:
 		return
 	
@@ -57,18 +58,19 @@ func _process(_delta):
 func read_data():
 	var file = File.new()
 	var new_data := {}
-	var index := 0
-	var file_len := 0
+	loaded_data_filtered_ids.clear()
 	
 	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
 		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
-		file_len = float( file.get_len() )
-		
+		var file_len : float = float( file.get_len() )
+		var update_mod : int = file.get_len() / 500000
+		var index := 0
+		var benchmark_start = OS.get_ticks_usec()
 		_g.msg( "Reading file ..." )
 		_e.emit_signal("loading_start")
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
-		
+		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
@@ -76,13 +78,17 @@ func read_data():
 				continue
 			new_data[index] = parse_json(line)
 			index += 1
-			if index % 5000 == 0: 
+			if index % update_mod == 0: 
 				_g.msg( "Reading file - line {0}".format([index]) )
 				_e.emit_signal("loading", (float( file.get_position() ) / file_len), "Reading file" )
 				yield(get_tree(), "idle_frame")
 		
+		var benchmark_end = OS.get_ticks_usec()
+		var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
+		
 		_e.emit_signal("loading", 1, "Reading file" )
-		_g.msg( "Reading file done! {0} Nodes in Graph".format([index]) )
+		_g.msg( "Reading file done! {0} Nodes in Graph | Loading time: {1}".format([index, stepify(benchmark_time, 0.01)]) )
+		
 		file.close()
 	else:
 		var example_data_file = load("res://scripts/tools/example_data.gd")
@@ -93,6 +99,7 @@ func read_data():
 	
 	
 func generate_graph(filtered_data_result:Dictionary):
+	print("GENERATING GRAPH!")
 	var file = File.new()
 	var graph_node_positions := {}
 	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
@@ -110,9 +117,18 @@ func generate_graph(filtered_data_result:Dictionary):
 	_g.main_graph.emit_signal("hide_nodes")
 
 
+func filter_data_on_load(element, filter_by_kinds):
+	if "id" in element:
+		if element.reported.kind in filter_by_kinds:
+			loaded_data_filtered_ids.append(element.id)
+			return element
+	elif element.to in loaded_data_filtered_ids and element.from in loaded_data_filtered_ids:
+		return element
+	else:
+		return null
+
+
 func filter_data(data):
-	var filtered_data := {}
-	var filtered_ids := []
 	var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
 	
 	_g.msg( "Filtering {0} elements by {1}".format([ data.size(), str(filter_by_kinds)]) )
@@ -120,39 +136,38 @@ func filter_data(data):
 	yield(get_tree(), "idle_frame")
 	
 	var amount_of_nodes := 0
-	var data_keys = data.keys()
-	var node_index := 0
-	for key in data_keys:
-		var node = data[key]
-		if "id" in node:
-			if node.reported.kind in filter_by_kinds:
-				amount_of_nodes += 1
-				filtered_data[key] = node
-				filtered_ids.append(node.id)
-		
-			if amount_of_nodes % 100 == 0:
-				_g.msg( "Filtering nodes > {0}".format([amount_of_nodes]) )
-				_e.emit_signal("loading", node_index / data_keys.size(), "Filtering nodes" )
-				yield(get_tree(), "idle_frame")
-
-		node_index += 1
-	
 	var amount_of_edges := 0
-	var edge_index := 0
-	for key in data_keys:
-		var edge = data[key]
-		if "to" in edge and edge.to in filtered_ids:
-			amount_of_edges += 1
-			filtered_data[key] = edge
-		
-			if amount_of_edges % 100 == 0:
-				_g.msg( "Filtering edges > {0}".format([amount_of_edges]) )
-				_e.emit_signal("loading", edge_index / data_keys.size(), "Filtering edges" )
-				yield(get_tree(), "idle_frame")
-		edge_index += 1
+	var filtered_ids := []
+	var filtered_data := {}
 	
+	var data_keys = data.keys()
+	var data_amount = float( data_keys.size() )
+	var elem_index := 0
+	for key in data_keys:
+		var elem = data[key]
+		if "id" in elem:
+			if elem.reported.kind in filter_by_kinds:
+				amount_of_nodes += 1
+				filtered_data[key] = elem
+				filtered_ids.append(elem.id)
+		
+		elif elem.to in filtered_ids and elem.from in filtered_ids:
+			amount_of_edges += 1
+			filtered_data[key] = elem
+		else:
+			data[key] = null
+
+		elem_index += 1
+		if elem_index % 1000 == 0:
+			_g.msg( "Filtering elements: {0} Nodes | {1} Edges".format([amount_of_nodes, amount_of_edges]))
+			_e.emit_signal("loading", float( elem_index ) / data_amount, "Filtering elements" )
+			yield(get_tree(), "idle_frame")
+	
+	_e.emit_signal("loading", 1, "Filtering elements" )
 	_g.msg( "Filter done: {0} Nodes | {1} Edges".format([amount_of_nodes, amount_of_edges]))
 	yield(get_tree(), "idle_frame")
+	print("FILTERING DONE!")
+	
 	emit_signal("filtering_done", filtered_data)
 
 

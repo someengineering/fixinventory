@@ -10,7 +10,7 @@ func _ready():
 	_e.connect("loading_done", self, "loading_done")
 
 func update_loading_status( loading:float, text:String ):
-	$"MetricViz-NumberMinMaxHistoric".set_value( loading * 100, text )
+	$"MetricViz-NumberMinMaxHistoric".set_value( loading * 100, text, 1.0 )
 
 
 func loading_start():

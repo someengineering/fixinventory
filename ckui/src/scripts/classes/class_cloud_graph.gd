@@ -67,8 +67,8 @@ func add_node(_data:Dictionary) -> CloudNode:
 	new_cloud_node.icon = cloud_node_icon.instance()
 	new_cloud_node.icon.parent_graph = self
 	new_cloud_node.icon.cloud_node = new_cloud_node
-	new_cloud_node.icon.position = Vector2(1920,1080*1.8)*0.5
 	node_group.add_child(new_cloud_node.icon)
+	new_cloud_node.icon.position = get_random_pos()
 	
 	return new_cloud_node
 
@@ -88,11 +88,16 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 
 
 func create_graph_raw(raw_data : Dictionary, total_nodes:int):
-	raw_data = raw_data.duplicate(true)
 	var index := 0
+	var index_mod = raw_data.size() / 100
+	var total_size : float = float( raw_data.size() )
+	node_group.modulate.a = 0.1
+	_e.emit_signal("loading", 0, "Creating visual elements" )
 	for data in raw_data.values():
-		if index % 100 == 0:
+		if index % index_mod == 0:
+			_e.emit_signal("loading", float(index) / total_size, "Creating visual elements" )
 			_g.msg( "Creating visual elements: {0}/{1}".format([index, total_nodes]) )
+			yield(get_tree(), "idle_frame")
 		index += 1
 		if data == null:
 			continue
@@ -109,8 +114,10 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 			graph_data.edges[str(data.from + data.to)] = add_edge(data)
 			yield(get_tree(), "idle_frame")
 	
+	node_group.modulate.a = 1
 	emit_signal("graph_created")
 	_g.msg( "Visual elements done ... rendering" )
+	_e.emit_signal("loading", 1, "Creating visual elements" )
 	_e.emit_signal("loading_done")
 
 

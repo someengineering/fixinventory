@@ -44,14 +44,13 @@ func play_anim():
 	$Tween.start()
 
 
-func set_value( _value:float, descr_name ):
+func set_value( _value:float, descr_name, precisision:= 0.1 ):
 	$DescriptionLabel.text = descr_name
-	count_up( _value )
+	count_up( _value, precisision )
 
 
-func count_up( _value:float ):
-	var stepped_value = stepify(_value, 0.1)
-	var text = str( stepped_value )
+func count_up( _value:float, precision := 0.1 ):
+	var text = str( stepify(_value, precision) )
 	metric_label.text = text
-	progress.value = stepped_value
-	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(stepped_value, progress.min_value, progress.max_value, -224, 45)
+	progress.value = _value
+	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(_value, progress.min_value, progress.max_value, -224, 45)

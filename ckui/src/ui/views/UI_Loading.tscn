@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=2]
+[gd_scene load_steps=17 format=2]
 
 [ext_resource path="res://assets/graphics/min_max_circle.png" type="Texture" id=1]
 [ext_resource path="res://assets/graphics/min_max_circle_bg.png" type="Texture" id=2]
@@ -53,6 +53,8 @@ use_filter = true
 extra_spacing_top = -8
 font_data = SubResource( 30 )
 
+[sub_resource type="StyleBoxEmpty" id=37]
+
 [sub_resource type="DynamicFont" id=35]
 size = 30
 use_mipmaps = true
@@ -72,7 +74,6 @@ extra_spacing_char = 1
 font_data = SubResource( 28 )
 
 [node name="UILoading" type="Control"]
-visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 3 )
@@ -157,21 +158,23 @@ margin_bottom = 483.0
 [node name="HBoxContainer" type="VBoxContainer" parent="MetricViz-NumberMinMaxHistoric/MarginContainer/CenterContainer"]
 modulate = Color( 0.603922, 0.870037, 1, 1 )
 material = SubResource( 15 )
-margin_left = 207.0
+margin_left = 156.0
 margin_top = 202.0
-margin_right = 304.0
+margin_right = 356.0
 margin_bottom = 281.0
+rect_min_size = Vector2( 200, 0 )
 custom_constants/separation = -8
 
 [node name="MetricLabel" type="Label" parent="MetricViz-NumberMinMaxHistoric/MarginContainer/CenterContainer/HBoxContainer"]
 use_parent_material = true
-margin_right = 97.0
+margin_right = 200.0
 margin_bottom = 62.0
 custom_colors/font_color = Color( 0.752941, 0.94902, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
 custom_fonts/font = SubResource( 31 )
+custom_styles/normal = SubResource( 37 )
 text = "100"
 align = 1
 valign = 2
@@ -182,7 +185,7 @@ __meta__ = {
 [node name="MetricLabelPercent" type="Label" parent="MetricViz-NumberMinMaxHistoric/MarginContainer/CenterContainer/HBoxContainer"]
 use_parent_material = true
 margin_top = 54.0
-margin_right = 97.0
+margin_right = 200.0
 margin_bottom = 79.0
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
