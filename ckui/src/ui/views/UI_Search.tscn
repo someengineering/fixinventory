@@ -20,10 +20,6 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="StyleBoxEmpty" id=2]
-
-[sub_resource type="StyleBoxEmpty" id=3]
-
 [sub_resource type="DynamicFontData" id=4]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
@@ -33,6 +29,10 @@ use_mipmaps = true
 use_filter = true
 extra_spacing_top = -20
 font_data = SubResource( 4 )
+
+[sub_resource type="StyleBoxEmpty" id=2]
+
+[sub_resource type="StyleBoxEmpty" id=3]
 
 [sub_resource type="CanvasItemMaterial" id=6]
 blend_mode = 1
@@ -159,14 +159,14 @@ margin_left = 20.0
 margin_top = 20.0
 margin_right = 1700.0
 margin_bottom = 220.0
-custom_icons/clear = ExtResource( 1 )
-custom_styles/focus = SubResource( 2 )
-custom_styles/normal = SubResource( 3 )
-custom_fonts/font = SubResource( 5 )
 custom_colors/selection_color = Color( 0.603922, 0.870588, 1, 0.0392157 )
 custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
 custom_colors/font_color = Color( 1, 1, 1, 1 )
 custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
+custom_fonts/font = SubResource( 5 )
+custom_icons/clear = ExtResource( 1 )
+custom_styles/focus = SubResource( 2 )
+custom_styles/normal = SubResource( 3 )
 text = "test"
 clear_button_enabled = true
 
@@ -177,12 +177,12 @@ margin_right = 1720.0
 margin_bottom = 12.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
-custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 8 )
 text = "Search in Cloudkeeper"
 align = 1
 __meta__ = {
@@ -344,11 +344,11 @@ margin_right = 1720.0
 margin_bottom = 55.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
-custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 8 )
 text = "Queries"
 align = 1
 __meta__ = {
@@ -372,12 +372,12 @@ margin_right = 1720.0
 margin_bottom = 55.0
 rect_min_size = Vector2( 0, 55 )
 mouse_filter = 1
-custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
 custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
 custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 8 )
 text = "Cloud Resources"
 align = 1
 __meta__ = {

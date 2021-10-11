@@ -14,36 +14,32 @@ func grab_focus():
 	$ResultContainer.hide()
 	line_edit.grab_focus()
 	line_edit.text = ""
-	for c in cloud_results.get_children():
-		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
-			continue
-		c.disconnect("pressed", self, "result_pressed")
-		c.queue_free()
+	clear_search()
 
 
 func set_local_nodes():
 	nodes = _g.main_graph.graph_data.nodes.duplicate()
 
 
-func _on_LineEdit_text_changed(_new_text):
+func clear_search():
 	for c in cloud_results.get_children():
-		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
-			continue
 		c.disconnect("pressed", self, "result_node_pressed")
 		c.queue_free()
 	for c in query_results.get_children():
-		if !c.has_signal("pressed") or !c.is_connected("pressed", self, "result_pressed"):
-			continue
 		c.disconnect("pressed", self, "result_query_pressed")
 		c.queue_free()
+
+
+func _on_LineEdit_text_changed(new_text):
+	clear_search()
+	yield(get_tree(), "idle_frame")
 	
-	
-	var search_string = line_edit.text.to_lower()
+	var search_string = new_text.to_lower()
 	var has_node_result := false
 	var has_query_result := false
 	
 	for node in nodes.values():
-		if search_string.to_lower() in node.reported.name.to_lower():
+		if search_string.to_lower() in node.reported.name.to_lower() and cloud_results.get_child_count() < 30:
 			has_node_result = true
 			var new_item = $ResultContainer/Results/ItemButtonRow.duplicate()
 			new_item.get_node("Content/Name").text = node.reported.kind
@@ -56,7 +52,7 @@ func _on_LineEdit_text_changed(_new_text):
 	for i in _g.queries.size():
 		var query = _g.queries[ query_keys[i] ]
 		var querycontent = str(query.short_name + query.description).to_lower()
-		if search_string in querycontent:
+		if search_string in querycontent and query_results.get_child_count() < 30:
 			has_query_result = true
 			var new_item = $ResultContainer/Results/ItemButtonRow.duplicate()
 			new_item.get_node("Content/Name").text = query.short_name

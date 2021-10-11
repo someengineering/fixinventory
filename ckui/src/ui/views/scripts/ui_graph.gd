@@ -63,22 +63,22 @@ func read_data():
 	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
 		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
 		var file_len : float = float( file.get_len() )
-		var update_mod : int = file.get_len() / 500000
+		var update_mod : int = max(file.get_len() / 500000, 100)
 		var index := 0
 		var benchmark_start = OS.get_ticks_usec()
 		_g.msg( "Reading file ..." )
 		_e.emit_signal("loading_start")
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
-		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
-		
+		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account", "aws_iam_policy", "aws_iam_instance_profile", "aws_iam_role", "aws_s3_bucket", "aws_s3_bucket_quota", "aws_ec2_subnet"]
+		#filter_by_kinds.clear()
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
 				index += 1
 				continue
 			var next_line = parse_json(line)
-			if filter_data_on_load(next_line, filter_by_kinds):
+			if filter_by_kinds.empty() or filter_data_on_load(next_line, filter_by_kinds):
 				new_data[index] = next_line
 			index += 1
 			if index % update_mod == 0: 
@@ -205,7 +205,7 @@ func go_to_graph_node(node_id, graph) -> void:
 	if !is_active or graph != _g.main_graph:
 		return
 	if target_node != null:
-		target_node.icon.is_selected = false
+		target_node.scene.is_selected = false
 	
 	target_node = _g.main_graph.graph_data.nodes[node_id]
 	_g.main_graph.emit_signal("hide_nodes")
@@ -213,14 +213,14 @@ func go_to_graph_node(node_id, graph) -> void:
 	
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
-	var target_pos = target_node.icon.global_position
-	var target_zoom = target_node.icon.scale
+	var target_pos = target_node.scene.global_position
+	var target_zoom = target_node.scene.scale
 	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_position), 100, 1000), 100, 1000, 0.35, 1.5)
 	cam_tween.remove_all()
 	cam_tween.interpolate_property(graph_cam, "global_position", graph_cam.global_position, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, target_zoom*0.5, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
-	target_node.icon.is_selected = true
+	target_node.scene.is_selected = true
 	cam_moving = true
 
 
@@ -243,7 +243,7 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 		if !event.pressed and !selected_new_node and target_node != null:
 			cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 			cam_tween.start()
-			target_node.icon.is_selected = false
+			target_node.scene.is_selected = false
 			target_node = null
 			cam_moving = false
 			_e.emit_signal("nodeinfo_hide")

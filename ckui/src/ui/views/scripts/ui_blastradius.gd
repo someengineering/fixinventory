@@ -68,9 +68,9 @@ func layout_blastradius() -> void:
 			var node_obj = nodes[ node ]
 			var node_dist = node_distance[ node ]
 			var new_position = Vector2( (blastradius_diameter/largest_dist) * node_dist, 0).rotated( PI + PI/2 + ((TAU/nodes_on_ring) * i) )
-			tween.interpolate_property(node_obj.icon, "position", Vector2.ZERO, new_position, float(node_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
-			node_obj.icon.scale = Vector2.ONE * range_lerp( node_dist, 0, largest_dist, 1.5, 0.5)
-			node_obj.icon.modulate = Color(1.3, 0.6, 0.6, min(node_obj.icon.scale.x+0.2, 1))
+			tween.interpolate_property(node_obj.scene, "position", Vector2.ZERO, new_position, float(node_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
+			node_obj.scene.scale = Vector2.ONE * range_lerp( node_dist, 0, largest_dist, 1.5, 0.5)
+			node_obj.scene.modulate = Color(1.3, 0.6, 0.6, min(node_obj.scene.scale.x+0.2, 1))
 			i += 1
 	tween.interpolate_method(self, "update_lines", 0, 1, float(largest_dist)*0.2, Tween.TRANS_QUINT, Tween.EASE_OUT)
 	draw_blastradius(Vector2.ZERO, blastradius_diameter+20, node_amount == 1)
@@ -79,7 +79,7 @@ func layout_blastradius() -> void:
 	
 	if node_amount == 1:
 		for node in graph_view.graph_data.nodes.values():
-			node.icon.modulate = Color.white
+			node.scene.modulate = Color.white
 
 
 func update_lines(_p) -> void:
@@ -228,7 +228,7 @@ func clear_blastradius() -> void:
 	tween.interpolate_property($BlastUIElements, "scale", Vector2.ONE, Vector2.ZERO, time_to_collapse*1.5, Tween.TRANS_QUAD, Tween.EASE_OUT)
 	tween.interpolate_method(self, "update_lines", 1, 0, time_to_collapse, Tween.TRANS_QUAD, Tween.EASE_OUT)
 	for node in graph_view.graph_data.nodes.values():
-		tween.interpolate_property(node.icon, "position", node.icon.position, Vector2.ZERO, time_to_collapse, Tween.TRANS_QUAD, Tween.EASE_OUT)
+		tween.interpolate_property(node.scene, "position", node.scene.position, Vector2.ZERO, time_to_collapse, Tween.TRANS_QUAD, Tween.EASE_OUT)
 	tween.start()
 
 

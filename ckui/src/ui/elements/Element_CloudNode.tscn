@@ -65,7 +65,6 @@ __meta__ = {
 }
 
 [node name="Area2D" type="Area2D" parent="."]
-visible = false
 z_index = 50
 z_as_relative = false
 collision_layer = 2
