@@ -7,7 +7,7 @@ Flavour Text, maybe gfx on clean(up), tag modification, magic on automatic runni
 How Cloudkeeper maintains your resources
 ****************************************
 
-| Cloudkeeper does the housekeeping for you. It automatically uses workflows in the background to achive this which are triggered by events or time.
+| Cloudkeeper does the housekeeping for you. It automatically uses workflows in the background to achive this which are triggered by events or by a specific time.
 | Therefor there typically is no need to trigger them manually in daily operations.
 
 Workflows
@@ -44,7 +44,7 @@ Otherwise it will default to a dry-run and NOT delete any ressources.
     
         > start_workflow cleanup
         
-As an additional step, this workflow will trigger :ref:`workflow-metrics` aswell, which will put :ref:`component-ckmetrics` into action.
+As an additional step, this workflow will trigger :ref:`workflow-metrics` aswell.
 
 .. _workflow-metrics:
 

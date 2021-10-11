@@ -1,11 +1,11 @@
 .. _ckcore_spotlight:
 
-=================
-Spotlight: ckcore
-=================
+==============
+Spotlight: API
+==============
 
 The API of :ref:`component-ckcore` is exposed via http and websocket.
-You can access it via http://<cloudkeeper-address>:8900/
+You can access it via http://<cloudkeeper-address>:8900/api-doc
 
 :ref:`component-ckcore` has two API endpoints to connect to for CLI purposes:
 * http://<cloudkeeper-address>:8900/cli/evaluate
