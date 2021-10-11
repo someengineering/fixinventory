@@ -547,7 +547,9 @@ class TransformKind(SimpleKind):
         self.source_to_destination, self.destination_to_source = converters[converter]
 
     def coerce(self, value: object) -> Any:
-        if self.source_kind:
+        if value is None:
+            return None
+        elif self.source_kind:
             coerced_source = self.source_kind.coerce(value)
             synthetic = self.source_to_destination(coerced_source)
             return synthetic
@@ -779,13 +781,9 @@ predefined_kinds = [
         [
             Property("kind", "string", False, None, "The kind property of every node."),
             Property("ctime", "datetime", False, None, "datetime when the node has been created."),
-            Property(
-                "age",
-                "trafo.duration_to_datetime",
-                False,
-                SyntheticProperty(["ctime"]),
-                "synthesized property age based on ctime",
-            ),
+            Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
+            Property("last_update", "trafo.duration_to_datetime", False, SyntheticProperty(["mtime"])),
+            Property("last_access", "trafo.duration_to_datetime", False, SyntheticProperty(["atime"])),
             Property("expires", "datetime", False, None, "datetime when the node expires."),
         ],
     ),
