@@ -1,5 +1,6 @@
 extends Control
 
+export var use_as_metricviz := true
 export var descr_name := "Total Instances"
 export var value_pre := ""
 export var value_post := ""
@@ -13,21 +14,22 @@ onready var metric_label = $MarginContainer/CenterContainer/HBoxContainer/Metric
 onready var progress = $MarginContainer/CenterContainer/Scaler/TextureProgress
 
 func _ready():
-	$DescriptionLabel.text = descr_name
-	
-	if descr_add_low != "":
-		$MarginContainer/HBoxContainer/DescrLabel.show()
-		$MarginContainer/HBoxContainer/DescrLabel.text = descr_add_low +" "+ show_percentage
-	if descr_add_high != "":
-		$MarginContainer/HBoxContainer/DescrLabel2.show()
-		$MarginContainer/HBoxContainer/DescrLabel2.text = descr_add_high +" "+ show_percentage
-	
-	
-	$MarginContainer/CenterContainer/HBoxContainer/MetricLabelPercent.visible = show_percentage != ""
-	$MarginContainer/CenterContainer/HBoxContainer/MetricLabelPercent.text = show_percentage
-	
-	progress.min_value = float(descr_add_low)
-	progress.max_value = float(descr_add_high)
+	if use_as_metricviz:
+		$DescriptionLabel.text = descr_name
+		
+		if descr_add_low != "":
+			$MarginContainer/HBoxContainer/DescrLabel.show()
+			$MarginContainer/HBoxContainer/DescrLabel.text = descr_add_low +" "+ show_percentage
+		if descr_add_high != "":
+			$MarginContainer/HBoxContainer/DescrLabel2.show()
+			$MarginContainer/HBoxContainer/DescrLabel2.text = descr_add_high +" "+ show_percentage
+		
+		
+		$MarginContainer/CenterContainer/HBoxContainer/MetricLabelPercent.visible = show_percentage != ""
+		$MarginContainer/CenterContainer/HBoxContainer/MetricLabelPercent.text = show_percentage
+		
+		progress.min_value = float(descr_add_low)
+		progress.max_value = float(descr_add_high)
 	
 	yield(get_tree(), "idle_frame")
 	var tex_size = progress.texture_under.get_size().x
@@ -42,8 +44,14 @@ func play_anim():
 	$Tween.start()
 
 
-func count_up(_value):
-	var text = str(stepify(_value, 0.1))
+func set_value( _value:float, descr_name ):
+	$DescriptionLabel.text = descr_name
+	count_up( _value )
+
+
+func count_up( _value:float ):
+	var stepped_value = stepify(_value, 0.1)
+	var text = str( stepped_value )
 	metric_label.text = text
-	progress.value = stepify(_value, 0.1)
-	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(stepify(value, 0.1), progress.min_value, progress.max_value, -224, 45)
+	progress.value = stepped_value
+	$MarginContainer/CenterContainer/Control/Marker.rotation_degrees = range_lerp(stepped_value, progress.min_value, progress.max_value, -224, 45)

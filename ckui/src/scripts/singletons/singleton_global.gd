@@ -22,3 +22,8 @@ func set_spaceship_mode():
 func set_main_graph( value : CloudGraph ):
 	main_graph = value
 	_e.emit_signal("nodes_changed")
+
+
+func msg( content:String ):
+	_e.emit_signal( "msg", content )
+	yield(get_tree(), "idle_frame")

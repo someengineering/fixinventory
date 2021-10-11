@@ -30,10 +30,6 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="StyleBoxEmpty" id=6]
-content_margin_left = 8.0
-content_margin_right = 8.0
-
 [sub_resource type="DynamicFontData" id=7]
 font_path = "res://assets/fonts/SourceCodePro-Regular.ttf"
 
@@ -42,6 +38,18 @@ use_mipmaps = true
 use_filter = true
 extra_spacing_top = -24
 font_data = SubResource( 7 )
+
+[sub_resource type="StyleBoxEmpty" id=6]
+content_margin_left = 8.0
+content_margin_right = 8.0
+
+[sub_resource type="DynamicFontData" id=10]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=11]
+size = 18
+extra_spacing_top = -3
+font_data = SubResource( 10 )
 
 [sub_resource type="StyleBoxFlat" id=9]
 bg_color = Color( 0, 0, 0, 0.337255 )
@@ -55,14 +63,6 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
-
-[sub_resource type="DynamicFontData" id=10]
-font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
-
-[sub_resource type="DynamicFont" id=11]
-size = 18
-extra_spacing_top = -3
-font_data = SubResource( 10 )
 
 [node name="UICommandLine" type="Control"]
 margin_right = 1920.0
@@ -138,18 +138,20 @@ __meta__ = {
 }
 
 [node name="LineEdit" type="LineEdit" parent="Background"]
+modulate = Color( 1, 1, 1, 0.3 )
 margin_right = 1848.0
 margin_bottom = 48.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/read_only = SubResource( 6 )
-custom_styles/focus = SubResource( 6 )
-custom_styles/normal = SubResource( 6 )
-custom_fonts/font = SubResource( 8 )
-custom_colors/selection_color = Color( 0.603922, 0.870588, 1, 0.0392157 )
+custom_colors/selection_color = Color( 0, 0, 0, 1 )
 custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
 custom_colors/font_color = Color( 1, 1, 1, 1 )
 custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
+custom_colors/font_color_uneditable = Color( 0.568627, 0.960784, 1, 1 )
+custom_fonts/font = SubResource( 8 )
+custom_styles/read_only = SubResource( 6 )
+custom_styles/focus = SubResource( 6 )
+custom_styles/normal = SubResource( 6 )
 text = "Show the current operation as a query/CLI"
 editable = false
 __meta__ = {
@@ -161,14 +163,14 @@ margin_left = 1824.0
 margin_top = 4.0
 margin_right = 1848.0
 margin_bottom = 28.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 11 )
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
 custom_styles/disabled = SubResource( 9 )
 custom_styles/normal = SubResource( 9 )
-custom_fonts/font = SubResource( 11 )
-custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
-custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
 text = "S"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -179,14 +181,14 @@ margin_left = 1856.0
 margin_top = 4.0
 margin_right = 1880.0
 margin_bottom = 28.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 11 )
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
 custom_styles/disabled = SubResource( 9 )
 custom_styles/normal = SubResource( 9 )
-custom_fonts/font = SubResource( 11 )
-custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
-custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
 text = "R"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -197,19 +199,22 @@ margin_left = 1888.0
 margin_top = 4.0
 margin_right = 1912.0
 margin_bottom = 28.0
+custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
+custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
+custom_fonts/font = SubResource( 11 )
 custom_styles/hover = SubResource( 9 )
 custom_styles/pressed = SubResource( 9 )
 custom_styles/focus = SubResource( 9 )
 custom_styles/disabled = SubResource( 9 )
 custom_styles/normal = SubResource( 9 )
-custom_fonts/font = SubResource( 11 )
-custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
-custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
 text = "O"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="NewMsgTween" type="Tween" parent="."]
+
 [connection signal="pressed" from="ButtonSpaceship" to="." method="_on_ButtonSpaceship_pressed"]
 [connection signal="pressed" from="ButtonRandomize" to="." method="_on_ButtonRandomize_pressed"]
 [connection signal="pressed" from="ButtonOrder" to="." method="_on_ButtonOrder_pressed"]
+[connection signal="tween_all_completed" from="NewMsgTween" to="." method="_on_NewMsgTween_tween_all_completed"]

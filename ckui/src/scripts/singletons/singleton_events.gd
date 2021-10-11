@@ -10,3 +10,7 @@ signal nodeinfo_hide
 signal nodes_changed
 signal load_nodes
 signal show_blastradius
+signal msg
+signal loading
+signal loading_done
+signal loading_start

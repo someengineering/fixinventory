@@ -69,11 +69,9 @@ z_as_relative = false
 collision_layer = 2
 collision_mask = 0
 monitoring = false
-monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource( 3 )
-disabled = true
 
 [node name="Reveal" type="Tween" parent="."]
 

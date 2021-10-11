@@ -6,6 +6,7 @@ signal show_node
 signal hide_nodes
 signal show_connected_nodes
 signal order_done
+signal graph_created
 
 var graph_data := {
 	"nodes" : {},
@@ -90,12 +91,14 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	raw_data = raw_data.duplicate(true)
 	var index := 0
 	for data in raw_data.values():
-		prints(index, " of ", total_nodes)
+		if index % 100 == 0:
+			_g.msg( "Creating visual elements: {0}/{1}".format([index, total_nodes]) )
 		index += 1
 		if data == null:
 			continue
-		if data.type == "node":
+		if "id" in data:
 			graph_data.nodes[data.id] = add_node(data)
+			yield(get_tree(), "idle_frame")
 			if root_node == null:
 				root_node = graph_data.nodes[data.id].icon
 		else:
@@ -104,6 +107,11 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
 			# For connection lines
 			graph_data.edges[str(data.from + data.to)] = add_edge(data)
+			yield(get_tree(), "idle_frame")
+	
+	emit_signal("graph_created")
+	_g.msg( "Visual elements done ... rendering" )
+	_e.emit_signal("loading_done")
 
 
 func create_graph_direct(_graph_data : Dictionary):

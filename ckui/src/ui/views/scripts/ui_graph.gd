@@ -3,6 +3,8 @@ extends Node2D
 const GRAPH_DUMP_JSON_PATH = "res://data/graph.dump.json"
 const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
 
+signal filtering_done
+
 var root_node : Object = null
 var mouse_is_pressed := false
 var last_drag_pos := Vector2.ZERO
@@ -33,6 +35,7 @@ func _ready():
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("nodeinfo_hide", self, "hide_info")
+	self.connect("filtering_done", self, "generate_graph")
 
 
 func set_is_active(value:bool):
@@ -54,32 +57,50 @@ func _process(_delta):
 func read_data():
 	var file = File.new()
 	var new_data := {}
-	var index = 0
+	var index := 0
+	var file_len := 0
 	
 	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
 		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
+		file_len = float( file.get_len() )
 		
-		print("Parsing file ...")
-		while not file.eof_reached():
+		_g.msg( "Reading file ..." )
+		_e.emit_signal("loading_start")
+		_e.emit_signal("loading", 0, "Reading file" )
+		yield(get_tree(), "idle_frame")
+		
+		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
 				index += 1
 				continue
 			new_data[index] = parse_json(line)
 			index += 1
-		prints("Parsing file done!", index, " Nodes in Graph")
+			if index % 5000 == 0: 
+				_g.msg( "Reading file - line {0}".format([index]) )
+				_e.emit_signal("loading", (float( file.get_position() ) / file_len), "Reading file" )
+				yield(get_tree(), "idle_frame")
+		
+		_e.emit_signal("loading", 1, "Reading file" )
+		_g.msg( "Reading file done! {0} Nodes in Graph".format([index]) )
 		file.close()
 	else:
 		var example_data_file = load("res://scripts/tools/example_data.gd")
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
 	
+	filter_data(new_data)
+	
+	
+func generate_graph(filtered_data_result:Dictionary):
+	var file = File.new()
 	var graph_node_positions := {}
 	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
 		var new_graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
 		if typeof(new_graph_node_positions) == TYPE_DICTIONARY:
 			graph_node_positions = new_graph_node_positions
-	_g.main_graph.create_graph_raw(new_data, index)
+	_g.main_graph.create_graph_raw(filtered_data_result, filtered_data_result.size())
+	yield(_g.main_graph, "graph_created")
 	_g.main_graph.layout_graph(graph_node_positions)
 	root_node = _g.main_graph.root_node
 	graph_cam.global_position = root_node.global_position
@@ -87,6 +108,52 @@ func read_data():
 	
 	_e.emit_signal("nodes_changed")
 	_g.main_graph.emit_signal("hide_nodes")
+
+
+func filter_data(data):
+	var filtered_data := {}
+	var filtered_ids := []
+	var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
+	
+	_g.msg( "Filtering {0} elements by {1}".format([ data.size(), str(filter_by_kinds)]) )
+	_e.emit_signal("loading", 0, "Filtering nodes" )
+	yield(get_tree(), "idle_frame")
+	
+	var amount_of_nodes := 0
+	var data_keys = data.keys()
+	var node_index := 0
+	for key in data_keys:
+		var node = data[key]
+		if "id" in node:
+			if node.reported.kind in filter_by_kinds:
+				amount_of_nodes += 1
+				filtered_data[key] = node
+				filtered_ids.append(node.id)
+		
+			if amount_of_nodes % 100 == 0:
+				_g.msg( "Filtering nodes > {0}".format([amount_of_nodes]) )
+				_e.emit_signal("loading", node_index / data_keys.size(), "Filtering nodes" )
+				yield(get_tree(), "idle_frame")
+
+		node_index += 1
+	
+	var amount_of_edges := 0
+	var edge_index := 0
+	for key in data_keys:
+		var edge = data[key]
+		if "to" in edge and edge.to in filtered_ids:
+			amount_of_edges += 1
+			filtered_data[key] = edge
+		
+			if amount_of_edges % 100 == 0:
+				_g.msg( "Filtering edges > {0}".format([amount_of_edges]) )
+				_e.emit_signal("loading", edge_index / data_keys.size(), "Filtering edges" )
+				yield(get_tree(), "idle_frame")
+		edge_index += 1
+	
+	_g.msg( "Filter done: {0} Nodes | {1} Edges".format([amount_of_nodes, amount_of_edges]))
+	yield(get_tree(), "idle_frame")
+	emit_signal("filtering_done", filtered_data)
 
 
 func main_graph_order():
