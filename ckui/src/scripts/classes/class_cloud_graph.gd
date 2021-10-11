@@ -13,8 +13,8 @@ const REPULSION_CONSTANT := 1000.0
 const MAX_DISTANCE := 800.0
 const GRAPH_MOVE_SPEED := 1.0
 const MAX_DISPLACE := 500.0
-const DEFAULT_DAMPING := 0.9
-const DEFAULT_SPRING_LENGTH := 100
+const DEFAULT_DAMPING := 0.8
+const DEFAULT_SPRING_LENGTH := 200
 const DEFAULT_MAX_ITERATIONS := 100
 
 var graph_data := {
@@ -256,14 +256,13 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 		for node in graph_data.nodes.values():
 			var current_node_position = node.scene.position
 			var net_force = Vector2.ZERO
+			var connection_amount = min(node.connections.size(), 20)
 			
 			for other_node in graph_data.nodes.values():
 				if node != other_node:
 					var other_node_pos = other_node.scene.position
 					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
-						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos )
-					else:
-						continue
+						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) * range_lerp(connection_amount, 0, 10, 0.1, 1)
 			
 			for connection in node.connections:
 				var other_node_pos = connection.scene.position
@@ -286,10 +285,8 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 			update_connection_lines()
 		yield(get_tree(), "idle_frame")
 		
-	
-	if !update_visuals:
-		center_diagram()
-		update_connection_lines()
+	center_diagram()
+	update_connection_lines()
 	
 	var saved_node_positions := {}
 	for node in graph_data.nodes.values():

@@ -72,17 +72,18 @@ func read_data():
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
 		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account", "aws_iam_policy", "aws_iam_instance_profile", "aws_iam_role", "aws_s3_bucket", "aws_s3_bucket_quota", "aws_ec2_subnet"]
-		
 		filter_by_kinds.clear()
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
 				index += 1
 				continue
+			
 			var next_line = parse_json(line)
 			if filter_by_kinds.empty() or filter_data_on_load(next_line, filter_by_kinds):
 				new_data[index] = next_line
-			index += 1
+				index += 1
+			
 			if index % update_mod == 0: 
 				_g.msg( "Reading file - line {0}".format([index]) )
 				_e.emit_signal("loading", (float( file.get_position() ) / file_len), "Reading file" )
@@ -99,7 +100,8 @@ func read_data():
 		var example_data_file = load("res://scripts/tools/example_data.gd")
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
-	
+		
+	print(new_data.size())
 	generate_graph(new_data)
 	
 	
