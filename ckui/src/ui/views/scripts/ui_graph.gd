@@ -44,7 +44,7 @@ func set_is_active(value:bool):
 	_g.main_graph.is_active = value
 
 
-func _process(delta):
+func _process(_delta):
 	if root_node == null or !is_active:
 		return
 	
@@ -63,6 +63,7 @@ func read_data():
 	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
 		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
 		var file_len : float = float( file.get_len() )
+		# warning-ignore:narrowing_conversion
 		var update_mod : int = max(file.get_len() / 500000, 100)
 		var index := 0
 		var benchmark_start = OS.get_ticks_usec()
@@ -71,7 +72,8 @@ func read_data():
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
 		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account", "aws_iam_policy", "aws_iam_instance_profile", "aws_iam_role", "aws_s3_bucket", "aws_s3_bucket_quota", "aws_ec2_subnet"]
-		#filter_by_kinds.clear()
+		
+		filter_by_kinds.clear()
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":

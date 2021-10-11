@@ -44,8 +44,8 @@ func play_anim():
 	$Tween.start()
 
 
-func set_value( _value:float, descr_name, precisision:= 0.1 ):
-	$DescriptionLabel.text = descr_name
+func set_value( _value:float, _descr_name, precisision:= 0.1 ):
+	$DescriptionLabel.text = _descr_name
 	count_up( _value, precisision )
 
 

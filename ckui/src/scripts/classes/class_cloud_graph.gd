@@ -8,21 +8,19 @@ signal show_connected_nodes
 signal order_done
 signal graph_created
 
-const ATTRACTION_CONSTANT := 0.3*0.05
-const REPULSION_CONSTANT := 400.0
-const MAX_DISTANCE := 1000.0
+const ATTRACTION_CONSTANT := 0.02
+const REPULSION_CONSTANT := 1000.0
+const MAX_DISTANCE := 800.0
 const GRAPH_MOVE_SPEED := 1.0
-const MAX_DISPLACE := 100.0
-const DEFAULT_DAMPING := 0.7
-const DEFAULT_SPRING_LENGTH := 200/3
-const DEFAULT_MAX_ITERATIONS := 200
+const MAX_DISPLACE := 500.0
+const DEFAULT_DAMPING := 0.9
+const DEFAULT_SPRING_LENGTH := 100
+const DEFAULT_MAX_ITERATIONS := 100
 
 var graph_data := {
 	"nodes" : {},
 	"edges" : {}
 	}
-
-var layout_data := {}
 
 var cloud_node_scene = preload("res://ui/elements/Element_CloudNode.tscn")
 var root_node : Object = null
@@ -104,29 +102,25 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 			continue
 		if "id" in data:
 			graph_data.nodes[data.id] = add_node(data)
-			create_new_layout_ref(data)
-			if root_node == null:
+			
+			if data.reported.kind == "graph_root":
 				root_node = graph_data.nodes[data.id].scene
-				
 		else:
 			# For SFDP creation
-			layout_data[data.from].connections.append( layout_data[data.to] )
-			layout_data[data.to].connections.append( layout_data[data.from] )
+			graph_data.nodes[data.from].connections.append( graph_data.nodes[data.to] )
+			graph_data.nodes[data.to].connections.append( graph_data.nodes[data.from] )
 			
 			# For connection lines
 			graph_data.edges[index] = add_edge(data)
+			
+	if root_node == null:
+		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
 	
 	node_group.modulate.a = 1
 	emit_signal("graph_created")
 	_g.msg( "Visual elements done ... rendering" )
 	_e.emit_signal("loading", 1, "Creating visual elements" )
 	_e.emit_signal("loading_done")
-
-
-func create_new_layout_ref(data):
-	var ref = NodeLayoutRef.new()
-	ref.id = data.id
-	layout_data[data.id] = ref
 
 
 func create_graph_direct(_graph_data : Dictionary):
@@ -182,7 +176,6 @@ func graph_rand_layout():
 		if node.scene.random_pos == Vector2.ZERO:
 			node.scene.random_pos = get_random_pos()
 		node.scene.position = node.scene.random_pos
-		layout_data[node.id].position = node.scene.position
 	root_node.position = Vector2.ZERO
 	root_node.random_pos = Vector2.ZERO
 	center_diagram()
@@ -200,25 +193,13 @@ func layout_graph(graph_node_positions := {}) -> void:
 		for node in graph_data.nodes.values():
 			node.scene.position = get_random_pos()
 			node.scene.random_pos = node.scene.position
-			layout_data[node.id].position = node.scene.position
 	else:
 		for node in graph_data.nodes.values():
 			node.scene.position = str2var(graph_node_positions[node.id])
 			node.scene.graph_pos = node.scene.position
-			layout_data[node.id].position = node.scene.position
 	
 	update_connection_lines()
 	center_diagram()
-
-
-func layout_to_real_pos():
-	for node in graph_data.nodes.values():
-		node.scene.position = layout_data[node.id].position 
-
-
-func real_to_layout_pos():
-	for node in graph_data.nodes.values():
-		layout_data[node.id].position = node.scene.position
 
 
 func get_random_pos() -> Vector2:
@@ -260,41 +241,40 @@ func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
 
 # Arrange the graph using SFDP
 # returning the nodes positions
-func arrange(damping, spring_length, max_iterations, deterministic := false):
+func arrange(damping, spring_length, max_iterations, deterministic := false, refine := false):
 	var benchmark_start = OS.get_ticks_usec()
 	if !deterministic:
 		randomize()
 	
 	var stop_count = 0
 	var iterations = 0
+	var total_displacement_threshold : float = graph_data.nodes.size()*8 if !refine else 100.0
 	
-	var nodes_keys : Array = layout_data.keys()
 	while true:
 		var total_displacement := 0.0
 		
-		for key in nodes_keys:
-			var node = layout_data[ key ]
-			var current_node_position = node.position
+		for node in graph_data.nodes.values():
+			var current_node_position = node.scene.position
 			var net_force = Vector2.ZERO
 			
-			for other_node in layout_data.values():
+			for other_node in graph_data.nodes.values():
 				if node != other_node:
-					var other_node_pos = other_node.position
-					if other_node in node.connections:
-						net_force += calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
-					elif current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
+					var other_node_pos = other_node.scene.position
+					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
 						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos )
 					else:
 						continue
 			
+			for connection in node.connections:
+				var other_node_pos = connection.scene.position
+				net_force += calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
+			
 			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped(500.0)
-			node.position += node.velocity
+			node.scene.position += node.velocity
 			total_displacement += node.velocity.length()
 		
-		prints("Calculated iterations: {0} | Total time passed: {1}".format([iterations, (OS.get_ticks_usec() - benchmark_start)/1000000.0 ]))
-		
 		iterations += 1
-		if total_displacement < 10:
+		if total_displacement < total_displacement_threshold:
 			stop_count += 1
 		if stop_count > 15:
 			break
@@ -303,14 +283,12 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 		
 		if update_visuals:
 			center_diagram()
-			layout_to_real_pos()
 			update_connection_lines()
 		yield(get_tree(), "idle_frame")
 		
 	
 	if !update_visuals:
 		center_diagram()
-		layout_to_real_pos()
 		update_connection_lines()
 	
 	var saved_node_positions := {}
@@ -320,13 +298,13 @@ func arrange(damping, spring_length, max_iterations, deterministic := false):
 	
 	var benchmark_end = OS.get_ticks_usec()
 	var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
-	prints("Time to calculate {0} iterations: {1}".format([iterations, benchmark_time]))
+	prints("Time to calculate {0} iterations: {1}".format([iterations-1, benchmark_time]))
 	
 	emit_signal("order_done", saved_node_positions)
 
 
 func center_diagram():
-	$Center/Graph.position = -root_node.position# + Vector2(1920, 1080)/2
+	$Center/Graph.position = -root_node.position
 
 
 func remove_graph():
