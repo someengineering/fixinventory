@@ -74,6 +74,8 @@ You can trigger this workflow also like the others via :ref:`component-cksh` com
 The :ref:`workflow-collect_and_cleanup` workflow is hardwired to run automatically every full hour.
 
 
+.. _action_tags:
+
 Working with tags
 *****************
 

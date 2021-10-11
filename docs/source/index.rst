@@ -34,13 +34,13 @@ Is Cloudkeeper the tool I am looking for?
 
 If you ever
 
-- had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
-- wanted to find all expired certificate
-- had to change the tags of thousands of EC2 instances at once
-- needed to delete all unused EBS volumes that had no I/O in the past month
+- had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a :ref:`quota limit <_ql-kind-quota>`
+- wanted to find all :ref:`expired certificate <ql-kind-certificate>`
+- had to :ref:`change the tags <action_tags>` of thousands of EC2 instances at once
+- needed to delete all :ref:`unused EBS volumes <ql-kind-volume>` that had no I/O in the past month
 - wished for a god view that lets you explore all cloud usage across all clouds
 - reported the cost of a project across different accounts or even across clouds
-- cleaned up orphaned load balancers that had no active backends
+- cleaned up :ref:`orphaned load balancers <ql-kind-aws_alb>` that had no active backends
 - wanted to automate any of the above
 
 then you know the kind of situations Cloudkeeper was built for and you will love it.
