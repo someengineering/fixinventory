@@ -428,7 +428,7 @@ You can now access the metrics interface via `ckmetrics <http://localhost:9955/m
 (Optional) Run Prometheus
 *************************
 
-If you do not have prometheus already, here is how you configure and run it to make use of :ref:`ckmetrics` exporter data. 
+If you do not have prometheus already, here is how you configure and run it to make use of :ref:`component-ckmetrics` exporter data. 
 
 Run
 ===

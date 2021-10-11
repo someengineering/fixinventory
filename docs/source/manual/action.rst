@@ -1,8 +1,12 @@
+.. _action:
+
 ======
 Action
 ======
 
-Flavour Text, maybe gfx on clean(up), tag modification, magic on automatic running workflows and how to trigger them manually
+You can modify your discovered cloud resources by using Cloudkeepers powerful commands like ``tag`` or ``clean``.
+
+To learn about your new superpowers and use them in the best way, it is important to understand how Cloudkeeper handles commands in the background.
 
 How Cloudkeeper maintains your resources
 ****************************************
@@ -36,7 +40,7 @@ cleanup
 -------
 
 This workflow triggers all :ref:`plugins` to delete ressources they manage, that were previously marked as to be cleand.
-To activate this feature, :ref:`setup-ckworker` needs to be started started with the ``--cleanup`` parameter.
+To activate this feature, :ref:`setup-ckworker` needs to be started with the ``--cleanup`` parameter.
 Otherwise it will default to a dry-run and NOT delete any ressources.
 
 .. code-block::
@@ -137,10 +141,10 @@ Optionally you can provide a reason for marking the matched ressources for the n
 Delete the actual ressources
 ============================
 
-Resources in Cloudkeeper will only be deleted if you started :ref:`component-ckworker` with the ``--delete`` parameter.
+Resources in Cloudkeeper will only be deleted if you started a :ref:`component-ckworker` with the ``--delete`` parameter.
 If done so, there will be an automatic cleanup every full hour.
 Otherwise the ``cleanup`` will only be simulated without actually being deleted.
 
 Instant cleanup can be triggered via starting the corresponding workflow.
-Please see :ref:`workflow-collect` or :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
+Please see :ref:`workflow-cleanup` or :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
 

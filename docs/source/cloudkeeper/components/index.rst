@@ -4,9 +4,9 @@
 Components
 ==========
 
-These are the moving parts of cloudkeeper.
+These are the moving parts of Cloudkeeper.
 We will now guide you through the setup and run procedure for each one.
-:ref:`plugins` have no extra section, as they are integrated via :ref:`ckworker`
+:ref:`plugins` have no extra section, as they are integrated via :ref:`component-ckworker`
 
 - :ref:`component-ckcore`: the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
 - :ref:`component-cksh`: the Cloudkeeper shell to interact with the core.
@@ -24,10 +24,10 @@ To give you a better understanding of how cloudkeepers components interact with 
 ckcore
 ******
 
-The Cloudkeeper graph platform :ref:`ckcore` is the persistence and query backend of Cloudkeeper. It maintains the graph
-of resources and provides APIs to update and access them. Within :ref:`ckcore` there are workflows consisting of steps
+The Cloudkeeper graph platform :ref:`component-ckcore` is the persistence and query backend of Cloudkeeper. It maintains the graph
+of resources and provides APIs to update and access them. Within :ref:`component-ckcore` there are workflows consisting of steps
 that result in actions like ``collect``, ``cleanup`` or ``generate_metrics``. These actions are being received by components
-like :ref:`ckworker` and :ref:`ckmetrics`.
+like :ref:`component-ckworker` and :ref:`component-ckmetrics`.
 
 You can find more information in the section about :ref:`ckcore_spotlight`.
 
@@ -67,5 +67,5 @@ There can be one or more instances of :ref:`component-ckworker` in a Cloudkeeper
 
 Once :ref:`component-ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job.
 
-| Most of the :ref:`actions` are done by :ref:`component-ckworker`.
+| Most of the :ref:`actions <action>` are done by :ref:`component-ckworker`.
 | Only exception is :ref:`workflow-metrics`, which are processed by :ref:`component-ckmetrics`

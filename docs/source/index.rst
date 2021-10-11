@@ -34,7 +34,7 @@ Is Cloudkeeper the tool I am looking for?
 
 If you ever
 
-- had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a :ref:`quota limit <_ql-kind-quota>`
+- had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a :ref:`quota limit <ql-kind-quota>`
 - wanted to find all :ref:`expired certificate <ql-kind-certificate>`
 - had to :ref:`change the tags <action_tags>` of thousands of EC2 instances at once
 - needed to delete all :ref:`unused EBS volumes <ql-kind-volume>` that had no I/O in the past month
