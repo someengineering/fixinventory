@@ -39,6 +39,7 @@ polygon = PoolVector2Array( -24, 0, 0, -24, 24, 0, 0, 24 )
 scale = Vector2( 0.3, 0.3 )
 
 [node name="LabelName" type="Label" parent="Labels"]
+modulate = Color( 1, 1, 1, 0 )
 margin_left = -1507.0
 margin_top = -79.0
 margin_right = 1497.0
@@ -52,9 +53,9 @@ __meta__ = {
 
 [node name="LabelKind" type="Label" parent="Labels"]
 margin_left = -677.0
-margin_top = -140.0
+margin_top = -52.0
 margin_right = 672.0
-margin_bottom = -42.0
+margin_bottom = 46.0
 custom_fonts/font = SubResource( 15 )
 text = "test"
 align = 1
@@ -64,6 +65,7 @@ __meta__ = {
 }
 
 [node name="Area2D" type="Area2D" parent="."]
+visible = false
 z_index = 50
 z_as_relative = false
 collision_layer = 2
@@ -76,7 +78,10 @@ shape = SubResource( 3 )
 [node name="Reveal" type="Tween" parent="."]
 
 [node name="Marker" type="Line2D" parent="."]
+visible = false
+modulate = Color( 1, 1, 1, 0 )
 material = SubResource( 8 )
+scale = Vector2( 0.5, 0.5 )
 z_index = -1
 points = PoolVector2Array( -32, 0, 0, -32, 32, 0, 0, 32, -32, 0 )
 width = 1.0
@@ -86,3 +91,4 @@ antialiased = true
 [connection signal="input_event" from="Area2D" to="." method="_on_Area2D_input_event"]
 [connection signal="mouse_entered" from="Area2D" to="." method="_on_Area2D_mouse_entered"]
 [connection signal="mouse_exited" from="Area2D" to="." method="_on_Area2D_mouse_exited"]
+[connection signal="tween_all_completed" from="Reveal" to="." method="_on_Reveal_tween_all_completed"]

@@ -1,4 +1,4 @@
-extends Node
+extends Reference
 class_name CloudEdge
 
 var from : CloudNode = null

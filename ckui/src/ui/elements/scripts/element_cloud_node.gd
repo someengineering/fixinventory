@@ -150,8 +150,9 @@ func set_is_selected(value:bool) -> void:
 func set_hover_power(value:float) -> void:
 	hover_power = value
 	var eased_hover_power = ease(hover_power, -2.0)
+	marker.visible = hover_power > 0
 	marker.scale = lerp(Vector2(0.5,0.5), Vector2.ONE, eased_hover_power)
-	marker.modulate = lerp( Color.transparent, Color.white, eased_hover_power )
+	marker.modulate.a = lerp( 0, 1, eased_hover_power )
 	marker.width = range_lerp(eased_hover_power, 0, 1, 1, 0.5)
 	marker.rotation = eased_hover_power * PI * 0.5
 	parent_graph.emit_signal("hovering_node", cloud_node.id, eased_hover_power)
@@ -160,6 +161,7 @@ func set_hover_power(value:float) -> void:
 func show_detail(node_id):
 	if node_id != cloud_node.id:
 		return
+	label_name.show()
 	reveal.remove_all()
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -140, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
@@ -171,3 +173,8 @@ func hide_detail():
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 0, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -52, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
+
+
+func _on_Reveal_tween_all_completed():
+	if label_name.modulate.a < 0.1:
+		label_name.hide()

@@ -71,12 +71,15 @@ func read_data():
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
 		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
+		
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
 				index += 1
 				continue
-			new_data[index] = parse_json(line)
+			var next_line = parse_json(line)
+			if filter_data_on_load(next_line, filter_by_kinds):
+				new_data[index] = next_line
 			index += 1
 			if index % update_mod == 0: 
 				_g.msg( "Reading file - line {0}".format([index]) )
@@ -95,11 +98,10 @@ func read_data():
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
 	
-	filter_data(new_data)
+	generate_graph(new_data)
 	
 	
 func generate_graph(filtered_data_result:Dictionary):
-	print("GENERATING GRAPH!")
 	var file = File.new()
 	var graph_node_positions := {}
 	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
@@ -121,54 +123,11 @@ func filter_data_on_load(element, filter_by_kinds):
 	if "id" in element:
 		if element.reported.kind in filter_by_kinds:
 			loaded_data_filtered_ids.append(element.id)
-			return element
+			return true
 	elif element.to in loaded_data_filtered_ids and element.from in loaded_data_filtered_ids:
-		return element
+		return true
 	else:
-		return null
-
-
-func filter_data(data):
-	var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account"]
-	
-	_g.msg( "Filtering {0} elements by {1}".format([ data.size(), str(filter_by_kinds)]) )
-	_e.emit_signal("loading", 0, "Filtering nodes" )
-	yield(get_tree(), "idle_frame")
-	
-	var amount_of_nodes := 0
-	var amount_of_edges := 0
-	var filtered_ids := []
-	var filtered_data := {}
-	
-	var data_keys = data.keys()
-	var data_amount = float( data_keys.size() )
-	var elem_index := 0
-	for key in data_keys:
-		var elem = data[key]
-		if "id" in elem:
-			if elem.reported.kind in filter_by_kinds:
-				amount_of_nodes += 1
-				filtered_data[key] = elem
-				filtered_ids.append(elem.id)
-		
-		elif elem.to in filtered_ids and elem.from in filtered_ids:
-			amount_of_edges += 1
-			filtered_data[key] = elem
-		else:
-			data[key] = null
-
-		elem_index += 1
-		if elem_index % 1000 == 0:
-			_g.msg( "Filtering elements: {0} Nodes | {1} Edges".format([amount_of_nodes, amount_of_edges]))
-			_e.emit_signal("loading", float( elem_index ) / data_amount, "Filtering elements" )
-			yield(get_tree(), "idle_frame")
-	
-	_e.emit_signal("loading", 1, "Filtering elements" )
-	_g.msg( "Filter done: {0} Nodes | {1} Edges".format([amount_of_nodes, amount_of_edges]))
-	yield(get_tree(), "idle_frame")
-	print("FILTERING DONE!")
-	
-	emit_signal("filtering_done", filtered_data)
+		return false
 
 
 func main_graph_order():

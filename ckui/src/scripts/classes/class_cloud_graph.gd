@@ -13,6 +13,8 @@ var graph_data := {
 	"edges" : {}
 	}
 
+var layout_data := {}
+
 const ATTRACTION_CONSTANT := 0.3*0.05
 const REPULSION_CONSTANT := 400.0
 const MAX_DISTANCE := 1000.0
@@ -22,7 +24,7 @@ const MAX_DISPLACE := 100.0
 
 const DEFAULT_DAMPING := 0.7
 const DEFAULT_SPRING_LENGTH := 200/3
-const DEFAULT_MAX_ITERATIONS := 200
+const DEFAULT_MAX_ITERATIONS := 20
 
 
 var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
@@ -88,11 +90,12 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 
 
 func create_graph_raw(raw_data : Dictionary, total_nodes:int):
+	_e.emit_signal("loading", 0, "Creating visual elements" )
+	node_group.modulate.a = 0.05
+	
 	var index := 0
 	var index_mod = raw_data.size() / 100
 	var total_size : float = float( raw_data.size() )
-	node_group.modulate.a = 0.1
-	_e.emit_signal("loading", 0, "Creating visual elements" )
 	for data in raw_data.values():
 		if index % index_mod == 0:
 			_e.emit_signal("loading", float(index) / total_size, "Creating visual elements" )
@@ -106,6 +109,7 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 			yield(get_tree(), "idle_frame")
 			if root_node == null:
 				root_node = graph_data.nodes[data.id].icon
+				create_new_layout_ref(data)
 		else:
 			# For SFDP creation
 			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
@@ -119,6 +123,12 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_g.msg( "Visual elements done ... rendering" )
 	_e.emit_signal("loading", 1, "Creating visual elements" )
 	_e.emit_signal("loading_done")
+
+
+func create_new_layout_ref(data):
+	var ref = NodeLayoutRef.new()
+	ref.id = data.id
+	layout_data[data.id] = ref
 
 
 func create_graph_direct(_graph_data : Dictionary):

@@ -9,7 +9,7 @@
 config_version=4
 
 _global_script_classes=[ {
-"base": "Node",
+"base": "Reference",
 "class": "CloudEdge",
 "language": "GDScript",
 "path": "res://scripts/classes/class_cloud_edge.gd"
@@ -19,10 +19,15 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://scripts/classes/class_cloud_graph.gd"
 }, {
-"base": "Node",
+"base": "Reference",
 "class": "CloudNode",
 "language": "GDScript",
 "path": "res://scripts/classes/class_cloud_node.gd"
+}, {
+"base": "Reference",
+"class": "NodeLayoutRef",
+"language": "GDScript",
+"path": "res://scripts/classes/class_layout_ref.gd"
 }, {
 "base": "Node",
 "class": "Utils",
@@ -33,6 +38,7 @@ _global_script_class_icons={
 "CloudEdge": "",
 "CloudGraph": "",
 "CloudNode": "",
+"NodeLayoutRef": "",
 "Utils": ""
 }
 
