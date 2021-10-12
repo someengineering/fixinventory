@@ -290,7 +290,7 @@ class ArangoGraphDB(GraphDB):
         graph = DiGraph()
         async for kind, item in result:
             if kind == "node":
-                graph.add_node(item["id"], **item["reported"])
+                graph.add_node(item["id"], **item)
             elif kind == "edge":
                 graph.add_edge(item["from"], item["to"])
         return graph
@@ -326,8 +326,9 @@ class ArangoGraphDB(GraphDB):
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
                 result = {"id": doc["_key"], "type": "node"}
-                if "_rev" in doc:
-                    result["revision"] = doc["_rev"]
+                for key, name in [("_rev", "revision"), ("pinned", "pinned")]:
+                    if key in doc:
+                        result[name] = doc[key]
                 props(doc, result)
                 if "kinds" in doc:
                     result["kinds"] = doc["kinds"]
@@ -782,14 +783,16 @@ class ArangoGraphDB(GraphDB):
             else:
                 raise AttributeError(f"Do not understand: {ab_term}")
 
-        def part(p: Part, idx: int, in_cursor: str) -> Tuple[Part, str, str]:
+        def part(p: Part, idx: int, in_cursor: str) -> Tuple[Part, str, str, str]:
             query_part = ""
+            filtered_out = f"step{idx}_filter"
 
             def filter_statement() -> str:
                 nonlocal query_part
                 crsr = f"f{idx}"
-                out = f"step{idx}_filter"
-                query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {crsr})"
+                out = filtered_out
+                f_res = f"MERGE({crsr}, {{pinned: true}})" if p.pinned else crsr
+                query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {f_res})"
                 return out
 
             def with_clause(in_crsr: str, clause: WithClause) -> str:
@@ -889,7 +892,7 @@ class ArangoGraphDB(GraphDB):
             cursor = filter_statement()
             cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
             cursor = navigation(cursor, p.navigation) if p.navigation else cursor
-            return p, cursor, query_part
+            return p, cursor, filtered_out, query_part
 
         def merge_ancestors(cursor: str, part_str: str, ancestor_names: List[str]) -> Tuple[str, str]:
             ancestors: List[Tuple[str, str]] = [merge_ancestors_parser.parse(p) for p in ancestor_names]
@@ -936,7 +939,7 @@ class ArangoGraphDB(GraphDB):
             parts.append(part_tuple)
             crsr = part_tuple[1]
 
-        all_parts = " ".join(p[2] for p in parts)
+        all_parts = " ".join(p[3] for p in parts)
         resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
         limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
@@ -948,7 +951,7 @@ class ArangoGraphDB(GraphDB):
             )
         else:  # return results
             # return all pinned parts (last result is "pinned" automatically)
-            pinned = {out for part, out, _ in parts if part.pinned}
+            pinned = {out for part, _, out, _ in parts if part.pinned}
             sort_by = sort("r", query.sort, section_dot) if query.sort else ""
             result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
             return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars

@@ -309,7 +309,7 @@ class Part:
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
         pin = "+" if self.pinned else ""
-        return f"{self.term}{with_clause}{nav}{pin}"
+        return f"{self.term}{with_clause}{pin}{nav}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -501,6 +501,11 @@ class Query:
         aggregate = self.aggregate.on_section(section) if self.aggregate else None
         parts = [replace(p, term=p.term.on_section(section)) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
+
+    def pin(self) -> Query:
+        parts = self.parts.copy()
+        parts[0] = replace(parts[0], pinned=True)
+        return replace(self, parts=parts)
 
     def combine(self, other: Query) -> Query:
         preamble = {**self.preamble, **other.preamble}

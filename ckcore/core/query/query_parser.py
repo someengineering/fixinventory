@@ -180,8 +180,8 @@ def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
     with_clause = yield with_clause_parser.optional()
-    nav = yield navigation_parser.optional()
     pinned = yield pin_parser
+    nav = yield navigation_parser.optional()
     return Part(term, pinned, with_clause, nav)
 
 
