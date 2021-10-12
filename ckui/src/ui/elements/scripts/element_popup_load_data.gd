@@ -69,7 +69,7 @@ func _ready():
 		new_checkbox.name = filter
 		new_checkbox.show()
 		grid.add_child(new_checkbox)
-	_e.connect("load_nodes", self, "show")
+	_e.connect("load_nodes", self, "popup_show")
 	
 
 func check_for_graph_dump() -> bool:
@@ -108,12 +108,18 @@ func _on_OkButton_pressed():
 	hide()
 
 
+func popup_show():
+	_g.popup = true
+	show()
+
+
 func popup_close():
-	pass
+	_g.popup = false
 
 
 func popup_ok():
 	$Timer.stop()
+	_g.popup = false
 	var filters := []
 	for i in grid.get_children():
 		if i.pressed:

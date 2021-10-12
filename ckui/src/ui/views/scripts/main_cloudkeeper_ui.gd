@@ -1,6 +1,6 @@
 extends Node2D
 
-enum states {GRAPH, SEARCH, DASHBOARD, QUERY, BLASTRADIUS}
+enum states {GRAPH, SEARCH, DASHBOARD, QUERY, BLASTRADIUS, POPUP}
 
 onready var blur = $UI/Blur
 onready var ui_graph = $UIGraph
@@ -31,7 +31,7 @@ func _ready() -> void:
 
 
 func _input(event) -> void:
-	if _g.spaceship_mode:
+	if _g.spaceship_mode or _g.popup:
 		return
 	if event.is_action_pressed("ui_left"):
 		if state == states.GRAPH:
@@ -45,7 +45,7 @@ func _input(event) -> void:
 	elif (state == states.SEARCH or state == states.QUERY) and event.is_action_pressed("ui_cancel"):
 		set_state(states.GRAPH)
 	
-	elif event is InputEventKey and event.pressed and state != states.QUERY:
+	elif event is InputEventKey and InputMap.event_is_action(event, "search") and event.pressed and state != states.QUERY:
 		set_state(states.SEARCH)
 
 
