@@ -8,6 +8,10 @@ You can modify your discovered cloud resources by using Cloudkeepers powerful co
 
 To learn about your new superpowers and use them in the best way, it is important to understand how Cloudkeeper handles commands in the background.
 
+.. warning::
+    | Cloudkeeper will **NOT** delete resources marked for deletion by default!
+    | Read more about this here: :ref:`delete_warning`
+
 How Cloudkeeper maintains your resources
 ****************************************
 
@@ -101,6 +105,8 @@ Cloudkeeper provides a powerful command to mass create, update or delete tags to
 
 In our first example above we set the tag ``owner: lukas`` for the AWS EC2 instance with ID ``i-039e06bb2539e5484``.
 This task is given to a :ref:`component-ckworker` that knows how to update AWS EC2 instance tags in that resources account.
+
+.. _delete_warning:
 
 Deleting resources
 ******************
