@@ -326,9 +326,8 @@ class ArangoGraphDB(GraphDB):
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
                 result = {"id": doc["_key"], "type": "node"}
-                for key, name in [("_rev", "revision"), ("pinned", "pinned")]:
-                    if key in doc:
-                        result[name] = doc[key]
+                if "_rev" in doc:
+                    result["revision"] = doc["_rev"]
                 props(doc, result)
                 if "kinds" in doc:
                     result["kinds"] = doc["kinds"]
