@@ -1,3 +1,5 @@
+.. _access-permissions:
+
 ==================
 Access Permissions
 ==================

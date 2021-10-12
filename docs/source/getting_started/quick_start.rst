@@ -20,7 +20,10 @@ Install & Run Cloudkeeper
 
 AWS Credentials
 ---------------
-For this demo you need an `AWS IAM User <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html>`_ with `Access Key <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_.
+For this demo, you need an `AWS IAM User <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html>`_ with `Access Key <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_.
+Make sure the user has the permissions to access your cloud resources.
+
+You can look up specific permission configurations in your :ref:`access-permissions` section.
 
 Run Cloudkeeper
 ---------------

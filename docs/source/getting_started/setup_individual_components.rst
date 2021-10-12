@@ -21,7 +21,10 @@ This guide uses ``curl`` and ``git`` to download components.
 
 The component set-up takes 20 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
-To start filling the Cloudkeeper graph with resource data you will need AWS credentials.
+To start filling the Cloudkeeper graph with resource data you will need AWS credentials with proper permissions.
+
+You can look up specific permission configurations in your :ref:`access-permissions` section.
+
 We assume you have done our :ref:`quickstart`.
 
 Prepare your environment
