@@ -96,12 +96,13 @@ def test_duration() -> None:
     assert str(no_date.value) == f"Expected duration but got: >simply no duration<"
 
 
-def test_synthetic() -> None:
-    a = TransformKind("dt", "duration", "datetime", "duration_to_datetime", True)
-    a.resolve({"duration": DurationKind("duration"), "datetime": DateTimeKind("datetime")})
+def test_transform() -> None:
+    age = TransformKind("dt", "duration", "datetime", "duration_to_datetime", True)
+    age.resolve({"duration": DurationKind("duration"), "datetime": DateTimeKind("datetime")})
     with pytest.raises(AttributeError):
-        a.check_valid("3s")  # check valid is not allowed on synthetic values (they do not get imported!)
-    one_day_old = from_utc(a.coerce("1d"))
+        age.check_valid("3s")  # check valid is not allowed on synthetic values (they do not get imported!)
+    # age transforms a duration into a timestamp before now
+    one_day_old = from_utc(age.coerce("1d"))
     # difference between 1d and computed utc-24h should be less than 2 seconds (depending on test env less)
     assert (one_day_old - (utc() - timedelta(hours=24))).total_seconds() <= 2
 

@@ -513,32 +513,23 @@ class DateKind(SimpleKind):
 
 
 class TransformKind(SimpleKind):
-    Synthetic = Any  # e.g. duration
-    Source = Any  # e.g. datetime
+    """
+    Transform kinds can be used to derive attributes in a complex kind from other attributes.
+    It is important, that the transformed attribute does not exist in the original complex kind!
+    It is a SimpleKind, since it can be queried directly as if it would be available as part of the json.
 
-    def __init__(
-        self,
-        fqn: str,
-        source_fqn: str,
-        destination_fqn: str,
-        converter: str,
-        reverse_order: bool,
-    ):
-        """
-        Transform kinds can be used to derive attributes in a complex kind from other attributes.
-        It is important, that the transformed attribute does not exist in the original complex kind!
-        It is a SimpleKind, since it can be queried directly as if it would be available as part of the json.
+    A transformed kind takes a source value of kind source_kind and transforms it using a function
+    into the destination kind.
 
-        A transformed kind takes a source value of kind source_kind and transforms it using a function
-        into the destination kind.
+    :param fqn: the fully qualified name of this kind.
+    :param source_fqn: the underlying runtime kind.
+    :param destination_fqn: the destination kind that is used in the data store.
+    :param converter: name of converter. See transform_kind_convert.py for a dict of possible converter names.
+    """
 
-        :param fqn: the fully qualified name of this kind.
-        :param source_fqn: the underlying runtime kind.
-        :param destination_fqn: the destination kind that is used in the data store.
-        :param converter: name of converter. See transform_kind_convert.py for a dict of possible converter names.
-        """
+    def __init__(self, fqn: str, source_fqn: str, destination_fqn: str, converter: str, reverse_order: bool):
         # note: source_fqn and runtime_kind are considered the same.
-        # the synthetic property does not create new types, but translates types.s
+        # the synthetic property does not introduce a new type, but translates types.
         super().__init__(fqn, source_fqn, reverse_order)
         self.destination_fqn: str = destination_fqn
         self.source_kind: Optional[SimpleKind] = None
