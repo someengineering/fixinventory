@@ -35,7 +35,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 Cloudkeeper consists of multiple components described in [the component list below](#component-list)
 
-The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a4`  
+The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a5`  
 The latest Documentation can be found on [https://docs.some.engineering](https://docs.some.engineering)
 
 
