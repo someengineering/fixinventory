@@ -301,15 +301,15 @@ class WithClause:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Part:
     term: Term
-    pinned: bool = False
+    tag: Optional[str] = None
     with_clause: Optional[WithClause] = None
     navigation: Optional[Navigation] = None
 
     def __str__(self) -> str:
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
-        pin = "+" if self.pinned else ""
-        return f"{self.term}{with_clause}{pin}{nav}"
+        tag = f"#{self.tag}" if self.tag else ""
+        return f"{self.term}{with_clause}{tag}{nav}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -474,7 +474,7 @@ class Query:
                 parts[0] = replace(p0, navigation=Navigation(start_m, until_m, edge_type, direction))
             # this is another traversal: so we need to start a new part
             else:
-                parts.insert(0, Part(AllTerm(), False, None, Navigation(start, until, edge_type, direction)))
+                parts.insert(0, Part(AllTerm(), None, None, Navigation(start, until, edge_type, direction)))
         else:
             parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
@@ -502,9 +502,9 @@ class Query:
         parts = [replace(p, term=p.term.on_section(section)) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
 
-    def pin(self) -> Query:
+    def tag(self, name: str) -> Query:
         parts = self.parts.copy()
-        parts[0] = replace(parts[0], pinned=True)
+        parts[0] = replace(parts[0], tag=name)
         return replace(self, parts=parts)
 
     def combine(self, other: Query) -> Query:
@@ -520,9 +520,11 @@ class Query:
             if left_last.with_clause and right_first.with_clause:
                 raise AttributeError("Can not combine 2 with clauses!")
             term = left_last.term & right_first.term
-            pinned = left_last.pinned | right_first.pinned
+            if left_last.tag and right_first.tag:
+                raise AttributeError("Can not combine 2 tag clauses!")
+            tag = left_last.tag if left_last.tag else right_first.tag
             with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
-            combined = Part(term, pinned, with_clause, right_first.navigation)
+            combined = Part(term, tag, with_clause, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
         sort_opt = combine_optional(self.sort, other.sort, lambda l, r: l + r)
         sort = sort_opt if sort_opt else []

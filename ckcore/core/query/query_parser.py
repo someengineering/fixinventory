@@ -144,8 +144,7 @@ in_out_p = lexeme(string("<-") >> edge_definition << string("->")).map(
 )
 navigation_parser = in_out_p | out_p | in_p
 
-pin_parser = lexeme(string("+")).optional().map(lambda x: x is not None)
-
+tag_parser = lexeme(string("#") >> literal_p).optional()
 with_p = lexeme(string("with"))
 count_p = lexeme(string("count"))
 
@@ -180,9 +179,9 @@ def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
     with_clause = yield with_clause_parser.optional()
-    pinned = yield pin_parser
+    tag = yield tag_parser
     nav = yield navigation_parser.optional()
-    return Part(term, pinned, with_clause, nav)
+    return Part(term, tag, with_clause, nav)
 
 
 @make_parser

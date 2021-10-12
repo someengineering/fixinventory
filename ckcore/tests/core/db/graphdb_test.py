@@ -344,8 +344,8 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert len(graph.edges) == 110
     assert len(graph.nodes.values()) == 111
 
-    # filter data and pin result, and then traverse to the end of the graph in both directions
-    around_me = Query.by("foo", P("identifier") == "9").pin().traverse_inout(start=0)
+    # filter data and tag result, and then traverse to the end of the graph in both directions
+    around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)
     graph = await filled_graph_db.query_graph(QueryModel(around_me, foo_model, "reported"))
     assert len({x for x in graph.nodes}) == 12
     assert GraphAccess.root_id(graph) == "sub_root"
@@ -353,9 +353,9 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
     for node_id, node in graph.nodes.data(True):
         if node_id == "9":
-            assert node["pinned"] is True
+            assert node["metadata"]["tag"] == "red"
         else:
-            assert "pinned" not in node
+            assert "tag" not in node["metadata"]
 
 
 @pytest.mark.asyncio
