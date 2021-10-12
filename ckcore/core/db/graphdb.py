@@ -790,7 +790,8 @@ class ArangoGraphDB(GraphDB):
                 nonlocal query_part
                 crsr = f"f{idx}"
                 out = filtered_out
-                f_res = f'MERGE({crsr}, {{metadata:MERGE({crsr}.metadata, {{"tag": "{p.tag}"}})}})' if p.tag else crsr
+                md = f"NOT_NULL({crsr}.metadata, {{}})"
+                f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"tag": "{p.tag}"}})}})' if p.tag else crsr
                 query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {f_res})"
                 return out
 
