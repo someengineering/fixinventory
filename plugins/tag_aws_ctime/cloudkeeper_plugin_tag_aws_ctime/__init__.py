@@ -76,42 +76,41 @@ class TagAWSCtimePlugin(BasePlugin):
     def tag_ctime(self, graph: Graph):
         now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         pt = ParallelTagger(self.name)
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if not isinstance(
-                    node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)
+        for node in graph.nodes:
+            if not isinstance(
+                node, (AWSALBTargetGroup, AWSEC2NetworkAcl, AWSEC2KeyPair, AWSVPC)
+            ):
+                continue
+
+            if "cloudkeeper:ctime" not in node.tags:
+                cloud = node.cloud(graph)
+                account = node.account(graph)
+                region = node.region(graph)
+                if (
+                    not isinstance(cloud, BaseCloud)
+                    or not isinstance(account, BaseAccount)
+                    or not isinstance(region, BaseRegion)
                 ):
-                    continue
-
-                if "cloudkeeper:ctime" not in node.tags:
-                    cloud = node.cloud(graph)
-                    account = node.account(graph)
-                    region = node.region(graph)
-                    if (
-                        not isinstance(cloud, BaseCloud)
-                        or not isinstance(account, BaseAccount)
-                        or not isinstance(region, BaseRegion)
-                    ):
-                        log.error(
-                            (
-                                f"Resource {node.rtdname} has no valid "
-                                "cloud, account or region associated with it"
-                            )
-                        )
-                        continue
-
-                    log.debug(
+                    log.error(
                         (
-                            f"Resource {node.rtdname} in cloud {cloud.name} account "
-                            f"{account.dname} region {region.name} has no cloudkeeper:ctime tag "
-                            f"- setting it because ctime is not available via the AWS API"
+                            f"Resource {node.rtdname} has no valid "
+                            "cloud, account or region associated with it"
                         )
                     )
-                    pt_key = f"{cloud.id}-{account.id}-{region.id}"
-                    pt.add(node, "cloudkeeper:ctime", now, pt_key)
-                    metrics_ctime_tags.labels(
-                        cloud=cloud.name, account=account.dname, region=region.name
-                    ).inc()
+                    continue
+
+                log.debug(
+                    (
+                        f"Resource {node.rtdname} in cloud {cloud.name} account "
+                        f"{account.dname} region {region.name} has no cloudkeeper:ctime tag "
+                        f"- setting it because ctime is not available via the AWS API"
+                    )
+                )
+                pt_key = f"{cloud.id}-{account.id}-{region.id}"
+                pt.add(node, "cloudkeeper:ctime", now, pt_key)
+                metrics_ctime_tags.labels(
+                    cloud=cloud.name, account=account.dname, region=region.name
+                ).inc()
         pt.run()
 
     @staticmethod

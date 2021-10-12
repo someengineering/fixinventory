@@ -254,58 +254,57 @@ class SlackBotPlugin(BasePlugin):
         log.info("Checking for outstanding Slack notifications")
         self.update_users_groups_channels(graph)
 
-        with graph.lock.read_access:
-            for node in graph.nodes:
+        for node in graph.nodes:
+            if (
+                isinstance(node, BaseResource)
+                and len(node.event_log) > 0
+                and "cloudkeeper:owner" in node.tags
+            ):
+                cloud = node.cloud(graph)
+                account = node.account(graph)
+                region = node.region(graph)
+                owner_tag = str(node.tags["cloudkeeper:owner"])
+
                 if (
-                    isinstance(node, BaseResource)
-                    and len(node.event_log) > 0
-                    and "cloudkeeper:owner" in node.tags
+                    not isinstance(cloud, BaseCloud)
+                    or not isinstance(account, BaseAccount)
+                    or not isinstance(region, BaseRegion)
                 ):
-                    cloud = node.cloud(graph)
-                    account = node.account(graph)
-                    region = node.region(graph)
-                    owner_tag = str(node.tags["cloudkeeper:owner"])
+                    continue
 
-                    if (
-                        not isinstance(cloud, BaseCloud)
-                        or not isinstance(account, BaseAccount)
-                        or not isinstance(region, BaseRegion)
-                    ):
-                        continue
-
-                    destination = None
-                    if owner_tag.startswith("slack:"):
-                        owner = owner_tag[6:]
-                        destination = self.users2id.get(owner)
-                    elif owner_tag.startswith("email:"):
-                        owner = owner_tag[6:]
-                        destination = self.emails2id.get(owner)
-                    else:
-                        log.error(
-                            (
-                                f"Unknown owner tag format {owner_tag} for node {node.dname} in cloud {cloud.name} "
-                                f"account {account.dname} region {region.name}"
-                            )
+                destination = None
+                if owner_tag.startswith("slack:"):
+                    owner = owner_tag[6:]
+                    destination = self.users2id.get(owner)
+                elif owner_tag.startswith("email:"):
+                    owner = owner_tag[6:]
+                    destination = self.emails2id.get(owner)
+                else:
+                    log.error(
+                        (
+                            f"Unknown owner tag format {owner_tag} for node {node.dname} in cloud {cloud.name} "
+                            f"account {account.dname} region {region.name}"
                         )
-
-                    if not isinstance(destination, SlackUser):
-                        log.error(
-                            f"Unable to determine Slack destination based on cloudkeeper:owner tag value {owner_tag}"
-                        )
-                        continue
-
-                    event_log_text = ""
-                    for event in node.event_log:
-                        event_log_text += (
-                            f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
-                        )
-                    slack_message = (
-                        f"Hello {destination.first_name}, your cloud resource `{node.dname}` in "
-                        f"cloud `{cloud.name}` account `{account.dname}` region `{region.name}`"
-                        f" was modified during the current cloudkeeper run. Here is the "
-                        f"event log:\n```\n{event_log_text}```"
                     )
-                    self.send_slack_message(destination.id, slack_message)
+
+                if not isinstance(destination, SlackUser):
+                    log.error(
+                        f"Unable to determine Slack destination based on cloudkeeper:owner tag value {owner_tag}"
+                    )
+                    continue
+
+                event_log_text = ""
+                for event in node.event_log:
+                    event_log_text += (
+                        f"{event['timestamp'].isoformat()} {event['msg']}" + "\n"
+                    )
+                slack_message = (
+                    f"Hello {destination.first_name}, your cloud resource `{node.dname}` in "
+                    f"cloud `{cloud.name}` account `{account.dname}` region `{region.name}`"
+                    f" was modified during the current cloudkeeper run. Here is the "
+                    f"event log:\n```\n{event_log_text}```"
+                )
+                self.send_slack_message(destination.id, slack_message)
 
     @retry(
         stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded
@@ -319,25 +318,24 @@ class SlackBotPlugin(BasePlugin):
 
     def update_users_groups_channels(self, graph: Graph):
         log.debug("Updating Users Groups and Channels")
-        with graph.lock.read_access:
-            tmp_users = {}
-            tmp_emails = {}
-            tmp_usergroups = {}
-            tmp_channels = {}
-            for user in graph.search("kind", "slack_user"):
-                tmp_users[user.name] = user
-                if user.email:
-                    tmp_emails[user.email] = user
-            for usergroup in graph.search("kind", "slack_usergroup"):
-                if usergroup.is_usergroup:
-                    tmp_usergroups[usergroup.name] = usergroup
-            for channel in graph.search("kind", "slack_conversation"):
-                if channel.is_channel:
-                    tmp_channels[channel.name] = channel
-            self.users2id = tmp_users
-            self.emails2id = tmp_emails
-            self.usergroups2id = tmp_usergroups
-            self.channels2id = tmp_channels
+        tmp_users = {}
+        tmp_emails = {}
+        tmp_usergroups = {}
+        tmp_channels = {}
+        for user in graph.search("kind", "slack_user"):
+            tmp_users[user.name] = user
+            if user.email:
+                tmp_emails[user.email] = user
+        for usergroup in graph.search("kind", "slack_usergroup"):
+            if usergroup.is_usergroup:
+                tmp_usergroups[usergroup.name] = usergroup
+        for channel in graph.search("kind", "slack_conversation"):
+            if channel.is_channel:
+                tmp_channels[channel.name] = channel
+        self.users2id = tmp_users
+        self.emails2id = tmp_emails
+        self.usergroups2id = tmp_usergroups
+        self.channels2id = tmp_channels
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

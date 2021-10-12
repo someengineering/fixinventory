@@ -190,19 +190,18 @@ class CliHandler:
         cli_input = replace_placeholder(cli_input)
         for cmd_chain in split_esc(cli_input, ";"):
             cmds = (cmd.strip() for cmd in split_esc(cmd_chain, "|"))
-            with self.graph.lock.read_access:
-                items = self.graph.nodes()
-                for cmd in cmds:
-                    args = ""
-                    if " " in cmd:
-                        cmd, args = cmd.split(" ", 1)
-                    if cmd in self.commands:
-                        items = self.commands[cmd](items, args)
-                    else:
-                        items = (f"Unknown command: {cmd}",)
-                        break
-                for item in items:
-                    yield item
+            items = self.graph.nodes()
+            for cmd in cmds:
+                args = ""
+                if " " in cmd:
+                    cmd, args = cmd.split(" ", 1)
+                if cmd in self.commands:
+                    items = self.commands[cmd](items, args)
+                else:
+                    items = (f"Unknown command: {cmd}",)
+                    break
+            for item in items:
+                yield item
 
     @staticmethod
     def quit(reason=None):

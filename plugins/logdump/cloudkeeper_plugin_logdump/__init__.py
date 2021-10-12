@@ -44,42 +44,41 @@ class LogDumpPlugin(BasePlugin):
         graph = event.data
         date_dir = date.today().strftime("%Y/%m/%d")
         log.info("Dumping Event Logs")
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if isinstance(node, BaseResource) and len(node.event_log) > 0:
-                    cloud = node.cloud(graph)
-                    account = node.account(graph)
-                    region = node.region(graph)
+        for node in graph.nodes:
+            if isinstance(node, BaseResource) and len(node.event_log) > 0:
+                cloud = node.cloud(graph)
+                account = node.account(graph)
+                region = node.region(graph)
 
-                    if (
-                        not isinstance(cloud, BaseCloud)
-                        or not isinstance(account, BaseAccount)
-                        or not isinstance(region, BaseRegion)
-                    ):
-                        log.error(
-                            (
-                                f"Unable to determine cloud ({cloud}), account ({account}) or "
-                                f"region ({region}) for node {node.dname}"
-                            )
+                if (
+                    not isinstance(cloud, BaseCloud)
+                    or not isinstance(account, BaseAccount)
+                    or not isinstance(region, BaseRegion)
+                ):
+                    log.error(
+                        (
+                            f"Unable to determine cloud ({cloud}), account ({account}) or "
+                            f"region ({region}) for node {node.dname}"
                         )
-                        continue
-
-                    out_dir = (
-                        self.logdump_path
-                        / date_dir
-                        / cloud.name
-                        / account.name
-                        / region.name
                     )
-                    out_dir.mkdir(parents=True, exist_ok=True)
-                    filename = str(node.id).replace("/", "_") + ".log"
-                    out_file = out_dir / filename
-                    with out_file.open("a") as f:
-                        log.debug(f"Writing {out_file}")
-                        for event in node.event_log:
-                            timestamp = event["timestamp"].isoformat()
-                            msg = event["msg"]
-                            f.write(f"{timestamp} {msg}" + "\n")
+                    continue
+
+                out_dir = (
+                    self.logdump_path
+                    / date_dir
+                    / cloud.name
+                    / account.name
+                    / region.name
+                )
+                out_dir.mkdir(parents=True, exist_ok=True)
+                filename = str(node.id).replace("/", "_") + ".log"
+                out_file = out_dir / filename
+                with out_file.open("a") as f:
+                    log.debug(f"Writing {out_file}")
+                    for event in node.event_log:
+                        timestamp = event["timestamp"].isoformat()
+                        msg = event["msg"]
+                        f.write(f"{timestamp} {msg}" + "\n")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

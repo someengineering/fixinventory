@@ -47,40 +47,39 @@ class ProtectSnowflakesPlugin(BasePlugin):
         log.debug("Protect Snowflakes called")
         self.config.read()  # runtime read in case config file was updated since last run
         graph = event.data
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
+        for node in graph.nodes:
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
 
-                if (
-                    not isinstance(node, BaseResource)
-                    or isinstance(node, BaseCloud)
-                    or isinstance(node, BaseAccount)
-                    or isinstance(node, BaseRegion)
-                    or not isinstance(cloud, BaseCloud)
-                    or not isinstance(account, BaseAccount)
-                    or not isinstance(region, BaseRegion)
-                    or node.protected
-                    or node.phantom
-                    or cloud.id not in self.config
-                    or account.id not in self.config[cloud.id]
-                    or region.id not in self.config[cloud.id][account.id]
-                    or node.kind not in self.config[cloud.id][account.id][region.id]
-                    or node.id
-                    not in self.config[cloud.id][account.id][region.id][node.kind]
-                ):
-                    continue
+            if (
+                not isinstance(node, BaseResource)
+                or isinstance(node, BaseCloud)
+                or isinstance(node, BaseAccount)
+                or isinstance(node, BaseRegion)
+                or not isinstance(cloud, BaseCloud)
+                or not isinstance(account, BaseAccount)
+                or not isinstance(region, BaseRegion)
+                or node.protected
+                or node.phantom
+                or cloud.id not in self.config
+                or account.id not in self.config[cloud.id]
+                or region.id not in self.config[cloud.id][account.id]
+                or node.kind not in self.config[cloud.id][account.id][region.id]
+                or node.id
+                not in self.config[cloud.id][account.id][region.id][node.kind]
+            ):
+                continue
 
-                log_msg = "Snowflake protection configured for this Node - burning protection fuse"
-                log.info(
-                    (
-                        f"Protecting {node.kind} {node.dname} in cloud {cloud.name} "
-                        f"account {account.dname} region {region.name}: {log_msg}"
-                    )
+            log_msg = "Snowflake protection configured for this Node - burning protection fuse"
+            log.info(
+                (
+                    f"Protecting {node.kind} {node.dname} in cloud {cloud.name} "
+                    f"account {account.dname} region {region.name}: {log_msg}"
                 )
-                node.log(log_msg)
-                node.protected = True
+            )
+            node.log(log_msg)
+            node.protected = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

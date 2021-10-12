@@ -63,102 +63,97 @@ class CleanupAWSVPCsPlugin(BasePlugin):
     def vpc_cleanup(self, event: Event):
         graph = event.data
         log.info("AWS VPC cleanup called")
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if node.protected or not node.clean or not isinstance(node, AWSVPC):
+        for node in graph.nodes:
+            if node.protected or not node.clean or not isinstance(node, AWSVPC):
+                continue
+
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
+            log_prefix = (
+                f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} "
+                f"region {region.name} marked for cleanup."
+            )
+
+            if len(self.config) > 0:
+                if (
+                    cloud.id not in self.config
+                    or account.id not in self.config[cloud.id]
+                ):
+                    log.debug(
+                        (
+                            f"{log_prefix} Account not found in config - ignoring dependent resources."
+                        )
+                    )
                     continue
 
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
-                log_prefix = (
-                    f"Found AWS VPC {node.dname} in cloud {cloud.name} account {account.dname} "
-                    f"region {region.name} marked for cleanup."
-                )
+            vpc_instances = [
+                i
+                for i in node.descendants(graph)
+                if isinstance(i, AWSEC2Instance)
+                and i.instance_status not in ("shutting-down", "terminated")
+                and not i.clean
+            ]
+            if len(vpc_instances) > 0:
+                log_msg = "VPC contains active EC2 instances - not cleaning VPC."
+                log.debug(f"{log_prefix} {log_msg}")
+                node.log(log_msg)
+                node.clean = False
+                continue
 
-                if len(self.config) > 0:
-                    if (
-                        cloud.id not in self.config
-                        or account.id not in self.config[cloud.id]
-                    ):
+            log.debug(f"{log_prefix} Marking dependent resources for cleanup as well.")
+
+            for descendant in node.descendants(graph):
+                log.debug(f"Found descendant {descendant.rtdname} of VPC {node.dname}")
+                if isinstance(
+                    descendant,
+                    (
+                        AWSVPCPeeringConnection,
+                        AWSEC2NetworkAcl,
+                        AWSEC2NetworkInterface,
+                        AWSELB,
+                        AWSALB,
+                        AWSALBTargetGroup,
+                        AWSEC2Subnet,
+                        AWSEC2SecurityGroup,
+                        AWSEC2InternetGateway,
+                        AWSEC2NATGateway,
+                        AWSEC2RouteTable,
+                        AWSVPCEndpoint,
+                        AWSEC2ElasticIP,
+                    ),
+                ):
+                    descendant.log(
+                        (
+                            f"Marking for cleanup because resource is a descendant of VPC {node.dname} "
+                            f"which is set to be cleaned"
+                        )
+                    )
+                    node.log(
+                        f"Marking {descendant.rtdname} for cleanup because resource is a descendant"
+                    )
+                    descendant.clean = True
+                else:
+                    if descendant.clean:
                         log.debug(
                             (
-                                f"{log_prefix} Account not found in config - ignoring dependent resources."
+                                f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted but "
+                                f"already marked for cleaning"
                             )
                         )
-                        continue
-
-                vpc_instances = [
-                    i
-                    for i in node.descendants(graph)
-                    if isinstance(i, AWSEC2Instance)
-                    and i.instance_status not in ("shutting-down", "terminated")
-                    and not i.clean
-                ]
-                if len(vpc_instances) > 0:
-                    log_msg = "VPC contains active EC2 instances - not cleaning VPC."
-                    log.debug(f"{log_prefix} {log_msg}")
-                    node.log(log_msg)
-                    node.clean = False
-                    continue
-
-                log.debug(
-                    f"{log_prefix} Marking dependent resources for cleanup as well."
-                )
-
-                for descendant in node.descendants(graph):
-                    log.debug(
-                        f"Found descendant {descendant.rtdname} of VPC {node.dname}"
-                    )
-                    if isinstance(
-                        descendant,
-                        (
-                            AWSVPCPeeringConnection,
-                            AWSEC2NetworkAcl,
-                            AWSEC2NetworkInterface,
-                            AWSELB,
-                            AWSALB,
-                            AWSALBTargetGroup,
-                            AWSEC2Subnet,
-                            AWSEC2SecurityGroup,
-                            AWSEC2InternetGateway,
-                            AWSEC2NATGateway,
-                            AWSEC2RouteTable,
-                            AWSVPCEndpoint,
-                            AWSEC2ElasticIP,
-                        ),
-                    ):
-                        descendant.log(
+                    else:
+                        log.error(
                             (
-                                f"Marking for cleanup because resource is a descendant of VPC {node.dname} "
-                                f"which is set to be cleaned"
+                                f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted and "
+                                f"not marked for cleaning - VPC cleanup will likely fail"
                             )
                         )
                         node.log(
-                            f"Marking {descendant.rtdname} for cleanup because resource is a descendant"
+                            (
+                                f"Descendant {descendant.rtdname} is not targeted and not marked for cleaning "
+                                f"- cleanup will likely fail"
+                            )
                         )
-                        descendant.clean = True
-                    else:
-                        if descendant.clean:
-                            log.debug(
-                                (
-                                    f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted but "
-                                    f"already marked for cleaning"
-                                )
-                            )
-                        else:
-                            log.error(
-                                (
-                                    f"Descendant {descendant.rtdname} of VPC {node.dname} is not targeted and "
-                                    f"not marked for cleaning - VPC cleanup will likely fail"
-                                )
-                            )
-                            node.log(
-                                (
-                                    f"Descendant {descendant.rtdname} is not targeted and not marked for cleaning "
-                                    f"- cleanup will likely fail"
-                                )
-                            )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
