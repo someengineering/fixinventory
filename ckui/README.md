@@ -33,6 +33,7 @@ It is here to give an idea of how the UI will be looking and feeling and to star
 - Download the [Godot 3.4 b6](https://downloads.tuxfamily.org/godotengine/3.4/beta6/) (standard version).
 - Start the engine and import the project in the Project Manager (click import, select the 'project.godot' file).
 - Open the project from the Project Manager.
+- If you encounter an error informing you about missing files, make sure you correctly used [LFS to fetch them](https://www.atlassian.com/git/tutorials/git-lfs#fetching-history).
 - Run the Project by clicking on the "Play" button in the upper right corner.
 
 
