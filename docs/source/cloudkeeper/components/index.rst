@@ -1,11 +1,12 @@
 .. _component-list:
 
-Cloudkeeper components
-######################
+==========
+Components
+==========
 
-These are the moving parts of cloudkeeper.
+These are the moving parts of Cloudkeeper.
 We will now guide you through the setup and run procedure for each one.
-:ref:`plugins` have no extra section, as they are integrated via :ref:`ckworker`
+:ref:`plugins` have no extra section, as they are integrated via :ref:`component-ckworker`
 
 - :ref:`component-ckcore`: the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
 - :ref:`component-cksh`: the Cloudkeeper shell to interact with the core.
@@ -15,7 +16,7 @@ We will now guide you through the setup and run procedure for each one.
 
 To give you a better understanding of how cloudkeepers components interact with each other and where prometheus and arangoDB come in, we have prepared this visualisation for you.
 
-.. image:: _static/images/query_documentation2x_10.png
+.. image:: img/component_graph.png
   :alt: Component connection
 
 .. _component-ckcore:
@@ -23,12 +24,18 @@ To give you a better understanding of how cloudkeepers components interact with 
 ckcore
 ******
 
-The Cloudkeeper graph platform :ref:`ckcore` is the persistence and query backend of Cloudkeeper. It maintains the graph
-of resources and provides APIs to update and access them. Within :ref:`ckcore` there are workflows consisting of steps
+The Cloudkeeper graph platform :ref:`component-ckcore` is the persistence and query backend of Cloudkeeper. It maintains the graph
+of resources and provides APIs to update and access them. Within :ref:`component-ckcore` there are workflows consisting of steps
 that result in actions like ``collect``, ``cleanup`` or ``generate_metrics``. These actions are being received by components
-like :ref:`ckworker` and :ref:`ckmetrics`.
+like :ref:`component-ckworker` and :ref:`component-ckmetrics`.
 
-:ref:`ckcore` also provides the CLI API that :ref:`cksh` calls.
+You can find more information in the section about :ref:`ckcore_spotlight`.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   ckcore_spotlight
 
 .. _component-cksh:
 
@@ -43,8 +50,8 @@ It allows you to explore the graph, find resources of interest, mark them for cl
 ckmetrics
 *********
 
-:ref:`component-ckmetrics` takes :ref:`component-ckcore` graph data and runs aggregation functions on it. Those aggregated metrics
-are then exposed in a :ref:`prometheus` compatible format.
+:ref:`component-ckmetrics` takes :ref:`component-ckcore` graph data and runs aggregation functions on it.
+Those aggregated metrics are then exposed in a :ref:`prometheus` compatible format.
 
 .. _component-ckworker:
 
@@ -57,3 +64,16 @@ ckworker
 Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
 
 There can be one or more instances of :ref:`component-ckworker` in a Cloudkeeper deployment. A single :ref:`component-ckworker` can collect many clouds or you could have multiple :ref:`component-ckworker` collecting one cloud or even one account in one cloud each.
+
+Once :ref:`component-ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job.
+
+| Most of the :ref:`actions <action>` are done by :ref:`component-ckworker`.
+| Only exception is :ref:`workflow-metrics`, which are processed by :ref:`component-ckmetrics`
+
+.. _component-cklib:
+
+cklib
+*****
+
+Any functionality that is required by more than one of our components will be put in :ref:`component-cklib` library.
+

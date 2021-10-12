@@ -1,5 +1,6 @@
+===========================
 Setup individual components
-###########################
+===========================
 
 The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Cloudkeeper environment.
 
@@ -20,7 +21,10 @@ This guide uses ``curl`` and ``git`` to download components.
 
 The component set-up takes 20 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
-To start filling the Cloudkeeper graph with resource data you will need AWS credentials.
+To start filling the Cloudkeeper graph with resource data you will need AWS credentials with proper permissions.
+
+You can look up specific permission configurations in your :ref:`access-permissions` section.
+
 We assume you have done our :ref:`quickstart`.
 
 Prepare your environment
@@ -157,7 +161,7 @@ You install :ref:`component-ckcore` via Python pip directly from our git reposit
 
 Please make sure you have git installed.
 
-First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckcore`.
+First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-ckcore`.
 
 .. code-block:: bash
     :caption: Install cklib und ckcore
@@ -271,7 +275,7 @@ Install ckworker
 
 You install :ref:`component-ckworker` via python pip directly from our git repository.
 Please make sure you have git installed.
-First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckworker` as well.
+First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-ckworker` as well.
 
 .. code-block:: bash
     :caption: Install ckworker
@@ -363,7 +367,7 @@ Install ckmetrics
 You install :ref:`component-ckmetrics` via python pip directly from our git repository.
 Please make sure you have git installed.
 
-If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as dependency to :ref:`setup-ckmetrics` as well.
+If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`component-cklib` as dependency to :ref:`setup-ckmetrics` as well.
 
 .. code-block:: bash
     :caption: Install ckmetrics
@@ -427,7 +431,7 @@ You can now access the metrics interface via `ckmetrics <http://localhost:9955/m
 (Optional) Run Prometheus
 *************************
 
-If you do not have prometheus already, here is how you configure and run it to make use of :ref:`ckmetrics` exporter data. 
+If you do not have prometheus already, here is how you configure and run it to make use of :ref:`component-ckmetrics` exporter data. 
 
 Run
 ===

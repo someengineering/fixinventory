@@ -1,3 +1,6 @@
+.. _model:
+
+=====
 Model
 =====
 
@@ -33,7 +36,7 @@ Here we see properties, that is common to every resource, no matter which resour
     }
     @enduml
 
-.. image:: _static/images/resource.svg
+.. image:: img/resource.svg
   :width: 200
   :alt: Resource Model
 
@@ -101,7 +104,7 @@ Cloudkeeper introduces abstract model classes for almost all different resources
     volume <|-- gcp_disk
     @enduml
 
-.. image:: _static/images/resource_example.svg
+.. image:: img/resource_example.svg
   :width: 75%
   :alt: Resource Example Model
 
@@ -138,7 +141,7 @@ The complete data that is collected and stored could look like this example data
         }
     @endjson
 
-.. image:: _static/images/ec2_volume_example.svg
+.. image:: img/ec2_volume_example.svg
   :width: 60%
   :alt: Example Json
 

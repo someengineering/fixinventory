@@ -84,7 +84,7 @@ If you have no need for the UI assets git-lfs is optional.
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/3G3sX6y3bt) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
 
 
 ## License

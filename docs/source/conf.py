@@ -38,6 +38,9 @@ extensions = [
     'sphinx_rtd_theme',
 ]
 
+# The master toctree document.
+master_doc = 'contents'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -63,7 +66,10 @@ html_css_files = ['css/custom.css']
 
 html_logo = '_static/images/SomeEngineering_Logo_m.png'
 
+html_favicon = 'favicon.ico'
+
 html_theme_options = {
+    'analytics_id': 'G-237E5P27RE',
     'collapse_navigation': False,
     'display_version': True,
     'collapse_navigation': False,

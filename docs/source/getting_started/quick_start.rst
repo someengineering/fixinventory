@@ -1,7 +1,9 @@
 .. _quickstart:
 
+===========
 Quick start
-***********
+===========
+
 In this quick start guide, we’re showing you three things, how to:
 
     #. install Cloudkeeper for AWS with docker
@@ -19,7 +21,10 @@ Install & Run Cloudkeeper
 
 AWS Credentials
 ---------------
-For this demo you need an `AWS IAM User <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html>`_ with `Access Key <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_.
+For this demo, you need an `AWS IAM User <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html>`_ with `Access Key <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_.
+Make sure the user has the permissions to access your cloud resources.
+
+You can look up specific permission configurations in your :ref:`access-permissions` section.
 
 Run Cloudkeeper
 ---------------
@@ -93,7 +98,7 @@ Count the resources available in Cloudkeeper
     total matched: 280
     total unmatched: 0
 
-What is your number? Let us know on `Discord <https://discord.gg/3G3sX6y3bt>`_!
+What is your number? Let us know on `Discord <https://discord.gg/someengineering>`_!
 
 
 Usage of the Cloudkeeper CLI
@@ -169,7 +174,7 @@ List your resource types
 
 See full list of currently `supported AWS ressources <https://github.com/someengineering/cloudkeeper/blob/main/plugins/aws/cloudkeeper_plugin_aws/resources.py>`_.
 
-We add new resources every week. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/3G3sX6y3bt>`_ channel and let us know!. 
+We add new resources every week. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!. 
 
 Query your resource types
 -------------------------
@@ -301,7 +306,7 @@ How you get more assistance
 | Contributions are very much appreciated.
 
 | Discord:
-| https://discord.gg/3G3sX6y3bt
+| https://discord.gg/someengineering
 
-| GitHub Issue:
+| GitHub Issues:
 | https://github.com/someengineering/cloudkeeper/issues/new
