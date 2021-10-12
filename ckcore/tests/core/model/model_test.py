@@ -1,10 +1,10 @@
 import json
-from typing import Type, Any, Union
+from typing import Type, Any, Union, cast
 
 import pytest
 from deepdiff import DeepDiff
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from core.model.typed_model import to_js, from_js
 from networkx import DiGraph
 
@@ -22,7 +22,10 @@ from core.model.model import (
     DictionaryKind,
     predefined_kinds,
     PropertyPath,
+    TransformKind,
+    DurationKind,
 )
+from core.util import from_utc, utc
 
 
 def test_json_marshalling() -> None:
@@ -34,6 +37,8 @@ def test_json_marshalling() -> None:
     roundtrip(BooleanKind("b"), Kind)
     roundtrip(DateKind("d"), Kind)
     roundtrip(DateTimeKind("d"), Kind)
+    roundtrip(DurationKind("duration"), Kind)
+    roundtrip(TransformKind("synth", "duration", "datetime", "duration_to_datetime", True), Kind)
     roundtrip(ArrayKind(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
     roundtrip(
@@ -78,6 +83,28 @@ def test_boolean() -> None:
     assert a.check_valid(True) is None
     assert a.check_valid(False) is None
     assert expect_error(a, "test").startswith("Expected type boolean but got")
+
+
+def test_duration() -> None:
+    a = DurationKind("dt")
+    assert a.check_valid("2w3d5h6m3s") is None
+    assert expect_error(a, True) == "Expected type duration but got bool"
+    assert expect_error(a, "23df") == "Wrong format for duration: 23df. Examples: 2w, 4h3m, 2weeks, 1second"
+    assert a.coerce("12w") == "7257600s"
+    with pytest.raises(AttributeError) as no_date:
+        a.coerce("simply no duration")
+    assert str(no_date.value) == f"Expected duration but got: >simply no duration<"
+
+
+def test_transform() -> None:
+    age = TransformKind("dt", "duration", "datetime", "duration_to_datetime", True)
+    age.resolve({"duration": DurationKind("duration"), "datetime": DateTimeKind("datetime")})
+    with pytest.raises(AttributeError):
+        age.check_valid("3s")  # check valid is not allowed on synthetic values (they do not get imported!)
+    # age transforms a duration into a timestamp before now
+    one_day_old = from_utc(age.coerce("1d"))
+    # difference between 1d and computed utc-24h should be less than 2 seconds (depending on test env less)
+    assert (one_day_old - (utc() - timedelta(hours=24))).total_seconds() <= 2
 
 
 def test_datetime() -> None:
@@ -220,12 +247,16 @@ def test_property_path() -> None:
 
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
-    person_path = person_model["Person"].property_kind_by_path()  # type: ignore
+    person: ComplexKind = cast(ComplexKind, person_model["Person"])
+    person_path = person.property_by_path()
     assert len(person_path) == 11
-    assert person_path[PropertyPath(["name"])] == person_model["string"]
-    assert person_path[PropertyPath(["list[]"])] == person_model["string"]
-    assert person_path[PropertyPath(["tags", None])] == person_model["string"]
-    assert person_path[PropertyPath(["address", "zip"])] == person_model["zip"]
+    assert person_path[PropertyPath(["name"])].kind == person_model["string"]
+    assert person_path[PropertyPath(["name"])].prop.name == "name"
+    assert person_path[PropertyPath(["list[]"])].kind == person_model["string"]
+    assert person_path[PropertyPath(["list[]"])].prop.name == "list"
+    assert person_path[PropertyPath(["tags", None])].kind == person_model["string"]
+    assert person_path[PropertyPath(["address", "zip"])].kind == person_model["zip"]
+    assert person_path[PropertyPath(["address", "zip"])].prop.name == "zip"
     with pytest.raises(KeyError):
         _ = person_path[PropertyPath(["anything"])]
 
@@ -306,6 +337,7 @@ def test_graph(person_model: Model) -> None:
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
     js = to_js(obj)
     again = from_js(js, clazz)
+    assert type(obj) == type(again)
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"
 
 

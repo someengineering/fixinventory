@@ -13,7 +13,7 @@ from arango.typings import Json
 from networkx import MultiDiGraph, DiGraph
 
 from core import feature
-from core.constants import less_greater_then_operations
+from core.constants import less_greater_then_operations as lgt_ops
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
@@ -21,7 +21,7 @@ from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchCh
 from core.message_bus import MessageBus, CoreEvent
 from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
-from core.model.model import Model, ComplexKind
+from core.model.model import Model, ComplexKind, SyntheticProperty
 from core.model.resolve_in_graph import NodePath, GraphResolver
 from core.query.model import (
     Predicate,
@@ -743,14 +743,22 @@ class ArangoGraphDB(GraphDB):
             length = str(len(bind_vars))
             # if no section is given, the path is prefixed by the section: remove the section
             lookup = path if query_model.query_section else Section.without_section(path)
-            kind = model.kind_by_path(lookup)
-            if (p.op == "in" or p.op == "not in") and isinstance(p.value, list):
-                bind_vars[length] = [kind.coerce(a) for a in p.value]
+            prop = model.property_by_path(lookup)
+
+            def synthetic_path(synth: SyntheticProperty) -> str:
+                before, after = p.name.rsplit(prop.prop.name, 1)
+                return f'{before}{".".join(synth.path)}{after}'
+
+            op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
+            if op in ["in", "not in"] and isinstance(p.value, list):
+                bind_vars[length] = [prop.kind.coerce(a) for a in p.value]
             else:
-                bind_vars[length] = kind.coerce(p.value)
-            var_name = f"{cursor}.{section_dot}{p.name}"
-            p_term = f"{var_name}{extra} {p.op} @{length}"
-            return f"({var_name}!=null and {p_term})" if p.op in less_greater_then_operations else p_term
+                bind_vars[length] = prop.kind.coerce(p.value)
+            prop_name = synthetic_path(prop.prop.synthetic) if prop.prop.synthetic else p.name
+            var_name = f"{cursor}.{section_dot}{prop_name}"
+            p_term = f"{var_name}{extra} {op} @{length}"
+            # null check is required, since x<anything evaluates to true if x is null!
+            return f"({var_name}!=null and {p_term})" if op in lgt_ops else p_term
 
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
