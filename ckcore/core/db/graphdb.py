@@ -949,10 +949,10 @@ class ArangoGraphDB(GraphDB):
                 bind_vars,
             )
         else:  # return results
-            # return all pinned parts (last result is "pinned" automatically)
-            pinned = {out for part, _, out, _ in parts if part.tag}
+            # return all tagged parts (last result is "tagged" automatically)
+            tagged = {out for part, _, out, _ in parts if part.tag}
+            result = f'UNION({",".join(tagged)},{resulting_cursor})' if tagged else resulting_cursor
             sort_by = sort("r", query.sort, section_dot) if query.sort else ""
-            result = f'UNION({",".join(pinned)},{resulting_cursor})' if pinned else resulting_cursor
             return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars
 
     async def insert_genesis_data(self) -> None:
