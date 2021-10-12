@@ -406,3 +406,13 @@ span.caption-text {
 .admonition.warning {
     background: var(--warn-bg-dark) !important;
 }
+
+.admonition.important .admonition-title {
+    color: var(--bg-dark) !important;
+    background: var(--link-default) !important;
+}
+
+.admonition.important {
+    background: var(--text-darker) !important;
+}
+

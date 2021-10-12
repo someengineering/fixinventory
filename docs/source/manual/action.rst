@@ -8,7 +8,7 @@ You can modify your discovered cloud resources by using Cloudkeepers powerful co
 
 To learn about your new superpowers and use them in the best way, it is important to understand how Cloudkeeper handles commands in the background.
 
-.. warning::
+.. important::
     | Cloudkeeper will **NOT** delete resources marked for deletion by default!
     | Read more about this here: :ref:`delete_warning`
 
