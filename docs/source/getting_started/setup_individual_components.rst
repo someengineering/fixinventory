@@ -161,7 +161,7 @@ You install :ref:`component-ckcore` via Python pip directly from our git reposit
 
 Please make sure you have git installed.
 
-First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckcore`.
+First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-ckcore`.
 
 .. code-block:: bash
     :caption: Install cklib und ckcore
@@ -275,7 +275,7 @@ Install ckworker
 
 You install :ref:`component-ckworker` via python pip directly from our git repository.
 Please make sure you have git installed.
-First you need to install :ref:`cklib` as a dependency to :ref:`setup-ckworker` as well.
+First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-ckworker` as well.
 
 .. code-block:: bash
     :caption: Install ckworker
@@ -367,7 +367,7 @@ Install ckmetrics
 You install :ref:`component-ckmetrics` via python pip directly from our git repository.
 Please make sure you have git installed.
 
-If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`cklib` as dependency to :ref:`setup-ckmetrics` as well.
+If not already done in the :ref:`setup-ckcore` section, you need to install :ref:`component-cklib` as dependency to :ref:`setup-ckmetrics` as well.
 
 .. code-block:: bash
     :caption: Install ckmetrics

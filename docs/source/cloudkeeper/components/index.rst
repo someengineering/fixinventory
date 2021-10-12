@@ -50,8 +50,8 @@ It allows you to explore the graph, find resources of interest, mark them for cl
 ckmetrics
 *********
 
-:ref:`component-ckmetrics` takes :ref:`component-ckcore` graph data and runs aggregation functions on it. Those aggregated metrics
-are then exposed in a :ref:`prometheus` compatible format.
+:ref:`component-ckmetrics` takes :ref:`component-ckcore` graph data and runs aggregation functions on it.
+Those aggregated metrics are then exposed in a :ref:`prometheus` compatible format.
 
 .. _component-ckworker:
 
@@ -69,3 +69,11 @@ Once :ref:`component-ckworker` is started you do not have to interact with it at
 
 | Most of the :ref:`actions <action>` are done by :ref:`component-ckworker`.
 | Only exception is :ref:`workflow-metrics`, which are processed by :ref:`component-ckmetrics`
+
+.. _component-cklib:
+
+cklib
+*****
+
+Any functionality that is required by more than one of our components will be put in :ref:`component-cklib` library.
+

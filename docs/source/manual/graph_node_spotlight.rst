@@ -20,11 +20,11 @@ A graph node is a json document with a well defined structure and these top leve
   It is used to maintain the node as well as all edges from and to this node.
 - ``kinds``: This array contains all kinds of this node. It is derived from the kind of
   this node and includes the current kind as well as all parent kinds.
-  See :doc:`model<./model>` for an explanation of kind.
+  See :ref:`model` for an explanation of kind.
 - ``reported`` : This section is a json document and shows the reported properties from the
   collector. The data that is collected is specific to the cloud and the resource type.
   The reported data is of a specific ``kind`` indicated by the same property. The complete
-  structure of the reported section is described in the model :doc:`model<./model>`.
+  structure of the reported section is described in the model :ref:`model`.
 - ``desired`` : This section is a json document and shows desired changes of this node.
   Desired changes are reflected by humans and tools via the API or command line.
   The desired section is not described via a ``kind`` model and allows arbitrary data.

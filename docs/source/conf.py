@@ -66,6 +66,8 @@ html_css_files = ['css/custom.css']
 
 html_logo = '_static/images/SomeEngineering_Logo_m.png'
 
+html_favicon = 'favicon.ico'
+
 html_theme_options = {
     'analytics_id': 'G-237E5P27RE',
     'collapse_navigation': False,
