@@ -2,6 +2,10 @@ extends Node2D
 
 signal filtering_done
 
+const MAX_ZOOM = 0.2
+const MIN_ZOOM = 8.0
+const TOUCH_ZOOM_SPEED = 0.1
+
 var root_node : Object = null
 var mouse_is_pressed := false
 var last_drag_pos := Vector2.ZERO
@@ -168,6 +172,12 @@ func _physics_process(delta):
 	
 	if _g.spaceship_mode:
 		graph_cam.global_position = spaceship.global_position
+
+
+func _input(event):
+	if event is InputEventPanGesture:
+		var zoom_value = clamp(graph_cam.zoom.x + (-event.delta.y*TOUCH_ZOOM_SPEED), MAX_ZOOM, MIN_ZOOM)
+		graph_cam.zoom = Vector2.ONE * zoom_value
 
 
 func update_spaceship_mode():
