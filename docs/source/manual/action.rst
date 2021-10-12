@@ -107,14 +107,23 @@ Deleting resources
 
 .. warning::
 
-    Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup.    
-    Meaning when you run ``match is(aws_ec2_volume) | clean`` it marks all ``aws_ec2_volumes`` resources in your cloud for deletion.
+    | **Cloudkeeper is designed to clean up resources**.
+    | Act with caution when selecting and filtering resources for cleanup.
+    
+    If you run ``match is(aws_ec2_volume) | clean``, it marks **all** ``aws_ec2_volume`` resources in your cloud for deletion.
 
-    If you started a :ref:`component-ckworker` with the ``--cleanup`` command, marked resources will be cleaned every full hour via our :ref:`workflow-collect_and_cleanup` workflow.
-    You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup to print what it would do without actually doing it.
+    | By default, :ref:`component-ckworker` will **NOT delete resources marked for deletion.**
+    | Resources marked with ``| clean`` will stay this way without deleting them.
+
+    | :ref:`component-ckworker` will only delete marked resources when started with the ``--cleanup`` command.
+    | When started like that, marked resources will be cleaned every full hour via our :ref:`workflow-collect_and_cleanup` workflow.
+    
+    You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup, to print **what it would delete without actually deleting it**.
 
     When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like ``desired clean = true | count``.
+
     To quickly undo marking all ``aws_ec2_volumes`` for clean use ``match is(aws_ec2_volume) | set_desired clean=false``.
+    
     To remove all clean marker on all ressources you can use ``desired clean=true  | set_desired clean=false``.
 
 
