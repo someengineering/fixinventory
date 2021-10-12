@@ -1,2 +1,2 @@
-cklib==2.0.0a5
+cklib==2.0.0a6
 kubernetes==18.20.0

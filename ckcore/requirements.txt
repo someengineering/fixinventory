@@ -17,5 +17,5 @@ aiostream==0.4.3
 tzlocal==2.1
 frozendict==2.0.6
 pyyaml==5.4.1
-cklib==2.0.0a5
+cklib==2.0.0a6
 prometheus-client==0.11.0
