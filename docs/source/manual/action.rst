@@ -41,7 +41,8 @@ cleanup
 
 This workflow triggers all :ref:`plugins` to delete ressources they manage, that were previously marked as to be cleand.
 To activate this feature, :ref:`setup-ckworker` needs to be started with the ``--cleanup`` parameter.
-Otherwise it will default to a dry-run and NOT delete any ressources.
+Otherwise it will NOT delete any ressources.
+You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup to print what it would do without actually doing it.
 
 .. code-block::
     :caption: Start cleanup workflow
@@ -109,7 +110,8 @@ Deleting resources
     Cloudkeeper is designed to clean up resources. As such act with caution when selecting and filtering resources for cleanup.    
     Meaning when you run ``match is(aws_ec2_volume) | clean`` it marks all ``aws_ec2_volumes`` resources in your cloud for deletion.
 
-    If you started a :ref:`component-ckworker` with the ``--cleanup`` command, marked ressources will be cleaned every full hour via our :ref:`workflow-collect_and_cleanup` workflow.
+    If you started a :ref:`component-ckworker` with the ``--cleanup`` command, marked resources will be cleaned every full hour via our :ref:`workflow-collect_and_cleanup` workflow.
+    You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup to print what it would do without actually doing it.
 
     When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like ``desired clean = true | count``.
     To quickly undo marking all ``aws_ec2_volumes`` for clean use ``match is(aws_ec2_volume) | set_desired clean=false``.

@@ -17,6 +17,7 @@
 
    getting_started/quick_start
    getting_started/setup_individual_components
+   getting_started/access_permissions
 
 .. toctree::
    :maxdepth: 1
