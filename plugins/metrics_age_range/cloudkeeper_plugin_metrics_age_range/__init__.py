@@ -56,75 +56,74 @@ class MetricsAgeRangePlugin(BasePlugin):
     def generate_age_range_metrics(event: Event):
         graph = event.data
         log.info("Generating Age Range Metrics")
-        with graph.lock.read_access:
-            for node in graph.nodes():
-                node_age = getattr(node, "age", None)
-                if not isinstance(node_age, timedelta):
-                    continue
-                node_age_range = age_range(node.age)
+        for node in graph.nodes():
+            node_age = getattr(node, "age", None)
+            if not isinstance(node_age, timedelta):
+                continue
+            node_age_range = age_range(node.age)
 
-                metric_value = 1
-                if isinstance(node, BaseInstance):
-                    metric_name = "instances_age_range"
-                    metric_help = "Age Range of Instances"
-                    metric_labels = [
-                        "cloud",
-                        "account",
-                        "region",
-                        "type",
-                        "status",
-                        "age",
-                    ]
-                    metric_label_values = (
-                        node.cloud(graph).name,
-                        node.account(graph).dname,
-                        node.region(graph).name,
-                        node.instance_type,
-                        node.instance_status,
-                        node_age_range,
-                    )
-                    node.add_metric(
-                        metric_name,
-                        metric_value,
-                        metric_help,
-                        metric_labels,
-                        metric_label_values,
-                    )
-                elif isinstance(node, BaseVolume):
-                    metric_name = "volumes_age_range"
-                    metric_help = "Age Range of Volumes"
-                    metric_labels = [
-                        "cloud",
-                        "account",
-                        "region",
-                        "type",
-                        "status",
-                        "age",
-                    ]
-                    metric_label_values = (
-                        node.cloud(graph).name,
-                        node.account(graph).dname,
-                        node.region(graph).name,
-                        node.volume_type,
-                        node.volume_status,
-                        node_age_range,
-                    )
-                    node.add_metric(
-                        metric_name,
-                        metric_value,
-                        metric_help,
-                        metric_labels,
-                        metric_label_values,
-                    )
-                else:
-                    continue
-
-                log.debug(
-                    (
-                        f"Adding metrics for {node.rtdname}, "
-                        f"created {node.age} ago, age range {node_age_range}"
-                    )
+            metric_value = 1
+            if isinstance(node, BaseInstance):
+                metric_name = "instances_age_range"
+                metric_help = "Age Range of Instances"
+                metric_labels = [
+                    "cloud",
+                    "account",
+                    "region",
+                    "type",
+                    "status",
+                    "age",
+                ]
+                metric_label_values = (
+                    node.cloud(graph).name,
+                    node.account(graph).dname,
+                    node.region(graph).name,
+                    node.instance_type,
+                    node.instance_status,
+                    node_age_range,
                 )
+                node.add_metric(
+                    metric_name,
+                    metric_value,
+                    metric_help,
+                    metric_labels,
+                    metric_label_values,
+                )
+            elif isinstance(node, BaseVolume):
+                metric_name = "volumes_age_range"
+                metric_help = "Age Range of Volumes"
+                metric_labels = [
+                    "cloud",
+                    "account",
+                    "region",
+                    "type",
+                    "status",
+                    "age",
+                ]
+                metric_label_values = (
+                    node.cloud(graph).name,
+                    node.account(graph).dname,
+                    node.region(graph).name,
+                    node.volume_type,
+                    node.volume_status,
+                    node_age_range,
+                )
+                node.add_metric(
+                    metric_name,
+                    metric_value,
+                    metric_help,
+                    metric_labels,
+                    metric_label_values,
+                )
+            else:
+                continue
+
+            log.debug(
+                (
+                    f"Adding metrics for {node.rtdname}, "
+                    f"created {node.age} ago, age range {node_age_range}"
+                )
+            )
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

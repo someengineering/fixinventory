@@ -54,34 +54,33 @@ class ReportCleanupsPlugin(BasePlugin):
 
         log.info(f"Writing Cleanup Report to {report_file}")
         rows = []
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if isinstance(node, BaseResource) and node.cleaned:
-                    cloud = node.cloud(graph)
-                    account = node.account(graph)
-                    region = node.region(graph)
+        for node in graph.nodes:
+            if isinstance(node, BaseResource) and node.cleaned:
+                cloud = node.cloud(graph)
+                account = node.account(graph)
+                region = node.region(graph)
 
-                    if (
-                        not isinstance(cloud, BaseCloud)
-                        or not isinstance(account, BaseAccount)
-                        or not isinstance(region, BaseRegion)
-                    ):
-                        log.error(
-                            (
-                                f"Unable to determine cloud ({cloud}), account ({account}) or "
-                                f"region ({region}) for node {node.dname}"
-                            )
+                if (
+                    not isinstance(cloud, BaseCloud)
+                    or not isinstance(account, BaseAccount)
+                    or not isinstance(region, BaseRegion)
+                ):
+                    log.error(
+                        (
+                            f"Unable to determine cloud ({cloud}), account ({account}) or "
+                            f"region ({region}) for node {node.dname}"
                         )
-                        continue
+                    )
+                    continue
 
-                    row = {
-                        "datetime": now.isoformat(),
-                        "cloud": cloud.name,
-                        "account": account.name,
-                        "region": region.name,
-                        **get_resource_attributes(node),
-                    }
-                    rows.append(row)
+                row = {
+                    "datetime": now.isoformat(),
+                    "cloud": cloud.name,
+                    "account": account.name,
+                    "region": region.name,
+                    **get_resource_attributes(node),
+                }
+                rows.append(row)
 
         with report_file.open("w") as report_file_io:
             if ArgumentParser.args.report_cleanups_format == "csv":

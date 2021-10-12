@@ -65,9 +65,7 @@ class CleanupAWSAlarmsPlugin(BasePlugin):
                     cloud.id not in self.config
                     or account.id not in self.config[cloud.id]
                 ):
-                    log.debug(
-                        (f"{log_prefix} Account not found in config - ignoring.")
-                    )
+                    log.debug((f"{log_prefix} Account not found in config - ignoring."))
                     continue
 
             should_clean = False
@@ -86,9 +84,7 @@ class CleanupAWSAlarmsPlugin(BasePlugin):
                         break
                     else:
                         should_clean = True
-                        log_msg += (
-                            f" Referenced EC2 instance {instance_id} not found."
-                        )
+                        log_msg += f" Referenced EC2 instance {instance_id} not found."
 
             if not should_clean:
                 continue

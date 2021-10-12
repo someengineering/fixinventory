@@ -69,124 +69,123 @@ class TagValidatorPlugin(BasePlugin):
     def validate_tags(self, graph: Graph):
         config = self.config.read_config()
         pt = ParallelTagger(self.name)
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
-                node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
-                node_classes.remove("ABC")
-                node_classes.remove("object")
+        for node in graph.nodes:
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
+            node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
+            node_classes.remove("ABC")
+            node_classes.remove("object")
 
-                if (
-                    not isinstance(node, BaseResource)
-                    or isinstance(node, BaseCloud)
-                    or isinstance(node, BaseAccount)
-                    or isinstance(node, BaseRegion)
-                    or not isinstance(cloud, BaseCloud)
-                    or not isinstance(account, BaseAccount)
-                    or not isinstance(region, BaseRegion)
-                    or node.protected
-                ):
-                    continue
+            if (
+                not isinstance(node, BaseResource)
+                or isinstance(node, BaseCloud)
+                or isinstance(node, BaseAccount)
+                or isinstance(node, BaseRegion)
+                or not isinstance(cloud, BaseCloud)
+                or not isinstance(account, BaseAccount)
+                or not isinstance(region, BaseRegion)
+                or node.protected
+            ):
+                continue
 
-                if cloud.id in config and account.id in config[cloud.id]:
-                    class_config = {}
-                    node_class = None
-                    for node_class in node_classes:
-                        node_class = node_class.lower()
-                        if node_class in config[cloud.id][account.id]:
-                            class_config = config[cloud.id][account.id][node_class]
-                            break
+            if cloud.id in config and account.id in config[cloud.id]:
+                class_config = {}
+                node_class = None
+                for node_class in node_classes:
+                    node_class = node_class.lower()
+                    if node_class in config[cloud.id][account.id]:
+                        class_config = config[cloud.id][account.id][node_class]
+                        break
 
-                    for tag, tag_config in class_config.items():
-                        if region.id in tag_config:
-                            desired_value = tag_config[region.id]
-                        elif "*" in tag_config:
-                            desired_value = tag_config["*"]
-                        else:
-                            log.error(
-                                (
-                                    f"No tag config for node {node.dname} class {node_class} in account "
-                                    f"{account.dname} cloud {cloud.id}"
-                                )
+                for tag, tag_config in class_config.items():
+                    if region.id in tag_config:
+                        desired_value = tag_config[region.id]
+                    elif "*" in tag_config:
+                        desired_value = tag_config["*"]
+                    else:
+                        log.error(
+                            (
+                                f"No tag config for node {node.dname} class {node_class} in account "
+                                f"{account.dname} cloud {cloud.id}"
+                            )
+                        )
+                        continue
+
+                    if tag in node.tags:
+                        current_value = node.tags[tag]
+                        log.debug(
+                            (
+                                f"Found {node.rtdname} age {node.age} in cloud {cloud.name}"
+                                f" account {account.dname} region {region.name} with tag {tag}: {current_value}"
+                            )
+                        )
+
+                        if desired_value == "never":
+                            continue
+
+                        if current_value == "never" and desired_value != "never":
+                            log_msg = (
+                                f"Current value {current_value} is not allowed - "
+                                f"setting tag {tag} to desired value {desired_value}"
+                            )
+                            log.debug(log_msg)
+                            set_tag(
+                                pt,
+                                node,
+                                tag,
+                                desired_value,
+                                log_msg,
+                                cloud,
+                                account,
+                                region,
                             )
                             continue
 
-                        if tag in node.tags:
-                            current_value = node.tags[tag]
-                            log.debug(
-                                (
-                                    f"Found {node.rtdname} age {node.age} in cloud {cloud.name}"
-                                    f" account {account.dname} region {region.name} with tag {tag}: {current_value}"
-                                )
+                        try:
+                            current_value_td = parse_delta(current_value)
+                        except ValueError:
+                            log_msg = (
+                                f"Can't parse current value {current_value} - "
+                                f"setting tag {tag} to desired value {desired_value}"
                             )
+                            log.error(log_msg)
+                            set_tag(
+                                pt,
+                                node,
+                                tag,
+                                desired_value,
+                                log_msg,
+                                cloud,
+                                account,
+                                region,
+                            )
+                            continue
 
-                            if desired_value == "never":
-                                continue
+                        try:
+                            desired_value_td = parse_delta(desired_value)
+                        except (AssertionError, ValueError):
+                            log.error(
+                                "Can't parse desired value {} into timedelta - skipping tag"
+                            )
+                            continue
 
-                            if current_value == "never" and desired_value != "never":
-                                log_msg = (
-                                    f"Current value {current_value} is not allowed - "
-                                    f"setting tag {tag} to desired value {desired_value}"
-                                )
-                                log.debug(log_msg)
-                                set_tag(
-                                    pt,
-                                    node,
-                                    tag,
-                                    desired_value,
-                                    log_msg,
-                                    cloud,
-                                    account,
-                                    region,
-                                )
-                                continue
-
-                            try:
-                                current_value_td = parse_delta(current_value)
-                            except ValueError:
-                                log_msg = (
-                                    f"Can't parse current value {current_value} - "
-                                    f"setting tag {tag} to desired value {desired_value}"
-                                )
-                                log.error(log_msg)
-                                set_tag(
-                                    pt,
-                                    node,
-                                    tag,
-                                    desired_value,
-                                    log_msg,
-                                    cloud,
-                                    account,
-                                    region,
-                                )
-                                continue
-
-                            try:
-                                desired_value_td = parse_delta(desired_value)
-                            except (AssertionError, ValueError):
-                                log.error(
-                                    "Can't parse desired value {} into timedelta - skipping tag"
-                                )
-                                continue
-
-                            if desired_value_td < current_value_td:
-                                log_msg = (
-                                    f"Current value {current_value} is larger than desired value {desired_value} - "
-                                    f"setting tag {tag}"
-                                )
-                                log.debug(log_msg)
-                                set_tag(
-                                    pt,
-                                    node,
-                                    tag,
-                                    desired_value,
-                                    log_msg,
-                                    cloud,
-                                    account,
-                                    region,
-                                )
+                        if desired_value_td < current_value_td:
+                            log_msg = (
+                                f"Current value {current_value} is larger than desired value {desired_value} - "
+                                f"setting tag {tag}"
+                            )
+                            log.debug(log_msg)
+                            set_tag(
+                                pt,
+                                node,
+                                tag,
+                                desired_value,
+                                log_msg,
+                                cloud,
+                                account,
+                                region,
+                            )
         pt.run()
 
     @staticmethod

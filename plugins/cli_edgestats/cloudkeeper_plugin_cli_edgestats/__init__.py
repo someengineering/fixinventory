@@ -26,14 +26,13 @@ class CliEdgestatsPlugin(BaseCliPlugin):
         Example: edges | count srcdstrt
                  edges | count src.kind
         """
-        with self.graph.lock.read_access:
-            for edge in self.graph.edges:
-                if len(edge) == 2:
-                    src = edge[0]
-                    dst = edge[1]
-                    if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
-                        e = Edge(src=src, dst=dst)
-                        yield e
+        for edge in self.graph.edges:
+            if len(edge) == 2:
+                src = edge[0]
+                dst = edge[1]
+                if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
+                    e = Edge(src=src, dst=dst)
+                    yield e
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

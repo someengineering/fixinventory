@@ -44,27 +44,26 @@ class CleanupVolumesPlugin(BasePlugin):
     def volumes_cleanup(self, event: Event):
         graph = event.data
         log.info("Volume Cleanup called")
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if (
-                    isinstance(node, BaseVolume)
-                    and node.volume_status == "available"
-                    and node.age > self.age
-                    and node.last_access > self.age
-                    and node.last_update > self.age
-                ):
-                    cloud = node.cloud(graph)
-                    account = node.account(graph)
-                    region = node.region(graph)
-                    log.debug(
-                        (
-                            f"Found available volume {node.dname} in cloud {cloud.name} account {account.dname} "
-                            f"region {region.name} with age {node.age}. Last update was {node.last_update} ago "
-                            f"and last access {node.last_access} ago both of which is longer than {self.age} "
-                            f"- setting to be cleaned"
-                        )
+        for node in graph.nodes:
+            if (
+                isinstance(node, BaseVolume)
+                and node.volume_status == "available"
+                and node.age > self.age
+                and node.last_access > self.age
+                and node.last_update > self.age
+            ):
+                cloud = node.cloud(graph)
+                account = node.account(graph)
+                region = node.region(graph)
+                log.debug(
+                    (
+                        f"Found available volume {node.dname} in cloud {cloud.name} account {account.dname} "
+                        f"region {region.name} with age {node.age}. Last update was {node.last_update} ago "
+                        f"and last access {node.last_access} ago both of which is longer than {self.age} "
+                        f"- setting to be cleaned"
                     )
-                    node.clean = True
+                )
+                node.clean = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
