@@ -158,7 +158,7 @@ Optionally you can provide a reason for marking the matched ressources for the n
 Delete the actual ressources
 ============================
 
-Resources in Cloudkeeper will only be deleted if you started a :ref:`component-ckworker` with the ``--delete`` parameter.
+Resources in Cloudkeeper will only be deleted if you started a :ref:`component-ckworker` with the ``--cleanup`` parameter.
 If done so, there will be an automatic cleanup every full hour.
 Otherwise the ``cleanup`` will only be simulated without actually being deleted.
 
