@@ -54,56 +54,55 @@ class CleanupUntaggedPlugin(BasePlugin):
         log.debug("Cleanup Untagged called")
         self.config.read()  # runtime read in case config file was updated since last run
         graph = event.data
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
-                node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
-                node_classes.remove("ABC")
-                node_classes.remove("object")
+        for node in graph.nodes:
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
+            node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
+            node_classes.remove("ABC")
+            node_classes.remove("object")
 
-                if (
-                    not isinstance(node, BaseResource)
-                    or isinstance(node, BaseCloud)
-                    or isinstance(node, BaseAccount)
-                    or isinstance(node, BaseRegion)
-                    or not isinstance(cloud, BaseCloud)
-                    or not isinstance(account, BaseAccount)
-                    or not isinstance(region, BaseRegion)
-                    or node.protected
-                    or node.phantom
-                    or cloud.id not in self.config["accounts"]
-                    or account.id not in self.config["accounts"][cloud.id]
-                    or node.age < self.config["accounts"][cloud.id][account.id]["age"]
-                    or set(node_classes).isdisjoint(self.config["classes"])
-                    or all(
-                        (
-                            tag in node.tags and len(node.tags[tag]) > 0
-                            for tag in self.config["tags"]
-                        )
-                    )
-                ):
-                    continue
-
-                metrics_cleanup_untagged.labels(
-                    cloud=cloud.name,
-                    account=account.name,
-                    region=region.name,
-                    kind=node.kind,
-                ).inc()
-                log_msg = (
-                    f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older "
-                    f"than threshold of {self.config['accounts'][cloud.id][account.id]['age']}"
-                )
-                log.error(
+            if (
+                not isinstance(node, BaseResource)
+                or isinstance(node, BaseCloud)
+                or isinstance(node, BaseAccount)
+                or isinstance(node, BaseRegion)
+                or not isinstance(cloud, BaseCloud)
+                or not isinstance(account, BaseAccount)
+                or not isinstance(region, BaseRegion)
+                or node.protected
+                or node.phantom
+                or cloud.id not in self.config["accounts"]
+                or account.id not in self.config["accounts"][cloud.id]
+                or node.age < self.config["accounts"][cloud.id][account.id]["age"]
+                or set(node_classes).isdisjoint(self.config["classes"])
+                or all(
                     (
-                        f"Cleaning resource {node.rtdname} in cloud {cloud.name} "
-                        f"account {account.dname} region {region.name}: {log_msg}"
+                        tag in node.tags and len(node.tags[tag]) > 0
+                        for tag in self.config["tags"]
                     )
                 )
-                node.log(log_msg)
-                node.clean = True
+            ):
+                continue
+
+            metrics_cleanup_untagged.labels(
+                cloud=cloud.name,
+                account=account.name,
+                region=region.name,
+                kind=node.kind,
+            ).inc()
+            log_msg = (
+                f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older "
+                f"than threshold of {self.config['accounts'][cloud.id][account.id]['age']}"
+            )
+            log.error(
+                (
+                    f"Cleaning resource {node.rtdname} in cloud {cloud.name} "
+                    f"account {account.dname} region {region.name}: {log_msg}"
+                )
+            )
+            node.log(log_msg)
+            node.clean = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

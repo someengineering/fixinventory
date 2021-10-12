@@ -39,51 +39,50 @@ class CleanupExpiredPlugin(BasePlugin):
     def expired_cleanup(event: Event):
         graph = event.data
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
-                if (
-                    isinstance(node, BaseResource)
-                    and isinstance(cloud, BaseCloud)
-                    and isinstance(account, BaseAccount)
-                    and isinstance(region, BaseRegion)
+        for node in graph.nodes:
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
+            if (
+                isinstance(node, BaseResource)
+                and isinstance(cloud, BaseCloud)
+                and isinstance(account, BaseAccount)
+                and isinstance(region, BaseRegion)
+            ):
+                if "cloudkeeper:expires" in node.tags or (
+                    "expiration" in node.tags and node.tags["expiration"] != "never"
                 ):
-                    if "cloudkeeper:expires" in node.tags or (
-                        "expiration" in node.tags and node.tags["expiration"] != "never"
-                    ):
-                        try:
-                            if "cloudkeeper:expires" in node.tags:
-                                expires_tag = node.tags["cloudkeeper:expires"]
-                                expires = make_valid_timestamp(
-                                    datetime.fromisoformat(expires_tag)
-                                )
-                            else:
-                                expires_tag = node.tags["expiration"]
-                                expires = make_valid_timestamp(
-                                    node.ctime + parse_delta(expires_tag)
-                                )
+                    try:
+                        if "cloudkeeper:expires" in node.tags:
+                            expires_tag = node.tags["cloudkeeper:expires"]
+                            expires = make_valid_timestamp(
+                                datetime.fromisoformat(expires_tag)
+                            )
+                        else:
+                            expires_tag = node.tags["expiration"]
+                            expires = make_valid_timestamp(
+                                node.ctime + parse_delta(expires_tag)
+                            )
 
-                        except ValueError:
-                            log.exception(
+                    except ValueError:
+                        log.exception(
+                            (
+                                f"Found {node.rtdname} in cloud {cloud.name} "
+                                f"account {account.dname} region {region.name} age {node.age} "
+                                f"with invalid expires tag {expires_tag}"
+                            )
+                        )
+                        continue
+                    else:
+                        if expires is not None and now > expires:
+                            log.debug(
                                 (
-                                    f"Found {node.rtdname} in cloud {cloud.name} "
-                                    f"account {account.dname} region {region.name} age {node.age} "
-                                    f"with invalid expires tag {expires_tag}"
+                                    f"Found expired resource {node.rtdname} in cloud "
+                                    f"{cloud.name} account {account.dname} region {region.name} age {node.age} "
+                                    f"with expires tag {expires_tag} - marking for cleanup"
                                 )
                             )
-                            continue
-                        else:
-                            if expires is not None and now > expires:
-                                log.debug(
-                                    (
-                                        f"Found expired resource {node.rtdname} in cloud "
-                                        f"{cloud.name} account {account.dname} region {region.name} age {node.age} "
-                                        f"with expires tag {expires_tag} - marking for cleanup"
-                                    )
-                                )
-                                node.clean = True
+                            node.clean = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

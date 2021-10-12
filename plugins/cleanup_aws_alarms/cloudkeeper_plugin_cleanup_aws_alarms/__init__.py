@@ -48,53 +48,52 @@ class CleanupAWSAlarmsPlugin(BasePlugin):
     def alarm_cleanup(self, event: Event):
         graph = event.data
         log.info("AWS Cloudwatch Alarms cleanup called")
-        with graph.lock.read_access:
-            for node in graph.nodes:
-                if node.protected or not isinstance(node, AWSCloudwatchAlarm):
+        for node in graph.nodes:
+            if node.protected or not isinstance(node, AWSCloudwatchAlarm):
+                continue
+
+            cloud = node.cloud(graph)
+            account = node.account(graph)
+            region = node.region(graph)
+            log_prefix = (
+                f"Found {node.rtdname} in cloud {cloud.name} account {account.dname} "
+                f"region {region.name}."
+            )
+
+            if len(self.config) > 0:
+                if (
+                    cloud.id not in self.config
+                    or account.id not in self.config[cloud.id]
+                ):
+                    log.debug(
+                        (f"{log_prefix} Account not found in config - ignoring.")
+                    )
                     continue
 
-                cloud = node.cloud(graph)
-                account = node.account(graph)
-                region = node.region(graph)
-                log_prefix = (
-                    f"Found {node.rtdname} in cloud {cloud.name} account {account.dname} "
-                    f"region {region.name}."
-                )
-
-                if len(self.config) > 0:
-                    if (
-                        cloud.id not in self.config
-                        or account.id not in self.config[cloud.id]
+            should_clean = False
+            i = None
+            log_msg = log_prefix
+            for dimension in node.dimensions:
+                if dimension.get("Name") == "InstanceId":
+                    instance_id = dimension.get("Value")
+                    i = graph.search_first_all(
+                        {"kind": "aws_ec2_instance", "id": instance_id}
+                    )
+                    if isinstance(i, AWSEC2Instance) and i.instance_status not in (
+                        "terminated"
                     ):
-                        log.debug(
-                            (f"{log_prefix} Account not found in config - ignoring.")
+                        should_clean = False
+                        break
+                    else:
+                        should_clean = True
+                        log_msg += (
+                            f" Referenced EC2 instance {instance_id} not found."
                         )
-                        continue
 
-                should_clean = False
-                i = None
-                log_msg = log_prefix
-                for dimension in node.dimensions:
-                    if dimension.get("Name") == "InstanceId":
-                        instance_id = dimension.get("Value")
-                        i = graph.search_first_all(
-                            {"kind": "aws_ec2_instance", "id": instance_id}
-                        )
-                        if isinstance(i, AWSEC2Instance) and i.instance_status not in (
-                            "terminated"
-                        ):
-                            should_clean = False
-                            break
-                        else:
-                            should_clean = True
-                            log_msg += (
-                                f" Referenced EC2 instance {instance_id} not found."
-                            )
-
-                if not should_clean:
-                    continue
-                log.debug(f"{log_msg} - cleaning alarm")
-                node.clean = True
+            if not should_clean:
+                continue
+            log.debug(f"{log_msg} - cleaning alarm")
+            node.clean = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

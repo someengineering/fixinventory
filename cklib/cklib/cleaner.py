@@ -31,31 +31,30 @@ class Cleaner:
         dispatch_event(Event(EventType.CLEANUP_PLAN, self.graph), blocking=True)
         log.info("Running cleanup")
         dispatch_event(Event(EventType.CLEANUP_BEGIN, self.graph), blocking=True)
-        with self.graph.lock.read_access:
-            cleanup_nodes = [node for node in self.graph.nodes() if node.clean]
-            cleanup_plan = defaultlist(lambda: [])
+        cleanup_nodes = [node for node in self.graph.nodes() if node.clean]
+        cleanup_plan = defaultlist(lambda: [])
 
-            for node in cleanup_nodes:
-                log.debug(
-                    (
-                        f"Adding {node.rtdname} to cleanup plan with priority"
-                        f" {node.max_graph_depth}"
-                    )
+        for node in cleanup_nodes:
+            log.debug(
+                (
+                    f"Adding {node.rtdname} to cleanup plan with priority"
+                    f" {node.max_graph_depth}"
                 )
-                cleanup_plan[node.max_graph_depth].append(node)
+            )
+            cleanup_plan[node.max_graph_depth].append(node)
 
+        with ThreadPoolExecutor(
+            max_workers=ArgumentParser.args.cleanup_pool_size,
+            thread_name_prefix="pre_cleaner",
+        ) as executor:
+            executor.map(self.pre_clean, cleanup_nodes)
+
+        for nodes in reversed(cleanup_plan):
             with ThreadPoolExecutor(
                 max_workers=ArgumentParser.args.cleanup_pool_size,
-                thread_name_prefix="pre_cleaner",
+                thread_name_prefix="cleaner",
             ) as executor:
-                executor.map(self.pre_clean, cleanup_nodes)
-
-            for nodes in reversed(cleanup_plan):
-                with ThreadPoolExecutor(
-                    max_workers=ArgumentParser.args.cleanup_pool_size,
-                    thread_name_prefix="cleaner",
-                ) as executor:
-                    executor.map(self.clean, nodes)
+                executor.map(self.clean, nodes)
 
         dispatch_event(Event(EventType.CLEANUP_FINISH, self.graph))
 
