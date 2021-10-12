@@ -1,8 +1,5 @@
 extends Node2D
 
-const GRAPH_DUMP_JSON_PATH = "res://data/graph.dump.json"
-const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
-
 signal filtering_done
 
 var root_node : Object = null
@@ -30,7 +27,6 @@ export (NodePath) onready var main_ui = get_node(main_ui)
 func _ready():
 	_g.main_graph = $GraphView
 	_g.main_graph.connect("order_done", self, "save_order")
-	_e.connect("load_nodes", self, "read_data")
 	_e.connect("graph_order", self, "main_graph_order")
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
@@ -55,13 +51,13 @@ func _process(_delta):
 	graph_bg.material.set_shader_param("center", -dir_to_root_node * ease(range_lerp(dist_to_root_node, 0, 2000, 0, 1), 0.7) * zoom_factor)
 
 
-func read_data():
+func read_data( filter_by_kinds := [] ):
 	var file = File.new()
 	var new_data := {}
 	loaded_data_filtered_ids.clear()
 	
-	if file.file_exists(GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
-		file.open(GRAPH_DUMP_JSON_PATH, file.READ)
+	if file.file_exists(_g.GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
+		file.open(_g.GRAPH_DUMP_JSON_PATH, file.READ)
 		var file_len : float = float( file.get_len() )
 		# warning-ignore:narrowing_conversion
 		var update_mod : int = max(file.get_len() / 500000, 100)
@@ -71,8 +67,7 @@ func read_data():
 		_e.emit_signal("loading_start")
 		_e.emit_signal("loading", 0, "Reading file" )
 		yield(get_tree(), "idle_frame")
-		var filter_by_kinds := ["graph_root", "cloud", "aws_region", "aws_account", "aws_iam_policy", "aws_iam_instance_profile", "aws_iam_role", "aws_s3_bucket", "aws_s3_bucket_quota", "aws_ec2_subnet"]
-		filter_by_kinds.clear()
+		
 		while !file.eof_reached():
 			var line = file.get_line()
 			if line == "":
@@ -108,8 +103,8 @@ func read_data():
 func generate_graph(filtered_data_result:Dictionary):
 	var file = File.new()
 	var graph_node_positions := {}
-	if file.file_exists(GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
-		var new_graph_node_positions = Utils.load_json(GRAPH_NODE_JSON_PATH)
+	if file.file_exists(_g.GRAPH_NODE_JSON_PATH) and !_g.use_example_data:
+		var new_graph_node_positions = Utils.load_json(_g.GRAPH_NODE_JSON_PATH)
 		if typeof(new_graph_node_positions) == TYPE_DICTIONARY:
 			graph_node_positions = new_graph_node_positions
 	_g.main_graph.create_graph_raw(filtered_data_result, filtered_data_result.size())
@@ -139,7 +134,7 @@ func main_graph_order():
 
 
 func save_order(saved_node_positions):
-	Utils.save_json(GRAPH_NODE_JSON_PATH, saved_node_positions)
+	Utils.save_json(_g.GRAPH_NODE_JSON_PATH, saved_node_positions)
 
 
 func main_graph_rand():
@@ -254,3 +249,7 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 
 func hide_info():
 	pass
+
+
+func _on_PopupLoadFile_ok( filters ):
+	read_data(filters)

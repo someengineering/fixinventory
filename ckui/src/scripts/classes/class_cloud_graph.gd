@@ -268,7 +268,7 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 				var other_node_pos = connection.scene.position
 				net_force += calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
 			
-			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped(500.0)
+			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped( MAX_DISPLACE )
 			node.scene.position += node.velocity
 			total_displacement += node.velocity.length()
 		

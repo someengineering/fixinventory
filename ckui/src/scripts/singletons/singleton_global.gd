@@ -1,5 +1,9 @@
 extends Node
 
+const GRAPH_DUMP_JSON_PATH = "res://data/graph.dump.json"
+const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
+const PROMETHEUS_METRICS_JSON_PATH = "res://data/prometheus_metrics.json"
+
 var main_graph : CloudGraph setget set_main_graph
 var spaceship_mode := false
 var interface : Object = null

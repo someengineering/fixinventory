@@ -1,6 +1,6 @@
 extends Control
 
-const PROMETHEUS_METRICS_JSON_PATH = "res://data/prometheus_metrics.json"
+
 
 var data := {}
 var accounts := []
@@ -15,8 +15,8 @@ func _ready():
 
 func read_data():
 	var file = File.new()
-	if file.file_exists(PROMETHEUS_METRICS_JSON_PATH) and !_g.use_example_data:
-		file.open(PROMETHEUS_METRICS_JSON_PATH, file.READ)
+	if file.file_exists(_g.PROMETHEUS_METRICS_JSON_PATH) and !_g.use_example_data:
+		file.open(_g.PROMETHEUS_METRICS_JSON_PATH, file.READ)
 		var text = file.get_as_text()
 		data = parse_json(text)
 		file.close()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=2]
+[gd_scene load_steps=34 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -15,6 +15,7 @@
 [ext_resource path="res://ui/views/UI_QueryEngine.tscn" type="PackedScene" id=13]
 [ext_resource path="res://ui/views/UI_Blastradius.tscn" type="PackedScene" id=14]
 [ext_resource path="res://ui/views/UI_Loading.tscn" type="PackedScene" id=15]
+[ext_resource path="res://ui/elements/Element_Popup_LoadFile.tscn" type="PackedScene" id=16]
 
 [sub_resource type="Shader" id=1]
 code = "shader_type canvas_item;
@@ -225,6 +226,7 @@ margin_top = 1048.0
 margin_bottom = 1080.0
 
 [node name="UILoading" parent="UI" instance=ExtResource( 15 )]
+visible = false
 
 [node name="Noise" type="TextureRect" parent="UI"]
 modulate = Color( 1, 1, 1, 0.0392157 )
@@ -237,6 +239,16 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="Popups" type="Control" parent="UI"]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="PopupLoadFile" parent="UI/Popups" instance=ExtResource( 16 )]
+popup_exclusive = true
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource( 17 )
 
@@ -244,3 +256,4 @@ environment = SubResource( 17 )
 [connection signal="tween_all_completed" from="UIGraph/CamMoveTween" to="UIGraph" method="_on_CamMoveTween_tween_all_completed"]
 [connection signal="timeout" from="UIGraph/NewNodeSelectionTimer" to="UIGraph" method="_on_NewNodeSelectionTimer_timeout"]
 [connection signal="close_blast_radius" from="UI/UIBlastradius" to="." method="_on_UIBlastradius_close_blast_radius"]
+[connection signal="ok" from="UI/Popups/PopupLoadFile" to="UIGraph" method="_on_PopupLoadFile_ok"]
