@@ -231,7 +231,7 @@ In order to define precedence, it is possible to put brackets around terms.
 
 
 Graph Edges
-***********
+===========
 
 Nodes in the graph are connected via edges.
 Edges in the graph are directed, starting from a node pointing to a node.
