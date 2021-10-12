@@ -4,10 +4,15 @@
 Access Permissions
 ==================
 
-If you want the full set of features including cleanup Cloudkeeper will require relatively wide permissions so that it is able to collect all the resources but then also do tag validation and updates as well as clean up resources.
-To use Cloudkeeper in a read-only capacity you can limit access to your cloud provider accordingly.#
+To use Cloudkeeper with all it's features - including cleanup - it requires wide permissions.
+It needs to collect all the resources, do tag validations and updates as well as deleting resources.
+To use Cloudkeeper in a read-only capacity you can limit access to your cloud provider accordingly.
 
-Cloudkeeper will silently ignore collecting specific resources if it does not have the required permissions.
+.. important::
+    | Cloudkeeper will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
+    | Read more about this here: :ref:`delete_warning`
+
+Cloudkeeper will **silently ignore** collecting specific resources if it does not have the required permissions.
 
 AWS Permissions
 ***************
@@ -335,7 +340,7 @@ To use Cloudkeeper in a read-only capacity it needs the following IAM role permi
 
 Full capabilities
 =================
-For production use where Cloudkeeper also clean up and validate tags the needed permission role is basically a PowerUser role that is locked down to not be able to create any resources or modify IAM settings.
+For production use - where Cloudkeeper also clean-up and validate tags - the needed permission role is a PowerUser that is locked down to not be able to create any resources or modify IAM settings.
 
 The following three policies are needed for Cloudkeeper to run with full capabilities.
 

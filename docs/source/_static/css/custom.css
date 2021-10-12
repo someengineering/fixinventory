@@ -351,6 +351,11 @@ span.caption-text {
     padding-right: 13px;
 }
 
+.reference.external.image-reference {
+    background-image: unset;
+    padding-right: 0px;
+}
+
 
 .wy-menu-vertical li.current>a, .wy-menu-vertical li.on a {
     color: var(--text-highlight);

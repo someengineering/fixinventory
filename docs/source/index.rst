@@ -18,6 +18,15 @@ Introduction
 
 Welcome to the official Cloudkeeper documentation!
 
+.. image:: https://img.shields.io/discord/778029408132923432?logo=discord&logoColor=%23ffffff
+    :target: https://discord.gg/someengineering
+
+.. image:: https://img.shields.io/github/workflow/status/someengineering/cloudkeeper/Check%20PR%20(Documentation)
+
+.. image:: https://img.shields.io/github/stars/someengineering/cloudkeeper?style=social
+    :target: https://github.com/someengineering/cloudkeeper
+
+
 What is Cloudkeeper?
 ********************
 
