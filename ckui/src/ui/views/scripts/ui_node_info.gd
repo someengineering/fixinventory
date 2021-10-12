@@ -27,11 +27,11 @@ func show_info(target_node) -> void:
 	$Background/NodeNameLabel/NodeKindLabel.text = target_node.reported.kind
 	
 	var text_infos := ""
-	if target_node.reported.has("ctime"):
+	if "ctime" in target_node.reported:
 		text_infos += "[b]ctime[/b]\n"
 		text_infos += "   date: [color=white]" + str( target_node.reported.ctime.split("T")[0] ) + "[/color]\n"
 		text_infos += "   time: [color=white]" + str( target_node.reported.ctime.split("T")[1] ) + "[/color]\n\n"
-	if target_node.reported.has("tags"):
+	if "tags" in target_node.reported:
 		if !target_node.reported.tags.empty():
 			text_infos += "[b]tags[/b]\n   "
 			for tag in target_node.reported.tags:

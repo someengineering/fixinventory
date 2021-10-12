@@ -54,6 +54,9 @@ func _process(delta) -> void:
 	elif hover_power > 0:
 		hover_power = 0
 		set_hover_power(hover_power)
+	
+	# Deactivated this for the moment as there need to be a more performant implementation
+	# $Labels.visible = scale.x / _g.interface.ui_graph.graph_cam.zoom.x > 1
 
 
 func scanning(delta) -> void:
@@ -83,17 +86,23 @@ func set_cloud_node(value:CloudNode) -> void:
 func set_node_type(value:String) -> void:
 	if value == "graph_root":
 		scale = Vector2.ONE*3
+		z_index = 10
 	elif value == "cloud":
 		scale = Vector2.ONE*2.5
+		z_index = 9
 	elif value == "aws_account":
 		scale = Vector2.ONE*2.0
+		z_index = 8
 	elif value == "aws_region":
 		scale = Vector2.ONE*1.5
+		z_index = 7
 	elif value == "aws_s3_bucket":
 		scale = Vector2.ONE*0.7
+		z_index = 4
 		#modulate.a = 0.7
 	elif value == "aws_iam_policy" or value == "aws_iam_instance_profile" or value == "aws_ec2_security_group" or value == "aws_ec2_keypair" or value == "aws_ec2_snapshot":
 		scale = Vector2.ONE*0.6
+		z_index = 3
 		#modulate.a = 0.6
 	elif value == "aws_iam_role" or value == "aws_ec2_subnet" or value == "aws_ec2_route_table" or value == "aws_iam_server_certificate":
 		scale = Vector2.ONE*0.5
@@ -150,8 +159,9 @@ func set_is_selected(value:bool) -> void:
 func set_hover_power(value:float) -> void:
 	hover_power = value
 	var eased_hover_power = ease(hover_power, -2.0)
+	marker.visible = hover_power > 0
 	marker.scale = lerp(Vector2(0.5,0.5), Vector2.ONE, eased_hover_power)
-	marker.modulate = lerp( Color.transparent, Color.white, eased_hover_power )
+	marker.modulate.a = lerp( 0, 1, eased_hover_power )
 	marker.width = range_lerp(eased_hover_power, 0, 1, 1, 0.5)
 	marker.rotation = eased_hover_power * PI * 0.5
 	parent_graph.emit_signal("hovering_node", cloud_node.id, eased_hover_power)
@@ -160,6 +170,7 @@ func set_hover_power(value:float) -> void:
 func show_detail(node_id):
 	if node_id != cloud_node.id:
 		return
+	label_name.show()
 	reveal.remove_all()
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -140, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
@@ -171,3 +182,8 @@ func hide_detail():
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 0, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -52, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
+
+
+func _on_Reveal_tween_all_completed():
+	if label_name.modulate.a < 0.1:
+		label_name.hide()

@@ -6,26 +6,27 @@ signal show_node
 signal hide_nodes
 signal show_connected_nodes
 signal order_done
+signal graph_created
+
+const ATTRACTION_CONSTANT := 0.02
+const REPULSION_CONSTANT := 1000.0
+const MAX_DISTANCE := 800.0
+const GRAPH_MOVE_SPEED := 1.0
+const MAX_DISPLACE := 500.0
+const DEFAULT_DAMPING := 0.8
+const DEFAULT_SPRING_LENGTH := 200
+const DEFAULT_MAX_ITERATIONS := 100
 
 var graph_data := {
 	"nodes" : {},
 	"edges" : {}
 	}
 
-const ATTRACTION_CONSTANT := 0.3*0.05
-const REPULSION_CONSTANT := 400.0
-const MAX_DISTANCE := 1000.0
-const GRAPH_MOVE_SPEED := 1.2
-
-const DEFAULT_DAMPING := 0.7
-const DEFAULT_SPRING_LENGTH := 200/3
-const DEFAULT_MAX_ITERATIONS := 200
-
-
-var cloud_node_icon = preload("res://ui/elements/Element_CloudNode.tscn")
+var cloud_node_scene = preload("res://ui/elements/Element_CloudNode.tscn")
 var root_node : Object = null
 var is_removed := false
 var is_active := true
+var update_visuals := true
 
 var node_group : Node2D = null
 var line_group : Node2D = null
@@ -61,11 +62,11 @@ func add_node(_data:Dictionary) -> CloudNode:
 	new_cloud_node.reported = _data.reported
 	new_cloud_node.kind = _data.reported.kind
 	
-	new_cloud_node.icon = cloud_node_icon.instance()
-	new_cloud_node.icon.parent_graph = self
-	new_cloud_node.icon.cloud_node = new_cloud_node
-	new_cloud_node.icon.position = Vector2(1920,1080*1.8)*0.5
-	node_group.add_child(new_cloud_node.icon)
+	new_cloud_node.scene = cloud_node_scene.instance()
+	new_cloud_node.scene.parent_graph = self
+	new_cloud_node.scene.cloud_node = new_cloud_node
+	node_group.add_child(new_cloud_node.scene)
+	new_cloud_node.scene.position = get_random_pos()
 	
 	return new_cloud_node
 
@@ -84,30 +85,53 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	return new_edge
 
 
-func create_graph_raw(raw_data : Dictionary):
-	raw_data = raw_data.duplicate(true)
+func create_graph_raw(raw_data : Dictionary, total_nodes:int):
+	_e.emit_signal("loading", 0, "Creating visual elements" )
+	node_group.modulate.a = 0.05
+	
+	var index := 0
+	var index_mod = max(raw_data.size() / 100, 1)
+	var total_size : float = float( raw_data.size() )
 	for data in raw_data.values():
-		if data != null and data.has("id"):
+		if index % index_mod == 0:
+			_e.emit_signal("loading", float(index) / total_size, "Creating visual elements" )
+			_g.msg( "Creating visual elements: {0}/{1}".format([index, total_nodes]) )
+			yield(get_tree(), "idle_frame")
+		index += 1
+		if data == null:
+			continue
+		if "id" in data:
 			graph_data.nodes[data.id] = add_node(data)
-			if root_node == null:
-				root_node = graph_data.nodes[data.id].icon
-		elif graph_data.nodes.has(data.from) and graph_data.nodes.has(data.to):
+			
+			if data.reported.kind == "graph_root":
+				root_node = graph_data.nodes[data.id].scene
+		else:
 			# For SFDP creation
-			graph_data.nodes[data.from].to.append( graph_data.nodes[data.to].icon )
-			graph_data.nodes[data.to].from.append( graph_data.nodes[data.from].icon )
+			graph_data.nodes[data.from].connections.append( graph_data.nodes[data.to] )
+			graph_data.nodes[data.to].connections.append( graph_data.nodes[data.from] )
+			
 			# For connection lines
-			graph_data.edges[str(data.from + data.to)] = add_edge(data)
+			graph_data.edges[index] = add_edge(data)
+			
+	if root_node == null:
+		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
+	
+	node_group.modulate.a = 1
+	emit_signal("graph_created")
+	_g.msg( "Visual elements done ... rendering" )
+	_e.emit_signal("loading", 1, "Creating visual elements" )
+	_e.emit_signal("loading_done")
 
 
 func create_graph_direct(_graph_data : Dictionary):
 	var node_keys = _graph_data.nodes.keys()
 	for node_key in node_keys:
 		var node = _graph_data.nodes[node_key]
-		node.icon = cloud_node_icon.instance()
-		node.icon.cloud_node = node
-		node.icon.position = Vector2(1920,1080*1.8)*0.5
-		node.icon.parent_graph = self
-		node_group.add_child(node.icon)
+		node.scene = cloud_node_scene.instance()
+		node.scene.cloud_node = node
+		node.scene.position = Vector2(1920,1080*1.8)*0.5
+		node.scene.parent_graph = self
+		node_group.add_child(node.scene)
 	
 	var edge_keys = _graph_data.edges.keys()
 	for edge_key in edge_keys:
@@ -122,7 +146,7 @@ func create_graph_direct(_graph_data : Dictionary):
 		line_group.add_child(new_edge_line)
 	
 	if root_node == null:
-		root_node = _graph_data.nodes[ node_keys[0] ].icon
+		root_node = _graph_data.nodes[ node_keys[0] ].scene
 	
 	graph_data.nodes = _graph_data.nodes
 	graph_data.edges = _graph_data.edges
@@ -149,9 +173,9 @@ func graph_calc_layout():
 
 func graph_rand_layout():
 	for node in graph_data.nodes.values():
-		if node.icon.random_pos == Vector2.ZERO:
-			node.icon.random_pos = get_random_pos()
-		node.icon.position = node.icon.random_pos
+		if node.scene.random_pos == Vector2.ZERO:
+			node.scene.random_pos = get_random_pos()
+		node.scene.position = node.scene.random_pos
 	root_node.position = Vector2.ZERO
 	root_node.random_pos = Vector2.ZERO
 	center_diagram()
@@ -160,19 +184,20 @@ func graph_rand_layout():
 
 func update_connection_lines() -> void:
 	for connection in graph_data.edges.values():
-		connection.line.global_position = connection.from.icon.global_position
-		connection.line.points = PoolVector2Array( [Vector2.ZERO, connection.to.icon.global_position - connection.line.global_position ] )
+		connection.line.global_position = connection.from.scene.global_position
+		connection.line.points = PoolVector2Array( [Vector2.ZERO, connection.to.scene.global_position - connection.line.global_position ] )
 
 
 func layout_graph(graph_node_positions := {}) -> void:
 	if graph_node_positions.empty() or graph_node_positions.size() != graph_data.nodes.size():
 		for node in graph_data.nodes.values():
-			node.icon.position = get_random_pos()
-			node.icon.random_pos = node.icon.position
+			node.scene.position = get_random_pos()
+			node.scene.random_pos = node.scene.position
 	else:
 		for node in graph_data.nodes.values():
-			node.icon.position = str2var(graph_node_positions[node.id])
-			node.icon.graph_pos = node.icon.position
+			node.scene.position = str2var(graph_node_positions[node.id])
+			node.scene.graph_pos = node.scene.position
+	
 	update_connection_lines()
 	center_diagram()
 
@@ -198,7 +223,7 @@ func show_all() -> void:
 		#connection.line.self_modulate = line_color
 		connection.line.default_color = line_color
 	for node in graph_data.nodes.values():
-		node.icon.labels_unisize(0.25)
+		node.scene.labels_unisize(0.25)
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
@@ -216,67 +241,67 @@ func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
 
 # Arrange the graph using SFDP
 # returning the nodes positions
-func arrange(damping, spring_length, max_iterations, deterministic := false):
+func arrange(damping, spring_length, max_iterations, deterministic := false, refine := false):
+	var benchmark_start = OS.get_ticks_usec()
 	if !deterministic:
 		randomize()
 	
 	var stop_count = 0
 	var iterations = 0
-	
-	var nodes_keys : Array = Array( graph_data.nodes.keys() )
+	var total_displacement_threshold : float = graph_data.nodes.size()*8 if !refine else 100.0
 	
 	while true:
 		var total_displacement := 0.0
 		
-		for i in graph_data.nodes.size():
-			var node = graph_data.nodes[ nodes_keys[i] ]
-			var current_node_position = node.icon.position
+		for node in graph_data.nodes.values():
+			var current_node_position = node.scene.position
 			var net_force = Vector2.ZERO
-			
+			var connection_amount = min(node.connections.size(), 20)
 			
 			for other_node in graph_data.nodes.values():
 				if node != other_node:
-					var other_node_pos = other_node.icon.position
-					if current_node_position.distance_to(other_node_pos) > MAX_DISTANCE:
-						continue
-					net_force += calc_repulsion_force_pos( current_node_position, other_node_pos )
+					var other_node_pos = other_node.scene.position
+					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
+						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) * range_lerp(connection_amount, 0, 10, 0.1, 1)
 			
-			for child_node in node.to:
-				net_force += calc_attraction_force_pos( current_node_position, child_node.position, spring_length )
-
-			for parent in node.from:
-				net_force += calc_attraction_force_pos( current_node_position, parent.position, spring_length)
+			for connection in node.connections:
+				var other_node_pos = connection.scene.position
+				net_force += calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
 			
-			node.velocity = (node.velocity + net_force) * damping * GRAPH_MOVE_SPEED
-			node.next_pos = (current_node_position + node.velocity)
+			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped( MAX_DISPLACE )
+			node.scene.position += node.velocity
 			total_displacement += node.velocity.length()
 		
-		for i in graph_data.nodes.size():
-			var node = graph_data.nodes[ nodes_keys[i] ]
-			graph_data.nodes[ nodes_keys[i] ].icon.position = node.next_pos
-
 		iterations += 1
-		if total_displacement < 10:
+		if total_displacement < total_displacement_threshold:
 			stop_count += 1
 		if stop_count > 15:
 			break
 		if iterations > max_iterations:
 			break
 		
-		center_diagram()
-		update_connection_lines()
+		if update_visuals:
+			center_diagram()
+			update_connection_lines()
 		yield(get_tree(), "idle_frame")
+		
+	center_diagram()
+	update_connection_lines()
 	
 	var saved_node_positions := {}
 	for node in graph_data.nodes.values():
-		saved_node_positions[node.id] = var2str(node.icon.position)
-		node.icon.graph_pos = node.icon.position
+		saved_node_positions[node.id] = var2str(node.scene.position)
+		node.scene.graph_pos = node.scene.position
+	
+	var benchmark_end = OS.get_ticks_usec()
+	var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
+	prints("Time to calculate {0} iterations: {1}".format([iterations-1, benchmark_time]))
 	
 	emit_signal("order_done", saved_node_positions)
 
 
 func center_diagram():
-	$Center/Graph.position = -root_node.position# + Vector2(1920, 1080)/2
+	$Center/Graph.position = -root_node.position
 
 
 func remove_graph():

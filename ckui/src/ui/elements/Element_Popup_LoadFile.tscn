@@ -1,0 +1,168 @@
+[gd_scene load_steps=9 format=2]
+
+[ext_resource path="res://ui/elements/Element_Popup.tscn" type="PackedScene" id=1]
+[ext_resource path="res://ui/elements/scripts/element_popup_load_data.gd" type="Script" id=2]
+[ext_resource path="res://assets/themes/default.tres" type="Theme" id=3]
+[ext_resource path="res://ui/elements/Element_GenericButton.tscn" type="PackedScene" id=4]
+
+[sub_resource type="DynamicFontData" id=17]
+font_path = "res://assets/fonts/Lato-Regular.ttf"
+
+[sub_resource type="DynamicFont" id=18]
+size = 26
+use_mipmaps = true
+use_filter = true
+font_data = SubResource( 17 )
+
+[sub_resource type="DynamicFontData" id=41]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=42]
+size = 28
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = -6
+extra_spacing_char = 1
+font_data = SubResource( 41 )
+
+[node name="PopupLoadFile" instance=ExtResource( 1 )]
+script = ExtResource( 2 )
+
+[node name="Content" parent="Margin/MarginContainer" index="1"]
+custom_constants/margin_right = 30
+custom_constants/margin_top = 30
+custom_constants/margin_left = 30
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Margin/MarginContainer/Content" index="0"]
+margin_left = 30.0
+margin_top = 30.0
+margin_right = 1690.0
+margin_bottom = 743.0
+size_flags_horizontal = 3
+custom_constants/separation = 30
+
+[node name="Output" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer" index="0"]
+margin_right = 1660.0
+margin_bottom = 67.0
+rect_min_size = Vector2( 400, 0 )
+size_flags_horizontal = 3
+theme = ExtResource( 3 )
+custom_fonts/font = SubResource( 18 )
+text = "No data/graph.dump.json found!
+You can continue with generated example data or place the file in the data/ folder inside the project."
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CheckBox" type="CheckBox" parent="Margin/MarginContainer/Content/VBoxContainer" index="1"]
+visible = false
+margin_top = 71.0
+margin_right = 1700.0
+margin_bottom = 109.0
+theme = ExtResource( 3 )
+custom_colors/font_color = Color( 1, 1, 1, 0.54902 )
+custom_colors/font_color_pressed = Color( 1, 1, 1, 0.784314 )
+pressed = true
+text = "cloud"
+
+[node name="FilterButtons" type="HBoxContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="2"]
+margin_top = 97.0
+margin_right = 1660.0
+margin_bottom = 131.0
+custom_constants/separation = 20
+alignment = 1
+
+[node name="MetricDateRangeLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="0"]
+modulate = Color( 1, 1, 1, 0.784314 )
+use_parent_material = true
+margin_left = 630.0
+margin_top = 4.0
+margin_right = 770.0
+margin_bottom = 29.0
+mouse_filter = 1
+custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
+custom_constants/shadow_offset_y = 5
+custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 42 )
+text = "Filter by kind"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MarginContainer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="1"]
+margin_left = 790.0
+margin_right = 790.0
+margin_bottom = 34.0
+
+[node name="AllButton" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="2" instance=ExtResource( 4 )]
+margin_left = 810.0
+margin_right = 910.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 100, 34 )
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton/CenterContainer" index="0"]
+margin_left = 34.0
+margin_top = 3.0
+margin_right = 66.0
+margin_bottom = 31.0
+rect_pivot_offset = Vector2( 16, 16 )
+text = "All"
+
+[node name="NoneButton" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="3" instance=ExtResource( 4 )]
+margin_left = 930.0
+margin_right = 1030.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 100, 34 )
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton/CenterContainer" index="0"]
+margin_left = 19.0
+margin_top = 3.0
+margin_right = 81.0
+margin_bottom = 31.0
+rect_pivot_offset = Vector2( 30, 16 )
+text = "None"
+
+[node name="GridContainer" type="GridContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="3"]
+margin_top = 161.0
+margin_right = 1660.0
+margin_bottom = 161.0
+columns = 5
+
+[node name="ExampleDataButton" parent="Margin/MarginContainer/PopupButtons" index="1" instance=ExtResource( 4 )]
+margin_left = 885.0
+margin_right = 1185.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 300, 34 )
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/PopupButtons/ExampleDataButton/CenterContainer" index="0"]
+margin_left = 41.0
+margin_top = 3.0
+margin_right = 258.0
+margin_bottom = 31.0
+text = "Use example data"
+
+[node name="OkButton" parent="Margin/MarginContainer/PopupButtons" index="2"]
+visible = false
+margin_left = 1060.0
+margin_right = 1360.0
+
+[node name="Timer" type="Timer" parent="." index="1"]
+wait_time = 0.2
+autostart = true
+
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton" to="." method="_on_AllButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton" to="." method="_on_NoneButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/PopupButtons/ExampleDataButton" to="." method="_on_ExampleDataButton_pressed"]
+[connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
+
+[editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton"]
+[editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton"]
+[editable path="Margin/MarginContainer/PopupButtons/CancelButton"]
+[editable path="Margin/MarginContainer/PopupButtons/ExampleDataButton"]
+[editable path="Margin/MarginContainer/PopupButtons/OkButton"]
