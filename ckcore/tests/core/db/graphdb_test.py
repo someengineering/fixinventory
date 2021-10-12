@@ -337,19 +337,25 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
     assert len(result) == 10
     assert isinstance(result[0], Bla)
 
-    around_me = Query.by("foo", P("identifier") == "9").traverse_inout(start=0)
-    graph = await filled_graph_db.query_graph(QueryModel(around_me, foo_model, "reported"))
-    assert len({x for x in graph.nodes}) == 12
-    assert GraphAccess.root_id(graph) == "sub_root"
-    assert list(graph.successors("sub_root"))[0] == "9"
-    assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
-
 
 @pytest.mark.asyncio
 async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     graph = await load_graph(filled_graph_db, foo_model)
     assert len(graph.edges) == 110
     assert len(graph.nodes.values()) == 111
+
+    # filter data and tag result, and then traverse to the end of the graph in both directions
+    around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)
+    graph = await filled_graph_db.query_graph(QueryModel(around_me, foo_model, "reported"))
+    assert len({x for x in graph.nodes}) == 12
+    assert GraphAccess.root_id(graph) == "sub_root"
+    assert list(graph.successors("sub_root"))[0] == "9"
+    assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
+    for node_id, node in graph.nodes.data(True):
+        if node_id == "9":
+            assert node["metadata"]["tag"] == "red"
+        else:
+            assert "tag" not in node["metadata"]
 
 
 @pytest.mark.asyncio

@@ -120,10 +120,10 @@ def test_navigation() -> None:
 # noinspection PyTypeChecker
 def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), False, None, Navigation(1, 10, EdgeType.delete)))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), True, None, Navigation(1, 10, EdgeType.delete)))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), None, None, Navigation(1, 10, EdgeType.delete)))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), "red", None, Navigation(1, 10, EdgeType.delete)))
     with_clause = WithClause(WithClauseFilter("==", 0), Navigation(edge_type=EdgeType.delete))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), True, with_clause, Navigation(1, 10, EdgeType.delete)))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), "green", with_clause, Navigation(1, 10, EdgeType.delete)))
 
 
 def test_query() -> None:
