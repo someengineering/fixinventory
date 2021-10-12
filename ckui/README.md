@@ -29,7 +29,8 @@ It is here to give an idea of how the UI will be looking and feeling and to star
 
 ## How to get the UI running
 **Follow these steps:**
-- Download the [latest Godot 3.x stable](https://godotengine.org/download) (We develop in the standard version).
+- Parts of this project are saved using Git LFS. To make sure all the files are pulled, you must [install Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage)
+- Download the [Godot 3.4 b6](https://downloads.tuxfamily.org/godotengine/3.4/beta6/) (standard version).
 - Start the engine and import the project in the Project Manager (click import, select the 'project.godot' file).
 - Open the project from the Project Manager.
 - Run the Project by clicking on the "Play" button in the upper right corner.
@@ -43,12 +44,12 @@ We will add instructions of how to generate your own `.json` files soon.
 Until then look at the format inside the `example_data.gd` file to get an idea of the required input.
 
 The UI uses two files for the data it processes:
-- `data/graph_dump.json` - This is a dump of the whole node graph from Cloudkeeper
+- `data/graph.dump.json` - This is a dump of the whole node graph from Cloudkeeper
 - `data/prometheus_metrics.json` - This is an export from the Prometheus tsdb
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/3G3sX6y3bt) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
 
 
 ## License
