@@ -353,7 +353,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
     for node_id, node in graph.nodes.data(True):
         if node_id == "9":
-            assert node["metadata"]["tag"] == "red"
+            assert node["metadata"]["query_tag"] == "red"
         else:
             assert "tag" not in node["metadata"]
 

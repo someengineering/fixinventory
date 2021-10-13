@@ -799,7 +799,7 @@ class ArangoGraphDB(GraphDB):
                 crsr = f"f{idx}"
                 out = filtered_out
                 md = f"NOT_NULL({crsr}.metadata, {{}})"
-                f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"tag": "{p.tag}"}})}})' if p.tag else crsr
+                f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
                 query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {f_res})"
                 return out
 
