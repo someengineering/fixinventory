@@ -19,9 +19,9 @@ main() {
         setup_supervisor_http_server
         setup_graphdb
         setup_tsdb
-        setup_ckcore
-        setup_ckworker
-        setup_ckmetrics
+        setup_ckcore "$@"
+        setup_ckworker "$@"
+        setup_ckmetrics "$@"
         exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
     fi
 }
@@ -178,12 +178,12 @@ setup_ckcore() {
     rm -f "$supervisor_ckcore_conf"
     if [ "$START_CKCORE" = true ]; then
         info "ckcore activated"
-        sed -e "s#@CKCORE_GRAPHDB_SERVER@#$CKCORE_GRAPHDB_SERVER#" \
-            -e "s#@CKCORE_GRAPHDB_DATABASE@#$CKCORE_GRAPHDB_DATABASE#" \
-            -e "s#@CKCORE_GRAPHDB_LOGIN@#$CKCORE_GRAPHDB_LOGIN#" \
-            -e "s#@CKCORE_GRAPHDB_PASSWORD@#$CKCORE_GRAPHDB_PASSWORD#" \
-            -e "s#@CKCORE_PSK@#$CKCORE_PSK#" \
-            "$supervisor_ckcore_conf_in" > "$supervisor_ckcore_conf"
+        argsdispatcher ckcore "$supervisor_ckcore_conf_in" "$@" > "$supervisor_ckcore_conf"
+        export CKCORE_GRAPHDB_SERVER
+        export CKCORE_GRAPHDB_DATABASE
+        export CKCORE_GRAPHDB_USERNAME
+        export CKCORE_GRAPHDB_PASSWORD
+        export CKCORE_PSK
     fi
 }
 
@@ -191,10 +191,10 @@ setup_ckworker() {
     rm -f "$supervisor_ckworker_conf"
     if [ "$START_CKWORKER" = true ]; then
         info "ckworker activated"
-        sed -e "s#@CKWORKER_CKCORE_URI@#$CKWORKER_CKCORE_URI#" \
-            -e "s#@CKWORKER_CKCORE_WS_URI@#$CKWORKER_CKCORE_WS_URI#" \
-            -e "s#@CKWORKER_PSK@#$CKWORKER_PSK#" \
-            "$supervisor_ckworker_conf_in" > "$supervisor_ckworker_conf"
+        argsdispatcher ckworker "$supervisor_ckworker_conf_in" "$@" > "$supervisor_ckworker_conf"
+        export CKWORKER_CKCORE_URI
+        export CKWORKER_CKCORE_WS_URI
+        export CKWORKER_PSK
     fi
 }
 
@@ -202,10 +202,10 @@ setup_ckmetrics() {
     rm -f "$supervisor_ckmetrics_conf"
     if [ "$START_CKMETRICS" = true ]; then
         info "ckmetrics activated"
-        sed -e "s#@CKMETRICS_CKCORE_URI@#$CKMETRICS_CKCORE_URI#" \
-            -e "s#@CKMETRICS_CKCORE_WS_URI@#$CKMETRICS_CKCORE_WS_URI#" \
-            -e "s#@CKMETRICS_PSK@#$CKMETRICS_PSK#" \
-            "$supervisor_ckmetrics_conf_in" > "$supervisor_ckmetrics_conf"
+        argsdispatcher ckmetrics "$supervisor_ckmetrics_conf_in" "$@" > "$supervisor_ckmetrics_conf"
+        export CKMETRICS_CKCORE_URI
+        export CKMETRICS_CKCORE_WS_URI
+        export CKMETRICS_PSK
     fi
 }
 
