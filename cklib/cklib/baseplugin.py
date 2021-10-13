@@ -23,6 +23,7 @@ class PluginType(Enum):
     """
 
     COLLECTOR = auto()
+    ACTION = auto()
     PERSISTENT = auto()
     CLI = auto()
 
@@ -62,6 +63,19 @@ class BasePlugin(ABC, Thread):
     def add_args(arg_parser: ArgumentParser) -> None:
         """Adds Plugin specific arguments to the global arg parser"""
         pass
+
+
+class BaseActionPlugin(BasePlugin):
+    plugin_type = PluginType.ACTION
+
+    @abstractmethod
+    def action(self) -> None:
+        """Collects all the Cloud Resources"""
+        pass
+
+    def go(self) -> None:
+        self.action()
+        self.finished = True
 
 
 class BaseCollectorPlugin(BasePlugin):
