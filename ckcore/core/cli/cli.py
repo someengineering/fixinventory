@@ -4,7 +4,7 @@ import asyncio
 import calendar
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
@@ -12,7 +12,7 @@ from typing import Optional, Union, Callable, TypeVar, Any, Coroutine, AsyncGene
 
 from aiostream import stream
 from aiostream.core import Stream
-from parsy import Parser
+from parsy import Parser, regex
 
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
@@ -20,12 +20,24 @@ from core.message_bus import MessageBus
 from core.model.graph_access import EdgeType, Section
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import class_fqn
-from core.parse_util import make_parser, literal_dp, equals_dp, json_value_dp, space_dp
+from core.parse_util import (
+    make_parser,
+    literal_dp,
+    equals_dp,
+    json_value_dp,
+    space_dp,
+    pipe_p,
+    double_quote_dp,
+    double_quoted_string_part_or_esc_dp,
+    single_quote_dp,
+    single_quoted_string_part_or_esc_dp,
+    semicolon_p,
+)
 from core.query.model import Query, Navigation, AllTerm, Aggregate
 from core.query.query_parser import aggregate_parameter_parser, parse_query
 from core.task.job_handler import JobHandler
-from core.types import JsonElement
-from core.util import split_esc, utc_str, utc, from_utc
+from core.types import JsonElement, Json
+from core.util import utc_str, utc, from_utc
 from core.worker_task_queue import WorkerTaskQueue
 from typing import Dict, List, Tuple
 
@@ -513,6 +525,18 @@ class HelpCommand(CLISource):
 
 
 @dataclass
+class ParsedCommand:
+    cmd: str
+    args: Optional[str] = None
+
+
+@dataclass
+class ParsedCommands:
+    commands: List[ParsedCommand]
+    env: Json = field(default_factory=dict)
+
+
+@dataclass
 class ParsedCommandLine:
     """
     The parsed command line holds:
@@ -522,7 +546,8 @@ class ParsedCommandLine:
     """
 
     env: JsonElement
-    parts_with_args: List[Tuple[CLIPart, str]]
+    parsed_commands: ParsedCommands
+    parts_with_args: List[Tuple[CLIPart, Optional[str]]]
     generator: AsyncGenerator[JsonElement, None]
 
     async def to_sink(self, sink: Sink[T]) -> T:
@@ -541,8 +566,39 @@ def key_value_parser() -> Parser:
     return key, value
 
 
+# name=value test=true -> {name: value, test: true}
 key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
-CLIArg = Tuple[CLIPart, str]
+# anything that is not: | " ' ; \
+cmd_token = regex("[^|\"';\\\\]+")
+# double quoted string is maintained with quotes: "foo" -> "foo"
+double_quoted_string = double_quote_dp + double_quoted_string_part_or_esc_dp + double_quote_dp
+# single quoted string is parsed without surrounding quotes: 'foo' -> foo
+single_quoted_string = single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp
+# parse \| \" \' \; and unescape it \| -> |
+escaped_token = regex("\\\\[|\"';]").map(lambda x: x[1])
+# a command are tokens until EOF or pipe
+cmd_args_parser = (escaped_token | double_quoted_string | single_quoted_string | cmd_token).at_least(1).concat()
+
+
+@make_parser
+def single_command_parser() -> Parser:
+    parsed = yield cmd_args_parser
+    cmd_args = [a.strip() for a in parsed.strip().split(" ", 1)]
+    cmd, args = cmd_args if len(cmd_args) == 2 else (cmd_args[0], None)
+    return ParsedCommand(cmd, args)
+
+
+@make_parser
+def command_line_parser() -> Parser:
+    maybe_env = yield key_values_parser.optional()
+    commands = yield single_command_parser.sep_by(pipe_p, min=1)
+    return ParsedCommands(commands, maybe_env if maybe_env else {})
+
+
+# multiple piped commands are separated by semicolon
+multi_command_parser = command_line_parser.sep_by(semicolon_p)
+
+CLIArg = Tuple[CLIPart, Optional[str]]
 
 
 class CLI:
@@ -565,8 +621,7 @@ class CLI:
     @staticmethod
     def create_query(parts: List[Tuple[QueryPart, str]]) -> str:
         query: Query = Query.by(AllTerm())
-        for part, arg_in in parts:
-            arg = arg_in.strip()
+        for part, arg in parts:
             if isinstance(part, QueryAllPart):
                 query = query.combine(parse_query(arg))
             elif isinstance(part, ReportedPart):
@@ -595,14 +650,12 @@ class CLI:
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
     ) -> List[ParsedCommandLine]:
-        def parse_single_command(command: str) -> Tuple[CLIPart, str]:
-            p = command.strip().split(" ", 1)
-            part_str, args_str = (p[0], p[1]) if len(p) == 2 else (p[0], "")
-            if part_str in self.parts:
-                part: CLIPart = self.parts[part_str]
-                return part, args_str
+        def parse_single_command(command: ParsedCommand) -> Tuple[CLIPart, Optional[str]]:
+            if command.cmd in self.parts:
+                part: CLIPart = self.parts[command.cmd]
+                return part, command.args
             else:
-                raise CLIParseError(f"Command >{part_str}< is not known. typo?")
+                raise CLIParseError(f"Command >{command.cmd}< is not known. typo?")
 
         def combine_single_command(commands: List[CLIArg]) -> List[CLIArg]:
             parts = list(takewhile(lambda x: isinstance(x[0], QueryPart), commands))
@@ -619,7 +672,7 @@ class CLI:
                     raise CLIParseError(f"Command >{part.name}< can not be used in this position: {detail}")
             return result
 
-        async def parse_arg(part: Any, args_str: str, **resulting_env: str) -> Any:
+        async def parse_arg(part: Any, args_str: Optional[str], **resulting_env: str) -> Any:
             try:
                 fn = part.parse(args_str, **resulting_env)
                 return await fn if asyncio.iscoroutine(fn) else fn
@@ -627,13 +680,12 @@ class CLI:
                 kind = type(ex).__name__
                 raise CLIParseError(f"{part.name}: can not parse: {args_str}: {kind}: {str(ex)}") from ex
 
-        async def parse_line(line: str) -> ParsedCommandLine:
+        async def parse_line(commands: ParsedCommands) -> ParsedCommandLine:
             def make_stream(in_stream: Union[Stream, AsyncGenerator[JsonElement, None]]) -> Stream:
                 return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
 
-            parsed_env, rest = key_values_parser.parse_partial(line)
-            resulting_env = {**self.cli_env, **env, **parsed_env}
-            parts_with_args = combine_single_command([parse_single_command(cmd) for cmd in split_esc(rest, "|")])
+            resulting_env = {**self.cli_env, **env, **commands.env}
+            parts_with_args = combine_single_command([parse_single_command(cmd) for cmd in commands.commands])
 
             if parts_with_args:
                 source, source_arg = parts_with_args[0]
@@ -643,15 +695,16 @@ class CLI:
                     # noinspection PyTypeChecker
                     flow = make_stream(flow_fn(flow))
                 # noinspection PyTypeChecker
-                return ParsedCommandLine(resulting_env, parts_with_args, flow)
+                return ParsedCommandLine(resulting_env, commands, parts_with_args, flow)
             else:
-                return ParsedCommandLine(resulting_env, [], CLISource.empty())
+                return ParsedCommandLine(resulting_env, commands, [], CLISource.empty())
 
         replaced = self.replace_placeholder(cli_input, **env)
-        first = await parse_line(split_esc(replaced, ";")[0])
-        keep_raw = not replace_place_holder or (first.parts and first.parts[0].name == "add_job")
-        data = cli_input if keep_raw else replaced
-        return [await parse_line(cmd_line) for cmd_line in split_esc(data, ";")]
+        command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
+        keep_raw = not replace_place_holder or command_lines[0].commands[0].cmd == "add_job"
+        command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
+        res = [await parse_line(cmd_line) for cmd_line in command_lines]
+        return res
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]

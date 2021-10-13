@@ -2,7 +2,7 @@ import pytest
 from pytest import fixture
 from typing import Tuple, List
 
-from core.cli.cli import CLI, CLIDependencies, Sink
+from core.cli.cli import CLI, CLIDependencies, Sink, multi_command_parser, ParsedCommands, ParsedCommand
 from core.cli.command import (
     ListSink,
     ExecuteQuerySource,
@@ -63,6 +63,26 @@ def cli(cli_deps: CLIDependencies) -> CLI:
 @fixture
 async def sink(cli_deps: CLIDependencies) -> Sink[List[JsonElement]]:
     return await ListSink(cli_deps).parse()
+
+
+def test_command_line_parser() -> None:
+    def check(cmd_lind: str, expected: List[List[str]]) -> None:
+        parsed: List[ParsedCommands] = multi_command_parser.parse(cmd_lind)
+
+        def cmd_to_str(cmd: ParsedCommand) -> str:
+            arg = f" {cmd.args}" if cmd.args else ""
+            return f"{cmd.cmd}{arg}"
+
+        assert [[cmd_to_str(cmd) for cmd in line.commands] for line in parsed] == expected
+
+    check("test", [["test"]])
+    check("test | bla |  bar", [["test", "bla", "bar"]])
+    check('query is(foo) and bla.test=="foo"', [['query is(foo) and bla.test=="foo"']])
+    check('jq ". | {a:.foo, b: .bla}" ', [['jq ". | {a:.foo, b: .bla}"']])
+    check("a|b|c;d|e|f;g|e|h", [["a", "b", "c"], ["d", "e", "f"], ["g", "e", "h"]])
+    check("add_job 'what \" test | foo | bla'", [['add_job what " test | foo | bla']])
+    check('add_job what \\" test \\| foo \\| bla', [['add_job what " test | foo | bla']])
+    check('add_job what \\" test \\| foo \\| bla', [['add_job what " test | foo | bla']])
 
 
 @pytest.mark.asyncio
