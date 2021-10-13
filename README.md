@@ -53,7 +53,7 @@ To start exploring you need AWS credentials and a working Docker environment wit
 We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
 **Continue reading the Quick Start Guide**  
---> https://docs.some.engineering/start.html
+--> [https://docs.some.engineering/getting_started/quick_start.html](https://docs.some.engineering/getting_started/quick_start.html)
 
 
 # Cloning this repository
