@@ -6,8 +6,9 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from datetime import timedelta
 from functools import partial
-from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
+from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable, cast
 
+import jq
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -428,6 +429,30 @@ class UniqCommand(CLICommand):
                 return True
 
         return lambda in_stream: stream.filter(in_stream, has_not_seen)
+
+
+class JqCommand(CLICommand):
+    """
+    Usage: jq
+    """
+
+    @property
+    def name(self) -> str:
+        return "jq"
+
+    def info(self) -> str:
+        return "Filter and process json."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        if not arg:
+            raise AttributeError("jq requires an argument to be parsed")
+
+        compiled = jq.compile(double_quoted_or_simple_string_dp.parse(arg))
+
+        def process(in_json: Json) -> Json:
+            return cast(Json, compiled.input(in_json).first())
+
+        return lambda in_stream: stream.map(in_stream, process)
 
 
 class KindSource(CLISource):
@@ -1311,6 +1336,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        JqCommand(d),
         ListCommand(d),
         ProtectCommand(d),
         SetDesiredCommand(d),
