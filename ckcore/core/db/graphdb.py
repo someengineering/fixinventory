@@ -13,7 +13,7 @@ from arango.typings import Json
 from networkx import MultiDiGraph, DiGraph
 
 from core import feature
-from core.constants import less_greater_then_operations as lgt_ops
+from core.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB
 from core.db.model import GraphUpdate, QueryModel
@@ -758,7 +758,7 @@ class ArangoGraphDB(GraphDB):
             var_name = f"{cursor}.{section_dot}{prop_name}"
             p_term = f"{var_name}{extra} {op} @{length}"
             # null check is required, since x<anything evaluates to true if x is null!
-            return f"({var_name}!=null and {p_term})" if op in lgt_ops else p_term
+            return f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
 
         def with_id(cursor: str, t: IdTerm) -> str:
             length = str(len(bind_vars))
