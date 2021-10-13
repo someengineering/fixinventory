@@ -160,7 +160,8 @@ def args_dispatcher(
             arg_index = i + 1
             if len(argv) > arg_index:
                 while not argv[arg_index].startswith("-"):
-                    args[arg].append(argv[arg_index])
+                    argval = str(argv[arg_index]).replace("'", "\\'")
+                    args[arg].append(f"'{argval}'")
                     arg_index += 1
                     if len(argv) <= arg_index:
                         break
