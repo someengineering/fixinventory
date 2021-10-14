@@ -17,6 +17,7 @@ RUN apt-get -y install \
         python3 \
         python3-pip \
         pypy3 \
+        pypy3-dev \
         rustc \
         shellcheck \
         findutils \
