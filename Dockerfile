@@ -16,6 +16,7 @@ RUN apt-get -y install \
         curl \
         python3 \
         python3-pip \
+        pypy3 \
         rustc \
         shellcheck \
         findutils \
@@ -52,16 +53,18 @@ RUN pip install --upgrade pip
 RUN pip install tox flake8
 
 # Build cklib
+RUN mkdir -p /build-pypy
 COPY cklib /usr/src/cklib
 WORKDIR /usr/src/cklib
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
 RUN pip wheel -w /build -f /build .
+RUN pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckcore
 COPY ckcore /usr/src/ckcore
 WORKDIR /usr/src/ckcore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
-RUN pip wheel -w /build -f /build .
+RUN pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build cloudkeeperV1
 COPY cloudkeeperV1 /usr/src/cloudkeeperV1
@@ -99,6 +102,7 @@ RUN pip wheel -w /build -f /build supervisor==${SUPERVISOR_VERSION}
 
 # Install all wheels
 RUN pip install -f /build /build/*.whl
+RUN pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
 WORKDIR /usr/src/cloudkeeper
