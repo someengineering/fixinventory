@@ -145,6 +145,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && apt-get -y --no-install-recommends install \
         python3-minimal \
         python3-pip \
+        pypy3 \
         dumb-init \
         dnsmasq \
         libffi7 \
