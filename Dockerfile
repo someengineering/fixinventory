@@ -49,19 +49,20 @@ RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
 COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 
-# Download and install Python test tools
-RUN pip install --upgrade pip
-RUN pip install tox flake8
-
 # Prepare PyPy build env
 RUN mkdir -p /build-pypy
-RUN pypy3 -m pip install -U pip
+
+# Download and install Python test tools
+RUN python3 -m pip install --upgrade pip
+RUN pypy3 -m pip install --upgrade pip
+RUN rm -f /usr/local/bin/pip*
+RUN python3 -m pip install tox flake8
 
 # Build cklib
 COPY cklib /usr/src/cklib
 WORKDIR /usr/src/cklib
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build -f /build .
+RUN python3 -m pip wheel -w /build -f /build .
 RUN pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckcore
@@ -74,38 +75,38 @@ RUN pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 COPY cloudkeeperV1 /usr/src/cloudkeeperV1
 WORKDIR /usr/src/cloudkeeperV1
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build -f /build .
+RUN python3 -m pip wheel -w /build -f /build .
 
 # Build ckworker
 COPY ckworker /usr/src/ckworker
 WORKDIR /usr/src/ckworker
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build -f /build .
+RUN python3 -m pip wheel -w /build -f /build .
 
 # Build ckmetrics
 COPY ckmetrics /usr/src/ckmetrics
 WORKDIR /usr/src/ckmetrics
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build -f /build .
+RUN python3 -m pip wheel -w /build -f /build .
 
 # Build cksh
 COPY cksh /usr/src/cksh
 WORKDIR /usr/src/cksh
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN pip wheel -w /build -f /build .
+RUN python3 -m pip wheel -w /build -f /build .
 
 # Build cloudkeeper plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
 RUN cd plugins/aws/ && pip wheel -w /build -f /build . && cd -
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
-RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 pip wheel -w /build -f /build
+RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python3 -m pip wheel -w /build -f /build
 
 # Build supervisor
-RUN pip wheel -w /build -f /build supervisor==${SUPERVISOR_VERSION}
+RUN python3 -m pip wheel -w /build -f /build supervisor==${SUPERVISOR_VERSION}
 
 # Install all wheels
-RUN pip install -f /build /build/*.whl
+RUN python3 -m pip install -f /build /build/*.whl
 RUN pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
