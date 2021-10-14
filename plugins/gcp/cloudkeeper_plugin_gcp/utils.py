@@ -76,6 +76,8 @@ class Credentials:
 
 
 def load_credentials(sa_data: str):
+    if len(sa_data) == 0:
+        return None
     if os.path.isfile(sa_data):
         return service_account.Credentials.from_service_account_file(
             sa_data, scopes=SCOPES

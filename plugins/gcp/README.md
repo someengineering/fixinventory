@@ -2,7 +2,7 @@
 An GCP collector plugin for Cloudkeeper.
 
 ## Usage
-When the collector is enabled (`--collector gcp`) it will automatically collect any accounts specified for `--gcp-service-account`.
+When the collector is enabled (`--collector gcp`) it will automatically collect any accounts specified for `--gcp-service-account`. Set to empty string to use default service account discovery on GCE, GKE etc.
 
 ## List of arguments
 ```
