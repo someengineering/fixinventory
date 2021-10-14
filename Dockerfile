@@ -53,8 +53,11 @@ COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 RUN pip install --upgrade pip
 RUN pip install tox flake8
 
-# Build cklib
+# Prepare PyPy build env
 RUN mkdir -p /build-pypy
+RUN pypy3 -m pip install -U pip
+
+# Build cklib
 COPY cklib /usr/src/cklib
 WORKDIR /usr/src/cklib
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
