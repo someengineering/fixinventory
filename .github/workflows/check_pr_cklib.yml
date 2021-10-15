@@ -4,6 +4,10 @@ on:
     paths:
       - 'cklib/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - '.github/**'
 
 jobs:
   cklib:

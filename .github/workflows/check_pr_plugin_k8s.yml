@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/k8s/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/k8s/**'
+      - '.github/**'
 
 jobs:
   k8s:

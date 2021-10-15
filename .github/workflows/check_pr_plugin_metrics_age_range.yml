@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/metrics_age_range/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/metrics_age_range/**'
+      - '.github/**'
 
 jobs:
   metrics_age_range:

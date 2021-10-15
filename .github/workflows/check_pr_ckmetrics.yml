@@ -5,6 +5,11 @@ on:
       - 'ckmetrics/**'
       - 'cklib/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'ckmetrics/**'
+      - 'cklib/**'
+      - '.github/**'
 
 jobs:
   ckmetrics:

@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/cleanup_expired/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/cleanup_expired/**'
+      - '.github/**'
 
 jobs:
   cleanup_expired:

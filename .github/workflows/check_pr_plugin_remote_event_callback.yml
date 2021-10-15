@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/remote_event_callback/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/remote_event_callback/**'
+      - '.github/**'
 
 jobs:
   remote_event_callback:

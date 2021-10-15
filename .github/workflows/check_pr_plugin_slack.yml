@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/slack/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/slack/**'
+      - '.github/**'
 
 jobs:
   slack:

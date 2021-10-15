@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/cli_edgestats/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/cli_edgestats/**'
+      - '.github/**'
 
 jobs:
   cli_edgestats:
