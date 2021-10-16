@@ -1,8 +1,7 @@
 #!/bin/bash
 
 bootstrap() {
-    cd /tmp
-    nohup /sbin/setuser cloudkeeper /usr/local/sbin/bootstrap-graphdb
+    /sbin/setuser cloudkeeper /usr/local/sbin/bootstrap-graphdb
 }
 
 bootstrap &
