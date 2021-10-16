@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/cleanup_volumes/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/cleanup_volumes/**'
+      - '.github/**'
 
 jobs:
   cleanup_volumes:

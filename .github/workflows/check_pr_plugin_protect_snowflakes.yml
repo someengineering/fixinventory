@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/protect_snowflakes/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/protect_snowflakes/**'
+      - '.github/**'
 
 jobs:
   protect_snowflakes:

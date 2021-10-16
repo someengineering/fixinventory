@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/onelogin/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/onelogin/**'
+      - '.github/**'
 
 jobs:
   onelogin:

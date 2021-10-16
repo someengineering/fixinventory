@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/gcp/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/gcp/**'
+      - '.github/**'
 
 jobs:
   gcp:

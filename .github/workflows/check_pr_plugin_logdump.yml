@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/logdump/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/logdump/**'
+      - '.github/**'
 
 jobs:
   logdump:

@@ -5,6 +5,11 @@ on:
       - 'cloudkeeperV1/**'
       - 'cklib/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cloudkeeperV1/**'
+      - 'cklib/**'
+      - '.github/**'
 
 jobs:
   cloudkeeperV1:

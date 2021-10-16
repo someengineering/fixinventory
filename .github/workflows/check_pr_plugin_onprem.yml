@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/onprem/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/onprem/**'
+      - '.github/**'
 
 jobs:
   onprem:

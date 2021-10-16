@@ -5,6 +5,11 @@ on:
       - 'cksh/**'
       - 'cklib/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cksh/**'
+      - 'cklib/**'
+      - '.github/**'
 
 jobs:
   cksh:
