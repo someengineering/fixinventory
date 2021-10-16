@@ -5,7 +5,7 @@ set -euo pipefail
 # Include defaults
 . /usr/local/etc/cloudkeeper/defaults
 . /usr/local/etc/cloudkeeper/common
-source /usr/local/cloudkeeper-venv-python3/bin/activate
+. /usr/local/cloudkeeper-venv-python3/bin/activate
 
 
 main() {
