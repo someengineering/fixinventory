@@ -58,7 +58,6 @@ RUN ./configure --enable-optimizations --prefix /usr/local/python
 RUN make -j 12
 RUN make install
 RUN /usr/local/python/bin/python3 -m ensurepip
-RUN /usr/local/python/bin/python3 -m pip install --upgrade pip
 
 WORKDIR /build
 RUN mkdir -p /build/pypy
@@ -66,7 +65,6 @@ RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.7-v${PY
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
-RUN /usr/local/pypy/bin/pypy3 -m pip install --upgrade pip
 
 WORKDIR /usr/local
 RUN /usr/local/python/bin/python3 -m venv cloudkeeper-venv-python3
@@ -77,7 +75,8 @@ RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
 
 # Download and install Python test tools
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install tox flake8
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip install -U pip wheel
 
 # Build cklib
 COPY cklib /usr/src/cklib
