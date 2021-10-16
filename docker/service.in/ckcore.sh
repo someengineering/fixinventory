@@ -5,4 +5,4 @@ if [ "$START_GRAPHDB" = true ]; then
     sleep 7
 fi
 source /usr/local/cloudkeeper-venv-pypy3/bin/activate
-exec /sbin/setuser cloudkeeper ckcore @CLOUDKEEPER_ARGSDISPATCHER@
+exec /sbin/setuser cloudkeeper ckcore --start-collect-on-subscriber-connect @CLOUDKEEPER_ARGSDISPATCHER@
