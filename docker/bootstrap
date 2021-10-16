@@ -18,6 +18,7 @@ main() {
     setup_ckcore "$@"
     setup_ckworker "$@"
     setup_ckmetrics "$@"
+    setup_runit
     exec /sbin/my_init
 }
 
@@ -80,6 +81,9 @@ setup_etc_hosts() {
     rm -f "$temp_hosts"
 }
 
+setup_runit() {
+    mkdir +x /etc/service/*/run
+}
 
 setup_dnsmasq() {
     rm -f "$runit_dnsmasq_rundir/run"
