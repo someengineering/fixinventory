@@ -91,8 +91,10 @@ RUN pypy -m pip wheel -w /build-pypy -f /build-pypy .
 # Build ckcore
 COPY ckcore /usr/src/ckcore
 WORKDIR /usr/src/ckcore
-RUN source /usr/local/cloudkeeper-venv-pypy3/bin/activate
+RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
+RUN python -m pip wheel -w /build-python -f /build-python .
+RUN source /usr/local/cloudkeeper-venv-pypy3/bin/activate
 RUN pypy -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckworker
