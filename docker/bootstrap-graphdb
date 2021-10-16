@@ -24,5 +24,3 @@ users.save('$CKCORE_GRAPHDB_USERNAME', '$CKCORE_GRAPHDB_PASSWORD');
 db._createDatabase('$CKCORE_GRAPHDB_DATABASE');
 users.grantDatabase('$CKCORE_GRAPHDB_USERNAME', '$CKCORE_GRAPHDB_DATABASE', 'rw');
 EOF
-
-sv down bootstrap-graphdb
