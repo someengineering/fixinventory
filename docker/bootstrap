@@ -82,7 +82,7 @@ setup_etc_hosts() {
 }
 
 setup_runit() {
-    mkdir +x /etc/service/*/run
+    chmod +x /etc/service/*/run
 }
 
 setup_dnsmasq() {
