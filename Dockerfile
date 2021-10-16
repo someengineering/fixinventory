@@ -61,6 +61,7 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 RUN /usr/local/python/bin/python3 -m pip install --upgrade pip
 
 WORKDIR /build
+RUN mkdir -p /build/pypy
 RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.7-v${PYPY_VERSION}-linux64.tar.bz2
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
