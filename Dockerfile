@@ -157,6 +157,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
     && apt-get -y --no-install-recommends install \
+        iproute2 \
         dnsmasq \
         libffi7 \
         openssl \
