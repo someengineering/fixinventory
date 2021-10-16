@@ -77,8 +77,7 @@ RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
 
 # Download and install Python test tools
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN python -m pip install tox flake8
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install tox flake8
 
 # Build cklib
 COPY cklib /usr/src/cklib
