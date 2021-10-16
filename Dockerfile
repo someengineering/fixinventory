@@ -83,55 +83,45 @@ RUN python -m pip install tox flake8
 # Build cklib
 COPY cklib /usr/src/cklib
 WORKDIR /usr/src/cklib
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN python -m pip wheel -w /build-python -f /build-python .
-RUN source /usr/local/cloudkeeper-venv-pypy3/bin/activate
-RUN pypy -m pip wheel -w /build-pypy -f /build-pypy .
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckcore
 COPY ckcore /usr/src/ckcore
 WORKDIR /usr/src/ckcore
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
-RUN python -m pip wheel -w /build-python -f /build-python .
-RUN source /usr/local/cloudkeeper-venv-pypy3/bin/activate
-RUN pypy -m pip wheel -w /build-pypy -f /build-pypy .
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckworker
 COPY ckworker /usr/src/ckworker
 WORKDIR /usr/src/ckworker
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN python -m pip wheel -w /build-python -f /build-python .
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
 # Build ckmetrics
 COPY ckmetrics /usr/src/ckmetrics
 WORKDIR /usr/src/ckmetrics
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN python -m pip wheel -w /build-python -f /build-python .
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
 # Build cksh
 COPY cksh /usr/src/cksh
 WORKDIR /usr/src/cksh
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN python -m pip wheel -w /build-python -f /build-python .
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
 # Build cloudkeeper plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN cd plugins/aws/ && pip wheel -w /build-python -f /build-python . && cd -
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
-RUN find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
+RUN cd plugins/aws/ && . /usr/local/cloudkeeper-venv-python3/bin/activate && pip wheel -w /build-python -f /build-python . && cd -
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
 
 # Install all wheels
-RUN source /usr/local/cloudkeeper-venv-python3/bin/activate
-RUN python3 -m pip install -f /build-python /build-python/*.whl
-RUN source /usr/local/cloudkeeper-venv-pypy3/bin/activate
-RUN pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
+RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
 WORKDIR /usr/src/cloudkeeper
@@ -191,7 +181,6 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
     && ln -s /usr/local/bin/cksh-shim /usr/bin/cksh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
