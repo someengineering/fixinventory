@@ -35,7 +35,6 @@ apply_permissions() {
 
     chown -R cloudkeeper:cloudkeeper \
         /home/cloudkeeper \
-        /var/run/cloudkeeper \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 }
