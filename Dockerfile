@@ -1,4 +1,4 @@
-FROM debian:stable as build-env
+FROM phusion/baseimage:focal-1.0.0 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
@@ -10,6 +10,7 @@ ARG PROMETHEUS_VERSION=2.30.1
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
 RUN apt-get update
+RUN apt-get -y dist-upgrade
 RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
@@ -27,21 +28,12 @@ RUN apt-get -y install \
         libffi-dev \
         libssl-dev \
         cargo \
-        linux-headers-5.10.0-8-amd64
+        linux-headers-generic
 
 # Download and install ArangoDB (graphdb)
 WORKDIR /usr/local/db
 RUN curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
 RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/db
-
-# Build and install Busybox
-WORKDIR /build/busybox
-RUN curl -L -o /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2
-RUN tar xjvf /tmp/busybox.tar.bz2 --strip-components=1 -C /build/busybox
-RUN make defconfig
-RUN sed -i -e "s/^CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=.*/CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=2048/" .config
-RUN make
-RUN cp busybox /usr/local/bin/
 
 # Download and install Prometheus (tsdb)
 WORKDIR /usr/local/tsdb
@@ -70,12 +62,6 @@ COPY ckcore /usr/src/ckcore
 WORKDIR /usr/src/ckcore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
-
-# Build cloudkeeperV1
-COPY cloudkeeperV1 /usr/src/cloudkeeperV1
-WORKDIR /usr/src/cloudkeeperV1
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then tox; fi
-RUN python3 -m pip wheel -w /build -f /build .
 
 # Build ckworker
 COPY ckworker /usr/src/ckworker
@@ -111,7 +97,7 @@ RUN pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
 WORKDIR /usr/src/cloudkeeper
-COPY docker/supervisor.conf.in /usr/local/etc/supervisor.conf.in
+COPY docker/service.in /usr/local/etc/service.in
 COPY docker/defaults /usr/local/etc/cloudkeeper/defaults
 COPY docker/common /usr/local/etc/cloudkeeper/common
 COPY docker/argsdispatcher /usr/local/bin/argsdispatcher
@@ -130,15 +116,13 @@ RUN if [ "${TESTS:-false}" = true ]; then \
         ; \
     fi
 COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.conf
-COPY docker/supervisord.conf /usr/local/etc/supervisord.conf
-RUN mkdir -p /usr/local/etc/supervisor/conf.d/
-RUN chmod 640 /usr/local/etc/supervisord.conf
 RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
 # Setup main image
-FROM debian:stable
+FROM phusion/baseimage:focal-1.0.0
 ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG="en_US.UTF-8"
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/db/bin:/usr/local/sbin:/usr/local/bin
 WORKDIR /
@@ -170,37 +154,10 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
-    && mkdir -p /var/spool/cron/crontabs /var/run/cloudkeeper /var/log/supervisor \
-    && ln -s /usr/local/bin/busybox /usr/local/sbin/syslogd \
-    && ln -s /usr/local/bin/busybox /usr/local/sbin/mkpasswd \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/vi \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/patch \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/unix2dos \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/dos2unix \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/makemime \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/xxd \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/wget \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/less \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/lsof \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/httpd \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ssl_client \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ip \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ipcalc \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ping \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ping6 \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/iostat \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/setuidgid \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ftpget \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/ftpput \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/bzip2 \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/xz \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/pstree \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/killall \
-    && ln -s /usr/local/bin/busybox /usr/local/bin/bc \
     && ln -s /usr/local/bin/cksh-shim /usr/bin/cksh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-EXPOSE 8900 8529 9955 9090
+EXPOSE 8900 8529 9955 9956
 VOLUME ["/data"]
 ENTRYPOINT ["/usr/local/sbin/bootstrap"]
