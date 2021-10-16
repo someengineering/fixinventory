@@ -76,21 +76,21 @@ RUN mkdir -p /build-pypy
 
 # Download and install Python test tools
 RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip install -U pip wheel
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip install -U pip wheel
 
 # Build cklib
 COPY cklib /usr/src/cklib
 WORKDIR /usr/src/cklib
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
 RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip wheel -w /build-pypy -f /build-pypy .
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckcore
 COPY ckcore /usr/src/ckcore
 WORKDIR /usr/src/ckcore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip wheel -w /build-pypy -f /build-pypy .
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
 # Build ckworker
 COPY ckworker /usr/src/ckworker
@@ -119,7 +119,7 @@ RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && find plugins/ -maxdept
 
 # Install all wheels
 RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy -m pip install -f /build-pypy /build-pypy/*.whl
+RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
 WORKDIR /usr/src/cloudkeeper
