@@ -1,4 +1,5 @@
 #!/bin/bash
 . /usr/local/etc/cloudkeeper/defaults
 export CKSH_PSK
-exec /usr/local/bin/cksh "$@"
+source /usr/local/cloudkeeper-venv-python3/bin/activate
+exec cksh "$@"

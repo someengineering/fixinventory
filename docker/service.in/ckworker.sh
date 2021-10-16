@@ -1,2 +1,3 @@
 #!/bin/bash
-exec /sbin/setuser cloudkeeper /usr/local/bin/ckworker @CLOUDKEEPER_ARGSDISPATCHER@
+source /usr/local/cloudkeeper-venv-python3/bin/activate
+exec /sbin/setuser cloudkeeper ckworker @CLOUDKEEPER_ARGSDISPATCHER@

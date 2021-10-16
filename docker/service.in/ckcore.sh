@@ -1,2 +1,3 @@
 #!/bin/bash
-exec /sbin/setuser cloudkeeper /usr/local/bin/ckcore @CLOUDKEEPER_ARGSDISPATCHER@
+source /usr/local/cloudkeeper-venv-pypy3/bin/activate
+exec /sbin/setuser cloudkeeper ckcore @CLOUDKEEPER_ARGSDISPATCHER@
