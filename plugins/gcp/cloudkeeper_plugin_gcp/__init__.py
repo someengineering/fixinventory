@@ -31,18 +31,18 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         """
         log.debug("plugin: GCP collecting resources")
 
-        projects = Credentials.all()
+        credentials = Credentials.all()
         if len(ArgumentParser.args.gcp_project) > 0:
-            for project in list(projects.keys()):
+            for project in list(credentials.keys()):
                 if project not in ArgumentParser.args.gcp_project:
-                    del projects[project]
+                    del credentials[project]
 
-        if len(projects) == 0:
+        if len(credentials) == 0:
             return
 
         max_workers = (
-            len(projects)
-            if len(projects) < ArgumentParser.args.gcp_project_pool_size
+            len(credentials)
+            if len(credentials) < ArgumentParser.args.gcp_project_pool_size
             else ArgumentParser.args.gcp_project_pool_size
         )
         pool_args = {"max_workers": max_workers}
@@ -50,7 +50,12 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = cklib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
-            collect_args = {"args": ArgumentParser.args}
+            collect_args = {
+                "args": ArgumentParser.args,
+                "credentials": credentials
+                if all(v is None for v in credentials.values())
+                else None,
+            }
         else:
             pool_executor = futures.ThreadPoolExecutor
             collect_args = {}
@@ -62,7 +67,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     project_id,
                     **collect_args,
                 )
-                for project_id in projects.keys()
+                for project_id in credentials.keys()
             ]
             for future in futures.as_completed(wait_for):
                 project_graph = future.result()
@@ -72,7 +77,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 self.graph.merge(project_graph)
 
     @staticmethod
-    def collect_project(project_id: str, args=None) -> Optional[Dict]:
+    def collect_project(project_id: str, args=None, credentials=None) -> Optional[Dict]:
         """Collects an individual project.
 
         Is being called in collect() and either run within a thread or a spawned
@@ -88,6 +93,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         if args is not None:
             ArgumentParser.args = args
+
+        if credentials is not None:
+            Credentials._credentials = credentials
+            Credentials._initialized = True
 
         log.debug(f"Starting new collect process for project {project.dname}")
 
