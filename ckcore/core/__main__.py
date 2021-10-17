@@ -64,8 +64,8 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        log.info(f"Stop application.")
+        log.info("Stopping Cloudkeeper graph core.")
         sys.exit(0)
     except Exception as ex:
-        log.error(f"Error starting application: {ex}")
+        log.error(f"Error starting Cloudkeeper graph core: {ex}")
         sys.exit(1)
