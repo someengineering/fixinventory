@@ -112,12 +112,10 @@ class DbAccess(ABC):
                 self.db.db.echo()
                 return None
             except ArangoServerError as ex:
-                if ex.response.status_code == 401:
-                    log.warning("Can not authorize with graph database. Invalid credentials? Give up.")
-                else:
-                    log.warning(f"Problem accessing the graph database: {ex}. Give up.")
-                sys.exit(1)
+                log.warning(f"Problem accessing the graph database: {ex}. Try again in 5 seconds..")
+                sleep(5)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
                 sleep(5)
         log.error("Can not connect to database. Give up.")
+        sys.exit(1)
