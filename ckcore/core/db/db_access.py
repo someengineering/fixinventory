@@ -1,9 +1,11 @@
 import logging
+import sys
 from abc import ABC
 from datetime import datetime, timezone, timedelta
 from time import sleep
 from typing import Dict, List
 
+from arango import ArangoServerError
 from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
@@ -105,11 +107,16 @@ class DbAccess(ABC):
     # Note: this call uses sleep and will block the current executing thread!
     def wait_for_initial_connect(self, timeout: timedelta) -> None:
         deadline = utc() + timeout
-        while utc() < deadline:
+        while True:
             try:
                 self.db.db.echo()
                 return None
+            except ArangoServerError as ex:
+                if utc() > deadline:
+                    log.error("Can not connect to database. Giving up.")
+                    sys.exit(1)
+                log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
+                sleep(5)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
                 sleep(5)
-        log.error("Can not connect to database. Give up.")
