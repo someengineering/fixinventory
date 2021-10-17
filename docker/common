@@ -1,6 +1,7 @@
 # Service configs
 # Input templates
 runit_graphdb_conf_in=/usr/local/etc/service.in/graphdb.sh
+runit_graphdb_bootstrap_conf_in=/usr/local/etc/service.in/graphdb-bootstrap.sh
 runit_tsdb_conf_in=/usr/local/etc/service.in/tsdb.sh
 runit_dnsmasq_conf_in=/usr/local/etc/service.in/dnsmasq.sh
 runit_ckcore_conf_in=/usr/local/etc/service.in/ckcore.sh
@@ -8,6 +9,7 @@ runit_ckworker_conf_in=/usr/local/etc/service.in/ckworker.sh
 runit_ckmetrics_conf_in=/usr/local/etc/service.in/ckmetrics.sh
 # Output files
 runit_graphdb_rundir=/etc/service/graphdb
+runit_graphdb_bootstrap_rundir=/etc/service/graphdb-bootstrap
 runit_tsdb_rundir=/etc/service/tsdb
 runit_dnsmasq_rundir=/etc/service/dnsmasq
 runit_ckcore_rundir=/etc/service/ckcore

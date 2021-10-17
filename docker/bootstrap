@@ -101,13 +101,16 @@ setup_dnsmasq() {
 
 setup_graphdb() {
     rm -f "$runit_graphdb_rundir/run"
+    rm -f "$runit_graphdb_bootstrap_rundir/run"
     if [ "$START_GRAPHDB" = true ]; then
         info "Graph database activated"
         mkdir -p "$runit_graphdb_rundir"
+        mkdir -p "$runit_graphdb_bootstrap_rundir"
         sed -e "s#@GRAPHDB_SERVER_ENDPOINT@#$GRAPHDB_SERVER_ENDPOINT#" \
             -e "s#@GRAPHDB_ROOT_PASSWORD@#$GRAPHDB_ROOT_PASSWORD#" \
             -e "s#@GRAPHDB_DATABASE_DIRECTORY@#$GRAPHDB_DATABASE_DIRECTORY#" \
             "$runit_graphdb_conf_in" > "$runit_graphdb_rundir/run"
+        cp "$runit_graphdb_bootstrap_conf_in" "$runit_graphdb_bootstrap_rundir/run"
     fi
 }
 
