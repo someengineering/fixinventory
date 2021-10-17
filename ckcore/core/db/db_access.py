@@ -113,9 +113,9 @@ class DbAccess(ABC):
                 return None
             except ArangoServerError as ex:
                 if utc() > deadline:
-                    log.error("Can not connect to database. Give up.")
+                    log.error("Can not connect to database. Giving up.")
                     sys.exit(1)
-                log.warning(f"Problem accessing the graph database: {ex}. Try again in 5 seconds..")
+                log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 sleep(5)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
