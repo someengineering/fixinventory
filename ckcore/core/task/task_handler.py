@@ -218,7 +218,7 @@ class TaskHandler(JobHandler):
             await self.update_trigger(descriptor)
 
         if self.args.start_collect_on_subscriber_connect:
-            filtered = [wf for wf in self.known_workflows() if wf.id == "collect"]
+            filtered = [wf for wf in self.known_workflows() if wf.id == "collect_and_cleanup"]
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 
         async def listen_to_message_bus() -> None:
