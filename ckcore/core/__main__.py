@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from datetime import timedelta
 
 from aiohttp import web
@@ -60,4 +61,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        log.info(f"Stop application.")
+        sys.exit(0)
+    except Exception as ex:
+        log.error(f"Error starting application: {ex}")
+        sys.exit(1)
