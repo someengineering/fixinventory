@@ -1,9 +1,11 @@
 import logging
+import sys
 from abc import ABC
 from datetime import datetime, timezone, timedelta
 from time import sleep
 from typing import Dict, List
 
+from arango import ArangoServerError
 from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
@@ -109,6 +111,12 @@ class DbAccess(ABC):
             try:
                 self.db.db.echo()
                 return None
+            except ArangoServerError as ex:
+                if ex.response.status_code == 401:
+                    log.warning("Can not authorize with graph database. Invalid credentials? Give up.")
+                else:
+                    log.warning(f"Problem accessing the graph database: {ex}. Give up.")
+                sys.exit(1)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
                 sleep(5)
