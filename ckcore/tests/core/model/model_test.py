@@ -24,8 +24,9 @@ from core.model.model import (
     PropertyPath,
     TransformKind,
     DurationKind,
+    SyntheticProperty,
 )
-from core.util import from_utc, utc
+from core.util import from_utc, utc, utc_str
 
 
 def test_json_marshalling() -> None:
@@ -41,6 +42,7 @@ def test_json_marshalling() -> None:
     roundtrip(TransformKind("synth", "duration", "datetime", "duration_to_datetime", True), Kind)
     roundtrip(ArrayKind(StringKind("string")), Kind)
     roundtrip(Property("foo", "foo"), Property)
+    roundtrip(Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])), Property)
     roundtrip(
         ComplexKind(
             "Test",
@@ -105,6 +107,12 @@ def test_transform() -> None:
     one_day_old = from_utc(age.coerce("1d"))
     # difference between 1d and computed utc-24h should be less than 2 seconds (depending on test env less)
     assert (one_day_old - (utc() - timedelta(hours=24))).total_seconds() <= 2
+
+    # transform back from underlying timestamp to timedelta
+    assert age.transform(utc_str(utc() - timedelta(seconds=123))) == "2m3s"
+    assert age.transform(utc_str(utc() - timedelta(seconds=123456))) == "1d10h"
+    assert age.transform(utc_str(utc() - timedelta(seconds=1234567))) == "2w"
+    assert age.transform(utc_str(utc() - timedelta(seconds=123456789))) == "3y10M"
 
 
 def test_datetime() -> None:

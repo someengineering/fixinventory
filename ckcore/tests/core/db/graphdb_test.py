@@ -16,8 +16,8 @@ from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from core.message_bus import MessageBus, Message
 from core.model.adjust_node import NoAdjust
-from core.model.graph_access import GraphAccess, EdgeType
-from core.model.model import Model, ComplexKind, Property, Kind
+from core.model.graph_access import GraphAccess, EdgeType, Section
+from core.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
@@ -177,6 +177,7 @@ def foo_kinds() -> List[Kind]:
             Property("some_string", "string"),
             Property("now_is", "datetime"),
             Property("ctime", "datetime"),
+            Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
         ],
     )
     bla = ComplexKind(
@@ -423,14 +424,20 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
 
 
 @pytest.mark.asyncio
-async def test_get_node(filled_graph_db: ArangoGraphDB) -> None:
-    root = to_foo(await filled_graph_db.get_node("sub_root"))
-    assert root is not None
-    assert isinstance(root, Foo)
-    node_7 = to_foo(await filled_graph_db.get_node("7"))
+async def test_get_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    # load sub_root as foo
+    sub_root = to_foo(await filled_graph_db.get_node(foo_model, "sub_root"))
+    assert sub_root is not None
+    assert isinstance(sub_root, Foo)
+    # load node 7 as foo
+    node_7_json = await filled_graph_db.get_node(foo_model, "7")
+    node_7 = to_foo(node_7_json)
     assert node_7 is not None
     assert isinstance(node_7, Foo)
-    node_1_2 = to_bla(await filled_graph_db.get_node("1_2"))
+    # make sure that all synthetic properties are rendered (the age should not be older than 1 second => 0s or 1s)
+    assert node_7_json[Section.reported]["age"] in ["0s", "1s"]  # type: ignore
+    # load node 1_2 as bla
+    node_1_2 = to_bla(await filled_graph_db.get_node(foo_model, "1_2"))
     assert node_1_2 is not None
     assert isinstance(node_1_2, Bla)
 
@@ -440,7 +447,7 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     json = await graph_db.create_node(foo_model, "some_new_id", to_json(Foo("some_new_id", "name")), "root")
     assert to_foo(json).identifier == "some_new_id"
-    assert to_foo(await graph_db.get_node("some_new_id")).identifier == "some_new_id"
+    assert to_foo(await graph_db.get_node(foo_model, "some_new_id")).identifier == "some_new_id"
 
 
 @pytest.mark.asyncio
@@ -449,7 +456,7 @@ async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     json = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     assert to_foo(json).name == "bla"
-    assert to_foo(await graph_db.get_node("some_other")).name == "bla"
+    assert to_foo(await graph_db.get_node(foo_model, "some_other")).name == "bla"
 
 
 @pytest.mark.asyncio
@@ -459,7 +466,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.create_node(foo_model, "some_other_child", to_json(Foo("some_other_child", "foo")), "sub_root")
     await graph_db.create_node(foo_model, "born_to_die", to_json(Foo("born_to_die", "foo")), "sub_root")
     await graph_db.delete_node("born_to_die")
-    assert await graph_db.get_node("born_to_die") is None
+    assert await graph_db.get_node(foo_model, "born_to_die") is None
     with pytest.raises(AttributeError) as not_allowed:
         await graph_db.delete_node("sub_root")
     assert str(not_allowed.value) == "Can not delete node, since it has 1 child(ren)!"
