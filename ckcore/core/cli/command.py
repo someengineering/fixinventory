@@ -6,8 +6,9 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from datetime import timedelta
 from functools import partial
-from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable
+from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable, cast
 
+import jq
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -38,6 +39,7 @@ from core.cli.cli import (
     Result,
     InternalPart,
     QueryAllPart,
+    strip_quotes,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError
@@ -77,14 +79,8 @@ class EchoSource(CLISource):
     def info(self) -> str:
         return "Send the provided message to downstream"
 
-    quoted = re.compile('(^\\s*")(.*)("\\s*$)')
-
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
-        arg = arg if arg else ""
-        matched = self.quoted.fullmatch(arg)
-        if matched:
-            arg = matched[2]
-        return stream.just(arg)
+        return stream.just(strip_quotes(arg if arg else ""))
 
 
 class JsonSource(CLISource):
@@ -430,6 +426,48 @@ class UniqCommand(CLICommand):
         return lambda in_stream: stream.filter(in_stream, has_not_seen)
 
 
+class JqCommand(CLICommand):
+    """
+    Usage: jq <filter>
+
+    Use the well known jq JSON processor to manipulate incoming json.
+    Every element from the incoming stream is passed to the this jq command.
+    See: https://stedolan.github.io/jq/ for a list of possible jq arguments.
+
+    Parameter:
+        filter: the filter argument for jq.
+
+    Example:
+        $> query is(aws_ec2_instance) | jq '.reported.id'
+           ["id-1", "id-2"]
+           Query all aws ec2 instances and then only pick the reported.id.
+        $> query is(aws_ec2_instance) | jq '. | {id: .reported.id, rev:.revision}'
+           [{"id": "id-1", "rev": "1"}, {"id": "id-2", "rev": "5"}]
+
+    See also: format, list.
+    """
+
+    @property
+    def name(self) -> str:
+        return "jq"
+
+    def info(self) -> str:
+        return "Filter and process json."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        if not arg:
+            raise AttributeError("jq requires an argument to be parsed")
+
+        compiled = jq.compile(strip_quotes(arg))
+
+        def process(in_json: Json) -> Json:
+            out = compiled.input(in_json).all()
+            result = out[0] if len(out) == 1 else out
+            return cast(Json, result)
+
+        return lambda in_stream: stream.map(in_stream, process)
+
+
 class KindSource(CLISource):
     """
     Usage: kind [-p property_path] [name_of_kind]
@@ -474,7 +512,7 @@ class KindSource(CLISource):
         show_kind: Optional[str] = None
 
         if arg:
-            args = arg.strip().split(" ")
+            args = strip_quotes(arg).split(" ")
             if len(args) == 1:
                 show_kind = arg
             elif len(args) == 2 and args[0] == "-p":
@@ -1311,6 +1349,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        JqCommand(d),
         ListCommand(d),
         ProtectCommand(d),
         SetDesiredCommand(d),

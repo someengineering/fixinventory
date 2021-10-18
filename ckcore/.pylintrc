@@ -29,6 +29,7 @@ unsafe-load-any-extension=no
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
 extension-pkg-allow-list=
+  jq
 
 
 [MESSAGES CONTROL]

@@ -329,3 +329,10 @@ async def test_list_command(cli: CLI) -> None:
     list_cmd = "list some_int as si, reported.some_string"
     result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
+
+
+@pytest.mark.asyncio
+async def test_jq_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
+    assert len(result[0]) == 1
+    assert result[0][0] == 1
