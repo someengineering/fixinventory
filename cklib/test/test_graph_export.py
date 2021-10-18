@@ -107,7 +107,7 @@ def test_dataclasses_to_ckcore_model() -> None:
             assert props["tags"]["description"] == "Description of tags"
             assert props["ctime"]["kind"] == "datetime"
             assert props["age"]["kind"] == "trafo.duration_to_datetime"
-            assert props["age"]["synthetic"]["existing_property"] == "ctime"
+            assert props["age"]["synthetic"]["path"] == ["ctime"]
         elif r["fqn"] == "prop":
             assert len(r["properties"]) == 2
             assert props["key"]["kind"] == "string"

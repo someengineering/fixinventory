@@ -146,6 +146,7 @@ def dataclasses_to_ckcore_model(classes: Set[type]) -> List[Json]:
         name = field.name
         kind = field.metadata.get("type_hint", model_name(field.type))
         desc = field.metadata.get("description", "")
+        required = field.metadata.get("required", False)
         synthetic = field.metadata.get("synthetic")
         synthetic = synthetic if synthetic else {}
 
@@ -166,12 +167,13 @@ def dataclasses_to_ckcore_model(classes: Set[type]) -> List[Json]:
                 synth_trafo,
                 False,
                 f"Synthetic prop {synth_trafo} on {name}",
-                synthetic={"existing_property": name},
+                synthetic={"path": [name]},
             )
             for synth_prop, synth_trafo in synthetic.items()
         ]
 
-        return [json(name, kind, not is_optional(field.type), desc)] + synthetics
+        # required = not is_optional(field.type)
+        return [json(name, kind, required, desc)] + synthetics
 
     model: List[Json] = []
     for clazz in transitive_dataclasses(classes):
