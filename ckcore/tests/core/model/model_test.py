@@ -270,22 +270,6 @@ def test_property_path_on_model(person_model: Model) -> None:
 
 
 def test_update(person_model: Model) -> None:
-    with pytest.raises(AttributeError) as not_allowed:  # update city is removed
-        person_model.update_kinds([ComplexKind("Address", ["Base"], [])])
-    assert str(not_allowed.value) == "Update Address existing required property city cannot be removed!"
-    with pytest.raises(AttributeError) as not_allowed:  # update city as not required
-        person_model.update_kinds(
-            [
-                ComplexKind(
-                    "Address",
-                    ["Base"],
-                    [
-                        Property("city", "string"),
-                    ],
-                )
-            ]
-        )
-    assert str(not_allowed.value) == "Update Address existing required property city marked as not required!"
     with pytest.raises(AttributeError) as not_allowed:  # update city with different type
         person_model.update_kinds(
             [
