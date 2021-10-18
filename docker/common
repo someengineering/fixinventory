@@ -1,27 +1,20 @@
-# Supervisor config files
-supervisor_http_server_conf=/usr/local/etc/supervisor/conf.d/http_server.conf
-
-# Commands
-cmd_supervisorctl=/usr/local/bin/supervisorctl
-
-# Syslog supervisor config file
-supervisor_syslog_conf=/usr/local/etc/supervisor/conf.d/syslog.conf
-
 # Service configs
 # Input templates
-supervisor_graphdb_conf_in=/usr/local/etc/supervisor.conf.in/graphdb.conf
-supervisor_tsdb_conf_in=/usr/local/etc/supervisor.conf.in/tsdb.conf
-supervisor_dnsmasq_conf_in=/usr/local/etc/supervisor.conf.in/dnsmasq.conf
-supervisor_ckcore_conf_in=/usr/local/etc/supervisor.conf.in/ckcore.conf
-supervisor_ckworker_conf_in=/usr/local/etc/supervisor.conf.in/ckworker.conf
-supervisor_ckmetrics_conf_in=/usr/local/etc/supervisor.conf.in/ckmetrics.conf
+runit_graphdb_conf_in=/usr/local/etc/service.in/graphdb.sh
+runit_graphdb_bootstrap_conf_in=/usr/local/etc/service.in/graphdb-bootstrap.sh
+runit_tsdb_conf_in=/usr/local/etc/service.in/tsdb.sh
+runit_dnsmasq_conf_in=/usr/local/etc/service.in/dnsmasq.sh
+runit_ckcore_conf_in=/usr/local/etc/service.in/ckcore.sh
+runit_ckworker_conf_in=/usr/local/etc/service.in/ckworker.sh
+runit_ckmetrics_conf_in=/usr/local/etc/service.in/ckmetrics.sh
 # Output files
-supervisor_graphdb_conf=/usr/local/etc/supervisor/conf.d/graphdb.conf
-supervisor_tsdb_conf=/usr/local/etc/supervisor/conf.d/tsdb.conf
-supervisor_dnsmasq_conf=/usr/local/etc/supervisor/conf.d/dnsmasq.conf
-supervisor_ckcore_conf=/usr/local/etc/supervisor/conf.d/ckcore.conf
-supervisor_ckworker_conf=/usr/local/etc/supervisor/conf.d/ckworker.conf
-supervisor_ckmetrics_conf=/usr/local/etc/supervisor/conf.d/ckmetrics.conf
+runit_graphdb_rundir=/etc/service/graphdb
+runit_graphdb_bootstrap_rundir=/etc/service/graphdb-bootstrap
+runit_tsdb_rundir=/etc/service/tsdb
+runit_dnsmasq_rundir=/etc/service/dnsmasq
+runit_ckcore_rundir=/etc/service/ckcore
+runit_ckworker_rundir=/etc/service/ckworker
+runit_ckmetrics_rundir=/etc/service/ckmetrics
 
 # log levels
 debug=50

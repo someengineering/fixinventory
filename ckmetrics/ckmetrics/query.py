@@ -17,7 +17,7 @@ def query(query_str: str, query_uri: str) -> Iterator:
         stream=True,
     )
     if r.status_code != 200:
-        raise RuntimeError(f"Failed to query graph: {r.content}")
+        raise RuntimeError(f"Failed to query graph: {r.content.decode('utf-8')}")
 
     for line in r.iter_lines():
         if not line:

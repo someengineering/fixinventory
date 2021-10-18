@@ -69,7 +69,7 @@ class CoreActions(threading.Thread):
         for core_action in self.actions.keys():
             try:
                 self.unregister(core_action)
-            except RuntimeError as e:
+            except Exception as e:
                 log.error(e)
         if self.ws:
             self.ws.close()

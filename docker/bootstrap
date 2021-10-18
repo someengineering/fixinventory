@@ -1,29 +1,25 @@
 #!/bin/bash
-# Bootstraps supervisor config
+# Bootstraps runit config
 set -euo pipefail
 
 # Include defaults
 . /usr/local/etc/cloudkeeper/defaults
 . /usr/local/etc/cloudkeeper/common
+. /usr/local/cloudkeeper-venv-python3/bin/activate
 
 
 main() {
     apply_permissions
     configure_timezone
-    if [ "$LEGACY_STARTUP" = true ]; then
-        exec /usr/local/bin/cloudkeeperV1 "$@"
-    else
-        setup_etc_hosts || true
-        setup_dnsmasq
-        setup_syslog
-        setup_supervisor_http_server
-        setup_graphdb
-        setup_tsdb
-        setup_ckcore "$@"
-        setup_ckworker "$@"
-        setup_ckmetrics "$@"
-        exec /usr/local/bin/supervisord -c /usr/local/etc/supervisord.conf
-    fi
+    setup_etc_hosts || true
+    setup_dnsmasq
+    setup_graphdb
+    setup_tsdb
+    setup_ckcore "$@"
+    setup_ckworker "$@"
+    setup_ckmetrics "$@"
+    setup_runit
+    exec /sbin/my_init
 }
 
 
@@ -40,10 +36,8 @@ apply_permissions() {
 
     chown -R cloudkeeper:cloudkeeper \
         /home/cloudkeeper \
-        /var/run/cloudkeeper \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
-    chgrp cloudkeeper /usr/local/etc/supervisord.conf
 }
 
 
@@ -57,38 +51,6 @@ configure_timezone() {
     ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
     echo "$TZ" > /etc/timezone
     info "Setting timezone $TZ"
-}
-
-
-# Configure syslog
-setup_syslog() {
-    local SYSLOG_ARGS
-    local log_msg
-    SYSLOG_ARGS="-S -t -O -"
-
-    log_target_msg="stdout"
-    if [ -n "$SYSLOG_REMOTE_HOST" ]; then
-        SYSLOG_ARGS="$SYSLOG_ARGS -R $SYSLOG_REMOTE_HOST:$SYSLOG_REMOTE_PORT"
-        log_target_msg="$SYSLOG_REMOTE_HOST:$SYSLOG_REMOTE_PORT"
-        if [ "$SYSLOG_REMOTE_AND_LOCAL" = true ]; then
-            SYSLOG_ARGS="$SYSLOG_ARGS -L"
-            log_target_msg="$log_target_msg and stdout"
-        fi
-    fi
-    info "Setting up syslogd - logging to $log_target_msg"
-    cat > "$supervisor_syslog_conf" <<EOF
-[program:syslogd]
-user=root
-environment=HOME="/root",USER="root",LANG="en_US.UTF-8",PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-command=/usr/local/sbin/syslogd -n $SYSLOG_ARGS
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autostart=true
-autorestart=true
-priority=10
-EOF
 }
 
 
@@ -119,31 +81,16 @@ setup_etc_hosts() {
     rm -f "$temp_hosts"
 }
 
-
-# Enable/disable supervisor http server
-setup_supervisor_http_server() {
-    rm -f "$supervisor_http_server_conf"
-    if [ "$SUPERVISOR_HTTP" = true ]; then
-        info "Supervisor http server activated"
-        cat > "$supervisor_http_server_conf" <<EOF
-[inet_http_server]
-port = :$SUPERVISOR_HTTP_PORT
-EOF
-        chmod 600 "$supervisor_http_server_conf"
-        if [ -n "$SUPERVISOR_HTTP_USER" ] && [ -n "$SUPERVISOR_HTTP_PASS" ]; then
-            cat >> "$supervisor_http_server_conf" <<EOF
-username = $SUPERVISOR_HTTP_USER
-password = $SUPERVISOR_HTTP_PASS
-EOF
-        fi
-    fi
+setup_runit() {
+    chmod +x /etc/service/*/run
 }
 
 setup_dnsmasq() {
-    rm -f "$supervisor_dnsmasq_conf"
+    rm -f "$runit_dnsmasq_rundir/run"
     if [ "$START_DNSMASQ" = true ]; then
         info "dnsmasq activated"
-        cp "$supervisor_dnsmasq_conf_in" "$supervisor_dnsmasq_conf"
+        mkdir -p "$runit_dnsmasq_rundir"
+        cp "$runit_dnsmasq_conf_in" "$runit_dnsmasq_rundir/run"
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
             echo "log-queries=extra" >> /etc/dnsmasq.d/cloudkeeper.conf
@@ -153,32 +100,38 @@ setup_dnsmasq() {
 }
 
 setup_graphdb() {
-    rm -f "$supervisor_graphdb_conf"
+    rm -f "$runit_graphdb_rundir/run"
+    rm -f "$runit_graphdb_bootstrap_rundir/run"
     if [ "$START_GRAPHDB" = true ]; then
         info "Graph database activated"
+        mkdir -p "$runit_graphdb_rundir"
+        mkdir -p "$runit_graphdb_bootstrap_rundir"
         sed -e "s#@GRAPHDB_SERVER_ENDPOINT@#$GRAPHDB_SERVER_ENDPOINT#" \
             -e "s#@GRAPHDB_ROOT_PASSWORD@#$GRAPHDB_ROOT_PASSWORD#" \
             -e "s#@GRAPHDB_DATABASE_DIRECTORY@#$GRAPHDB_DATABASE_DIRECTORY#" \
-            "$supervisor_graphdb_conf_in" > "$supervisor_graphdb_conf"
+            "$runit_graphdb_conf_in" > "$runit_graphdb_rundir/run"
+        cp "$runit_graphdb_bootstrap_conf_in" "$runit_graphdb_bootstrap_rundir/run"
     fi
 }
 
 setup_tsdb() {
-    rm -f "$supervisor_tsdb_conf"
+    rm -f "$runit_tsdb_rundir/run"
     if [ "$START_TSDB" = true ]; then
         info "Time series database activated"
+        mkdir -p "$runit_tsdb_rundir"
         sed -e "s#@TSDB_DATABASE_DIRECTORY@#$TSDB_DATABASE_DIRECTORY#" \
             -e "s#@TSDB_CONFIG_FILE@#$TSDB_CONFIG_FILE#" \
             -e "s#@TSDB_RETENTION_TIME@#$TSDB_RETENTION_TIME#" \
-            "$supervisor_tsdb_conf_in" > "$supervisor_tsdb_conf"
+            "$runit_tsdb_conf_in" > "$runit_tsdb_rundir/run"
     fi
 }
 
 setup_ckcore() {
-    rm -f "$supervisor_ckcore_conf"
+    rm -f "$runit_ckcore_rundir/run"
     if [ "$START_CKCORE" = true ]; then
         info "ckcore activated"
-        argsdispatcher ckcore "$supervisor_ckcore_conf_in" "$@" > "$supervisor_ckcore_conf"
+        mkdir -p "$runit_ckcore_rundir"
+        argsdispatcher ckcore "$runit_ckcore_conf_in" "$@" > "$runit_ckcore_rundir/run"
         export CKCORE_GRAPHDB_SERVER
         export CKCORE_GRAPHDB_DATABASE
         export CKCORE_GRAPHDB_USERNAME
@@ -188,10 +141,11 @@ setup_ckcore() {
 }
 
 setup_ckworker() {
-    rm -f "$supervisor_ckworker_conf"
+    rm -f "$runit_ckworker_rundir/run"
     if [ "$START_CKWORKER" = true ]; then
         info "ckworker activated"
-        argsdispatcher ckworker "$supervisor_ckworker_conf_in" "$@" > "$supervisor_ckworker_conf"
+        mkdir -p "$runit_ckworker_rundir"
+        argsdispatcher ckworker "$runit_ckworker_conf_in" "$@" > "$runit_ckworker_rundir/run"
         export CKWORKER_CKCORE_URI
         export CKWORKER_CKCORE_WS_URI
         export CKWORKER_PSK
@@ -199,10 +153,11 @@ setup_ckworker() {
 }
 
 setup_ckmetrics() {
-    rm -f "$supervisor_ckmetrics_conf"
+    rm -f "$runit_ckmetrics_rundir/run"
     if [ "$START_CKMETRICS" = true ]; then
         info "ckmetrics activated"
-        argsdispatcher ckmetrics "$supervisor_ckmetrics_conf_in" "$@" > "$supervisor_ckmetrics_conf"
+        mkdir -p "$runit_ckmetrics_rundir"
+        argsdispatcher ckmetrics "$runit_ckmetrics_conf_in" "$@" > "$runit_ckmetrics_rundir/run"
         export CKMETRICS_CKCORE_URI
         export CKMETRICS_CKCORE_WS_URI
         export CKMETRICS_PSK
