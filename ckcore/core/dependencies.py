@@ -110,11 +110,10 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
 def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
-    if child_process:
-        log_format = f"%(asctime)s [{child_process}][%(levelname)s] %(message)s [%(name)s]"
-    else:
-        log_format = "%(asctime)s [%(levelname)s] %(message)s [%(name)s]"
-    logging.basicConfig(format=log_format, datefmt="%H:%M:%S", level=logging.getLevelName(args.log_level.upper()))
+    log_format = "%(asctime)s|ckcore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+    logging.basicConfig(
+        format=log_format, datefmt="%y-%m-%d %H:%M:%S", level=logging.getLevelName(args.log_level.upper())
+    )
 
     # set/reset process creation method
     reset_process_start_method()
