@@ -71,6 +71,8 @@ def transitive_dataclasses(classes: Set[type]) -> Set[type]:
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
+            for subclass in clazz.__subclasses__():
+                check(subclass)
             for field in fields(clazz):
                 check(field.type)
 
@@ -136,18 +138,40 @@ def dataclasses_to_ckcore_model(classes: Set[type]) -> List[Json]:
     :return: the model definition in the ckcore json format.
     """
 
-    def prop(field: Field) -> Json:
+    def prop(field: Field) -> List[Json]:
         # the field itself can define the type via a type hint
         # this is useful for int and float in python where the representation can not be
         # detected by the type itself. Example: int32/int64 or float/double
         # If not defined, we fallback to the largest container: int64 and double
+        name = field.name
         kind = field.metadata.get("type_hint", model_name(field.type))
-        return {
-            "name": field.name,
-            "kind": kind,
-            "required": not is_optional(field.type),
-            "description": field.metadata.get("description", ""),
-        }
+        desc = field.metadata.get("description", "")
+        synthetic = field.metadata.get("synthetic")
+        synthetic = synthetic if synthetic else {}
+
+        def json(
+            name: str, kind_str: str, required: bool, description: str, **kwargs: Any
+        ) -> Json:
+            return {
+                "name": name,
+                "kind": kind_str,
+                "required": required,
+                "description": description,
+                **kwargs,
+            }
+
+        synthetics = [
+            json(
+                synth_prop,
+                synth_trafo,
+                False,
+                f"Synthetic prop {synth_trafo} on {name}",
+                synthetic={"existing_property": name},
+            )
+            for synth_prop, synth_trafo in synthetic.items()
+        ]
+
+        return [json(name, kind, not is_optional(field.type), desc)] + synthetics
 
     model: List[Json] = []
     for clazz in transitive_dataclasses(classes):
@@ -157,9 +181,10 @@ def dataclasses_to_ckcore_model(classes: Set[type]) -> List[Json]:
             lambda result, base: result | set(fields(base)), bases, set()
         )
         props = [
-            prop(field)
+            p
             for field in fields(clazz)
             if field not in base_props and should_export(field)
+            for p in prop(field)
         ]
         model.append(
             {"fqn": model_name(clazz), "bases": base_names, "properties": props}
