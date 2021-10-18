@@ -66,7 +66,7 @@ class SyntheticProperty:
     """
 
     def __init__(self, existing_property: List[str]):
-        self.path = existing_property
+        self.existing_property = existing_property
 
 
 class Property:
@@ -83,6 +83,7 @@ class Property:
         self.required = required
         self.synthetic = synthetic
         self.description = description
+        assert synthetic is None or not required, "Synthetic properties can not be required!"
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
@@ -542,8 +543,18 @@ class TransformKind(SimpleKind):
             return None
         elif self.source_kind:
             coerced_source = self.source_kind.coerce(value)
-            synthetic = self.source_to_destination(coerced_source)
-            return synthetic
+            real = self.source_to_destination(coerced_source)
+            return real
+        else:
+            raise AttributeError(f"Synthetic kind is not resolved: {self.fqn}")
+
+    def transform(self, value: Any) -> Any:
+        if value is None:
+            return None
+        elif self.destination_kind:
+            real_coerced = self.destination_kind.coerce(value)
+            synth = self.destination_to_source(real_coerced)
+            return synth
         else:
             raise AttributeError(f"Synthetic kind is not resolved: {self.fqn}")
 
@@ -640,6 +651,7 @@ class ComplexKind(Kind):
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__property_by_path: Dict[PropertyPath, ResolvedProperty] = {}
+        self.__synthetic_props: List[ResolvedProperty] = []
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
@@ -663,6 +675,7 @@ class ComplexKind(Kind):
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
                         self.__property_by_path.update(base.__property_by_path)
+            self.__synthetic_props = [p for p in self.__property_by_path.values() if p.prop.synthetic]
         self.__resolved = True
 
     def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, ResolvedProperty]:
@@ -708,6 +721,9 @@ class ComplexKind(Kind):
     def all_props(self) -> List[Property]:
         return self.__all_props
 
+    def synthetic_props(self) -> List[ResolvedProperty]:
+        return self.__synthetic_props
+
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
             result: Json = {}
@@ -716,7 +732,10 @@ class ComplexKind(Kind):
                 known = self.__resolved_kinds.get(name, None)
                 if known:
                     prop, kind = known
-                    if value is None:
+                    if prop.synthetic:
+                        # synthetic properties are computed and will not be maintained. Ignore.
+                        pass
+                    elif value is None:
                         if prop.required:
                             raise AttributeError(f"Required property {prop.name} is undefined!")
                         result[name] = None
@@ -816,6 +835,14 @@ class Model:
             return self.kinds[name_or_object["kind"]]
         else:
             raise KeyError(f"Expected string or json with a 'kind' property as key but got: {name_or_object}")
+
+    def get(self, name_or_object: Union[str, Json]) -> Optional[Kind]:
+        if isinstance(name_or_object, str):
+            return self.kinds.get(name_or_object)
+        elif isinstance(name_or_object, dict) and "kind" in name_or_object:
+            return self.kinds.get(name_or_object["kind"])
+        else:
+            return None
 
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)

@@ -387,7 +387,8 @@ class Api:
         graph_id = request.match_info.get("graph_id", "ns")
         node_id = request.match_info.get("node_id", "root")
         graph = self.db.get_graph_db(graph_id)
-        node = await graph.get_node(node_id)
+        model = await self.model_handler.load_model()
+        node = await graph.get_node(model, node_id)
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
         else:
@@ -430,7 +431,8 @@ class Api:
         if "_" in graph_id:
             raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
-        root = await graph.get_node("root")
+        model = await self.model_handler.load_model()
+        root = await graph.get_node(model, "root")
         return web.json_response(root)
 
     async def merge_graph(self, request: Request) -> StreamResponse:
@@ -493,8 +495,9 @@ class Api:
             raise AttributeError("Expect query parameter term to be defined!")
         query_string = request.query.get("term", "")
         limit = int(request.query.get("limit", "10"))
+        model = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        result = graph_db.search(query_string, limit)
+        result = graph_db.search(model, query_string, limit)
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 

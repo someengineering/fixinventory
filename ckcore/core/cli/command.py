@@ -559,6 +559,7 @@ class SetDesiredStateBase(CLICommand, ABC):
     async def set_desired(
         self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
     ) -> AsyncGenerator[Json, None]:
+        model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -566,7 +567,7 @@ class SetDesiredStateBase(CLICommand, ABC):
                 node_ids.append(item["id"])
             elif isinstance(item, str):
                 node_ids.append(item)
-        async for update in db.update_nodes_desired(patch, node_ids):
+        async for update in db.update_nodes_desired(model, patch, node_ids):
             yield update
 
 
@@ -700,6 +701,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         return lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func)
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
+        model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -707,7 +709,7 @@ class SetMetadataStateBase(CLICommand, ABC):
                 node_ids.append(item["id"])
             elif isinstance(item, str):
                 node_ids.append(item)
-        async for update in db.update_nodes_metadata(patch, node_ids):
+        async for update in db.update_nodes_metadata(model, patch, node_ids):
             yield update
 
 
