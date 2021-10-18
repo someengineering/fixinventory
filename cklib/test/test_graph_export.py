@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Union, ClassVar
 
@@ -16,9 +16,12 @@ from cklib.graph.export import (
 @dataclass
 class DataClassBase:
     kind: ClassVar[str] = "base"
-    tags: Dict[str, str]
+    tags: Dict[str, str] = field(metadata={"description": "Description of tags"})
     _private_prop: dict
     __dunder_prop: list
+    ctime: Optional[datetime] = field(
+        metadata={"synthetic": {"age": "trafo.duration_to_datetime"}}
+    )
 
 
 @dataclass
@@ -41,6 +44,12 @@ class DataClassExample(DataClassBase):
     optionally_weird_dict: Optional[
         Optional[Dict[str, Dict[str, Dict[str, Dict[Union[str, int], DataClassProp]]]]]
     ]
+
+
+@dataclass
+class DataClassOther(DataClassBase):
+    kind: ClassVar[str] = "other"
+    something: str
 
 
 def test_collection() -> None:
@@ -68,6 +77,7 @@ def test_transitive() -> None:
         DataClassExample,
         DataClassProp,
         DataClassBase,
+        DataClassOther,
     }
 
 
@@ -88,12 +98,16 @@ def test_model_name() -> None:
 
 def test_dataclasses_to_ckcore_model() -> None:
     result = dataclasses_to_ckcore_model({DataClassExample})
-    assert len(result) == 3
+    assert len(result) == 4
     for r in result:
         props = {p["name"]: p for p in r["properties"]}
         if r["fqn"] == "base":
-            assert len(r["properties"]) == 1
+            assert len(r["properties"]) == 3
             assert props["tags"]["kind"] == "dictionary[string, string]"
+            assert props["tags"]["description"] == "Description of tags"
+            assert props["ctime"]["kind"] == "datetime"
+            assert props["age"]["kind"] == "trafo.duration_to_datetime"
+            assert props["age"]["synthetic"]["path"] == ["ctime"]
         elif r["fqn"] == "prop":
             assert len(r["properties"]) == 2
             assert props["key"]["kind"] == "string"

@@ -99,9 +99,18 @@ class BaseResource(ABC):
     _zone: object = field(default=None, repr=False)
     _ckcore_id: Optional[str] = field(default=None, repr=False)
     _ckcore_revision: Optional[str] = field(default=None, repr=False)
-    ctime: Optional[datetime] = None
-    mtime: Optional[datetime] = None
-    atime: Optional[datetime] = None
+    ctime: Optional[datetime] = field(
+        default=None,
+        metadata={"synthetic": {"age": "trafo.duration_to_datetime"}},
+    )
+    mtime: Optional[datetime] = field(
+        default=None,
+        metadata={"synthetic": {"last_update": "trafo.duration_to_datetime"}},
+    )
+    atime: Optional[datetime] = field(
+        default=None,
+        metadata={"synthetic": {"last_access": "trafo.duration_to_datetime"}},
+    )
 
     def __post_init__(self) -> None:
         if self.name is None:

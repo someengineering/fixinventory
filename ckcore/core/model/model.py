@@ -65,8 +65,8 @@ class SyntheticProperty:
              the function is age=now-ctime.
     """
 
-    def __init__(self, existing_property: List[str]):
-        self.existing_property = existing_property
+    def __init__(self, path: List[str]):
+        self.path = path
 
 
 class Property:
@@ -889,15 +889,8 @@ class Model:
 
             # Allowed changes: The update
             # - does not change it's type (e.g. going from SimpleKind to ComplexKind)
-            # - no required property is removed or marked as not required
             if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
-            elif isinstance(from_kind, ComplexKind) and isinstance(to_kind, ComplexKind):
-                for prop in from_kind.properties:
-                    if prop.required and (prop.name not in to_kind):
-                        raise AttributeError(f"{hint()} existing required property {prop.name} cannot be removed!")
-                    elif prop.required and to_kind[prop.name].required is False:
-                        raise AttributeError(f"{hint()} existing required property {prop.name} marked as not required!")
 
         # resolve and build dict
         updates = {kind.fqn: kind for kind in kinds}
