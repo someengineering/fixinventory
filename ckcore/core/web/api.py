@@ -20,7 +20,7 @@ from aiostream import stream
 from networkx.readwrite import cytoscape_data
 
 from core import feature
-from core.cli.cli import CLI
+from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import is_node
 from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
@@ -562,9 +562,11 @@ class Api:
         env = request.query
         command = await request.text()
         parsed = await self.cli.evaluate_cli_command(command, **env)
-        # simply return the structure: outer array lines, inner array commands
-        # if the structure is returned, it means the command could be evaluated.
-        return web.json_response([{part.name: arg for part, arg in line.parts_with_args} for line in parsed])
+
+        def line_to_js(line: ParsedCommandLine) -> Json:
+            return {"commands": to_js(line.parsed_commands.commands), "env": line.parsed_commands.env}
+
+        return web.json_response([line_to_js(line) for line in parsed])
 
     async def execute(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command
