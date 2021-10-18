@@ -750,7 +750,7 @@ class ComplexKind(Kind):
                             ) from at
                 elif name == "kind":
                     # ok since kind is the type discriminator
-                    pass
+                    result[name] = value
                 elif not self.allow_unknown_props:
                     raise AttributeError(f"Kind:{self.fqn} Property:{name} is not defined in model!")
             if not kwargs.get("ignore_missing"):
