@@ -598,6 +598,13 @@ def command_line_parser() -> Parser:
 # multiple piped commands are separated by semicolon
 multi_command_parser = command_line_parser.sep_by(semicolon_p)
 
+
+def strip_quotes(string: str, strip: str = '"') -> str:
+    s = string.strip()
+    ls = len(strip)
+    return s[ls : len(s) - ls] if s.startswith(strip) and s.endswith(strip) else s  # noqa: E203
+
+
 CLIArg = Tuple[CLIPart, Optional[str]]
 
 
