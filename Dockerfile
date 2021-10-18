@@ -141,6 +141,7 @@ RUN if [ "${TESTS:-false}" = true ]; then \
         ; \
     fi
 COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.conf
+COPY docker/syslog-ng.conf /usr/local/etc/syslog-ng.conf
 RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
@@ -176,6 +177,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
     && ln -s /usr/local/bin/cksh-shim /usr/bin/cksh \
+    && mv -f /usr/local/etc/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
