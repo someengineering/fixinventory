@@ -45,7 +45,7 @@ from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
-from core.parse_util import quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
+from core.parse_util import double_quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
 from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.types import Json, JsonElement
@@ -927,7 +927,7 @@ class ListCommand(CLICommand):
                     first = False
             return result
 
-        return lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt)
+        return lambda in_stream: stream.map(in_stream, fmt)
 
 
 class JobsSource(CLISource):
@@ -1179,7 +1179,7 @@ class TagCommand(SendWorkerTaskCommand):
             )  # noqa: E731
         elif pl == 3 and parts[0] == "update":
             tag = parts[1]
-            value = quoted_or_simple_string_dp.parse(parts[2])
+            value = double_quoted_or_simple_string_dp.parse(parts[2])
             fn = lambda item: (  # noqa: E731
                 "tag",
                 self.carz_from_node(item),

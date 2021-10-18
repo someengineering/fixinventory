@@ -41,10 +41,12 @@ r_curly_dp = string("}")
 gt_dp = string(">")
 lt_dp = string("<")
 colon_dp = string(":")
+semicolon_dp = string(";")
 comma_dp = string(",")
 dot_dot_dp = string("..")
 equals_dp = string("=")
 backtick_dp = string("`")
+pipe_dp = string("|")
 integer_dp = regex(r"[+-]?[0-9]+").map(int)
 float_dp = regex(r"[+-]?[0-9]+\.[0-9]+").map(float)
 literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
@@ -86,9 +88,6 @@ def unquoted_string_parser(stream: str, index: int) -> parsy.Result:
         return parsy.Result.failure(index, "A-Za-z0-9_-:")
 
 
-unquoted_string_dp = unquoted_string_parser
-quote_dp = string('"')
-string_part_dp = regex(r'[^"\\]+')
 string_esc_dp = string("\\") >> (
     string("\\")
     | string("/")
@@ -100,9 +99,20 @@ string_esc_dp = string("\\") >> (
     | string("t").result("\t")
     | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
 )
-string_part_or_esc_dp = (string_part_dp | string_esc_dp).many().concat()
-quoted_string_dp = quote_dp >> string_part_or_esc_dp << quote_dp
-quoted_or_simple_string_dp = quoted_string_dp | unquoted_string_dp
+unquoted_string_dp = unquoted_string_parser
+
+single_quote_dp = string("'")
+single_quoted_string_part_dp = regex(r"[^'\\]+")
+single_quoted_string_part_or_esc_dp = (single_quoted_string_part_dp | string_esc_dp).many().concat()
+single_quoted_string_dp = single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp
+
+double_quote_dp = string('"')
+double_quoted_string_part_dp = regex(r'[^"\\]+')
+double_quoted_string_part_or_esc_dp = (double_quoted_string_part_dp | string_esc_dp).many().concat()
+double_quoted_string_dp = double_quote_dp >> double_quoted_string_part_or_esc_dp << double_quote_dp
+
+any_string = parsy.any_char.many().concat()
+double_quoted_or_simple_string_dp = double_quoted_string_dp | any_string
 
 true_dp = string("true").result(True)
 false_dp = string("false").result(False)
@@ -121,7 +131,9 @@ r_curly_p = lexeme(r_curly_dp)
 gt_p = lexeme(gt_dp)
 lt_p = lexeme(lt_dp)
 colon_p = lexeme(colon_dp)
+semicolon_p = lexeme(semicolon_dp)
 comma_p = lexeme(comma_dp)
+pipe_p = lexeme(pipe_dp)
 dot_dot_p = lexeme(dot_dot_dp)
 equals_p = lexeme(equals_dp)
 true_p = lexeme(true_dp)
@@ -131,7 +143,7 @@ float_p = lexeme(float_dp)
 integer_p = lexeme(integer_dp)
 variable_p = lexeme(variable_dp)
 literal_p = lexeme(literal_dp)
-quoted_string_p = lexeme(quoted_string_dp)
+quoted_string_p = lexeme(double_quoted_string_dp)
 unquoted_string_p = lexeme(unquoted_string_dp)
 
 # endregion
@@ -155,7 +167,7 @@ def json_object_pair() -> Parser:
 
 json_object = l_curly_dp >> json_object_pair.sep_by(comma_dp).map(dict) << r_curly_dp
 json_value_dp = (
-    quoted_string_dp
+    double_quoted_string_dp
     | json_array_parser
     | json_object
     | true_dp

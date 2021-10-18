@@ -29,7 +29,7 @@ from core.parse_util import (
     json_value_p,
     variable_p,
     integer_p,
-    quote_dp,
+    double_quote_dp,
     l_curly_dp,
     r_curly_dp,
 )
@@ -208,7 +208,7 @@ variable_name_p = variable_p.map(AggregateVariableName)
 no_curly_dp = regex(r'[^{"]+')
 var_in_curly = (l_curly_dp >> variable_p << r_curly_dp).map(AggregateVariableName)
 aggregate_group_variable_name_combined_p = (
-    quote_dp >> (no_curly_dp | var_in_curly).at_least(1).map(AggregateVariableCombined) << quote_dp
+    double_quote_dp >> (no_curly_dp | var_in_curly).at_least(1).map(AggregateVariableCombined) << double_quote_dp
 )
 
 
