@@ -278,7 +278,7 @@ class Api:
                             await self.message_bus.emit(message)
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
-                    log.info(f"Got an exception for event listener: {listener_id}. Hang up. {ex}", exc_info=ex)
+                    log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
                     await ws.close()
 
         async def send() -> None:
@@ -289,7 +289,7 @@ class Api:
                         await ws.send_str(to_js_str(event) + "\n")
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
-                log.info(f"Got an exception for event sender: {listener_id}. Hang up. {ex}", exc_info=ex)
+                log.info(f"Send: message listener {listener_id}: {ex}. Hang up.")
                 await ws.close()
 
         if initial_messages:
@@ -328,7 +328,7 @@ class Api:
 
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
-                    log.debug(f"Error handling {worker_id}. Hang up. {ex}")
+                    log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
                     await ws.close()
 
         async def send() -> None:
@@ -339,7 +339,7 @@ class Api:
                         await ws.send_str(to_js_str(task.to_json()) + "\n")
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
-                log.debug(f"Error handling event sender: {worker_id}. Hang up. {ex}")
+                log.info(f"Send: worker:{worker_id}: {ex}. Hang up.")
                 await ws.close()
 
         await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
