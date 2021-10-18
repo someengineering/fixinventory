@@ -338,7 +338,7 @@ class ArangoGraphDB(GraphDB):
                 reported_out = result[Section.reported]
                 for synth in kind.synthetic_props():
                     if isinstance(synth.kind, TransformKind) and synth.prop.synthetic:
-                        source_value = value_in_path(reported_in, synth.prop.synthetic.existing_property)
+                        source_value = value_in_path(reported_in, synth.prop.synthetic.path)
                         if source_value:
                             reported_out[synth.prop.name] = synth.kind.transform(source_value)
 
@@ -769,7 +769,7 @@ class ArangoGraphDB(GraphDB):
 
             def synthetic_path(synth: SyntheticProperty) -> str:
                 before, after = p.name.rsplit(prop.prop.name, 1)
-                return f'{before}{".".join(synth.existing_property)}{after}'
+                return f'{before}{".".join(synth.path)}{after}'
 
             op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
             if op in ["in", "not in"] and isinstance(p.value, list):
