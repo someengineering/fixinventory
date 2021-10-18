@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/cleanup_aws_alarms/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/cleanup_aws_alarms/**'
+      - '.github/**'
 
 jobs:
   cleanup_aws_alarms:

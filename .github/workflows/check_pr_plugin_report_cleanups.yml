@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/report_cleanups/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/report_cleanups/**'
+      - '.github/**'
 
 jobs:
   report_cleanups:

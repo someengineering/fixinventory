@@ -8,6 +8,11 @@ on:
       - 'cklib/**'
       - 'plugins/ckcore/**'
       - '.github/**'
+  pull_request:
+    paths:
+      - 'cklib/**'
+      - 'plugins/ckcore/**'
+      - '.github/**'
 
 jobs:
   ckcore:

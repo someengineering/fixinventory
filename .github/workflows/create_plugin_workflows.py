@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 
 # This script generates a github action workflow to build and check every plugin and core in parallel.
@@ -9,6 +10,11 @@ install = """# Note: this workflow is automatically generated via the `create_pr
 name: Check PR (Plugin @name@)
 on:
   push:
+    paths:
+      - 'cklib/**'
+      - 'plugins/@name@/**'
+      - '.github/**'
+  pull_request:
     paths:
       - 'cklib/**'
       - 'plugins/@name@/**'
