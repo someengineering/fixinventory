@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-report_cleanups",
-    version="2.0.0a6",
+    version="2.0.0a7",
     description="Cleanups Report Plugin",
     license="Apache 2.0",
     packages=find_packages(),

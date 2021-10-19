@@ -166,8 +166,8 @@ First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-
 .. code-block:: bash
     :caption: Install cklib und ckcore
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cklib&subdirectory=cklib"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=ckcore&subdirectory=ckcore"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cklib&subdirectory=cklib"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=ckcore&subdirectory=ckcore"
 
 Usage
 -----
@@ -227,7 +227,7 @@ We install :ref:`component-cksh` via python pip directly from our git repository
 .. code-block:: bash
     :caption: Install cksh
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cksh&subdirectory=cksh"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cksh&subdirectory=cksh"
 
 Usage
 -----
@@ -280,7 +280,7 @@ First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-
 .. code-block:: bash
     :caption: Install ckworker
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=ckworker&subdirectory=ckworker"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=ckworker&subdirectory=ckworker"
 
 
 .. _plugins:
@@ -294,15 +294,15 @@ A full list of available plugins can be found in the cloudkeeper `repository <ht
 .. code-block:: bash
     :caption: Install plugins
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-aws&subdirectory=plugins/aws"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-example_collector&subdirectory=plugins/example_collector"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-gcp&subdirectory=plugins/gcp"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-github&subdirectory=plugins/github"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-k8s&subdirectory=plugins/k8s"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-onelogin&subdirectory=plugins/onelogin"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-onprem&subdirectory=plugins/onprem"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-slack&subdirectory=plugins/slack"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=cloudkeeper-plugin-vsphere&subdirectory=plugins/vsphere"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-aws&subdirectory=plugins/aws"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-example_collector&subdirectory=plugins/example_collector"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-gcp&subdirectory=plugins/gcp"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-github&subdirectory=plugins/github"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-k8s&subdirectory=plugins/k8s"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-onelogin&subdirectory=plugins/onelogin"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-onprem&subdirectory=plugins/onprem"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-slack&subdirectory=plugins/slack"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cloudkeeper-plugin-vsphere&subdirectory=plugins/vsphere"
 
 Usage
 -----
@@ -372,7 +372,7 @@ If not already done in the :ref:`setup-ckcore` section, you need to install :ref
 .. code-block:: bash
     :caption: Install ckmetrics
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a5#egg=ckmetrics&subdirectory=ckmetrics"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=ckmetrics&subdirectory=ckmetrics"
 
 Usage
 -----
