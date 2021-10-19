@@ -21,7 +21,8 @@ from core.model.model import Model, ComplexKind, Property, Kind, SyntheticProper
 from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
-from core.util import AccessJson, utc
+from core.types import JsonElement
+from core.util import AccessJson, utc, value_in_path
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -457,6 +458,38 @@ async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     json = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     assert to_foo(json).name == "bla"
     assert to_foo(await graph_db.get_node(foo_model, "some_other")).name == "bla"
+
+
+@pytest.mark.asyncio
+async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    def expect(jsons: List[Json], path: List[str], value: JsonElement) -> None:
+        for js in jsons:
+            v = value_in_path(js, path)
+            assert v is not None
+            assert v == value
+
+    await graph_db.wipe()
+    await graph_db.create_node(foo_model, "id1", to_json(Foo("id1", "foo")), "root")
+    await graph_db.create_node(foo_model, "id2", to_json(Foo("id2", "foo")), "root")
+    change1 = {"desired": {"test": True}}
+    result1 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change1, "id2": change1})]
+    assert len(result1) == 2
+    expect(result1, ["desired", "test"], True)
+    change2 = {"metadata": {"test": True}}
+    result2 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change2, "id2": change2})]
+    assert len(result2) == 2
+    expect(result2, ["metadata", "test"], True)
+    change3 = {"desired": {"test": True}, "metadata": {"test": True}, "reported": {"name": "test"}}
+    result3 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change3, "id2": change3})]
+    assert len(result3) == 2
+    expect(result3, ["desired", "test"], True)
+    expect(result3, ["metadata", "test"], True)
+    expect(result3, ["reported", "name"], "test")
+    change4 = {"desired": None, "metadata": None}
+    result4 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change4, "id2": change4})]
+    assert len(result4) == 2
+    assert "desired" not in result4
+    assert "metadata" not in result4
 
 
 @pytest.mark.asyncio

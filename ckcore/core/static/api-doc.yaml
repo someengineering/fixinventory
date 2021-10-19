@@ -313,6 +313,72 @@ paths:
     # endregion
 
     # region node management
+
+    /graph/{graph_id}/nodes:
+        patch:
+            summary: "Patch a list of nodes."
+            description: |
+                Apply a patch on existing nodes. Non existing nodes are not updated!
+                Consider to stream the request body as new line delimited json (application/x-ndjson).
+            tags:
+                - node_management
+            parameters:
+                -   name: graph_id
+                    in: path
+                    description: "The identifier of the graph"
+                    required: true
+                    schema:
+                        type: string
+            requestBody:
+                description: "The partial object data to patch."
+                content:
+                    application/x-ndjson:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: string
+                                    description: The identifier of the node.
+                                reported:
+                                    type: object
+                                    additionalProperties: true
+                                desired:
+                                    type: object
+                                    additionalProperties: true
+                                metadata:
+                                    type: object
+                                    additionalProperties: true
+
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id:
+                                        type: string
+                                        description: The identifier of the node.
+                                    reported:
+                                        type: object
+                                        additionalProperties: true
+                                    desired:
+                                        type: object
+                                        additionalProperties: true
+                                    metadata:
+                                        type: object
+                                        additionalProperties: true
+
+
+
+
+            responses:
+                "200":
+                    description: "Return the patched node"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Node"
+
     /graph/{graph_id}/node/{node_id}/under/{parent_node_id}:
         post:
             summary: "Create a new node under the given parent node"
