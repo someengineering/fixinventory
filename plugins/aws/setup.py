@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-aws",
-    version="2.0.0a6",
+    version="2.0.0a7",
     description="Cloudkeeper AWS Plugin",
     license="Apache 2.0",
     packages=find_packages(),
