@@ -82,6 +82,7 @@ class GraphBuilder:
                 js[Section.reported],
                 js.get(Section.desired, None),
                 js.get(Section.metadata, None),
+                js.get("search", None),
                 js.get("replace", None) is True,
             )
         elif "from" in js and "to" in js:
@@ -95,21 +96,22 @@ class GraphBuilder:
         reported: Json,
         desired: Optional[Json] = None,
         metadata: Optional[Json] = None,
+        search: Optional[str] = None,
         replace: bool = False,
     ) -> None:
         self.nodes += 1
         # validate kind of this reported json
         coerced = self.model.check_valid(reported)
-        item = reported if coerced is None else coerced
-        kind = self.model[item]
+        reported = reported if coerced is None else coerced
+        kind = self.model[reported]
         # create content hash
-        sha = GraphBuilder.content_hash(item, desired, metadata)
+        sha = GraphBuilder.content_hash(reported, desired, metadata)
         # flat all properties into a single string for search
-        flat = GraphBuilder.flatten(item) if self.with_flatten else None
+        flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported) if self.with_flatten else None)
         self.graph.add_node(
             node_id,
             id=node_id,
-            reported=item,
+            reported=reported,
             desired=desired,
             metadata=metadata,
             hash=sha,

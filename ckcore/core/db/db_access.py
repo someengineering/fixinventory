@@ -60,7 +60,8 @@ class DbAccess(ABC):
         await self.config_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
-            self.get_graph_db(graph["name"])
+            db = self.get_graph_db(graph["name"])
+            await db.create_update_schema()
         await self.cleaner.start()
 
     async def create_graph(self, name: str) -> GraphDB:
