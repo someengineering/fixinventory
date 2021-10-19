@@ -207,7 +207,6 @@ class ArangoGraphDB(GraphDB):
                     existing_section = node.get(sect)
                     existing_section = existing_section if existing_section else {}
                     updated[sect] = {**existing_section, **patch[sect]}
-        print(f"updated: {updated}")
 
         # Only the reported section is defined by the model and can be coerced
         kind = model[updated[Section.reported]]
@@ -235,6 +234,7 @@ class ArangoGraphDB(GraphDB):
     async def update_nodes(
         self, model: Model, patches_by_id: Dict[str, Json], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
+        log.info(f"Update nodes called with {len(patches_by_id)} updates.")
         # collect all sections to be deleted
         deletes: Dict[str, List[str]] = defaultdict(list)
         delete_sections = [Section.desired, Section.metadata]
@@ -242,10 +242,16 @@ class ArangoGraphDB(GraphDB):
         updates: Dict[Json, List[str]] = defaultdict(list)
 
         for uid, patch_js in patches_by_id.items():
+            # filter out delete operation
             for section in delete_sections:
                 if section in patch_js and patch_js[section] is None:
                     deletes[section].append(uid)
                     del patch_js[section]
+            # filter out empty changes (== noop patches)
+            for section in Section.all:
+                if section in patch_js and patch_js[section] == {}:
+                    del patch_js[section]
+            # all remaining changes are updates
             if patch_js:
                 updates[freeze(patch_js)].append(uid)
 
@@ -254,18 +260,22 @@ class ArangoGraphDB(GraphDB):
 
             async def update_node_multi(js: Json, node_ids: List[str]) -> AsyncGenerator[Json, None]:
                 for node_id in node_ids:
+                    log.debug(f"Update node: change={js} on {node_id}")
                     single_update = await self.update_node_with(tx, model, node_id, js, None)
                     yield single_update
 
-            for section, node_ids in deletes.items():
-                async for res in self.delete_nodes_section_with(tx, model, section, node_ids):
+            for section, ids in deletes.items():
+                log.debug(f"Delete section {section} for ids: {ids}")
+                async for res in self.delete_nodes_section_with(tx, model, section, ids):
                     yield res
 
             for change, items in updates.items():
                 if len(change) == 1 and Section.desired in change:
+                    log.debug(f"Update desired many: change={change} on {items}")
                     patch = change[Section.desired]
                     result = self.update_nodes_section_with(tx, model, Section.desired, patch, items)
                 elif len(change) == 1 and Section.metadata in change:
+                    log.debug(f"Update metadata many: change={change} on {items}")
                     patch = change[Section.metadata]
                     result = self.update_nodes_section_with(tx, model, Section.metadata, patch, items)
                 else:

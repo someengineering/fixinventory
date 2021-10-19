@@ -429,7 +429,6 @@ class Api:
         allowed = {*Section.all, "id"}
         updates: Dict[str, Json] = {}
         async for elem in self.to_json_generator(request):
-            print(f"read element: {elem}")
             keys = set(elem.keys())
             assert keys.issubset(allowed), f"Invalid json. Allowed keys are: {allowed}"
             assert "id" in elem, f"No id given for element {elem}"
