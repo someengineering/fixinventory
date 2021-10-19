@@ -18,9 +18,11 @@ from typing import (
     Dict,
     List,
     Tuple,
+    cast,
 )
 
 from dateutil.parser import isoparse
+from frozendict import frozendict
 
 from core.types import JsonElement, Json
 
@@ -32,6 +34,15 @@ AnyR = TypeVar("AnyR")
 
 def identity(o: Any) -> Any:
     return o
+
+
+def freeze(d: Dict[AnyT, AnyR]) -> Dict[AnyT, AnyR]:
+    result = {}
+    for k, v in d.items():
+        sk = freeze(k) if isinstance(k, dict) else k
+        sv = freeze(v) if isinstance(v, dict) else v
+        result[sk] = sv
+    return cast(Dict[AnyT, AnyR], frozendict(result))
 
 
 def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:

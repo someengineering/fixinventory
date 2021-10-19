@@ -30,10 +30,16 @@ class ModelHandlerDB(ModelHandler):
     def __init__(self, db: ModelDb, plantuml_server: str):
         self.db = db
         self.plantuml_server = plantuml_server
+        self.__loaded_model: Optional[Model] = None
 
     async def load_model(self) -> Model:
-        kinds = [kind async for kind in self.db.all()]
-        return Model.from_kinds(list(kinds))
+        if self.__loaded_model:
+            return self.__loaded_model
+        else:
+            kinds = [kind async for kind in self.db.all()]
+            model = Model.from_kinds(list(kinds))
+            self.__loaded_model = model
+            return model
 
     async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
         assert output in ("svg", "png"), "Only svg and png is supported!"
@@ -69,4 +75,6 @@ class ModelHandlerDB(ModelHandler):
         updated = model.update_kinds(kinds)
         # store all updated kinds
         await self.db.update_many(kinds)
+        # unset loaded model
+        self.__loaded_model = None
         return updated

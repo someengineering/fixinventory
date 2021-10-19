@@ -8,7 +8,7 @@ import uuid
 from argparse import Namespace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict
 
 import prometheus_client
 import yaml
@@ -100,6 +100,7 @@ class Api:
                 web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
                 web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
                 web.get("/graph/{graph_id}/search", self.search_graph),
+                web.patch("/graph/{graph_id}", self.update_nodes),
                 web.post("/graph/{graph_id}/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
                 web.get("/graph/{graph_id}/batch", self.list_batches),
@@ -423,6 +424,24 @@ class Api:
         await graph.delete_node(node_id)
         return web.HTTPNoContent()
 
+    async def update_nodes(self, request: Request) -> StreamResponse:
+        graph_id = request.match_info.get("graph_id", "ns")
+        allowed = {*Section.all, "id"}
+        updates: Dict[str, Json] = {}
+        async for elem in self.to_json_generator(request):
+            keys = set(elem.keys())
+            assert keys.issubset(allowed), f"Invalid json. Allowed keys are: {allowed}"
+            assert "id" in elem, f"No id given for element {elem}"
+            assert keys.intersection(Section.all), f"No update provided for element {elem}"
+            uid = elem["id"]
+            assert uid not in updates, f"Only one update allowed per id! {elem}"
+            del elem["id"]
+            updates[uid] = elem
+        db = self.db.get_graph_db(graph_id)
+        model = await self.model_handler.load_model()
+        result_gen = db.update_nodes(model, updates)
+        return await self.stream_response_from_gen(request, result_gen)
+
     async def list_graphs(self, _: Request) -> StreamResponse:
         return web.json_response(await self.db.list_graphs())
 
@@ -439,7 +458,7 @@ class Api:
         log.info("Received merge_graph request")
         graph_id = request.match_info.get("graph_id", "ns")
         db = self.db.get_graph_db(graph_id)
-        it = await self.to_graph_iterator(request)
+        it = self.to_line_generator(request)
         info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
@@ -449,7 +468,7 @@ class Api:
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
-        it = await self.to_graph_iterator(request)
+        it = self.to_line_generator(request)
         info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
@@ -582,8 +601,13 @@ class Api:
         async with result.stream() as streamer:
             return await self.stream_response_from_gen(request, streamer)
 
+    @classmethod
+    async def to_json_generator(cls, request: Request) -> AsyncGenerator[Json, None]:
+        async for line in cls.to_line_generator(request):
+            yield json.loads(line) if isinstance(line, bytes) else line
+
     @staticmethod
-    async def to_graph_iterator(request: Request) -> AsyncGenerator[Union[bytes, Json], None]:
+    def to_line_generator(request: Request) -> AsyncGenerator[Union[bytes, Json], None]:
         async def stream_lines() -> AsyncGenerator[Union[bytes, Json], None]:
             async for line in request.content:
                 if len(line.strip()) == 0:
@@ -591,11 +615,14 @@ class Api:
                 yield line
 
         async def stream_json_array() -> AsyncGenerator[Union[bytes, Json], None]:
-            json_array = await request.json()
-            log.info("Json read into memory")
-            if isinstance(json_array, list):
-                for doc in json_array:
+            js_elem = await request.json()
+            if isinstance(js_elem, list):
+                for doc in js_elem:
                     yield doc
+            elif isinstance(js_elem, dict):
+                yield js_elem
+            else:
+                log.warning(f"Received json is neither array nor document: {js_elem}! Ignore.")
 
         if request.content_type == "application/json":
             return stream_json_array()
