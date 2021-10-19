@@ -336,3 +336,15 @@ async def test_jq_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == 1
+
+
+@pytest.mark.asyncio
+async def test_aggregation_to_count_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command("query all | count reported.kind", stream.list)
+    assert result[0] == ["foo: 13", "bla: 100", "total matched: 113", "total unmatched: 0"]
+    # exactly the same command as above (above query would be rewritten as this)
+    result = await cli.execute_cli_command(
+        "execute_query aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
+        stream.list,
+    )
+    assert result[0] == ["foo: 13", "bla: 100", "total matched: 113", "total unmatched: 0"]

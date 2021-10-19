@@ -381,9 +381,9 @@ class Aggregate:
     group_func: List[AggregateFunction]
 
     def __str__(self) -> str:
-        group_by = ", ".join(str(a) for a in self.group_by)
+        group_by = ", ".join(str(a) for a in self.group_by) + ": " if self.group_by else ""
         funcs = ", ".join(str(a) for a in self.group_func)
-        return f"aggregate({group_by}: {funcs})"
+        return f"aggregate({group_by}{funcs})"
 
     def on_section(self, section: str) -> Aggregate:
         return Aggregate(

@@ -6,13 +6,13 @@ from core.cli.cli import CLI, CLIDependencies, Sink, multi_command_parser, Parse
 from core.cli.command import (
     ListSink,
     ExecuteQuerySource,
-    CountCommand,
     ChunkCommand,
     all_parts,
     FlattenCommand,
     UniqCommand,
     EchoSource,
     aliases,
+    AggregateToCount,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -123,7 +123,7 @@ async def test_query_database(cli: CLI) -> None:
     assert len(line1.parts) == 2
     p1, p2 = line1.parts
     assert isinstance(p1, ExecuteQuerySource)
-    assert isinstance(p2, CountCommand)
+    assert isinstance(p2, AggregateToCount)
 
     with pytest.raises(Exception):
         await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
