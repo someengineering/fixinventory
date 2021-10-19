@@ -3,6 +3,8 @@
 
 # Housekeeping for Clouds!
 
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_banner.png" /></p>
+
 ## Table of contents
 
 * [Overview](#overview)
