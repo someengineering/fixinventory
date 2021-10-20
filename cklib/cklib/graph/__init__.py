@@ -644,6 +644,16 @@ def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> N
         set_max_depth(graph, child_node, current_depth + 1)
 
 
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--ignore-deferred-connections",
+        help="Do not try to resolve deferred edges",
+        dest="ignore_deferred_connections",
+        action="store_true",
+        default=False,
+    )
+
+
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     log.debug("Sanitizing Graph")
     plugin_roots = {}
@@ -701,7 +711,8 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
                     graph.remove_edge(graph_root, node)
             log.debug(f"Removing graph root {graph_root.id}")
             graph.remove_node(graph_root)
-    graph.resolve_deferred_connections()
+    if not getattr(ArgumentParser.args, "ignore_deferred_connections", False):
+        graph.resolve_deferred_connections()
     update_graph_ref(graph)
     set_max_depth(graph, root)
     validate_graph_dataclasses_and_nodes(graph)
