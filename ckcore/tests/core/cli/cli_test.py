@@ -2,7 +2,8 @@ import pytest
 from pytest import fixture
 from typing import Tuple, List
 
-from core.cli.cli import CLI, CLIDependencies, Sink, multi_command_parser, ParsedCommands, ParsedCommand
+from core.cli import Sink
+from core.cli.cli import CLI, multi_command_parser, ParsedCommands, ParsedCommand
 from core.cli.command import (
     ListSink,
     ExecuteQuerySource,
@@ -13,6 +14,7 @@ from core.cli.command import (
     EchoSource,
     aliases,
     AggregateToCount,
+    CLIDependencies,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB

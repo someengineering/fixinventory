@@ -21,7 +21,7 @@ from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.cli.cli import CLI, ParsedCommandLine
-from core.cli.command import is_node
+from core.cli import is_node
 from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
