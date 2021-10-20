@@ -6,8 +6,8 @@ from datetime import timedelta
 from aiohttp import web
 from aiohttp.web_app import Application
 
-from core.cli.cli import CLIDependencies, CLI
-from core.cli.command import all_parts, aliases
+from core.cli.cli import CLI
+from core.cli.command import all_parts, aliases, CLIDependencies
 from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB

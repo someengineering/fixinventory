@@ -1,10 +1,13 @@
 import asyncio
+import inspect
 import json
 import logging
 import re
 from abc import abstractmethod, ABC
+from collections import defaultdict
 from datetime import timedelta
 from functools import partial
+from typing import Dict, List, Tuple
 from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable, cast
 
 import jq
@@ -12,56 +15,562 @@ from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
-from typing import Dict, List, Tuple
 
-
-from core.cli.cli import (
-    CLISource,
-    CLISink,
-    Sink,
-    Source,
-    CLICommand,
-    Flow,
-    CLIDependencies,
-    CLIPart,
-    key_values_parser,
-    ReportedPart,
-    DesiredPart,
-    MetadataPart,
-    Predecessor,
-    Successor,
-    Ancestor,
-    Descendant,
-    QueryPart,
-    AggregatePart,
-    MergeAncestorsPart,
-    Result,
-    InternalPart,
-    QueryAllPart,
-    strip_quotes,
-    CountCommand,
-    HeadCommand,
-    TailCommand,
-)
+from core.cli import key_values_parser, Result, Source, Flow, Sink, strip_quotes, is_node
+from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError
+from core.message_bus import MessageBus
 from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
+from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
 from core.parse_util import double_quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
 from core.query.model import Query, P
 from core.query.query_parser import parse_query
+from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
 from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path
-from core.worker_task_queue import WorkerTask
+from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
 
 
-# check if a is a json node element
-def is_node(a: Any) -> bool:
-    return "id" in a and Section.reported in a if isinstance(a, dict) else False
+class CLIDependencies:
+    def __init__(self) -> None:
+        self.lookup: Dict[str, Any] = {}
+
+    @property
+    def message_bus(self) -> MessageBus:
+        return self.lookup["message_bus"]  # type:ignore
+
+    @property
+    def db_access(self) -> DbAccess:
+        return self.lookup["db_access"]  # type:ignore
+
+    @property
+    def model_handler(self) -> ModelHandler:
+        return self.lookup["model_handler"]  # type:ignore
+
+    @property
+    def job_handler(self) -> JobHandler:
+        return self.lookup["job_handler"]  # type:ignore
+
+    @property
+    def worker_task_queue(self) -> WorkerTaskQueue:
+        return self.lookup["worker_task_queue"]  # type:ignore
+
+
+class InternalPart(ABC):
+    pass
+
+
+class CLIPart(ABC):
+    """
+    The CLIPart is the base for all participants of the cli execution.
+    Source: generates a stream of objects
+    Flow: transforms the elements in a stream of objects
+    Sink: takes a stream of objects and creates a result
+    """
+
+    def __init__(self, dependencies: CLIDependencies):
+        self.dependencies = dependencies
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    def help(self) -> str:
+        # if not defined in subclass, fallback to inline doc
+        doc = inspect.getdoc(type(self))
+        return doc if doc else f"{self.name}: no help available."
+
+    @abstractmethod
+    def info(self) -> str:
+        pass
+
+
+class CLISource(CLIPart, ABC):
+    """
+    Subclasses of CLISource can create a stream.
+    """
+
+    @abstractmethod
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        yield None  # only here for mypy: it detects a coroutine otherwise
+
+    @staticmethod
+    async def empty() -> Source:
+        for _ in range(0, 0):
+            yield {}
+
+
+class QueryPart(CLISource, ABC):
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        async for a in self.empty():
+            yield a
+
+
+class CLICommand(CLIPart, ABC):
+    """
+    Subclasses of CLICommand can transform the incoming stream into another stream and
+    eventually performing a side effect.
+
+    Simple CLICommands can simply override the process_single method.
+    If a CLICommand wants to interact with the stream directly, tbe parse method has to be overridden.
+    """
+
+    @abstractmethod
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        pass
+
+
+class CLISink(CLIPart):
+    """
+    Subclasses of a sink transform the incoming stream into a result.
+    Most useful sinks:
+    - ConsoleSink: prints to stdout and returns None
+    - ListSink: collects all elements and returns the final list
+    """
+
+    @abstractmethod
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Sink[Any]:
+        pass
+
+
+class QueryAllPart(QueryPart):
+    """
+    Usage: query <property.path> <op> <value"
+
+    Part of a query.
+    With this command you can query all sections directly.
+    In order to define the section, all parameters have to be prefixed by the section name.
+
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
+        query desired.some.nested in [1,2,3] # matches documents with desired section like { "some": { "nested" : 1 ..}
+        query reported.array[*] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
+        query reported.array[1] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "query"
+
+    def info(self) -> str:
+        return "Matches a property in all sections."
+
+
+class ReportedPart(QueryPart):
+    """
+    Usage: reported <property.path> <op> <value"
+
+    Part of a query.
+    The reported section contains the values directly from the collector.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        reported prop1 == "a"             # matches documents with reported section like { "prop1": "a" ....}
+        reported some.nested in [1,2,3]   # matches documents with reported section like { "some": { "nested" : 1 ..}..}
+        reported array[*] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
+        reported array[1] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return Section.reported
+
+    def info(self) -> str:
+        return "Matches a property in the reported section."
+
+
+class DesiredPart(QueryPart):
+    """
+    Usage: desired <property.path> <op> <value"
+
+    Part of a query.
+    The desired section contains values set by tools to change the state of this node.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        desired prop1 == "a"             # matches documents with desired section like { "prop1": "a" ....}
+        desired prop1 =~ "a.*"           # matches documents with desired section like { "prop1": "a" ....}
+        desired some.nested in [1,2,3]   # matches documents with desired section like { "some": { "nested" : 1 ..}..}
+        desired array[*] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
+        desired array[1] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return Section.desired
+
+    def info(self) -> str:
+        return "Matches a property in the desired section."
+
+
+class MetadataPart(QueryPart):
+    """
+    Usage: metadata <property.path> <op> <value"
+
+    Part of a query.
+    The metadata section is set by the collector and holds additional meta information about this node.
+    With this command you can query this section for a matching property.
+    The property is the complete path in the json structure.
+    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
+    value is a json encoded value to match.
+
+    Example:
+        metadata prop1 == "a"             # matches documents with metadata section like { "prop1": "a" ....}
+        metadata prop1 =~ "a.*"           # matches documents with metadata section like { "prop1": "a" ....}
+        metadata some.nested in [1,2,3]   # matches documents with metadata section like { "some": { "nested" : 1 ..}..}
+        metadata array[*] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
+        metadata array[1] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return Section.metadata
+
+    def info(self) -> str:
+        return "Matches a property in the metadata section."
+
+
+class Predecessor(QueryPart):
+    """
+    Usage: predecessors [edge_type]
+
+    Part of a query.
+    Select all predecessors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | predecessors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "predecessors"
+
+    def info(self) -> str:
+        return "Select all predecessors of this node in the graph."
+
+
+class Successor(QueryPart):
+    """
+    Usage: successors [edge_type]
+
+    Part of a query.
+    Select all successors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | successors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "successors"
+
+    def info(self) -> str:
+        return "Select all successor of this node in the graph."
+
+
+class Ancestor(QueryPart):
+    """
+    Usage: ancestors [edge_type]
+
+    Part of a query.
+    Select all ancestors of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | ancestors | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "ancestors"
+
+    def info(self) -> str:
+        return "Select all ancestors of this node in the graph."
+
+
+class Descendant(QueryPart):
+    """
+    Usage: descendants [edge_type]
+
+    Part of a query.
+    Select all descendants of this node in the graph.
+    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    Parameter:
+        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+
+    Example:
+        metadata prop1 == "a" | descendants | match prop2 == "b"
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "descendants"
+
+    def info(self) -> str:
+        return "Select all descendants of this node in the graph."
+
+
+class AggregatePart(QueryPart):
+    """
+    Usage: aggregate [group_prop, .., group_prop]: [function(), .. , function()]
+
+    Part of a query.
+    Using the results of a query by aggregating over properties of this result
+    by aggregating over given properties and applying given aggregation functions.
+
+    Parameter:
+        group_prop: the name of the property to use for grouping. Multiple grouping variables are possible.
+                    Every grouping variable can be renamed via an as name directive. (prop as prop_name)
+        function(): grouping function to be applied on every resulting node.
+                    Following functions are possible: sum, count, min, max, avg
+                    The function contains the variable name (e.g.: min(path.to.prop))
+                    It is possible to use static values (e.g.: sum(1))
+                    It is possible to use simple math expressions in the function (e.g. min(path.to.prop * 3 + 2))
+                    It is possible to name the result of this function (e.g. count(foo) as number_of_foos)
+
+    Example:
+        aggregate reported.kind as kind, reported.cloud.name as cloud, reported.region.name as region : sum(1) as count
+            [
+                { "count": 228, "group": { "cloud": "aws", "kind": "aws_ec2_instance", "region": "us-east-1" }},
+                { "count": 326, "group": { "cloud": "gcp", "kind": "gcp_instance", "region": "us-west1" }},
+                .
+                .
+            ]
+        aggregate reported.instance_status as status: sum(reported.cores) as cores, sum(reported.memory) as mem
+            [
+                { "cores": 116, "mem": 64 , "group": { "status": "busy" }},
+                { "cores": 2520, "mem": 9824, "group": { "status": "running" }},
+                { "cores": 257, "mem": 973, "group": { "status": "stopped" }},
+                { "cores": 361, "mem": 1441, "group": { "status": "terminated" }},
+            ]
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "aggregate"
+
+    def info(self) -> str:
+        return "Aggregate this query by the provided specification"
+
+
+class MergeAncestorsPart(QueryPart):
+    """
+    Usage: merge_ancestors [kind, kind as name, ..., kind]
+
+    For all query results, merge the nodes with ancestor nodes of given kind.
+    Multiple ancestors can be provided.
+    Note: the first defined ancestor kind is used to stop the search of all other kinds.
+          This should be taken into consideration when the list of ancestor kinds is defined!
+    The resulting reported content of the ancestor node is merged into the current reported node
+    with the kind name or the alias.
+
+    Parameter:
+        kind [Mandatory] [as name]: search the ancestors of this node for a node of define kind.
+                                    Merge the result into the current node either under the kind name or the alias name.
+
+    Example:
+        compute_instance: the graph os traversed starting with the current node in direction to the root.
+                          When a node is found, which is of type compute_instance, the reported content of this node
+                          is merged with the reported content of the compute_instance node:
+                          { "id": "xyz", "reported": { "kind": "ebs", "compute_instance": { props from compute_instance}
+        compute_instance as ci:
+                          { "id": "xyz", "reported": { "kind": "ebs", "ci": { props from compute_instance}
+
+
+    Environment Variables:
+        graph [mandatory]: the name of the graph to operate on
+    """
+
+    @property
+    def name(self) -> str:
+        return "merge_ancestors"
+
+    def info(self) -> str:
+        return "Merge the results of this query with the content of ancestor nodes of given type"
+
+
+class HeadCommand(CLICommand, QueryPart):
+    """
+    Usage: head [num]
+
+    Take <num> number of elements from the input stream and send them downstream.
+    The rest of the stream is discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to take from the head
+
+    Example:
+         json [1,2,3,4,5] | head 2  # will result in [1, 2]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "head"
+
+    def info(self) -> str:
+        return "Return n first elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = self.parse_size(arg)
+        return lambda in_stream: stream.take(in_stream, size)
+
+    @staticmethod
+    def parse_size(arg: Optional[str]) -> int:
+        return abs(int(arg)) if arg else 100
+
+
+class TailCommand(CLICommand, QueryPart):
+    """
+    Usage: tail [num]
+
+    Take the last <num> number of elements from the input stream and send them downstream.
+    The beginning of the stream is consumed, but discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to return from the end.
+
+    Example:
+         json [1,2,3,4,5] | tail 2  # will result in [4, 5]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "tail"
+
+    def info(self) -> str:
+        return "Return n last elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = HeadCommand.parse_size(arg)
+        return lambda in_stream: stream.takelast(in_stream, size)
+
+
+class CountCommand(CLICommand, QueryPart):
+    """
+    Usage: count [arg]
+
+    In case no arg is given: it counts the number of instances provided to count.
+    In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
+
+    Parameter:
+        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
+
+    Example:
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
+    """
+
+    @property
+    def name(self) -> str:
+        return "count"
+
+    def info(self) -> str:
+        return "Count incoming elements or sum defined property."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        get_path = arg.split(".") if arg else None
+        counter: Dict[str, int] = defaultdict(int)
+        matched = 0
+        unmatched = 0
+
+        def inc_prop(o: JsonElement) -> None:
+            nonlocal matched
+            nonlocal unmatched
+            value = value_in_path(o, get_path)  # type:ignore
+            if value is not None:
+                if isinstance(value, str):
+                    pass
+                elif isinstance(value, (dict, list)):
+                    value = json.dumps(value)
+                else:
+                    value = str(value)
+                matched += 1
+                counter[value] += 1
+            else:
+                unmatched += 1
+
+        def inc_identity(_: Any) -> None:
+            nonlocal matched
+            matched += 1
+
+        fn = inc_prop if arg else inc_identity
+
+        async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
+            async with content.stream() as in_stream:
+                async for element in in_stream:
+                    fn(element)
+
+            for key, value in sorted(counter.items(), key=lambda x: x[1]):
+                yield f"{key}: {value}"
+
+            yield f"total matched: {matched}"
+            yield f"total unmatched: {unmatched}"
+
+        # noinspection PyTypeChecker
+        return count_in_stream
 
 
 class EchoSource(CLISource):
