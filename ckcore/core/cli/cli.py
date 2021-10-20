@@ -561,6 +561,7 @@ class HelpCommand(CLISource):
 
     def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: Dict[str, str]):
         super().__init__(dependencies)
+        self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
 
@@ -589,12 +590,12 @@ class HelpCommand(CLISource):
                 f"Note that you can pipe commands using the pipe character (|)\n"
                 f"and chain multiple commands using the semicolon (;)."
             )
-        elif arg and arg in self.parts:
-            result = show_cmd(self.parts[arg])
+        elif arg and arg in self.all_parts:
+            result = show_cmd(self.all_parts[arg])
         elif arg and arg in self.aliases:
             alias = self.aliases[arg]
             explain = f"{arg} is an alias for {alias}\n\n"
-            result = explain + show_cmd(self.parts[alias])
+            result = explain + show_cmd(self.all_parts[alias])
         else:
             result = f"No command found with this name: {arg}"
 

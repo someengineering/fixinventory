@@ -948,7 +948,7 @@ class JobsSource(CLISource):
     """
     Usage: jobs
 
-    rist all jobs in the system.
+    List all jobs in the system.
 
     Example
         jobs   # Could show
@@ -963,7 +963,7 @@ class JobsSource(CLISource):
         return "jobs"
 
     def info(self) -> str:
-        return "list all jobs in the system."
+        return "List all jobs in the system."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
         for job in await self.dependencies.job_handler.list_jobs():
