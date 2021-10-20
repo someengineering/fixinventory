@@ -40,6 +40,8 @@ from core.cli.cli import (
     QueryAllPart,
     strip_quotes,
     CountCommand,
+    HeadCommand,
+    TailCommand,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError
@@ -243,60 +245,6 @@ class EnvSource(CLISource):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         return stream.just(env)
-
-
-class HeadCommand(CLICommand):
-    """
-    Usage: head [num]
-
-    Take <num> number of elements from the input stream and send them downstream.
-    The rest of the stream is discarded.
-
-    Parameter:
-        num [optional, defaults to 100]: the number of elements to take from the head
-
-    Example:
-         json [1,2,3,4,5] | head 2  # will result in [1, 2]
-         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
-    """
-
-    @property
-    def name(self) -> str:
-        return "head"
-
-    def info(self) -> str:
-        return "Return n first elements of the stream."
-
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        size = abs(int(arg)) if arg else 100
-        return lambda in_stream: stream.take(in_stream, size)
-
-
-class TailCommand(CLICommand):
-    """
-    Usage: tail [num]
-
-    Take the last <num> number of elements from the input stream and send them downstream.
-    The beginning of the stream is consumed, but discarded.
-
-    Parameter:
-        num [optional, defaults to 100]: the number of elements to return from the end.
-
-    Example:
-         json [1,2,3,4,5] | tail 2  # will result in [4, 5]
-         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
-    """
-
-    @property
-    def name(self) -> str:
-        return "tail"
-
-    def info(self) -> str:
-        return "Return n last elements of the stream."
-
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        size = abs(int(arg)) if arg else 100
-        return lambda in_stream: stream.takelast(in_stream, size)
 
 
 class ChunkCommand(CLICommand):

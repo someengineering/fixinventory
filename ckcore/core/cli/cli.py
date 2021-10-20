@@ -44,6 +44,7 @@ from core.query.model import (
     AggregateVariableName,
     AggregateFunction,
     Sort,
+    SortOrder,
 )
 from core.query.query_parser import aggregate_parameter_parser, parse_query
 from core.task.job_handler import JobHandler
@@ -483,6 +484,64 @@ class MergeAncestorsPart(QueryPart):
         return "Merge the results of this query with the content of ancestor nodes of given type"
 
 
+class HeadCommand(CLICommand, QueryPart):
+    """
+    Usage: head [num]
+
+    Take <num> number of elements from the input stream and send them downstream.
+    The rest of the stream is discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to take from the head
+
+    Example:
+         json [1,2,3,4,5] | head 2  # will result in [1, 2]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "head"
+
+    def info(self) -> str:
+        return "Return n first elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = self.parse_size(arg)
+        return lambda in_stream: stream.take(in_stream, size)
+
+    @staticmethod
+    def parse_size(arg: Optional[str]) -> int:
+        return abs(int(arg)) if arg else 100
+
+
+class TailCommand(CLICommand, QueryPart):
+    """
+    Usage: tail [num]
+
+    Take the last <num> number of elements from the input stream and send them downstream.
+    The beginning of the stream is consumed, but discarded.
+
+    Parameter:
+        num [optional, defaults to 100]: the number of elements to return from the end.
+
+    Example:
+         json [1,2,3,4,5] | tail 2  # will result in [4, 5]
+         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    """
+
+    @property
+    def name(self) -> str:
+        return "tail"
+
+    def info(self) -> str:
+        return "Return n last elements of the stream."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        size = HeadCommand.parse_size(arg)
+        return lambda in_stream: stream.takelast(in_stream, size)
+
+
 class CountCommand(CLICommand, QueryPart):
     """
     Usage: count [arg]
@@ -736,8 +795,15 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                query = replace(query, aggregate=aggregate, sort=[Sort("count")])
                 additional_commands.append((self.parts["aggregate_to_count"], None))
+                query = replace(query, aggregate=aggregate, sort=[Sort("count")])
+            elif isinstance(part, HeadCommand):
+                size = HeadCommand.parse_size(arg)
+                query = replace(query, limit=size)
+            elif isinstance(part, TailCommand):
+                size = HeadCommand.parse_size(arg)
+                sort = query.sort if query.sort else [Sort("_key", SortOrder.Desc)]
+                query = replace(query, limit=size, sort=sort)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         return [(self.parts["execute_query"], str(query.simplify())), *additional_commands]
