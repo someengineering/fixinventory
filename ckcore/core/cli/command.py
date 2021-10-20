@@ -3,7 +3,6 @@ import json
 import logging
 import re
 from abc import abstractmethod, ABC
-from collections import defaultdict
 from datetime import timedelta
 from functools import partial
 from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable, cast
@@ -40,6 +39,7 @@ from core.cli.cli import (
     InternalPart,
     QueryAllPart,
     strip_quotes,
+    CountCommand,
 )
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError
@@ -148,6 +148,46 @@ class SleepSource(CLISource):
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
 
+class AggregateToCount(CLICommand, InternalPart):
+    """
+    Usage: aggregate_to_count
+
+    This command transforms the output of an aggregation query to the output of the count command.
+    { "group": { "name": "group_name" }, "count": 123 }  --> group_name: 123
+    Expected group key: `name`
+    Expected function key: `count`
+
+    It is usually not invoked directly but automatically invoked when there is a query | count cli command.
+    """
+
+    @property
+    def name(self) -> str:
+        return "aggregate_to_count"
+
+    def info(self) -> str:
+        return "Convert the output of an aggregate query to the result of count."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        name_path = ["group", "name"]
+        count_path = ["count"]
+
+        async def to_count(in_stream: AsyncGenerator[JsonElement, None]) -> AsyncGenerator[JsonElement, None]:
+            null_value = 0
+            total = 0
+            async for elem in in_stream:
+                name = value_in_path(elem, name_path)
+                count = value_in_path_get(elem, count_path, 0)
+                if name is None:
+                    null_value = count
+                else:
+                    total += count
+                    yield f"{name}: {count}"
+            yield f"total matched: {total}"
+            yield f"total unmatched: {null_value}"
+
+        return to_count
+
+
 class ExecuteQuerySource(CLISource, InternalPart):
     """
     Usage: execute_query <query>
@@ -203,72 +243,6 @@ class EnvSource(CLISource):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Source:
         return stream.just(env)
-
-
-class CountCommand(CLICommand):
-    """
-    Usage: count [arg]
-
-    In case no arg is given: it counts the number of instances provided to count.
-    In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
-
-    Parameter:
-        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
-
-    Example:
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
-    """
-
-    @property
-    def name(self) -> str:
-        return "count"
-
-    def info(self) -> str:
-        return "Count incoming elements or sum defined property."
-
-    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
-        get_path = arg.split(".") if arg else None
-        counter: Dict[str, int] = defaultdict(int)
-        matched = 0
-        unmatched = 0
-
-        def inc_prop(o: JsonElement) -> None:
-            nonlocal matched
-            nonlocal unmatched
-            value = value_in_path(o, get_path)  # type:ignore
-            if value is not None:
-                if isinstance(value, str):
-                    pass
-                elif isinstance(value, (dict, list)):
-                    value = json.dumps(value)
-                else:
-                    value = str(value)
-                matched += 1
-                counter[value] += 1
-            else:
-                unmatched += 1
-
-        def inc_identity(_: Any) -> None:
-            nonlocal matched
-            matched += 1
-
-        fn = inc_prop if arg else inc_identity
-
-        async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
-            async with content.stream() as in_stream:
-                async for element in in_stream:
-                    fn(element)
-
-            for key, value in sorted(counter.items(), key=lambda x: x[1]):
-                yield f"{key}: {value}"
-
-            yield f"total matched: {matched}"
-            yield f"total unmatched: {unmatched}"
-
-        # noinspection PyTypeChecker
-        return count_in_stream
 
 
 class HeadCommand(CLICommand):
@@ -974,7 +948,7 @@ class JobsSource(CLISource):
     """
     Usage: jobs
 
-    rist all jobs in the system.
+    List all jobs in the system.
 
     Example
         jobs   # Could show
@@ -989,7 +963,7 @@ class JobsSource(CLISource):
         return "jobs"
 
     def info(self) -> str:
-        return "list all jobs in the system."
+        return "List all jobs in the system."
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
         for job in await self.dependencies.job_handler.list_jobs():
@@ -1345,6 +1319,7 @@ def all_sinks(d: CLIDependencies) -> List[CLISink]:
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return [
+        AggregateToCount(d),
         ChunkCommand(d),
         CleanCommand(d),
         CountCommand(d),

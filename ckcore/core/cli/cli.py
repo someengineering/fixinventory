@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import calendar
 import inspect
+import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from collections import defaultdict
+from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
@@ -33,11 +35,20 @@ from core.parse_util import (
     single_quoted_string_part_or_esc_dp,
     semicolon_p,
 )
-from core.query.model import Query, Navigation, AllTerm, Aggregate
+from core.query.model import (
+    Query,
+    Navigation,
+    AllTerm,
+    Aggregate,
+    AggregateVariable,
+    AggregateVariableName,
+    AggregateFunction,
+    Sort,
+)
 from core.query.query_parser import aggregate_parameter_parser, parse_query
 from core.task.job_handler import JobHandler
 from core.types import JsonElement, Json
-from core.util import utc_str, utc, from_utc
+from core.util import utc_str, utc, from_utc, value_in_path
 from core.worker_task_queue import WorkerTaskQueue
 from typing import Dict, List, Tuple
 
@@ -472,6 +483,72 @@ class MergeAncestorsPart(QueryPart):
         return "Merge the results of this query with the content of ancestor nodes of given type"
 
 
+class CountCommand(CLICommand, QueryPart):
+    """
+    Usage: count [arg]
+
+    In case no arg is given: it counts the number of instances provided to count.
+    In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
+
+    Parameter:
+        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
+
+    Example:
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
+        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
+    """
+
+    @property
+    def name(self) -> str:
+        return "count"
+
+    def info(self) -> str:
+        return "Count incoming elements or sum defined property."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        get_path = arg.split(".") if arg else None
+        counter: Dict[str, int] = defaultdict(int)
+        matched = 0
+        unmatched = 0
+
+        def inc_prop(o: JsonElement) -> None:
+            nonlocal matched
+            nonlocal unmatched
+            value = value_in_path(o, get_path)  # type:ignore
+            if value is not None:
+                if isinstance(value, str):
+                    pass
+                elif isinstance(value, (dict, list)):
+                    value = json.dumps(value)
+                else:
+                    value = str(value)
+                matched += 1
+                counter[value] += 1
+            else:
+                unmatched += 1
+
+        def inc_identity(_: Any) -> None:
+            nonlocal matched
+            matched += 1
+
+        fn = inc_prop if arg else inc_identity
+
+        async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
+            async with content.stream() as in_stream:
+                async for element in in_stream:
+                    fn(element)
+
+            for key, value in sorted(counter.items(), key=lambda x: x[1]):
+                yield f"{key}: {value}"
+
+            yield f"total matched: {matched}"
+            yield f"total unmatched: {unmatched}"
+
+        # noinspection PyTypeChecker
+        return count_in_stream
+
+
 class HelpCommand(CLISource):
     """
     Usage: help [command]
@@ -484,6 +561,7 @@ class HelpCommand(CLISource):
 
     def __init__(self, dependencies: CLIDependencies, parts: List[CLIPart], aliases: Dict[str, str]):
         super().__init__(dependencies)
+        self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
         self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
 
@@ -512,12 +590,12 @@ class HelpCommand(CLISource):
                 f"Note that you can pipe commands using the pipe character (|)\n"
                 f"and chain multiple commands using the semicolon (;)."
             )
-        elif arg and arg in self.parts:
-            result = show_cmd(self.parts[arg])
+        elif arg and arg in self.all_parts:
+            result = show_cmd(self.all_parts[arg])
         elif arg and arg in self.aliases:
             alias = self.aliases[arg]
             explain = f"{arg} is an alias for {alias}\n\n"
-            result = explain + show_cmd(self.parts[alias])
+            result = explain + show_cmd(self.all_parts[alias])
         else:
             result = f"No command found with this name: {arg}"
 
@@ -620,15 +698,16 @@ class CLI:
         help_cmd = HelpCommand(dependencies, parts, aliases)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
-        self.parts = {**cmds, **alias_cmds}
+        self.parts: Dict[str, CLIPart] = {**cmds, **alias_cmds}
         self.cli_env = env
         self.dependencies = dependencies
         self.aliases = aliases
 
-    @staticmethod
-    def create_query(parts: List[Tuple[QueryPart, str]]) -> str:
+    def create_query(self, parts: List[CLIArg]) -> List[CLIArg]:
         query: Query = Query.by(AllTerm())
-        for part, arg in parts:
+        additional_commands: List[CLIArg] = []
+        for part, maybe_arg in parts:
+            arg = maybe_arg if maybe_arg else ""
             if isinstance(part, QueryAllPart):
                 query = query.combine(parse_query(arg))
             elif isinstance(part, ReportedPart):
@@ -647,12 +726,21 @@ class CLI:
                 query = query.traverse_out(1, Navigation.Max, arg if arg else EdgeType.default)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
-                query = Query(query.parts, query.preamble, Aggregate(group_vars, group_function_vars))
+                query = replace(query, aggregate=Aggregate(group_vars, group_function_vars))
             elif isinstance(part, MergeAncestorsPart):
-                query = Query(query.parts, {**query.preamble, **{"merge_with_ancestors": arg}}, query.aggregate)
+                query = replace(query, preamble={**query.preamble, **{"merge_with_ancestors": arg}})
+            elif isinstance(part, CountCommand):
+                # count command followed by a query: make it an aggregation
+                # since the output of aggregation is not exactly the same as count
+                # we also add the aggregate_to_count command after the query
+                assert query.aggregate is None, "Can not combine aggregate and count!"
+                group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
+                aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
+                query = replace(query, aggregate=aggregate, sort=[Sort("count")])
+                additional_commands.append((self.parts["aggregate_to_count"], None))
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        return str(query.simplify())
+        return [(self.parts["execute_query"], str(query.simplify())), *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
@@ -666,10 +754,10 @@ class CLI:
 
         def combine_single_command(commands: List[CLIArg]) -> List[CLIArg]:
             parts = list(takewhile(lambda x: isinstance(x[0], QueryPart), commands))
-            query = self.create_query(parts)  # type: ignore
+            query_parts = self.create_query(parts)
 
             # fmt: off
-            result = [(self.parts["execute_query"], query), *commands[len(parts):]] if parts else commands
+            result = [*query_parts, *commands[len(parts):]] if parts else commands
             # fmt: on
             for index, part_num in enumerate(result):
                 part, _ = part_num
