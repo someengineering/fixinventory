@@ -346,7 +346,7 @@ class AsyncArangoDBBase:
         return await run_async(self.db.views)
 
     async def create_view(self, name: str, view_type: str, properties: Optional[Json]) -> Json:
-        return await run_async(self.db.create_view(name, view_type, properties))
+        return await run_async(self.db.create_view, name, view_type, properties)
 
 
 class AsyncArangoDB(AsyncArangoDBBase):
