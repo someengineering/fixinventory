@@ -149,6 +149,17 @@ class SleepSource(CLISource):
 
 
 class AggregateToCount(CLICommand, InternalPart):
+    """
+    Usage: aggregate_to_count
+
+    This command transforms the output of an aggregation query to the output of the count command.
+    { "group": { "name": "group_name" }, "count": 123 }  --> group_name: 123
+    Expected group key: `name`
+    Expected function key: `count`
+
+    It is usually not invoked directly but automatically invoked when there is a query | count cli command.
+    """
+
     @property
     def name(self) -> str:
         return "aggregate_to_count"
