@@ -586,8 +586,10 @@ class Api:
         parsed = await self.cli.evaluate_cli_command(command, **env)
 
         def line_to_js(line: ParsedCommandLine) -> Json:
-            commands = [{"cmd": part.name, "arg": arg} for part, arg in line.parts_with_args]
-            return {"commands": commands, "env": line.parsed_commands.env}
+            parsed_commands = to_js(line.parsed_commands.commands)
+            execute_commands = [{"cmd": part.name, "arg": arg} for part, arg in line.parts_with_args]
+
+            return {"parsed": parsed_commands, "execute": execute_commands, "env": line.parsed_commands.env}
 
         return web.json_response([line_to_js(line) for line in parsed])
 
