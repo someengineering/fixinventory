@@ -7,7 +7,7 @@ on:
 
 jobs:
     lint-and-test:
-        name: "Checkout, Lint and Test"
+        name: "Lint (ckcore)"
         runs-on: ubuntu-latest
         defaults:
             run:
