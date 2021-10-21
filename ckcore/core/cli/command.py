@@ -91,6 +91,10 @@ class CLIPart(ABC):
     def info(self) -> str:
         pass
 
+    @staticmethod
+    def produces() -> str:
+        return "application/json"
+
 
 class CLISource(CLIPart, ABC):
     """
@@ -685,16 +689,18 @@ class AggregateToCount(CLICommand, InternalPart):
         async def to_count(in_stream: AsyncGenerator[JsonElement, None]) -> AsyncGenerator[JsonElement, None]:
             null_value = 0
             total = 0
-            async for elem in in_stream:
-                name = value_in_path(elem, name_path)
-                count = value_in_path_get(elem, count_path, 0)
-                if name is None:
-                    null_value = count
-                else:
-                    total += count
-                    yield f"{name}: {count}"
-            yield f"total matched: {total}"
-            yield f"total unmatched: {null_value}"
+            async with stream.iterate(in_stream).stream() as streamer:
+                async for elem in streamer:
+                    name = value_in_path(elem, name_path)
+                    count = value_in_path_get(elem, count_path, 0)
+                    if name is None:
+                        null_value = count
+                    else:
+                        total += count
+                        yield f"{name}: {count}"
+                tm, tu = (total, null_value) if arg else (null_value + total, 0)
+                yield f"total matched: {tm}"
+                yield f"total unmatched: {tu}"
 
         return to_count
 

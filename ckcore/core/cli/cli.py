@@ -98,6 +98,15 @@ class ParsedCommandLine:
     def parts(self) -> List[CLIPart]:
         return [part for part, _ in self.parts_with_args]
 
+    def produces(self) -> str:
+        return self.parts_with_args[-1][0].produces() if self.parts_with_args else "application/json"
+
+    def produces_json(self) -> bool:
+        return self.produces() == "application/json"
+
+    def produces_binary(self) -> bool:
+        return self.produces() == "application/octet-stream"
+
 
 @make_parser
 def single_command_parser() -> Parser:
@@ -224,7 +233,7 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                additional_commands.append((self.parts["aggregate_to_count"], None))
+                additional_commands.append((self.parts["aggregate_to_count"], arg))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
