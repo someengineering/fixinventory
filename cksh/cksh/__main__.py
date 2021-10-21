@@ -1,3 +1,5 @@
+import os.path
+import re
 import sys
 import shutil
 import pathlib
@@ -5,10 +7,14 @@ import requests
 from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
+from requests import Response
+from requests_toolbelt import MultipartDecoder
+from requests_toolbelt.multipart.decoder import BodyPart
+
 from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
 from cklib.jwt import encode_jwt_to_headers
-from typing import Dict
+from typing import Dict, Union
 from urllib.parse import urlencode, urlsplit
 
 
@@ -101,11 +107,44 @@ def send_command(
         if r.status_code != 200:
             print(r.text, file=sys.stderr)
             return
+        else:
+            handle_result(r)
 
-        for line in r.iter_lines():
-            if not line:
-                continue
-            print(line.decode("utf-8"))
+
+def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
+    content_type = part.headers.get("Content-Type", "text/plain")
+    if content_type == "text/plain":
+        # Received plain text: print it.
+        if not first:
+            print("---")
+        if hasattr(part, "iter_lines"):
+            for line in part.iter_lines():
+                print(line.decode("utf-8"))
+        else:
+            print(part.text)
+    elif content_type == "application/octet-stream":
+        # Received a file - write it to disk.
+        disposition = part.headers.get("Content-Disposition")
+        match = re.findall('filename="([^"]+)";', disposition if disposition else "")
+        name = match[0] if match else "out"
+        path = os.path.join(ArgumentParser.args.download_directory, name)
+        i = 0
+        while os.path.exists(path):
+            i += 1
+            path = os.path.join(ArgumentParser.args.download_directory, f"{name}-{i}")
+        print(f"Received a file {name}, which is stored to {path}.")
+        with open(path, "wb+") as fh:
+            fh.write(part.content)
+    elif content_type.startswith("multipart"):
+        # Received a multipart response: parse the parts
+        decoder = MultipartDecoder.from_response(part)
+
+        def decode(value: Union[str, bytes]) -> str:
+            return value.decode("utf-8") if isinstance(value, bytes) else value
+
+        for num, part in enumerate(decoder.parts):
+            part.headers = {decode(k): decode(v) for k, v in part.headers.items()}
+            handle_result(part, num == 0)
 
 
 def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
@@ -143,6 +182,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Pre-shared key",
         default=None,
         dest="psk",
+    )
+    arg_parser.add_argument(
+        "--download-directory",
+        help="If files are received, they are written to this directory.",
+        default=".",
+        dest="download_directory",
     )
     arg_parser.add_argument(
         "--stdin",

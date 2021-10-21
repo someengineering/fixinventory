@@ -20,6 +20,9 @@ from aiohttp import (
     AsyncIterablePayload,
     BufferedReaderPayload,
 )
+
+# noinspection PyProtectedMember
+from aiohttp.helpers import content_disposition_header
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp.web_fileresponse import FileResponse
@@ -624,7 +627,8 @@ class Api:
                 elif first_result.produces_binary():
                     files = [elem async for elem in streamer]
                     if len(files) == 1:
-                        return FileResponse(files[0])
+                        dph = content_disposition_header("attachment", True, filename=os.path.basename(files[0]))
+                        return FileResponse(files[0], headers={"Content-Disposition": dph})
                     else:
                         await mp_response.prepare(request)
                         await Api.multi_file_response(files, boundary, mp_response)
