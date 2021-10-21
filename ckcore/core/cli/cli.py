@@ -98,6 +98,15 @@ class ParsedCommandLine:
     def parts(self) -> List[CLIPart]:
         return [part for part, _ in self.parts_with_args]
 
+    def produces(self) -> str:
+        return self.parts_with_args[-1][0].produces() if self.parts_with_args else "application/json"
+
+    def produces_json(self) -> bool:
+        return self.produces() == "application/json"
+
+    def produces_binary(self) -> bool:
+        return self.produces() == "application/octet-stream"
+
 
 @make_parser
 def single_command_parser() -> Parser:

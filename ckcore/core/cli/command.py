@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import json
 import logging
+import os.path
 import re
 from abc import abstractmethod, ABC
 from collections import defaultdict
@@ -90,6 +91,10 @@ class CLIPart(ABC):
     @abstractmethod
     def info(self) -> str:
         pass
+
+    @staticmethod
+    def produces() -> str:
+        return "application/json"
 
 
 class CLISource(CLIPart, ABC):
@@ -1745,6 +1750,28 @@ class StartTaskSource(CLISource):
         yield f"Task {task.id} has been started" if task else "Task can not be started."
 
 
+# TODO: remove me once the file feature is implemented!
+class FileSource(CLISource, InternalPart):
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        if not arg:
+            raise AttributeError("file command needs a parameter!")
+        elif not os.path.exists(arg):
+            raise AttributeError(f"file does not exist: {arg}!")
+        else:
+            return stream.just(arg if arg else "")
+
+    @property
+    def name(self) -> str:
+        return "file"
+
+    def info(self) -> str:
+        return "only for debugging purposes..."
+
+    @staticmethod
+    def produces() -> str:
+        return "application/octet-stream"
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -1759,6 +1786,7 @@ class ListSink(CLISink):
 
 def all_sources(d: CLIDependencies) -> List[CLISource]:
     return [
+        FileSource(d),
         AddJobSource(d),
         DeleteJobSource(d),
         EchoSource(d),
