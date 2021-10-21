@@ -174,6 +174,7 @@ class HelpCommand(CLISource):
 CLIArg = Tuple[CLIPart, Optional[str]]
 
 
+# test no change
 class CLI:
     """
     The CLI has a defined set of dependencies and knows a list if commands.
