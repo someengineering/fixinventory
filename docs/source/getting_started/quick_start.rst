@@ -36,7 +36,7 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
     $ mkdir -p ~/data/test
     $ docker run -d -v "${HOME}/data/test":/data:rw \
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
-    -e CKWORKER_COLLECTOR=”aws example” \
+    -e CKWORKER_COLLECTOR='aws example' \
     --name cloudkeeper ghcr.io/someengineering/cloudkeeper:2.0.0a6
 
 Start the Cloudkeeper CLI
