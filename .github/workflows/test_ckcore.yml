@@ -7,7 +7,7 @@ on:
 
 jobs:
     lint-and-test:
-        name: "Checkout, Lint and Test"
+        name: "Test (ckcore)"
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -25,7 +25,7 @@ jobs:
             - name: Setup Python
               uses: actions/setup-python@v2
               with:
-                  python-version: 'pypy-3.7'
+                  python-version: 'pypy-3.7-v7.3.5'
                   architecture: 'x64'
             - name: Restore dependency cache
               uses: actions/cache@v2

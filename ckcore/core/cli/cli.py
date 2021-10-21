@@ -224,7 +224,7 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                additional_commands.append((self.parts["aggregate_to_count"], None))
+                additional_commands.append((self.parts["aggregate_to_count"], arg))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
