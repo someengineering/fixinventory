@@ -689,7 +689,8 @@ class AggregateToCount(CLICommand, InternalPart):
         async def to_count(in_stream: AsyncGenerator[JsonElement, None]) -> AsyncGenerator[JsonElement, None]:
             null_value = 0
             total = 0
-            async with stream.iterate(in_stream).stream() as streamer:
+            in_streamer = in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
+            async with in_streamer.stream() as streamer:
                 async for elem in streamer:
                     name = value_in_path(elem, name_path)
                     count = value_in_path_get(elem, count_path, 0)
