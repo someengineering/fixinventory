@@ -48,31 +48,31 @@ def main() -> None:
         finally:
             shutdown_event.set()
     else:
-        session = completer = None
+        completer = None
         history_file = str(pathlib.Path.home() / ".cksh_history")
         history = FileHistory(history_file)
         session = PromptSession(history=history)
         log.debug("Starting interactive session")
 
-    while not shutdown_event.is_set():
-        try:
-            command = session.prompt("> ", completer=completer)
-            if command == "":
-                continue
-            if command == "quit":
+        while not shutdown_event.is_set():
+            try:
+                command = session.prompt("> ", completer=completer)
+                if command == "":
+                    continue
+                if command == "quit":
+                    shutdown_event.set()
+                    continue
+
+                send_command(command, execute_endpoint, headers)
+
+            except KeyboardInterrupt:
+                pass
+            except EOFError:
                 shutdown_event.set()
-                continue
-
-            send_command(command, execute_endpoint, headers)
-
-        except KeyboardInterrupt:
-            pass
-        except EOFError:
-            shutdown_event.set()
-        except (RuntimeError, ValueError) as e:
-            log.error(e)
-        except Exception:
-            log.exception("Caught unhandled exception while processing CLI command")
+            except (RuntimeError, ValueError) as e:
+                log.error(e)
+            except Exception:
+                log.exception("Caught unhandled exception while processing CLI command")
 
     sys.exit(0)
 
@@ -113,10 +113,11 @@ def send_command(
 
 def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
     content_type = part.headers.get("Content-Type", "text/plain")
+    line_delimiter = "---"
     if content_type == "text/plain":
         # Received plain text: print it.
         if not first:
-            print("---")
+            print(line_delimiter)
         if hasattr(part, "iter_lines"):
             for line in part.iter_lines():
                 print(line.decode("utf-8"))
@@ -124,6 +125,8 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
             print(part.text)
     elif content_type == "application/octet-stream":
         # Received a file - write it to disk.
+        if not first:
+            print(line_delimiter)
         disposition = part.headers.get("Content-Disposition")
         match = re.findall('filename="([^"]+)";', disposition if disposition else "")
         name = match[0] if match else "out"
