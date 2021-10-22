@@ -91,7 +91,7 @@ venv-pypy:
 
 
 venv:
-	python3 -m venv venv
+	python3 -m venv venv --prompt "ckcore env"
 	./venv/bin/python3 -m pip install --upgrade pip
 	./venv/bin/pip install --upgrade --editable ../cklib
 	./venv/bin/pip install -r requirements-dev.txt
@@ -106,11 +106,3 @@ setup: clean clean-env venv
 
 install-latest: venv
 	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
-
-
-docker:
-	docker login rg.fr-par.scw.cloud/funcscwcloudkeeperjiaxo1v0 -u nologin -p "$$SCW_SECRET_TOKEN"
-	docker build -f deployment/Dockerfile -t core .
-	docker tag core:latest rg.fr-par.scw.cloud/funcscwcloudkeeperjiaxo1v0/core:latest
-	docker push rg.fr-par.scw.cloud/funcscwcloudkeeperjiaxo1v0/core:latest
-

@@ -44,6 +44,7 @@ def main() -> None:
         "model_handler": model,
         "job_handler": task_handler,
         "worker_task_queue": worker_task_queue,
+        "args": args,
     }
     api = Api(db, model, subscriptions, task_handler, message_bus, worker_task_queue, cli, args)
 

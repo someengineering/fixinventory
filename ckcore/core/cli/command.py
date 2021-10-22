@@ -4,8 +4,14 @@ import json
 import logging
 import os.path
 import re
+import shutil
+import tarfile
+import tempfile
 from abc import abstractmethod, ABC
+from argparse import Namespace
+from asyncio.subprocess import Process
 from collections import defaultdict
+from contextlib import suppress
 from datetime import timedelta
 from functools import partial
 from typing import Dict, List, Tuple
@@ -17,10 +23,11 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 
+from core.async_extensions import run_async
 from core.cli import key_values_parser, Result, Source, Flow, Sink, strip_quotes, is_node
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
-from core.error import CLIParseError, ClientError
+from core.error import CLIParseError, ClientError, CLIExecutionError
 from core.message_bus import MessageBus
 from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
@@ -32,7 +39,7 @@ from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path
+from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
@@ -41,6 +48,10 @@ log = logging.getLogger(__name__)
 class CLIDependencies:
     def __init__(self) -> None:
         self.lookup: Dict[str, Any] = {}
+
+    @property
+    def args(self) -> Namespace:
+        return self.lookup["args"]  # type: ignore
 
     @property
     def message_bus(self) -> MessageBus:
@@ -1772,6 +1783,96 @@ class FileSource(CLISource, InternalPart):
         return "application/octet-stream"
 
 
+class DbBackupSource(CLISource):
+    """
+    Usage: db_backup [name]
+
+    Create a database backup for the complete database, which contains:
+    - backup of all graph data
+    - backup of all model data
+    - backup of all persisted jobs/tasks data
+    - backup of all subscribers data
+    - backup of all configuration data
+
+    This backup can be restored via db_resource.
+    Since this command creates a complete backup, it can be restored to an empty database.
+
+    Note: a backup acquires a global write lock. This basically means, that *no write* can be
+          performed, while the backup is created!
+    Note: the backup is not encrypted.
+
+    Parameter:
+        name [optional] - name of the backup file.
+                          If no name is provided the name will be `backup_yyyyMMdd_hmm`.
+                          Example: backup_20211022_1028
+
+    Example:
+        db_backup           # this will create a backup written to backup_{time_now}.
+        db_backup bck_1234  # this will create a backup written to bck_1234.
+
+
+    See: db_restore
+    """
+
+    @property
+    def name(self) -> str:
+        return "db_backup"
+
+    def info(self) -> str:
+        return "Create a database backup file."
+
+    @staticmethod
+    def produces() -> str:
+        return "application/octet-stream"
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Result[Source]:
+        async def create_backup() -> AsyncGenerator[str, None]:
+            temp_dir: str = tempfile.mkdtemp()
+            maybe_proc: Optional[Process] = None
+            try:
+                args = self.dependencies.args
+                if not shutil.which("arangodump"):
+                    raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
+                # fmt: off
+                process = await asyncio.create_subprocess_exec(
+                    "arangodump",
+                    "--progress", "false",           # do not show progress
+                    "--threads", "8",                # default is 2
+                    "--log.level", "error",          # only print error messages
+                    "--output-directory", temp_dir,  # directory to write to
+                    "--overwrite", "true",           # required for existing directories
+                    "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
+                    "--server.database", args.graphdb_database,
+                    "--server.username", args.graphdb_username,
+                    "--server.password", args.graphdb_password,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                _, stderr = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                if code == 0:
+                    files = os.listdir(temp_dir)
+                    name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
+                    backup = os.path.join(temp_dir, name)
+                    # create an unzipped tarfile (all of the entries are already gzipped)
+                    with tarfile.open(backup, "w") as tar:
+                        for file in files:
+                            await run_async(tar.add, os.path.join(temp_dir, file), file)
+                    yield backup
+                else:
+                    raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr.decode()}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
+                shutil.rmtree(temp_dir)
+
+        return stream.iterate(create_backup())
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -1788,6 +1889,7 @@ def all_sources(d: CLIDependencies) -> List[CLISource]:
     return [
         FileSource(d),
         AddJobSource(d),
+        DbBackupSource(d),
         DeleteJobSource(d),
         EchoSource(d),
         EnvSource(d),

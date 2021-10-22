@@ -21,11 +21,8 @@ from aiohttp import (
     BufferedReaderPayload,
 )
 
-# noinspection PyProtectedMember
-from aiohttp.helpers import content_disposition_header
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
-from aiohttp.web_fileresponse import FileResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx.readwrite import cytoscape_data
@@ -622,17 +619,13 @@ class Api:
             first_result = parsed[0]
             # flat the results from 0 or 1
             async with stream.iterate(first_result.generator).stream() as streamer:
+                gen = await force_gen(streamer)
                 if first_result.produces_json():
-                    return await self.stream_response_from_gen(request, streamer)
+                    return await self.stream_response_from_gen(request, gen)
                 elif first_result.produces_binary():
-                    files = [elem async for elem in streamer]
-                    if len(files) == 1:
-                        dph = content_disposition_header("attachment", True, filename=os.path.basename(files[0]))
-                        return FileResponse(files[0], headers={"Content-Disposition": dph})
-                    else:
-                        await mp_response.prepare(request)
-                        await Api.multi_file_response(files, boundary, mp_response)
-                        return mp_response
+                    await mp_response.prepare(request)
+                    await Api.multi_file_response(gen, boundary, mp_response)
+                    return mp_response
                 else:
                     raise AttributeError(f"Can not handle type: {first_result.produces()}")
         elif len(parsed) > 1:
@@ -646,7 +639,7 @@ class Api:
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces_binary():
-                        await Api.multi_file_response([elem async for elem in gen], boundary, mp_response)
+                        await Api.multi_file_response(gen, boundary, mp_response)
                     else:
                         raise AttributeError(f"Can not handle type: {single.produces()}")
             await mp_response.write_eof()
@@ -765,8 +758,8 @@ class Api:
             return respond_json()
 
     @staticmethod
-    async def multi_file_response(results: List[str], boundary: str, response: StreamResponse) -> None:
-        for file_name in results:
+    async def multi_file_response(results: AsyncGenerator[str, None], boundary: str, response: StreamResponse) -> None:
+        async for file_name in results:
             with open(file_name, "rb") as content:
                 with MultipartWriter("application/octet-stream", boundary) as mp:
                     mp.append_payload(BufferedReaderPayload(content))
