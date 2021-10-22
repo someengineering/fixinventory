@@ -5,6 +5,7 @@ import logging
 import os.path
 import re
 import shutil
+import sys
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
@@ -24,7 +25,7 @@ from aiostream.core import Stream
 from parsy import Parser, string
 
 from core.async_extensions import run_async
-from core.cli import key_values_parser, Result, Source, Flow, Sink, strip_quotes, is_node
+from core.cli import key_values_parser, Result, Source, Flow, Sink, strip_quotes, is_node, JsGen
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
@@ -1873,6 +1874,96 @@ class DbBackupSource(CLISource):
         return stream.iterate(create_backup())
 
 
+class DbRestoreCommand(CLICommand):
+    """
+    Usage: db_restore
+
+    Restores the complete database state from a previously generated backup.
+    All existing data in the database will be overwritten.
+    This command will not wipe any existing data: if there are collections in the database, that are not included
+    in the backup, it will not be deleted by this process.
+    In order to restore exactly the same state as in the backup, you should start from an empty database.
+
+    Note: a backup acquires a global write lock. This basically means, that *no write* can be
+          performed, while the backup is restored!
+    Note: After the restore process is done, the ckcore process will stop. It should be restarted by
+          the process supervisor automatically. The restart is necessary to take effect from the changed
+          underlying data source.
+
+    Example:
+        echo /path/to/backup | db_backup     # this will restore the backup from the given local path.
+
+    See: db_backup
+    """
+
+    @property
+    def name(self) -> str:
+        return "db_restore"
+
+    def info(self) -> str:
+        return "Restore a database backup."
+
+    async def parse(self, arg: Optional[str] = None, **env: str) -> Flow:
+        async def restore_backup(in_stream_gen: JsGen) -> AsyncGenerator[str, None]:
+            in_stream = in_stream_gen if isinstance(in_stream_gen, Stream) else stream.iterate(in_stream_gen)
+            async with in_stream.stream() as streamer:
+                files = [f async for f in streamer]
+
+            if len(files) != 1:
+                raise CLIExecutionError(f"Restore can only restore from a single file, but got: {files}")
+            if not os.path.exists(files[0]):
+                raise CLIExecutionError(f"Provided backup file does not exist: {files[0]}")
+            if not shutil.which("arangorestore"):
+                raise CLIParseError("db_restore expects the executable `arangorestore` to be in path!")
+
+            backup_file = files[0]
+            temp_dir: str = tempfile.mkdtemp()
+            maybe_proc: Optional[Process] = None
+            try:
+                # extract tar file
+                with tarfile.open(backup_file, "r") as tar:
+                    tar.extractall(temp_dir)
+
+                # fmt: off
+                args = self.dependencies.args
+                process = await asyncio.create_subprocess_exec(
+                    "arangorestore",
+                    "--progress", "false",           # do not show progress
+                    "--threads", "8",                # default is 2
+                    "--log.level", "error",          # only print error messages
+                    "--input-directory", temp_dir,   # directory to write to
+                    "--overwrite", "true",           # required for existing db collections
+                    "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
+                    "--server.database", args.graphdb_database,
+                    "--server.username", args.graphdb_username,
+                    "--server.password", args.graphdb_password,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                _, stderr = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                if code == 0:
+                    yield "Database has been restored successfully!"
+                else:
+                    raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr.decode()}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
+                shutil.rmtree(temp_dir)
+                log.info("Restore process complete. Restart the service.")
+                yield "Since all data has changed in the database eventually, this service needs to be restarted!"
+                yield ""
+                yield ""
+                await asyncio.sleep(1)
+                sys.exit(0)
+
+        return lambda in_stream: stream.iterate(restore_backup(in_stream))
+
+
 class ListSink(CLISink):
     @property
     def name(self) -> str:
@@ -1913,6 +2004,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         ChunkCommand(d),
         CleanCommand(d),
         CountCommand(d),
+        DbRestoreCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
