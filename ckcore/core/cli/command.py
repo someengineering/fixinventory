@@ -1794,7 +1794,7 @@ class DbBackupSource(CLISource):
     - backup of all subscribers data
     - backup of all configuration data
 
-    This backup can be restored via db_resource.
+    This backup can be restored via db_restore.
     Since this command creates a complete backup, it can be restored to an empty database.
 
     Note: a backup acquires a global write lock. This basically means, that *no write* can be
@@ -1819,7 +1819,7 @@ class DbBackupSource(CLISource):
         return "db_backup"
 
     def info(self) -> str:
-        return "Create a database backup file."
+        return "Create a database backup."
 
     @staticmethod
     def produces() -> str:
