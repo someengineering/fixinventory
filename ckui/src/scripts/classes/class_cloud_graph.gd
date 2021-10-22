@@ -8,14 +8,14 @@ signal show_connected_nodes
 signal order_done
 signal graph_created
 
-const ATTRACTION_CONSTANT := 0.02
-const REPULSION_CONSTANT := 1000.0
+const ATTRACTION_CONSTANT := 0.01
+const REPULSION_CONSTANT := 100.0
 const MAX_DISTANCE := 800.0
 const GRAPH_MOVE_SPEED := 1.0
-const MAX_DISPLACE := 500.0
-const DEFAULT_DAMPING := 0.8
-const DEFAULT_SPRING_LENGTH := 200
-const DEFAULT_MAX_ITERATIONS := 100
+const MAX_DISPLACE := 50000.0
+const DEFAULT_DAMPING := 0.95
+const DEFAULT_SPRING_LENGTH := 500.0
+const DEFAULT_MAX_ITERATIONS := 200
 
 var graph_data := {
 	"nodes" : {},
@@ -77,9 +77,9 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	new_edge.to = graph_data.nodes[_data.to]
 	
 	var new_edge_line = Line2D.new()
-	new_edge_line.width = 2
-	new_edge_line.default_color = new_edge.color
 	new_edge.line = new_edge_line
+	new_edge.line.width = 4
+	new_edge.line.default_color = new_edge.color
 	line_group.add_child(new_edge_line)
 	
 	return new_edge
@@ -185,7 +185,8 @@ func graph_rand_layout():
 func update_connection_lines() -> void:
 	for connection in graph_data.edges.values():
 		connection.line.global_position = connection.from.scene.global_position
-		connection.line.points = PoolVector2Array( [Vector2.ZERO, connection.to.scene.global_position - connection.line.global_position ] )
+		var point_to = connection.to.scene.global_position - connection.line.global_position
+		connection.line.points = PoolVector2Array( [Vector2.ZERO, point_to ] )
 
 
 func layout_graph(graph_node_positions := {}) -> void:
@@ -211,7 +212,7 @@ func hovering_node(node_id, power) -> void:
 		return
 	for connection in graph_data.edges.values():
 		if connection.to.id == node_id or connection.from.id == node_id and !is_removed:
-			var line_color = Color(5,3,1,1) if connection.to.id == node_id else Color(3,4,5,1)
+			var line_color = Color(2,1.2,0.5,1) if connection.to.id == node_id else Color(0.5,1.5,2,1)
 			if is_instance_valid(connection.line):
 				connection.line.self_modulate = lerp(Color.white, line_color*1.5, power)
 
@@ -226,20 +227,18 @@ func show_all() -> void:
 		node.scene.labels_unisize(0.25)
 
 
+
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
-	var proximity : float = max( node_a_pos.distance_to(node_b_pos), 1 )
-	var force = -REPULSION_CONSTANT/proximity
-	var dir = node_a_pos.direction_to(node_b_pos)
-	return dir*force
+	var force = -REPULSION_CONSTANT / node_a_pos.distance_to(node_b_pos)
+	return node_a_pos.direction_to(node_b_pos) * force
 
 
 func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
-	var proximity : float = max( node_a_pos.distance_to(node_b_pos), 1 )
-	var force = ATTRACTION_CONSTANT * max(proximity - spring_length, 0)
-	var dir = node_a_pos.direction_to(node_b_pos)
-	return dir*force
+	var force = ATTRACTION_CONSTANT * max( ( node_a_pos.distance_to(node_b_pos)) - spring_length, 0)
+	return node_a_pos.direction_to(node_b_pos) * force
 
-# Arrange the graph using SFDP
+
+# Arrange the graph using Spring Electric Algorithm
 # returning the nodes positions
 func arrange(damping, spring_length, max_iterations, deterministic := false, refine := false):
 	var benchmark_start = OS.get_ticks_usec()
@@ -248,7 +247,8 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 	
 	var stop_count = 0
 	var iterations = 0
-	var total_displacement_threshold : float = graph_data.nodes.size()*8 if !refine else 100.0
+	var total_displacement_threshold : float = graph_data.nodes.size()*2 if !refine else 5.0
+	#var total_displacement_threshold := 0.01
 	
 	while true:
 		var total_displacement := 0.0
@@ -259,23 +259,28 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 			var connection_amount = min(node.connections.size(), 20)
 			
 			for other_node in graph_data.nodes.values():
-				if node != other_node:
-					var other_node_pos = other_node.scene.position
+				if node == other_node:
+					continue
+				
+				var other_node_pos = other_node.scene.position
+				
+				if !other_node in node.connections:
 					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
-						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) * range_lerp(connection_amount, 0, 10, 0.1, 1)
-			
-			for connection in node.connections:
-				var other_node_pos = connection.scene.position
-				net_force += calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
+						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) #* range_lerp(connection_amount, 0, 10, 0.1, 1)
+				else:
+					var attr = calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
+					#prints(node.reported.name, other_node.reported.name, attr)
+					net_force += attr
 			
 			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped( MAX_DISPLACE )
+			damping *= 0.9999999
 			node.scene.position += node.velocity
 			total_displacement += node.velocity.length()
 		
 		iterations += 1
 		if total_displacement < total_displacement_threshold:
 			stop_count += 1
-		if stop_count > 15:
+		if stop_count > 10:
 			break
 		if iterations > max_iterations:
 			break

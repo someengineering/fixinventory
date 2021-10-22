@@ -100,7 +100,6 @@ func read_data( filter_by_kinds := [] ):
 		var example_data = example_data_file.new()
 		new_data = example_data.graph_data.duplicate()
 		
-	print(new_data.size())
 	generate_graph(new_data)
 	
 	
