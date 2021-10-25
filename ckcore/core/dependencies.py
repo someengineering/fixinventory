@@ -6,6 +6,7 @@ from typing import Optional, List
 
 from arango import ArangoClient
 from cklib.args import ArgumentParser
+from cklib.jwt import add_args as jwt_add_args
 
 from core import async_extensions
 from core.db.arangodb_extensions import ArangoHTTPClient
@@ -23,6 +24,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         description="Maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
+    jwt_add_args(parser)
     parser.add_argument(
         "--log-level",
         default="info",
@@ -88,13 +90,6 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         type=int,
         default=8900,
         help="TCP port to bind on (default: 8900)",
-    )
-    parser.add_argument(
-        "--psk",
-        help="Pre-shared key",
-        type=lambda x: x if len(x) > 0 else None,
-        default=None,
-        dest="psk",
     )
     parser.add_argument(
         "--merge_max_wait_time_seconds",

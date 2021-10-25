@@ -3,6 +3,7 @@ import jwt
 import base64
 import hashlib
 import time
+from cklib.args import ArgumentParser
 from typing import Any, Optional, Tuple, Dict
 
 
@@ -98,3 +99,13 @@ def decode_jwt_from_header_value(
         return None
     encoded_jwt = authorization_header[len(scheme) + 1 :]
     return decode_jwt(encoded_jwt, psk, options)
+
+
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--psk",
+        help="Pre-shared key",
+        type=lambda x: x if len(x) > 0 else None,
+        default=None,
+        dest="psk",
+    )
