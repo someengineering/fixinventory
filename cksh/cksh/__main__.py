@@ -105,11 +105,14 @@ def send_command(
         print(err, file=sys.stderr)
     else:
 
-        if r.status_code != 200:
-            print(r.text, file=sys.stderr)
-            return
-        else:
-            handle_result(r)
+        try:
+            if r.status_code != 200:
+                print(r.text, file=sys.stderr)
+                return
+            else:
+                handle_result(r)
+        except Exception as ex:
+            print(f"Error while handling command: {ex}", file=sys.stderr)
 
 
 def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:

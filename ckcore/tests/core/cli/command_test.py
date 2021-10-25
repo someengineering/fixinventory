@@ -393,8 +393,6 @@ async def test_db_restore_command(cli: CLI) -> None:
             [
                 "Database has been restored successfully!",
                 "Since all data has changed in the database eventually, this service needs to be restarted!",
-                "",
-                "",
             ]
         ]
     finally:

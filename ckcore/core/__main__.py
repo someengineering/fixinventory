@@ -68,5 +68,5 @@ if __name__ == "__main__":
         log.info("Stopping Cloudkeeper graph core.")
         sys.exit(0)
     except Exception as ex:
-        log.error(f"Error starting Cloudkeeper graph core: {ex}")
+        log.info(f"ckcore stopped. Reason: {ex}")
         sys.exit(1)

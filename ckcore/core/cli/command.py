@@ -1974,12 +1974,16 @@ class SystemCommand(CLICommand):
             shutil.rmtree(temp_dir)
             log.info("Restore process complete. Restart the service.")
             yield "Since all data has changed in the database eventually, this service needs to be restarted!"
-            yield ""
-            yield ""
             # for testing purposes, we can avoid sys exit
             if str(env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
-                await asyncio.sleep(1)
-                sys.exit(0)
+
+                async def wait_and_exit() -> None:
+                    log.info("Database was restored successfully - going to STOP the service!")
+                    await asyncio.sleep(1)
+                    sys.exit(0)
+
+                # create a background task, so that the current request can be executed completely
+                asyncio.create_task(wait_and_exit())
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")
