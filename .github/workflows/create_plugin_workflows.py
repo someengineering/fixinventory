@@ -14,6 +14,8 @@ on:
       - 'cklib/**'
       - 'plugins/@name@/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cklib/**'

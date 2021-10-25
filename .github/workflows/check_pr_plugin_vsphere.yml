@@ -8,6 +8,8 @@ on:
       - 'cklib/**'
       - 'plugins/vsphere/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cklib/**'

@@ -6,6 +6,7 @@ import cklib.signal
 from typing import List, Dict
 from cklib.logging import log, add_args as logging_add_args
 from cklib.graph import add_args as graph_add_args
+from cklib.jwt import add_args as jwt_add_args
 from cklib.pluginloader import PluginLoader
 from cklib.baseplugin import BaseCollectorPlugin, PluginType
 from cklib.web import WebServer
@@ -59,6 +60,7 @@ def main() -> None:
         description="Cloudkeeper Worker",
         env_args_prefix="CKWORKER_",
     )
+    jwt_add_args(arg_parser)
     logging_add_args(arg_parser)
     graph_add_args(arg_parser)
     collect_add_args(arg_parser)
@@ -169,12 +171,6 @@ def core_actions_processor(
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--psk",
-        help="Pre-shared key",
-        default=None,
-        dest="psk",
-    )
     arg_parser.add_argument(
         "--timeout",
         help="Collection/cleanup Timeout in seconds (default: 10800)",

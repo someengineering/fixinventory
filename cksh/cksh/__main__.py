@@ -13,7 +13,7 @@ from requests_toolbelt.multipart.decoder import BodyPart
 
 from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
-from cklib.jwt import encode_jwt_to_headers
+from cklib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
 from typing import Dict, Union
 from urllib.parse import urlencode, urlsplit
 
@@ -25,6 +25,7 @@ def main() -> None:
     )
     add_args(arg_parser)
     logging_add_args(arg_parser)
+    jwt_add_args(arg_parser)
     arg_parser.parse_args()
 
     headers = {"Accept": "text/plain"}
@@ -179,12 +180,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="ckcore graph name (default: ck)",
         default="ck",
         dest="ckcore_graph",
-    )
-    arg_parser.add_argument(
-        "--psk",
-        help="Pre-shared key",
-        default=None,
-        dest="psk",
     )
     arg_parser.add_argument(
         "--download-directory",
