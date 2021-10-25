@@ -369,7 +369,7 @@ async def test_db_backup_command(cli: CLI) -> None:
                 assert only_one
                 only_one = False
 
-    await cli.execute_cli_command("db_backup", check_backup)
+    await cli.execute_cli_command("system db backup", check_backup)
 
 
 @pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
@@ -385,8 +385,10 @@ async def test_db_restore_command(cli: CLI) -> None:
                 async for s in streamer:
                     os.rename(s, backup)
 
-        await cli.execute_cli_command("db_backup", move_backup)
-        restore = await cli.execute_cli_command(f"BACKUP_NO_SYS_EXIT=true echo {backup} | db_restore", stream.list)
+        await cli.execute_cli_command("system db backup", move_backup)
+        restore = await cli.execute_cli_command(
+            f"BACKUP_NO_SYS_EXIT=true echo {backup} | system db restore", stream.list
+        )
         assert restore == [
             [
                 "Database has been restored successfully!",
