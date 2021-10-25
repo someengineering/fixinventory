@@ -33,7 +33,7 @@ A graph node is a json document with a well defined structure and these top leve
     }
 
 
-Each graph node always has an ``id`` that is a unique id created by cloudkeeper as well as a ``kinds`` array containing the kind of the node including all it's parents kinds.
+Each graph node always has an ``id`` that is a unique id created by Cloudkeeper as well as a ``kinds`` array containing the kind of the node including all it's parents kinds.
 
 It also features three main sections: ``reported``, ``desired`` and ``metadata``.
 
@@ -494,7 +494,7 @@ If I only want to know the number of instances, that matches that criteria, I co
 
 which would return the total number of all compute instances that are older than 3 years.
 You can see the ``aggregate():`` part in front of the filter query part.
-The query part itself has not changed - the aggregation part tells cloudkeeper to aggregate the resulting
+The query part itself has not changed - the aggregation part tells Cloudkeeper to aggregate the resulting
 data based on the defined criteria.
 Every resulting element of the filter query is passed to the aggregation function.
 This function can aggregate data from the incoming element using on of ``sum(x)``, ``min(x)``, ``max(x)`` or ``avg(x)``.
