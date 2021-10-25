@@ -5,6 +5,8 @@ on:
       - 'cloudkeeperV1/**'
       - 'cklib/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cloudkeeperV1/**'

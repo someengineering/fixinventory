@@ -5,6 +5,8 @@ on:
       - 'ckworker/**'
       - 'cklib/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'ckworker/**'
