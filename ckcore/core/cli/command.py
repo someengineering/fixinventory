@@ -1861,7 +1861,7 @@ class DbBackupCommand(CLICommand):
 
     async def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
         async def create_backup() -> AsyncGenerator[str, None]:
-            temp_dir: str = tempfile.mkdtemp()
+            temp_dir: str = tempfile.mktemp()
             maybe_proc: Optional[Process] = None
             try:
                 args = self.dependencies.args
@@ -1904,7 +1904,7 @@ class DbBackupCommand(CLICommand):
                         await asyncio.sleep(5)
                 shutil.rmtree(temp_dir)
 
-        return CLISource(lambda x: stream.iterate(create_backup()), MediaType.FilePath)
+        return CLISource(create_backup, MediaType.FilePath)
 
 
 class DbRestoreCommand(CLICommand):
@@ -1991,10 +1991,12 @@ class DbRestoreCommand(CLICommand):
                 yield "Since all data has changed in the database eventually, this service needs to be restarted!"
                 yield ""
                 yield ""
-                await asyncio.sleep(1)
-                sys.exit(0)
+                # for testing purposes, we can avoid sys exit
+                if str(env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
+                    await asyncio.sleep(1)
+                    sys.exit(0)
 
-        return CLIFlow(lambda in_stream: stream.iterate(restore_backup(in_stream)))
+        return CLIFlow(restore_backup)
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
