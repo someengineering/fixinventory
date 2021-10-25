@@ -108,6 +108,7 @@ class Graph(networkx.DiGraph):
             self.add_edge(self.root, graph.root)
         else:
             log.warning("Merging graphs with no valid roots")
+        self.resolve_deferred_connections()
 
     def add_resource(self, parent, node_for_adding, **attr):
         """Add a resource node to the graph
@@ -263,9 +264,13 @@ class Graph(networkx.DiGraph):
 
     @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self):
+        if getattr(ArgumentParser.args, "ignore_deferred_connections", False):
+            log.debug("Ignoring deferred graph connections")
+            return
         log.debug("Resolving deferred graph connections")
         for node in self.nodes:
-            node.resolve_deferred_connections(self)
+            if isinstance(node, BaseResource):
+                node.resolve_deferred_connections(self)
 
     def export_model(self) -> List:
         """Return the graph node dataclass model in ckcore format"""
@@ -642,6 +647,16 @@ def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> N
 
     for child_node in node.successors(graph):
         set_max_depth(graph, child_node, current_depth + 1)
+
+
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--ignore-deferred-connections",
+        help="Do not try to resolve deferred edges",
+        dest="ignore_deferred_connections",
+        action="store_true",
+        default=False,
+    )
 
 
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
