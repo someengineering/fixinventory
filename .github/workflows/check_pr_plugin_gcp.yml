@@ -8,6 +8,8 @@ on:
       - 'cklib/**'
       - 'plugins/gcp/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cklib/**'

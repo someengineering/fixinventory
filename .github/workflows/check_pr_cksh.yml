@@ -5,6 +5,8 @@ on:
       - 'cksh/**'
       - 'cklib/**'
       - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cksh/**'

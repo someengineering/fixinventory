@@ -3,6 +3,7 @@ import time
 import inspect
 import cklib.baseresources
 from cklib.logging import log, add_args as logging_add_args
+from cklib.jwt import add_args as jwt_add_args
 from functools import partial
 from cklib.core.actions import CoreActions
 from ckmetrics.metrics import Metrics, GraphCollector
@@ -43,6 +44,7 @@ def main() -> None:
     )
     add_args(arg_parser)
     logging_add_args(arg_parser)
+    jwt_add_args(arg_parser)
     WebServer.add_args(arg_parser)
     WebApp.add_args(arg_parser)
     arg_parser.parse_args()
@@ -192,12 +194,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="ckcore graph name (default: ck)",
         default="ck",
         dest="ckcore_graph",
-    )
-    arg_parser.add_argument(
-        "--psk",
-        help="Pre-shared key",
-        default=None,
-        dest="psk",
     )
     arg_parser.add_argument(
         "--timeout",
