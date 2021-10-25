@@ -1879,7 +1879,7 @@ class SystemCommand(CLICommand):
         return "Access and manage system wide properties."
 
     async def create_backup(self, arg: Optional[str]) -> AsyncGenerator[str, None]:
-        temp_dir: str = tempfile.mktemp()
+        temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
             args = self.dependencies.args
