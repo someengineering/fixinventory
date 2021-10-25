@@ -1826,7 +1826,7 @@ class SystemCommand(CLICommand):
     Usage: system db backup [name]
            system db restore
 
-    db backup [name]:
+    system db backup [name]:
 
     Create a database backup for the complete database, which contains:
     - backup of all graph data
@@ -1835,7 +1835,7 @@ class SystemCommand(CLICommand):
     - backup of all subscribers data
     - backup of all configuration data
 
-    This backup can be restored via db_restore.
+    This backup can be restored via system db restore.
     Since this command creates a complete backup, it can be restored to an empty database.
 
     Note: a backup acquires a global write lock. This basically means, that *no write* can be
@@ -1852,7 +1852,7 @@ class SystemCommand(CLICommand):
         db_backup bck_1234  # this will create a backup written to bck_1234.
 
 
-    db restore:
+    system db restore:
 
     Restores the complete database state from a previously generated backup.
     All existing data in the database will be overwritten.
