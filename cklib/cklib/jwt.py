@@ -58,7 +58,7 @@ def encode_jwt_to_headers(
     expire_in: int = 300,
 ) -> Dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
-    dictionary.
+    dictionary. Also returns that dict.
     """
     http_headers.update(
         {"Authorization": f"{scheme} {encode_jwt(payload, psk, headers, expire_in)}"}

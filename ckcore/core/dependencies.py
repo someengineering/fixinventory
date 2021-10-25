@@ -92,6 +92,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     parser.add_argument(
         "--psk",
         help="Pre-shared key",
+        type=lambda x: x if len(x) > 0 else None,
         default=None,
         dest="psk",
     )
