@@ -21,10 +21,6 @@ T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Coroutine[Any, Any, T]]
 JsGen = Union[Stream, AsyncGenerator[JsonElement, None]]
-# A source provides a stream of objects
-Source = JsGen
-# Every Command will return a function that transforms a JsGen to another JsGen
-Flow = Callable[[JsGen], JsGen]
 # A sink function takes a stream and creates a result
 Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 

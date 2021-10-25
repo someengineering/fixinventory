@@ -10,8 +10,7 @@ from pytest import fixture
 
 from core.cli.cli import CLI
 
-# noinspection PyUnresolvedReferences
-from core.cli.command import ListSink, CLIDependencies
+from core.cli.command import CLIDependencies
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds

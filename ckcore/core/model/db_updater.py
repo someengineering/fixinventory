@@ -103,7 +103,7 @@ class DbUpdaterProcess(Process):
     This process has 2 queues to read input from and write output to.
     All elements in either queues are of type ProcessAction.
 
-    The parent process should stream the raw parts of graph to this process via ReadElement objects.
+    The parent process should stream the raw commands of graph to this process via ReadElement objects.
     Once the MergeGraph action is received, the graph gets imported.
     From here the parent expects result messages from the child.
     All events happen in the child are forwarded to the parent via EmitEvent.

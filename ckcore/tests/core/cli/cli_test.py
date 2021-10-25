@@ -1,20 +1,19 @@
 import pytest
+from aiostream import stream
 from pytest import fixture
 from typing import Tuple, List
 
-from core.cli import Sink
 from core.cli.cli import CLI, multi_command_parser, ParsedCommands, ParsedCommand
 from core.cli.command import (
-    ListSink,
-    ExecuteQuerySource,
+    ExecuteQueryCommand,
     ChunkCommand,
-    all_parts,
     FlattenCommand,
     UniqCommand,
-    EchoSource,
+    EchoCommand,
     aliases,
-    AggregateToCount,
+    AggregateToCountCommand,
     CLIDependencies,
+    all_commands,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -22,7 +21,6 @@ from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
 from core.model.model import Model
-from core.types import JsonElement
 from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 from tests.core.model import ModelHandlerStatic
 
@@ -59,12 +57,7 @@ def cli_deps(
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns"}
-    return CLI(cli_deps, all_parts(cli_deps), env, aliases())
-
-
-@fixture
-async def sink(cli_deps: CLIDependencies) -> Sink[List[JsonElement]]:
-    return await ListSink(cli_deps).parse()
+    return CLI(cli_deps, all_commands(cli_deps), env, aliases())
 
 
 def test_command_line_parser() -> None:
@@ -98,19 +91,19 @@ async def test_multi_command(cli: CLI) -> None:
     result = await cli.evaluate_cli_command(commands)
     assert len(result) == 3
     line1, line2, line3 = result
-    assert len(line1.parts) == 2
-    l1p1, l1p2 = line1.parts
-    assert isinstance(l1p1, EchoSource)
+    assert len(line1.commands) == 2
+    l1p1, l1p2 = line1.commands
+    assert isinstance(l1p1, EchoCommand)
     assert isinstance(l1p2, ChunkCommand)
-    assert len(line2.parts) == 4
-    l2p1, l2p2, l2p3, l2p4 = line2.parts
-    assert isinstance(l2p1, EchoSource)
+    assert len(line2.commands) == 4
+    l2p1, l2p2, l2p3, l2p4 = line2.commands
+    assert isinstance(l2p1, EchoCommand)
     assert isinstance(l2p2, ChunkCommand)
     assert isinstance(l2p3, FlattenCommand)
     assert isinstance(l2p4, UniqCommand)
-    assert len(line3.parts) == 2
-    l3p1, l3p2 = line3.parts
-    assert isinstance(l3p1, EchoSource)
+    assert len(line3.commands) == 2
+    l3p1, l3p2 = line3.commands
+    assert isinstance(l3p1, EchoCommand)
     assert isinstance(l3p2, ChunkCommand)
 
 
@@ -122,10 +115,10 @@ async def test_query_database(cli: CLI) -> None:
     result = await cli.evaluate_cli_command(commands)
     assert len(result) == 1
     line1 = result[0]
-    assert len(line1.parts) == 2
-    p1, p2 = line1.parts
-    assert isinstance(p1, ExecuteQuerySource)
-    assert isinstance(p2, AggregateToCount)
+    assert len(line1.commands) == 2
+    p1, p2 = line1.commands
+    assert isinstance(p1, ExecuteQueryCommand)
+    assert isinstance(p2, AggregateToCountCommand)
 
     with pytest.raises(Exception):
         await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
@@ -154,17 +147,17 @@ async def test_order_of_commands(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_help(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
-    result = await cli.execute_cli_command("help", sink)
+async def test_help(cli: CLI) -> None:
+    result = await cli.execute_cli_command("help", stream.list)
     assert len(result[0]) == 1
 
-    result = await cli.execute_cli_command("help count", sink)
+    result = await cli.execute_cli_command("help count", stream.list)
     assert len(result[0]) == 1
 
 
 @pytest.mark.asyncio
-async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
-    result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', sink)
+async def test_parse_env_vars(cli: CLI) -> None:
+    result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', stream.list)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()
 
@@ -173,8 +166,8 @@ async def test_parse_env_vars(cli: CLI, sink: Sink[List[JsonElement]]) -> None:
 async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command('desired some_int==0 | desired identifier=~"9_" | descendants')
     assert len(commands) == 1
-    assert len(commands[0].parts) == 1
-    assert commands[0].parts[0].name == "execute_query"
+    assert len(commands[0].commands) == 1
+    assert commands[0].commands[0].name == "execute_query"
     assert commands[0].parts_with_args[0][1] == '(desired.some_int == 0 and desired.identifier =~ "9_") -[1:]->'
     commands = await cli.evaluate_cli_command("desired some_int==0 | descendants")
     assert commands[0].parts_with_args[0][1] == "desired.some_int == 0 -[1:]->"

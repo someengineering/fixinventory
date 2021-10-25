@@ -622,9 +622,9 @@ class Api:
             first_result = parsed[0]
             # flat the results from 0 or 1
             async with stream.iterate(first_result.generator).stream() as streamer:
-                if first_result.produces_json():
+                if first_result.produces.json:
                     return await self.stream_response_from_gen(request, streamer)
-                elif first_result.produces_binary():
+                elif first_result.produces.file_path:
                     files = [elem async for elem in streamer]
                     if len(files) == 1:
                         dph = content_disposition_header("attachment", True, filename=os.path.basename(files[0]))
@@ -634,21 +634,21 @@ class Api:
                         await Api.multi_file_response(files, boundary, mp_response)
                         return mp_response
                 else:
-                    raise AttributeError(f"Can not handle type: {first_result.produces()}")
+                    raise AttributeError(f"Can not handle type: {first_result.produces}")
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
                 async with stream.iterate(single.generator).stream() as streamer:
                     gen = await force_gen(streamer)
-                    if single.produces_json():
-                        with MultipartWriter(single.produces(), boundary) as mp:
+                    if single.produces.json:
+                        with MultipartWriter(repr(single.produces), boundary) as mp:
                             result_stream = await Api.result_binary_gen(content_type, gen)
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
-                    elif single.produces_binary():
+                    elif single.produces.file_path:
                         await Api.multi_file_response([elem async for elem in gen], boundary, mp_response)
                     else:
-                        raise AttributeError(f"Can not handle type: {single.produces()}")
+                        raise AttributeError(f"Can not handle type: {single.produces}")
             await mp_response.write_eof()
             return mp_response
         else:
