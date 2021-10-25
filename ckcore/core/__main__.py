@@ -7,7 +7,7 @@ from aiohttp import web
 from aiohttp.web_app import Application
 
 from core.cli.cli import CLI
-from core.cli.command import all_parts, aliases, CLIDependencies
+from core.cli.command import aliases, CLIDependencies, all_commands
 from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
@@ -34,7 +34,7 @@ def main() -> None:
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     cli_deps = CLIDependencies()
-    cli = CLI(cli_deps, all_parts(cli_deps), dict(os.environ), aliases())
+    cli = CLI(cli_deps, all_commands(cli_deps), dict(os.environ), aliases())
 
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandler(db.running_task_db, db.job_db, message_bus, subscriptions, scheduler, cli, args)

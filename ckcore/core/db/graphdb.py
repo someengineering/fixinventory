@@ -1058,7 +1058,7 @@ class ArangoGraphDB(GraphDB):
                 bind_vars,
             )
         else:  # return results
-            # return all tagged parts (last result is "tagged" automatically)
+            # return all tagged commands (last result is "tagged" automatically)
             tagged = {out for part, _, out, _ in parts if part.tag}
             result = f'UNION({",".join(tagged)},{resulting_cursor})' if tagged else resulting_cursor
             sort_by = sort("r", query.sort, section_dot) if query.sort else ""

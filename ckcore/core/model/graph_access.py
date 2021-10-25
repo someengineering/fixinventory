@@ -26,7 +26,7 @@ class Section:
 
     # This section holds changes that should be reflected by the given node.
     # The desired section can be queried the same way as the reported section
-    # and allows to query parts of the graph with a common desired state.
+    # and allows to query commands of the graph with a common desired state.
     # For example the clean flag is manifested in the desired section.
     # The separate clean step would query all nodes that should be cleaned
     # and can compute the correct order of action by walking the graph structure.
