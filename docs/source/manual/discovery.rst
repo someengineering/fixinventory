@@ -482,29 +482,34 @@ For the sake of this example, consider this query:
 
 ::
 
-   > reported is(instance) and age > 3y
+   > query is(instance) and reported.age > 3y
 
 This will select all compute instances in my cloud, that are older than 3 years.
 If I only want to know the number of instances, that matches that criteria, I could write this:
 
 ::
 
-   > reported aggregate(sum(1) as count): is(instance) and age > 3y
+   > query aggregate(sum(1) as count): is(instance) and reported.age > 3y
    count: 20
 
 which would return the total number of all compute instances that are older than 3 years.
 You can see the ``aggregate():`` part in front of the filter query part.
 The query part itself has not changed - the aggregation part tells cloudkeeper to aggregate the resulting
-data based on the defined criteria. This criteria in the example case is ``sum(1) as count``.
+data based on the defined criteria.
 Every resulting element of the filter query is passed to the aggregation function.
 This function can aggregate data from the incoming element using on of ``sum(x)``, ``min(x)``, ``max(x)`` or ``avg(x)``.
+This criteria in this case is ``sum(1) as count``, which uses the static value ``1`` for every element passed and then sums it up.
+Since every element counts as ``1`` - ``sum(1)`` is basically the number of elements passed.
 
-
+Please note, that the variable to sum does not need to be a static value, but could come from the element passed to this function.
 If we would like to know the number of CPU cores, we could rewrite the aggregation like this:
 
 ::
 
-    > reported aggregate(sum(1) as count, sum(instance_cores) as cores): is(instance) and age > 3y
+    > query aggregate(
+        sum(1) as count,
+        sum(reported.instance_cores) as cores):
+      is(instance) and reported.age > 3y
     count: 20
     cores: 62
 
@@ -516,7 +521,10 @@ Let's assume we want to know the number of instances and cores for compute insta
 
 ::
 
-    > reported aggregate(instance_status as status: sum(1) as count, sum(instance_cores) as cores): is(instance) and age > 3y
+    > query aggregate(
+        reported.instance_status as status:
+        sum(1) as count, sum(reported.instance_cores) as cores):
+      is(instance) and reported.age > 3y
     group:
       status: stopped
     count: 15
@@ -539,7 +547,12 @@ Let's also use the instance_type as an additional group variable:
 
 ::
 
-    > reported aggregate(instance_status as status, instance_type as type: sum(1) as count, sum(instance_cores) as cores): is(instance) and age > 3y
+    > query aggregate(
+        reported.instance_status as status,
+        reported.instance_type as type:
+        sum(1) as count,
+        sum(reported.instance_cores) as cores):
+      is(instance) and reported.age > 3y
     group:
       status: stopped
       type: m5.xlarge
