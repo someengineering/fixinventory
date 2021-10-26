@@ -33,6 +33,7 @@ from networkx.readwrite import cytoscape_data
 from core import feature
 from core.cli.cli import CLI, ParsedCommandLine
 from core.cli import is_node
+from core.cli.command import CLIContext
 from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
@@ -592,9 +593,9 @@ class Api:
 
     async def evaluate(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command
-        env = request.query
+        ctx = CLIContext(dict(request.query))
         command = await request.text()
-        parsed = await self.cli.evaluate_cli_command(command, **env)
+        parsed = await self.cli.evaluate_cli_command(command, ctx)
 
         def line_to_js(line: ParsedCommandLine) -> Json:
             parsed_commands = to_js(line.parsed_commands.commands)
@@ -605,10 +606,10 @@ class Api:
 
     async def execute(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command
-        env = request.query
+        ctx = CLIContext(dict(request.query))
         command = await request.text()
         # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
-        parsed = await self.cli.evaluate_cli_command(command, **env)
+        parsed = await self.cli.evaluate_cli_command(command, ctx)
         content_type = request.headers.get("accept", "application/json")
         boundary = "----cli"
         mp_response = web.StreamResponse(

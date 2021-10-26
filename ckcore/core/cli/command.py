@@ -9,6 +9,7 @@ import re
 from abc import abstractmethod, ABC
 from asyncio import iscoroutine
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
 from functools import partial
@@ -67,6 +68,15 @@ class CLIDependencies:
         return self.lookup["worker_task_queue"]  # type:ignore
 
 
+@dataclass
+class CLIContext:
+    env: Dict[str, Any] = field(default_factory=dict)
+    uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
+
+
+EmptyContext = CLIContext()
+
+
 class MediaType(Enum):
     Json = 1
     FilePath = 2
@@ -84,9 +94,8 @@ class MediaType(Enum):
 
 
 class CLIAction(ABC):
-    @abstractmethod
-    def produces(self) -> MediaType:
-        pass
+    def __init__(self, produces: MediaType):
+        self.produces = produces
 
     @staticmethod
     def make_stream(in_stream: JsGen) -> Stream:
@@ -95,11 +104,8 @@ class CLIAction(ABC):
 
 class CLISource(CLIAction):
     def __init__(self, fn: Callable[[], Union[JsGen, Awaitable[JsGen]]], produces: MediaType = MediaType.Json):
+        super().__init__(produces)
         self._fn = fn
-        self._produces = produces
-
-    def produces(self) -> MediaType:
-        return self._produces
 
     async def source(self) -> Stream:
         gen = self._fn()
@@ -112,11 +118,8 @@ class CLISource(CLIAction):
 
 class CLIFlow(CLIAction):
     def __init__(self, fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]], produces: MediaType = MediaType.Json):
+        super().__init__(produces)
         self._fn = fn
-        self._produces = produces
-
-    def produces(self) -> MediaType:
-        return self._produces
 
     async def flow(self, in_stream: JsGen) -> Stream:
         gen = self._fn(self.make_stream(in_stream))
@@ -149,7 +152,7 @@ class CLICommand(ABC):
         pass
 
     @abstractmethod
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         pass
 
 
@@ -162,7 +165,7 @@ class InternalPart(ABC):
 # Therefore, the parse method is implemented in a dummy fashion here.
 # The real interpretation happens in CLI.create_query.
 class QueryPart(CLICommand, ABC):
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         return CLISource.empty()
 
 
@@ -497,7 +500,7 @@ class HeadCommand(QueryPart):
     def info(self) -> str:
         return "Return n first elements of the stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         size = self.parse_size(arg)
         return CLIFlow(lambda in_stream: stream.take(in_stream, size))
 
@@ -528,7 +531,7 @@ class TailCommand(QueryPart):
     def info(self) -> str:
         return "Return n last elements of the stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         size = HeadCommand.parse_size(arg)
         return CLIFlow(lambda in_stream: stream.takelast(in_stream, size))
 
@@ -556,7 +559,7 @@ class CountCommand(QueryPart):
     def info(self) -> str:
         return "Count incoming elements or sum defined property."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         get_path = arg.split(".") if arg else None
         counter: Dict[str, int] = defaultdict(int)
         matched = 0
@@ -616,7 +619,7 @@ class EchoCommand(CLICommand):
     def info(self) -> str:
         return "Send the provided message to downstream"
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         return CLISource(lambda: stream.just(strip_quotes(arg if arg else "")))
 
 
@@ -639,7 +642,7 @@ class JsonCommand(CLICommand):
     def info(self) -> str:
         return "Parse json and pass parsed objects to the output stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         if arg:
             js = json.loads(arg)
         else:
@@ -670,7 +673,7 @@ class SleepCommand(CLICommand):
     def info(self) -> str:
         return "Suspend execution for an interval of time"
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
 
         if not arg:
             raise AttributeError("Sleep needs an argument!")
@@ -706,7 +709,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "Convert the output of an aggregate query to the result of count."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         name_path = ["group", "name"]
         count_path = ["count"]
 
@@ -752,9 +755,9 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "Query the database and pass the results to the output stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         # db name is coming from the env
-        graph_name = env["graph"]
+        graph_name = ctx.env["graph"]
         if not arg:
             raise CLIParseError("query command needs a query to execute, but nothing was given!")
 
@@ -788,8 +791,8 @@ class EnvCommand(CLICommand):
     def info(self) -> str:
         return "Retrieve the environment and pass it to the output stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
-        return CLISource(lambda: stream.just(env))
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+        return CLISource(lambda: stream.just(ctx.env))
 
 
 class ChunkCommand(CLICommand):
@@ -817,7 +820,7 @@ class ChunkCommand(CLICommand):
     def info(self) -> str:
         return "Chunk incoming elements in batches."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         size = int(arg) if arg else 100
         return CLIFlow(lambda in_stream: stream.chunks(in_stream, size))
 
@@ -845,7 +848,7 @@ class FlattenCommand(CLICommand):
     def info(self) -> str:
         return "Take incoming batches of elements and flattens them to a stream of single elements."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
 
@@ -872,7 +875,7 @@ class UniqCommand(CLICommand):
     def info(self) -> str:
         return "Remove all duplicated objects from the stream."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         visited = set()
 
         def hashed(item: Any) -> Hashable:
@@ -921,7 +924,7 @@ class JqCommand(CLICommand):
     def info(self) -> str:
         return "Filter and process json."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         if not arg:
             raise AttributeError("jq requires an argument to be parsed")
 
@@ -974,7 +977,7 @@ class KindCommand(CLICommand):
     def info(self) -> str:
         return "Retrieves information about the graph data kinds."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         show_path: Optional[str] = None
         show_kind: Optional[str] = None
 
@@ -1018,9 +1021,9 @@ class SetDesiredStateBase(CLICommand, ABC):
         # deriving classes need to define how to patch
         pass
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, env["graph"], self.patch(arg, **env))
+        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, **ctx.env))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -1162,9 +1165,9 @@ class SetMetadataStateBase(CLICommand, ABC):
         # deriving classes need to define how to patch
         pass
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, env["graph"], self.patch(arg, **env))
+        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, **ctx.env))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
@@ -1298,7 +1301,7 @@ class FormatCommand(CLICommand):
     def info(self) -> str:
         return "Transform incoming objects as string with a defined format."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         def fmt(elem: Any) -> str:
             # wrap the object to account for non existent values.
             # if a format value is not existent, render is as null (json conform).
@@ -1401,7 +1404,7 @@ class ListCommand(CLICommand):
     def info(self) -> str:
         return "Transform incoming objects as string with defined properties."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         def adjust_path(p: List[str]) -> List[str]:
             root = p[0]
             if root in Section.all or root == "id" or root == "kinds":
@@ -1458,7 +1461,7 @@ class JobsCommand(CLICommand):
     def info(self) -> str:
         return "List all jobs in the system."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         async def jobs() -> AsyncGenerator[Json, None]:
             for job in await self.dependencies.job_handler.list_jobs():
                 wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
@@ -1508,7 +1511,7 @@ class AddJobCommand(CLICommand):
     def info(self) -> str:
         return "Add job to the system."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         async def add_job() -> AsyncGenerator[str, None]:
             if not arg:
                 raise AttributeError("No parameters provided for add_job!")
@@ -1543,7 +1546,7 @@ class DeleteJobCommand(CLICommand):
     def info(self) -> str:
         return "Remove job from the system."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         async def delete_job() -> AsyncGenerator[str, None]:
             if not arg:
                 raise AttributeError("No parameters provided for delete_job!")
@@ -1683,7 +1686,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         return to_result
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         parts = re.split(r"\s+", arg if arg else "")
         pl = len(parts)
         if pl == 2 and parts[0] == "delete":
@@ -1706,10 +1709,10 @@ class TagCommand(SendWorkerTaskCommand):
 
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
-                load = self.load_by_id_merged(model, in_stream, **env)
+                load = self.load_by_id_merged(model, in_stream, **ctx.env)
                 to_queue = self.send_to_queue_stream(stream.map(load, fn))
                 # return stream.starmap(to_queue, partial(self.handle_result, model, env=env))
-                return stream.starmap(to_queue, self.handle_result(model, **env))
+                return stream.starmap(to_queue, self.handle_result(model, **ctx.env))
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(self.dependencies.model_handler.load_model)
@@ -1740,7 +1743,7 @@ class TasksCommand(CLICommand):
     def info(self) -> str:
         return "Lists all currently running tasks."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         async def tasks_source() -> Stream:
             tasks = await self.dependencies.job_handler.running_tasks()
             return stream.iterate(
@@ -1782,7 +1785,7 @@ class StartTaskCommand(CLICommand):
     def info(self) -> str:
         return "Start a task with the given name."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         async def start_task() -> AsyncGenerator[str, None]:
             if not arg:
                 raise CLIParseError("Name of task is not provided")
@@ -1795,7 +1798,7 @@ class StartTaskCommand(CLICommand):
 
 # TODO: remove me once the file feature is implemented!
 class FileCommand(CLICommand, InternalPart):
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         def file_command() -> Stream:
             if not arg:
                 raise AttributeError("file command needs a parameter!")
@@ -1805,6 +1808,27 @@ class FileCommand(CLICommand, InternalPart):
                 return stream.just(arg if arg else "")
 
         return CLISource(file_command, MediaType.FilePath)
+
+    @property
+    def name(self) -> str:
+        return "file"
+
+    def info(self) -> str:
+        return "only for debugging purposes..."
+
+
+# TODO: remove me once the file feature is implemented!
+class UploadCommand(CLICommand, InternalPart):
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+        def upload_command() -> Stream:
+            if not arg:
+                raise AttributeError("file command needs a parameter!")
+            elif not os.path.exists(arg):
+                raise AttributeError(f"file does not exist: {arg}!")
+            else:
+                return stream.just(arg if arg else "")
+
+        return CLISource(upload_command, MediaType.Json)
 
     @property
     def name(self) -> str:

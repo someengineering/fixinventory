@@ -35,6 +35,8 @@ from core.cli.command import (
     CLIAction,
     CLIFlow,
     MediaType,
+    CLIContext,
+    EmptyContext,
 )
 from core.error import CLIParseError
 from core.model.graph_access import EdgeType, Section
@@ -109,7 +111,7 @@ class ParsedCommandLine:
 
     @property
     def produces(self) -> MediaType:
-        return self.result_action.produces()
+        return self.result_action.produces
 
 
 @make_parser
@@ -154,7 +156,7 @@ class HelpCommand(CLICommand):
     def info(self) -> str:
         return "Shows available commands, as well as help for any specific command."
 
-    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         def help_command() -> Stream:
             def show_cmd(cmd: CLICommand) -> str:
                 return f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
@@ -210,13 +212,13 @@ class CLI:
         self.aliases = aliases
 
     @staticmethod
-    def parse_arg(cmd: CLICommand, arg: Optional[str], cmd_env: Dict[str, Any]) -> CLIAction:
+    def parse_arg(cmd: CLICommand, arg: Optional[str], ctx: CLIContext) -> CLIAction:
         try:
-            return cmd.parse(arg, **cmd_env)
+            return cmd.parse(arg, ctx)
         except Exception as ex:
             raise CLIParseError(f"{cmd.name} can not parse arg: {arg}") from ex
 
-    def create_query(self, commands: List[ExecutableCommand], cmd_env: Dict[str, Any]) -> List[ExecutableCommand]:
+    def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
         for command in commands:
@@ -251,7 +253,7 @@ class CLI:
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
                 cmd = self.commands["aggregate_to_count"]
-                additional_commands.append(ExecutableCommand(cmd, None, cmd.parse(**cmd_env)))
+                additional_commands.append(ExecutableCommand(cmd, None, cmd.parse(None, ctx)))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
@@ -264,25 +266,23 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         exe_query = self.commands["execute_query"]
         args = str(query.simplify())
-        action = self.parse_arg(exe_query, args, cmd_env)
+        action = self.parse_arg(exe_query, args, ctx)
         return [ExecutableCommand(exe_query, args, action), *additional_commands]
 
     async def evaluate_cli_command(
-        self, cli_input: str, replace_place_holder: bool = True, **env: str
+        self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
-        def prepare_command(parsed_command: ParsedCommand, cmd_env: Dict[str, Any]) -> ExecutableCommand:
+        def prepare_command(parsed_command: ParsedCommand, ctx: CLIContext) -> ExecutableCommand:
             if parsed_command.cmd in self.commands:
                 command = self.commands[parsed_command.cmd]
-                action = self.parse_arg(command, parsed_command.args, cmd_env)
+                action = self.parse_arg(command, parsed_command.args, ctx)
                 return ExecutableCommand(command, parsed_command.args, action)
             else:
                 raise CLIParseError(f"Command >{parsed_command.cmd}< is not known. typo?")
 
-        def combine_single_command(
-            commands: List[ExecutableCommand], cmd_env: Dict[str, Any]
-        ) -> List[ExecutableCommand]:
+        def combine_single_command(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
             parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
-            query_parts = self.create_query(parts, cmd_env) if parts else []
+            query_parts = self.create_query(parts, ctx) if parts else []
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
@@ -296,8 +296,9 @@ class CLI:
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
 
-            cmd_env = {**self.cli_env, **env, **parsed.env}
-            commands = combine_single_command([prepare_command(cmd, cmd_env) for cmd in parsed.commands], cmd_env)
+            cmd_env = {**self.cli_env, **context.env, **parsed.env}
+            ctx = replace(context, env=cmd_env)
+            commands = combine_single_command([prepare_command(cmd, ctx) for cmd in parsed.commands], ctx)
 
             if commands:
                 source = commands[0]
@@ -313,15 +314,15 @@ class CLI:
             else:
                 return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty())
 
-        replaced = self.replace_placeholder(cli_input, **env)
+        replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
         keep_raw = not replace_place_holder or command_lines[0].commands[0].cmd == "add_job"
         command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         return res
 
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], **env: str) -> List[Any]:
-        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, True, **env)]
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
+        return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, ctx, True)]
 
     @staticmethod
     def replacements(**env: str) -> Dict[str, str]:

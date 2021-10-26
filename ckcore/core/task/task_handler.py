@@ -18,6 +18,7 @@ from functools import reduce
 from copy import copy
 
 from core.cli.cli import CLI
+from core.cli.command import CLIContext
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.error import ParseError, CLIParseError
@@ -84,6 +85,7 @@ class TaskHandler(JobHandler):
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
+        self.cli_context = CLIContext()
         self.args = args
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
@@ -516,12 +518,12 @@ class TaskHandler(JobHandler):
             if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
                 wait = EventTrigger(event), wait_timeout
-            await self.cli.evaluate_cli_command(command, replace_place_holder=False)
+            await self.cli.evaluate_cli_command(command, self.cli_context, replace_place_holder=False)
             return Job(uid, ExecuteCommand(command), trigger, timeout, wait, mutable)
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
-            await self.cli.evaluate_cli_command(command, replace_place_holder=False)
+            await self.cli.evaluate_cli_command(command, self.cli_context, replace_place_holder=False)
             return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, mutable=mutable)
 
         try:
