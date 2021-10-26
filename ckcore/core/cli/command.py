@@ -93,9 +93,20 @@ class MediaType(Enum):
         return "application/json" if self == MediaType.Json else "application/octet-stream"
 
 
+@dataclass
+class CLICommandRequirement:
+    name: str
+
+
+@dataclass
+class CLIFileRequirement(CLICommandRequirement):
+    path: str  # local client path
+
+
 class CLIAction(ABC):
-    def __init__(self, produces: MediaType):
+    def __init__(self, produces: MediaType, requires: Optional[List[CLICommandRequirement]]) -> None:
         self.produces = produces
+        self.required = requires if requires else []
 
     @staticmethod
     def make_stream(in_stream: JsGen) -> Stream:
@@ -103,8 +114,13 @@ class CLIAction(ABC):
 
 
 class CLISource(CLIAction):
-    def __init__(self, fn: Callable[[], Union[JsGen, Awaitable[JsGen]]], produces: MediaType = MediaType.Json):
-        super().__init__(produces)
+    def __init__(
+        self,
+        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+    ) -> None:
+        super().__init__(produces, requires)
         self._fn = fn
 
     async def source(self) -> Stream:
@@ -117,8 +133,13 @@ class CLISource(CLIAction):
 
 
 class CLIFlow(CLIAction):
-    def __init__(self, fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]], produces: MediaType = MediaType.Json):
-        super().__init__(produces)
+    def __init__(
+        self,
+        fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+    ) -> None:
+        super().__init__(produces, requires)
         self._fn = fn
 
     async def flow(self, in_stream: JsGen) -> Stream:
@@ -1820,19 +1841,22 @@ class FileCommand(CLICommand, InternalPart):
 # TODO: remove me once the file feature is implemented!
 class UploadCommand(CLICommand, InternalPart):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        def upload_command() -> Stream:
-            if not arg:
-                raise AttributeError("file command needs a parameter!")
-            elif not os.path.exists(arg):
-                raise AttributeError(f"file does not exist: {arg}!")
-            else:
-                return stream.just(arg if arg else "")
+        if not arg:
+            raise AttributeError("upload command needs a parameter!")
+        file_id = "file"
 
-        return CLISource(upload_command, MediaType.Json)
+        def upload_command() -> Stream:
+            if file_id in ctx.uploaded_files:
+                file = ctx.uploaded_files[file_id]
+                return stream.just(f"Received file {file} of size {os.path.getsize(file)}")
+            else:
+                raise AttributeError(f"file was not uploaded: {arg}!")
+
+        return CLISource(upload_command, MediaType.Json, [CLIFileRequirement(file_id, arg)])
 
     @property
     def name(self) -> str:
-        return "file"
+        return "upload"
 
     def info(self) -> str:
         return "only for debugging purposes..."
@@ -1877,6 +1901,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TailCommand(d),
         TasksCommand(d),
         UniqCommand(d),
+        UploadCommand(d),
     ]
 
 

@@ -37,6 +37,7 @@ from core.cli.command import (
     MediaType,
     CLIContext,
     EmptyContext,
+    CLICommandRequirement,
 )
 from core.error import CLIParseError
 from core.model.graph_access import EdgeType, Section
@@ -101,6 +102,7 @@ class ParsedCommandLine:
     executable_commands: List[ExecutableCommand]
     generator: AsyncGenerator[JsonElement, None]
     result_action: CLIAction
+    unmet_requirements: List[CLICommandRequirement]
 
     async def to_sink(self, sink: Sink[T]) -> T:
         return await sink(self.generator)
@@ -299,8 +301,11 @@ class CLI:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
             commands = combine_single_command([prepare_command(cmd, ctx) for cmd in parsed.commands], ctx)
+            not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
 
-            if commands:
+            if not_met:
+                return ParsedCommandLine(cmd_env, parsed, commands, stream.empty(), CLISource.empty(), not_met)
+            elif commands:
                 source = commands[0]
                 source_action = expect_action(source, CLISource)
                 flow = await source_action.source()
@@ -310,9 +315,9 @@ class CLI:
                     flow = await flow_action.flow(flow)
                     result_action = flow_action
                 # noinspection PyTypeChecker
-                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action)
+                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action, [])
             else:
-                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty())
+                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty(), [])
 
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)

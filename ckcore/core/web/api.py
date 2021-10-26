@@ -3,9 +3,12 @@ import json
 import logging
 import os
 import re
+import shutil
 import string
+import tempfile
 import uuid
 from argparse import Namespace
+from dataclasses import replace
 from datetime import timedelta
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict
@@ -19,6 +22,7 @@ from aiohttp import (
     MultipartWriter,
     AsyncIterablePayload,
     BufferedReaderPayload,
+    MultipartReader,
 )
 
 # noinspection PyProtectedMember
@@ -605,20 +609,51 @@ class Api:
         return web.json_response([line_to_js(line) for line in parsed])
 
     async def execute(self, request: Request) -> StreamResponse:
-        # all query parameter become the env of this command
-        ctx = CLIContext(dict(request.query))
-        command = await request.text()
-        # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
-        parsed = await self.cli.evaluate_cli_command(command, ctx)
-        content_type = request.headers.get("accept", "application/json")
-        boundary = "----cli"
-        mp_response = web.StreamResponse(
-            status=200,
-            reason="OK",
-            headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"},
-        )
+        temp_dir: Optional[str] = None
+        try:
+            ctx = CLIContext(dict(request.query))
+            if request.content_type.startswith("text"):
+                command = (await request.text()).strip()
+            elif request.content_type.startswith("multipart"):
+                command = request.headers["Ck-Command"].strip()
+                temp = tempfile.mkdtemp()
+                temp_dir = temp
+                files = {}
+                # for now we assume that all multi-parts are file uploads
+                async for part in MultipartReader(request.headers, request.content):
+                    name = part.name
+                    if not name:
+                        raise AttributeError("Multipart request: content disposition name is required!")
+                    path = os.path.join(temp, name)
+                    files[name] = path
+                    with open(path, "wb") as writer:
+                        while not part.at_eof():
+                            writer.write(await part.read_chunk())
+                ctx = replace(ctx, uploaded_files=files)
+            else:
+                raise AttributeError(f"Not able to handle: {request.content_type}")
 
-        if len(parsed) == 1:
+            # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
+            parsed = await self.cli.evaluate_cli_command(command, ctx)
+            return await self.execute_parsed(request, command, parsed)
+        finally:
+            if temp_dir:
+                shutil.rmtree(temp_dir)
+
+    async def execute_parsed(self, request: Request, command: str, parsed: List[ParsedCommandLine]) -> StreamResponse:
+        # make sure, all requirements are fulfilled
+        not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
+        # what is the accepted content type
+        content_type = request.headers.get("accept", "application/json")
+        # only required for multipart requests
+        boundary = "----cli"
+        mp_response = web.HTTPOk(headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"})
+
+        if not_met_requirements:
+            requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
+            data = {"command": command, "env": dict(request.query), "required": to_js(requirements)}
+            return web.json_response(data, status=424)
+        elif len(parsed) == 1:
             first_result = parsed[0]
             # flat the results from 0 or 1
             async with stream.iterate(first_result.generator).stream() as streamer:

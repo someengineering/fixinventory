@@ -393,7 +393,8 @@ class TaskHandler(JobHandler):
                     results[command] = None
                 elif isinstance(command, ExecuteOnCLI):
                     # TODO: instead of executing it in process, we should do an http call here to a worker core.
-                    result = await self.cli.execute_cli_command(command.command, stream.list, **command.env)
+                    ctx = CLIContext(dict(command.env))
+                    result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
                     results[command] = result
                 else:
                     raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
