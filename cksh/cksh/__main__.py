@@ -130,7 +130,7 @@ def send_command(
                 if response.status_code == 200:
                     handle_result(response)
                 elif response.status_code == 424 and not upload:
-                    required = response.json().get("required", {})
+                    required = response.json().get("required", [])
                     data = encode_files({fp["name"]: fp["path"] for fp in required})
                     headers["Ck-Command"] = command
                     mp = post_request(data, "multipart/form-data; boundary=file-upload")
