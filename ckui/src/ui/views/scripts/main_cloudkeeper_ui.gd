@@ -17,7 +17,12 @@ var old_state = -1
 
 func _ready() -> void:
 	_g.interface = self
-	_e.emit_signal("load_nodes")
+	# This was used for local testing using JSON files in the /data directory
+#	_e.emit_signal("load_nodes")
+
+	# The new default is to connect to ckcore
+	_e.emit_signal("connect_popup")
+	
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("load_query", self, "load_query")

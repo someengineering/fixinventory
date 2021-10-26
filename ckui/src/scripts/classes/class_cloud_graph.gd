@@ -85,6 +85,13 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	return new_edge
 
 
+func clear_graph():
+	graph_data = {
+		"nodes" : {},
+		"edges" : {}
+		}
+
+
 func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_e.emit_signal("loading", 0, "Creating visual elements" )
 	node_group.modulate.a = 0.05
@@ -121,6 +128,40 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_g.msg( "Visual elements done ... rendering" )
 	_e.emit_signal("loading", 1, "Creating visual elements" )
 	_e.emit_signal("loading_done")
+
+
+func start_streaming():
+	clear_graph()
+	_e.emit_signal("loading", 0, "Creating visual elements" )
+	node_group.modulate.a = 0.05
+
+
+func end_streaming():
+	if root_node == null:
+		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
+	node_group.modulate.a = 1
+	emit_signal("graph_created")
+	_g.msg( "Visual elements done ... rendering" )
+	_e.emit_signal("loading", 1, "Creating visual elements" )
+	_e.emit_signal("loading_done")
+	_e.emit_signal("nodes_changed")
+	update_connection_lines()
+	center_diagram()
+
+
+func add_streamed_object( data : Dictionary ):
+	if "id" in data:
+		graph_data.nodes[data.id] = add_node(data)
+		
+		if data.reported.kind == "graph_root":
+			root_node = graph_data.nodes[data.id].scene
+	else:
+		# For SFDP creation
+		graph_data.nodes[data.from].connections.append( graph_data.nodes[data.to] )
+		graph_data.nodes[data.to].connections.append( graph_data.nodes[data.from] )
+		
+		# For connection lines
+		graph_data.edges[ graph_data.edges.size() ] = add_edge(data)
 
 
 func create_graph_direct(_graph_data : Dictionary):

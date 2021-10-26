@@ -22,6 +22,9 @@ var Spaceship = preload("res://ui/elements/Element_Spaceship.tscn")
 var is_active := true setget set_is_active
 var loaded_data_filtered_ids := []
 
+var api_response_data : Dictionary
+var api_error := false
+
 onready var graph_cam = $GraphCam
 onready var cam_tween = $CamMoveTween
 onready var graph_bg = $BG/BG
@@ -60,7 +63,7 @@ func read_data( filter_by_kinds := [] ):
 	var new_data := {}
 	loaded_data_filtered_ids.clear()
 	
-	if file.file_exists(_g.GRAPH_DUMP_JSON_PATH) and !_g.use_example_data:
+	if !_g.use_example_data and file.file_exists(_g.GRAPH_DUMP_JSON_PATH):
 		file.open(_g.GRAPH_DUMP_JSON_PATH, file.READ)
 		var file_len : float = float( file.get_len() )
 		# warning-ignore:narrowing_conversion
@@ -130,6 +133,39 @@ func filter_data_on_load(element, filter_by_kinds):
 		return true
 	else:
 		return false
+
+
+func get_graph_from_api( graph_id:String, query:String ):
+	api_response_data.clear()
+	api_error = false
+	
+	_g.main_graph.start_streaming()
+	_g.api.connect("api_response", self, "api_response")
+	_g.api.connect("api_response_finished", self, "api_response_finished")
+	
+	var url : String = "/graph/" + graph_id + "/query/graph"
+	_e.emit_signal("api_request", HTTPClient.METHOD_POST, url, query)
+
+
+func api_response( chunk:String ):
+	if chunk == "" or chunk == "[" or chunk == "\n]" or chunk.begins_with("Error:"):
+		if chunk.begins_with("Error:"):
+			api_error = true
+			print(chunk)
+		return
+	var parse_result : JSONParseResult = JSON.parse( chunk.trim_prefix(",\n") )
+	if parse_result.error == OK:
+		_g.main_graph.add_streamed_object( parse_result.result )
+
+		#api_response_data[ api_response_data.size() ] = parsed_chunk
+	
+
+func api_response_finished():
+	if api_error:
+		print("API reported Error!")
+		return
+	_g.main_graph.end_streaming()
+	print("API response finished!")
 
 
 func main_graph_order():
@@ -259,6 +295,3 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 func hide_info():
 	pass
 
-
-func _on_PopupLoadFile_ok( filters ):
-	read_data(filters)
