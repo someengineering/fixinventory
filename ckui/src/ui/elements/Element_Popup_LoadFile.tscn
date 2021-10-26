@@ -26,7 +26,19 @@ extra_spacing_char = 1
 font_data = SubResource( 41 )
 
 [node name="PopupLoadFile" instance=ExtResource( 1 )]
+visible = true
 script = ExtResource( 2 )
+
+[node name="Mouseblock" type="Control" parent="." index="0"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 0.95
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MetricNameLabel" parent="Margin/MarginContainer" index="0"]
+text = "Load Graph File"
 
 [node name="Content" parent="Margin/MarginContainer" index="1"]
 custom_constants/margin_right = 30
@@ -133,6 +145,35 @@ margin_right = 1660.0
 margin_bottom = 161.0
 columns = 5
 
+[node name="Spacer2" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="4"]
+margin_top = 191.0
+margin_right = 1660.0
+margin_bottom = 599.0
+size_flags_vertical = 3
+
+[node name="ApiModeButton" parent="Margin/MarginContainer/Content/VBoxContainer" index="5" instance=ExtResource( 4 )]
+margin_left = 655.0
+margin_top = 629.0
+margin_right = 1005.0
+margin_bottom = 663.0
+rect_min_size = Vector2( 350, 34 )
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/ApiModeButton/CenterContainer" index="0"]
+margin_left = 20.0
+margin_top = 3.0
+margin_right = 329.0
+margin_bottom = 31.0
+rect_pivot_offset = Vector2( 121, 16 )
+text = "Switch to API Connection"
+
+[node name="Spacer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="6"]
+margin_top = 693.0
+margin_right = 1660.0
+margin_bottom = 713.0
+rect_min_size = Vector2( 0, 20 )
+
 [node name="ExampleDataButton" parent="Margin/MarginContainer/PopupButtons" index="1" instance=ExtResource( 4 )]
 margin_left = 885.0
 margin_right = 1185.0
@@ -152,17 +193,19 @@ visible = false
 margin_left = 1060.0
 margin_right = 1360.0
 
-[node name="Timer" type="Timer" parent="." index="1"]
+[node name="Timer" type="Timer" parent="." index="2"]
 wait_time = 0.2
 autostart = true
 
 [connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton" to="." method="_on_AllButton_pressed"]
 [connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton" to="." method="_on_NoneButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/ApiModeButton" to="." method="_on_ApiModeButton_pressed"]
 [connection signal="pressed" from="Margin/MarginContainer/PopupButtons/ExampleDataButton" to="." method="_on_ExampleDataButton_pressed"]
 [connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
 
 [editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton"]
 [editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton"]
+[editable path="Margin/MarginContainer/Content/VBoxContainer/ApiModeButton"]
 [editable path="Margin/MarginContainer/PopupButtons/CancelButton"]
 [editable path="Margin/MarginContainer/PopupButtons/ExampleDataButton"]
 [editable path="Margin/MarginContainer/PopupButtons/OkButton"]

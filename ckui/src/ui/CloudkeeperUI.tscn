@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=2]
+[gd_scene load_steps=37 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -16,6 +16,9 @@
 [ext_resource path="res://ui/views/UI_Blastradius.tscn" type="PackedScene" id=14]
 [ext_resource path="res://ui/views/UI_Loading.tscn" type="PackedScene" id=15]
 [ext_resource path="res://ui/elements/Element_Popup_LoadFile.tscn" type="PackedScene" id=16]
+[ext_resource path="res://scripts/tools/jwt.gd" type="Script" id=17]
+[ext_resource path="res://scripts/networking/api.gd" type="Script" id=18]
+[ext_resource path="res://ui/elements/Element_Popup_ConnectToCore.tscn" type="PackedScene" id=19]
 
 [sub_resource type="Shader" id=1]
 code = "shader_type canvas_item;
@@ -128,6 +131,12 @@ glow_bicubic_upscale = true
 [node name="CloudkeeperUI" type="Node2D"]
 script = ExtResource( 6 )
 
+[node name="API" type="Node" parent="."]
+script = ExtResource( 18 )
+
+[node name="JWT" type="Node" parent="API"]
+script = ExtResource( 17 )
+
 [node name="UIGraph" type="Node2D" parent="."]
 position = Vector2( 960, 540 )
 z_index = -1
@@ -221,12 +230,12 @@ margin_right = 1920.0
 [node name="UITopbar" parent="UI" instance=ExtResource( 8 )]
 margin_bottom = 70.0
 
+[node name="UILoading" parent="UI" instance=ExtResource( 15 )]
+visible = false
+
 [node name="UICommandLine" parent="UI" instance=ExtResource( 1 )]
 margin_top = 1048.0
 margin_bottom = 1080.0
-
-[node name="UILoading" parent="UI" instance=ExtResource( 15 )]
-visible = false
 
 [node name="Noise" type="TextureRect" parent="UI"]
 modulate = Color( 1, 1, 1, 0.0392157 )
@@ -242,12 +251,16 @@ __meta__ = {
 [node name="Popups" type="Control" parent="UI"]
 margin_right = 40.0
 margin_bottom = 40.0
+mouse_filter = 2
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="PopupLoadFile" parent="UI/Popups" instance=ExtResource( 16 )]
+visible = false
 popup_exclusive = true
+
+[node name="PopupConnectCore" parent="UI/Popups" instance=ExtResource( 19 )]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource( 17 )
@@ -256,4 +269,6 @@ environment = SubResource( 17 )
 [connection signal="tween_all_completed" from="UIGraph/CamMoveTween" to="UIGraph" method="_on_CamMoveTween_tween_all_completed"]
 [connection signal="timeout" from="UIGraph/NewNodeSelectionTimer" to="UIGraph" method="_on_NewNodeSelectionTimer_timeout"]
 [connection signal="close_blast_radius" from="UI/UIBlastradius" to="." method="_on_UIBlastradius_close_blast_radius"]
-[connection signal="ok" from="UI/Popups/PopupLoadFile" to="UIGraph" method="_on_PopupLoadFile_ok"]
+[connection signal="load_file" from="UI/Popups/PopupLoadFile" to="UIGraph" method="read_data"]
+[connection signal="create_graph" from="UI/Popups/PopupConnectCore" to="UIGraph" method="get_graph_from_api"]
+[connection signal="use_example_data" from="UI/Popups/PopupConnectCore" to="UIGraph" method="read_data"]

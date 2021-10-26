@@ -1,6 +1,6 @@
 extends Popup
 
-signal ok
+signal load_file
 
 const filters = []
 
@@ -74,12 +74,11 @@ func set_file_found(value:bool):
 
 func _on_CancelButton_pressed():
 	popup_close()
-	hide()
 
 
 func _on_OkButton_pressed():
 	popup_ok()
-	hide()
+	popup_close()
 
 
 func popup_show():
@@ -89,6 +88,7 @@ func popup_show():
 
 func popup_close():
 	_g.popup = false
+	hide()
 
 
 func popup_ok():
@@ -98,7 +98,7 @@ func popup_ok():
 	for i in grid.get_children():
 		if i.pressed:
 			filters.append( i.text )
-	emit_signal("ok", filters)
+	emit_signal("load_file", filters)
 
 
 func _on_ExampleDataButton_pressed():
@@ -118,3 +118,8 @@ func _on_AllButton_pressed():
 func _on_NoneButton_pressed():
 	for i in grid.get_children():
 		i.pressed = false
+
+
+func _on_ApiModeButton_pressed():
+	popup_close()
+	_e.emit_signal("connect_popup")

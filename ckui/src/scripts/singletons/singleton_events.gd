@@ -14,3 +14,7 @@ signal msg
 signal loading
 signal loading_done
 signal loading_start
+signal create_jwt
+signal connect_popup
+signal api_connect
+signal api_request

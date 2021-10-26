@@ -7,6 +7,10 @@ var speed := 15.0
 onready var label = $CenterContainer/ButtonLabel
 onready var edges = $Background/Extra
 
+func _ready():
+	$CenterContainer/ButtonLabel.rect_pivot_offset.x = $CenterContainer/ButtonLabel.rect_size.x/2
+
+
 func _process(delta) -> void:
 	if (hovering and hover_power < 1):
 		set_hover_power( min(hover_power + delta * speed, 1.0) )

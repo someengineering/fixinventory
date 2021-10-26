@@ -1,7 +1,9 @@
-[gd_scene load_steps=15 format=2]
+[gd_scene load_steps=17 format=2]
 
 [ext_resource path="res://assets/graphics/sci-fi/icon_dropdown.png" type="Texture" id=1]
 [ext_resource path="res://ui/views/scripts/ui_command_line.gd" type="Script" id=2]
+[ext_resource path="res://assets/graphics/sci-fi/fullscreen.png" type="Texture" id=3]
+[ext_resource path="res://assets/graphics/sci-fi/fullscreen_n.png" type="Texture" id=4]
 [ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=7]
 
 [sub_resource type="Gradient" id=1]
@@ -30,14 +32,14 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 corner_detail = 1
 
-[sub_resource type="DynamicFontData" id=7]
+[sub_resource type="DynamicFontData" id=12]
 font_path = "res://assets/fonts/SourceCodePro-Regular.ttf"
 
 [sub_resource type="DynamicFont" id=8]
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -24
-font_data = SubResource( 7 )
+font_data = SubResource( 12 )
 
 [sub_resource type="StyleBoxEmpty" id=6]
 content_margin_left = 8.0
@@ -127,7 +129,7 @@ __meta__ = {
 [node name="Background" type="Panel" parent="."]
 margin_left = 48.0
 margin_top = 4.0
-margin_right = 1816.0
+margin_right = 1782.0
 margin_bottom = 28.0
 mouse_filter = 1
 size_flags_horizontal = 3
@@ -139,7 +141,7 @@ __meta__ = {
 
 [node name="LineEdit" type="LineEdit" parent="Background"]
 modulate = Color( 1, 1, 1, 0.3 )
-margin_right = 1848.0
+margin_right = 1735.0
 margin_bottom = 48.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -158,10 +160,28 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="ButtonSpaceship" type="Button" parent="."]
-margin_left = 1824.0
+[node name="FullscreenButton" type="TextureButton" parent="."]
+visible = false
+modulate = Color( 0.117647, 0.588235, 0.733333, 1 )
+margin_left = 1888.0
 margin_top = 4.0
-margin_right = 1848.0
+margin_right = 1912.0
+margin_bottom = 28.0
+texture_normal = ExtResource( 4 )
+texture_pressed = ExtResource( 3 )
+texture_hover = ExtResource( 3 )
+texture_disabled = ExtResource( 4 )
+texture_focused = ExtResource( 3 )
+expand = true
+stretch_mode = 4
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ButtonSpaceship" type="Button" parent="."]
+margin_left = 1823.0
+margin_top = 4.0
+margin_right = 1847.0
 margin_bottom = 28.0
 custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
 custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
@@ -177,9 +197,9 @@ __meta__ = {
 }
 
 [node name="ButtonRandomize" type="Button" parent="."]
-margin_left = 1856.0
+margin_left = 1855.0
 margin_top = 4.0
-margin_right = 1880.0
+margin_right = 1879.0
 margin_bottom = 28.0
 custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
 custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
@@ -195,9 +215,9 @@ __meta__ = {
 }
 
 [node name="ButtonOrder" type="Button" parent="."]
-margin_left = 1888.0
+margin_left = 1887.0
 margin_top = 4.0
-margin_right = 1912.0
+margin_right = 1911.0
 margin_bottom = 28.0
 custom_colors/font_color = Color( 0.129412, 0.658824, 0.815686, 1 )
 custom_colors/font_color_hover = Color( 0.490196, 0.823529, 1, 1 )
@@ -214,6 +234,7 @@ __meta__ = {
 
 [node name="NewMsgTween" type="Tween" parent="."]
 
+[connection signal="pressed" from="FullscreenButton" to="." method="_on_FullscreenButton_pressed"]
 [connection signal="pressed" from="ButtonSpaceship" to="." method="_on_ButtonSpaceship_pressed"]
 [connection signal="pressed" from="ButtonRandomize" to="." method="_on_ButtonRandomize_pressed"]
 [connection signal="pressed" from="ButtonOrder" to="." method="_on_ButtonOrder_pressed"]
