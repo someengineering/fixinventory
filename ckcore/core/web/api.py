@@ -598,8 +598,7 @@ class Api:
 
         def line_to_js(line: ParsedCommandLine) -> Json:
             parsed_commands = to_js(line.parsed_commands.commands)
-            execute_commands = [{"cmd": part.name, "arg": arg} for part, arg in line.parts_with_args]
-
+            execute_commands = [{"cmd": part.command.name, "arg": part.arg} for part in line.executable_commands]
             return {"parsed": parsed_commands, "execute": execute_commands, "env": line.parsed_commands.env}
 
         return web.json_response([line_to_js(line) for line in parsed])

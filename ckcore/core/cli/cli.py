@@ -79,6 +79,13 @@ class ParsedCommands:
 
 
 @dataclass
+class ExecutableCommand:
+    command: CLICommand
+    arg: Optional[str]
+    action: CLIAction
+
+
+@dataclass
 class ParsedCommandLine:
     """
     The parsed command line holds:
@@ -89,7 +96,7 @@ class ParsedCommandLine:
 
     env: JsonElement
     parsed_commands: ParsedCommands
-    parts_with_args: List[Tuple[CLICommand, Optional[str]]]
+    executable_commands: List[ExecutableCommand]
     generator: AsyncGenerator[JsonElement, None]
     result_action: CLIAction
 
@@ -98,7 +105,7 @@ class ParsedCommandLine:
 
     @property
     def commands(self) -> List[CLICommand]:
-        return [part for part, _ in self.parts_with_args]
+        return [part.command for part in self.executable_commands]
 
     @property
     def produces(self) -> MediaType:
@@ -202,11 +209,19 @@ class CLI:
         self.dependencies = dependencies
         self.aliases = aliases
 
-    def create_query(self, parts: List[CLIArg]) -> List[CLIArg]:
+    @staticmethod
+    async def parse_arg(cmd: CLICommand, arg: Optional[str], cmd_env: Dict[str, Any]) -> CLIAction:
+        try:
+            return await cmd.parse(arg, **cmd_env)
+        except Exception as ex:
+            raise CLIParseError(f"{cmd.name} can not parse arg: {arg}") from ex
+
+    async def create_query(self, commands: List[ExecutableCommand], cmd_env: Dict[str, Any]) -> List[ExecutableCommand]:
         query: Query = Query.by(AllTerm())
-        additional_commands: List[CLIArg] = []
-        for part, maybe_arg in parts:
-            arg = maybe_arg if maybe_arg else ""
+        additional_commands: List[ExecutableCommand] = []
+        for command in commands:
+            part = command.command
+            arg = command.arg if command.arg else ""
             if isinstance(part, QueryAllPart):
                 query = query.combine(parse_query(arg))
             elif isinstance(part, ReportedPart):
@@ -235,7 +250,8 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                additional_commands.append((self.commands["aggregate_to_count"], arg))
+                cmd = self.commands["aggregate_to_count"]
+                additional_commands.append(ExecutableCommand(cmd, None, await cmd.parse(**cmd_env)))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
@@ -246,53 +262,58 @@ class CLI:
                 query = replace(query, limit=size, sort=sort)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        return [(self.commands["execute_query"], str(query.simplify())), *additional_commands]
+        exe_query = self.commands["execute_query"]
+        args = str(query.simplify())
+        action = await self.parse_arg(exe_query, args, cmd_env)
+        return [ExecutableCommand(exe_query, args, action), *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
     ) -> List[ParsedCommandLine]:
-        def parse_single_command(command: ParsedCommand) -> CLIArg:
-            if command.cmd in self.commands:
-                part: CLICommand = self.commands[command.cmd]
-                return part, command.args
+        async def prepare_command(parsed_command: ParsedCommand, cmd_env: Dict[str, Any]) -> ExecutableCommand:
+            if parsed_command.cmd in self.commands:
+                command = self.commands[parsed_command.cmd]
+                action = await self.parse_arg(command, parsed_command.args, cmd_env)
+                return ExecutableCommand(command, parsed_command.args, action)
             else:
-                raise CLIParseError(f"Command >{command.cmd}< is not known. typo?")
+                raise CLIParseError(f"Command >{parsed_command.cmd}< is not known. typo?")
 
-        def combine_single_command(commands: List[CLIArg]) -> List[CLIArg]:
-            parts = list(takewhile(lambda x: isinstance(x[0], QueryPart), commands))
-            query_parts = self.create_query(parts)
+        async def combine_single_command(
+            commands: List[ExecutableCommand], cmd_env: Dict[str, Any]
+        ) -> List[ExecutableCommand]:
+            parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
+            query_parts = await self.create_query(parts, cmd_env) if parts else []
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
-        async def parse_arg(expect: Type[T], cmd: CLICommand, arg: Optional[str], cmd_env: Dict[str, Any]) -> T:
-            try:
-                result = await cmd.parse(arg, **cmd_env)
-            except Exception as ex:
-                raise CLIParseError(f"{cmd.name} can not parse arg: {arg}") from ex
-            if isinstance(result, expect):
-                return result
+        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
+            action = cmd.action
+            if isinstance(action, expected):
+                return action
             else:
-                message = "must be the first command" if issubclass(type(result), CLISource) else "no source data given"
-                raise CLIParseError(f"Command >{cmd.name}< can not be used in this position: {message}")
+                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
+                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
 
-        async def parse_line(commands: ParsedCommands) -> ParsedCommandLine:
+        async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
 
-            resulting_env = {**self.cli_env, **env, **commands.env}
-            parts_with_args = combine_single_command([parse_single_command(cmd) for cmd in commands.commands])
+            cmd_env = {**self.cli_env, **env, **parsed.env}
+            commands = await combine_single_command(
+                [await prepare_command(cmd, cmd_env) for cmd in parsed.commands], cmd_env
+            )
 
-            if parts_with_args:
-                source, source_arg = parts_with_args[0]
-                source_action = await parse_arg(CLISource, source, source_arg, resulting_env)
+            if commands:
+                source = commands[0]
+                source_action = expect_action(source, CLISource)
                 flow = await source_action.source()
                 result_action: Union[CLISource, CLIFlow] = source_action
-                for command, arg in parts_with_args[1:]:
-                    flow_action = await parse_arg(CLIFlow, command, arg, resulting_env)
+                for command in commands[1:]:
+                    flow_action = expect_action(command, CLIFlow)
                     flow = await flow_action.flow(flow)
                     result_action = flow_action
                 # noinspection PyTypeChecker
-                return ParsedCommandLine(resulting_env, commands, parts_with_args, flow, result_action)
+                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action)
             else:
-                return ParsedCommandLine(resulting_env, commands, [], stream.empty(), CLISource.empty())
+                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty())
 
         replaced = self.replace_placeholder(cli_input, **env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
