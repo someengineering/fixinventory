@@ -142,7 +142,7 @@ class BaseResource(ABC):
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
             f" region='{self.region().name}', zone='{self.zone().name}',"
             f" account='{self.account().dname}', kind='{self.kind}',"
-            f" ctime={self.ctime!r}, uuid={self.uuid}, sha256={self.sha256})"
+            f" ctime={self.ctime!r}, uuid={self.uuid}, chksum={self.chksum})"
         )
 
     def _keys(self):
@@ -209,7 +209,7 @@ class BaseResource(ABC):
         raise NotImplementedError
 
     @property
-    def sha256(self) -> str:
+    def chksum(self) -> str:
         return sha256(str(self._keys()).encode()).hexdigest()
 
     @property
