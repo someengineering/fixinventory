@@ -8,13 +8,13 @@ from threading import Event
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from requests import Response
-from requests_toolbelt import MultipartDecoder
+from requests_toolbelt import MultipartDecoder, MultipartEncoder
 from requests_toolbelt.multipart.decoder import BodyPart
 
 from cklib.args import ArgumentParser
 from cklib.logging import log, add_args as logging_add_args
 from cklib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
-from typing import Dict, Union
+from typing import Dict, Union, Any, Optional
 from urllib.parse import urlencode, urlsplit
 
 
@@ -81,35 +81,68 @@ def main() -> None:
 def send_command(
     command: str, execute_endpoint: str, headers: Dict[str, str], tty: bool = True
 ) -> None:
-    if tty:
-        update_headers_with_terminal_size(headers)
+    def update_headers_with_terminal_size() -> None:
+        tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 20))
+        log.debug(f"Setting columns {tty_columns}, rows {tty_rows}")
+        headers.update(
+            {
+                "Cloudkeeper-Cksh-Columns": str(tty_columns),
+                "Cloudkeeper-Cksh-Rows": str(tty_rows),
+            }
+        )
 
-    if ArgumentParser.args.psk:
-        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+    def post_request(data: Any, content_type: str) -> Optional[Response]:
+        # set tty headers
+        if tty:
+            update_headers_with_terminal_size()
+        # define content-type
+        headers["Content-Type"] = content_type
+        # sign request
+        if ArgumentParser.args.psk:
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-    log.debug(f'Sending command "{command}" to {execute_endpoint}')
+        try:
+            return requests.post(
+                execute_endpoint, data=data, headers=headers, stream=True
+            )
+        except requests.exceptions.ConnectionError:
+            err = (
+                "Error: Could not communicate with ckcore"
+                f" at {urlsplit(execute_endpoint).netloc}."
+                " Is it up and reachable?"
+            )
+            print(err, file=sys.stderr)
+
+    # files: name -> path
+    def encode_files(files: Dict[str, str]) -> MultipartEncoder:
+        for path in files.values():
+            if not os.path.exists(path):
+                raise AttributeError(f"Path does not exist: {path}")
+        parts = {
+            name: (name, open(path, "rb"), "application/octet-stream")
+            for name, path in files.items()
+        }
+        return MultipartEncoder(parts, "file-upload")
+
+    def handle_response(maybe: Optional[Response], upload: bool = False):
+        if maybe is not None:
+            with maybe as response:
+                if response.status_code == 200:
+                    handle_result(response)
+                elif response.status_code == 424 and not upload:
+                    required = response.json().get("required", {})
+                    data = encode_files({fp["name"]: fp["path"] for fp in required})
+                    headers["Ck-Command"] = command
+                    mp = post_request(data, "multipart/form-data; boundary=file-upload")
+                    handle_response(mp, True)
+                else:
+                    print(response.text, file=sys.stderr)
+                    return
 
     try:
-        r = requests.post(
-            execute_endpoint,
-            data=command,
-            headers=headers,
-            stream=True,
-        )
-    except requests.exceptions.ConnectionError:
-        err = (
-            "Error: Could not communicate with ckcore"
-            f" at {urlsplit(execute_endpoint).netloc}."
-            " Is it up and reachable?"
-        )
-        print(err, file=sys.stderr)
-    else:
-
-        if r.status_code != 200:
-            print(r.text, file=sys.stderr)
-            return
-        else:
-            handle_result(r)
+        handle_response(post_request(command, "text/plain"))
+    except Exception as ex:
+        print(f"Error performing command: `{command}`\nReason: {ex}")
 
 
 def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
@@ -149,17 +182,6 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
         for num, part in enumerate(decoder.parts):
             part.headers = {decode(k): decode(v) for k, v in part.headers.items()}
             handle_result(part, num == 0)
-
-
-def update_headers_with_terminal_size(headers: Dict[str, str]) -> None:
-    tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 20))
-    log.debug(f"Setting columns {tty_columns}, rows {tty_rows}")
-    headers.update(
-        {
-            "Cloudkeeper-Cksh-Columns": str(tty_columns),
-            "Cloudkeeper-Cksh-Rows": str(tty_rows),
-        }
-    )
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
