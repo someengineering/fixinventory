@@ -154,7 +154,7 @@ class HelpCommand(CLICommand):
     def info(self) -> str:
         return "Shows available commands, as well as help for any specific command."
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
+    def parse(self, arg: Optional[str] = None, **env: str) -> CLISource:
         def help_command() -> Stream:
             def show_cmd(cmd: CLICommand) -> str:
                 return f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
@@ -210,13 +210,13 @@ class CLI:
         self.aliases = aliases
 
     @staticmethod
-    async def parse_arg(cmd: CLICommand, arg: Optional[str], cmd_env: Dict[str, Any]) -> CLIAction:
+    def parse_arg(cmd: CLICommand, arg: Optional[str], cmd_env: Dict[str, Any]) -> CLIAction:
         try:
-            return await cmd.parse(arg, **cmd_env)
+            return cmd.parse(arg, **cmd_env)
         except Exception as ex:
             raise CLIParseError(f"{cmd.name} can not parse arg: {arg}") from ex
 
-    async def create_query(self, commands: List[ExecutableCommand], cmd_env: Dict[str, Any]) -> List[ExecutableCommand]:
+    def create_query(self, commands: List[ExecutableCommand], cmd_env: Dict[str, Any]) -> List[ExecutableCommand]:
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
         for command in commands:
@@ -251,7 +251,7 @@ class CLI:
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
                 cmd = self.commands["aggregate_to_count"]
-                additional_commands.append(ExecutableCommand(cmd, None, await cmd.parse(**cmd_env)))
+                additional_commands.append(ExecutableCommand(cmd, None, cmd.parse(**cmd_env)))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
@@ -264,25 +264,25 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         exe_query = self.commands["execute_query"]
         args = str(query.simplify())
-        action = await self.parse_arg(exe_query, args, cmd_env)
+        action = self.parse_arg(exe_query, args, cmd_env)
         return [ExecutableCommand(exe_query, args, action), *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, replace_place_holder: bool = True, **env: str
     ) -> List[ParsedCommandLine]:
-        async def prepare_command(parsed_command: ParsedCommand, cmd_env: Dict[str, Any]) -> ExecutableCommand:
+        def prepare_command(parsed_command: ParsedCommand, cmd_env: Dict[str, Any]) -> ExecutableCommand:
             if parsed_command.cmd in self.commands:
                 command = self.commands[parsed_command.cmd]
-                action = await self.parse_arg(command, parsed_command.args, cmd_env)
+                action = self.parse_arg(command, parsed_command.args, cmd_env)
                 return ExecutableCommand(command, parsed_command.args, action)
             else:
                 raise CLIParseError(f"Command >{parsed_command.cmd}< is not known. typo?")
 
-        async def combine_single_command(
+        def combine_single_command(
             commands: List[ExecutableCommand], cmd_env: Dict[str, Any]
         ) -> List[ExecutableCommand]:
             parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
-            query_parts = await self.create_query(parts, cmd_env) if parts else []
+            query_parts = self.create_query(parts, cmd_env) if parts else []
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
@@ -297,9 +297,7 @@ class CLI:
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
 
             cmd_env = {**self.cli_env, **env, **parsed.env}
-            commands = await combine_single_command(
-                [await prepare_command(cmd, cmd_env) for cmd in parsed.commands], cmd_env
-            )
+            commands = combine_single_command([prepare_command(cmd, cmd_env) for cmd in parsed.commands], cmd_env)
 
             if commands:
                 source = commands[0]
