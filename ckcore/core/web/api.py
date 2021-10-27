@@ -53,7 +53,7 @@ from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
-from core.util import uuid_str, value_in_path, set_value_in_path, force_gen
+from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
@@ -624,7 +624,7 @@ class Api:
                     name = part.name
                     if not name:
                         raise AttributeError("Multipart request: content disposition name is required!")
-                    path = os.path.join(temp, name)
+                    path = os.path.join(temp, rnd_str())  # filename is random, in case of overlapping requirements
                     files[name] = path
                     with open(path, "wb") as writer:
                         while not part.at_eof():

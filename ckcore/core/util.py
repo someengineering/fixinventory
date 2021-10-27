@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import random
+import string
 import uuid
 from asyncio import Task, Future
 from collections import defaultdict
@@ -55,6 +57,10 @@ def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:
 UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
 
 
+def rnd_str(str_len: int = 10) -> str:
+    return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len))
+
+
 def utc() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -63,8 +69,8 @@ def utc_str(dt: datetime = utc()) -> str:
     return dt.strftime(UTC_Date_Format)
 
 
-def from_utc(string: str) -> datetime:
-    return isoparse(string)
+def from_utc(date_string: str) -> datetime:
+    return isoparse(date_string)
 
 
 def uuid_str(from_object: Optional[Any] = None) -> str:
