@@ -14,7 +14,7 @@ from pytest import fixture
 
 from core.cli.cli import CLI
 
-from core.cli.command import CLIDependencies
+from core.cli.command import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
@@ -357,7 +357,7 @@ async def test_aggregation_to_count_command(cli: CLI) -> None:
 
 @pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
 @pytest.mark.asyncio
-async def test_db_backup_command(cli: CLI) -> None:
+async def test_system_backup_command(cli: CLI) -> None:
     async def check_backup(res: Stream) -> None:
         async with res.stream() as streamer:
             only_one = True
@@ -369,12 +369,12 @@ async def test_db_backup_command(cli: CLI) -> None:
                 assert only_one
                 only_one = False
 
-    await cli.execute_cli_command("system db backup", check_backup)
+    await cli.execute_cli_command("system backup create", check_backup)
 
 
 @pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
 @pytest.mark.asyncio
-async def test_db_restore_command(cli: CLI) -> None:
+async def test_system_restore_command(cli: CLI) -> None:
     tmp_dir: Optional[str] = None
     try:
         tmp_dir = tempfile.mkdtemp()
@@ -385,9 +385,10 @@ async def test_db_restore_command(cli: CLI) -> None:
                 async for s in streamer:
                     os.rename(s, backup)
 
-        await cli.execute_cli_command("system db backup", move_backup)
+        await cli.execute_cli_command("system backup create", move_backup)
+        ctx = CLIContext(uploaded_files={"backup": backup})
         restore = await cli.execute_cli_command(
-            f"BACKUP_NO_SYS_EXIT=true echo {backup} | system db restore", stream.list
+            f"BACKUP_NO_SYS_EXIT=true system backup restore {backup}", stream.list, ctx
         )
         assert restore == [
             [

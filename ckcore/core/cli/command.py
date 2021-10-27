@@ -1876,19 +1876,19 @@ class UploadCommand(CLICommand, InternalPart):
 
 class SystemCommand(CLICommand):
     """
-    Usage: system db backup [name]
-           system db restore
+    Usage: system backup create [name]
+           system backup restore <path>
 
-    system db backup [name]:
+    system backup create [name]:
 
-    Create a database backup for the complete database, which contains:
+    Create a system backup for the complete database, which contains:
     - backup of all graph data
     - backup of all model data
     - backup of all persisted jobs/tasks data
     - backup of all subscribers data
     - backup of all configuration data
 
-    This backup can be restored via system db restore.
+    This backup can be restored via system backup restore.
     Since this command creates a complete backup, it can be restored to an empty database.
 
     Note: a backup acquires a global write lock. This basically means, that *no write* can be
@@ -1901,11 +1901,11 @@ class SystemCommand(CLICommand):
                           Example: backup_20211022_1028
 
     Example:
-        db_backup           # this will create a backup written to backup_{time_now}.
-        db_backup bck_1234  # this will create a backup written to bck_1234.
+        system backup create                  # this will create a backup written to backup_{time_now}.
+        system backup create backup bck_1234  # this will create a backup written to bck_1234.
 
 
-    system db restore:
+    system backup restore:
 
     Restores the complete database state from a previously generated backup.
     All existing data in the database will be overwritten.
@@ -1919,8 +1919,10 @@ class SystemCommand(CLICommand):
           the process supervisor automatically. The restart is necessary to take effect from the changed
           underlying data source.
 
+    path [mandatory] - path to the local backup file.
+
     Example:
-        echo /path/to/backup | db_backup     # this will restore the backup from the given local path.
+        system backup restore /path/to/backup    # this will restore the backup from the given local path.
 
     """
 
@@ -1975,19 +1977,14 @@ class SystemCommand(CLICommand):
                     await asyncio.sleep(5)
             shutil.rmtree(temp_dir)
 
-    async def restore_backup(self, in_stream_gen: JsGen, **env: str) -> AsyncGenerator[str, None]:
-        in_stream = in_stream_gen if isinstance(in_stream_gen, Stream) else stream.iterate(in_stream_gen)
-        async with in_stream.stream() as streamer:
-            files = [f async for f in streamer]
-
-        if len(files) != 1:
-            raise CLIExecutionError(f"Restore can only restore from a single file, but got: {files}")
-        if not os.path.exists(files[0]):
-            raise CLIExecutionError(f"Provided backup file does not exist: {files[0]}")
+    async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncGenerator[str, None]:
+        if not backup_file:
+            raise CLIExecutionError(f"No backup file defined: {backup_file}")
+        if not os.path.exists(backup_file):
+            raise CLIExecutionError(f"Provided backup file does not exist: {backup_file}")
         if not shutil.which("arangorestore"):
             raise CLIParseError("db_restore expects the executable `arangorestore` to be in path!")
 
-        backup_file = files[0]
         temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
@@ -2028,7 +2025,7 @@ class SystemCommand(CLICommand):
             log.info("Restore process complete. Restart the service.")
             yield "Since all data has changed in the database eventually, this service needs to be restarted!"
             # for testing purposes, we can avoid sys exit
-            if str(env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
+            if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
 
                 async def wait_and_exit() -> None:
                     log.info("Database was restored successfully - going to STOP the service!")
@@ -2038,9 +2035,9 @@ class SystemCommand(CLICommand):
                 # create a background task, so that the current request can be executed completely
                 asyncio.create_task(wait_and_exit())
 
-    async def parse(self, arg: Optional[str] = None, **env: str) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")
-        if len(parts) >= 2 and parts[0] == "db" and parts[1] == "backup":
+        if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
             rest = parts[2:]
 
             def backup() -> AsyncGenerator[str, None]:
@@ -2048,12 +2045,13 @@ class SystemCommand(CLICommand):
 
             return CLISource(backup, MediaType.FilePath)
 
-        elif len(parts) == 2 and parts[0] == "db" and parts[1] == "restore":
+        elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
+            backup_file = parts[2]
 
-            def restore(in_stream: Stream) -> AsyncGenerator[str, None]:
-                return self.restore_backup(in_stream, **env)
+            def restore() -> AsyncGenerator[str, None]:
+                return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
-            return CLIFlow(restore)
+            return CLISource(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
         else:
             raise CLIParseError(f"system: Can not parse {arg}")
 

@@ -126,8 +126,7 @@ def send_command(
     def handle_response(maybe: Optional[Response], upload: bool = False):
         if maybe is not None:
             with maybe as response:
-                try:
-            if response.status_code == 200:
+                if response.status_code == 200:
                     handle_result(response)
                 elif response.status_code == 424 and not upload:
                     required = response.json().get("required", [])
@@ -137,15 +136,13 @@ def send_command(
                     mp = post_request(data, "multipart/form-data; boundary=file-upload")
                     handle_response(mp, True)
                 else:
-                print(response.text, file=sys.stderr)
-                return
+                    print(response.text, file=sys.stderr)
+                    return
 
-                try:
+    try:
         handle_response(post_request(command, "text/plain"))
     except Exception as ex:
         print(f"Error performing command: `{command}`\nReason: {ex}")
-        except Exception as ex:
-            print(f"Error while handling command: {ex}", file=sys.stderr)
 
 
 def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
