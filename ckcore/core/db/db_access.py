@@ -1,5 +1,4 @@
 import logging
-import sys
 from abc import ABC
 from datetime import datetime, timezone, timedelta
 from time import sleep
@@ -21,7 +20,7 @@ from core.db.subscriberdb import subscriber_db
 from core.error import NoSuchGraph
 from core.message_bus import MessageBus
 from core.model.adjust_node import AdjustNode
-from core.util import Periodic, utc
+from core.util import Periodic, utc, shutdown_process
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ class DbAccess(ABC):
             except ArangoServerError as ex:
                 if utc() > deadline:
                     log.error("Can not connect to database. Giving up.")
-                    sys.exit(1)
+                    shutdown_process(1)
                 log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 sleep(5)
             except ArangoConnectionError:
