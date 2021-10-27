@@ -1,10 +1,13 @@
 import os.path
-import re
-import sys
-import shutil
 import pathlib
-import requests
+import re
+import shutil
+import sys
 from threading import Event
+from typing import Dict, Union, Any, Optional
+from urllib.parse import urlencode, urlsplit
+
+import requests
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from requests import Response
@@ -12,10 +15,9 @@ from requests_toolbelt import MultipartDecoder, MultipartEncoder
 from requests_toolbelt.multipart.decoder import BodyPart
 
 from cklib.args import ArgumentParser
-from cklib.logging import log, add_args as logging_add_args
 from cklib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
-from typing import Dict, Union, Any, Optional
-from urllib.parse import urlencode, urlsplit
+from cklib.logging import log, add_args as logging_add_args
+from cksh.protected_files import validate_paths
 
 
 def main() -> None:
@@ -115,9 +117,6 @@ def send_command(
 
     # files: name -> path
     def encode_files(files: Dict[str, str]) -> MultipartEncoder:
-        for path in files.values():
-            if not os.path.exists(path):
-                raise AttributeError(f"Path does not exist: {path}")
         parts = {
             name: (name, open(path, "rb"), "application/octet-stream")
             for name, path in files.items()
@@ -131,7 +130,8 @@ def send_command(
                     handle_result(response)
                 elif response.status_code == 424 and not upload:
                     required = response.json().get("required", [])
-                    data = encode_files({fp["name"]: fp["path"] for fp in required})
+                    files = validate_paths({fp["name"]: fp["path"] for fp in required})
+                    data = encode_files(files)
                     headers["Ck-Command"] = command
                     mp = post_request(data, "multipart/form-data; boundary=file-upload")
                     handle_response(mp, True)
