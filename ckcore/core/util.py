@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import string
+import sys
 import uuid
 from asyncio import Task, Future
 from collections import defaultdict
@@ -206,6 +207,17 @@ def set_future_result(future: Future, result: Any) -> None:  # type: ignore # py
             future.set_exception(result)
         else:
             future.set_result(result)
+
+
+def shutdown_process(exit_code: int) -> None:
+    # Exceptions happening in the async loop during shutdown.
+    def exception_handler(_: Any, context: Any) -> None:
+        log.debug(f"Error from async loop during shutdown: {context}")
+
+    log.info("Shutdown initiated for current process.")
+    with suppress(Exception):
+        asyncio.get_running_loop().set_exception_handler(exception_handler)
+    sys.exit(exit_code)
 
 
 class Periodic:

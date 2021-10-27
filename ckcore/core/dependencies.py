@@ -1,6 +1,5 @@
 import logging
 import multiprocessing as mp
-import sys
 from argparse import Namespace
 from typing import Optional, List
 
@@ -14,6 +13,7 @@ from core.db.db_access import DbAccess
 from core.message_bus import MessageBus
 from core.model.adjust_node import DirectAdjuster
 from core.task.task_handler import TaskHandler
+from core.util import shutdown_process
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ def reset_process_start_method() -> None:
 def db_access(args: Namespace, message_bus: MessageBus) -> DbAccess:
     if args.graphdb_type not in "arangodb":
         log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
-        sys.exit(1)
+        shutdown_process(1)
 
     http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
     client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)

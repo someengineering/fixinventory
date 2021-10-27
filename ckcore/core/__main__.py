@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from datetime import timedelta
 
 from aiohttp import web
@@ -14,6 +13,7 @@ from core.model.model_handler import ModelHandlerDB
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
+from core.util import shutdown_process
 from core.web.api import Api
 from core.worker_task_queue import WorkerTaskQueue
 
@@ -64,9 +64,9 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         log.info("Stopping Cloudkeeper graph core.")
-        sys.exit(0)
+        shutdown_process(0)
     except Exception as ex:
         log.info(f"ckcore stopped. Reason: {ex}")
-        sys.exit(1)
+        shutdown_process(1)

@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import sys
 from abc import ABC
 from argparse import Namespace
 from asyncio import Task
@@ -25,7 +24,7 @@ from core.message_bus import MessageBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
-from core.util import utc, uuid_str
+from core.util import utc, uuid_str, shutdown_process
 
 log = logging.getLogger(__name__)
 
@@ -140,7 +139,7 @@ class DbUpdaterProcess(Process):
             nxt = self.next_action()
         if isinstance(nxt, PoisonPill):
             log.debug("Got poison pill - going to die.")
-            sys.exit(0)
+            shutdown_process(0)
         elif isinstance(nxt, MergeGraph):
             log.debug("Graph read into memory")
             builder.check_complete()
@@ -165,12 +164,12 @@ class DbUpdaterProcess(Process):
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
             log.info(f"Update process done: {self.pid} Exit.")
-            sys.exit(0)
+            shutdown_process(0)
         except Exception as ex:
             # not all exceptions can be pickled. Use string representation.
             self.write_queue.put(Result(repr(ex)))
             log.error(f"Update process interrupted. Preemptive Exit. {ex}", exc_info=ex)
-            sys.exit(1)
+            shutdown_process(1)
 
 
 async def merge_graph_process(

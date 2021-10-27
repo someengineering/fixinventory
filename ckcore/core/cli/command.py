@@ -7,16 +7,15 @@ import logging
 import os.path
 import re
 import shutil
-import sys
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
 from argparse import Namespace
-from asyncio.subprocess import Process
 from asyncio import iscoroutine
+from asyncio.subprocess import Process
 from collections import defaultdict
-from dataclasses import dataclass, field
 from contextlib import suppress
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
 from functools import partial
@@ -45,7 +44,7 @@ from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc
+from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc, shutdown_process
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
@@ -2030,7 +2029,7 @@ class SystemCommand(CLICommand):
                 async def wait_and_exit() -> None:
                     log.info("Database was restored successfully - going to STOP the service!")
                     await asyncio.sleep(1)
-                    sys.exit(0)
+                    shutdown_process(0)
 
                 # create a background task, so that the current request can be executed completely
                 asyncio.create_task(wait_and_exit())
