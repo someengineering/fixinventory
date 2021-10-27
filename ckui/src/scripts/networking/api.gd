@@ -9,7 +9,11 @@ signal api_response_finished
 
 var http = HTTPClient.new()
 var err = 0
-var debug := false
+var debug := true
+var psk := "changeme"
+
+onready var jwtlib = $JWT
+
 
 func _ready():
 	_g.api = self
@@ -38,18 +42,27 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, timeout := 10 
 			OS.delay_msec(500)
 		else:
 			yield(Engine.get_main_loop(), "idle_frame")
-		
-	emit_signal("api_connected", had_timeout)
+	
+	if http.get_status() == HTTPClient.STATUS_CONNECTED:
+		debug_message("Connected!")
+		emit_signal("api_connected", had_timeout)
 
 
 func send_request( method := HTTPClient.METHOD_GET, url := "/graph", query := "" ):
+	if jwtlib.token == "" or !jwtlib.jwt_check_timeout():
+		_e.emit_signal("create_jwt", "bla", psk)
+		#yield(jwtlib, "jwt_generated")
+	
+	print(jwtlib.token)
+	
 	if http.get_status() != HTTPClient.STATUS_CONNECTED:
 		debug_message("Problem with connection!")
 		return
-
+	
 	var headers = [
 		"User-Agent: Cloudkeeper UI",
-		"Accept: */*"
+		"Accept: */*",
+		"Authorization: Bearer " + jwtlib.token
 	]
 	
 	err = http.request(method, url, headers, query)

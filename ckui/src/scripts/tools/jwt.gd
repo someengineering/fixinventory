@@ -2,35 +2,50 @@ extends Node
 
 signal jwt_generated
 
+var token := ""
 
 func _ready():
 	_e.connect("create_jwt", self, "create_jwt")
 
 
+func jwt_check_timeout():
+	return false
+
+
 func create_jwt(data:String, secret:String):
-	emit_signal( "jwt_generated", jwt(data, secret) )
+	token = jwt(data, secret)
+	var token_test = key_from_psk(secret)
+	emit_signal( "jwt_generated" )
 
 
 func jwt(data:String, secret:String):
 	var expire = OS.get_unix_time() + 300
 	var crypto = Crypto.new()
-
+	
+	var new_crypto = Crypto.new()
+	var salt : PoolByteArray = new_crypto.generate_random_bytes(16)
+	var salt_base64 = base64urlencode( Marshalls.raw_to_base64( salt ))
+	
+	#var salted_key = key_from_psk(secret, salt)
+	var salted_key = crypto.hmac_digest( HashingContext.HASH_SHA256, str(secret).to_utf8(), salt )
+	
 	var header = {
 		"alg": "HS256",
-		"typ": "JWT"
+		"typ": "JWT",
+		"salt": salt_base64
 	}
 	var payload = {
 		"exp": expire,
 		"data": data
 	}
 
-	var header_base64 = base64urlencode(Marshalls.utf8_to_base64(JSON.print(header)))
-	var payload_base64 = base64urlencode(Marshalls.utf8_to_base64(JSON.print(payload)))
+	var header_base64 = base64urlencode( Marshalls.utf8_to_base64(JSON.print(header)) )
+	var payload_base64 = base64urlencode( Marshalls.utf8_to_base64(JSON.print(payload)) )
 	
 	var signing_content = header_base64 + "." + payload_base64
 	
-	var signature = crypto.hmac_digest(HashingContext.HASH_SHA256, secret.to_utf8(), signing_content.to_utf8())
-	signature =  base64urlencode(Marshalls.raw_to_base64(signature))
+	var signature = crypto.hmac_digest( HashingContext.HASH_SHA256, salted_key, signing_content.to_utf8() )
+	signature =  base64urlencode( Marshalls.raw_to_base64(signature) )
 
 	var jwt = signing_content + "." + signature
 	return jwt
@@ -72,10 +87,12 @@ static func pbkdf2(hash_type: int, password: PoolByteArray, salt: PoolByteArray,
 
 
 static func base64urlencode(base64_input):
-	return str(base64_input).replace("+", "-").replace("/", "_").trim_suffix("==")
+	return str(base64_input).replace("+", "-").replace("/", "_").trim_suffix("=").trim_suffix("=")
 
-#static func key_from_psk( psk: String, salt: PoolByteArray = [] ) -> Dictionary:
-#	if salt.empty():
-#		salt = Crypto.new().generate_random_bytes(16)
-#	var key = pbkdf2(HashingContext.HASH_SHA256, str(psk).to_utf8(), salt, 100000)
-#	return {"key": key, "salt": salt}
+
+static func key_from_psk( psk: String, salt: PoolByteArray = [] ) -> Dictionary:
+	if salt.empty():
+		var new_crypto = Crypto.new()
+		salt = new_crypto.generate_random_bytes(16)
+	var key = pbkdf2(HashingContext.HASH_SHA256, psk.to_utf8(), salt, 100000)
+	return {"key": key, "salt": salt}

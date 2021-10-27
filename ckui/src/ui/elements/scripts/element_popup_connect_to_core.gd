@@ -80,6 +80,9 @@ func api_response( chunk:String ):
 	
 
 func api_response_finished():
+	if api_response_data[0] == null:
+		status.text = "No Graphs found!"
+		return
 	$Margin/MarginContainer/Content/VBoxContainer/GraphSelect.show()
 	status.text = "Select Graph"
 	for i in api_response_data.values():
