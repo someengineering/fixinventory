@@ -1,16 +1,20 @@
 import logging
+import os
 import re
+import shutil
+import tempfile
 from datetime import timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import pytest
 from _pytest.logging import LogCaptureFixture
 from aiostream import stream
+from aiostream.core import Stream
 from pytest import fixture
 
 from core.cli.cli import CLI
 
-from core.cli.command import CLIDependencies
+from core.cli.command import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
@@ -18,6 +22,8 @@ from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
 from core.types import Json
 from core.util import first, exist, AccessJson
+
+from tests.core.util_test import not_in_path
 
 # noinspection PyUnresolvedReferences
 from tests.core.cli.cli_test import cli, cli_deps
@@ -347,3 +353,49 @@ async def test_aggregation_to_count_command(cli: CLI) -> None:
         stream.list,
     )
     assert result[0] == ["foo: 13", "bla: 100", "total matched: 113", "total unmatched: 0"]
+
+
+@pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
+@pytest.mark.asyncio
+async def test_system_backup_command(cli: CLI) -> None:
+    async def check_backup(res: Stream) -> None:
+        async with res.stream() as streamer:
+            only_one = True
+            async for s in streamer:
+                assert isinstance(s, str)
+                assert os.path.exists(s)
+                # backup should have size between 30k and 100k (adjust size if necessary)
+                assert 30000 < os.path.getsize(s) < 100000
+                assert only_one
+                only_one = False
+
+    await cli.execute_cli_command("system backup create", check_backup)
+
+
+@pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
+@pytest.mark.asyncio
+async def test_system_restore_command(cli: CLI) -> None:
+    tmp_dir: Optional[str] = None
+    try:
+        tmp_dir = tempfile.mkdtemp()
+        backup = os.path.join(tmp_dir, "backup")
+
+        async def move_backup(res: Stream) -> None:
+            async with res.stream() as streamer:
+                async for s in streamer:
+                    os.rename(s, backup)
+
+        await cli.execute_cli_command("system backup create", move_backup)
+        ctx = CLIContext(uploaded_files={"backup": backup})
+        restore = await cli.execute_cli_command(
+            f"BACKUP_NO_SYS_EXIT=true system backup restore {backup}", stream.list, ctx
+        )
+        assert restore == [
+            [
+                "Database has been restored successfully!",
+                "Since all data has changed in the database eventually, this service needs to be restarted!",
+            ]
+        ]
+    finally:
+        if tmp_dir:
+            shutil.rmtree(tmp_dir)

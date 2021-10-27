@@ -44,6 +44,7 @@ def main() -> None:
         "model_handler": model,
         "job_handler": task_handler,
         "worker_task_queue": worker_task_queue,
+        "args": args,
     }
     api = Api(db, model, subscriptions, task_handler, message_bus, worker_task_queue, cli, args)
 
@@ -67,5 +68,5 @@ if __name__ == "__main__":
         log.info("Stopping Cloudkeeper graph core.")
         sys.exit(0)
     except Exception as ex:
-        log.error(f"Error starting Cloudkeeper graph core: {ex}")
+        log.info(f"ckcore stopped. Reason: {ex}")
         sys.exit(1)

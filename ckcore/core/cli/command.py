@@ -6,10 +6,17 @@ import json
 import logging
 import os.path
 import re
+import shutil
+import sys
+import tarfile
+import tempfile
 from abc import abstractmethod, ABC
+from argparse import Namespace
+from asyncio.subprocess import Process
 from asyncio import iscoroutine
 from collections import defaultdict
 from dataclasses import dataclass, field
+from contextlib import suppress
 from datetime import timedelta
 from enum import Enum
 from functools import partial
@@ -22,10 +29,11 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 
+from core.async_extensions import run_async
 from core.cli import key_values_parser, strip_quotes, is_node, JsGen
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
-from core.error import CLIParseError, ClientError
+from core.error import CLIParseError, ClientError, CLIExecutionError
 from core.message_bus import MessageBus
 from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
@@ -37,7 +45,7 @@ from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path
+from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
@@ -46,6 +54,10 @@ log = logging.getLogger(__name__)
 class CLIDependencies:
     def __init__(self) -> None:
         self.lookup: Dict[str, Any] = {}
+
+    @property
+    def args(self) -> Namespace:
+        return self.lookup["args"]  # type: ignore
 
     @property
     def message_bus(self) -> MessageBus:
@@ -1862,6 +1874,188 @@ class UploadCommand(CLICommand, InternalPart):
         return "only for debugging purposes..."
 
 
+class SystemCommand(CLICommand):
+    """
+    Usage: system backup create [name]
+           system backup restore <path>
+
+    system backup create [name]:
+
+    Create a system backup for the complete database, which contains:
+    - backup of all graph data
+    - backup of all model data
+    - backup of all persisted jobs/tasks data
+    - backup of all subscribers data
+    - backup of all configuration data
+
+    This backup can be restored via system backup restore.
+    Since this command creates a complete backup, it can be restored to an empty database.
+
+    Note: a backup acquires a global write lock. This basically means, that *no write* can be
+          performed, while the backup is created!
+    Note: the backup is not encrypted.
+
+    Parameter:
+        name [optional] - name of the backup file.
+                          If no name is provided the name will be `backup_yyyyMMdd_hmm`.
+                          Example: backup_20211022_1028
+
+    Example:
+        system backup create                  # this will create a backup written to backup_{time_now}.
+        system backup create backup bck_1234  # this will create a backup written to bck_1234.
+
+
+    system backup restore:
+
+    Restores the complete database state from a previously generated backup.
+    All existing data in the database will be overwritten.
+    This command will not wipe any existing data: if there are collections in the database, that are not included
+    in the backup, it will not be deleted by this process.
+    In order to restore exactly the same state as in the backup, you should start from an empty database.
+
+    Note: a backup acquires a global write lock. This basically means, that *no write* can be
+          performed, while the backup is restored!
+    Note: After the restore process is done, the ckcore process will stop. It should be restarted by
+          the process supervisor automatically. The restart is necessary to take effect from the changed
+          underlying data source.
+
+    path [mandatory] - path to the local backup file.
+
+    Example:
+        system backup restore /path/to/backup    # this will restore the backup from the given local path.
+
+    """
+
+    @property
+    def name(self) -> str:
+        return "system"
+
+    def info(self) -> str:
+        return "Access and manage system wide properties."
+
+    async def create_backup(self, arg: Optional[str]) -> AsyncGenerator[str, None]:
+        temp_dir: str = tempfile.mkdtemp()
+        maybe_proc: Optional[Process] = None
+        try:
+            args = self.dependencies.args
+            if not shutil.which("arangodump"):
+                raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
+            # fmt: off
+            process = await asyncio.create_subprocess_exec(
+                "arangodump",
+                "--progress", "false",           # do not show progress
+                "--threads", "8",                # default is 2
+                "--log.level", "error",          # only print error messages
+                "--output-directory", temp_dir,  # directory to write to
+                "--overwrite", "true",           # required for existing directories
+                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
+                "--server.database", args.graphdb_database,
+                "--server.username", args.graphdb_username,
+                "--server.password", args.graphdb_password,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            # fmt: on
+            _, stderr = await process.communicate()
+            maybe_proc = process
+            code = await process.wait()
+            if code == 0:
+                files = os.listdir(temp_dir)
+                name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
+                backup = os.path.join(temp_dir, name)
+                # create an unzipped tarfile (all of the entries are already gzipped)
+                with tarfile.open(backup, "w") as tar:
+                    for file in files:
+                        await run_async(tar.add, os.path.join(temp_dir, file), file)
+                yield backup
+            else:
+                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr.decode()}")
+        finally:
+            if maybe_proc and maybe_proc.returncode is None:
+                with suppress(Exception):
+                    maybe_proc.kill()
+                    await asyncio.sleep(5)
+            shutil.rmtree(temp_dir)
+
+    async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncGenerator[str, None]:
+        if not backup_file:
+            raise CLIExecutionError(f"No backup file defined: {backup_file}")
+        if not os.path.exists(backup_file):
+            raise CLIExecutionError(f"Provided backup file does not exist: {backup_file}")
+        if not shutil.which("arangorestore"):
+            raise CLIParseError("db_restore expects the executable `arangorestore` to be in path!")
+
+        temp_dir: str = tempfile.mkdtemp()
+        maybe_proc: Optional[Process] = None
+        try:
+            # extract tar file
+            with tarfile.open(backup_file, "r") as tar:
+                tar.extractall(temp_dir)
+
+            # fmt: off
+            args = self.dependencies.args
+            process = await asyncio.create_subprocess_exec(
+                "arangorestore",
+                "--progress", "false",           # do not show progress
+                "--threads", "8",                # default is 2
+                "--log.level", "error",          # only print error messages
+                "--input-directory", temp_dir,   # directory to write to
+                "--overwrite", "true",           # required for existing db collections
+                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
+                "--server.database", args.graphdb_database,
+                "--server.username", args.graphdb_username,
+                "--server.password", args.graphdb_password,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            # fmt: on
+            _, stderr = await process.communicate()
+            maybe_proc = process
+            code = await process.wait()
+            if code == 0:
+                yield "Database has been restored successfully!"
+            else:
+                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr.decode()}")
+        finally:
+            if maybe_proc and maybe_proc.returncode is None:
+                with suppress(Exception):
+                    maybe_proc.kill()
+                    await asyncio.sleep(5)
+            shutil.rmtree(temp_dir)
+            log.info("Restore process complete. Restart the service.")
+            yield "Since all data has changed in the database eventually, this service needs to be restarted!"
+            # for testing purposes, we can avoid sys exit
+            if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
+
+                async def wait_and_exit() -> None:
+                    log.info("Database was restored successfully - going to STOP the service!")
+                    await asyncio.sleep(1)
+                    sys.exit(0)
+
+                # create a background task, so that the current request can be executed completely
+                asyncio.create_task(wait_and_exit())
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        parts = re.split(r"\s+", arg if arg else "")
+        if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
+            rest = parts[2:]
+
+            def backup() -> AsyncGenerator[str, None]:
+                return self.create_backup(" ".join(rest) if rest else None)
+
+            return CLISource(backup, MediaType.FilePath)
+
+        elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
+            backup_file = parts[2]
+
+            def restore() -> AsyncGenerator[str, None]:
+                return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
+
+            return CLISource(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
+        else:
+            raise CLIParseError(f"system: Can not parse {arg}")
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return [
         AddJobCommand(d),
@@ -1897,6 +2091,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SleepCommand(d),
         StartTaskCommand(d),
         SuccessorPart(d),
+        SystemCommand(d),
         TagCommand(d),
         TailCommand(d),
         TasksCommand(d),

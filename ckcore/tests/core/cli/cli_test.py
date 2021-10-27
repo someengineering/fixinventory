@@ -17,6 +17,7 @@ from core.cli.command import (
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
+from core.dependencies import parse_args
 from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
@@ -45,11 +46,13 @@ def cli_deps(
     db_access = DbAccess(filled_graph_db.db.db, message_bus, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
     deps = CLIDependencies()
+    args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     deps.lookup = {
         "message_bus": message_bus,
         "db_access": db_access,
         "model_handler": model_handler,
         "worker_task_queue": task_queue,
+        "args": args,
     }
     return deps
 

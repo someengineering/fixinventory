@@ -25,11 +25,8 @@ from aiohttp import (
     MultipartReader,
 )
 
-# noinspection PyProtectedMember
-from aiohttp.helpers import content_disposition_header
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
-from aiohttp.web_fileresponse import FileResponse
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from networkx.readwrite import cytoscape_data
@@ -624,7 +621,7 @@ class Api:
                     name = part.name
                     if not name:
                         raise AttributeError("Multipart request: content disposition name is required!")
-                    path = os.path.join(temp, rnd_str())  # filename is random, in case of overlapping requirements
+                    path = os.path.join(temp, rnd_str())  # use random local path to avoid clashes
                     files[name] = path
                     with open(path, "wb") as writer:
                         while not part.at_eof():
@@ -647,7 +644,11 @@ class Api:
         content_type = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
-        mp_response = web.HTTPOk(headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"})
+        mp_response = web.StreamResponse(
+            status=200,
+            reason="OK",
+            headers={"Content-Type": f"multipart/mixed;boundary={boundary}"},
+        )
 
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
@@ -657,17 +658,13 @@ class Api:
             first_result = parsed[0]
             # flat the results from 0 or 1
             async with stream.iterate(first_result.generator).stream() as streamer:
+                gen = await force_gen(streamer)
                 if first_result.produces.json:
-                    return await self.stream_response_from_gen(request, streamer)
+                    return await self.stream_response_from_gen(request, gen)
                 elif first_result.produces.file_path:
-                    files = [elem async for elem in streamer]
-                    if len(files) == 1:
-                        dph = content_disposition_header("attachment", True, filename=os.path.basename(files[0]))
-                        return FileResponse(files[0], headers={"Content-Disposition": dph})
-                    else:
-                        await mp_response.prepare(request)
-                        await Api.multi_file_response(files, boundary, mp_response)
-                        return mp_response
+                    await mp_response.prepare(request)
+                    await Api.multi_file_response(gen, boundary, mp_response)
+                    return mp_response
                 else:
                     raise AttributeError(f"Can not handle type: {first_result.produces}")
         elif len(parsed) > 1:
@@ -681,7 +678,7 @@ class Api:
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
-                        await Api.multi_file_response([elem async for elem in gen], boundary, mp_response)
+                        await Api.multi_file_response(gen, boundary, mp_response)
                     else:
                         raise AttributeError(f"Can not handle type: {single.produces}")
             await mp_response.write_eof()
@@ -800,8 +797,8 @@ class Api:
             return respond_json()
 
     @staticmethod
-    async def multi_file_response(results: List[str], boundary: str, response: StreamResponse) -> None:
-        for file_name in results:
+    async def multi_file_response(results: AsyncGenerator[str, None], boundary: str, response: StreamResponse) -> None:
+        async for file_name in results:
             with open(file_name, "rb") as content:
                 with MultipartWriter("application/octet-stream", boundary) as mp:
                     mp.append_payload(BufferedReaderPayload(content))

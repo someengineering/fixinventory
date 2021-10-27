@@ -1,10 +1,18 @@
 import json
+import shutil
 
 import pytest
 from aiostream import stream
 from copy import deepcopy
 
 from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get, set_value_in_path, rnd_str
+
+
+def not_in_path(name: str, *other: str) -> bool:
+    for n in [name, *other]:
+        if shutil.which(n) is None:
+            return True
+    return False
 
 
 def test_access_json() -> None:

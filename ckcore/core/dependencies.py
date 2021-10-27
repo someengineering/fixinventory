@@ -64,7 +64,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "--graphdb-no-ssl-verify",
         action="store_true",
         dest="graphdb_no_ssl_verify",
-        help="If the connection should be verified (default: False)",
+        help="If the connection should not be verified (default: False)",
     )
     parser.add_argument(
         "--graphdb-request-timeout",
