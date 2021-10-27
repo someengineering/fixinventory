@@ -621,7 +621,7 @@ class Api:
                     name = part.name
                     if not name:
                         raise AttributeError("Multipart request: content disposition name is required!")
-                    path = os.path.join(temp, name)
+                    path = os.path.join(temp, rnd_str())  # use random local path to avoid clashes
                     files[name] = path
                     with open(path, "wb") as writer:
                         while not part.at_eof():
@@ -644,7 +644,11 @@ class Api:
         content_type = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
-        mp_response = web.HTTPOk(headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"})
+        mp_response = web.StreamResponse(
+            status=200,
+            reason="OK",
+            headers={"Content-Type": f"multipart/mixed;boundary={boundary}"},
+        )
 
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
