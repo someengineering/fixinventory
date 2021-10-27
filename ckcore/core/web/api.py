@@ -50,7 +50,7 @@ from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
-from core.util import uuid_str, value_in_path, set_value_in_path, force_gen
+from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
@@ -644,11 +644,7 @@ class Api:
         content_type = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
-        mp_response = web.StreamResponse(
-            status=200,
-            reason="OK",
-            headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"},
-        )
+        mp_response = web.HTTPOk(headers={"Content-Type": f"multipart/x-mixed-replace;boundary={boundary}"})
 
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]

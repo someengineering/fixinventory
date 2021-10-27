@@ -5,7 +5,7 @@ import pytest
 from aiostream import stream
 from copy import deepcopy
 
-from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get, set_value_in_path
+from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get, set_value_in_path, rnd_str
 
 
 def not_in_path(name: str, *other: str) -> bool:
@@ -34,6 +34,10 @@ def test_uuid() -> None:
     assert uuid_str("foo") == uuid_str("foo")
     assert uuid_str("foo") != uuid_str("bla")
     assert uuid_str() != uuid_str()
+
+
+def test_random_str() -> None:
+    assert rnd_str() != rnd_str()
 
 
 def test_value_in_path() -> None:
