@@ -24,7 +24,7 @@ func jwt(data:String, secret:String):
 	
 	var new_crypto = Crypto.new()
 	var salt : PoolByteArray = new_crypto.generate_random_bytes(16)
-	var salt_base64 = base64urlencode( Marshalls.raw_to_base64( salt ))
+	var salt_base64 = Marshalls.raw_to_base64( salt )
 	
 	#var salted_key = key_from_psk(secret, salt)
 	var salted_key = crypto.hmac_digest( HashingContext.HASH_SHA256, str(secret).to_utf8(), salt )

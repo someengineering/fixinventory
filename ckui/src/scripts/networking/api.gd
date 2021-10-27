@@ -51,9 +51,8 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, timeout := 10 
 func send_request( method := HTTPClient.METHOD_GET, url := "/graph", query := "" ):
 	if jwtlib.token == "" or !jwtlib.jwt_check_timeout():
 		_e.emit_signal("create_jwt", "bla", psk)
-		#yield(jwtlib, "jwt_generated")
 	
-	print(jwtlib.token)
+	debug_message( "JWT:" + str(jwtlib.token) )
 	
 	if http.get_status() != HTTPClient.STATUS_CONNECTED:
 		debug_message("Problem with connection!")
