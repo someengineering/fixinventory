@@ -11,7 +11,7 @@ class NodePath:
     reported_ctime = ["reported", "ctime"]
     reported_id = ["reported", "id"]
     reported_name = ["reported", "name"]
-    successor_summary = ["metadata", "successor_summary"]
+    descendant_summary = ["metadata", "descendant_summary"]
 
 
 @dataclass(frozen=True)
@@ -85,8 +85,8 @@ class GraphResolver:
 
     count_successors = {
         # note: order is important. zone is computed first and can be reused for region -> account -> cloud etc.
-        "zone": ResolveProp(NodePath.reported_kind, NodePath.successor_summary),
-        "region": ResolveProp(NodePath.reported_kind, NodePath.successor_summary),
-        "account": ResolveProp(NodePath.reported_kind, NodePath.successor_summary),
-        "cloud": ResolveProp(NodePath.reported_kind, NodePath.successor_summary),
+        "zone": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
+        "region": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
+        "account": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
+        "cloud": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
     }

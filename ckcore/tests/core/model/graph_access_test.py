@@ -303,11 +303,11 @@ def test_resolve_graph_data() -> None:
     assert n1.metadata.ancestors.region.id == "id_region_account_cloud_gcp_1_europe"
     assert n1.metadata.ancestors.region.name == "name_region_account_cloud_gcp_1_europe"
     # make sure there is no summary
-    assert n1.metadata.successor_summary == AccessNone(None)
+    assert n1.metadata.descendant_summary == AccessNone(None)
 
     r1 = AccessJson(graph.node("region_account_cloud_gcp_1_europe"))  # type: ignore
-    assert r1.metadata.successor_summary == {"parent": 3, "child": 9}
+    assert r1.metadata.descendant_summary == {"parent": 3, "child": 9}
     r2 = AccessJson(graph.node("account_cloud_gcp_1"))  # type: ignore
-    assert r2.metadata.successor_summary == {"parent": 18, "child": 54, "region": 6}
+    assert r2.metadata.descendant_summary == {"parent": 18, "child": 54, "region": 6}
     r3 = AccessJson(graph.node("cloud_gcp"))  # type: ignore
-    assert r3.metadata.successor_summary == {"parent": 54, "child": 162, "region": 18, "account": 3}
+    assert r3.metadata.descendant_summary == {"parent": 54, "child": 162, "region": 18, "account": 3}

@@ -250,7 +250,7 @@ class GraphAccess:
                 if isinstance(extracted, str):
                     result[extracted] = result.get(extracted, 0) + 1
                 # check if there is already a successor summary. If yes, we can stop the traversal and take the result.
-                summary = value_in_path(node, NodePath.successor_summary)
+                summary = value_in_path(node, NodePath.descendant_summary)
                 if summary and isinstance(summary, dict):
                     for summary_item, count in summary.items():
                         result[summary_item] = result.get(summary_item, 0) + count
