@@ -1,6 +1,8 @@
 import logging
+import re
 from argparse import Namespace
 from contextvars import ContextVar
+from re import RegexFlag
 from typing import Any, Dict
 
 
@@ -29,15 +31,20 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
     return await handler(request)
 
 
-AlwaysAllowed = {"/metrics"}
+AlwaysAllowed = ["/metrics", "/api-doc/.*", "/system/.*"]
 
 
 def check_jwt(psk: str) -> Middleware:
+    def always_allowed(request: Request) -> bool:
+        for path in AlwaysAllowed:
+            if re.fullmatch(path, request.path, RegexFlag.IGNORECASE):
+                return True
+        return False
+
     @middleware
     async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
         auth_header = request.headers.get("authorization")
-
-        if request.path in AlwaysAllowed:
+        if always_allowed(request):
             return await handler(request)
         elif auth_header:
             try:

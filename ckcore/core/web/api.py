@@ -162,6 +162,9 @@ class Api:
                 web.get("/config/{config_id}", self.get_config),
                 web.patch("/config/{config_id}", self.patch_config),
                 web.delete("/config/{config_id}", self.delete_config),
+                # system operations
+                web.get("/system/ping", self.ping),
+                web.get("/system/ready", self.ready),
             ]
         )
         SwaggerFile(
@@ -169,6 +172,14 @@ class Api:
             spec_file=f"{static_path}/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
+
+    @staticmethod
+    async def ping(_: Request) -> StreamResponse:
+        return web.HTTPOk(text="pong", content_type="text/plain")
+
+    @staticmethod
+    async def ready(_: Request) -> StreamResponse:
+        return web.HTTPOk()
 
     async def list_configs(self, _: Request) -> StreamResponse:
         configs = {config.id: config.config async for config in self.db.config_entity_db.all()}
