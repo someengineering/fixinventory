@@ -214,11 +214,9 @@ class GraphAccess:
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
-        log.info("Resolve attributes in graph")
         for node_id in self.nodes:
             self.__resolve(node_id, self.nodes[node_id])
         self.__resolve_count_successors()
-        log.info("Resolve attributes finished.")
 
     def root(self) -> str:
         return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
