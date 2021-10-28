@@ -1598,6 +1598,35 @@ paths:
 
     # endregion
 
+    # region system
+    /system/ready:
+        get:
+            summary: This endpoint signals if the system is ready to serve traffic.
+            tags:
+                - system
+            responses:
+                "200":
+                    description: "This response code signals, that the system is ready."
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+                                example: "200: OK"
+    /system/ping:
+        get:
+            summary: Send a ping to the system and expect a pong.
+            tags:
+                - system
+            responses:
+                "200":
+                    description: "The pong answer"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+                                example: pong
+
+    # endregion
 components:
     schemas:
         Config:
