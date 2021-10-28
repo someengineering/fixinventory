@@ -1,7 +1,13 @@
 extends Node
 
 # Start docker with:
+# docker run -p 8900:8900 ghcr.io/someengineering/cloudkeeper:latest --host 0.0.0.0
+#
+# Or start docker without JWT auth
+# ( NOT recommended and NOT necessary anymore ):
 # docker run -p 8900:8900 -e PSK="" ghcr.io/someengineering/cloudkeeper:latest --host 0.0.0.0
+
+const DEBUG_MESSAGES := false
 
 signal api_connected
 signal api_response
@@ -9,7 +15,6 @@ signal api_response_finished
 
 var http = HTTPClient.new()
 var err = 0
-var debug := true
 var psk := "changeme"
 
 onready var jwtlib = $JWT
@@ -49,10 +54,8 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, timeout := 10 
 
 
 func send_request( method := HTTPClient.METHOD_GET, url := "/graph", query := "" ):
-	if jwtlib.token == "" or !jwtlib.jwt_check_timeout():
+	if jwtlib.token == "" or !jwtlib.token_expired():
 		_e.emit_signal("create_jwt", "bla", psk)
-	
-	debug_message( "JWT:" + str(jwtlib.token) )
 	
 	if http.get_status() != HTTPClient.STATUS_CONNECTED:
 		debug_message("Problem with connection!")
@@ -134,5 +137,5 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", query := ""
 #		print("Result: ", result)
 
 func debug_message( message:String ):
-	if debug:
+	if DEBUG_MESSAGES:
 		print(message)

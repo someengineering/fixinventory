@@ -1,15 +1,21 @@
 extends Node
 
+const EXPIRE_THRESHOLD := 5
+
 signal jwt_generated
 
 var token := ""
+var token_expire := 0
+var print_token := false
 
 func _ready():
 	_e.connect("create_jwt", self, "create_jwt")
 
 
-func jwt_check_timeout():
-	return false
+func token_expired():
+	var token_expired = OS.get_unix_time() - EXPIRE_THRESHOLD > token_expire
+	prints("JWT expired:", token_expired)
+	return token_expired
 
 
 func create_jwt(data:String, secret:String):
@@ -20,19 +26,18 @@ func create_jwt(data:String, secret:String):
 
 func jwt(data:String, secret:String):
 	var expire = OS.get_unix_time() + 300
+	token_expire = expire
 	var crypto = Crypto.new()
 	
 	var new_crypto = Crypto.new()
 	var salt : PoolByteArray = new_crypto.generate_random_bytes(16)
-	var salt_base64 = Marshalls.raw_to_base64( salt )
 	
-	#var salted_key = key_from_psk(secret, salt)
-	var salted_key = crypto.hmac_digest( HashingContext.HASH_SHA256, str(secret).to_utf8(), salt )
-	
+	var salted_key = key_from_psk(secret, salt)
+
 	var header = {
 		"alg": "HS256",
 		"typ": "JWT",
-		"salt": salt_base64
+		"salt": Marshalls.raw_to_base64( salt )
 	}
 	var payload = {
 		"exp": expire,
@@ -41,13 +46,16 @@ func jwt(data:String, secret:String):
 
 	var header_base64 = base64urlencode( Marshalls.utf8_to_base64(JSON.print(header)) )
 	var payload_base64 = base64urlencode( Marshalls.utf8_to_base64(JSON.print(payload)) )
-	
 	var signing_content = header_base64 + "." + payload_base64
 	
-	var signature = crypto.hmac_digest( HashingContext.HASH_SHA256, salted_key, signing_content.to_utf8() )
+	var signature = crypto.hmac_digest( HashingContext.HASH_SHA256, salted_key["key"], signing_content.to_utf8() )
 	signature =  base64urlencode( Marshalls.raw_to_base64(signature) )
 
 	var jwt = signing_content + "." + signature
+	
+	if print_token:
+		print("JWT:\n" + jwt)
+	
 	return jwt
 
 
