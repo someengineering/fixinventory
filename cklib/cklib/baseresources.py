@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from datetime import datetime, timezone, timedelta
-from hashlib import sha256
 from copy import deepcopy
+import base64
+import hashlib
 import uuid
 import weakref
 import networkx.algorithms.dag
@@ -210,7 +211,13 @@ class BaseResource(ABC):
 
     @property
     def chksum(self) -> str:
-        return sha256(str(self._keys()).encode()).hexdigest()
+        return (
+            base64.urlsafe_b64encode(
+                hashlib.blake2b(str(self._keys()).encode(), digest_size=16).digest()
+            )
+            .decode("utf-8")
+            .rstrip("=")
+        )
 
     @property
     def age(self) -> Optional[timedelta]:
