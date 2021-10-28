@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple
@@ -15,6 +16,8 @@ from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc, utc_str, value_in_path, set_value_in_path
+
+log = logging.getLogger(__name__)
 
 
 class Section:
@@ -117,6 +120,7 @@ class GraphBuilder:
             hash=sha,
             kind=kind,
             kinds=list(kind.kind_hierarchy()),
+            kinds_set=kind.kind_hierarchy(),
             flat=flat,
             replace=replace,
         )
@@ -210,6 +214,11 @@ class GraphAccess:
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
+        log.info("Resolve attributes in graph")
+        for node_id in self.nodes:
+            self.__resolve(node_id, self.nodes[node_id])
+        self.__resolve_count_successors()
+        log.info("Resolve attributes finished.")
 
     def root(self) -> str:
         return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
@@ -228,7 +237,37 @@ class GraphAccess:
             self.visited_edges.add((from_id, to_id, edge_type))
         return result
 
-    def resolve(self, node_id: str, node: Json) -> Json:
+    def __count_successors_by(self, node_id: str, edge_type: str, path: List[str]) -> Dict[str, int]:
+        result: Dict[str, int] = {}
+        to_visit = list(self.successors(node_id, edge_type))
+        while to_visit:
+            visit_next: List[str] = []
+            visited: Set[str] = set()
+            for elem_id in to_visit:
+                node = self.nodes[elem_id]
+                extracted = value_in_path(node, path)
+                visited.add(elem_id)
+                if isinstance(extracted, str):
+                    result[extracted] = result.get(extracted, 0) + 1
+                # check if there is already a successor summary. If yes, we can stop the traversal and take the result.
+                summary = value_in_path(node, NodePath.successor_summary)
+                if summary and isinstance(summary, dict):
+                    for summary_item, count in summary.items():
+                        result[summary_item] = result.get(summary_item, 0) + count
+                else:
+                    visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
+            to_visit = visit_next
+        return result
+
+    def __resolve_count_successors(self) -> None:
+        for on_kind, prop in GraphResolver.count_successors.items():
+            for node_id, node in self.g.nodes(data=True):
+                kinds = node.get("kinds_set")
+                if kinds and on_kind in kinds:
+                    summary = self.__count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
+                    set_value_in_path(summary, prop.to_path, node)
+
+    def __resolve(self, node_id: str, node: Json) -> Json:
         def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:
             extracted = value_in_path(ancestor, prop.extract_path)
             if extracted:
@@ -243,7 +282,7 @@ class GraphAccess:
         return node
 
     def dump(self, node_id: str, node: Json) -> Json:
-        return self.dump_direct(node_id, self.resolve(node_id, node))
+        return self.dump_direct(node_id, node)
 
     def predecessors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
         for pred_id in self.g.predecessors(node_id):

@@ -269,6 +269,9 @@ class AccessNone:
     def __str__(self) -> str:
         return str(self.__not_existent)
 
+    def __eq__(self, other: Any) -> bool:
+        return other is None or isinstance(other, AccessNone)
+
 
 class AccessJson(Dict[Any, Any]):
     """
