@@ -39,6 +39,7 @@ from core.query.query_parser import (
     sort_parser,
     limit_parser,
     with_clause_parser,
+    section_abbreviation_names,
 )
 
 
@@ -128,7 +129,7 @@ def test_part() -> None:
 
 def test_query() -> None:
     query = (
-        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59), preamble={"edge_type": EdgeType.default})
+        Query.by("ec2", P("cpu") > 4, (P("mem") < 23) | (P("mem") < 59), preamble={"merge_with_ancestors": "cloud"})
         .traverse_out()
         .filter(P("some.int.value") < 1, P("some.other") == 23)
         .traverse_out()
@@ -140,7 +141,7 @@ def test_query() -> None:
     )
     assert (
         str(query)
-        == 'aggregate(foo: sum(cpu))(edge_type="dependency"):'
+        == 'aggregate(foo: sum(cpu))(merge_with_ancestors="cloud"):'
         + '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
         + "(some.int.value < 1 and some.other == 23) --> "
         + '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
@@ -151,13 +152,17 @@ def test_query() -> None:
 
 def test_query_with_preamble() -> None:
     query_parser.parse('id("root")')  # no preamble
-    query_parser.parse('match: id("root")')  # match preamble
-    query_parser.parse('match(): id("root")')  # match preamble
     query = query_parser.parse('(edge_type=delete): id("root") -[0:1]->')
     assert query.parts[0].navigation.edge_type == "delete"
     query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
     assert query.aggregate.group_by[0].name == AggregateVariableName("region")
     assert query.aggregate.group_func[0].name == "cpu"
+
+
+def test_query_with_section_name_preamble() -> None:
+    for abbrev, sect in section_abbreviation_names.items():
+        query = query_parser.parse(f"{abbrev}: a==1 or (b==2 and c==3) -[0:1]-> d==4")
+        assert str(query) == f"({sect}.a == 1 or ({sect}.b == 2 and {sect}.c == 3)) -[0:1]-> {sect}.d == 4"
 
 
 def test_preamble_tags() -> None:

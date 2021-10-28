@@ -65,7 +65,9 @@ operation_p = (
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
 
 
-preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
+preamble_prop_p = reduce(
+    lambda x, y: x | y, [lexeme(string(a)) for a in ["section", "edge_type", "merge_with_ancestors"]]
+)
 
 
 @make_parser
@@ -185,7 +187,7 @@ def part_parser() -> Parser:
 
 
 @make_parser
-def key_value_parser() -> Parser:
+def key_value_preamble_parser() -> Parser:
     key = yield preamble_prop_p
     yield equals_p
     value = yield quoted_string_p | true_p | false_p | float_p | integer_p | literal_p
@@ -195,9 +197,31 @@ def key_value_parser() -> Parser:
 @make_parser
 def preamble_tags_parser() -> Parser:
     yield lparen_p
-    key_values = yield key_value_parser.sep_by(comma_p)
+    key_values = yield key_value_preamble_parser.sep_by(comma_p)
     yield rparen_p
     return dict(key_values)
+
+
+section_abbreviation_names = {
+    "reported": "reported",
+    "rep": "reported",
+    "r": "reported",
+    "metadata": "metadata",
+    "meta": "metadata",
+    "m": "metadata",
+    "desired": "desired",
+    "des": "desired",
+    "d": "desired",
+}
+section_name_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in section_abbreviation_names])
+no_dot = lexeme(regex("[^.]"))
+
+
+@make_parser
+def section_name_parser() -> Parser:
+    abbrev = yield section_name_p
+    yield parsy.peek(no_dot)  # make sure, there is no dot after the section name
+    return {"section": section_abbreviation_names[abbrev]}
 
 
 as_p = lexeme(string("as"))
@@ -269,19 +293,13 @@ def aggregate_parser() -> Parser:
 
 
 @make_parser
-def match_parser() -> Parser:
-    yield match_p
-    yield lparen_p.optional()
-    yield rparen_p.optional()
-    # a preamble of match() is the default query behaviour and only here for syntactic sugar
-    return None
-
-
-@make_parser
 def preamble_parser() -> Parser:
-    maybe_aggregate = yield (aggregate_parser | match_parser).optional()
+    maybe_aggregate = yield aggregate_parser.optional()
     maybe_preamble = yield preamble_tags_parser.optional()
-    preamble = maybe_preamble if maybe_preamble else {}
+    section_preamble = yield section_name_parser.optional()
+    pr = maybe_preamble if maybe_preamble else {}
+    sp = section_preamble if section_preamble else {}
+    preamble = {**pr, **sp}
     yield colon_p if maybe_aggregate or maybe_preamble else colon_p.optional()
     return maybe_aggregate, preamble
 
@@ -318,24 +336,32 @@ def query_parser() -> Parser:
     if edge_type not in EdgeType.all:
         raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.all}")
 
-    def set_in_with_clause(wc: WithClause) -> WithClause:
-        nav = wc.navigation
-        if wc.navigation and not wc.navigation.edge_type:
-            nav = replace(nav, edge_type=edge_type)
-        inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
-        return replace(wc, navigation=nav, with_clause=inner)
+    def set_edge_type_if_not_set(part: Part) -> Part:
+        def set_in_with_clause(wc: WithClause) -> WithClause:
+            nav = wc.navigation
+            if wc.navigation and not wc.navigation.edge_type:
+                nav = replace(nav, edge_type=edge_type)
+            inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
+            return replace(wc, navigation=nav, with_clause=inner)
 
-    def set_in_part(part: Part) -> Part:
         nav = part.navigation
         if part.navigation and not part.navigation.edge_type:
             nav = replace(nav, edge_type=edge_type)
-        wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
-        return replace(part, navigation=nav, with_clause=wc)
+        adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
+        return replace(part, navigation=nav, with_clause=adapted_wc)
 
-    adapted = [set_in_part(part) for part in parts]
+    def adapt_section(query: Query) -> Query:
+        section = preamble.get("section")
+        return query.on_section(section) if section else query
+
+    adapted = [set_edge_type_if_not_set(part) for part in parts]
     sort = yield sort_parser.optional()
     limit = yield limit_parser.optional()
-    return Query(adapted[::-1], preamble, maybe_aggregate, sort, limit)
+    # remove values from preamble, that are only used at parsing time
+    resulting_preamble = preamble.copy()
+    for key in ["section", "edge_type"]:
+        resulting_preamble.pop(key, None)
+    return adapt_section(Query(adapted[::-1], resulting_preamble, maybe_aggregate, sort, limit))
 
 
 def parse_query(query: str) -> Query:
