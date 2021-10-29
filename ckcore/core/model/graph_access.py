@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import re
+from collections import namedtuple
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
@@ -68,6 +69,9 @@ class EdgeType:
     # The list of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
     all = {dependency, delete}
+
+
+EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
 class GraphBuilder:
@@ -204,13 +208,13 @@ class GraphAccess:
         sub: MultiDiGraph,
         maybe_root_id: Optional[str] = None,
         visited_nodes: Optional[Set[Any]] = None,
-        visited_edges: Optional[Set[Tuple[Any, Any, str]]] = None,
+        visited_edges: Optional[Set[EdgeKey]] = None,
     ):
         super().__init__()
         self.g = sub
         self.nodes = sub.nodes()
         self.visited_nodes: Set[object] = visited_nodes if visited_nodes else set()
-        self.visited_edges: Set[Tuple[object, object, str]] = visited_edges if visited_edges else set()
+        self.visited_edges: Set[EdgeKey] = visited_edges if visited_edges else set()
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
@@ -232,9 +236,10 @@ class GraphAccess:
             return None
 
     def has_edge(self, from_id: object, to_id: object, edge_type: str) -> bool:
-        result: bool = self.g.has_edge(from_id, to_id, self.edge_key(from_id, to_id, edge_type))
+        key = self.edge_key(from_id, to_id, edge_type)
+        result: bool = self.g.has_edge(from_id, to_id, key)
         if result:
-            self.visited_edges.add((from_id, to_id, edge_type))
+            self.visited_edges.add(key)
         return result
 
     def __resolve_count_descendants(self) -> None:
@@ -337,8 +342,8 @@ class GraphAccess:
         return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
 
     @staticmethod
-    def edge_key(from_node: object, to_node: object, edge_type: str) -> str:
-        return f"{from_node}_{to_node}_{edge_type}"
+    def edge_key(from_node: object, to_node: object, edge_type: str) -> EdgeKey:
+        return EdgeKey(from_node, to_node, edge_type)
 
     @staticmethod
     def root_id(graph: DiGraph) -> str:
@@ -408,7 +413,7 @@ class GraphAccess:
         # This way it is possible to have nodes in the graph that will not be touched by the update
         # while edges will be created from successors of the merge node to predecessors of the merge node.
         def merge_sub_graphs(
-            root_nodes: Dict[str, Set[str]], parent_nodes: Set[str], parent_edges: Set[Tuple[str, str, str]]
+            root_nodes: Dict[str, Set[str]], parent_nodes: Set[str], parent_edges: Set[EdgeKey]
         ) -> Generator[Tuple[str, GraphAccess], None, None]:
             all_successors: Set[str] = set()
             for root, predecessors in root_nodes.items():

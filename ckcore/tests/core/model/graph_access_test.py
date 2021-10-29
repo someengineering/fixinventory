@@ -31,18 +31,23 @@ FooTuple = collections.namedtuple(
 @fixture
 def graph_access() -> GraphAccess:
     g = MultiDiGraph()
+
+    def add_edge(from_node: str, to_node: str, edge_type: str) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        g.add_edge(from_node, to_node, key, edge_type=edge_type)
+
     g.add_node("1", reported=to_js(FooTuple("1")), desired={"name": "a"}, metadata={"version": 1}, kinds=["foo"])
     g.add_node("2", reported=to_js(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
     g.add_node("3", reported=to_js(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
     g.add_node("4", reported=to_js(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
-    g.add_edge("1", "2", "1_2_dependency", edge_type=EdgeType.dependency)
-    g.add_edge("1", "3", "1_3_dependency", edge_type=EdgeType.dependency)
-    g.add_edge("2", "3", "2_3_dependency", edge_type=EdgeType.dependency)
-    g.add_edge("2", "4", "2_4_dependency", edge_type=EdgeType.dependency)
-    g.add_edge("3", "4", "3_4_dependency", edge_type=EdgeType.dependency)
-    g.add_edge("1", "2", "1_2_delete", edge_type=EdgeType.delete)
-    g.add_edge("1", "3", "1_3_delete", edge_type=EdgeType.delete)
-    g.add_edge("1", "4", "1_4_delete", edge_type=EdgeType.delete)
+    add_edge("1", "2", edge_type=EdgeType.dependency)
+    add_edge("1", "3", edge_type=EdgeType.dependency)
+    add_edge("2", "3", edge_type=EdgeType.dependency)
+    add_edge("2", "4", edge_type=EdgeType.dependency)
+    add_edge("3", "4", edge_type=EdgeType.dependency)
+    add_edge("1", "2", edge_type=EdgeType.delete)
+    add_edge("1", "3", edge_type=EdgeType.delete)
+    add_edge("1", "4", edge_type=EdgeType.delete)
     return GraphAccess(g)
 
 
