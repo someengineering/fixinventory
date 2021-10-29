@@ -739,6 +739,8 @@ class Api:
     async def stream_response_from_gen(request: Request, gen_in: AsyncGenerator[Json, None]) -> StreamResponse:
         content_type = request.headers.get("accept", "application/json")
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type})
+        # this has to be done on response level before it is prepared
+        response.enable_compression()
         await response.prepare(request)
         # force the async generator
         gen = await force_gen(gen_in)
