@@ -68,7 +68,7 @@ class SyntheticProperty:
     def __init__(self, path: List[str]):
         self.path = path
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, SyntheticProperty) else False
 
 
@@ -88,7 +88,7 @@ class Property:
         self.description = description
         assert synthetic is None or not required, "Synthetic properties can not be required!"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Property) else False
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
@@ -707,7 +707,7 @@ class ComplexKind(Kind):
 
         return result
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, ComplexKind):
             return (
                 self.fqn == other.fqn
