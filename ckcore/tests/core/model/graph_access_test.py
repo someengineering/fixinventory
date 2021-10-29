@@ -13,6 +13,7 @@ from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
+from core.util import AccessJson, AccessNone
 from tests.core.db.graphdb_test import Foo
 
 # noinspection PyUnresolvedReferences
@@ -168,10 +169,21 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
     root = "root"
 
     def add_node(node_id: str) -> None:
-        reported = {"some": {"deep": {"nested": node_id}}}
         kind = re.sub("_.*$", "", node_id)
+        reported = {
+            "id": f"id_{node_id}",
+            "name": f"name_{node_id}",
+            "kind": kind,
+            "some": {"deep": {"nested": node_id}},
+        }
         g.add_node(
-            node_id, id=node_id, replace=node_id.startswith(replace_on), reported=reported, kind=kind, kinds=[kind]
+            node_id,
+            id=node_id,
+            replace=node_id.startswith(replace_on),
+            reported=reported,
+            kind=kind,
+            kinds=[kind],
+            kinds_set={kind},
         )
 
     def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
@@ -179,15 +191,15 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
         g.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     add_node(root)
-    for collector_d in ["aws", "gcp"]:
-        collector = f"collector_{collector_d}"
-        add_node(collector)
-        add_edge(root, collector)
+    for cloud_d in ["aws", "gcp"]:
+        cloud = f"cloud_{cloud_d}"
+        add_node(cloud)
+        add_edge(root, cloud)
         for account_d in range(0, 3):
-            account = f"account_{collector}_{account_d}"
+            account = f"account_{cloud}_{account_d}"
             add_node(account)
-            add_edge(collector, account)
-            add_edge(account, collector, EdgeType.delete)
+            add_edge(cloud, account)
+            add_edge(account, cloud, EdgeType.delete)
             for region_d in ["europe", "america", "asia", "africa", "antarctica", "australia"]:
                 region = f"region_{account}_{region_d}"
                 add_node(region)
@@ -207,15 +219,14 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
     return g
 
 
-def test_sub_graphs_from_graph_collector() -> None:
-    graph = multi_cloud_graph("collector")
+def test_sub_graphs_from_graph_cloud() -> None:
+    graph = multi_cloud_graph("cloud")
     merges, parent, graph_it = GraphAccess.merge_graphs(graph)
     graphs = list(graph_it)
     assert len(graphs) == 2
     for root, succ in graphs:
-        print(parent.nodes)
-        assert len(parent.nodes) == 3  # root + 2 x collector
-        assert succ.root().startswith("collector")
+        assert len(parent.nodes) == 3  # root + 2 x cloud
+        assert succ.root().startswith("cloud")
         assert len(list(succ.not_visited_nodes())) == 237
         assert len(succ.nodes) == 238
         # make sure there is no node from another subgraph
@@ -244,9 +255,9 @@ def test_sub_graphs_from_graph_account() -> None:
 
 def test_predecessors() -> None:
     graph = GraphAccess(multi_cloud_graph("account"))
-    child = "child_parent_region_account_collector_gcp_2_europe_1_0"
-    parent = "parent_region_account_collector_gcp_2_europe_1"
-    region = "region_account_collector_gcp_2_europe"
+    child = "child_parent_region_account_cloud_gcp_2_europe_1_0"
+    parent = "parent_region_account_cloud_gcp_2_europe_1"
+    region = "region_account_cloud_gcp_2_europe"
 
     # dependency: region -> parent -> child
     assert list(graph.predecessors(child, EdgeType.dependency)) == [parent]
@@ -261,10 +272,10 @@ def test_predecessors() -> None:
     assert region in list(graph.successors(parent, EdgeType.delete))
 
 
-def test_ancestor_with() -> None:
-    nid1 = "child_parent_region_account_collector_gcp_1_europe_1_0"
-    acc1 = "account_collector_gcp_1"
-    acc2 = "account_collector_gcp_2"
+def test_ancestor_of() -> None:
+    nid1 = "child_parent_region_account_cloud_gcp_1_europe_1_0"
+    acc1 = "account_cloud_gcp_1"
+    acc2 = "account_cloud_gcp_2"
     g = multi_cloud_graph("account")
 
     graph = GraphAccess(g)
@@ -278,3 +289,25 @@ def test_ancestor_with() -> None:
     key = GraphAccess.edge_key(acc2, nid1, EdgeType.dependency)
     g.add_edge(acc2, nid1, key, edge_type=EdgeType.dependency)
     assert graph.ancestor_of(nid1, EdgeType.dependency, "account")["id"] == acc2  # type: ignore
+
+
+def test_resolve_graph_data() -> None:
+    g = multi_cloud_graph("account")
+    graph = GraphAccess(g)
+
+    # ancestor data should be stored in metadata
+    n1 = AccessJson(graph.node("child_parent_region_account_cloud_gcp_1_europe_1_0"))  # type: ignore
+    assert n1.refs.region_id == "region_account_cloud_gcp_1_europe"
+    assert n1.metadata.ancestors.account.id == "id_account_cloud_gcp_1"
+    assert n1.metadata.ancestors.account.name == "name_account_cloud_gcp_1"
+    assert n1.metadata.ancestors.region.id == "id_region_account_cloud_gcp_1_europe"
+    assert n1.metadata.ancestors.region.name == "name_region_account_cloud_gcp_1_europe"
+    # make sure there is no summary
+    assert n1.metadata.descendant_summary == AccessNone(None)
+
+    r1 = AccessJson(graph.node("region_account_cloud_gcp_1_europe"))  # type: ignore
+    assert r1.metadata.descendant_summary == {"parent": 3, "child": 9}
+    r2 = AccessJson(graph.node("account_cloud_gcp_1"))  # type: ignore
+    assert r2.metadata.descendant_summary == {"parent": 18, "child": 54, "region": 6}
+    r3 = AccessJson(graph.node("cloud_gcp"))  # type: ignore
+    assert r3.metadata.descendant_summary == {"parent": 54, "child": 162, "region": 18, "account": 3}
