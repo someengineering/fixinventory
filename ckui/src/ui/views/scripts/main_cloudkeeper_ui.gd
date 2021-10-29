@@ -9,6 +9,7 @@ onready var ui_query = $UI/UIQueryEngine
 onready var ui_topbar = $UI/UITopbar
 onready var ui_search = $UI/UISearch
 onready var ui_blastradius = $UI/UIBlastradius
+onready var ui_commandline = $UI/UICommandLine
 
 
 var state = -1 setget set_state
@@ -17,7 +18,12 @@ var old_state = -1
 
 func _ready() -> void:
 	_g.interface = self
-	_e.emit_signal("load_nodes")
+	# This was used for local testing using JSON files in the /data directory
+#	_e.emit_signal("load_nodes")
+
+	# The new default is to connect to ckcore
+	_e.emit_signal("connect_popup")
+	
 	_e.connect("go_to_graph_node", self, "go_to_graph_node")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("load_query", self, "load_query")
@@ -31,7 +37,7 @@ func _ready() -> void:
 
 
 func _input(event) -> void:
-	if _g.spaceship_mode or _g.popup:
+	if _g.spaceship_mode or _g.popup or ui_commandline.console_open:
 		return
 	if event.is_action_pressed("ui_left"):
 		if state == states.GRAPH:
