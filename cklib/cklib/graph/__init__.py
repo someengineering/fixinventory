@@ -622,15 +622,15 @@ def validate_dataclass(node: BaseResource):
 
 
 def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
-    node_sha256s = {}
+    node_chksums = {}
     for node in graph.nodes:
         if isinstance(node, BaseResource):
             validate_dataclass(node)
-            if node.sha256 not in node_sha256s:
-                node_sha256s[node.sha256] = node
+            if node.chksum not in node_chksums:
+                node_chksums[node.chksum] = node
             else:
                 log.error(
-                    f"Duplicate checksum {node.sha256} for node {node.rtdname} in graph"
+                    f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph"
                 )
 
 
@@ -764,7 +764,7 @@ class GraphExportIterator:
             ):
                 log.error(f"One of {from_node} and {to_node} is no base resource")
                 continue
-            edge_dict = {"from": from_node.sha256, "to": to_node.sha256}
+            edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
             edge_json = json.dumps(edge_dict) + "\n"
             self.edges_sent += 1
             if (

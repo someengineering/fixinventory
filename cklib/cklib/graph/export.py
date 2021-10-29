@@ -219,7 +219,7 @@ def get_node_attributes(node: BaseResource) -> Dict:
 
 def node_to_dict(node: BaseResource) -> Dict:
     node_dict = {
-        "id": node._ckcore_id if node._ckcore_id else node.sha256,
+        "id": node._ckcore_id if node._ckcore_id else node.chksum,
         "reported": get_node_attributes(node),
         "metadata": {
             "python_type": type_str(node),

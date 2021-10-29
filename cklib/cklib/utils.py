@@ -619,8 +619,8 @@ def resource2dict(item, exclude_private=True, graph=None) -> Dict:
     out["location_name"] = location.name
     out["zone_name"] = zone.name
     out["event_log"] = item.event_log
-    out["predecessors"] = [i.sha256 for i in item.predecessors(graph)]
-    out["successors"] = [i.sha256 for i in item.successors(graph)]
+    out["predecessors"] = [i.chksum for i in item.predecessors(graph)]
+    out["successors"] = [i.chksum for i in item.successors(graph)]
     return out
 
 
