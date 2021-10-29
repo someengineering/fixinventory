@@ -87,7 +87,7 @@ func read_data( filter_by_kinds := [] ):
 				index += 1
 			
 			if index % update_mod == 0: 
-				_g.msg( "Reading file - line {0}".format([index]) )
+				_g.msg( "Reading file - line {0}".format([index]) )	
 				_e.emit_signal("loading", (float( file.get_position() ) / file_len), "Reading file" )
 				yield(get_tree(), "idle_frame")
 		
@@ -139,7 +139,7 @@ func get_graph_from_api( graph_id:String, query:String ):
 	api_response_data.clear()
 	api_error = false
 	
-	_g.main_graph.start_streaming()
+	_g.main_graph.start_streaming( graph_id )
 	_g.api.connect("api_response", self, "api_response")
 	_g.api.connect("api_response_finished", self, "api_response_finished")
 	
@@ -148,19 +148,19 @@ func get_graph_from_api( graph_id:String, query:String ):
 
 
 func api_response( chunk:String ):
-	if chunk == "" or chunk == "[" or chunk == "\n]" or chunk.begins_with("Error:"):
+	if chunk == "" or chunk == "[" or chunk == "\n]" or chunk == ",\n" or chunk.begins_with("Error:"):
 		if chunk.begins_with("Error:"):
 			api_error = true
-			print(chunk)
 		return
+	
 	var parse_result : JSONParseResult = JSON.parse( chunk.trim_prefix(",\n") )
 	if parse_result.error == OK:
 		_g.main_graph.add_streamed_object( parse_result.result )
 
-		#api_response_data[ api_response_data.size() ] = parsed_chunk
-	
 
 func api_response_finished():
+	_g.api.disconnect("api_response", self, "api_response")
+	_g.api.disconnect("api_response_finished", self, "api_response_finished")
 	if api_error:
 		print("API reported Error!")
 		return

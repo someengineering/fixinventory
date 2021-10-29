@@ -9,6 +9,7 @@ onready var ui_query = $UI/UIQueryEngine
 onready var ui_topbar = $UI/UITopbar
 onready var ui_search = $UI/UISearch
 onready var ui_blastradius = $UI/UIBlastradius
+onready var ui_commandline = $UI/UICommandLine
 
 
 var state = -1 setget set_state
@@ -36,7 +37,7 @@ func _ready() -> void:
 
 
 func _input(event) -> void:
-	if _g.spaceship_mode or _g.popup:
+	if _g.spaceship_mode or _g.popup or ui_commandline.console_open:
 		return
 	if event.is_action_pressed("ui_left"):
 		if state == states.GRAPH:

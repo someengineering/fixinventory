@@ -3,16 +3,25 @@ extends Popup
 signal create_graph
 signal use_example_data
 
-const TEXT_ERROR_CONNECTION = "Can't connect to Cloudkeeper Core!\nPlease check if ports are open and ckcore is running."
+const TEXT_ERROR_CONNECTION = "Can't connect to Cloudkeeper Core!\nPlease check if adress is correct, ports are open and ckcore is running."
+const CONNECT_TEXT = "Connecting to Cloudkeeper Core. ({0}s)\n{1}:{2}"
 
 var graph_id := "example"
 var api_response_data : Dictionary
 
-onready var output = $Margin/MarginContainer/Content/VBoxContainer/Output
-onready var ok_btn = $Margin/MarginContainer/PopupButtons/OkButton
-onready var status = $Margin/MarginContainer/Content/VBoxContainer/ConnectMessage
-onready var box = $Margin/MarginContainer/Content/VBoxContainer/CheckBox
-onready var dropdown = $Margin/MarginContainer/Content/VBoxContainer/GraphSelect/GraphDropdown
+var adress : String
+var port : int
+var psk : String
+
+onready var connect_input = find_node("ConnectInput")
+onready var connect_btn = find_node("ConnectButton")
+onready var retry_btn = find_node("RetryButton")
+onready var psk_input = find_node("PSK")
+onready var ok_btn = find_node("OkButton")
+onready var graph_dropdown = find_node("GraphDropdown")
+onready var graph_mode = find_node("GraphMode")
+onready var status = find_node("ConnectMessage")
+onready var box = find_node("CheckBox")
 
 
 func _ready():
@@ -30,6 +39,7 @@ func popup_show():
 	_g.popup = true
 	show()
 	_g.api.connect("api_connected", self, "connected_to_core_msg")
+	_g.api.connect("api_connecting_timer", self, "api_connecting_timer")
 	_g.api.connect("api_response", self, "api_response")
 	_g.api.connect("api_response_finished", self, "api_response_finished")
 
@@ -44,8 +54,19 @@ func popup_close():
 
 func popup_ok():
 	popup_close()
-	graph_id = dropdown.get_item_text(dropdown.selected)
-	var query : String = "is(graph_root) -[0:]->"
+	graph_id = graph_dropdown.get_item_text(graph_dropdown.selected)
+	
+	var query : String
+	match graph_mode.selected:
+		0:
+			query = "id(root) -[0:3]-> is(graph_root) or is(cloud) or is(account) or is(region)"
+		1:
+			query = "id(root) -[0:2]-> is(graph_root) or is(cloud) or is(account)"
+		2:
+			query = "is(graph_root) -[0:]->"
+	
+	_g.main_graph.graph_mode = graph_mode.selected
+	_g.msg( "query " + query )
 	emit_signal("create_graph", graph_id, query)
 
 
@@ -57,39 +78,59 @@ func _on_ExampleDataButton_pressed():
 
 func _on_ConnectButton_pressed():
 	# This is used to test connection to ck core
-	var adress = $Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress/AdressEdit.text
-	var port = int($Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port/PortEdit.text)
+	adress = $Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress/AdressEdit.text
+	port = int($Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port/PortEdit.text)
+	psk = $Margin/MarginContainer/Content/VBoxContainer/PSK/PSKEdit.text
 	api_response_data.clear()
-	
-	var connect_text = "Connecting to Cloudkeeper Core...\n{0}:{1}"
-	$Margin/MarginContainer/Content/VBoxContainer/ConnectInput.hide()
-	status.show()
-	status.text = connect_text.format([adress, port])
+	connect_form_visible(false)
+	status.text = CONNECT_TEXT.format(["0", adress, port])
 	yield(VisualServer, "frame_post_draw")
-	_e.emit_signal( "api_connect", adress, port, 10 )
+	_e.emit_signal( "api_connect", adress, port, psk, 10 )
 	
 	
 func connected_to_core_msg(had_timeout:bool):
-	status.text = "Connected!\nRequesting graphs..." if !had_timeout else TEXT_ERROR_CONNECTION
+	status.text = "Connected!\nGetting graphs..." if !had_timeout else TEXT_ERROR_CONNECTION
 	yield(VisualServer, "frame_post_draw")
-	_e.emit_signal("api_request")
+	if !had_timeout:
+		_e.emit_signal("api_request")
+	else:
+		retry_btn.show()
+
+func _on_RetryButton_pressed():
+	retry_btn.hide()
+	connect_form_visible(true)
+
+
+func connect_form_visible(value:bool):
+	connect_btn.visible = value
+	connect_input.visible = value
+	psk_input.visible = value
+	status.visible = !value
+
+
+func api_connecting_timer( time:float ):
+	status.text = CONNECT_TEXT.format([str( floor(time) ), adress, port])
 
 
 func api_response( chunk:String ):
 	api_response_data[ api_response_data.size() ] = parse_json(chunk)
-	
+
 
 func api_response_finished():
 	if api_response_data[0] == null:
 		status.text = "No Graphs found!"
 		return
-	$Margin/MarginContainer/Content/VBoxContainer/GraphSelect.show()
+	graph_dropdown.show()
+	graph_mode.show()
 	status.text = "Select Graph"
 	for i in api_response_data.values():
-		dropdown.add_item(i[0])
-	$Margin/MarginContainer/PopupButtons/OkButton.show()
+		graph_dropdown.add_item(i[0])
+	ok_btn.show()
 
 
 func _on_FileModeButton_pressed():
 	popup_close()
 	_e.emit_signal("load_nodes")
+
+
+

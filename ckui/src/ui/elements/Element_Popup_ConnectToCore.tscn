@@ -1,9 +1,64 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=22 format=2]
 
 [ext_resource path="res://ui/elements/Element_GenericButton.tscn" type="PackedScene" id=1]
-[ext_resource path="res://ui/elements/Element_Popup.tscn" type="PackedScene" id=2]
+[ext_resource path="res://assets/graphics/sci-fi/extra_border2.png" type="Texture" id=2]
 [ext_resource path="res://assets/themes/default.tres" type="Theme" id=3]
 [ext_resource path="res://ui/elements/scripts/element_popup_connect_to_core.gd" type="Script" id=4]
+[ext_resource path="res://assets/graphics/sci-fi/extra_border.png" type="Texture" id=5]
+[ext_resource path="res://assets/graphics/sci-fi/xsmall_pixels.png" type="Texture" id=6]
+
+[sub_resource type="StyleBoxFlat" id=48]
+bg_color = Color( 0.0431373, 0.117647, 0.168627, 1 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0, 1, 0.996078, 0.207843 )
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 1
+
+[sub_resource type="CanvasItemMaterial" id=42]
+blend_mode = 1
+
+[sub_resource type="CanvasItemMaterial" id=43]
+blend_mode = 1
+
+[sub_resource type="StyleBoxTexture" id=44]
+texture = ExtResource( 5 )
+region_rect = Rect2( 0, 0, 64, 64 )
+margin_left = 50.0
+margin_top = 50.0
+expand_margin_left = 5.0
+expand_margin_right = 5.0
+expand_margin_top = 5.0
+expand_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxTexture" id=45]
+texture = ExtResource( 2 )
+region_rect = Rect2( 0, 0, 64, 64 )
+margin_right = 50.0
+margin_bottom = 50.0
+expand_margin_left = 5.0
+expand_margin_right = 5.0
+expand_margin_top = 5.0
+expand_margin_bottom = 5.0
+
+[sub_resource type="CanvasItemMaterial" id=46]
+blend_mode = 1
+
+[sub_resource type="DynamicFontData" id=40]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
+
+[sub_resource type="DynamicFont" id=47]
+size = 38
+use_mipmaps = true
+use_filter = true
+extra_spacing_top = 5
+extra_spacing_char = 2
+font_data = SubResource( 40 )
 
 [sub_resource type="DynamicFontData" id=17]
 font_path = "res://assets/fonts/Lato-Regular.ttf"
@@ -14,7 +69,7 @@ use_mipmaps = true
 use_filter = true
 font_data = SubResource( 17 )
 
-[sub_resource type="StyleBoxFlat" id=45]
+[sub_resource type="StyleBoxFlat" id=49]
 content_margin_left = 8.0
 content_margin_right = 2.0
 bg_color = Color( 0, 0, 0, 0.337255 )
@@ -32,27 +87,33 @@ corner_detail = 1
 [sub_resource type="DynamicFontData" id=7]
 font_path = "res://assets/fonts/SourceCodePro-Regular.ttf"
 
-[sub_resource type="DynamicFont" id=43]
+[sub_resource type="DynamicFont" id=50]
 size = 30
 use_mipmaps = true
 use_filter = true
 extra_spacing_top = -5
 font_data = SubResource( 7 )
 
-[sub_resource type="StyleBoxEmpty" id=44]
+[sub_resource type="StyleBoxEmpty" id=51]
 content_margin_left = 8.0
 content_margin_right = 8.0
 
-[sub_resource type="DynamicFont" id=46]
+[sub_resource type="DynamicFont" id=52]
 size = 22
 use_mipmaps = true
 use_filter = true
 font_data = SubResource( 17 )
 
-[node name="PopupConnectCore" instance=ExtResource( 2 )]
+[node name="PopupConnectCore" type="Popup"]
+margin_right = 1920.0
+margin_bottom = 1080.0
+rect_pivot_offset = Vector2( 3068, -388 )
 script = ExtResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="Mouseblock" type="Control" parent="." index="0"]
+[node name="Mouseblock" type="Control" parent="."]
 visible = false
 anchor_right = 1.0
 anchor_bottom = 0.95
@@ -60,15 +121,114 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="MetricNameLabel" parent="Margin/MarginContainer" index="0"]
-text = "Connect to Cloudkeeper Core"
+[node name="Margin" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+custom_constants/margin_right = 100
+custom_constants/margin_top = 100
+custom_constants/margin_left = 100
+custom_constants/margin_bottom = 100
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="Content" parent="Margin/MarginContainer" index="1"]
+[node name="Background" type="Panel" parent="Margin"]
+margin_left = 100.0
+margin_top = 100.0
+margin_right = 1820.0
+margin_bottom = 980.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/panel = SubResource( 48 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MarginContainer" type="MarginContainer" parent="Margin/Background"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TextureRect" type="TextureRect" parent="Margin/Background"]
+modulate = Color( 0.101961, 0.670588, 1, 0.121569 )
+material = SubResource( 42 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource( 6 )
+stretch_mode = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Extra" type="Panel" parent="Margin/Background"]
+modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
+material = SubResource( 43 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+custom_styles/panel = SubResource( 44 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Extra2" type="Panel" parent="Margin/Background"]
+modulate = Color( 0.372549, 0.729412, 0.92549, 1 )
+material = SubResource( 43 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+custom_styles/panel = SubResource( 45 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MarginContainer" type="VBoxContainer" parent="Margin"]
+margin_left = 100.0
+margin_top = 100.0
+margin_right = 1820.0
+margin_bottom = 980.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MetricNameLabel" type="Label" parent="Margin/MarginContainer"]
+material = SubResource( 46 )
+margin_right = 1720.0
+margin_bottom = 55.0
+rect_min_size = Vector2( 0, 55 )
+mouse_filter = 1
+custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
+custom_constants/shadow_offset_x = 0
+custom_constants/shadow_offset_y = 10
+custom_constants/shadow_as_outline = 1
+custom_fonts/font = SubResource( 47 )
+text = "Connect to Cloudkeeper Core"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Content" type="MarginContainer" parent="Margin/MarginContainer"]
+margin_top = 59.0
+margin_right = 1720.0
+margin_bottom = 812.0
+size_flags_vertical = 3
 custom_constants/margin_right = 30
 custom_constants/margin_top = 30
 custom_constants/margin_left = 30
+custom_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Margin/MarginContainer/Content" index="0"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Margin/MarginContainer/Content"]
 margin_left = 30.0
 margin_top = 30.0
 margin_right = 1690.0
@@ -76,7 +236,7 @@ margin_bottom = 743.0
 size_flags_horizontal = 3
 custom_constants/separation = 30
 
-[node name="Output" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer" index="0"]
+[node name="Output" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer"]
 visible = false
 margin_top = 64.0
 margin_right = 1660.0
@@ -91,7 +251,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="CheckBox" type="CheckBox" parent="Margin/MarginContainer/Content/VBoxContainer" index="1"]
+[node name="CheckBox" type="CheckBox" parent="Margin/MarginContainer/Content/VBoxContainer"]
 visible = false
 margin_right = 1660.0
 margin_bottom = 38.0
@@ -101,26 +261,27 @@ custom_colors/font_color_pressed = Color( 1, 1, 1, 0.784314 )
 pressed = true
 text = "cloud"
 
-[node name="ConnectInput" type="HBoxContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="2"]
+[node name="ConnectInput" type="HBoxContainer" parent="Margin/MarginContainer/Content/VBoxContainer"]
 margin_right = 1660.0
 margin_bottom = 34.0
+rect_min_size = Vector2( 0, 34 )
 rect_pivot_offset = Vector2( 2081, 223 )
 mouse_filter = 2
 custom_constants/separation = 20
 
-[node name="Adress" type="Panel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput" index="0"]
-margin_right = 1070.0
+[node name="Adress" type="Panel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput"]
+margin_right = 1390.0
 margin_bottom = 34.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 45 )
+custom_styles/panel = SubResource( 49 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="AdressEdit" type="LineEdit" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress" index="0"]
-margin_right = 1070.0
+[node name="AdressEdit" type="LineEdit" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress"]
+margin_right = 1390.0
 margin_bottom = 34.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -129,17 +290,17 @@ custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
 custom_colors/font_color = Color( 0.607843, 0.937255, 1, 1 )
 custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
 custom_colors/font_color_uneditable = Color( 0.568627, 0.960784, 1, 1 )
-custom_fonts/font = SubResource( 43 )
-custom_styles/read_only = SubResource( 44 )
-custom_styles/focus = SubResource( 44 )
-custom_styles/normal = SubResource( 44 )
+custom_fonts/font = SubResource( 50 )
+custom_styles/read_only = SubResource( 51 )
+custom_styles/focus = SubResource( 51 )
+custom_styles/normal = SubResource( 51 )
 text = "http://127.0.0.1"
 context_menu_enabled = false
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="AdressLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress" index="1"]
+[node name="AdressLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress"]
 modulate = Color( 0.0313726, 0.301961, 0.341176, 1 )
 margin_left = 11.0
 margin_top = -27.0
@@ -147,25 +308,25 @@ margin_right = 411.0
 margin_bottom = 5.0
 rect_min_size = Vector2( 400, 0 )
 theme = ExtResource( 3 )
-custom_fonts/font = SubResource( 46 )
+custom_fonts/font = SubResource( 52 )
 text = "Adress"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Port" type="Panel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput" index="1"]
-margin_left = 1090.0
-margin_right = 1340.0
+[node name="Port" type="Panel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput"]
+margin_left = 1410.0
+margin_right = 1660.0
 margin_bottom = 34.0
 rect_min_size = Vector2( 250, 0 )
 mouse_filter = 2
 size_flags_vertical = 3
-custom_styles/panel = SubResource( 45 )
+custom_styles/panel = SubResource( 49 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="PortEdit" type="LineEdit" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port" index="0"]
+[node name="PortEdit" type="LineEdit" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port"]
 margin_right = 250.0
 margin_bottom = 34.0
 size_flags_horizontal = 3
@@ -175,10 +336,10 @@ custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
 custom_colors/font_color = Color( 0.607843, 0.937255, 1, 1 )
 custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
 custom_colors/font_color_uneditable = Color( 0.568627, 0.960784, 1, 1 )
-custom_fonts/font = SubResource( 43 )
-custom_styles/read_only = SubResource( 44 )
-custom_styles/focus = SubResource( 44 )
-custom_styles/normal = SubResource( 44 )
+custom_fonts/font = SubResource( 50 )
+custom_styles/read_only = SubResource( 51 )
+custom_styles/focus = SubResource( 51 )
+custom_styles/normal = SubResource( 51 )
 text = "8900"
 max_length = 6
 context_menu_enabled = false
@@ -186,35 +347,67 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="PortLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port" index="1"]
+[node name="PortLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port"]
 modulate = Color( 0.0313726, 0.301961, 0.341176, 1 )
 margin_left = 11.0
 margin_top = -27.0
 margin_right = 261.0
 rect_min_size = Vector2( 250, 0 )
 theme = ExtResource( 3 )
-custom_fonts/font = SubResource( 46 )
+custom_fonts/font = SubResource( 52 )
 text = "Port (default: 8900)"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="ConnectButton" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput" index="2" instance=ExtResource( 1 )]
-margin_left = 1360.0
+[node name="PSK" type="Panel" parent="Margin/MarginContainer/Content/VBoxContainer"]
+margin_top = 64.0
+margin_right = 1660.0
+margin_bottom = 98.0
+rect_min_size = Vector2( 0, 34 )
+mouse_filter = 2
+size_flags_horizontal = 3
+custom_styles/panel = SubResource( 49 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="PSKEdit" type="LineEdit" parent="Margin/MarginContainer/Content/VBoxContainer/PSK"]
 margin_right = 1660.0
 margin_bottom = 34.0
-rect_min_size = Vector2( 300, 34 )
-size_flags_vertical = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource( 3 )
+custom_colors/selection_color = Color( 0, 0, 0, 1 )
+custom_colors/font_color_selected = Color( 0.603922, 0.870588, 1, 1 )
+custom_colors/font_color = Color( 0.607843, 0.937255, 1, 1 )
+custom_colors/clear_button_color = Color( 1, 1, 1, 1 )
+custom_colors/font_color_uneditable = Color( 0.603922, 0.870588, 1, 1 )
+custom_fonts/font = SubResource( 50 )
+custom_styles/read_only = SubResource( 51 )
+custom_styles/focus = SubResource( 51 )
+custom_styles/normal = SubResource( 51 )
+context_menu_enabled = false
+placeholder_text = "default"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/ConnectButton/CenterContainer" index="0"]
-margin_left = 102.0
-margin_top = 3.0
-margin_right = 197.0
-margin_bottom = 31.0
-rect_pivot_offset = Vector2( 47, 16 )
-text = "Connect"
+[node name="PSKLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/PSK"]
+modulate = Color( 0.0313726, 0.301961, 0.341176, 1 )
+margin_left = 11.0
+margin_top = -27.0
+margin_right = 411.0
+margin_bottom = 5.0
+rect_min_size = Vector2( 400, 0 )
+theme = ExtResource( 3 )
+custom_fonts/font = SubResource( 52 )
+text = "PSK"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="ConnectMessage" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer" index="3"]
+[node name="ConnectMessage" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer"]
 visible = false
 margin_top = 64.0
 margin_right = 1660.0
@@ -230,55 +423,147 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="GraphSelect" type="HBoxContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="4"]
+[node name="GraphDropdown" type="OptionButton" parent="Margin/MarginContainer/Content/VBoxContainer"]
 visible = false
-margin_top = 64.0
-margin_right = 1660.0
-margin_bottom = 100.0
-custom_constants/separation = 20
-alignment = 1
-
-[node name="GraphDropdown" type="OptionButton" parent="Margin/MarginContainer/Content/VBoxContainer/GraphSelect" index="0"]
-margin_left = 370.0
-margin_right = 970.0
-margin_bottom = 36.0
+margin_left = 530.0
+margin_top = 128.0
+margin_right = 1130.0
+margin_bottom = 164.0
 rect_min_size = Vector2( 600, 0 )
-size_flags_horizontal = 0
+size_flags_horizontal = 4
 theme = ExtResource( 3 )
 text = "Item 0"
 
-[node name="Spacer2" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="5"]
-margin_top = 64.0
+[node name="GraphLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/GraphDropdown"]
+modulate = Color( 0.0313726, 0.301961, 0.341176, 1 )
+margin_left = 11.0
+margin_top = -27.0
+margin_right = 411.0
+margin_bottom = 5.0
+rect_min_size = Vector2( 400, 0 )
+theme = ExtResource( 3 )
+custom_fonts/font = SubResource( 52 )
+text = "Select Graph"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="GraphMode" type="OptionButton" parent="Margin/MarginContainer/Content/VBoxContainer"]
+visible = false
+margin_left = 530.0
+margin_top = 128.0
+margin_right = 1130.0
+margin_bottom = 164.0
+rect_min_size = Vector2( 600, 0 )
+size_flags_horizontal = 4
+theme = ExtResource( 3 )
+text = "Region depth"
+items = [ "Region depth", null, false, 0, null, "Account depth", null, false, 1, null, "Load full Graph", null, false, 2, null ]
+selected = 0
+
+[node name="GraphModeLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/GraphMode"]
+modulate = Color( 0.0313726, 0.301961, 0.341176, 1 )
+margin_left = 11.0
+margin_top = -27.0
+margin_right = 411.0
+margin_bottom = 5.0
+rect_min_size = Vector2( 400, 0 )
+theme = ExtResource( 3 )
+custom_fonts/font = SubResource( 52 )
+text = "Mode"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Spacer2" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer"]
+visible = false
+margin_top = 128.0
 margin_right = 1660.0
 margin_bottom = 599.0
 size_flags_vertical = 3
 
-[node name="FileModeButton" parent="Margin/MarginContainer/Content/VBoxContainer" index="6" instance=ExtResource( 1 )]
-margin_left = 655.0
-margin_top = 629.0
-margin_right = 1005.0
-margin_bottom = 663.0
-rect_min_size = Vector2( 350, 34 )
+[node name="ConnectButton" parent="Margin/MarginContainer/Content/VBoxContainer" instance=ExtResource( 1 )]
+margin_left = 680.0
+margin_top = 128.0
+margin_right = 980.0
+margin_bottom = 162.0
+rect_min_size = Vector2( 300, 34 )
 size_flags_horizontal = 4
 size_flags_vertical = 0
 
-[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/FileModeButton/CenterContainer" index="0"]
-margin_left = 54.0
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/ConnectButton/CenterContainer" index="0"]
+margin_left = 102.0
 margin_top = 3.0
-margin_right = 296.0
+margin_right = 197.0
 margin_bottom = 31.0
-rect_pivot_offset = Vector2( 121, 16 )
-text = "Switch to File Mode"
+rect_pivot_offset = Vector2( 47, 16 )
+text = "Connect"
 
-[node name="Spacer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="7"]
-margin_top = 693.0
+[node name="RetryButton" parent="Margin/MarginContainer/Content/VBoxContainer" instance=ExtResource( 1 )]
+visible = false
+margin_left = 680.0
+margin_top = 192.0
+margin_right = 980.0
+margin_bottom = 226.0
+rect_min_size = Vector2( 300, 34 )
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/RetryButton/CenterContainer" index="0"]
+margin_left = 117.0
+margin_top = 3.0
+margin_right = 183.0
+margin_bottom = 31.0
+text = "Retry"
+
+[node name="OkButton" parent="Margin/MarginContainer/Content/VBoxContainer" instance=ExtResource( 1 )]
+visible = false
+margin_left = 680.0
+margin_top = 192.0
+margin_right = 980.0
+margin_bottom = 226.0
+rect_min_size = Vector2( 300, 34 )
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/OkButton/CenterContainer" index="0"]
+margin_left = 82.0
+margin_top = 3.0
+margin_right = 218.0
+margin_bottom = 31.0
+text = "Load Graph"
+
+[node name="Spacer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer"]
+margin_top = 192.0
 margin_right = 1660.0
-margin_bottom = 713.0
+margin_bottom = 212.0
 rect_min_size = Vector2( 0, 20 )
 
-[node name="ExampleDataButton" parent="Margin/MarginContainer/PopupButtons" index="1" instance=ExtResource( 1 )]
-margin_left = 885.0
-margin_right = 1185.0
+[node name="PopupButtons" type="HBoxContainer" parent="Margin/MarginContainer"]
+margin_top = 816.0
+margin_right = 1720.0
+margin_bottom = 866.0
+rect_min_size = Vector2( 0, 50 )
+custom_constants/separation = 50
+alignment = 1
+
+[node name="CancelButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
+margin_left = 360.0
+margin_right = 660.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 300, 34 )
+size_flags_vertical = 0
+
+[node name="ButtonLabel" parent="Margin/MarginContainer/PopupButtons/CancelButton/CenterContainer" index="0"]
+margin_left = 111.0
+margin_top = 3.0
+margin_right = 188.0
+margin_bottom = 31.0
+text = "Cancel"
+
+[node name="ExampleDataButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
+margin_left = 710.0
+margin_right = 1010.0
 margin_bottom = 34.0
 rect_min_size = Vector2( 300, 34 )
 size_flags_vertical = 0
@@ -290,22 +575,38 @@ margin_right = 258.0
 margin_bottom = 31.0
 text = "Use example data"
 
-[node name="OkButton" parent="Margin/MarginContainer/PopupButtons" index="2"]
-visible = false
+[node name="FileModeButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
 margin_left = 1060.0
 margin_right = 1360.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 300, 34 )
+size_flags_vertical = 0
 
-[node name="ButtonLabel" parent="Margin/MarginContainer/PopupButtons/OkButton/CenterContainer" index="0"]
-margin_left = 82.0
-margin_right = 218.0
-text = "Load Graph"
+[node name="ButtonLabel" parent="Margin/MarginContainer/PopupButtons/FileModeButton/CenterContainer" index="0"]
+margin_left = 29.0
+margin_top = 3.0
+margin_right = 271.0
+margin_bottom = 31.0
+rect_pivot_offset = Vector2( 121, 16 )
+text = "Switch to File Mode"
 
-[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/ConnectButton" to="." method="_on_ConnectButton_pressed"]
-[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FileModeButton" to="." method="_on_FileModeButton_pressed"]
+[node name="BottomSpacer" type="MarginContainer" parent="Margin/MarginContainer"]
+margin_top = 870.0
+margin_right = 1720.0
+margin_bottom = 880.0
+rect_min_size = Vector2( 0, 10 )
+size_flags_vertical = 0
+
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/ConnectButton" to="." method="_on_ConnectButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/RetryButton" to="." method="_on_RetryButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/OkButton" to="." method="_on_OkButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/PopupButtons/CancelButton" to="." method="_on_CancelButton_pressed"]
 [connection signal="pressed" from="Margin/MarginContainer/PopupButtons/ExampleDataButton" to="." method="_on_ExampleDataButton_pressed"]
+[connection signal="pressed" from="Margin/MarginContainer/PopupButtons/FileModeButton" to="." method="_on_FileModeButton_pressed"]
 
-[editable path="Margin/MarginContainer/Content/VBoxContainer/ConnectInput/ConnectButton"]
-[editable path="Margin/MarginContainer/Content/VBoxContainer/FileModeButton"]
+[editable path="Margin/MarginContainer/Content/VBoxContainer/ConnectButton"]
+[editable path="Margin/MarginContainer/Content/VBoxContainer/RetryButton"]
+[editable path="Margin/MarginContainer/Content/VBoxContainer/OkButton"]
 [editable path="Margin/MarginContainer/PopupButtons/CancelButton"]
 [editable path="Margin/MarginContainer/PopupButtons/ExampleDataButton"]
-[editable path="Margin/MarginContainer/PopupButtons/OkButton"]
+[editable path="Margin/MarginContainer/PopupButtons/FileModeButton"]

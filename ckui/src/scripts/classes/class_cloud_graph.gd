@@ -18,10 +18,13 @@ const DEFAULT_SPRING_LENGTH := 500.0
 const DEFAULT_MAX_ITERATIONS := 200
 
 var graph_data := {
+	"id" : "",
 	"nodes" : {},
 	"edges" : {}
 	}
 
+
+var graph_mode := 0
 var cloud_node_scene = preload("res://ui/elements/Element_CloudNode.tscn")
 var root_node : Object = null
 var is_removed := false
@@ -85,8 +88,9 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	return new_edge
 
 
-func clear_graph():
+func clear_graph( graph_id:= "" ):
 	graph_data = {
+		"id" : graph_id,
 		"nodes" : {},
 		"edges" : {}
 		}
@@ -130,8 +134,8 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_e.emit_signal("loading_done")
 
 
-func start_streaming():
-	clear_graph()
+func start_streaming( graph_id:String ):
+	clear_graph( graph_id )
 	_e.emit_signal("loading", 0, "Creating visual elements" )
 	node_group.modulate.a = 0.05
 
@@ -262,11 +266,9 @@ func show_all() -> void:
 	emit_signal("hide_nodes")
 	for connection in graph_data.edges.values():
 		var line_color = Color(1,0.2,0.2,0.5)
-		#connection.line.self_modulate = line_color
 		connection.line.default_color = line_color
 	for node in graph_data.nodes.values():
 		node.scene.labels_unisize(0.25)
-
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
