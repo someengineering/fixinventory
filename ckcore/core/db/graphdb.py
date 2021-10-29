@@ -352,8 +352,9 @@ class ArangoGraphDB(GraphDB):
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, with_edges=True)
         trafo = self.document_to_instance_fn(query.model)
-        visited_node = {}
+        visited_node = set()
         visited_edge = set()
+        vt_len = len(self.vertex_name) + 1
         with await self.db.aql(query=query_string, bind_vars=bind, batch_size=10000) as cursor:
             for element in cursor:
                 try:
@@ -362,14 +363,14 @@ class ArangoGraphDB(GraphDB):
                         json = trafo(element)
                         if json:
                             yield "node", json
-                        visited_node[_id] = element["_key"]
+                        visited_node.add(_id)
                     from_id = element.get("_from")
                     to_id = element.get("_to")
-                    if from_id in visited_node and to_id in visited_node:
-                        edge_key = from_id + to_id
+                    if from_id is not None and to_id is not None:
+                        edge_key = (from_id, to_id)
                         if edge_key not in visited_edge:
-                            yield "edge", {"type": "edge", "from": visited_node[from_id], "to": visited_node[to_id]}
                             visited_edge.add(edge_key)
+                            yield "edge", {"type": "edge", "from": from_id[vt_len:], "to": to_id[vt_len:]}
                 except Exception as ex:
                     log.warning(f"Could not read element {element}: {ex}. Ignore.")
 

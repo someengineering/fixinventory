@@ -750,26 +750,32 @@ class Api:
     @staticmethod
     async def result_binary_gen(content_type: str, gen: AsyncGenerator[Json, None]) -> AsyncGenerator[bytes, None]:
         async def respond_json() -> AsyncGenerator[bytes, None]:
+            sep = ",\n".encode("utf-8")
             yield "[".encode("utf-8")
             first = True
             async for item in gen:
                 js = json.dumps(to_js(item))
-                sep = "," if not first else ""
-                yield f"{sep}\n{js}".encode("utf-8")
+                if not first:
+                    yield sep
+                yield js.encode("utf-8")
                 first = False
             yield "\n]".encode("utf-8")
 
         async def respond_ndjson() -> AsyncGenerator[bytes, None]:
+            sep = "\n".encode("utf-8")
             async for item in gen:
-                js = json.dumps(to_js(item))
-                yield f"{js}\n".encode("utf-8")
+                js = json.dumps(to_js(item), check_circular=False)
+                yield js.encode("utf-8")
+                yield sep
 
         async def respond_yaml() -> AsyncGenerator[bytes, None]:
             flag = False
+            sep = "---\n".encode("utf-8")
             async for item in gen:
                 yml = yaml.dump(to_js(item), default_flow_style=False, sort_keys=False)
-                sep = "---\n" if flag else ""
-                yield f"{sep}{yml}".encode("utf-8")
+                if flag:
+                    yield sep
+                yield yml.encode("utf-8")
                 flag = True
 
         async def respond_text() -> AsyncGenerator[bytes, None]:
@@ -786,15 +792,19 @@ class Api:
                 return filter_attrs(js) if is_node(js) else js  # type: ignore
 
             flag = False
+            sep = "---\n".encode("utf-8")
+            cr = "\n".encode("utf-8")
             async for item in gen:
                 js = to_js(item)
                 if isinstance(js, (dict, list)):
-                    sep = "---\n" if flag else ""
+                    if flag:
+                        yield sep
                     yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
-                    yield f"{sep}{yml}".encode("utf-8")
+                    yield yml.encode("utf-8")
                 else:
-                    sep = "\n" if flag else ""
-                    yield f"{sep}{js}".encode("utf-8")
+                    if flag:
+                        yield cr
+                    yield str(js).encode("utf-8")
                 flag = True
 
         if content_type == "application/x-ndjson":
