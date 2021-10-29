@@ -350,7 +350,7 @@ class ArangoGraphDB(GraphDB):
         self, query: QueryModel
     ) -> AsyncGenerator[Tuple[str, Json], None]:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        query_string, bind = self.to_query(query, all_edges=True)
+        query_string, bind = self.to_query(query, with_edges=True)
         trafo = self.document_to_instance_fn(query.model)
         visited_node = {}
         visited_edge = set()
@@ -393,7 +393,7 @@ class ArangoGraphDB(GraphDB):
                 yield element
 
     async def explain(self, query: QueryModel) -> Json:
-        q_string, bind = self.to_query(query, all_edges=True)
+        q_string, bind = self.to_query(query, with_edges=True)
         return await self.db.explain(query=q_string, bind_vars=bind)
 
     async def wipe(self) -> None:
@@ -787,7 +787,7 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
         query = query_model.query
         model = query_model.model
         section_dot = f"{query_model.query_section}." if query_model.query_section else ""
@@ -929,7 +929,7 @@ class ArangoGraphDB(GraphDB):
                     nav = cl.navigation
                     crsr = f"l{depth}crsr"
                     direction = "OUTBOUND" if nav.direction == "out" else "INBOUND"
-                    unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                    unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
                     filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                     inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                     filter_root = f"(l0crsr._key=={crsr}._key) or " if depth > 0 else ""
@@ -974,13 +974,14 @@ class ArangoGraphDB(GraphDB):
                 out = f"step{idx}_navigation_{direction}"
                 out_crsr = f"n{idx}"
                 link = f"link{idx}"
-                unique = "uniqueEdges: 'path'" if all_edges else "uniqueVertices: 'global'"
+                unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
                 dir_bound = "OUTBOUND" if direction == "out" else "INBOUND"
+                inout_result = f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})" if with_edges else out_crsr
                 query_part += (
                     f"LET {out} =( FOR in{idx} in {in_crsr} "
                     f"FOR {out_crsr}, {link} IN {start}..{until} {dir_bound} in{idx} "
                     f"{self.edge_collection(edge_type)} OPTIONS {{ bfs: true, {unique} }} "
-                    f"RETURN MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})) "
+                    f"RETURN DISTINCT {inout_result}) "
                 )
                 return out
 
