@@ -76,5 +76,5 @@ class ModelHandlerDB(ModelHandler):
         # store all updated kinds
         await self.db.update_many(kinds)
         # unset loaded model
-        self.__loaded_model = None
+        self.__loaded_model = updated
         return updated

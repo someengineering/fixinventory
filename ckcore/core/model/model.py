@@ -68,6 +68,9 @@ class SyntheticProperty:
     def __init__(self, path: List[str]):
         self.path = path
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__ if isinstance(other, SyntheticProperty) else False
+
 
 class Property:
     def __init__(
@@ -84,6 +87,9 @@ class Property:
         self.synthetic = synthetic
         self.description = description
         assert synthetic is None or not required, "Synthetic properties can not be required!"
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__ if isinstance(other, Property) else False
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
@@ -655,6 +661,7 @@ class ComplexKind(Kind):
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
+            self.__resolved = True
             # resolve properties
             for prop in self.properties:
                 kind = prop.resolve(model)
@@ -676,7 +683,6 @@ class ComplexKind(Kind):
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
                         self.__property_by_path.update(base.__property_by_path)
             self.__synthetic_props = [p for p in self.__property_by_path.values() if p.prop.synthetic]
-        self.__resolved = True
 
     def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, ResolvedProperty]:
         def path_for(
@@ -700,6 +706,17 @@ class ComplexKind(Kind):
             result.update(path_for(x, self.__resolved_kinds[x.name][1], from_path))
 
         return result
+
+    def __eq__(self, other):
+        if isinstance(other, ComplexKind):
+            return (
+                self.fqn == other.fqn
+                and self.properties == other.properties
+                and self.bases == other.bases
+                and self.allow_unknown_props == other.allow_unknown_props
+            )
+        else:
+            return False
 
     def __contains__(self, name: str) -> bool:
         return name in self.__prop_by_name
@@ -798,6 +815,7 @@ predefined_kinds = [
         ],
     ),
 ]
+predefined_kinds_by_name = {k.fqn: k for k in predefined_kinds}
 
 
 class Model:
@@ -883,6 +901,18 @@ class Model:
         return graph
 
     def update_kinds(self, kinds: List[Kind]) -> Model:
+
+        # Create a list of kinds that have changed to the existing model
+        to_update = []
+        for kind in kinds:
+            existing = self.kinds.get(kind.fqn)
+            if kind.fqn not in predefined_kinds_by_name and (not existing or existing != kind):
+                to_update.append(kind)
+
+        # Short circuit, if there are no changes
+        if not to_update:
+            return self
+
         def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
             def hint() -> str:
                 return f"Update {from_kind.fqn}"
@@ -893,9 +923,9 @@ class Model:
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
-        updates = {kind.fqn: kind for kind in kinds}
+        updates = {kind.fqn: kind for kind in to_update}
         updated = {**self.kinds, **updates}
-        for kind in kinds:
+        for kind in to_update:
             kind.resolve(updated)
 
         # check if updating existing kinds is allowed
@@ -925,7 +955,10 @@ class Model:
             else:
                 return all_paths
 
-        reduce(check, updates.values(), reduce(check, self.kinds.values(), {}))  # type: ignore
+        def flat(all_paths: Dict[PropertyPath, ResolvedProperty], kind: Kind) -> Dict[PropertyPath, ResolvedProperty]:
+            return {**all_paths, **kind.property_by_path()} if isinstance(kind, ComplexKind) else all_paths
+
+        reduce(check, updates.values(), reduce(flat, self.kinds.values(), {}))  # type: ignore
 
         return Model(updated)
 
