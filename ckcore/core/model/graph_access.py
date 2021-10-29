@@ -217,7 +217,7 @@ class GraphAccess:
         log.info("Resolve attributes in graph")
         for node_id in self.nodes:
             self.__resolve(node_id, self.nodes[node_id])
-        self.__resolve_count_successors()
+        self.__resolve_count_descendants()
         log.info("Resolve attributes finished.")
 
     def root(self) -> str:
@@ -237,34 +237,34 @@ class GraphAccess:
             self.visited_edges.add((from_id, to_id, edge_type))
         return result
 
-    def __count_successors_by(self, node_id: str, edge_type: str, path: List[str]) -> Dict[str, int]:
-        result: Dict[str, int] = {}
-        to_visit = list(self.successors(node_id, edge_type))
-        while to_visit:
-            visit_next: List[str] = []
-            visited: Set[str] = set()
-            for elem_id in to_visit:
-                node = self.nodes[elem_id]
-                extracted = value_in_path(node, path)
-                visited.add(elem_id)
-                if isinstance(extracted, str):
-                    result[extracted] = result.get(extracted, 0) + 1
-                # check if there is already a successor summary. If yes, we can stop the traversal and take the result.
-                summary = value_in_path(node, NodePath.descendant_summary)
-                if summary and isinstance(summary, dict):
-                    for summary_item, count in summary.items():
-                        result[summary_item] = result.get(summary_item, 0) + count
-                else:
-                    visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
-            to_visit = visit_next
-        return result
+    def __resolve_count_descendants(self) -> None:
+        def count_successors_by(node_id: str, edge_type: str, path: List[str]) -> Dict[str, int]:
+            result: Dict[str, int] = {}
+            to_visit = list(self.successors(node_id, edge_type))
+            while to_visit:
+                visit_next: List[str] = []
+                visited: Set[str] = set()
+                for elem_id in to_visit:
+                    node = self.nodes[elem_id]
+                    extracted = value_in_path(node, path)
+                    visited.add(elem_id)
+                    if isinstance(extracted, str):
+                        result[extracted] = result.get(extracted, 0) + 1
+                    # check if there is already a successor summary: stop the traversal and take the result.
+                    existing = value_in_path(node, NodePath.descendant_summary)
+                    if existing and isinstance(existing, dict):
+                        for summary_item, count in existing.items():
+                            result[summary_item] = result.get(summary_item, 0) + count
+                    else:
+                        visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
+                to_visit = visit_next
+            return result
 
-    def __resolve_count_successors(self) -> None:
         for on_kind, prop in GraphResolver.count_successors.items():
             for node_id, node in self.g.nodes(data=True):
                 kinds = node.get("kinds_set")
                 if kinds and on_kind in kinds:
-                    summary = self.__count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
+                    summary = count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
 
     def __resolve(self, node_id: str, node: Json) -> Json:
