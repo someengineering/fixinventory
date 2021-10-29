@@ -131,7 +131,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
+    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -1340,8 +1340,8 @@ class EventGraphDB(GraphDB):
         await self.message_bus.emit_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
-    def to_query(self, query_model: QueryModel, all_edges: bool = False) -> Tuple[str, Json]:
-        return self.real.to_query(query_model, all_edges)
+    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+        return self.real.to_query(query_model, with_edges)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
