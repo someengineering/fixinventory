@@ -517,9 +517,10 @@ class Api:
         query_string = await request.text()
         section = section_of(request)
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        with_edges = request.query.get("edges") is not None
         m = await self.model_handler.load_model()
         q = parse_query(query_string)
-        query, bind_vars = graph_db.to_query(QueryModel(q, m, section))
+        query, bind_vars = graph_db.to_query(QueryModel(q, m, section), with_edges)
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request) -> StreamResponse:
