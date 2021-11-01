@@ -548,22 +548,28 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: format
-                    in: header
-                    description: "The format of the result to return"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - graph
-                            - list
-                            - cytoscape
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                -  name: format
+                   in: header
+                   description: "The format of the result to return"
+                   required: true
+                   schema:
+                       type: string
+                       enum:
+                           - graph
+                           - list
+                           - cytoscape
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:
@@ -625,12 +631,18 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:
@@ -659,12 +671,18 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:
@@ -788,32 +806,38 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-                -   name: format
-                    in: header
-                    description: "The format of the result to return"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - graph
-                            - list
-                            - cytoscape
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                -  name: section
+                   in: path
+                   description: "The identifier of the section"
+                   required: true
+                   schema:
+                       type: string
+                       enum:
+                           - reported
+                           - desired
+                           - metadata
+                -  name: format
+                   in: header
+                   description: "The format of the result to return"
+                   required: true
+                   schema:
+                       type: string
+                       enum:
+                           - graph
+                           - list
+                           - cytoscape
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:
@@ -879,22 +903,28 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                -  name: section
+                   in: path
+                   description: "The identifier of the section"
+                   required: true
+                   schema:
+                       type: string
+                       enum:
+                           - reported
+                           - desired
+                           - metadata
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:
@@ -920,22 +950,28 @@ paths:
             tags:
                 - graph_query
             parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
+                -  name: graph_id
+                   in: path
+                   description: "The identifier of the graph"
+                   required: true
+                   schema:
+                       type: string
+                -  name: section
+                   in: path
+                   description: "The identifier of the section"
+                   required: true
+                   schema:
+                       type: string
+                       enum:
+                           - reported
+                           - desired
+                           - metadata
+                - name: count
+                  in: query
+                  description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+                  required: false
+                  schema:
+                      type: boolean
             requestBody:
                 description: "The query to perform"
                 content:

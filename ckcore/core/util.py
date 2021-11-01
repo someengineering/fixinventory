@@ -22,6 +22,7 @@ from typing import (
     List,
     Tuple,
     cast,
+    AsyncIterator,
 )
 
 from dateutil.parser import isoparse
@@ -189,7 +190,7 @@ def set_value_in_path(element: JsonElement, path: List[str], json: Optional[Json
     return js
 
 
-async def force_gen(gen: AsyncGenerator[AnyT, None]) -> AsyncGenerator[AnyT, None]:
+async def force_gen(gen: AsyncIterator[AnyT]) -> AsyncIterator[AnyT]:
     async def with_first(elem: AnyT) -> AsyncGenerator[AnyT, None]:
         yield elem
         async for a in gen:

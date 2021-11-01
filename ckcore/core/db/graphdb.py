@@ -15,7 +15,12 @@ from networkx import MultiDiGraph, DiGraph
 from core import feature
 from core.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from core.db.arangodb_functions import as_arangodb_function
-from core.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase
+from core.db.async_arangodb import (
+    AsyncArangoDB,
+    AsyncArangoTransactionDB,
+    AsyncArangoDBBase,
+    AsyncCursorContext,
+)
 from core.db.model import GraphUpdate, QueryModel
 from core.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from core.message_bus import MessageBus, CoreEvent
@@ -107,11 +112,11 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
+    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
+    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
         pass
 
     @abstractmethod
@@ -119,7 +124,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def query_aggregation(self, query: QueryModel) -> AsyncGenerator[Json, None]:
+    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         pass
 
     @abstractmethod
@@ -330,68 +335,34 @@ class ArangoGraphDB(GraphDB):
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
-    async def query_list(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, query: QueryModel, **kwargs: Any
-    ) -> AsyncGenerator[Json, None]:
+    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
         trafo = self.document_to_instance_fn(query.model)
-        visited = set()
-        with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
-            for element in cursor:
-                _id = element["_id"]
-                if element is not None and _id not in visited:
-                    visited.add(_id)
-                    json = trafo(element)
-                    if json:
-                        yield json
+        return await self.db.aql_cursor(query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000)
 
-    async def query_graph_gen(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, query: QueryModel
-    ) -> AsyncGenerator[Tuple[str, Json], None]:
+    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, with_edges=True)
         trafo = self.document_to_instance_fn(query.model)
-        visited_node = set()
-        visited_edge = set()
-        vt_len = len(self.vertex_name) + 1
-        with await self.db.aql(query=query_string, bind_vars=bind, batch_size=10000) as cursor:
-            for element in cursor:
-                try:
-                    _id = element["_id"]
-                    if _id not in visited_node:
-                        json = trafo(element)
-                        if json:
-                            yield "node", json
-                        visited_node.add(_id)
-                    from_id = element.get("_from")
-                    to_id = element.get("_to")
-                    if from_id is not None and to_id is not None:
-                        edge_key = (from_id, to_id)
-                        if edge_key not in visited_edge:
-                            visited_edge.add(edge_key)
-                            yield "edge", {"type": "edge", "from": from_id[vt_len:], "to": to_id[vt_len:]}
-                except Exception as ex:
-                    log.warning(f"Could not read element {element}: {ex}. Ignore.")
+        return await self.db.aql_cursor(
+            query=query_string, trafo=trafo, bind_vars=bind, count=with_count, batch_size=10000
+        )
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
-        result = self.query_graph_gen(query)
-        graph = DiGraph()
-        async for kind, item in result:
-            if kind == "node":
-                graph.add_node(item["id"], **item)
-            elif kind == "edge":
-                graph.add_edge(item["from"], item["to"])
-        return graph
+        async with await self.query_graph_gen(query) as cursor:
+            graph = DiGraph()
+            async for item in cursor:
+                if "from" in item and "to" in item:
+                    graph.add_edge(item["from"], item["to"])
+                elif "id" in item:
+                    graph.add_node(item["id"], **item)
+            return graph
 
-    async def query_aggregation(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, query: QueryModel
-    ) -> AsyncGenerator[Json, None]:
+    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         q_string, bind = self.to_query(query)
         assert query.query.aggregate is not None, "Given query has no aggregation section"
-        with await self.db.aql(query=q_string, bind_vars=bind) as cursor:
-            for element in cursor:
-                yield element
+        return await self.db.aql_cursor(query=q_string, bind_vars=bind)
 
     async def explain(self, query: QueryModel) -> Json:
         q_string, bind = self.to_query(query, with_edges=True)
@@ -1321,14 +1292,14 @@ class EventGraphDB(GraphDB):
         await self.real.abort_update(batch_id)
         await self.message_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
-    def query_list(self, query: QueryModel, **kwargs: Any) -> AsyncGenerator[Json, None]:
-        return self.real.query_list(query, **kwargs)
+    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
+        return await self.real.query_list(query, with_count, **kwargs)
 
-    def query_graph_gen(self, query: QueryModel) -> AsyncGenerator[Tuple[str, Json], None]:
-        return self.real.query_graph_gen(query)
+    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
+        return await self.real.query_graph_gen(query, with_count)
 
-    def query_aggregation(self, query: QueryModel) -> AsyncGenerator[Json, None]:
-        return self.real.query_aggregation(query)
+    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+        return await self.real.query_aggregation(query)
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
         return await self.real.query_graph(query)

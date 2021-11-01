@@ -800,7 +800,10 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
             db.to_query(query_model)  # only here to validate the query itself (can throw)
-            return db.query_aggregation(query_model) if query.aggregate else db.query_list(query_model)
+            context = await db.query_aggregation(query_model) if query.aggregate else await db.query_list(query_model)
+            async with context as cursor:
+                async for element in cursor:
+                    yield element
 
         return CLISource(prepare)
 
@@ -1687,8 +1690,9 @@ class TagCommand(SendWorkerTaskCommand):
             # one query to load all items that match given ids (max 1000 as defined in chunk size)
             query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
             query_model = QueryModel(query, model)
-            async for a in self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model):
-                yield a
+            async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
+                async for a in crs:
+                    yield a
 
         return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
 
