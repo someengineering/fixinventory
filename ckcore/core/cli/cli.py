@@ -218,7 +218,7 @@ class CLI:
         try:
             return cmd.parse(arg, ctx)
         except Exception as ex:
-            raise CLIParseError(f"{cmd.name} can not parse arg: {arg}") from ex
+            raise CLIParseError(f"{cmd.name} can not parse arg: {arg}: {ex}") from ex
 
     def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
         query: Query = Query.by(AllTerm())
