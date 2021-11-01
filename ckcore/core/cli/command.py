@@ -822,10 +822,11 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
             db.to_query(query_model)  # only here to validate the query itself (can throw)
+            count = ctx.env.get("count", "true").lower() != "false"
             context = (
                 await db.query_aggregation(query_model)
                 if query.aggregate
-                else await db.query_list(query_model, with_count=True)
+                else await db.query_list(query_model, with_count=count)
             )
             async with context as cursor:
                 return cursor.count(), stream.iterate(cursor)

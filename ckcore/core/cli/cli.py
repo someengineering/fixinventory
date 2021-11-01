@@ -5,8 +5,8 @@ from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
-from typing import Dict, List, Tuple, Type, AsyncIterator
-from typing import Optional, Union, Any
+from typing import Dict, List, Tuple, Type, cast
+from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -100,13 +100,25 @@ class ParsedCommandLine:
     env: JsonElement
     parsed_commands: ParsedCommands
     executable_commands: List[ExecutableCommand]
-    generator: AsyncIterator[JsonElement]
-    result_action: CLIAction
     unmet_requirements: List[CLICommandRequirement]
-    count: Optional[int]
+
+    def __post_init__(self) -> None:
+        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
+            action = cmd.action
+            if isinstance(action, expected):
+                return action
+            else:
+                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
+                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
+
+        if self.executable_commands:
+            expect_action(self.executable_commands[0], CLISource)
+            for command in self.executable_commands[1:]:
+                expect_action(command, CLIFlow)
 
     async def to_sink(self, sink: Sink[T]) -> T:
-        return await sink(self.generator)
+        _, generator = await self.execute()
+        return await sink(generator)
 
     @property
     def commands(self) -> List[CLICommand]:
@@ -114,7 +126,19 @@ class ParsedCommandLine:
 
     @property
     def produces(self) -> MediaType:
-        return self.result_action.produces
+        # the last command in the chain defines the resulting media type
+        return self.executable_commands[-1].action.produces if self.executable_commands else MediaType.Json
+
+    async def execute(self) -> Tuple[Optional[int], Stream]:
+        if self.executable_commands:
+            source_action = cast(CLISource, self.executable_commands[0].action)
+            count, flow = await source_action.source()
+            for command in self.executable_commands[1:]:
+                flow_action = cast(CLIFlow, command.action)
+                flow = await flow_action.flow(flow)
+            return count, flow
+        else:
+            return 0, stream.empty()
 
 
 @make_parser
@@ -289,36 +313,12 @@ class CLI:
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
-        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
-            action = cmd.action
-            if isinstance(action, expected):
-                return action
-            else:
-                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
-                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
-
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
-
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
             commands = combine_single_command([prepare_command(cmd, ctx) for cmd in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
-
-            if not_met:
-                return ParsedCommandLine(cmd_env, parsed, commands, stream.empty(), CLISource.empty(), not_met, 0)
-            elif commands:
-                source = commands[0]
-                source_action = expect_action(source, CLISource)
-                count, flow = await source_action.source()
-                result_action: Union[CLISource, CLIFlow] = source_action
-                for command in commands[1:]:
-                    flow_action = expect_action(command, CLIFlow)
-                    flow = await flow_action.flow(flow)
-                    result_action = flow_action
-                # noinspection PyTypeChecker
-                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action, [], count)
-            else:
-                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty(), [], 0)
+            return ParsedCommandLine(cmd_env, parsed, commands, not_met)
 
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)

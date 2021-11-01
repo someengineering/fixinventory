@@ -25,16 +25,14 @@ from aiohttp import (
     MultipartReader,
 )
 from aiohttp.abc import AbstractStreamWriter
-
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
-from aiostream import stream
 from networkx.readwrite import cytoscape_data
 
 from core import feature
-from core.cli.cli import CLI, ParsedCommandLine
 from core.cli import is_node
+from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import CLIContext
 from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
@@ -668,11 +666,13 @@ class Api:
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
+            count, generator = await first_result.execute()
+
             # flat the results from 0 or 1
-            async with stream.iterate(first_result.generator).stream() as streamer:
+            async with generator.stream() as streamer:
                 gen = await force_gen(streamer)
                 if first_result.produces.json:
-                    return await self.stream_response_from_gen(request, gen, first_result.count)
+                    return await self.stream_response_from_gen(request, gen, count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(gen, boundary, mp_response)
@@ -682,7 +682,8 @@ class Api:
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
-                async with stream.iterate(single.generator).stream() as streamer:
+                count, generator = await single.execute()
+                async with generator.stream() as streamer:
                     gen = await force_gen(streamer)
                     if single.produces.json:
                         with MultipartWriter(repr(single.produces), boundary) as mp:

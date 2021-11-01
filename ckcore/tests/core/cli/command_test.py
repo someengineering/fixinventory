@@ -201,7 +201,7 @@ async def test_list_sink(cli: CLI, cli_deps: CLIDependencies) -> None:
 @pytest.mark.asyncio
 async def test_flat_sink(cli: CLI) -> None:
     parsed = await cli.evaluate_cli_command("json [1,2,3]; json [4,5,6]; json [7,8,9]")
-    result = await stream.list(stream.concat(stream.iterate(p.generator for p in parsed)))
+    result = await stream.list(stream.concat(stream.iterate((await p.execute())[1] for p in parsed)))
     assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 
