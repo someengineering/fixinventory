@@ -570,6 +570,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:
@@ -643,6 +644,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:
@@ -683,6 +685,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:
@@ -838,6 +841,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:
@@ -925,6 +929,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:
@@ -972,6 +977,7 @@ paths:
                   required: false
                   schema:
                       type: boolean
+                      default: true
             requestBody:
                 description: "The query to perform"
                 content:

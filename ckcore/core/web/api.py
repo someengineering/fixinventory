@@ -552,9 +552,8 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
-        count = request.query.get("count")
-        with_count = count is not None and count.lower() != "false"
-        async with await graph_db.query_list(QueryModel(q, m, section), with_count) as cursor:
+        count = request.query.get("count", "true").lower() != "false"
+        async with await graph_db.query_list(QueryModel(q, m, section), count) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
@@ -573,9 +572,8 @@ class Api:
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        count = request.query.get("count")
-        with_count = count is not None and count.lower() != "false"
-        async with await graph_db.query_graph_gen(QueryModel(q, m, section), with_count) as cursor:
+        count = request.query.get("count", "true").lower() != "false"
+        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
