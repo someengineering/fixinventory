@@ -1,4 +1,4 @@
-from typing import TypeVar, Union, Coroutine, Any, AsyncGenerator, Callable
+from typing import TypeVar, Union, Coroutine, Any, Callable, AsyncIterator
 
 from aiostream.core import Stream
 from parsy import Parser, regex
@@ -20,7 +20,7 @@ from core.types import JsonElement
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Coroutine[Any, Any, T]]
-JsGen = Union[Stream, AsyncGenerator[JsonElement, None]]
+JsGen = Union[Stream, AsyncIterator[JsonElement]]
 # A sink function takes a stream and creates a result
 Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
 

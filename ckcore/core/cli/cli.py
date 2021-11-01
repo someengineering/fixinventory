@@ -5,8 +5,8 @@ from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
-from typing import Dict, List, Tuple, Type
-from typing import Optional, Union, Any, AsyncGenerator
+from typing import Dict, List, Tuple, Type, AsyncIterator
+from typing import Optional, Union, Any
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -100,9 +100,10 @@ class ParsedCommandLine:
     env: JsonElement
     parsed_commands: ParsedCommands
     executable_commands: List[ExecutableCommand]
-    generator: AsyncGenerator[JsonElement, None]
+    generator: AsyncIterator[JsonElement]
     result_action: CLIAction
     unmet_requirements: List[CLICommandRequirement]
+    count: Optional[int]
 
     async def to_sink(self, sink: Sink[T]) -> T:
         return await sink(self.generator)
@@ -190,7 +191,7 @@ class HelpCommand(CLICommand):
 
             return stream.just(result)
 
-        return CLISource(help_command)
+        return CLISource.single(help_command)
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]
@@ -304,20 +305,20 @@ class CLI:
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
 
             if not_met:
-                return ParsedCommandLine(cmd_env, parsed, commands, stream.empty(), CLISource.empty(), not_met)
+                return ParsedCommandLine(cmd_env, parsed, commands, stream.empty(), CLISource.empty(), not_met, 0)
             elif commands:
                 source = commands[0]
                 source_action = expect_action(source, CLISource)
-                flow = await source_action.source()
+                count, flow = await source_action.source()
                 result_action: Union[CLISource, CLIFlow] = source_action
                 for command in commands[1:]:
                     flow_action = expect_action(command, CLIFlow)
                     flow = await flow_action.flow(flow)
                     result_action = flow_action
                 # noinspection PyTypeChecker
-                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action, [])
+                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action, [], count)
             else:
-                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty(), [])
+                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty(), [], 0)
 
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)

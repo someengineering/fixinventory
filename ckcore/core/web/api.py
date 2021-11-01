@@ -11,7 +11,7 @@ from argparse import Namespace
 from dataclasses import replace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple
 
 import prometheus_client
 import yaml
@@ -24,6 +24,7 @@ from aiohttp import (
     BufferedReaderPayload,
     MultipartReader,
 )
+from aiohttp.abc import AbstractStreamWriter
 
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
@@ -654,7 +655,7 @@ class Api:
         # make sure, all requirements are fulfilled
         not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
-        content_type = request.headers.get("accept", "application/json")
+        accept = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
         mp_response = web.StreamResponse(
@@ -673,7 +674,7 @@ class Api:
             async with stream.iterate(first_result.generator).stream() as streamer:
                 gen = await force_gen(streamer)
                 if first_result.produces.json:
-                    return await self.stream_response_from_gen(request, gen)
+                    return await self.stream_response_from_gen(request, gen, first_result.count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(gen, boundary, mp_response)
@@ -687,7 +688,7 @@ class Api:
                     gen = await force_gen(streamer)
                     if single.produces.json:
                         with MultipartWriter(repr(single.produces), boundary) as mp:
-                            result_stream = await Api.result_binary_gen(content_type, gen)
+                            content_type, result_stream = await Api.result_binary_gen(accept, gen)
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
@@ -741,20 +742,21 @@ class Api:
         request: Request, gen_in: AsyncIterator[Json], count: Optional[int] = None
     ) -> StreamResponse:
         accept = request.headers.get("accept", "application/json")
+        # force the async generator, to get an early exception in case of failure
+        gen = await force_gen(gen_in)
+        content_type, result_gen = await Api.result_binary_gen(accept, gen)
         count_header = {"Ck-Element-Count": str(count)} if count else {}
-        response = web.StreamResponse(status=200, headers={"Content-Type": accept, **count_header})
+        response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
         # this has to be done on response level before it is prepared
         response.enable_compression()
-        await response.prepare(request)
-        # force the async generator
-        gen = await force_gen(gen_in)
-        async for data in await Api.result_binary_gen(accept, gen):
-            await response.write(data)
+        writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
+        async for data in result_gen:
+            await writer.write(data)
         await response.write_eof()
         return response
 
     @staticmethod
-    async def result_binary_gen(accept: str, gen: AsyncIterator[Json]) -> AsyncIterator[bytes]:
+    async def result_binary_gen(accept: str, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
         async def respond_json() -> AsyncGenerator[bytes, None]:
             sep = ",\n".encode("utf-8")
             yield "[".encode("utf-8")
@@ -814,15 +816,15 @@ class Api:
                 flag = True
 
         if accept == "application/x-ndjson":
-            return respond_ndjson()
+            return "application/x-ndjson", respond_ndjson()
         elif accept == "application/json":
-            return respond_json()
+            return "application/json", respond_json()
         elif accept in ["text/plain"]:
-            return respond_text()
+            return "text/plain", respond_text()
         elif accept in ["application/yaml", "text/yaml"]:
-            return respond_yaml()
+            return "text/yaml", respond_yaml()
         else:
-            return respond_json()
+            return "application/json", respond_json()
 
     @staticmethod
     async def multi_file_response(results: AsyncIterator[str], boundary: str, response: StreamResponse) -> None:
