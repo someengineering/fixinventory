@@ -1,4 +1,4 @@
-cklib==2.0.0a7
+cklib==2.0.0a8
 CherryPy==18.6.1
 requests==2.26.0
 prometheus-client==0.11.0

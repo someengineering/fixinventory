@@ -1,7 +1,6 @@
 # test dependencies
 pytest==6.2.5
-pytest-cov==2.12.1
+pytest-cov==3.0.0
 pytest-runner==5.3.1
-pytest-asyncio==0.15.1
-deepdiff==5.5.0
-pip==21.2.4
+pytest-asyncio==0.16.0
+deepdiff==5.6.0

@@ -84,22 +84,22 @@ install: clean ## install the package to the active Python's site-packages
 
 venv-pypy:
 	pypy -m venv venv-pypy
-	./venv-pypy/bin/python3 -m pip install --upgrade pip
-	./venv-pypy/bin/pip install --upgrade --editable ../cklib
-	./venv-pypy/bin/pip install -r requirements-test.txt
-	./venv-pypy/bin/pip install -r requirements.txt
+	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
+	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../cklib
+	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
+	. ./venv-pypy/bin/activate && pip install -r requirements.txt
 
 
 venv:
 	python3 -m venv venv --prompt "ckcore env"
-	./venv/bin/python3 -m pip install --upgrade pip
-	./venv/bin/pip install --upgrade --editable ../cklib
-	./venv/bin/pip install -r requirements-dev.txt
-	./venv/bin/pip install -r requirements-test.txt
-	./venv/bin/pip install -r requirements.txt
-	./venv/bin/mypy --python-version 3.7 core tests > /dev/null 2>&1 || true
+	. ./venv/bin/activate && python3 -m pip install --upgrade pip
+	. ./venv/bin/activate && pip install --upgrade --editable ../cklib
+	. ./venv/bin/activate && pip install -r requirements-dev.txt
+	. ./venv/bin/activate && pip install -r requirements-test.txt
+	. ./venv/bin/activate && pip install -r requirements.txt
+	. ./venv/bin/activate && mypy --python-version 3.7 core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."
-	./venv/bin/mypy --python-version 3.7 --install-types --non-interactive || true
+	. ./venv/bin/activate && mypy --python-version 3.7 --install-types --non-interactive || true
 	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
 
 setup: clean clean-env venv
