@@ -872,7 +872,10 @@ class ArangoGraphDB(GraphDB):
                 out = filtered_out
                 md = f"NOT_NULL({crsr}.metadata, {{}})"
                 f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
-                query_part += f"LET {out} = (FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)} RETURN {f_res})"
+                limited = f" LIMIT {p.limit} " if p.limit else " "
+                sort_by = sort(crsr, p.sort, section_dot) if p.sort else " "
+                for_stmt = f"FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)}{sort_by}{limited}RETURN {f_res}"
+                query_part += f"LET {out} = ({for_stmt})"
                 return out
 
             def with_clause(in_crsr: str, clause: WithClause) -> str:
@@ -1011,7 +1014,7 @@ class ArangoGraphDB(GraphDB):
 
         def sort(cursor: str, so: List[Sort], sect_dot: str) -> str:
             sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
-            return f" sort {sorts} "
+            return f" SORT {sorts} "
 
         parts = []
         crsr = self.vertex_name
@@ -1022,20 +1025,19 @@ class ArangoGraphDB(GraphDB):
 
         all_parts = " ".join(p[3] for p in parts)
         resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
-        limited = f" LIMIT {query.limit} " if query.limit else ""
         if query.aggregate:  # return aggregate
             resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
-            sort_by = sort("r", query.sort, "") if query.sort else ""
+            # if the last part has a sort order, we use it here again
+            sort_by = sort("r", query.current_part.sort, "") if query.current_part.sort else ""
             return (
-                f"""{query_str} {aggregation} FOR r in {resulting_cursor}{sort_by}{limited} RETURN r""",
+                f"""{query_str} {aggregation} FOR r in {resulting_cursor}{sort_by} RETURN r""",
                 bind_vars,
             )
         else:  # return results
             # return all tagged commands (last result is "tagged" automatically)
             tagged = {out for part, _, out, _ in parts if part.tag}
             result = f'UNION({",".join(tagged)},{resulting_cursor})' if tagged else resulting_cursor
-            sort_by = sort("r", query.sort, section_dot) if query.sort else ""
-            return f"""{query_str} FOR r in {result}{sort_by}{limited} RETURN r""", bind_vars
+            return f"""{query_str} FOR r in {result} RETURN r""", bind_vars
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}

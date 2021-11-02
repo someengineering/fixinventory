@@ -4,7 +4,7 @@ import abc
 import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
-from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple
+from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable
 
 from jsons import set_deserializer
 
@@ -163,7 +163,7 @@ class Term(abc.ABC):
 
         return walk(self)
 
-    # noinspection PyTypeChecker
+    # noinspection PyUnusedLocal
     @staticmethod
     def from_json(js: Dict[str, Any], _: type = object, **kwargs: Any) -> Term:
         if isinstance(js.get("left"), dict) and isinstance(js.get("right"), dict) and isinstance(js.get("op"), str):
@@ -292,6 +292,13 @@ class WithClause:
     term: Optional[Term] = None
     with_clause: Optional[WithClause] = None
 
+    def on_section(self, section: str) -> WithClause:
+        return replace(
+            self,
+            term=self.term.on_section(section) if self.term else None,
+            with_clause=self.with_clause.on_section(section) if self.with_clause else None,
+        )
+
     def __str__(self) -> str:
         term = " " + str(self.term) if self.term else ""
         with_clause = " " + str(self.with_clause) if self.with_clause else ""
@@ -303,13 +310,25 @@ class Part:
     term: Term
     tag: Optional[str] = None
     with_clause: Optional[WithClause] = None
+    sort: List[Sort] = field(default_factory=list)
+    limit: Optional[int] = None
     navigation: Optional[Navigation] = None
 
     def __str__(self) -> str:
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
-        nav = f" {self.navigation}" if self.navigation is not None else ""
         tag = f"#{self.tag}" if self.tag else ""
-        return f"{self.term}{with_clause}{tag}{nav}"
+        sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
+        limit = f" limit {self.limit}" if self.limit else ""
+        nav = f" {self.navigation}" if self.navigation is not None else ""
+        return f"{self.term}{with_clause}{tag}{sort}{limit}{nav}"
+
+    def on_section(self, section: str) -> Part:
+        return replace(
+            self,
+            term=self.term.on_section(section),
+            with_clause=self.with_clause.on_section(section) if self.with_clause else None,
+            sort=[sort.on_section(section) for sort in self.sort],
+        )
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -408,14 +427,15 @@ class Sort:
     def __str__(self) -> str:
         return f"{self.name} {self.order}"
 
+    def on_section(self, section: str) -> Sort:
+        return replace(self, name=f"{section}.{self.name}")
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
     parts: List[Part]
     preamble: Dict[str, SimpleValue] = field(default_factory=dict)
     aggregate: Optional[Aggregate] = None
-    sort: List[Sort] = field(default_factory=list)
-    limit: Optional[int] = None
 
     def __post_init__(self) -> None:
         if self.parts is None or len(self.parts) == 0:
@@ -434,9 +454,7 @@ class Query:
         preamble = "(" + ", ".join(f"{k}={to_str(v)}" for k, v in self.preamble.items()) + ")" if self.preamble else ""
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
-        sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
-        limit = f" limit {self.limit}" if self.limit else ""
-        return f"{aggregate}{preamble}{colon}{parts}{sort}{limit}"
+        return f"{aggregate}{preamble}{colon}{parts}"
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
@@ -474,13 +492,13 @@ class Query:
                 parts[0] = replace(p0, navigation=Navigation(start_m, until_m, edge_type, direction))
             # this is another traversal: so we need to start a new part
             else:
-                parts.insert(0, Part(AllTerm(), None, None, Navigation(start, until, edge_type, direction)))
+                parts.insert(0, Part(AllTerm(), navigation=Navigation(start, until, edge_type, direction)))
         else:
             parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
-    def group_by(self, group_by: List[AggregateVariable], funs: List[AggregateFunction]) -> Query:
-        aggregate = Aggregate(group_by, funs)
+    def group_by(self, group_by: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
+        aggregate = Aggregate(group_by, funcs)
         return replace(self, aggregate=aggregate)
 
     def simplify(self) -> Query:
@@ -488,10 +506,10 @@ class Query:
         return replace(self, parts=parts)
 
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
-        return replace(self, sort=[*self.sort, Sort(name, order)])
+        return self.__change_current_part(lambda p: replace(p, sort=[*p.sort, Sort(name, order)]))
 
     def with_limit(self, num: int) -> Query:
-        return replace(self, limit=num)
+        return self.__change_current_part(lambda p: replace(p, limit=num))
 
     def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
@@ -499,12 +517,20 @@ class Query:
 
     def on_section(self, section: str) -> Query:
         aggregate = self.aggregate.on_section(section) if self.aggregate else None
-        parts = [replace(p, term=p.term.on_section(section)) for p in self.parts]
+        parts = [p.on_section(section) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
 
     def tag(self, name: str) -> Query:
+        return self.__change_current_part(lambda p: replace(p, tag=name))
+
+    @property
+    def current_part(self) -> Part:
+        # remember: the order of parts is reversed
+        return self.parts[0]
+
+    def __change_current_part(self, fn: Callable[[Part], Part]) -> Query:
         parts = self.parts.copy()
-        parts[0] = replace(parts[0], tag=name)
+        parts[0] = fn(parts[0])
         return replace(self, parts=parts)
 
     def combine(self, other: Query) -> Query:
@@ -524,12 +550,11 @@ class Query:
                 raise AttributeError("Can not combine 2 tag clauses!")
             tag = left_last.tag if left_last.tag else right_first.tag
             with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
-            combined = Part(term, tag, with_clause, right_first.navigation)
+            sort = combine_optional(left_last.sort, right_first.sort, lambda l, r: l + r)
+            limit = combine_optional(left_last.limit, right_first.limit, min)
+            combined = Part(term, tag, with_clause, sort if sort else [], limit, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
-        sort_opt = combine_optional(self.sort, other.sort, lambda l, r: l + r)
-        sort = sort_opt if sort_opt else []
-        limit = combine_optional(self.limit, other.limit, min)
-        return Query(parts, preamble, aggregate, sort, limit)
+        return Query(parts, preamble, aggregate)
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

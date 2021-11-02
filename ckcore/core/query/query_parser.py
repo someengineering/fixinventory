@@ -176,14 +176,40 @@ def with_clause_parser() -> Parser:
     return WithClause(with_filter, nav, term, with_clause)
 
 
+sort_order_p = string("asc") | string("desc")
+sort_dp = string("sort")
+
+
+@make_parser
+def single_sort_arg_parser() -> Parser:
+    name = yield variable_dp
+    order = yield (space_dp >> sort_order_p).optional()
+    return Sort(name, order if order else SortOrder.Asc)
+
+
+@make_parser
+def sort_parser() -> Parser:
+    yield sort_dp
+    yield space_dp
+    attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
+    yield whitespace
+    return attributes
+
+
+limit_p = string("limit")
+limit_parser = limit_p + space_dp >> integer_dp
+
+
 @make_parser
 def part_parser() -> Parser:
     term = yield term_parser
     yield whitespace
     with_clause = yield with_clause_parser.optional()
     tag = yield tag_parser
+    sort = yield sort_parser.optional()
+    limit = yield limit_parser.optional()
     nav = yield navigation_parser.optional()
-    return Part(term, tag, with_clause, nav)
+    return Part(term, tag, with_clause, sort if sort else [], limit, nav)
 
 
 @make_parser
@@ -304,30 +330,6 @@ def preamble_parser() -> Parser:
     return maybe_aggregate, preamble
 
 
-sort_order_p = string("asc") | string("desc")
-sort_dp = string("sort")
-
-
-@make_parser
-def single_sort_arg_parser() -> Parser:
-    name = yield variable_dp
-    order = yield (space_dp >> sort_order_p).optional()
-    return Sort(name, order if order else SortOrder.Asc)
-
-
-@make_parser
-def sort_parser() -> Parser:
-    yield sort_dp
-    yield space_dp
-    attributes = yield single_sort_arg_parser.sep_by(comma_p, min=1)
-    yield whitespace
-    return attributes
-
-
-limit_p = string("limit")
-limit_parser = limit_p + space_dp >> integer_dp
-
-
 @make_parser
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
@@ -355,13 +357,11 @@ def query_parser() -> Parser:
         return query.on_section(section) if section else query
 
     adapted = [set_edge_type_if_not_set(part) for part in parts]
-    sort = yield sort_parser.optional()
-    limit = yield limit_parser.optional()
     # remove values from preamble, that are only used at parsing time
     resulting_preamble = preamble.copy()
     for key in ["section", "edge_type"]:
         resulting_preamble.pop(key, None)
-    return adapt_section(Query(adapted[::-1], resulting_preamble, maybe_aggregate, sort, limit))
+    return adapt_section(Query(adapted[::-1], resulting_preamble, maybe_aggregate))
 
 
 def parse_query(query: str) -> Query:

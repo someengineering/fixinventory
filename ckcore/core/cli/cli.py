@@ -55,7 +55,6 @@ from core.query.model import (
     AggregateVariable,
     AggregateVariableName,
     AggregateFunction,
-    Sort,
     SortOrder,
 )
 from core.query.query_parser import aggregate_parameter_parser, parse_query
@@ -301,14 +300,16 @@ class CLI:
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
                 additional_commands.append(self.command("aggregate_to_count", None, ctx))
-                query = replace(query, aggregate=aggregate, sort=[Sort("count")])
+                query = replace(query, aggregate=aggregate)
+                query = query.add_sort("count")
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
-                query = replace(query, limit=size)
+                query = query.with_limit(size)
             elif isinstance(part, TailCommand):
                 size = HeadCommand.parse_size(arg)
-                sort = query.sort if query.sort else [Sort("_key", SortOrder.Desc)]
-                query = replace(query, limit=size, sort=sort)
+                if not query.current_part.sort:
+                    query = query.add_sort("_key", SortOrder.Desc)
+                query = query.with_limit(size)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
         args = str(query.simplify())
