@@ -1,2 +1,1 @@
-cklib==2.0.0a7
-requests==2.26.0
+cklib==2.0.0a8

@@ -1,9 +1,5 @@
-cklib==2.0.0a7
-CherryPy==18.6.1
-requests==2.26.0
-prometheus-client==0.11.0
-APScheduler==3.8.0
+cklib==2.0.0a8
+APScheduler==3.8.1
 prompt-toolkit==3.0.20
-tzlocal==2.1
+tzlocal==4.1
 PyYAML==6.0
-PyJWT==2.1.0

@@ -22,7 +22,7 @@ setup_requirements = [
 
 setup(
     name="ckcore",
-    version="2.0.0a7",
+    version="2.0.0a8",
     description="Keeps all the things.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],

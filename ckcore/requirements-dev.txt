@@ -6,5 +6,5 @@ pep8-naming==0.12.1
 tox==3.24.3
 coverage==5.5
 setuptools==57.4.0
-pylint==2.10.2
+pylint==2.11.1
 black==21.7b0

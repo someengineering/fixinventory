@@ -2,21 +2,18 @@
 
 aiohttp-swagger3==0.6.0
 aiohttp[speedups]==3.7.4.post0
-aiohttp_cors==0.7.0
 durations_nlp==1.0.1
-jsons==1.5.1
-networkx==2.6.3
+jsons==1.6.0
 parsy==1.3.0
 plantuml==0.3.0
 python-arango==7.2.0
 python-dateutil==2.8.2
 toolz==0.11.1
-transitions==0.8.9
-APScheduler==3.8.0
+transitions==0.8.10
+APScheduler==3.8.1
 aiostream==0.4.3
-tzlocal==2.1
-frozendict==2.0.6
+tzlocal==4.1
+frozendict==2.0.7
 PyYAML==6.0
-cklib==2.0.0a7
-prometheus-client==0.11.0
+cklib==2.0.0a8
 jq==1.2.1

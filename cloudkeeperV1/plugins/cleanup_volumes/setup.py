@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-cleanup_volumes",
-    version="2.0.0a7",
+    version="2.0.0a8",
     description="Volume Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),

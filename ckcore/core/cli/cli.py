@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass, field, replace
-from datetime import timedelta
+from datetime import timedelta, datetime
 from functools import reduce
 from itertools import takewhile
 from typing import Dict, List, Tuple, Type, cast
@@ -61,12 +61,7 @@ from core.query.model import (
 from core.query.query_parser import aggregate_parameter_parser, parse_query
 from core.types import JsonElement, Json
 from core.util import utc_str, utc, from_utc
-
-try:
-    # noinspection PyUnresolvedReferences
-    from tzlocal import get_localzone
-except ImportError:
-    pass
+from tzlocal import get_localzone
 
 
 @dataclass
@@ -347,8 +342,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
-            # noinspection PyUnresolvedReferences
-            n = get_localzone().localize(ut)
+            n = datetime.now(get_localzone())
         except Exception:
             n = ut
         return {
