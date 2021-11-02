@@ -5,8 +5,8 @@ from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
-from typing import Dict, List, Tuple, Type
-from typing import Optional, Union, Any, AsyncGenerator
+from typing import Dict, List, Tuple, Type, cast
+from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -100,12 +100,25 @@ class ParsedCommandLine:
     env: JsonElement
     parsed_commands: ParsedCommands
     executable_commands: List[ExecutableCommand]
-    generator: AsyncGenerator[JsonElement, None]
-    result_action: CLIAction
     unmet_requirements: List[CLICommandRequirement]
 
+    def __post_init__(self) -> None:
+        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
+            action = cmd.action
+            if isinstance(action, expected):
+                return action
+            else:
+                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
+                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
+
+        if self.executable_commands:
+            expect_action(self.executable_commands[0], CLISource)
+            for command in self.executable_commands[1:]:
+                expect_action(command, CLIFlow)
+
     async def to_sink(self, sink: Sink[T]) -> T:
-        return await sink(self.generator)
+        _, generator = await self.execute()
+        return await sink(generator)
 
     @property
     def commands(self) -> List[CLICommand]:
@@ -113,7 +126,19 @@ class ParsedCommandLine:
 
     @property
     def produces(self) -> MediaType:
-        return self.result_action.produces
+        # the last command in the chain defines the resulting media type
+        return self.executable_commands[-1].action.produces if self.executable_commands else MediaType.Json
+
+    async def execute(self) -> Tuple[Optional[int], Stream]:
+        if self.executable_commands:
+            source_action = cast(CLISource, self.executable_commands[0].action)
+            count, flow = await source_action.source()
+            for command in self.executable_commands[1:]:
+                flow_action = cast(CLIFlow, command.action)
+                flow = await flow_action.flow(flow)
+            return count, flow
+        else:
+            return 0, stream.empty()
 
 
 @make_parser
@@ -190,7 +215,7 @@ class HelpCommand(CLICommand):
 
             return stream.just(result)
 
-        return CLISource(help_command)
+        return CLISource.single(help_command)
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]
@@ -213,14 +238,35 @@ class CLI:
         self.dependencies = dependencies
         self.aliases = aliases
 
-    @staticmethod
-    def parse_arg(cmd: CLICommand, arg: Optional[str], ctx: CLIContext) -> CLIAction:
-        try:
-            return cmd.parse(arg, ctx)
-        except Exception as ex:
-            raise CLIParseError(f"{cmd.name} can not parse arg: {arg}: {ex}") from ex
+    def command(self, name: str, arg: Optional[str], ctx: CLIContext) -> ExecutableCommand:
+        """
+        Create an executable command for given command name, args and context.
+        :param name: the name of the command to execute (must be a known command)
+        :param arg: the arg of the command (must be parsable by the command)
+        :param ctx: the context of this command.
+        :return: the ready to run executable command.
+        :raises:
+            CLIParseError: if the name of the command is not known, or the argument fails to parse.
+        """
+        if name in self.commands:
+            command = self.commands[name]
+            try:
+                action = command.parse(arg, ctx)
+                return ExecutableCommand(command, arg, action)
+            except Exception as ex:
+                raise CLIParseError(f"{command.name} can not parse arg {arg}. Reason: {ex}") from ex
+        else:
+            raise CLIParseError(f"Command >{name}< is not known. typo?")
 
     def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+        """
+        Takes a list of query part commands and combine them to a single executable query command.
+        This process can also introduce new commands that should run after the query is finished.
+        Therefore a list of executable commands is returned.
+        :param commands: the incoming executable commands, which actions are all instances of QueryPart.
+        :param ctx: the context to execute within.
+        :return: the resulting list of commands to execute.
+        """
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
         for command in commands:
@@ -254,8 +300,7 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                cmd = self.commands["aggregate_to_count"]
-                additional_commands.append(ExecutableCommand(cmd, None, cmd.parse(None, ctx)))
+                additional_commands.append(self.command("aggregate_to_count", None, ctx))
                 query = replace(query, aggregate=aggregate, sort=[Sort("count")])
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
@@ -266,58 +311,25 @@ class CLI:
                 query = replace(query, limit=size, sort=sort)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        exe_query = self.commands["execute_query"]
         args = str(query.simplify())
-        action = self.parse_arg(exe_query, args, ctx)
-        return [ExecutableCommand(exe_query, args, action), *additional_commands]
+        execute_query = self.command("execute_query", args, ctx)
+        return [execute_query, *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
-        def prepare_command(parsed_command: ParsedCommand, ctx: CLIContext) -> ExecutableCommand:
-            if parsed_command.cmd in self.commands:
-                command = self.commands[parsed_command.cmd]
-                action = self.parse_arg(command, parsed_command.args, ctx)
-                return ExecutableCommand(command, parsed_command.args, action)
-            else:
-                raise CLIParseError(f"Command >{parsed_command.cmd}< is not known. typo?")
-
-        def combine_single_command(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+        def combine_query_parts(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
             parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
             query_parts = self.create_query(parts, ctx) if parts else []
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
-        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
-            action = cmd.action
-            if isinstance(action, expected):
-                return action
-            else:
-                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
-                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
-
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
-
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
-            commands = combine_single_command([prepare_command(cmd, ctx) for cmd in parsed.commands], ctx)
+            commands = combine_query_parts([self.command(cmd.cmd, cmd.args, ctx) for cmd in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
-
-            if not_met:
-                return ParsedCommandLine(cmd_env, parsed, commands, stream.empty(), CLISource.empty(), not_met)
-            elif commands:
-                source = commands[0]
-                source_action = expect_action(source, CLISource)
-                flow = await source_action.source()
-                result_action: Union[CLISource, CLIFlow] = source_action
-                for command in commands[1:]:
-                    flow_action = expect_action(command, CLIFlow)
-                    flow = await flow_action.flow(flow)
-                    result_action = flow_action
-                # noinspection PyTypeChecker
-                return ParsedCommandLine(cmd_env, parsed, commands, flow, result_action, [])
-            else:
-                return ParsedCommandLine(cmd_env, parsed, [], stream.empty(), CLISource.empty(), [])
+            return ParsedCommandLine(cmd_env, parsed, commands, not_met)
 
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)

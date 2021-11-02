@@ -1,8 +1,25 @@
 from __future__ import annotations
 
+import logging
+import re
 from contextlib import asynccontextmanager
 from numbers import Number
-from typing import Optional, MutableMapping, Sequence, Union, Any, AsyncGenerator, Dict, List
+from typing import (
+    Optional,
+    MutableMapping,
+    Sequence,
+    Union,
+    Any,
+    AsyncGenerator,
+    Dict,
+    List,
+    Callable,
+    AsyncIterator,
+    Set,
+    Tuple,
+    AsyncContextManager,
+    Awaitable,
+)
 
 from arango import ArangoServerError
 from arango.collection import StandardCollection, VertexCollection, EdgeCollection
@@ -13,11 +30,150 @@ from arango.typings import Json, Jsons
 
 from core.async_extensions import run_async
 from core.metrics import timed
+from core.util import identity
+
+log = logging.getLogger(__name__)
+
+
+class AsyncCursor(AsyncIterator[Json]):
+    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
+        self.cursor = cursor
+        self.visited_node: Set[str] = set()
+        self.visited_edge: Set[Tuple[str, str]] = set()
+        self.trafo = trafo if trafo else identity
+        self.vt_len: Optional[int] = None
+        self.on_hold: Optional[Json] = None
+        self.get_next: Callable[[], Awaitable[Optional[Json]]] = self.next_filtered if trafo else self.next_from_db
+
+    async def __anext__(self) -> Json:
+        # if there is an on-hold element: unset and return it
+        # background: a graph node contains vertex and edge information.
+        # since this method can only return one element at a time, the edge is put on-hold for vertex+edge data.
+        if self.on_hold:
+            res = self.on_hold
+            self.on_hold = None
+            return res
+        else:
+            while True:
+                element = await self.get_next()
+                if element:
+                    return element
+
+    def count(self) -> Optional[int]:
+        return self.cursor.count()  # type: ignore
+
+    async def next_filtered(self) -> Optional[Json]:
+        element = await self.next_from_db()
+        vertex = None
+        edge = None
+        try:
+            _id = element["_id"]
+            if _id not in self.visited_node:
+                self.visited_node.add(_id)
+                vertex = self.trafo(element)
+
+            from_id = element.get("_from")
+            to_id = element.get("_to")
+            if from_id is not None and to_id is not None:
+                edge_key = (from_id, to_id)
+                if edge_key not in self.visited_edge:
+                    self.visited_edge.add(edge_key)
+                    if not self.vt_len:
+                        self.vt_len = len(re.sub("/.*$", "", from_id)) + 1
+                    edge = {
+                        "type": "edge",
+                        "from": from_id[self.vt_len :],  # noqa: E203
+                        "to": to_id[self.vt_len :],  # noqa: E203,
+                    }
+            # if the vertex is not returned: return the edge
+            # otherwise return the vertex and remember the edge
+            if vertex:
+                self.on_hold = edge
+                return vertex
+            else:
+                return edge
+        except Exception as ex:
+            log.warning(f"Could not read element {element}: {ex}. Ignore.")
+        return None
+
+    async def next_from_db(self) -> Json:
+        if self.cursor.empty():
+            if not self.cursor.has_more():
+                raise StopAsyncIteration
+            # next batch is fetched in separate thread
+            await run_async(self.cursor.fetch)
+        res = self.cursor.pop()
+        return res
+
+
+class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
+    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
+        self.cursor = cursor
+        self.trafo = trafo
+
+    async def __aenter__(self) -> AsyncCursor:
+        return AsyncCursor(self.cursor, self.trafo)
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.cursor.close()
 
 
 class AsyncArangoDBBase:
     def __init__(self, db: Database):
         self.db = db
+
+    @timed("arango", "aql")
+    async def aql_cursor(
+        self,
+        query: str,
+        trafo: Optional[Callable[[Json], Optional[Json]]] = None,
+        count: bool = False,
+        batch_size: Optional[int] = None,
+        ttl: Optional[Number] = None,
+        bind_vars: Optional[Dict[str, Any]] = None,
+        full_count: Optional[bool] = None,
+        max_plans: Optional[int] = None,
+        optimizer_rules: Optional[Sequence[str]] = None,
+        cache: Optional[bool] = None,
+        memory_limit: int = 0,
+        fail_on_warning: Optional[bool] = None,
+        profile: Optional[bool] = None,
+        max_transaction_size: Optional[int] = None,
+        max_warning_count: Optional[int] = None,
+        intermediate_commit_count: Optional[int] = None,
+        intermediate_commit_size: Optional[int] = None,
+        satellite_sync_wait: Optional[int] = None,
+        stream: Optional[bool] = None,
+        skip_inaccessible_cols: Optional[bool] = None,
+        max_runtime: Optional[Number] = None,
+    ) -> AsyncCursorContext:
+        # TODO: remove the 2 lines once this fix: https://github.com/arangodb/arangodb/pull/14801 is released
+        opt = ["-reduce-extraction-to-projection"]
+        optimizer_rules = list(optimizer_rules) + opt if optimizer_rules else opt
+        cursor = await run_async(
+            self.db.aql.execute,
+            query,
+            count,
+            batch_size,
+            ttl,
+            bind_vars,
+            full_count,
+            max_plans,
+            optimizer_rules,
+            cache,
+            memory_limit,
+            fail_on_warning,
+            profile,
+            max_transaction_size,
+            max_warning_count,
+            intermediate_commit_count,
+            intermediate_commit_size,
+            satellite_sync_wait,
+            stream,
+            skip_inaccessible_cols,
+            max_runtime,
+        )
+        return AsyncCursorContext(cursor, trafo)
 
     @timed("arango", "aql")
     async def aql(

@@ -19,8 +19,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
 from functools import partial
-from typing import Dict, List, Tuple
-from typing import Optional, Any, AsyncGenerator, Hashable, Iterable, Union, Callable, Awaitable, cast
+from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Union, Callable, Awaitable, cast
 
 import jq
 from aiostream import stream
@@ -127,20 +126,43 @@ class CLIAction(ABC):
 class CLISource(CLIAction):
     def __init__(
         self,
-        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
     ) -> None:
         super().__init__(produces, requires)
         self._fn = fn
 
-    async def source(self) -> Stream:
-        gen = self._fn()
-        return self.make_stream(await gen if iscoroutine(gen) else gen)  # type: ignore
+    async def source(self) -> Tuple[Optional[int], Stream]:
+        res = self._fn()
+        count, gen = await res if iscoroutine(res) else res  # type: ignore
+        return count, self.make_stream(await gen if iscoroutine(gen) else gen)
+
+    @staticmethod
+    def with_count(
+        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        count: Optional[int],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+    ) -> CLISource:
+        async def combine() -> Tuple[Optional[int], JsGen]:
+            res = fn()
+            gen = await res if iscoroutine(res) else res  # type: ignore
+            return count, gen
+
+        return CLISource(combine, produces, requires)
+
+    @staticmethod
+    def single(
+        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+    ) -> CLISource:
+        return CLISource.with_count(fn, 1, produces, requires)
 
     @staticmethod
     def empty() -> CLISource:
-        return CLISource(stream.empty)
+        return CLISource.with_count(stream.empty, 0)
 
 
 class CLIFlow(CLIAction):
@@ -619,7 +641,7 @@ class CountCommand(QueryPart):
 
         fn = inc_prop if arg else inc_identity
 
-        async def count_in_stream(content: Stream) -> AsyncGenerator[JsonElement, None]:
+        async def count_in_stream(content: Stream) -> AsyncIterator[JsonElement]:
             async with content.stream() as in_stream:
                 async for element in in_stream:
                     fn(element)
@@ -652,7 +674,7 @@ class EchoCommand(CLICommand):
         return "Send the provided message to downstream"
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        return CLISource(lambda: stream.just(strip_quotes(arg if arg else "")))
+        return CLISource.single(lambda: stream.just(strip_quotes(arg if arg else "")))
 
 
 class JsonCommand(CLICommand):
@@ -685,7 +707,7 @@ class JsonCommand(CLICommand):
             elements = [js]
         else:
             raise AttributeError(f"json does not understand {arg}.")
-        return CLISource(lambda: stream.iterate(elements))
+        return CLISource.with_count(lambda: stream.iterate(elements), len(elements))
 
 
 class SleepCommand(CLICommand):
@@ -712,12 +734,12 @@ class SleepCommand(CLICommand):
         try:
             sleep_time = float(arg)
 
-            async def sleep() -> AsyncGenerator[JsonElement, None]:
+            async def sleep() -> AsyncIterator[JsonElement]:
                 for _ in range(0, 1):
                     await asyncio.sleep(sleep_time)
                     yield ""
 
-            return CLISource(sleep)
+            return CLISource.single(sleep)
         except Exception as ex:
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
@@ -745,7 +767,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
         name_path = ["group", "name"]
         count_path = ["count"]
 
-        async def to_count(in_stream: AsyncGenerator[JsonElement, None]) -> AsyncGenerator[JsonElement, None]:
+        async def to_count(in_stream: AsyncIterator[JsonElement]) -> AsyncIterator[JsonElement]:
             null_value = 0
             total = 0
             in_streamer = in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
@@ -796,11 +818,18 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         query = parse_query(arg)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
-        async def prepare() -> AsyncGenerator[Json, None]:
+        async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
             db.to_query(query_model)  # only here to validate the query itself (can throw)
-            return db.query_aggregation(query_model) if query.aggregate else db.query_list(query_model)
+            count = ctx.env.get("count", "true").lower() != "false"
+            context = (
+                await db.query_aggregation(query_model)
+                if query.aggregate
+                else await db.query_list(query_model, with_count=count)
+            )
+            async with context as cursor:
+                return cursor.count(), stream.iterate(cursor)
 
         return CLISource(prepare)
 
@@ -824,7 +853,7 @@ class EnvCommand(CLICommand):
         return "Retrieve the environment and pass it to the output stream."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        return CLISource(lambda: stream.just(ctx.env))
+        return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env))
 
 
 class ChunkCommand(CLICommand):
@@ -1033,18 +1062,21 @@ class KindCommand(CLICommand):
             else:
                 return {"name": kind.fqn}
 
-        def with_dependencies(model: Model) -> Stream:
+        async def source() -> Tuple[int, Stream]:
+            model = await self.dependencies.model_handler.load_model()
             if show_kind:
+                count = 1
                 result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
             elif show_path:
+                count = 1
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
             else:
+                count = len(model.kinds)
                 result = sorted(list(model.kinds.keys()))
 
-            return stream.just(result)
+            return count, stream.just(result)
 
-        dependencies = stream.call(self.dependencies.model_handler.load_model)
-        return CLISource(lambda: stream.flatmap(dependencies, with_dependencies))
+        return CLISource(source)
 
 
 class SetDesiredStateBase(CLICommand, ABC):
@@ -1060,7 +1092,7 @@ class SetDesiredStateBase(CLICommand, ABC):
 
     async def set_desired(
         self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
-    ) -> AsyncGenerator[Json, None]:
+    ) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
@@ -1180,7 +1212,7 @@ class CleanCommand(SetDesiredStateBase):
 
     async def set_desired(
         self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
-    ) -> AsyncGenerator[Json, None]:
+    ) -> AsyncIterator[JsonElement]:
         reason = f"Reason: {arg}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
             uid = value_in_path(elem, NodePath.node_id)
@@ -1202,7 +1234,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, **ctx.env))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
-    async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncGenerator[JsonElement, None]:
+    async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
@@ -1494,10 +1526,15 @@ class JobsCommand(CLICommand):
         return "List all jobs in the system."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        async def jobs() -> AsyncGenerator[Json, None]:
-            for job in await self.dependencies.job_handler.list_jobs():
-                wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
-                yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command, **wait}
+        async def jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
+            listed = await self.dependencies.job_handler.list_jobs()
+
+            async def iterate() -> AsyncIterator[JsonElement]:
+                for job in listed:
+                    wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
+                    yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command, **wait}
+
+            return len(listed), iterate()
 
         return CLISource(jobs)
 
@@ -1544,14 +1581,14 @@ class AddJobCommand(CLICommand):
         return "Add job to the system."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        async def add_job() -> AsyncGenerator[str, None]:
+        async def add_job() -> AsyncIterator[str]:
             if not arg:
                 raise AttributeError("No parameters provided for add_job!")
             job = await self.dependencies.job_handler.parse_job_line("cli", arg)
             await self.dependencies.job_handler.add_job(job)
             yield f"Job {job.id} added."
 
-        return CLISource(add_job)
+        return CLISource.single(add_job)
 
 
 class DeleteJobCommand(CLICommand):
@@ -1579,13 +1616,13 @@ class DeleteJobCommand(CLICommand):
         return "Remove job from the system."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        async def delete_job() -> AsyncGenerator[str, None]:
+        async def delete_job() -> AsyncIterator[str]:
             if not arg:
                 raise AttributeError("No parameters provided for delete_job!")
             job = await self.dependencies.job_handler.delete_job(arg)
             yield f"Job {arg} deleted." if job else f"No job with this id: {arg}"
 
-        return CLISource(delete_job)
+        return CLISource.single(delete_job)
 
 
 class SendWorkerTaskCommand(CLICommand, ABC):
@@ -1681,14 +1718,15 @@ class TagCommand(SendWorkerTaskCommand):
         return timedelta(seconds=30)
 
     def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
-        async def load_element(items: List[JsonElement]) -> AsyncGenerator[Json, None]:
+        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
             # one query to load all items that match given ids (max 1000 as defined in chunk size)
             query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
             query_model = QueryModel(query, model)
-            async for a in self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model):
-                yield a
+            async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
+                async for a in crs:
+                    yield a
 
         return stream.flatmap(stream.chunks(in_stream, 1000), load_element)
 
@@ -1776,9 +1814,9 @@ class TasksCommand(CLICommand):
         return "Lists all currently running tasks."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        async def tasks_source() -> Stream:
+        async def tasks_source() -> Tuple[int, Stream]:
             tasks = await self.dependencies.job_handler.running_tasks()
-            return stream.iterate(
+            return len(tasks), stream.iterate(
                 {
                     "id": t.id,
                     "started_at": to_js(t.task_started_at),
@@ -1818,14 +1856,14 @@ class StartTaskCommand(CLICommand):
         return "Start a task with the given name."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
-        async def start_task() -> AsyncGenerator[str, None]:
+        async def start_task() -> AsyncIterator[str]:
             if not arg:
                 raise CLIParseError("Name of task is not provided")
 
             task = await self.dependencies.job_handler.start_task_by_descriptor_id(arg)
             yield f"Task {task.id} has been started" if task else "Task can not be started."
 
-        return CLISource(start_task)
+        return CLISource.single(start_task)
 
 
 # TODO: remove me once the file feature is implemented!
@@ -1839,7 +1877,7 @@ class FileCommand(CLICommand, InternalPart):
             else:
                 return stream.just(arg if arg else "")
 
-        return CLISource(file_command, MediaType.FilePath)
+        return CLISource.single(file_command, MediaType.FilePath)
 
     @property
     def name(self) -> str:
@@ -1863,7 +1901,7 @@ class UploadCommand(CLICommand, InternalPart):
             else:
                 raise AttributeError(f"file was not uploaded: {arg}!")
 
-        return CLISource(upload_command, MediaType.Json, [CLIFileRequirement(file_id, arg)])
+        return CLISource.single(upload_command, MediaType.Json, [CLIFileRequirement(file_id, arg)])
 
     @property
     def name(self) -> str:
@@ -1932,7 +1970,7 @@ class SystemCommand(CLICommand):
     def info(self) -> str:
         return "Access and manage system wide properties."
 
-    async def create_backup(self, arg: Optional[str]) -> AsyncGenerator[str, None]:
+    async def create_backup(self, arg: Optional[str]) -> AsyncIterator[str]:
         temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
@@ -1976,7 +2014,7 @@ class SystemCommand(CLICommand):
                     await asyncio.sleep(5)
             shutil.rmtree(temp_dir)
 
-    async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncGenerator[str, None]:
+    async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncIterator[str]:
         if not backup_file:
             raise CLIExecutionError(f"No backup file defined: {backup_file}")
         if not os.path.exists(backup_file):
@@ -2039,18 +2077,18 @@ class SystemCommand(CLICommand):
         if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
             rest = parts[2:]
 
-            def backup() -> AsyncGenerator[str, None]:
+            def backup() -> AsyncIterator[str]:
                 return self.create_backup(" ".join(rest) if rest else None)
 
-            return CLISource(backup, MediaType.FilePath)
+            return CLISource.single(backup, MediaType.FilePath)
 
         elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
             backup_file = parts[2]
 
-            def restore() -> AsyncGenerator[str, None]:
+            def restore() -> AsyncIterator[str]:
                 return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
-            return CLISource(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
+            return CLISource.single(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
         else:
             raise CLIParseError(f"system: Can not parse {arg}")
 

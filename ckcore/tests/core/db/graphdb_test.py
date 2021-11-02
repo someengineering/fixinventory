@@ -334,10 +334,10 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
 @pytest.mark.asyncio
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
-    gen = filled_graph_db.query_list(QueryModel(blas, foo_model, "reported"))
-    result = [from_js(x["reported"], Bla) async for x in gen]
-    assert len(result) == 10
-    assert isinstance(result[0], Bla)
+    async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
+        result = [from_js(x["reported"], Bla) async for x in gen]
+        assert len(result) == 10
+        assert isinstance(result[0], Bla)
 
 
 @pytest.mark.asyncio
@@ -363,41 +363,43 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 @pytest.mark.asyncio
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)")
-    gen = filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported"))
-    assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 13}]
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported")) as gen:
+        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 13}]
 
     agg_combined_var_query = parse_query(
         'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
     )
-    gen = filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model, "reported"))
-    assert [x async for x in gen] == [{"group": {"kind": "test_foo_0_"}, "instances": 13}]
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model, "reported")) as g:
+        assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 13}]
 
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     query = parse_query('(merge_with_ancestors="foo as foobar,bar"): is("bla")')
-    async for bla in filled_graph_db.query_list(QueryModel(query, foo_model, "reported")):
-        js = AccessJson(bla)
-        assert "bar" in js.reported  # key exists
-        assert "bar" in js.desired  # key exists
-        assert "bar" in js.metadata  # key exists
-        assert js.reported.bar is None  # bla is not a parent of this node
-        assert js.desired.bar is None  # bla is not a parent of this node
-        assert js.metadata.bar is None  # bla is not a parent of this node
-        assert js.reported.foobar is not None  # foobar is merged into reported
-        assert js.desired.foobar is not None  # foobar is merged into reported
-        assert js.metadata.foobar is not None  # foobar is merged into reported
-        # make sure the correct parent is merged (foobar(1) -> bla(1_xxx))
-        assert js.reported.identifier.startswith(js.reported.foobar.identifier)
-        assert js.reported.identifier.startswith(js.desired.foobar.node_id)
-        assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
+    async with await filled_graph_db.query_list(QueryModel(query, foo_model, "reported")) as cursor:
+        async for bla in cursor:
+            js = AccessJson(bla)
+            assert "bar" in js.reported  # key exists
+            assert "bar" in js.desired  # key exists
+            assert "bar" in js.metadata  # key exists
+            assert js.reported.bar is None  # bla is not a parent of this node
+            assert js.desired.bar is None  # bla is not a parent of this node
+            assert js.metadata.bar is None  # bla is not a parent of this node
+            assert js.reported.foobar is not None  # foobar is merged into reported
+            assert js.desired.foobar is not None  # foobar is merged into reported
+            assert js.metadata.foobar is not None  # foobar is merged into reported
+            # make sure the correct parent is merged (foobar(1) -> bla(1_xxx))
+            assert js.reported.identifier.startswith(js.reported.foobar.identifier)
+            assert js.reported.identifier.startswith(js.desired.foobar.node_id)
+            assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
 
 
 @pytest.mark.asyncio
 async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def query(q: str) -> List[Json]:
         agg_query = parse_query(q)
-        return [bla async for bla in filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported"))]
+        async with await filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")) as cursor:
+            return [bla async for bla in cursor]
 
     assert len(await query("is(bla) with(any, <-- is(foo))")) == 100
     assert len(await query('is(bla) with(any, <-- is(foo) and identifier=~"1")')) == 10
@@ -418,10 +420,11 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
         del node["desired"]
         del node["metadata"]
     await graph_db.merge_graph(graph, foo_model)
-    async for elem in graph_db.query_list(QueryModel(parse_query("all"), foo_model)):
-        assert "reported" in elem
-        assert "desired" not in elem
-        assert "metadata" not in elem
+    async with await graph_db.query_list(QueryModel(parse_query("all"), foo_model)) as cursor:
+        async for elem in cursor:
+            assert "reported" in elem
+            assert "desired" not in elem
+            assert "metadata" not in elem
 
 
 @pytest.mark.asyncio

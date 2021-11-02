@@ -11,7 +11,7 @@ from argparse import Namespace
 from dataclasses import replace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple
 
 import prometheus_client
 import yaml
@@ -24,16 +24,15 @@ from aiohttp import (
     BufferedReaderPayload,
     MultipartReader,
 )
-
+from aiohttp.abc import AbstractStreamWriter
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
-from aiostream import stream
 from networkx.readwrite import cytoscape_data
 
 from core import feature
-from core.cli.cli import CLI, ParsedCommandLine
 from core.cli import is_node
+from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import CLIContext
 from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
@@ -551,9 +550,9 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
-        result = graph_db.query_list(QueryModel(q, m, section))
-        # noinspection PyTypeChecker
-        return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
+        count = request.query.get("count", "true").lower() != "false"
+        async with await graph_db.query_list(QueryModel(q, m, section), count) as cursor:
+            return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
         section = section_of(request)
@@ -571,9 +570,9 @@ class Api:
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        gen = graph_db.query_graph_gen(QueryModel(q, m, section))
-        # noinspection PyTypeChecker
-        return await self.stream_response_from_gen(request, (item async for _, item in gen))
+        count = request.query.get("count", "true").lower() != "false"
+        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count) as cursor:
+            return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
         section = section_of(request)
@@ -581,9 +580,8 @@ class Api:
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        gen = graph_db.query_aggregation(QueryModel(q, m, section))
-        # noinspection PyTypeChecker
-        return await self.stream_response_from_gen(request, gen)
+        async with await graph_db.query_aggregation(QueryModel(q, m, section)) as gen:
+            return await self.stream_response_from_gen(request, gen)
 
     async def query(self, request: Request) -> StreamResponse:
         if request.headers.get("format") == "cytoscape":
@@ -653,7 +651,7 @@ class Api:
         # make sure, all requirements are fulfilled
         not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
-        content_type = request.headers.get("accept", "application/json")
+        accept = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
         mp_response = web.StreamResponse(
@@ -668,11 +666,13 @@ class Api:
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
+            count, generator = await first_result.execute()
+
             # flat the results from 0 or 1
-            async with stream.iterate(first_result.generator).stream() as streamer:
+            async with generator.stream() as streamer:
                 gen = await force_gen(streamer)
                 if first_result.produces.json:
-                    return await self.stream_response_from_gen(request, gen)
+                    return await self.stream_response_from_gen(request, gen, count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(gen, boundary, mp_response)
@@ -682,11 +682,12 @@ class Api:
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
-                async with stream.iterate(single.generator).stream() as streamer:
+                count, generator = await single.execute()
+                async with generator.stream() as streamer:
                     gen = await force_gen(streamer)
                     if single.produces.json:
                         with MultipartWriter(repr(single.produces), boundary) as mp:
-                            result_stream = await Api.result_binary_gen(content_type, gen)
+                            content_type, result_stream = await Api.result_binary_gen(accept, gen)
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
@@ -736,21 +737,25 @@ class Api:
             return web.HTTPNotFound(text=hint)
 
     @staticmethod
-    async def stream_response_from_gen(request: Request, gen_in: AsyncGenerator[Json, None]) -> StreamResponse:
-        content_type = request.headers.get("accept", "application/json")
-        response = web.StreamResponse(status=200, headers={"Content-Type": content_type})
+    async def stream_response_from_gen(
+        request: Request, gen_in: AsyncIterator[Json], count: Optional[int] = None
+    ) -> StreamResponse:
+        accept = request.headers.get("accept", "application/json")
+        # force the async generator, to get an early exception in case of failure
+        gen = await force_gen(gen_in)
+        content_type, result_gen = await Api.result_binary_gen(accept, gen)
+        count_header = {"Ck-Element-Count": str(count)} if count else {}
+        response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
         # this has to be done on response level before it is prepared
         response.enable_compression()
-        await response.prepare(request)
-        # force the async generator
-        gen = await force_gen(gen_in)
-        async for data in await Api.result_binary_gen(content_type, gen):
-            await response.write(data)
+        writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
+        async for data in result_gen:
+            await writer.write(data)
         await response.write_eof()
         return response
 
     @staticmethod
-    async def result_binary_gen(content_type: str, gen: AsyncGenerator[Json, None]) -> AsyncGenerator[bytes, None]:
+    async def result_binary_gen(accept: str, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
         async def respond_json() -> AsyncGenerator[bytes, None]:
             sep = ",\n".encode("utf-8")
             yield "[".encode("utf-8")
@@ -809,19 +814,19 @@ class Api:
                     yield str(js).encode("utf-8")
                 flag = True
 
-        if content_type == "application/x-ndjson":
-            return respond_ndjson()
-        elif content_type == "application/json":
-            return respond_json()
-        elif content_type in ["text/plain"]:
-            return respond_text()
-        elif content_type in ["application/yaml", "text/yaml"]:
-            return respond_yaml()
+        if accept == "application/x-ndjson":
+            return "application/x-ndjson", respond_ndjson()
+        elif accept == "application/json":
+            return "application/json", respond_json()
+        elif accept in ["text/plain"]:
+            return "text/plain", respond_text()
+        elif accept in ["application/yaml", "text/yaml"]:
+            return "text/yaml", respond_yaml()
         else:
-            return respond_json()
+            return "application/json", respond_json()
 
     @staticmethod
-    async def multi_file_response(results: AsyncGenerator[str, None], boundary: str, response: StreamResponse) -> None:
+    async def multi_file_response(results: AsyncIterator[str], boundary: str, response: StreamResponse) -> None:
         async for file_name in results:
             with open(file_name, "rb") as content:
                 with MultipartWriter("application/octet-stream", boundary) as mp:
