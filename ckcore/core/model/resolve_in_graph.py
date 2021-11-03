@@ -12,6 +12,8 @@ class NodePath:
     reported_id = ["reported", "id"]
     reported_name = ["reported", "name"]
     descendant_summary = ["metadata", "descendant_summary"]
+    descendant_count = ["metadata", "descendant_count"]
+    is_phantom = ["metadata", "phantom"]
 
 
 @dataclass(frozen=True)
