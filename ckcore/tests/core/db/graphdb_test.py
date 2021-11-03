@@ -337,7 +337,15 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
     async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 10
-        assert isinstance(result[0], Bla)
+
+
+@pytest.mark.asyncio
+async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    # select everything that is not foo --> should be blas
+    blas = Query.by(Query.mk_term("foo").not_term())
+    async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
+        result = [from_js(x["reported"], Bla) async for x in gen]
+        assert len(result) == 100
 
 
 @pytest.mark.asyncio

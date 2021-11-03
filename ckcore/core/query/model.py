@@ -120,6 +120,9 @@ class Term(abc.ABC):
     def __eq__(self, other: Any) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Term) else False
 
+    def not_term(self) -> NotTerm:
+        return NotTerm(self)
+
     def or_term(self, other: Term) -> CombinedTerm:
         if not isinstance(other, Term):
             raise AttributeError(f"Expected Term but got {other}")
@@ -187,6 +190,14 @@ class Term(abc.ABC):
 class AllTerm(Term):
     def __str__(self) -> str:
         return "all"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class NotTerm(Term):
+    term: Term
+
+    def __str__(self) -> str:
+        return f"not({self.term})"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

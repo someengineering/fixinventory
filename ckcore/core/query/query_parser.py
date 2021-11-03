@@ -52,6 +52,7 @@ from core.query.model import (
     WithClause,
     AggregateVariableName,
     AggregateVariableCombined,
+    NotTerm,
 )
 
 operation_p = (
@@ -88,12 +89,21 @@ def function_term() -> Parser:
     return FunctionTerm(fn, name, args)
 
 
+@make_parser
+def not_term() -> Parser:
+    yield not_p
+    yield lparen_p
+    term = yield simple_term_p
+    yield rparen_p
+    return NotTerm(term)
+
+
 is_term = lexeme(string("is") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IsTerm)
 id_term = lexeme(string("id") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IdTerm)
 match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
-leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term
-
+leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term | not_term
 bool_op_p = lexeme(string("and") | string("or"))
+not_p = lexeme(string("not"))
 
 
 @make_parser
