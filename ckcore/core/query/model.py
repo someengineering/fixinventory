@@ -530,7 +530,13 @@ class Query:
 
     def __change_current_part(self, fn: Callable[[Part], Part]) -> Query:
         parts = self.parts.copy()
-        parts[0] = fn(parts[0])
+        # if navigation is defined: the current part is already defined to the end
+        if parts[0].navigation:
+            part = Part(AllTerm())
+            parts.insert(0, part)
+        else:
+            part = parts[0]
+        parts[0] = fn(part)
         return replace(self, parts=parts)
 
     def combine(self, other: Query) -> Query:
