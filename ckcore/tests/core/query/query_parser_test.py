@@ -40,6 +40,7 @@ from core.query.query_parser import (
     limit_parser,
     with_clause_parser,
     section_abbreviation_names,
+    not_term,
 )
 
 
@@ -68,7 +69,6 @@ def test_parse_predicate() -> None:
     assert_round_trip(predicate_term, P("num").is_not_in([1, 2, 5]))
 
 
-# noinspection PyTypeChecker
 def test_parse_predicate_array() -> None:
     # TODO: array params are not working
     assert_round_trip(predicate_term, P.array("mem").for_any() < 23)
@@ -78,16 +78,18 @@ def test_kind() -> None:
     assert_round_trip(is_term, P.of_kind("foo"))
 
 
-# noinspection PyTypeChecker
 def test_function() -> None:
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", 1, "2", True))
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", "in_subnet"))
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", "in_subnet", "1000"))
 
 
-# noinspection PyTypeChecker
 def test_combined() -> None:
     assert_round_trip(combined_term, P.of_kind("foo") | P.of_kind("bla"))
+
+
+def test_not() -> None:
+    assert_round_trip(not_term, (P.of_kind("foo") | P.of_kind("bla")).not_term())
 
 
 def test_term() -> None:

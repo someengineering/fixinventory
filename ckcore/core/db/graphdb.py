@@ -44,6 +44,7 @@ from core.query.model import (
     WithClause,
     AggregateVariableName,
     AggregateVariableCombined,
+    NotTerm,
 )
 from core.query.query_parser import merge_ancestors_parser
 from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, freeze
@@ -844,6 +845,9 @@ class ArangoGraphDB(GraphDB):
             bind_vars[length] = t.kind
             return f"@{length} IN {cursor}.kinds"
 
+        def not_term(cursor: str, t: NotTerm) -> str:
+            return f"NOT ({term(cursor, t.term)})"
+
         def term(cursor: str, ab_term: Term) -> str:
             if isinstance(ab_term, AllTerm):
                 return "true"
@@ -855,6 +859,8 @@ class ArangoGraphDB(GraphDB):
                 return with_id(cursor, ab_term)
             elif isinstance(ab_term, IsTerm):
                 return is_instance(cursor, ab_term)
+            elif isinstance(ab_term, NotTerm):
+                return not_term(cursor, ab_term)
             elif isinstance(ab_term, CombinedTerm):
                 left = term(cursor, ab_term.left)
                 right = term(cursor, ab_term.right)
