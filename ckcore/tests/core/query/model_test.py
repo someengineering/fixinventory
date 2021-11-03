@@ -86,10 +86,19 @@ def test_combine() -> None:
     )
     assert str(query3) == 'test == true --> is("boo") --> ((is("bar") and is("foo")) and is("bla"))'
     query4 = Query.by("a").with_limit(10).combine(Query.by("b").with_limit(2))
-    assert query4.limit == 2  # minimum is taken
+    assert query4.current_part.limit == 2  # minimum is taken
     with pytest.raises(AttributeError) as ae:
         # can not combine 2 aggregations
         parse_query("aggregate(sum(1)): is(a)").combine(parse_query("aggregate(sum(1)): is(a)"))
     with pytest.raises(AttributeError) as ae:
         # can not combine 2 with statements
         parse_query("is(foo) with(empty, -->)").combine(parse_query("is(bla) with(empty, -->)"))
+
+
+def test_on_section() -> None:
+    query = 'cpu > 4 and (mem < 23 or mem < 59) with(any, <-- name == "test") sort mem --> a<1 and b==23 sort foo'
+    on_section = (
+        '(r.cpu > 4 and (r.mem < 23 or r.mem < 59)) with(any, <-- r.name == "test") sort r.mem asc --> '
+        "(r.a < 1 and r.b == 23) sort r.foo asc"
+    )
+    assert str(parse_query(query).on_section("r")) == on_section
