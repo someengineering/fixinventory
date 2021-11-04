@@ -30,7 +30,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     group.add_argument(
         "--quiet",
-        help="Quiet logging",
+        help="Only log errors",
         dest="quiet",
         action="store_true",
         default=False,
