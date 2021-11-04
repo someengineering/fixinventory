@@ -12,10 +12,7 @@ from logging import (
 from cklib.args import ArgumentParser
 
 
-log_format = "%(asctime)s - %(levelname)s - %(process)d/%(threadName)s - %(message)s"
-basicConfig(level=WARNING, format=log_format)
 getLogger().setLevel(ERROR)
-getLogger("cloudkeeper").setLevel(CRITICAL)
 getLogger("cloudkeeper").setLevel(INFO)
 
 argv = sys.argv[1:]
@@ -39,3 +36,8 @@ def add_args(arg_parser: ArgumentParser) -> None:
         action="store_true",
         default=False,
     )
+
+
+def setup_logger(proc: str) -> None:
+    log_format = f"%(asctime)s|{proc}|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+    basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S")
