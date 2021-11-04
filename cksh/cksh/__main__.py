@@ -16,11 +16,12 @@ from requests_toolbelt.multipart.decoder import BodyPart
 
 from cklib.args import ArgumentParser
 from cklib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
-from cklib.logging import log, add_args as logging_add_args
+from cklib.logging import log, setup_logger, add_args as logging_add_args
 from cksh.protected_files import validate_paths
 
 
 def main() -> None:
+    setup_logger("cksh")
     shutdown_event = Event()
     arg_parser = ArgumentParser(
         description="Cloudkeeper Shell", env_args_prefix="CKSH_"

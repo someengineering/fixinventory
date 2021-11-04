@@ -2,7 +2,7 @@ import sys
 import time
 import inspect
 import cklib.baseresources
-from cklib.logging import log, add_args as logging_add_args
+from cklib.logging import log, setup_logger, add_args as logging_add_args
 from cklib.jwt import add_args as jwt_add_args
 from functools import partial
 from cklib.core.actions import CoreActions
@@ -21,7 +21,6 @@ from threading import Event
 from cklib.args import ArgumentParser
 from signal import signal, SIGTERM, SIGINT
 
-
 shutdown_event = Event()
 
 metrics_update_metrics = Summary(
@@ -36,6 +35,8 @@ def handler(sig, frame) -> None:
 
 
 def main() -> None:
+    setup_logger("ckmetrics")
+
     signal(SIGINT, handler)
     signal(SIGTERM, handler)
 

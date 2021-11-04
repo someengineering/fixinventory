@@ -4,7 +4,7 @@ import os
 import threading
 import cklib.signal
 from typing import List, Dict
-from cklib.logging import log, add_args as logging_add_args
+from cklib.logging import log, setup_logger, add_args as logging_add_args
 from cklib.graph import add_args as graph_add_args
 from cklib.jwt import add_args as jwt_add_args
 from cklib.pluginloader import PluginLoader
@@ -33,6 +33,7 @@ collect_event = threading.Event()
 
 
 def main() -> None:
+    setup_logger("ckworker")
     # Try to run in a new process group and
     # ignore if not possible for whatever reason
     try:
