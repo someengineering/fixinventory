@@ -16,7 +16,7 @@ from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.model.model import Model
 from core.model.typed_model import to_js
 from core.types import Json
-from core.util import utc, utc_str, value_in_path, set_value_in_path
+from core.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 
 log = logging.getLogger(__name__)
 
@@ -250,18 +250,20 @@ class GraphAccess:
                 visit_next: List[str] = []
                 visited: Set[str] = set()
                 for elem_id in to_visit:
-                    node = self.nodes[elem_id]
-                    extracted = value_in_path(node, path)
-                    visited.add(elem_id)
-                    if isinstance(extracted, str):
-                        result[extracted] = result.get(extracted, 0) + 1
-                    # check if there is already a successor summary: stop the traversal and take the result.
-                    existing = value_in_path(node, NodePath.descendant_summary)
-                    if existing and isinstance(existing, dict):
-                        for summary_item, count in existing.items():
-                            result[summary_item] = result.get(summary_item, 0) + count
-                    else:
-                        visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
+                    if elem_id not in visited:
+                        visited.add(elem_id)
+                        elem = self.nodes[elem_id]
+                        if not value_in_path_get(elem, NodePath.is_phantom, False):
+                            extracted = value_in_path(elem, path)
+                            if isinstance(extracted, str):
+                                result[extracted] = result.get(extracted, 0) + 1
+                        # check if there is already a successor summary: stop the traversal and take the result.
+                        existing = value_in_path(elem, NodePath.descendant_summary)
+                        if existing and isinstance(existing, dict):
+                            for summary_item, count in existing.items():
+                                result[summary_item] = result.get(summary_item, 0) + count
+                        else:
+                            visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
                 to_visit = visit_next
             return result
 
@@ -271,6 +273,8 @@ class GraphAccess:
                 if kinds and on_kind in kinds:
                     summary = count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
+                    total = reduce(lambda l, r: l + r, summary.values(), 0)
+                    set_value_in_path(total, NodePath.descendant_count, node)
 
     def __resolve(self, node_id: str, node: Json) -> Json:
         def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:

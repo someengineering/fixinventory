@@ -181,11 +181,14 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
             "kind": kind,
             "some": {"deep": {"nested": node_id}},
         }
+        # for sake of testing: declare parent as phantom resource
+        phantom = {"phantom": True} if kind == "parent" else {}
         g.add_node(
             node_id,
             id=node_id,
             replace=node_id.startswith(replace_on),
             reported=reported,
+            metadata=phantom,
             kind=kind,
             kinds=[kind],
             kinds_set={kind},
@@ -311,8 +314,11 @@ def test_resolve_graph_data() -> None:
     assert n1.metadata.descendant_summary == AccessNone(None)
 
     r1 = AccessJson(graph.node("region_account_cloud_gcp_1_europe"))  # type: ignore
-    assert r1.metadata.descendant_summary == {"parent": 3, "child": 9}
+    assert r1.metadata.descendant_summary == {"child": 9}
+    assert r1.metadata.descendant_count == 9
     r2 = AccessJson(graph.node("account_cloud_gcp_1"))  # type: ignore
-    assert r2.metadata.descendant_summary == {"parent": 18, "child": 54, "region": 6}
+    assert r2.metadata.descendant_summary == {"child": 54, "region": 6}
+    assert r2.metadata.descendant_count == 60
     r3 = AccessJson(graph.node("cloud_gcp"))  # type: ignore
-    assert r3.metadata.descendant_summary == {"parent": 54, "child": 162, "region": 18, "account": 3}
+    assert r3.metadata.descendant_summary == {"child": 162, "region": 18, "account": 3}
+    assert r3.metadata.descendant_count == 183
