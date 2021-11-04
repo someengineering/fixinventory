@@ -15,5 +15,5 @@ aiostream==0.4.3
 tzlocal==4.1
 frozendict==2.0.7
 PyYAML==6.0
-cklib==2.0.0a8
+cklib==2.0.0a9
 jq==1.2.1
