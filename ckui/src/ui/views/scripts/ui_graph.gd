@@ -141,10 +141,16 @@ func get_graph_from_api( graph_id:String, query:String ):
 	
 	_g.main_graph.start_streaming( graph_id )
 	_g.api.connect("api_response", self, "api_response")
+	_g.api.connect("api_response_total_elements", self, "api_response_total_elements")
 	_g.api.connect("api_response_finished", self, "api_response_finished")
 	
 	var url : String = "/graph/" + graph_id + "/query/graph"
 	_e.emit_signal("api_request", HTTPClient.METHOD_POST, url, query)
+
+
+func api_response_total_elements( total_elements:int ):
+	_g.main_graph.total_elements = total_elements
+	_g.main_graph.stream_index_mod = max(int(float(total_elements) / 100), 1)
 
 
 func api_response( chunk:String ):
@@ -160,6 +166,7 @@ func api_response( chunk:String ):
 
 func api_response_finished():
 	_g.api.disconnect("api_response", self, "api_response")
+	_g.api.disconnect("api_response_total_elements", self, "api_response_total_elements")
 	_g.api.disconnect("api_response_finished", self, "api_response_finished")
 	if api_error:
 		print("API reported Error!")

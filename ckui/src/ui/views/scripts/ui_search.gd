@@ -41,19 +41,6 @@ func finished_request():
 
 func api_response( chunk:String ):
 	print(chunk)
-#	api_response_data[ api_response_data.size() ] = parse_json(chunk)
-	
-
-func api_response_finished():
-	print("done")
-#	if api_response_data[0] == null:
-#		status.text = "No Graphs found!"
-#		return
-#	$Margin/MarginContainer/Content/VBoxContainer/GraphSelect.show()
-#	status.text = "Select Graph"
-#	for i in api_response_data.values():
-#		dropdown.add_item(i[0])
-#	$Margin/MarginContainer/PopupButtons/OkButton.show()
 
 
 func _on_LineEdit_text_changed( new_text : String ):
@@ -65,8 +52,9 @@ func _on_LineEdit_text_changed( new_text : String ):
 	var search_string = new_text.to_lower()
 	var has_node_result := false
 	var has_query_result := false
-	
-	if _g.api.connected:
+
+	# disabled for now, searches are processed locally
+	if false:#_g.api.connected:
 		make_request()
 		var search_term : String = new_text.http_escape() 
 		_e.emit_signal("api_request", HTTPClient.METHOD_GET, "/graph/"+ _g.main_graph.graph_data.id +"/search", search_term )

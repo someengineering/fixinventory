@@ -14,6 +14,7 @@ signal api_connected
 signal api_connecting_timer
 signal api_response
 signal api_response_finished
+signal api_response_total_elements
 
 var connected := false
 var http = HTTPClient.new()
@@ -50,7 +51,7 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, _psk := "chang
 			break
 		
 		if !OS.has_feature("web"):
-			OS.delay_msec(500)
+			OS.delay_msec(100)
 		else:
 			yield(Engine.get_main_loop(), "idle_frame")
 	
@@ -93,7 +94,7 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		http.poll()
 		debug_message("Requesting...")
 		if !OS.has_feature("web"):
-			OS.delay_msec(500)
+			OS.delay_msec(100)
 		else:
 			# Synchronous HTTP requests are not supported on the web, wait for the next main loop iteration.
 			yield(Engine.get_main_loop(), "idle_frame")
@@ -112,6 +113,9 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		var header_keys = headers.keys()
 		for header_key in header_keys:
 			debug_message(header_key + ": " + headers[header_key])
+		
+		if "Ck-Element-Count" in headers:
+			emit_signal("api_response_total_elements", int( headers["Ck-Element-Count"] ) )
 		
 		var gzip = "Content-Encoding" in headers and headers["Content-Encoding"] == "gzip"
 		
@@ -132,18 +136,11 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		while http.get_status() == HTTPClient.STATUS_BODY:
 			http.poll()
 			var chunk = http.read_response_body_chunk()
-#			if gzip:
-#				print(chunk.decompress_dynamic(-1, 3))
-#				continue
-#			else:
-#				print(chunk.get_string_from_ascii())
-			# Handling the response while receiving it from ckcore
-			
 			emit_signal("api_response", chunk.get_string_from_ascii() )
 			if chunk.size() == 0:
 				if !OS.has_feature("web"):
 					# Got nothing, wait for buffers to fill a bit.
-					OS.delay_usec(1000)
+					OS.delay_usec(100)
 				else:
 					yield(Engine.get_main_loop(), "idle_frame")
 			else:

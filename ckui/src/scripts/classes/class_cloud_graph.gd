@@ -34,6 +34,10 @@ var update_visuals := true
 var node_group : Node2D = null
 var line_group : Node2D = null
 
+var total_elements := 1
+var stream_index := 0
+var stream_index_mod := 10
+
 
 func _ready():
 	add_structure()
@@ -101,7 +105,7 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	node_group.modulate.a = 0.05
 	
 	var index := 0
-	var index_mod = max(raw_data.size() / 100, 1)
+	var index_mod = int( max( float(raw_data.size() ) / 100.0, 1) )
 	var total_size : float = float( raw_data.size() )
 	for data in raw_data.values():
 		if index % index_mod == 0:
@@ -136,6 +140,8 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 
 func start_streaming( graph_id:String ):
 	clear_graph( graph_id )
+	stream_index = 0
+	_e.emit_signal("loading_start")
 	_e.emit_signal("loading", 0, "Creating visual elements" )
 	node_group.modulate.a = 0.05
 
@@ -154,11 +160,20 @@ func end_streaming():
 
 
 func add_streamed_object( data : Dictionary ):
+	
+	
 	if "id" in data:
 		graph_data.nodes[data.id] = add_node(data)
 		
 		if data.reported.kind == "graph_root":
 			root_node = graph_data.nodes[data.id].scene
+			
+		if stream_index % stream_index_mod == 0:
+			_e.emit_signal("loading", float(stream_index) / float(total_elements), "Creating visual elements" )
+			_g.msg( "Creating visual elements: {0}/{1}".format([stream_index, total_elements]) )
+			prints(stream_index, total_elements)
+			yield(get_tree(), "idle_frame")
+		stream_index += 1
 	else:
 		# For SFDP creation
 		graph_data.nodes[data.from].connections.append( graph_data.nodes[data.to] )
@@ -166,6 +181,8 @@ func add_streamed_object( data : Dictionary ):
 		
 		# For connection lines
 		graph_data.edges[ graph_data.edges.size() ] = add_edge(data)
+	
+	
 
 
 func create_graph_direct(_graph_data : Dictionary):
@@ -299,7 +316,7 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 		for node in graph_data.nodes.values():
 			var current_node_position = node.scene.position
 			var net_force = Vector2.ZERO
-			var connection_amount = min(node.connections.size(), 20)
+			#var connection_amount = min(node.connections.size(), 20)
 			
 			for other_node in graph_data.nodes.values():
 				if node == other_node:

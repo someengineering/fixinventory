@@ -20,7 +20,6 @@ func token_expired():
 
 func create_jwt(data:String, secret:String):
 	token = jwt(data, secret)
-	var token_test = key_from_psk(secret)
 	emit_signal( "jwt_generated" )
 
 
