@@ -250,12 +250,13 @@ class GraphAccess:
                 visit_next: List[str] = []
                 visited: Set[str] = set()
                 for elem_id in to_visit:
-                    elem = self.nodes[elem_id]
-                    if not value_in_path_get(elem, NodePath.is_phantom, False):
-                        extracted = value_in_path(elem, path)
+                    if elem_id not in visited:
                         visited.add(elem_id)
-                        if isinstance(extracted, str):
-                            result[extracted] = result.get(extracted, 0) + 1
+                        elem = self.nodes[elem_id]
+                        if not value_in_path_get(elem, NodePath.is_phantom, False):
+                            extracted = value_in_path(elem, path)
+                            if isinstance(extracted, str):
+                                result[extracted] = result.get(extracted, 0) + 1
                         # check if there is already a successor summary: stop the traversal and take the result.
                         existing = value_in_path(elem, NodePath.descendant_summary)
                         if existing and isinstance(existing, dict):
