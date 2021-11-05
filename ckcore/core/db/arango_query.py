@@ -27,6 +27,9 @@ from core.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
     NotTerm,
+    MergeTerm,
+    MergeQuery,
+    Query,
 )
 from core.query.query_parser import merge_ancestors_parser
 from core.util import count_iterator
@@ -36,17 +39,24 @@ log = logging.getLogger(__name__)
 
 def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
     count = count_iterator()
-    cursor, query_str, bind_vars = query_string(db, query_model, with_edges, count)
+    bind_vars: Json = {}
+    cursor, query_str = query_string(db, query_model.query, query_model, db.vertex_name, with_edges, bind_vars, count)
     return f"""{query_str} FOR result in {cursor} RETURN result""", bind_vars
 
 
-def query_string(db: Any, query_model: QueryModel, with_edges: bool, count: Iterator[int]) -> Tuple[str, str, Json]:
-    query = query_model.query
+def query_string(
+    db: Any,
+    query: Query,
+    query_model: QueryModel,
+    start_cursor: str,
+    with_edges: bool,
+    bind_vars: Json,
+    count: Iterator[int],
+) -> Tuple[str, str]:
     model = query_model.model
     section_dot = f"{query_model.query_section}." if query_model.query_section else ""
     mw = query.preamble.get("merge_with_ancestors")
     merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
-    bind_vars: Json = {}
 
     def next_crs() -> str:
         return f"n{next(count)}"
@@ -153,21 +163,40 @@ def query_string(db: Any, query_model: QueryModel, with_edges: bool, count: Iter
         else:
             raise AttributeError(f"Do not understand: {ab_term}")
 
+    def merge(cursor: str, merge_queries: List[MergeQuery]) -> Tuple[str, str]:  # cursor, query
+        merge_name = f"merge{next(count)}"
+        merge_result = ""
+        merge_parts = []
+        for q in merge_queries:
+            merge_crsr = next_crs()
+            inter_crsr = next_crs()
+            # make sure the limit only yields one element
+            mg_crs, mg_query = query_string(
+                db, q.query.with_limit(1), query_model, cursor, with_edges, bind_vars, count
+            )
+            merge_result += f"LET {merge_crsr}=({mg_query} FOR {inter_crsr} in {mg_crs} RETURN {inter_crsr})"
+            merge_parts.append(f"{q.name}: FIRST({merge_crsr})")
+
+        result_crs = next_crs()
+        final_merge = f'FOR {result_crs} IN {cursor} RETURN MERGE({result_crs}, {{{", ".join(merge_parts)}}})'
+        return merge_name, f"LET {merge_name}=({merge_result} {final_merge})"
+
     def part(p: Part, in_cursor: str) -> Tuple[Part, str, str, str]:
         query_part = ""
-        filtered_out = next_crs()
+        filtered_out = ""
 
-        def filter_statement() -> str:
-            nonlocal query_part
+        def filter_statement(current_cursor: str, part_term: Term) -> str:
+            nonlocal query_part, filtered_out
             crsr = next_crs()
-            out = filtered_out
+            filtered_out = next_crs()
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             limited = f" LIMIT {p.limit} " if p.limit else " "
             sort_by = sort(crsr, p.sort, section_dot) if p.sort else " "
-            for_stmt = f"FOR {crsr} in {in_cursor} FILTER {term(crsr, p.term)}{sort_by}{limited}RETURN {f_res}"
-            query_part += f"LET {out} = ({for_stmt})"
-            return out
+            for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}RETURN {f_res}"
+            query_part += f"LET {filtered_out} = ({for_stmt})"
+            print(f"filter: LET {filtered_out} = ({for_stmt})")
+            return filtered_out
 
         def with_clause(in_crsr: str, clause: WithClause) -> str:
             nonlocal query_part
@@ -270,7 +299,14 @@ def query_string(db: Any, query_model: QueryModel, with_edges: bool, count: Iter
             else:
                 return inout(in_crsr, nav.start, nav.until, nav.edge_type, nav.direction)
 
-        cursor = filter_statement()
+        if isinstance(p.term, MergeTerm):
+            filter_cursor = filter_statement(in_cursor, p.term.pre_filter)
+            cursor, merge_part = merge(filter_cursor, p.term.merge)
+            query_part += merge_part
+            if p.term.post_filter:
+                cursor = filter_statement(cursor, p.term.post_filter)
+        else:
+            cursor = filter_statement(in_cursor, p.term)
         cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
@@ -316,7 +352,7 @@ def query_string(db: Any, query_model: QueryModel, with_edges: bool, count: Iter
         return f" SORT {sorts} "
 
     parts = []
-    crsr = db.vertex_name
+    crsr = start_cursor
     for p in reversed(query.parts):
         part_tuple = part(p, crsr)
         parts.append(part_tuple)
@@ -340,4 +376,4 @@ def query_string(db: Any, query_model: QueryModel, with_edges: bool, count: Iter
             tagged_union = f'UNION({",".join(tagged)},{resulting_cursor})'
             query_str += f" LET {nxt} = (FOR res in {tagged_union} RETURN res)"
             resulting_cursor = nxt
-    return resulting_cursor, query_str, bind_vars
+    return resulting_cursor, query_str

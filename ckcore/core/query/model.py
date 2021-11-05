@@ -4,7 +4,7 @@ import abc
 import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
-from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable
+from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set
 
 from jsons import set_deserializer
 
@@ -259,6 +259,19 @@ class FunctionTerm(Term):
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
+class MergeQuery(Term):
+    name: str
+    query: Query
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class MergeTerm(Term):
+    pre_filter: Term
+    merge: List[MergeQuery]
+    post_filter: Optional[Term] = None
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
     Max: ClassVar[int] = 10000
@@ -466,6 +479,10 @@ class Query:
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
         return f"{aggregate}{preamble}{colon}{parts}"
+
+    @property
+    def merge_names(self) -> Set[str]:
+        return {mt.name for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)

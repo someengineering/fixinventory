@@ -19,10 +19,10 @@ from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType, Section
 from core.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
 from core.model.typed_model import to_js, from_js
-from core.query.model import Query, P, Navigation
+from core.query.model import Query, P, Navigation, MergeTerm, MergeQuery, AllTerm
 from core.query.query_parser import parse_query
 from core.types import JsonElement
-from core.util import AccessJson, utc, value_in_path
+from core.util import AccessJson, utc, value_in_path, AccessNone
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -400,6 +400,28 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
             assert js.reported.identifier.startswith(js.reported.foobar.identifier)
             assert js.reported.identifier.startswith(js.desired.foobar.node_id)
             assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
+
+
+@pytest.mark.asyncio
+async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    next_foo = Query.by(AllTerm()).traverse_in(until=Navigation.Max).filter("foo")
+    parent = Query.by(AllTerm()).traverse_in()
+    child = Query.by(AllTerm()).traverse_out()
+    query = Query.by(
+        MergeTerm(
+            Query.mk_term("bla"),
+            [MergeQuery("foo123", next_foo), MergeQuery("parent", parent), MergeQuery("child", child)],
+            Query.mk_term("bla"),
+        )
+    )
+    async with await filled_graph_db.query_list(QueryModel(query, foo_model), with_count=True) as cursor:
+        assert cursor.count() == 100
+        async for bla in cursor:
+            b = AccessJson(bla)
+            assert b.reported.kind == "bla"
+            assert b.foo123.reported.kind == "foo"
+            assert b.parent.reported.kind == "foo"
+            assert b.child == AccessNone()
 
 
 @pytest.mark.asyncio

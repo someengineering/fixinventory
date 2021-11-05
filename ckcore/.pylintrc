@@ -72,7 +72,8 @@ disable=
     broad-except,
     too-many-statements,
     invalid-overridden-method,
-    unsubscriptable-object
+    unsubscriptable-object,
+    duplicate-code # pylint also checks duplicated import statements - does not make any sense
 
 
 [REPORTS]

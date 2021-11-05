@@ -4,7 +4,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple
+from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, Set
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -318,13 +318,13 @@ class ArangoGraphDB(GraphDB):
     async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn(query.model)
+        trafo = self.document_to_instance_fn(query.model, query.query.merge_names)
         return await self.db.aql_cursor(query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000)
 
     async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, with_edges=True)
-        trafo = self.document_to_instance_fn(query.model)
+        trafo = self.document_to_instance_fn(query.model, query.query.merge_names)
         return await self.db.aql_cursor(
             query=query_string, trafo=trafo, bind_vars=bind, count=with_count, batch_size=10000
         )
@@ -355,9 +355,11 @@ class ArangoGraphDB(GraphDB):
         await self.insert_genesis_data()
 
     @staticmethod
-    def document_to_instance_fn(model: Model) -> Callable[[Json], Optional[Json]]:
-        def props(doc: Json, result: Json) -> None:
-            for prop in Section.all_ordered:
+    def document_to_instance_fn(
+        model: Model, merge_names: Optional[Set[str]] = None
+    ) -> Callable[[Json], Optional[Json]]:
+        def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
+            for prop in definition:
                 if prop in doc and doc[prop]:
                     result[prop] = doc[prop]
 
@@ -379,7 +381,7 @@ class ArangoGraphDB(GraphDB):
                 result = {"id": doc["_key"], "type": "node"}
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
-                props(doc, result)
+                props(doc, result, Section.all_ordered)
                 synth_props(doc, result)
                 if "kinds" in doc:
                     result["kinds"] = doc["kinds"]
@@ -387,7 +389,16 @@ class ArangoGraphDB(GraphDB):
             else:
                 return None
 
-        return render_prop
+        def merge_results(doc: Json) -> Optional[Json]:
+            rendered = render_prop(doc)
+            if rendered and merge_names:
+                for name in merge_names:
+                    merged = doc.get(name)
+                    if merged:
+                        rendered[name] = render_prop(merged)
+            return rendered
+
+        return merge_results
 
     async def list_in_progress_updates(self) -> List[Json]:
         with await self.db.aql(self.query_active_updates()) as cursor:
