@@ -3,9 +3,9 @@ from enum import Enum, auto
 from cklib.graph import Graph
 from cklib.core.actions import CoreActions
 from cklib.args import ArgumentParser, Namespace
-from cklib.logging import log
+from cklib.logging import log, setup_logger
 from cklib.baseresources import Cloud
-from threading import Thread
+from threading import Thread, current_thread
 from multiprocessing import Process
 from prometheus_client import Counter
 import cklib.signal
@@ -49,7 +49,7 @@ class BasePlugin(ABC, Thread):
 
     def __init__(self) -> None:
         super().__init__()
-        self.name = __name__
+        self.name = self.__class__.__name__
         self.finished = False
 
     def run(self) -> None:
@@ -73,17 +73,21 @@ class BasePlugin(ABC, Thread):
         pass
 
 
-class BaseActionPlugin(BasePlugin):
+class BaseActionPlugin(ABC, Process):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
 
     def __init__(self) -> None:
         super().__init__()
+        self.args = ArgumentParser.args
+        self.name = self.__class__.__name__
+
+        self.finished = False
         self.timeout = ArgumentParser.args.timeout
         self.wait_for_completion = True
 
     @abstractmethod
-    def do_action(self):
+    def do_action(self, data: Dict):
         """Perform an action"""
         pass
 
@@ -100,7 +104,7 @@ class BaseActionPlugin(BasePlugin):
             try:
                 if message_type == self.action:
                     start_time = time.time()
-                    self.do_action()
+                    self.do_action(data)
                     run_time = int(time.time() - start_time)
                     log.debug(f"{self.action} ran for {run_time} seconds")
                 else:
@@ -120,18 +124,27 @@ class BaseActionPlugin(BasePlugin):
 
     def run(self) -> None:
         try:
-            p = Process(target=self.go, args=(ArgumentParser.args,))
-            p.start()
-            p.join()
+            ArgumentParser.args = self.args
+            setup_logger("ckworker")
+            cklib.signal.initializer()
+            current_thread().name = self.name
+            if self.bootstrap():
+                self.go()
         except Exception:
             metrics_unhandled_plugin_exceptions.labels(plugin=self.name).inc()
             log.exception(f"Caught unhandled plugin exception in {self.name}")
         else:
             self.finished = True
 
-    def go(self, args: Namespace) -> None:
-        ArgumentParser.args = args
-        cklib.signal.initializer()
+    @abstractmethod
+    def bootstrap(self) -> bool:
+        """Bootstrap the plugin.
+
+        If bootstrapping is successful the plugin is ready to run.
+        """
+        pass
+
+    def go(self) -> None:
         core_actions = CoreActions(
             identifier=f"{ArgumentParser.args.ckcore_subscriber_id}-actions-{self.action}-{self.name}",
             ckcore_uri=ArgumentParser.args.ckcore_uri,

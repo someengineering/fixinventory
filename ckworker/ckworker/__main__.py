@@ -74,7 +74,7 @@ def main() -> None:
     add_args(arg_parser)
 
     # Find cloudkeeper Plugins in the cloudkeeper.plugins module
-    plugin_loader = PluginLoader(PluginType.COLLECTOR)
+    plugin_loader = PluginLoader()
     plugin_loader.add_plugin_args(arg_parser)
 
     # At this point the CLI, all Plugins as well as the WebServer have
@@ -123,6 +123,14 @@ def main() -> None:
     )
     core_actions.start()
     core_tasks.start()
+
+    for Plugin in plugin_loader.plugins(PluginType.ACTION):
+        try:
+            log.debug(f"Starting action plugin {Plugin}")
+            plugin = Plugin()
+            plugin.start()
+        except Exception as e:
+            log.exception(f"Caught unhandled persistent Plugin exception {e}")
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
