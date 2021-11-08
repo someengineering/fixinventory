@@ -1,8 +1,7 @@
-from typing import List
-from cklib.graph import Graph, sanitize
-from cklib.graph.export import node_from_dict, node_to_dict
 import requests
 import json
+from cklib.graph import Graph, sanitize
+from cklib.graph.export import node_from_dict, node_to_dict
 from cklib.args import ArgumentParser
 from cklib.logging import log
 from cklib.jwt import encode_jwt_to_headers
@@ -78,7 +77,9 @@ class CoreGraph:
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        r = requests.patch(self.graph_uri, data=GraphCleanupIterator(graph), headers=headers)
+        r = requests.patch(
+            self.graph_uri, data=GraphCleanupIterator(graph), headers=headers
+        )
         if r.status_code != 200:
             log.error(r.content)
             raise RuntimeError(f"Failed to create model: {r.content}")
