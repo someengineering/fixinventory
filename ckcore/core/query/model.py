@@ -263,12 +263,20 @@ class MergeQuery(Term):
     name: str
     query: Query
 
+    def __str__(self) -> str:
+        return f"{self.name}: {self.query}"
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class MergeTerm(Term):
     pre_filter: Term
     merge: List[MergeQuery]
     post_filter: Optional[Term] = None
+
+    def __str__(self) -> str:
+        merge = ", ".join(str(q) for q in self.merge)
+        post = " " + str(self.post_filter) if self.post_filter else ""
+        return f"{self.pre_filter} {{{merge}}}{post}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

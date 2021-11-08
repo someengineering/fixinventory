@@ -18,6 +18,9 @@ from core.query.model import (
     WithClauseFilter,
     AggregateVariableName,
     AggregateVariableCombined,
+    AllTerm,
+    MergeTerm,
+    MergeQuery,
 )
 from core.model.graph_access import EdgeType
 from parsy import Parser
@@ -26,7 +29,6 @@ from core.query.query_parser import (
     is_term,
     function_term,
     combined_term,
-    term_parser,
     navigation_parser,
     part_parser,
     query_parser,
@@ -41,6 +43,7 @@ from core.query.query_parser import (
     with_clause_parser,
     section_abbreviation_names,
     not_term,
+    term_parser,
 )
 
 
@@ -92,7 +95,7 @@ def test_not() -> None:
     assert_round_trip(not_term, (P.of_kind("foo") | P.of_kind("bla")).not_term())
 
 
-def test_term() -> None:
+def test_filter_term() -> None:
     assert_round_trip(term_parser, P("mem") < 23)
     assert_round_trip(term_parser, P.with_id("foo"))
     assert_round_trip(term_parser, P.of_kind("foo"))
@@ -101,6 +104,12 @@ def test_term() -> None:
         term_parser,
         ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b").is_in([1, 2, 3])) & (P("c") == {"a": 123}),
     )
+
+
+def test_merge_term() -> None:
+    next_foo = Query.by(AllTerm()).traverse_in(until=Navigation.Max).filter("foo")
+    query = Query.by(MergeTerm(Query.mk_term("bla"), [MergeQuery("foo123", next_foo)], Query.mk_term("bla")))
+    assert_round_trip(term_parser, query)
 
 
 def test_navigation_default() -> None:
@@ -120,7 +129,6 @@ def test_navigation() -> None:
                 assert_round_trip(navigation_parser, Navigation(start, until, edge_type, direction), fn)
 
 
-# noinspection PyTypeChecker
 def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
     assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, EdgeType.delete)))

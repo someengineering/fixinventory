@@ -387,7 +387,7 @@ class ArangoGraphDB(GraphDB):
                     result["kinds"] = doc["kinds"]
                 return result
             else:
-                return None
+                return doc
 
         def merge_results(doc: Json) -> Optional[Json]:
             rendered = render_prop(doc)
@@ -751,10 +751,7 @@ class ArangoGraphDB(GraphDB):
         await self.delete_marked_update(batch_id)
 
     def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        # TODO: remove print
-        result = arango_query.to_query(self, query_model, with_edges)
-        # print(f"\n------\n{result[0]}\n-------\n")
-        return result
+        return arango_query.to_query(self, query_model, with_edges)
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
