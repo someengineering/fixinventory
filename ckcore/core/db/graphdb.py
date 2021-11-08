@@ -398,7 +398,8 @@ class ArangoGraphDB(GraphDB):
 
         def merge_results(doc: Json) -> Optional[Json]:
             rendered = render_prop(doc)
-            render_merge_results(doc, rendered, query)
+            if query:
+                render_merge_results(doc, rendered, query)
             return rendered
 
         return merge_results
