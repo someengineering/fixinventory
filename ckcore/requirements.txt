@@ -17,3 +17,5 @@ frozendict==2.0.7
 PyYAML==6.0
 cklib==2.0.0a9
 jq==1.2.1
+# available in python 3.8
+backports.cached-property==1.0.1

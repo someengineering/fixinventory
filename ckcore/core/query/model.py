@@ -4,6 +4,7 @@ import abc
 import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
+from backports.cached_property import cached_property
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set
 
 from jsons import set_deserializer
@@ -488,9 +489,13 @@ class Query:
         parts = " ".join(str(a) for a in reversed(self.parts))
         return f"{aggregate}{preamble}{colon}{parts}"
 
-    @property
+    @cached_property
     def merge_names(self) -> Set[str]:
         return {mt.name for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
+
+    @cached_property
+    def merge_query_by_name(self) -> Dict[str, Query]:
+        return {mt.name: mt.query for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)

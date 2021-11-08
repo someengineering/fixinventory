@@ -4,7 +4,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, Set
+from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -26,6 +26,7 @@ from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind, TransformKind
 from core.model.resolve_in_graph import NodePath
+from core.query.model import Query
 from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, freeze
 
 log = logging.getLogger(__name__)
@@ -318,13 +319,13 @@ class ArangoGraphDB(GraphDB):
     async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn(query.model, query.query.merge_names)
+        trafo = self.document_to_instance_fn(query.model, query.query)
         return await self.db.aql_cursor(query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000)
 
     async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, with_edges=True)
-        trafo = self.document_to_instance_fn(query.model, query.query.merge_names)
+        trafo = self.document_to_instance_fn(query.model, query.query)
         return await self.db.aql_cursor(
             query=query_string, trafo=trafo, bind_vars=bind, count=with_count, batch_size=10000
         )
@@ -355,9 +356,7 @@ class ArangoGraphDB(GraphDB):
         await self.insert_genesis_data()
 
     @staticmethod
-    def document_to_instance_fn(
-        model: Model, merge_names: Optional[Set[str]] = None
-    ) -> Callable[[Json], Optional[Json]]:
+    def document_to_instance_fn(model: Model, query: Optional[Query] = None) -> Callable[[Json], Optional[Json]]:
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
                 if prop in doc and doc[prop]:
@@ -374,7 +373,7 @@ class ArangoGraphDB(GraphDB):
                         if source_value:
                             reported_out[synth.prop.name] = synth.kind.transform(source_value)
 
-        def render_prop(doc: Json) -> Optional[Json]:
+        def render_prop(doc: Json) -> Json:
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
@@ -389,13 +388,17 @@ class ArangoGraphDB(GraphDB):
             else:
                 return doc
 
+        def render_merge_results(doc: Json, result: Json, q: Query) -> Json:
+            for name, inner in q.merge_query_by_name.items():
+                merged = doc.get(name)
+                if merged:
+                    rendered = render_merge_results(merged, render_prop(merged), inner)
+                    result[name] = rendered
+            return result
+
         def merge_results(doc: Json) -> Optional[Json]:
             rendered = render_prop(doc)
-            if rendered and merge_names:
-                for name in merge_names:
-                    merged = doc.get(name)
-                    if merged:
-                        rendered[name] = render_prop(merged)
+            render_merge_results(doc, rendered, query)
             return rendered
 
         return merge_results
