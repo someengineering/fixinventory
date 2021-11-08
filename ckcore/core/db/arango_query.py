@@ -177,23 +177,51 @@ def query_string(
         merge_cursor = next_crs()
         merge_result = f"LET {result_cursor} = (FOR {merge_cursor} in {cursor} "
         merge_parts = []
-        for q in merge_queries:
-            # make sure the first
-            f = q.query.parts[-1]
+
+        def add_merge_query(mq: MergeQuery, part_result: str) -> None:
+            nonlocal merge_result
+            # make sure the sub query is valid
+            f = mq.query.parts[-1]
             assert (
                 f.term == AllTerm() and not f.sort and not f.limit and not f.with_clause and not f.tag
             ), "Merge query needs to start with navigation!"
             merge_crsr = next_crs("merge_part")
             # make sure the limit only yields one element
             mg_crs, mg_query = query_string(
-                db, q.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
+                db, mq.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
             )
-            part_res = next_crs("part_res")
-            if q.query.aggregate:
-                merge_result += f"LET {part_res}=({mg_query} FOR r in {mg_crs} RETURN r)"
+            if mq.query.aggregate:
+                merge_result += f"LET {part_result}=({mg_query} FOR r in {mg_crs} RETURN r)"
             else:
-                merge_result += f"LET {part_res}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
-            merge_parts.append(f"{q.name}: {part_res}")
+                merge_result += f"LET {part_result}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
+
+        # check if this query points to an already resolved value
+        # Currently only resolved ancestors are taken into account:
+        # <-[1:]- is(cloud|account|region|zone)
+        # noinspection PyUnresolvedReferences
+        def is_already_resolved(q: Query) -> Optional[str]:
+            return (
+                q.parts[0].term.kind
+                if (
+                    len(q.parts) == 2
+                    and not q.aggregate
+                    and q.parts[1].navigation
+                    and q.parts[1].navigation.direction == "in"
+                    and q.parts[1].navigation.until > 1
+                    and isinstance(q.parts[0].term, IsTerm)
+                    and q.parts[0].term.kind in GraphResolver.resolved_ancestors
+                )
+                else None
+            )
+
+        for mq_in in merge_queries:
+            part_res = next_crs("part_res")
+            resolved = is_already_resolved(mq_in.query)
+            if resolved:
+                merge_result += f'LET {part_res} = DOCUMENT("{db.vertex_name}", {merge_cursor}.refs.{resolved}_id)'
+            else:
+                add_merge_query(mq_in, part_res)
+            merge_parts.append(f"{mq_in.name}: {part_res}")
 
         final_merge = f'RETURN MERGE({merge_cursor}, {{{", ".join(merge_parts)}}}))'
         return result_cursor, f"{merge_result} {final_merge}"

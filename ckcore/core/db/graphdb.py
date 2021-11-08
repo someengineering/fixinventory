@@ -787,6 +787,8 @@ class ArangoGraphDB(GraphDB):
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_id" not in node_idxes:
                 nodes.add_persistent_index(["_key", "update_id", "hash", "created"], sparse=False, name="update_value")
+            if "kinds" not in node_idxes:
+                nodes.add_persistent_index(["kinds[*]"], sparse=False, name="kinds")
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")

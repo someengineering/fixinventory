@@ -73,7 +73,8 @@ disable=
     too-many-statements,
     invalid-overridden-method,
     unsubscriptable-object,
-    duplicate-code # pylint also checks duplicated import statements - does not make any sense
+    duplicate-code, # pylint also checks duplicated import statements - does not make any sense
+    too-many-boolean-expressions
 
 
 [REPORTS]
