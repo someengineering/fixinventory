@@ -389,11 +389,15 @@ class ArangoGraphDB(GraphDB):
                 return doc
 
         def render_merge_results(doc: Json, result: Json, q: Query) -> Json:
-            for name, inner in q.merge_query_by_name.items():
-                merged = doc.get(name)
+            for mq in q.merge_query_by_name:
+                merged = doc.get(mq.name)
                 if merged:
-                    rendered = render_merge_results(merged, render_prop(merged), inner)
-                    result[name] = rendered
+                    if mq.only_first and isinstance(merged, dict):
+                        rendered = render_merge_results(merged, render_prop(merged), mq.query)
+                        result[mq.name] = rendered
+                    elif isinstance(merged, list):
+                        rendered = [render_merge_results(elem, render_prop(elem), mq.query) for elem in merged]
+                        result[mq.name] = rendered
             return result
 
         def merge_results(doc: Json) -> Optional[Json]:

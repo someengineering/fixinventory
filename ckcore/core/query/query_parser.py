@@ -129,12 +129,17 @@ simple_term_p = (lparen_p >> combined_term << rparen_p) | leaf_term_p
 filter_term_parser = combined_term | simple_term_p
 
 
+square_brackets_p = lexeme(string("[]"))
+
+
 @make_parser
 def merge_query_parser() -> Parser:
     name = yield literal_p
+    is_array = yield square_brackets_p.optional()
+
     yield colon_p
     query = yield query_parser
-    return MergeQuery(name, query)
+    return MergeQuery(name, query, not (query.aggregate or is_array))
 
 
 @make_parser

@@ -263,6 +263,7 @@ class FunctionTerm(Term):
 class MergeQuery(Term):
     name: str
     query: Query
+    only_first: bool = True
 
     def __str__(self) -> str:
         return f"{self.name}: {self.query}"
@@ -494,8 +495,8 @@ class Query:
         return {mt.name for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
 
     @cached_property
-    def merge_query_by_name(self) -> Dict[str, Query]:
-        return {mt.name: mt.query for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
+    def merge_query_by_name(self) -> List[MergeQuery]:
+        return [mt for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge]
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)

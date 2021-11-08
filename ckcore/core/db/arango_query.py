@@ -194,10 +194,10 @@ def query_string(
             mg_crs, mg_query = query_string(
                 db, mq.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
             )
-            if mq.query.aggregate:
-                merge_result += f"LET {part_result}=({mg_query} FOR r in {mg_crs} RETURN r)"
-            else:
+            if mq.only_first:
                 merge_result += f"LET {part_result}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
+            else:
+                merge_result += f"LET {part_result}=({mg_query} FOR r in {mg_crs} RETURN DISTINCT r)"
 
         # check if this query points to an already resolved value
         # Currently only resolved ancestors are taken into account:
