@@ -5,6 +5,7 @@ from ckworker.cleanup import add_args as cleanup_add_args
 from ckworker.ckcore import add_args as ckcore_add_args
 from cklib.core import add_args as core_add_args
 
+
 def test_args():
     arg_parser = ArgumentParser(
         description="Cloudkeeper Worker",
