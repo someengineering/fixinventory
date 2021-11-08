@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import defaultdict
-from typing import Union, List, Tuple, Any, Optional, Dict
+from typing import Union, List, Tuple, Any, Optional, Dict, Set
 
 from arango.typings import Json
 
@@ -33,6 +33,7 @@ from core.query.model import (
     Query,
 )
 from core.query.query_parser import merge_ancestors_parser
+from core.util import first
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ def query_string(
     outer_merge: Optional[str] = None,
 ) -> Tuple[str, str]:
     model = query_model.model
+    merge_names: Set[str] = query_model.query.merge_names
     section_dot = f"{query_model.query_section}." if query_model.query_section else ""
     mw = query.preamble.get("merge_with_ancestors")
     merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
@@ -117,22 +119,24 @@ def query_string(
             extra = " any " if "[*]" in p.name else " "
             path = p.name.replace("[*]", "[]")
 
-        bvn = next_bind_var_name()
-        # if no section is given, the path is prefixed by the section: remove the section
-        lookup = path if query_model.query_section else Section.without_section(path)
+        merge_name = first(lambda name: path.startswith(name + "."), merge_names)
+        # remove merge_name and section part (if existent) from the path
+        lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
         prop = model.property_by_path(lookup)
 
         def synthetic_path(synth: SyntheticProperty) -> str:
             before, after = p.name.rsplit(prop.prop.name, 1)
             return f'{before}{".".join(synth.path)}{after}'
 
+        bvn = next_bind_var_name()
         op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
             bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
         else:
             bind_vars[bvn] = prop.kind.coerce(p.value)
         prop_name = synthetic_path(prop.prop.synthetic) if prop.prop.synthetic else p.name
-        var_name = f"{cursor}.{section_dot}{prop_name}"
+        # in case of section: add the section if the predicate does not belong to a merge attribute
+        var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{section_dot}{prop_name}"
         p_term = f"{var_name}{extra} {op} @{bvn}"
         # null check is required, since x<anything evaluates to true if x is null!
         return f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
