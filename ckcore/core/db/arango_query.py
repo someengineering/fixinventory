@@ -186,10 +186,13 @@ def query_string(
             merge_crsr = next_crs("merge_part")
             # make sure the limit only yields one element
             mg_crs, mg_query = query_string(
-                db, q.query.with_limit(1), query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
+                db, q.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
             )
             part_res = next_crs("part_res")
-            merge_result += f"LET {part_res}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
+            if q.query.aggregate:
+                merge_result += f"LET {part_res}=({mg_query} FOR r in {mg_crs} RETURN r)"
+            else:
+                merge_result += f"LET {part_res}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
             merge_parts.append(f"{q.name}: {part_res}")
 
         final_merge = f'RETURN MERGE({merge_cursor}, {{{", ".join(merge_parts)}}}))'
