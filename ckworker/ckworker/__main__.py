@@ -67,6 +67,7 @@ def main() -> None:
     collect_add_args(arg_parser)
     cleanup_add_args(arg_parser)
     ckcore_add_args(arg_parser)
+    CoreActions.add_args(arg_parser)
     WebApp.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     event_add_args(arg_parser)
@@ -92,7 +93,7 @@ def main() -> None:
     web_server.start()
 
     core_actions = CoreActions(
-        identifier="workerd-actions",
+        identifier=f"{ArgumentParser.args.ckcore_subscriber_id}-collect_cleanup",
         ckcore_uri=ArgumentParser.args.ckcore_uri,
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         actions={

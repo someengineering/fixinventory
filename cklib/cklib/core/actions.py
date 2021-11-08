@@ -130,3 +130,12 @@ class CoreActions(threading.Thread):
 
     def on_open(self, ws):
         log.debug(f"{self.identifier} connected to ckcore message bus")
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument(
+            "--ckcore-subscriber-id",
+            help="ckcore actions subscriber identifier (default: worker)",
+            default="worker",
+            dest="ckcore_subscriber_id",
+        )

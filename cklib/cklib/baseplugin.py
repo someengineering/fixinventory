@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from cklib.graph import Graph
-from cklib.args import ArgumentParser
+from cklib.core.actions import CoreActions
+from cklib.args import ArgumentParser, Namespace
 from cklib.logging import log
 from cklib.baseresources import Cloud
 from threading import Thread
+from multiprocessing import Process
 from prometheus_client import Counter
+import cklib.signal
+import time
+from typing import Dict
 
 metrics_unhandled_plugin_exceptions = Counter(
     "cloudkeeper_unhandled_plugin_exceptions_total",
@@ -45,6 +50,7 @@ class BasePlugin(ABC, Thread):
     def __init__(self) -> None:
         super().__init__()
         self.name = __name__
+        self.finished = False
 
     def run(self) -> None:
         try:
@@ -52,6 +58,8 @@ class BasePlugin(ABC, Thread):
         except Exception:
             metrics_unhandled_plugin_exceptions.labels(plugin=self.name).inc()
             log.exception(f"Caught unhandled plugin exception in {self.name}")
+        else:
+            self.finished = True
 
     @abstractmethod
     def go(self) -> None:
@@ -67,15 +75,77 @@ class BasePlugin(ABC, Thread):
 
 class BaseActionPlugin(BasePlugin):
     plugin_type = PluginType.ACTION
+    action = NotImplemented  # Name of the action this plugin implements
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.timeout = ArgumentParser.args.timeout
+        self.wait_for_completion = True
 
     @abstractmethod
-    def action(self) -> None:
-        """Collects all the Cloud Resources"""
+    def do_action(self):
+        """Perform an action"""
         pass
 
-    def go(self) -> None:
-        self.action()
-        self.finished = True
+    def action_processor(self, message: Dict) -> None:
+        """Process incoming action messages"""
+        if not isinstance(message, dict):
+            log.error(f"Invalid message: {message}")
+            return
+        kind = message.get("kind")
+        message_type = message.get("message_type")
+        data = message.get("data")
+        log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
+        if kind == "action":
+            try:
+                if message_type == self.action:
+                    start_time = time.time()
+                    self.do_action()
+                    run_time = int(time.time() - start_time)
+                    log.debug(f"{self.action} ran for {run_time} seconds")
+                else:
+                    raise ValueError(f"Unknown message type {message_type}")
+            except Exception as e:
+                log.exception(f"Failed to {message_type}: {e}")
+                reply_kind = "action_error"
+            else:
+                reply_kind = "action_done"
+
+            reply_message = {
+                "kind": reply_kind,
+                "message_type": message_type,
+                "data": data,
+            }
+            return reply_message
+
+    def run(self) -> None:
+        try:
+            p = Process(target=self.go, args=(ArgumentParser.args,))
+            p.start()
+            p.join()
+        except Exception:
+            metrics_unhandled_plugin_exceptions.labels(plugin=self.name).inc()
+            log.exception(f"Caught unhandled plugin exception in {self.name}")
+        else:
+            self.finished = True
+
+    def go(self, args: Namespace) -> None:
+        ArgumentParser.args = args
+        cklib.signal.initializer()
+        core_actions = CoreActions(
+            identifier=f"{ArgumentParser.args.ckcore_subscriber_id}-actions-{self.action}-{self.name}",
+            ckcore_uri=ArgumentParser.args.ckcore_uri,
+            ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
+            actions={
+                self.action: {
+                    "timeout": self.timeout,
+                    "wait_for_completion": self.wait_for_completion,
+                },
+            },
+            message_processor=self.action_processor,
+        )
+        core_actions.start()
+        core_actions.join()
 
 
 class BaseCollectorPlugin(BasePlugin):
@@ -98,8 +168,7 @@ class BaseCollectorPlugin(BasePlugin):
         self.name = str(self.cloud)
         cloud = Cloud(self.cloud, _replace=True)
         self.root = cloud
-        self.graph = Graph(root=cloud)
-        self.finished = False
+        self.graph = Graph(root=self.root)
 
     @abstractmethod
     def collect(self) -> None:
@@ -108,7 +177,6 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
-        self.finished = True
 
 
 class BaseCliPlugin(ABC):
