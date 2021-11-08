@@ -1,0 +1,104 @@
+from typing import List
+from cklib.graph import Graph, sanitize
+from cklib.graph.export import node_from_dict, node_to_dict
+import requests
+import json
+from cklib.args import ArgumentParser
+from cklib.logging import log
+from cklib.jwt import encode_jwt_to_headers
+
+
+class CoreGraph:
+    def __init__(self, base_uri: str = None, graph: str = None) -> None:
+        if base_uri is None:
+            self.base_uri = ArgumentParser.args.ckcore_uri.strip("/")
+        else:
+            self.base_uri = base_uri.strip("/")
+        if graph is None:
+            self.graph_name = ArgumentParser.args.ckcore_graph
+        else:
+            self.graph_name = graph
+        self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
+        self.query_uri = f"{self.graph_uri}/query/graph"
+
+    def query(self, query: str):
+        log.debug(f"Sending query {query}")
+
+        headers = {"accept": "application/x-ndjson"}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+
+        r = requests.post(self.query_uri, data=query, headers=headers, stream=True)
+        if r.status_code != 200:
+            log.error(r.content)
+            raise RuntimeError(f"Failed to query graph: {r.content}")
+        for line in r.iter_lines():
+            if not line:
+                continue
+            try:
+                data = json.loads(line.decode("utf-8"))
+                yield data
+            except TypeError as e:
+                log.error(e)
+                continue
+
+    def graph(self, query: str) -> Graph:
+        def process_data_line(data: dict, graph: Graph):
+            """Process a single line of ckcore graph data"""
+
+            if data.get("type") == "node":
+                node_id = data.get("id")
+                node = node_from_dict(data)
+                node_mapping[node_id] = node
+                log.debug(f"Adding node {node} to the graph")
+                graph.add_node(node)
+                if node.kind == "graph_root":
+                    log.debug(f"Setting graph root {node}")
+                    graph.root = node
+            elif data.get("type") == "edge":
+                node_from = data.get("from")
+                node_to = data.get("to")
+                if node_from not in node_mapping or node_to not in node_mapping:
+                    raise ValueError(f"One of {node_from} -> {node_to} unknown")
+                graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+
+        graph = Graph()
+        node_mapping = {}
+        for data in self.query(query):
+            try:
+                process_data_line(data, graph)
+            except ValueError as e:
+                log.error(e)
+                continue
+        sanitize(graph)
+        return graph
+
+    def patch_nodes(self, graph: Graph):
+        headers = {"Content-Type": "application/x-ndjson"}
+        if getattr(ArgumentParser.args, "psk", None):
+            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+
+        r = requests.patch(self.graph_uri, data=GraphCleanupIterator(graph), headers=headers)
+        if r.status_code != 200:
+            log.error(r.content)
+            raise RuntimeError(f"Failed to create model: {r.content}")
+
+
+class GraphCleanupIterator:
+    def __init__(self, graph: Graph):
+        self.graph = graph
+
+    def __iter__(self):
+        for node in self.graph.nodes:
+            if not node.clean:
+                continue
+            node_dict = node_to_dict(node)
+            if "revision" in node_dict:
+                del node_dict["revision"]
+            if "reported" in node_dict:
+                del node_dict["reported"]
+            if "desired" in node_dict:
+                del node_dict["desired"]
+            node_json = json.dumps(node_dict) + "\n"
+            log.debug(f"Updating node {node_dict}")
+            yield node_json.encode()

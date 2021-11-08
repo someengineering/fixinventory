@@ -13,6 +13,7 @@ from cklib.web import WebServer
 from cklib.web.metrics import WebApp
 from cklib.utils import log_stats, increase_limits
 from cklib.args import ArgumentParser
+from cklib.core import add_args as core_add_args
 from cklib.core.actions import CoreActions
 from cklib.core.tasks import CoreTasks
 from ckworker.collect import collect, add_args as collect_add_args
@@ -66,6 +67,7 @@ def main() -> None:
     graph_add_args(arg_parser)
     collect_add_args(arg_parser)
     cleanup_add_args(arg_parser)
+    core_add_args(arg_parser)
     ckcore_add_args(arg_parser)
     CoreActions.add_args(arg_parser)
     WebApp.add_args(arg_parser)
