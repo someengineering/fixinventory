@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from cklib.graph import Graph
 from cklib.core.actions import CoreActions
-from cklib.args import ArgumentParser, Namespace
+from cklib.args import ArgumentParser
 from cklib.logging import log, setup_logger
 from cklib.baseresources import Cloud
 from threading import Thread, current_thread
