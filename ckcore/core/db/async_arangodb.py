@@ -60,6 +60,12 @@ class AsyncCursor(AsyncIterator[Json]):
                 if element:
                     return element
 
+    def close(self) -> None:
+        try:
+            self.cursor.close()
+        except Exception:
+            pass
+
     def count(self) -> Optional[int]:
         return self.cursor.count()  # type: ignore
 
@@ -112,11 +118,15 @@ class AsyncCursor(AsyncIterator[Json]):
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
     def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
-        self.cursor = cursor
-        self.trafo = trafo
+        self._cursor = cursor
+        self._trafo = trafo
+
+    @property
+    def cursor(self) -> AsyncCursor:
+        return AsyncCursor(self._cursor, self._trafo)
 
     async def __aenter__(self) -> AsyncCursor:
-        return AsyncCursor(self.cursor, self.trafo)
+        return self.cursor
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.cursor.close()

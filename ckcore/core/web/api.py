@@ -50,7 +50,7 @@ from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
-from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str
+from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str, if_set, duration
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
@@ -552,7 +552,8 @@ class Api:
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         count = request.query.get("count", "true").lower() != "false"
-        async with await graph_db.query_list(QueryModel(q, m, section), count) as cursor:
+        timeout = if_set(request.query.get("query_timeout"), duration)
+        async with await graph_db.query_list(QueryModel(q, m, section), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
@@ -572,7 +573,8 @@ class Api:
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         count = request.query.get("count", "true").lower() != "false"
-        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count) as cursor:
+        timeout = if_set(request.query.get("query_timeout"), duration)
+        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:

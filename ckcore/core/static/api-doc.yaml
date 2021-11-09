@@ -686,6 +686,13 @@ paths:
                   schema:
                       type: boolean
                       default: true
+                - name: query_timeout
+                  in: query
+                  description: "Optional duration the query is allowed to run."
+                  required: false
+                  schema:
+                      type: string
+                      example: "30s"
             requestBody:
                 description: "The query to perform"
                 content:
@@ -978,6 +985,13 @@ paths:
                   schema:
                       type: boolean
                       default: true
+                - name: query_timeout
+                  in: query
+                  description: "Optional duration the query is allowed to run."
+                  required: false
+                  schema:
+                      type: string
+                      example: "30s"
             requestBody:
                 description: "The query to perform"
                 content:
