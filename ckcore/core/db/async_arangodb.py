@@ -21,7 +21,7 @@ from typing import (
     Awaitable,
 )
 
-from arango import ArangoServerError
+from arango import ArangoServerError, CursorNextError
 from arango.collection import StandardCollection, VertexCollection, EdgeCollection
 from arango.cursor import Cursor
 from arango.database import StandardDatabase, Database, TransactionDatabase
@@ -29,6 +29,7 @@ from arango.graph import Graph
 from arango.typings import Json, Jsons
 
 from core.async_extensions import run_async
+from core.error import QueryTookToLongError
 from core.metrics import timed
 from core.util import identity
 
@@ -97,13 +98,16 @@ class AsyncCursor(AsyncIterator[Json]):
         return None
 
     async def next_from_db(self) -> Json:
-        if self.cursor.empty():
-            if not self.cursor.has_more():
-                raise StopAsyncIteration
-            # next batch is fetched in separate thread
-            await run_async(self.cursor.fetch)
-        res = self.cursor.pop()
-        return res
+        try:
+            if self.cursor.empty():
+                if not self.cursor.has_more():
+                    raise StopAsyncIteration
+                # next batch is fetched in separate thread
+                await run_async(self.cursor.fetch)
+            res = self.cursor.pop()
+            return res
+        except CursorNextError as ex:
+            raise QueryTookToLongError("Cursor does not exist any longer, since the query ran for too long.") from ex
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):

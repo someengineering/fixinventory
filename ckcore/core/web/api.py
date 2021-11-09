@@ -38,6 +38,7 @@ from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
+from core.error import QueryTookToLongError
 from core.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
@@ -112,7 +113,7 @@ class Api:
                 web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
                 web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
                 web.get("/graph/{graph_id}/search", self.search_graph),
-                web.patch("/graph/{graph_id}", self.update_nodes),
+                web.patch("/graph/{graph_id}/nodes", self.update_nodes),
                 web.post("/graph/{graph_id}/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
                 web.get("/graph/{graph_id}/batch", self.list_batches),
@@ -449,7 +450,7 @@ class Api:
 
     async def update_nodes(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
-        allowed = {*Section.all, "id"}
+        allowed = {*Section.all, "id", "revision"}
         updates: Dict[str, Json] = {}
         async for elem in self.to_json_generator(request):
             keys = set(elem.keys())
@@ -798,21 +799,28 @@ class Api:
                 # if js is a node, the resulting content should be filtered
                 return filter_attrs(js) if is_node(js) else js  # type: ignore
 
-            flag = False
-            sep = "---\n".encode("utf-8")
-            cr = "\n".encode("utf-8")
-            async for item in gen:
-                js = to_js(item)
-                if isinstance(js, (dict, list)):
-                    if flag:
-                        yield sep
-                    yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
-                    yield yml.encode("utf-8")
-                else:
-                    if flag:
-                        yield cr
-                    yield str(js).encode("utf-8")
-                flag = True
+            try:
+                flag = False
+                sep = "---\n".encode("utf-8")
+                cr = "\n".encode("utf-8")
+                async for item in gen:
+                    js = to_js(item)
+                    if isinstance(js, (dict, list)):
+                        if flag:
+                            yield sep
+                        yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
+                        yield yml.encode("utf-8")
+                    else:
+                        if flag:
+                            yield cr
+                        yield str(js).encode("utf-8")
+                    flag = True
+            except QueryTookToLongError:
+                yield (
+                    "\n\n------------------------------------------------------------\n"
+                    "Query took too long. Try to refine your query or use a limit!"
+                    "\n------------------------------------------------------------\n\n"
+                ).encode("utf-8")
 
         if accept == "application/x-ndjson":
             return "application/x-ndjson", respond_ndjson()
