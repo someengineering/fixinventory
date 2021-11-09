@@ -819,9 +819,14 @@ class Api:
                     flag = True
             except QueryTookToLongError:
                 yield (
-                    "\n\n------------------------------------------------------------\n"
-                    "Query took too long. Try to refine your query or use a limit!"
-                    "\n------------------------------------------------------------\n\n"
+                    "\n\n---------------------------------------------------\n"
+                    "Query took too long.\n"
+                    "Try one of the following:\n"
+                    "- refine your query\n"
+                    "- add a limit to your query\n"
+                    "- define a longer timeout via env var query_timeout\n"
+                    "  e.g. $> query_timeout=60s query all"
+                    "---------------------------------------------------\n\n"
                 ).encode("utf-8")
 
         if accept == "application/x-ndjson":
