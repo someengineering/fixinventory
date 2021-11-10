@@ -78,7 +78,7 @@ class CoreGraph:
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = requests.patch(
-            self.graph_uri, data=GraphChangeIterator(graph), headers=headers
+            f"{self.graph_uri}/nodes", data=GraphChangeIterator(graph), headers=headers
         )
         if r.status_code != 200:
             log.error(r.content)

@@ -103,6 +103,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
                     " is already terminated"
                 )
             )
+            self.log("Instance is already terminated")
             return False
         ec2 = aws_resource(self, "ec2", graph)
         instance = ec2.Instance(self.id)
