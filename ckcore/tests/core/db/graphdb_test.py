@@ -22,7 +22,7 @@ from core.model.typed_model import to_js, from_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
 from core.types import JsonElement
-from core.util import AccessJson, utc, value_in_path
+from core.util import AccessJson, utc, value_in_path, AccessNone
 
 # noinspection PyUnresolvedReferences
 from core.db.model import QueryModel, GraphUpdate
@@ -400,6 +400,29 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
             assert js.reported.identifier.startswith(js.reported.foobar.identifier)
             assert js.reported.identifier.startswith(js.desired.foobar.node_id)
             assert js.reported.identifier.startswith(js.metadata.foobar.node_id)
+
+
+@pytest.mark.asyncio
+async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    q = parse_query(
+        "is(foo) --> is(bla) { "
+        "parents[]: <-[1:]-, "
+        "child: -->, "
+        "walk: <-- -->, "
+        "agg: aggregate(sum(1) as count): <-[0:]- "
+        "}"
+    )
+    async with await filled_graph_db.query_list(QueryModel(q, foo_model), with_count=True) as cursor:
+        assert cursor.count() == 100
+        async for bla in cursor:
+            b = AccessJson(bla)
+            assert b.reported.kind == "bla"
+            assert len(b.parents) == 4
+            for parent in b.parents:
+                assert parent.reported.kind == "foo"
+            assert b.walk.reported.kind == "bla"
+            assert b.child == AccessNone()
+            assert b.agg == [{"count": 5}]
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,8 @@ import abc
 import json
 from dataclasses import dataclass, field, replace
 from functools import reduce
-from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable
+from backports.cached_property import cached_property
+from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set
 
 from jsons import set_deserializer
 
@@ -259,6 +260,28 @@ class FunctionTerm(Term):
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
+class MergeQuery(Term):
+    name: str
+    query: Query
+    only_first: bool = True
+
+    def __str__(self) -> str:
+        return f"{self.name}: {self.query}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class MergeTerm(Term):
+    pre_filter: Term
+    merge: List[MergeQuery]
+    post_filter: Optional[Term] = None
+
+    def __str__(self) -> str:
+        merge = ", ".join(str(q) for q in self.merge)
+        post = " " + str(self.post_filter) if self.post_filter else ""
+        return f"{self.pre_filter} {{{merge}}}{post}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
     Max: ClassVar[int] = 10000
@@ -466,6 +489,14 @@ class Query:
         colon = ":" if self.preamble or self.aggregate else ""
         parts = " ".join(str(a) for a in reversed(self.parts))
         return f"{aggregate}{preamble}{colon}{parts}"
+
+    @cached_property
+    def merge_names(self) -> Set[str]:
+        return {mt.name for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge}
+
+    @cached_property
+    def merge_query_by_name(self) -> List[MergeQuery]:
+        return [mt for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge]
 
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)

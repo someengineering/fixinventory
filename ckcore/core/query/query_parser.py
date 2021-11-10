@@ -32,6 +32,8 @@ from core.parse_util import (
     double_quote_dp,
     l_curly_dp,
     r_curly_dp,
+    l_curly_p,
+    r_curly_p,
 )
 from core.query.model import (
     Predicate,
@@ -53,6 +55,8 @@ from core.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
     NotTerm,
+    MergeTerm,
+    MergeQuery,
 )
 
 operation_p = (
@@ -122,7 +126,39 @@ def combined_term() -> Parser:
 simple_term_p = (lparen_p >> combined_term << rparen_p) | leaf_term_p
 
 # This can parse a complete term
-term_parser = combined_term | simple_term_p
+filter_term_parser = combined_term | simple_term_p
+
+
+square_brackets_p = lexeme(string("[]"))
+
+
+@make_parser
+def merge_query_parser() -> Parser:
+    name = yield literal_p
+    is_array = yield square_brackets_p.optional()
+
+    yield colon_p
+    query = yield query_parser
+    return MergeQuery(name, query, not (query.aggregate or is_array))
+
+
+@make_parser
+def merge_parser() -> Parser:
+    yield l_curly_p
+    queries = yield merge_query_parser.sep_by(comma_p, min=1)
+    yield r_curly_p
+    return queries
+
+
+@make_parser
+def term_parser() -> Parser:
+    filter_term = yield filter_term_parser
+    merge = yield merge_parser.optional()
+    if merge:
+        post_filter = yield filter_term_parser.optional()
+        return MergeTerm(filter_term, merge, post_filter)
+    else:
+        return filter_term
 
 
 @make_parser
@@ -179,7 +215,7 @@ def with_clause_parser() -> Parser:
     with_filter = yield len_empty | len_any | with_count_parser
     yield comma_p
     nav = yield navigation_parser
-    term = yield term_parser.optional()
+    term = yield filter_term_parser.optional()
     with_clause = yield with_clause_parser.optional()
     yield rparen_p
     assert 0 <= nav.start <= 1, "with traversal need to start from 0 or 1"
@@ -212,13 +248,14 @@ limit_parser = limit_p + space_dp >> integer_dp
 
 @make_parser
 def part_parser() -> Parser:
-    term = yield term_parser
+    term = yield term_parser.optional()
     yield whitespace
     with_clause = yield with_clause_parser.optional()
     tag = yield tag_parser
     sort = yield sort_parser.optional()
     limit = yield limit_parser.optional()
-    nav = yield navigation_parser.optional()
+    nav = yield navigation_parser.optional() if term or sort or limit else navigation_parser
+    term = term if term else AllTerm()
     return Part(term, tag, with_clause, sort if sort else [], limit, nav)
 
 

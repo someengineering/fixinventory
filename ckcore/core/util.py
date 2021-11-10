@@ -23,6 +23,7 @@ from typing import (
     Tuple,
     cast,
     AsyncIterator,
+    Iterator,
 )
 
 from dateutil.parser import isoparse
@@ -39,6 +40,10 @@ AnyR = TypeVar("AnyR")
 
 def identity(o: Any) -> Any:
     return o
+
+
+def count_iterator(start: int = 0) -> Iterator[int]:
+    return iter(range(start, sys.maxsize))
 
 
 def freeze(d: Dict[AnyT, AnyR]) -> Dict[AnyT, AnyR]:
