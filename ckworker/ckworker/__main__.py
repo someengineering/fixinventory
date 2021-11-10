@@ -13,6 +13,7 @@ from cklib.web import WebServer
 from cklib.web.metrics import WebApp
 from cklib.utils import log_stats, increase_limits
 from cklib.args import ArgumentParser
+from cklib.core import add_args as core_add_args
 from cklib.core.actions import CoreActions
 from cklib.core.tasks import CoreTasks
 from ckworker.collect import collect, add_args as collect_add_args
@@ -66,14 +67,16 @@ def main() -> None:
     graph_add_args(arg_parser)
     collect_add_args(arg_parser)
     cleanup_add_args(arg_parser)
+    core_add_args(arg_parser)
     ckcore_add_args(arg_parser)
+    CoreActions.add_args(arg_parser)
     WebApp.add_args(arg_parser)
     PluginLoader.add_args(arg_parser)
     event_add_args(arg_parser)
     add_args(arg_parser)
 
     # Find cloudkeeper Plugins in the cloudkeeper.plugins module
-    plugin_loader = PluginLoader(PluginType.COLLECTOR)
+    plugin_loader = PluginLoader()
     plugin_loader.add_plugin_args(arg_parser)
 
     # At this point the CLI, all Plugins as well as the WebServer have
@@ -92,7 +95,7 @@ def main() -> None:
     web_server.start()
 
     core_actions = CoreActions(
-        identifier="workerd-actions",
+        identifier=f"{ArgumentParser.args.ckcore_subscriber_id}-collect_cleanup",
         ckcore_uri=ArgumentParser.args.ckcore_uri,
         ckcore_ws_uri=ArgumentParser.args.ckcore_ws_uri,
         actions={
@@ -122,6 +125,14 @@ def main() -> None:
     )
     core_actions.start()
     core_tasks.start()
+
+    for Plugin in plugin_loader.plugins(PluginType.ACTION):
+        try:
+            log.debug(f"Starting action plugin {Plugin}")
+            plugin = Plugin()
+            plugin.start()
+        except Exception as e:
+            log.exception(f"Caught unhandled persistent Plugin exception {e}")
 
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes

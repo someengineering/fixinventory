@@ -1,11 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
+# Debian packages:
+#   curl bash python3-minimal python3-venv python3-dev git make gcc g++
+# CentOS packages:
+#   curl bash python39 python39-devel git make gcc gcc-c++
+# Fedora packages:
+#   curl bash python3 python3-devel git make gcc gcc-c++
+# Alpine packages:
+#   curl bash python3 python3-dev git make gcc g++ linux-headers libffi-dev
+
 declare -a supported_versions=(python3.10 python3.9 python3.8 python3.7)
+declare -a debian_packages=(curl bash python3-minimal python3-venv python3-dev git make gcc g++)
+declare -a centos_packages=(curl bash python39 python39-devel git make gcc gcc-c++)
+declare -a fedora_packages=(curl bash python3 python3-devel git make gcc gcc-c++ findutils)
+declare -a alpine_packages=(curl bash python3 python3-dev git make gcc g++ linux-headers libffi-dev)
 declare install_path="$HOME/cloudkeeper"
 declare python_cmd
 declare git_install=false
 declare dev_mode=false
+declare unattended=false
 declare venv=true
 declare branch=main
 
@@ -26,6 +40,7 @@ main() {
             --no-venv)      venv=false ;;
             --dev)          dev_mode=true ;;
             --git)          git_install=true ;;
+            --yes)          unattended=true ;;
             --)             end_of_opt=1 ;;
             -*)             invalid "$1" ;;
             *)              positional+=("$1") ;;
@@ -85,6 +100,7 @@ Valid options:
   --python <path>   Python binary to use (default: search for best match)
   --branch <branch> Git branch/tag to use (default: main)
   --dev             install development dependencies (default: false)
+  --yes             unattended mode - assume yes for all questions (default: false)
   --no-venv         do not create a Python venv for package installation (default: false)
   --git             install from remote Git instead of local repo (default: false)
 EOF

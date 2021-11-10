@@ -43,7 +43,7 @@ from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc, shutdown_process
+from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc, shutdown_process, if_set, duration
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
@@ -823,13 +823,24 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
             query_model = QueryModel(query, model)
             db.to_query(query_model)  # only here to validate the query itself (can throw)
             count = ctx.env.get("count", "true").lower() != "false"
+            timeout = if_set(ctx.env.get("query_timeout"), duration)
             context = (
                 await db.query_aggregation(query_model)
                 if query.aggregate
-                else await db.query_list(query_model, with_count=count)
+                else await db.query_list(query_model, with_count=count, timeout=timeout)
             )
-            async with context as cursor:
-                return cursor.count(), stream.iterate(cursor)
+            cursor = context.cursor
+
+            # since we can not use context boundaries here,
+            # an explicit iterator is used, which makes sure to close the connection.
+            async def iterate_and_close() -> AsyncIterator[Json]:
+                try:
+                    async for e in cursor:
+                        yield e
+                finally:
+                    cursor.close()
+
+            return cursor.count(), iterate_and_close()
 
         return CLISource(prepare)
 

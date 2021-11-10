@@ -21,7 +21,7 @@ from typing import (
     Awaitable,
 )
 
-from arango import ArangoServerError
+from arango import ArangoServerError, CursorNextError
 from arango.collection import StandardCollection, VertexCollection, EdgeCollection
 from arango.cursor import Cursor
 from arango.database import StandardDatabase, Database, TransactionDatabase
@@ -29,6 +29,7 @@ from arango.graph import Graph
 from arango.typings import Json, Jsons
 
 from core.async_extensions import run_async
+from core.error import QueryTookToLongError
 from core.metrics import timed
 from core.util import identity
 
@@ -58,6 +59,9 @@ class AsyncCursor(AsyncIterator[Json]):
                 element = await self.get_next()
                 if element:
                     return element
+
+    def close(self) -> None:
+        self.cursor.close(ignore_missing=True)
 
     def count(self) -> Optional[int]:
         return self.cursor.count()  # type: ignore
@@ -97,22 +101,29 @@ class AsyncCursor(AsyncIterator[Json]):
         return None
 
     async def next_from_db(self) -> Json:
-        if self.cursor.empty():
-            if not self.cursor.has_more():
-                raise StopAsyncIteration
-            # next batch is fetched in separate thread
-            await run_async(self.cursor.fetch)
-        res = self.cursor.pop()
-        return res
+        try:
+            if self.cursor.empty():
+                if not self.cursor.has_more():
+                    raise StopAsyncIteration
+                # next batch is fetched in separate thread
+                await run_async(self.cursor.fetch)
+            res = self.cursor.pop()
+            return res
+        except CursorNextError as ex:
+            raise QueryTookToLongError("Cursor does not exist any longer, since the query ran for too long.") from ex
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
     def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
-        self.cursor = cursor
-        self.trafo = trafo
+        self._cursor = cursor
+        self._trafo = trafo
+
+    @property
+    def cursor(self) -> AsyncCursor:
+        return AsyncCursor(self._cursor, self._trafo)
 
     async def __aenter__(self) -> AsyncCursor:
-        return AsyncCursor(self.cursor, self.trafo)
+        return self.cursor
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.cursor.close()

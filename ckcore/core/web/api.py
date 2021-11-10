@@ -38,6 +38,7 @@ from core.config import ConfigEntity
 from core.constants import plain_text_whitelist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
+from core.error import QueryTookToLongError
 from core.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
@@ -49,7 +50,7 @@ from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
-from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str
+from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str, if_set, duration
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
@@ -112,7 +113,7 @@ class Api:
                 web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
                 web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
                 web.get("/graph/{graph_id}/search", self.search_graph),
-                web.patch("/graph/{graph_id}", self.update_nodes),
+                web.patch("/graph/{graph_id}/nodes", self.update_nodes),
                 web.post("/graph/{graph_id}/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
                 web.get("/graph/{graph_id}/batch", self.list_batches),
@@ -449,7 +450,7 @@ class Api:
 
     async def update_nodes(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
-        allowed = {*Section.all, "id"}
+        allowed = {*Section.all, "id", "revision"}
         updates: Dict[str, Json] = {}
         async for elem in self.to_json_generator(request):
             keys = set(elem.keys())
@@ -551,7 +552,8 @@ class Api:
         q = parse_query(query_string)
         m = await self.model_handler.load_model()
         count = request.query.get("count", "true").lower() != "false"
-        async with await graph_db.query_list(QueryModel(q, m, section), count) as cursor:
+        timeout = if_set(request.query.get("query_timeout"), duration)
+        async with await graph_db.query_list(QueryModel(q, m, section), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
@@ -571,7 +573,8 @@ class Api:
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         count = request.query.get("count", "true").lower() != "false"
-        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count) as cursor:
+        timeout = if_set(request.query.get("query_timeout"), duration)
+        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
@@ -798,21 +801,33 @@ class Api:
                 # if js is a node, the resulting content should be filtered
                 return filter_attrs(js) if is_node(js) else js  # type: ignore
 
-            flag = False
-            sep = "---\n".encode("utf-8")
-            cr = "\n".encode("utf-8")
-            async for item in gen:
-                js = to_js(item)
-                if isinstance(js, (dict, list)):
-                    if flag:
-                        yield sep
-                    yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
-                    yield yml.encode("utf-8")
-                else:
-                    if flag:
-                        yield cr
-                    yield str(js).encode("utf-8")
-                flag = True
+            try:
+                flag = False
+                sep = "---\n".encode("utf-8")
+                cr = "\n".encode("utf-8")
+                async for item in gen:
+                    js = to_js(item)
+                    if isinstance(js, (dict, list)):
+                        if flag:
+                            yield sep
+                        yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
+                        yield yml.encode("utf-8")
+                    else:
+                        if flag:
+                            yield cr
+                        yield str(js).encode("utf-8")
+                    flag = True
+            except QueryTookToLongError:
+                yield (
+                    "\n\n---------------------------------------------------\n"
+                    "Query took too long.\n"
+                    "Try one of the following:\n"
+                    "- refine your query\n"
+                    "- add a limit to your query\n"
+                    "- define a longer timeout via env var query_timeout\n"
+                    "  e.g. $> query_timeout=60s query all\n"
+                    "---------------------------------------------------\n\n"
+                ).encode("utf-8")
 
         if accept == "application/x-ndjson":
             return "application/x-ndjson", respond_ndjson()

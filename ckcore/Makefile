@@ -57,7 +57,7 @@ lint: venv ## check style with flake8
 	black --line-length 120 --check core tests
 	flake8 core
 	pylint core
-	mypy --python-version 3.7 --strict core tests
+	mypy --python-version 3.8 --strict core tests
 
 test: venv ## run tests quickly with the default Python
 	pytest
@@ -83,7 +83,7 @@ install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
 venv-pypy:
-	pypy -m venv venv-pypy
+	pypy3.8 -m venv venv-pypy
 	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
 	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../cklib
 	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
@@ -97,9 +97,9 @@ venv:
 	. ./venv/bin/activate && pip install -r requirements-dev.txt
 	. ./venv/bin/activate && pip install -r requirements-test.txt
 	. ./venv/bin/activate && pip install -r requirements.txt
-	. ./venv/bin/activate && mypy --python-version 3.7 core tests > /dev/null 2>&1 || true
+	. ./venv/bin/activate && mypy --python-version 3.8 core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."
-	. ./venv/bin/activate && mypy --python-version 3.7 --install-types --non-interactive || true
+	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive || true
 	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
 
 setup: clean clean-env venv

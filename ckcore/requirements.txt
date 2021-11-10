@@ -1,14 +1,14 @@
 # Only list production dependencies. Everything else can be added to requirements-test.txt and requirements-dev.txt.
 
-aiohttp-swagger3==0.6.0
-aiohttp[speedups]==3.7.4.post0
+aiohttp-swagger3==0.7.0
+aiohttp[speedups]==3.8.0
 durations_nlp==1.0.1
 jsons==1.6.0
 parsy==1.3.0
 plantuml==0.3.0
 python-arango==7.2.0
 python-dateutil==2.8.2
-toolz==0.11.1
+toolz==0.11.2
 transitions==0.8.10
 APScheduler==3.8.1
 aiostream==0.4.3
