@@ -243,12 +243,13 @@ class GraphAccess:
         return result
 
     def __resolve_count_descendants(self) -> None:
+        visited: Set[str] = set()
+
         def count_successors_by(node_id: str, edge_type: str, path: List[str]) -> Dict[str, int]:
             result: Dict[str, int] = {}
             to_visit = list(self.successors(node_id, edge_type))
             while to_visit:
                 visit_next: List[str] = []
-                visited: Set[str] = set()
                 for elem_id in to_visit:
                     if elem_id not in visited:
                         visited.add(elem_id)
