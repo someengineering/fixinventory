@@ -3,7 +3,7 @@ import inspect
 from cklib.logging import log
 from typing import List, Optional
 from cklib.args import ArgumentParser
-from cklib.baseplugin import BasePlugin, BaseCliPlugin, PluginType
+from cklib.baseplugin import BasePlugin, BaseActionPlugin, BaseCliPlugin, PluginType
 
 
 plugins = {}
@@ -55,7 +55,7 @@ class PluginLoader:
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
-            and issubclass(plugin, (BasePlugin, BaseCliPlugin))
+            and issubclass(plugin, (BasePlugin, BaseActionPlugin, BaseCliPlugin))
             and plugin.plugin_type in plugins
         ):
             if plugin.plugin_type == PluginType.COLLECTOR:
