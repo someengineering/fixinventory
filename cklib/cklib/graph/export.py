@@ -217,17 +217,30 @@ def get_node_attributes(node: BaseResource) -> Dict:
     return attributes
 
 
-def node_to_dict(node: BaseResource) -> Dict:
-    node_dict = {
-        "id": node._ckcore_id if node._ckcore_id else node.chksum,
-        "reported": get_node_attributes(node),
-        "metadata": {
-            "python_type": type_str(node),
-            "cleaned": node.cleaned,
-            "phantom": node.phantom,
-            "protected": node.protected,
-        },
-    }
+def node_to_dict(node: BaseResource, changes_only: bool = False) -> Dict:
+    node_dict = {"id": node._ckcore_id if node._ckcore_id else node.chksum}
+    if changes_only:
+        node_dict.update(node.changes.get())
+    else:
+        node_dict.update(
+            {
+                "reported": get_node_attributes(node),
+                "metadata": {
+                    "python_type": type_str(node),
+                    "cleaned": node.cleaned,
+                    "phantom": node.phantom,
+                    "protected": node.protected,
+                },
+            }
+        )
+        if node.clean:
+            node_dict.update(
+                {
+                    "desired": {
+                        "clean": node.clean,
+                    }
+                }
+            )
     if node._ckcore_revision:
         node_dict.update(
             {

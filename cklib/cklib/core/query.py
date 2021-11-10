@@ -78,28 +78,22 @@ class CoreGraph:
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         r = requests.patch(
-            self.graph_uri, data=GraphCleanupIterator(graph), headers=headers
+            self.graph_uri, data=GraphChangeIterator(graph), headers=headers
         )
         if r.status_code != 200:
             log.error(r.content)
             raise RuntimeError(f"Failed to create model: {r.content}")
 
 
-class GraphCleanupIterator:
+class GraphChangeIterator:
     def __init__(self, graph: Graph):
         self.graph = graph
 
     def __iter__(self):
         for node in self.graph.nodes:
-            if not node.clean:
+            if not node.changes.changed:
                 continue
-            node_dict = node_to_dict(node)
-            if "revision" in node_dict:
-                del node_dict["revision"]
-            if "reported" in node_dict:
-                del node_dict["reported"]
-            if "desired" in node_dict:
-                del node_dict["desired"]
+            node_dict = node_to_dict(node, changes_only=True)
             node_json = json.dumps(node_dict) + "\n"
             log.debug(f"Updating node {node_dict}")
             yield node_json.encode()

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 from copy import deepcopy
@@ -9,8 +10,8 @@ import weakref
 import networkx.algorithms.dag
 from cklib.logging import log
 from enum import Enum
-from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
-from cklib.utils import make_valid_timestamp
+from typing import Dict, Iterator, List, Tuple, ClassVar, Optional, Set
+from cklib.utils import make_valid_timestamp, ResourceChanges
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
 
@@ -119,6 +120,7 @@ class BaseResource(ABC):
         self.uuid = uuid.uuid4().hex
         self._clean: bool = False
         self._cleaned: bool = False
+        self._changes: ResourceChanges = ResourceChanges(self)
         self._metrics: Dict = {}
         self._deferred_connections: List = []
         self.__graph = None
@@ -190,7 +192,7 @@ class BaseResource(ABC):
         log_entry = {
             "timestamp": now,
             "msg": str(msg),
-            "exception": repr(exception),
+            "exception": repr(exception) if exception else None,
             "data": deepcopy(data),
         }
         self.__log.append(log_entry)
@@ -200,8 +202,23 @@ class BaseResource(ABC):
         return self.kind
 
     @property
+    def changes(self) -> ResourceChanges:
+        return self._changes
+
+    @property
     def event_log(self) -> List:
         return self.__log
+
+    @property
+    def str_event_log(self) -> List:
+        return [
+            {
+                "timestamp": le["timestamp"].isoformat(),
+                "msg": le["msg"],
+                "exception": le["exception"],
+            }
+            for le in self.__log
+        ]
 
     def update_tag(self, key, value) -> bool:
         raise NotImplementedError
@@ -276,6 +293,7 @@ class BaseResource(ABC):
         clean_str = "" if value else "not "
         self.log(f"Setting to {clean_str}be cleaned")
         log.debug(f"Setting {self.rtdname} to {clean_str}be cleaned")
+        self._changes.add("clean")
         self._clean = value
 
     @property
@@ -297,6 +315,7 @@ class BaseResource(ABC):
         if value:
             log.debug(f"Protecting resource {self.rtdname}")
             self.log("Protecting resource")
+            self._changes.add("protected")
             self.__protected = value
 
     @metrics_resource_cleanup.time()
@@ -309,6 +328,7 @@ class BaseResource(ABC):
             log.debug(f"Resource {self.rtdname} has already been cleaned up")
             return True
 
+        self._changes.add("cleaned")
         if graph is None:
             graph = self._graph
 
@@ -592,6 +612,7 @@ class ResourceTagsDict(dict):
             try:
                 if self.parent_resource.update_tag(key, value):
                     log_msg = f"Successfully set tag {key} to {value} in cloud"
+                    self.parent_resource._changes.add("tags")
                     self.parent_resource.log(log_msg)
                     log.info(
                         (
@@ -628,6 +649,7 @@ class ResourceTagsDict(dict):
             try:
                 if self.parent_resource.delete_tag(key):
                     log_msg = f"Successfully deleted tag {key} in cloud"
+                    self.parent_resource._changes.add("tags")
                     self.parent_resource.log(log_msg)
                     log.info(
                         (
