@@ -61,10 +61,7 @@ class AsyncCursor(AsyncIterator[Json]):
                     return element
 
     def close(self) -> None:
-        try:
-            self.cursor.close()
-        except Exception:
-            pass
+        self.cursor.close(ignore_missing=True)
 
     def count(self) -> Optional[int]:
         return self.cursor.count()  # type: ignore
