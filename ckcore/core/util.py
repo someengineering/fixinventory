@@ -26,6 +26,7 @@ from typing import (
 )
 
 from dateutil.parser import isoparse
+from durations_nlp import Duration
 from frozendict import frozendict
 
 from core.types import JsonElement, Json
@@ -73,6 +74,10 @@ def utc_str(dt: datetime = utc()) -> str:
 
 def from_utc(date_string: str) -> datetime:
     return isoparse(date_string)
+
+
+def duration(d: str) -> timedelta:
+    return timedelta(seconds=int(Duration(d).seconds))
 
 
 def uuid_str(from_object: Optional[Any] = None) -> str:

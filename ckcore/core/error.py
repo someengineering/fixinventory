@@ -14,6 +14,10 @@ class DatabaseError(ClientError):
     pass
 
 
+class QueryTookToLongError(DatabaseError):
+    pass
+
+
 class InvalidBatchUpdate(ClientError):
     def __init__(self) -> None:
         super().__init__("The same batch can not update the same subgraph or any parent node!")

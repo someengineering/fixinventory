@@ -4,8 +4,10 @@ import re
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import timedelta
 from functools import partial
-from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union, Dict, List, Tuple
+from numbers import Number
+from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Union, Dict, List, Tuple, cast
 
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -113,11 +115,15 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
+    async def query_list(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
+    ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
+    async def query_graph_gen(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
@@ -336,18 +342,32 @@ class ArangoGraphDB(GraphDB):
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
-    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
+    async def query_list(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
+    ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         q_string, bind = self.to_query(query)
-        trafo = self.document_to_instance_fn(query.model)
-        return await self.db.aql_cursor(query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000)
+        return await self.db.aql_cursor(
+            query=q_string,
+            trafo=self.document_to_instance_fn(query.model),
+            count=with_count,
+            bind_vars=bind,
+            batch_size=10000,
+            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
+        )
 
-    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
+    async def query_graph_gen(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
         query_string, bind = self.to_query(query, with_edges=True)
-        trafo = self.document_to_instance_fn(query.model)
         return await self.db.aql_cursor(
-            query=query_string, trafo=trafo, bind_vars=bind, count=with_count, batch_size=10000
+            query=query_string,
+            trafo=self.document_to_instance_fn(query.model),
+            bind_vars=bind,
+            count=with_count,
+            batch_size=10000,
+            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
@@ -1300,11 +1320,15 @@ class EventGraphDB(GraphDB):
         await self.real.abort_update(batch_id)
         await self.message_bus.emit_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
-    async def query_list(self, query: QueryModel, with_count: bool = False, **kwargs: Any) -> AsyncCursorContext:
-        return await self.real.query_list(query, with_count, **kwargs)
+    async def query_list(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
+    ) -> AsyncCursorContext:
+        return await self.real.query_list(query, with_count, timeout, **kwargs)
 
-    async def query_graph_gen(self, query: QueryModel, with_count: bool = False) -> AsyncCursorContext:
-        return await self.real.query_graph_gen(query, with_count)
+    async def query_graph_gen(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
+        return await self.real.query_graph_gen(query, with_count, timeout)
 
     async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         return await self.real.query_aggregation(query)
