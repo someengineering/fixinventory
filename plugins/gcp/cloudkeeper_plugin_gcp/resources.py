@@ -238,7 +238,7 @@ class GCPInstance(GCPResource, BaseInstance):
             value, InstanceStatus.UNKNOWN
         )
         if self._instance_status == InstanceStatus.TERMINATED:
-            self.cleaned = True
+            self._cleaned = True
 
     @property
     def _machine_type(self) -> Optional[BaseInstanceType]:

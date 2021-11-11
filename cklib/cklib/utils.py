@@ -681,5 +681,7 @@ class ResourceChanges:
                         f"Resource {self.node.rtdname} has no attribute {attribute}"
                     )
         if len(self.node.event_log) > 0:
+            if "metadata" not in changes:
+                changes[section] = {}
             changes["metadata"]["event_log"] = self.node.str_event_log
         return changes

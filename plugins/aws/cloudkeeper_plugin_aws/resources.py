@@ -93,7 +93,7 @@ class AWSEC2Instance(AWSResource, BaseInstance):
             value, InstanceStatus.UNKNOWN
         )
         if self._instance_status == InstanceStatus.TERMINATED:
-            self.cleaned = True
+            self._cleaned = True
 
     def delete(self, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED.value:
