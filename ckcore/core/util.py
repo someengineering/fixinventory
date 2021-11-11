@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import json
 import logging
 import random
 import string
@@ -21,14 +23,12 @@ from typing import (
     Dict,
     List,
     Tuple,
-    cast,
     AsyncIterator,
     Iterator,
 )
 
 from dateutil.parser import isoparse
 from durations_nlp import Duration
-from frozendict import frozendict
 
 from core.types import JsonElement, Json
 
@@ -46,13 +46,10 @@ def count_iterator(start: int = 0) -> Iterator[int]:
     return iter(range(start, sys.maxsize))
 
 
-def freeze(d: Dict[AnyT, AnyR]) -> Dict[AnyT, AnyR]:
-    result = {}
-    for k, v in d.items():
-        sk = freeze(k) if isinstance(k, dict) else k
-        sv = freeze(v) if isinstance(v, dict) else v
-        result[sk] = sv
-    return cast(Dict[AnyT, AnyR], frozendict(result))
+def json_hash(js: Json) -> str:
+    sha256 = hashlib.sha256()
+    sha256.update(json.dumps(js, sort_keys=True).encode("utf-8"))
+    return sha256.hexdigest()
 
 
 def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:
@@ -184,7 +181,7 @@ def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
     return at_idx(element, 0)
 
 
-def set_value_in_path(element: JsonElement, path: List[str], json: Optional[Json] = None) -> Json:
+def set_value_in_path(element: JsonElement, path: List[str], js: Optional[Json] = None) -> Json:
     def at_idx(current: Json, idx: int) -> None:
         if len(path) - 1 == idx:
             current[path[-1]] = element
@@ -195,7 +192,7 @@ def set_value_in_path(element: JsonElement, path: List[str], json: Optional[Json
                 current[path[idx]] = value
             at_idx(value, idx + 1)
 
-    js = json if json is not None else {}
+    js = js if js is not None else {}
     at_idx(js, 0)
     return js
 
