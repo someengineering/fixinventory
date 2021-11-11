@@ -1,6 +1,8 @@
 # key: operation, value: reverse operation
 # note: the reverse operation is not the negated operation
 # (negation of < would be >=)
+from core.model.resolve_in_graph import NodePath
+
 less_greater_then_operations = {
     "<": ">",
     "<=": ">=",
@@ -13,12 +15,14 @@ less_greater_then_operations = {
 # see: https://www.arangodb.com/docs/stable/aql/fundamentals-type-value-order.html
 arangodb_matches_null_ops = {"<", "<=", "not in", "=~"}
 
-# Attribute whitelist to show in text/plain mode.
-# This is a biased set of attributes - we probably need something more clever.
-plain_text_whitelist = [
-    ["reported"],
-    ["desired", "clean"],
-    ["metadata", "protected"],
-    ["metadata", "ancestors"],
-    ["kinds"],
+# Attribute blacklist to hide in text/plain mode.
+plain_text_blacklist = [
+    NodePath.node_id,
+    NodePath.type,
+    NodePath.revision,
+    NodePath.kinds,
+    NodePath.descendant_count,
+    NodePath.descendant_count,
+    NodePath.descendant_summary,
+    ["metadata", "python_type"],
 ]

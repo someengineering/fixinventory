@@ -5,7 +5,16 @@ import pytest
 from aiostream import stream
 from copy import deepcopy
 
-from core.util import AccessJson, force_gen, uuid_str, value_in_path, value_in_path_get, set_value_in_path, rnd_str
+from core.util import (
+    AccessJson,
+    force_gen,
+    uuid_str,
+    value_in_path,
+    value_in_path_get,
+    set_value_in_path,
+    rnd_str,
+    del_value_in_path,
+)
 
 
 def not_in_path(name: str, *other: str) -> bool:
@@ -61,6 +70,20 @@ def test_set_value_in_path() -> None:
     res = {"a": 1}
     set_value_in_path(23, ["reported"], res)
     assert res == {"a": 1, "reported": 23}
+
+
+def test_del_value_in_path() -> None:
+    js = {"foo": {"bla": {"test": 123}}}
+    res = del_value_in_path(deepcopy(js), ["foo", "bla", "test"])
+    assert res == {"foo": {"bla": None}}
+    js = {"foo": {"bla": {"test": 123}}}
+    res = del_value_in_path(deepcopy(js), ["foo", "bla", "bar"])
+    assert res == {"foo": {"bla": {"test": 123}}}
+    js = {"foo": {"bla": {"test": 123}}}
+    res = del_value_in_path(deepcopy(js), ["foo", "bla"])
+    assert res == {"foo": None}
+    res = del_value_in_path(deepcopy(js), ["foo"])
+    assert res == {}
 
 
 @pytest.mark.asyncio

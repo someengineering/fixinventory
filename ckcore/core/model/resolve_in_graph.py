@@ -7,6 +7,8 @@ from typing import Optional, List
 class NodePath:
     node_id = ["id"]
     kinds = ["kinds"]
+    type = ["type"]
+    revision = ["revision"]
     reported_kind = ["reported", "kind"]
     reported_ctime = ["reported", "ctime"]
     reported_id = ["reported", "id"]
