@@ -81,8 +81,9 @@ class CoreGraph:
             f"{self.graph_uri}/nodes", data=GraphChangeIterator(graph), headers=headers
         )
         if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to create model: {r.content}")
+            err = r.content.decode("utf-8")
+            log.error(err)
+            raise RuntimeError(f"Failed to patch nodes: {err}")
 
 
 class GraphChangeIterator:
