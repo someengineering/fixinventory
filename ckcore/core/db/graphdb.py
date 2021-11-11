@@ -28,6 +28,7 @@ from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind, TransformKind
 from core.model.resolve_in_graph import NodePath
+from core.model.typed_model import to_js
 from core.query.model import Query
 from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash
 
@@ -1020,7 +1021,8 @@ class EventGraphDB(GraphDB):
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
-        even_data = {"graph": self.graph_name, "root_ids": roots}
+        graph_info = {"nodes": len(graph_to_merge.nodes), "edges": len(graph_to_merge.edges)}
+        even_data = {"graph": self.graph_name, "root_ids": roots, "graph_info": graph_info, "update_info": to_js(info)}
         if info.all_changes():  # do not emit an event in case nothing has changed
             if is_batch:
                 await self.event_sender.core_event(CoreEvent.BatchUpdateGraphMerged, even_data)
