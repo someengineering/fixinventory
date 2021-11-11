@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 from copy import deepcopy
@@ -10,7 +9,7 @@ import weakref
 import networkx.algorithms.dag
 from cklib.logging import log
 from enum import Enum
-from typing import Dict, Iterator, List, Tuple, ClassVar, Optional, Set
+from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
 from cklib.utils import make_valid_timestamp, ResourceChanges
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
