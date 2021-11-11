@@ -29,7 +29,7 @@ from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind, TransformKind
 from core.model.resolve_in_graph import NodePath
 from core.query.model import Query
-from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, freeze
+from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash
 
 log = logging.getLogger(__name__)
 
@@ -231,8 +231,8 @@ class ArangoGraphDB(GraphDB):
         deletes: Dict[str, List[str]] = defaultdict(list)
         delete_sections = [Section.desired, Section.metadata]
         # group patches by changes: single desired or metadata changes can be executed via special purpose methods.
-        updates: Dict[Json, List[str]] = defaultdict(list)
-
+        updates: Dict[str, Json] = {}
+        updated_nodes: Dict[str, List[str]] = defaultdict(list)
         for uid, patch_js in patches_by_id.items():
             # filter out delete operation
             for section in delete_sections:
@@ -245,7 +245,9 @@ class ArangoGraphDB(GraphDB):
                     del patch_js[section]
             # all remaining changes are updates
             if patch_js:
-                updates[freeze(patch_js)].append(uid)
+                hashed = json_hash(patch_js)
+                updates[hashed] = patch_js
+                updated_nodes[hashed].append(uid)
 
         # all changes are executed inside a transaction: either all changes are successful or none
         async with self.db.begin_transaction(read=[self.vertex_name], write=[self.vertex_name]) as tx:
@@ -261,7 +263,8 @@ class ArangoGraphDB(GraphDB):
                 async for res in self.delete_nodes_section_with(tx, model, section, ids):
                     yield res
 
-            for change, items in updates.items():
+            for change_id, change in updates.items():
+                items = updated_nodes[change_id]
                 if len(change) == 1 and Section.desired in change:
                     log.debug(f"Update desired many: change={change} on {items}")
                     patch = change[Section.desired]
