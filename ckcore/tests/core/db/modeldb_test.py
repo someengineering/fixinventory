@@ -4,15 +4,15 @@ import pytest
 from arango.database import StandardDatabase
 from typing import List
 
+from core.analytics import AnalyticsEventSender, InMemoryEventSender
 from core.db import modeldb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.modeldb import ModelDb, EventModelDb
 from core.db.entitydb import EventEntityDb
-from core.message_bus import MessageBus, Message
 from core.model.model import ComplexKind, Property, StringKind, NumberKind, BooleanKind, Kind
 
 # noinspection PyUnresolvedReferences
-from tests.core.message_bus_test import message_bus, all_events
+from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -64,8 +64,8 @@ async def model_db(test_db: StandardDatabase) -> ModelDb:
 
 
 @pytest.fixture
-def event_db(model_db: ModelDb, message_bus: MessageBus) -> EventModelDb:
-    return EventEntityDb(model_db, message_bus, "model")
+def event_db(model_db: ModelDb, event_sender: AnalyticsEventSender) -> EventModelDb:
+    return EventEntityDb(model_db, event_sender, "model")
 
 
 @pytest.mark.asyncio
@@ -98,7 +98,7 @@ async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDb, test_model: List[Kind], all_events: List[Message]) -> None:
+async def test_events(event_db: EventModelDb, test_model: List[Kind], event_sender: InMemoryEventSender) -> None:
     # 2 times update
     await event_db.update_many(test_model)
     await event_db.update_many(test_model)
@@ -108,7 +108,7 @@ async def test_events(event_db: EventModelDb, test_model: List[Kind], all_events
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a.message_type for a in all_events] == ["model-updated-many"] * 2 + ["model-deleted"] * 6
+    assert [a.kind for a in event_sender.events] == ["model-updated-many"] * 2 + ["model-deleted"] * 6
 
 
 def fqn(kind: Kind) -> str:

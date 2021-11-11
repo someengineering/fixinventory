@@ -8,9 +8,9 @@ from cklib.args import ArgumentParser
 from cklib.jwt import add_args as jwt_add_args
 
 from core import async_extensions
+from core.analytics import AnalyticsEventSender
 from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
-from core.message_bus import MessageBus
 from core.model.adjust_node import DirectAdjuster
 from core.task.task_handler import TaskHandler
 from core.util import shutdown_process
@@ -128,7 +128,7 @@ def reset_process_start_method() -> None:
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
-def db_access(args: Namespace, message_bus: MessageBus) -> DbAccess:
+def db_access(args: Namespace, event_sender: AnalyticsEventSender) -> DbAccess:
     if args.graphdb_type not in "arangodb":
         log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
         shutdown_process(1)
@@ -137,4 +137,4 @@ def db_access(args: Namespace, message_bus: MessageBus) -> DbAccess:
     client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)
     database = client.db(args.graphdb_database, username=args.graphdb_username, password=args.graphdb_password)
     adjuster = DirectAdjuster()
-    return DbAccess(database, message_bus, adjuster)
+    return DbAccess(database, event_sender, adjuster)

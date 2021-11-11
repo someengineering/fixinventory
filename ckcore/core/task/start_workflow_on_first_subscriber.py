@@ -4,7 +4,7 @@ from asyncio import Task
 from datetime import timedelta
 from typing import Optional, List
 
-from core.message_bus import MessageBus, CoreEvent, Message
+from core.message_bus import MessageBus, CoreMessage, Message
 from core.task.job_handler import JobHandler
 from core.task.task_description import PerformAction, Workflow
 from core.util import uuid_str
@@ -43,7 +43,7 @@ def wait_and_start(
         return None
 
     async def wait_for_subscriber() -> None:
-        async with message_bus.subscribe(f"wait_for_actor_{uuid_str()}", [CoreEvent.Connected]) as bus:
+        async with message_bus.subscribe(f"wait_for_actor_{uuid_str()}", [CoreMessage.Connected]) as bus:
             while True:
                 message = await bus.get()
                 maybe_workflow = workflow_if_actor(message)

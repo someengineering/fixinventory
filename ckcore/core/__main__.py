@@ -5,6 +5,7 @@ from datetime import timedelta
 from aiohttp import web
 from aiohttp.web_app import Application
 
+from core.analytics import NoEventSender
 from core.cli.cli import CLI
 from core.cli.command import aliases, CLIDependencies, all_commands
 from core.dependencies import db_access, setup_process, parse_args
@@ -27,7 +28,8 @@ def main() -> None:
 
     log.info("Starting up...")
     message_bus = MessageBus()
-    db = db_access(args, message_bus)
+    event_sender = NoEventSender()
+    db = db_access(args, event_sender)
     # wait here for an initial connection to the database before we continue
     db.wait_for_initial_connect(timedelta(seconds=60))
     scheduler = Scheduler()
@@ -46,7 +48,7 @@ def main() -> None:
         "worker_task_queue": worker_task_queue,
         "args": args,
     }
-    api = Api(db, model, subscriptions, task_handler, message_bus, worker_task_queue, cli, args)
+    api = Api(db, model, subscriptions, task_handler, message_bus, event_sender, worker_task_queue, cli, args)
 
     async def async_initializer() -> Application:
         await db.start()
