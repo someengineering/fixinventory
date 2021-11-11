@@ -102,8 +102,9 @@ func _on_Button_pressed():
 var api_response_data : Array
 var api_error := false
 
-#func _ready():
-#	create_treemap( fake_data )
+func _ready():
+	rect_size = treemap_size
+	#create_treemap( fake_data )
 
 
 func get_treemap_from_api( _graph_id:String ):
@@ -144,6 +145,16 @@ func api_response_finished():
 		print("API reported Error!")
 		return
 	print("API response finished!")
+
+
+func clear_treemap():
+	for d in datasets:
+		d.ds_box.queue_free()
+	datasets.clear()
+	start = 0
+	end = 0
+	treemap_size_temp = treemap_size
+	offset = Vector2.ZERO
 
 
 func create_treemap( _data:Dictionary ):
@@ -187,6 +198,7 @@ func add_visuals():
 		var new_element = TREEMAP_ELEMENT.instance()
 		new_element.rect_position = d.ds_displaypos
 		new_element.rect_size = Vector2.ZERO
+		new_element.final_size = d.ds_displaysize
 		new_element.element_color = d.ds_color
 		new_element.label = d.ds_name
 		new_element.value = d.ds_value if !d.ds_is_zero else 0
@@ -196,7 +208,7 @@ func add_visuals():
 		
 		time_delay += 0.01
 		new_element.modulate.a = 0
-		$Tween.interpolate_property(new_element, "rect_size", Vector2.ZERO, d.ds_displaysize, 0.2, Tween.TRANS_EXPO, Tween.EASE_OUT, time_delay)
+		$Tween.interpolate_property(new_element, "rect_size", Vector2.ZERO, new_element.final_size, 0.2, Tween.TRANS_EXPO, Tween.EASE_OUT, time_delay)
 		$Tween.interpolate_property(new_element, "modulate", Color.transparent, Color(2,2,2,1), 0.2, Tween.TRANS_EXPO, Tween.EASE_OUT, time_delay)
 		$Tween.interpolate_property(new_element, "modulate", Color(2,2,2,1), Color.white, 1.0, Tween.TRANS_EXPO, Tween.EASE_OUT, time_delay+0.2)
 	$Tween.start()
@@ -234,11 +246,6 @@ func calc_map():
 	datasets[-1].ds_displaypos = offset
 
 
-func _physics_process(_delta):
-	if Input.is_action_just_pressed("ui_down"):
-		print(get_global_mouse_position())
-
-
 func find_best_aspect():
 	while end < datasets.size():
 		aspect_last = try(start, end, is_vert)
@@ -251,7 +258,6 @@ func find_best_aspect():
 				
 			offset += Vector2(datasets[start].ds_displaysize.x, 0) if is_vert else Vector2(0, datasets[start].ds_displaysize.y)
 			
-			#prints("aspect_bigger", datasets[start].ds_name, offset, treemap_size_temp)
 			treemap_size_temp = treemap_size - offset
 			is_vert = aspect_vertical(treemap_size_temp)
 			start = end

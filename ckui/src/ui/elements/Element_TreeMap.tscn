@@ -3,8 +3,8 @@
 [ext_resource path="res://ui/elements/scripts/element_treemap.gd" type="Script" id=1]
 
 [sub_resource type="Gradient" id=1]
-offsets = PoolRealArray( 0, 0.501916, 1 )
-colors = PoolColorArray( 0.146587, 0.135406, 0.339844, 1, 0.015625, 0.630859, 1, 1, 0.335938, 0.859924, 1, 1 )
+offsets = PoolRealArray( 0, 0.505747, 1 )
+colors = PoolColorArray( 0.159164, 0.25059, 0.667969, 1, 0.015625, 0.630859, 1, 1, 0.539063, 0.902771, 1, 1 )
 
 [node name="TreeMap" type="Control"]
 anchor_right = 1.0
@@ -21,6 +21,7 @@ __meta__ = {
 gradient = SubResource( 1 )
 
 [node name="Button" type="Button" parent="."]
+visible = false
 margin_right = 150.0
 margin_bottom = 20.0
 text = "Create Treemap Chart"

@@ -118,7 +118,7 @@ func generate_graph(filtered_data_result:Dictionary):
 	_g.main_graph.layout_graph(graph_node_positions)
 	root_node = _g.main_graph.root_node
 	graph_cam.global_position = root_node.global_position
-	graph_cam.zoom = Vector2.ONE*0.8
+	change_cam_zoom( Vector2.ONE*0.8 )
 	
 	_e.emit_signal("nodes_changed")
 	_g.main_graph.emit_signal("hide_nodes")
@@ -208,9 +208,9 @@ func _physics_process(delta):
 	
 	if is_in_graph:
 		if Input.is_action_just_released("zoom_in"):
-			graph_cam.zoom = max(graph_cam.zoom.x * 0.95, 0.2) * Vector2.ONE
+			change_cam_zoom( max(graph_cam.zoom.x * 0.95, 0.2) * Vector2.ONE )
 		elif Input.is_action_just_released("zoom_out"):
-			graph_cam.zoom = min(graph_cam.zoom.x * 1.05, 20) * Vector2.ONE
+			change_cam_zoom( min(graph_cam.zoom.x * 1.05, 20) * Vector2.ONE )
 	
 	if _g.spaceship_mode:
 		graph_cam.global_position = spaceship.global_position
@@ -219,7 +219,7 @@ func _physics_process(delta):
 func _input(event):
 	if event is InputEventPanGesture:
 		var zoom_value = clamp(graph_cam.zoom.x + (-event.delta.y*TOUCH_ZOOM_SPEED), MAX_ZOOM, MIN_ZOOM)
-		graph_cam.zoom = Vector2.ONE * zoom_value
+		change_cam_zoom(Vector2.ONE * zoom_value)
 
 
 func update_spaceship_mode():
@@ -229,11 +229,11 @@ func update_spaceship_mode():
 		spaceship.global_position = graph_cam.global_position
 		spaceship.appear()
 		cam_tween.remove_all()
-		cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2(0.2,0.2), 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+		cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2(0.2,0.2), 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 		cam_tween.start()
 	else:
 		cam_tween.remove_all()
-		cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE, 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+		cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2.ONE, 0.3, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 		cam_tween.start()
 		spaceship.vanish()
 		spaceship = null
@@ -242,13 +242,13 @@ func update_spaceship_mode():
 func zoom_out():
 	original_zoom = graph_cam.zoom
 	cam_tween.remove_all()
-	cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE*0.4, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2.ONE*0.4, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 	cam_tween.start()
 
 
 func zoom_in():
 	cam_tween.remove_all()
-	cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, original_zoom, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, original_zoom, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 	cam_tween.start()
 
 
@@ -264,12 +264,12 @@ func go_to_graph_node(node_id, graph) -> void:
 	
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
-	var target_pos = target_node.scene.global_position
+	var target_pos = target_node.scene.global_position - Vector2(344,20)
 	var target_zoom = target_node.scene.scale
 	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_position), 100, 1000), 100, 1000, 0.35, 1.5)
 	cam_tween.remove_all()
 	cam_tween.interpolate_property(graph_cam, "global_position", graph_cam.global_position, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, target_zoom*0.5, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, target_zoom*0.5, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	target_node.scene.is_selected = true
 	cam_moving = true
@@ -292,7 +292,7 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 		return
 	if event is InputEventMouseButton:
 		if !event.pressed and !selected_new_node and target_node != null:
-			cam_tween.interpolate_property(graph_cam, "zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
+			cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 			cam_tween.start()
 			target_node.scene.is_selected = false
 			target_node = null
@@ -302,3 +302,6 @@ func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 func hide_info():
 	pass
 
+func change_cam_zoom(zoom:Vector2):
+	graph_cam.zoom = zoom
+	_e.emit_signal("change_cam_zoom", graph_cam.zoom)

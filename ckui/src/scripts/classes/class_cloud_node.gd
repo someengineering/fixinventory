@@ -4,6 +4,7 @@ class_name CloudNode
 var id := ""
 var kind := ""
 var reported := {}
+var data := {}
 var scene : Object
 var connections := []
 var velocity : Vector2

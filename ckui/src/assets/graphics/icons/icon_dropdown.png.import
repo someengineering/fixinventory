@@ -2,24 +2,26 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.stex"
+path.s3tc="res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.s3tc.stex"
+path.etc2="res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.etc2.stex"
 metadata={
-"vram_texture": false
+"imported_formats": [ "s3tc", "etc2" ],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/graphics/icons/icon_dropdown.png"
-dest_files=[ "res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.stex" ]
+dest_files=[ "res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.s3tc.stex", "res://.import/icon_dropdown.png-4edf02ca263b11d624fb5da4d32112d6.etc2.stex" ]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
-flags/repeat=0
+flags/repeat=true
 flags/filter=true
 flags/mipmaps=true
 flags/anisotropic=false
@@ -31,5 +33,5 @@ process/invert_color=false
 process/normal_map_invert_y=false
 stream=false
 size_limit=0
-detect_3d=true
+detect_3d=false
 svg/scale=1.0

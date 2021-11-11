@@ -1,9 +1,9 @@
 extends Control
-
 var is_visible := false
 
 onready var anim_tween = $AnimTween
 onready var orig_pos = rect_position
+onready var treemap = $TreeMap
 
 var selected_node : CloudNode = null
 
@@ -22,9 +22,20 @@ func hide_info() -> void:
 
 
 func show_info(target_node) -> void:
+	show()
+	
 	selected_node = target_node
 	$Background/NodeNameLabel.text = target_node.reported.name
 	$Background/NodeNameLabel/NodeKindLabel.text = target_node.reported.kind
+	
+	treemap.clear_treemap()
+	if "descendant_summary" in target_node.data.metadata:
+		var desc_keys = target_node.data.metadata.descendant_summary.keys()
+		var treemap_dict := {}
+		for d in desc_keys:
+			treemap_dict[d] = target_node.data.metadata.descendant_summary[d]
+		treemap.create_treemap(treemap_dict)
+	
 	
 	var text_infos := ""
 	if "ctime" in target_node.reported:
@@ -40,17 +51,21 @@ func show_info(target_node) -> void:
 	
 	$Background/NodeInfoLabel.bbcode_text = text_infos
 	
-	show()
+	anim_tween.interpolate_property(self, "modulate:a", modulate.a, 1, 0.2, Tween.TRANS_QUART, Tween.EASE_OUT)
 	anim_tween.interpolate_property(self, "modulate:a", modulate.a, 1, 0.2, Tween.TRANS_QUART, Tween.EASE_OUT)
 	anim_tween.interpolate_property(self, "rect_position:y", rect_position.y, orig_pos.y, 0.3, Tween.TRANS_QUART, Tween.EASE_OUT)
+	
+	anim_tween.interpolate_property(treemap, "rect_scale", Vector2.ZERO, Vector2.ONE, 0.2, Tween.TRANS_QUART, Tween.EASE_OUT)
+	anim_tween.interpolate_property(treemap, "rect_rotation", -60, 0, 0.2, Tween.TRANS_QUART, Tween.EASE_OUT)
 	anim_tween.start()
 
 
 func _on_AnimTween_tween_all_completed() -> void:
 	if is_visible:
 		hide()
+		treemap.clear_treemap()
 		is_visible = false
-	elif is_visible and modulate.a == 1:
+	elif !is_visible and modulate.a == 1:
 		is_visible = true
 
 

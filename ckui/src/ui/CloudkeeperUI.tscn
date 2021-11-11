@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=2]
+[gd_scene load_steps=37 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -19,7 +19,6 @@
 [ext_resource path="res://scripts/tools/jwt.gd" type="Script" id=17]
 [ext_resource path="res://scripts/networking/api.gd" type="Script" id=18]
 [ext_resource path="res://ui/elements/Element_Popup_ConnectToCore.tscn" type="PackedScene" id=19]
-[ext_resource path="res://ui/elements/Element_TreeMap.tscn" type="PackedScene" id=20]
 
 [sub_resource type="Shader" id=1]
 code = "shader_type canvas_item;
@@ -122,12 +121,12 @@ shader = SubResource( 15 )
 background_mode = 4
 background_canvas_max_layer = 10
 glow_enabled = true
-glow_levels/1 = true
 glow_levels/2 = true
 glow_levels/4 = true
-glow_intensity = 0.6
+glow_intensity = 0.4
 glow_blend_mode = 1
 glow_bicubic_upscale = true
+glow_high_quality = true
 
 [node name="CloudkeeperUI" type="Node2D"]
 script = ExtResource( 6 )
@@ -262,12 +261,6 @@ visible = false
 popup_exclusive = true
 
 [node name="PopupConnectCore" parent="UI/Popups" instance=ExtResource( 19 )]
-
-[node name="TreeMap" parent="UI" instance=ExtResource( 20 )]
-margin_left = 64.0
-margin_top = 64.0
-margin_right = 64.0
-margin_bottom = 64.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource( 17 )

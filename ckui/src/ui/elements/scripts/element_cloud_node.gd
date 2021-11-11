@@ -7,24 +7,68 @@ var cloud_node : CloudNode = null setget set_cloud_node
 var random_pos := Vector2.ZERO
 var graph_pos := Vector2.ZERO
 var parent_graph : Object = null
+var descendant_scale := 1.0 setget set_descendant_scale
+var treemap : Object = null
+
+var node_name_short := ""
+var node_name_full := ""
 
 onready var marker = $Marker
 onready var reveal = $Reveal
 
-onready var label_kind = $Labels/LabelKind
-onready var label_name = $Labels/LabelName
+onready var label_kind = $LabelKind/LabelKind
+onready var label_name = $LabelName/LabelName
 
 func _ready() -> void:
 	parent_graph.connect("show_node", self, "show_detail")
 	parent_graph.connect("hide_nodes", self, "hide_detail")
+	_e.connect("change_cam_zoom", self, "change_cam_zoom")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
-	label_name.text = cloud_node.reported.name
-	label_kind.text = cloud_node.reported.kind
+	#label_name.text = cloud_node.reported.name
+	node_name_full = cloud_node.reported.name
+	node_name_short = node_name_full
+	var node_name_lenght = node_name_full.length()
+	if node_name_lenght > 16:
+		node_name_short = node_name_short.left(8) + "..." + node_name_short.right(node_name_lenght-6)
+	label_kind.text = node_name_short
 	set_hover_power(0)
+	
+	var icon
+	match cloud_node.reported.kind:
+		"graph_root":
+			icon = load("res://assets/icons/Icon_Root.tscn").instance()
+		"cloud":
+			icon = load("res://assets/icons/Icon_Cloud.tscn").instance()
+		"aws_account", "gcp_project", "onelogin_account", "slack_team":
+			icon = load("res://assets/icons/Icon_Account.tscn").instance()
+		"aws_region":
+			icon = load("res://assets/icons/Icon_Region.tscn").instance()
+	$LabelKind/Icon.add_child(icon)
+
+func change_cam_zoom(zoom:Vector2):
+	$LabelKind.scale = zoom / scale.x
+	$LabelKind.visible = zoom.x < (descendant_scale*6)+0.5
+	label_kind.text = node_name_full if zoom.x < (descendant_scale*3) else node_name_short
 
 
-func labels_unisize(font_scale := 0.5):
-	$Labels.global_scale = Vector2.ONE * font_scale
+func set_descendant_scale(value:float):
+	descendant_scale = clamp(value, 0.1, 2)
+	$BG.scale *= descendant_scale
+	if descendant_scale > 0.4 and "descendant_count" in cloud_node.data.metadata:
+		#$BG.hide()
+		treemap = load("res://ui/elements/Element_TreeMap.tscn").instance()
+		treemap.rect_size = Vector2(600,600)
+		treemap.rect_pivot_offset = Vector2(300,300)
+		treemap.rect_position = -Vector2(300,300)
+		treemap.rect_scale = Vector2(0.05,0.05) * descendant_scale
+		treemap.rect_rotation = 45
+		add_child_below_node($BG, treemap)
+		var desc_keys = cloud_node.data.metadata.descendant_summary.keys()
+		var treemap_dict := {}
+		for d in desc_keys:
+			treemap_dict[d] = cloud_node.data.metadata.descendant_summary[d]
+		treemap.create_treemap(treemap_dict)
+		
 
 
 func update_spaceship_mode():
@@ -160,7 +204,7 @@ func set_hover_power(value:float) -> void:
 	hover_power = value
 	var eased_hover_power = ease(hover_power, -2.0)
 	marker.visible = hover_power > 0
-	marker.scale = lerp(Vector2(0.5,0.5), Vector2.ONE, eased_hover_power)
+	marker.scale = lerp(Vector2(0.5,0.5), $BG.scale*10, eased_hover_power)
 	marker.modulate.a = lerp( 0, 1, eased_hover_power )
 	marker.width = range_lerp(eased_hover_power, 0, 1, 1, 0.5)
 	marker.rotation = eased_hover_power * PI * 0.5
@@ -173,14 +217,14 @@ func show_detail(node_id):
 	label_name.show()
 	reveal.remove_all()
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 1, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
-	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -140, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	#reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -140, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
 
 
 func hide_detail():
 	reveal.remove_all()
 	reveal.interpolate_property(label_name, "modulate:a", label_name.modulate.a, 0, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
-	reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -52, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
+	#reveal.interpolate_property(label_kind, "rect_position:y", label_kind.rect_position.y, -52, 0.1, Tween.TRANS_QUART, Tween.EASE_OUT)
 	reveal.start()
 
 

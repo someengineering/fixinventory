@@ -68,6 +68,7 @@ func add_node(_data:Dictionary) -> CloudNode:
 	new_cloud_node.id = _data.id
 	new_cloud_node.reported = _data.reported
 	new_cloud_node.kind = _data.reported.kind
+	new_cloud_node.data = _data
 	
 	new_cloud_node.scene = cloud_node_scene.instance()
 	new_cloud_node.scene.parent_graph = self
@@ -86,6 +87,7 @@ func add_edge(_data:Dictionary) -> CloudEdge:
 	var new_edge_line = Line2D.new()
 	new_edge.line = new_edge_line
 	new_edge.line.width = 4
+	new_edge.line.antialiased = true
 	new_edge.line.default_color = new_edge.color
 	line_group.add_child(new_edge_line)
 	
@@ -149,6 +151,25 @@ func start_streaming( graph_id:String ):
 func end_streaming():
 	if root_node == null:
 		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
+	
+	var total_descendants := 0.0
+	var descendants_values := []
+	for node in graph_data.nodes.values():
+		if "metadata" in node.data and "descendant_count" in node.data.metadata and node.kind == "aws_account" or node.kind == "gcp_project":
+			var node_descendant_count = node.data.metadata.descendant_count
+			descendants_values.append(node_descendant_count)
+			total_descendants += node_descendant_count
+	
+	var largest_descendant_value = descendants_values.max()
+	
+	for node in graph_data.nodes.values():
+		if "metadata" in node.data and "descendant_count" in node.data.metadata:
+			node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
+	
+	for edge in graph_data.edges.values():
+		var edge_scale = edge.to.scene.descendant_scale
+		edge.line.width = clamp(4 * edge_scale, 1, 8)
+	
 	node_group.modulate.a = 1
 	emit_signal("graph_created")
 	_g.msg( "Visual elements done ... rendering" )
@@ -160,8 +181,6 @@ func end_streaming():
 
 
 func add_streamed_object( data : Dictionary ):
-	
-	
 	if "id" in data:
 		graph_data.nodes[data.id] = add_node(data)
 		
@@ -171,7 +190,6 @@ func add_streamed_object( data : Dictionary ):
 		if stream_index % stream_index_mod == 0:
 			_e.emit_signal("loading", float(stream_index) / float(total_elements), "Creating visual elements" )
 			_g.msg( "Creating visual elements: {0}/{1}".format([stream_index, total_elements]) )
-			prints(stream_index, total_elements)
 			yield(get_tree(), "idle_frame")
 		stream_index += 1
 	else:
@@ -181,8 +199,6 @@ func add_streamed_object( data : Dictionary ):
 		
 		# For connection lines
 		graph_data.edges[ graph_data.edges.size() ] = add_edge(data)
-	
-	
 
 
 func create_graph_direct(_graph_data : Dictionary):
@@ -203,6 +219,7 @@ func create_graph_direct(_graph_data : Dictionary):
 		
 		var new_edge_line = Line2D.new()
 		new_edge_line.width = 2
+		
 		new_edge_line.default_color = edge.color
 		edge.line = new_edge_line
 		line_group.add_child(new_edge_line)
@@ -285,7 +302,7 @@ func show_all() -> void:
 		var line_color = Color(1,0.2,0.2,0.5)
 		connection.line.default_color = line_color
 	for node in graph_data.nodes.values():
-		node.scene.labels_unisize(0.25)
+		node.scene.labels_unisize(0.15)
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
@@ -316,7 +333,6 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 		for node in graph_data.nodes.values():
 			var current_node_position = node.scene.position
 			var net_force = Vector2.ZERO
-			#var connection_amount = min(node.connections.size(), 20)
 			
 			for other_node in graph_data.nodes.values():
 				if node == other_node:
@@ -326,10 +342,9 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 				
 				if !other_node in node.connections:
 					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
-						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) #* range_lerp(connection_amount, 0, 10, 0.1, 1)
+						net_force += calc_repulsion_force_pos( current_node_position, other_node_pos ) * other_node.scene.descendant_scale
 				else:
-					var attr = calc_attraction_force_pos( current_node_position, other_node_pos, spring_length )
-					#prints(node.reported.name, other_node.reported.name, attr)
+					var attr = calc_attraction_force_pos( current_node_position, other_node_pos, spring_length * node.scene.descendant_scale )
 					net_force += attr
 			
 			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED).clamped( MAX_DISPLACE )

@@ -115,11 +115,12 @@ common/enable_pause_aware_picking=true
 
 [rendering]
 
+quality/driver/driver_name="GLES2"
 quality/filters/anisotropic_filter_level=16
 2d/options/ninepatch_mode=0
-limits/buffers/blend_shape_max_buffer_size_kb=8192
 limits/buffers/canvas_polygon_buffer_size_kb=1024
 limits/buffers/canvas_polygon_index_buffer_size_kb=1024
 limits/buffers/immediate_buffer_size_kb=4096
 quality/filters/msaa=2
 quality/filters/use_debanding=true
+limits/buffers/blend_shape_max_buffer_size_kb=8192

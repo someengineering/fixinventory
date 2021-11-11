@@ -18,3 +18,4 @@ signal create_jwt
 signal connect_popup
 signal api_connect
 signal api_request
+signal change_cam_zoom

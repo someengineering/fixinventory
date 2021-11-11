@@ -1,0 +1,5 @@
+[gd_scene format=2]
+
+[node name="Cloud" type="Polygon2D"]
+antialiased = true
+polygon = PoolVector2Array( 24, 16, 40, 0, 40, -24, 16, -48, -16, -16, -32, -32, -48, -16, -48, 0, -32, 16 )
