@@ -22,7 +22,6 @@ plain_text_blacklist = [
     NodePath.revision,
     NodePath.kinds,
     NodePath.descendant_count,
-    NodePath.descendant_count,
     NodePath.descendant_summary,
-    ["metadata", "python_type"],
+    NodePath.python_type,
 ]

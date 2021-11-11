@@ -15,6 +15,7 @@ class NodePath:
     reported_name = ["reported", "name"]
     descendant_summary = ["metadata", "descendant_summary"]
     descendant_count = ["metadata", "descendant_count"]
+    python_type = ["metadata", "python_type"]
     is_phantom = ["metadata", "phantom"]
 
 
