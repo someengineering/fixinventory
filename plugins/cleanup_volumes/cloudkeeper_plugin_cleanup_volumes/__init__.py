@@ -27,9 +27,9 @@ class CleanupVolumesPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
 
-        query = "is(volume) and volume_status == available <-[0:]->"
+        query = "is(volume) and reported.volume_status == available <-[0:]->"
         graph = cg.graph(query)
-        self.vpc_cleanup(graph)
+        self.volumes_cleanup(graph)
         cg.patch_nodes(graph)
 
     def volumes_cleanup(self, graph: Graph):
