@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://ui/3delements/scripts/ui_graph_3D.gd" type="Script" id=1]
+[ext_resource path="res://ui/3delements/scripts/element_graphview_3D.gd" type="Script" id=2]
+
+[node name="UIGraph3D" type="Spatial"]
+script = ExtResource( 1 )
+main_ui = NodePath(".")
+
+[node name="GraphCam3D" type="Camera" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2000 )
+fov = 40.0
+near = 100.0
+far = 50000.0
+
+[node name="GraphView" type="Spatial" parent="."]
+script = ExtResource( 2 )
+
+[node name="CamMoveTween" type="Tween" parent="."]
+
+[node name="AnimTween" type="Tween" parent="."]

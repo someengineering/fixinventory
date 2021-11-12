@@ -4,12 +4,13 @@ const GRAPH_DUMP_JSON_PATH = "res://data/graph.dump.json"
 const GRAPH_NODE_JSON_PATH := "res://data/graph_node_positions.json"
 const PROMETHEUS_METRICS_JSON_PATH = "res://data/prometheus_metrics.json"
 
-var main_graph : CloudGraph setget set_main_graph
+var main_graph : Object setget set_main_graph
 var spaceship_mode := false
 var interface : Object = null
 var use_example_data := false
 var popup := false
 var maximized_window := false
+var use_2d_graph := false
 
 var api : Object = null
 
@@ -26,7 +27,7 @@ func set_spaceship_mode():
 	spaceship_mode = !spaceship_mode
 
 
-func set_main_graph( value : CloudGraph ):
+func set_main_graph( value : Object ):
 	main_graph = value
 	_e.emit_signal("nodes_changed")
 

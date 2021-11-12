@@ -1,6 +1,7 @@
 extends Popup
 
 signal load_file
+signal use_example_data
 
 const filters = []
 
@@ -103,7 +104,8 @@ func popup_ok():
 
 func _on_ExampleDataButton_pressed():
 	_g.use_example_data = true
-	_on_OkButton_pressed()
+	emit_signal( "use_example_data", [] )
+	popup_close()
 
 
 func _on_Timer_timeout():

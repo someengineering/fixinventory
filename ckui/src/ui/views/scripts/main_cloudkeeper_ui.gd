@@ -1,9 +1,10 @@
-extends Node2D
+extends Node
 
 enum states {GRAPH, SEARCH, DASHBOARD, QUERY, BLASTRADIUS, POPUP}
 
+var ui_graph : Object = null
+
 onready var blur = $UI/Blur
-onready var ui_graph = $UIGraph
 onready var ui_dashboard = $UI/UIDashboard
 onready var ui_query = $UI/UIQueryEngine
 onready var ui_topbar = $UI/UITopbar
@@ -11,13 +12,15 @@ onready var ui_search = $UI/UISearch
 onready var ui_blastradius = $UI/UIBlastradius
 onready var ui_commandline = $UI/UICommandLine
 
-
 var state = -1 setget set_state
 var old_state = -1
 
 
 func _ready() -> void:
 	_g.interface = self
+	
+	ui_graph = $UIGraph if _g.use_2d_graph else $UIGraph3DViewport/Viewport/UIGraph3D
+	
 	# This was used for local testing using JSON files in the /data directory
 #	_e.emit_signal("load_nodes")
 
@@ -159,3 +162,4 @@ func update_spaceship_mode():
 
 func _on_UIBlastradius_close_blast_radius():
 	set_state(states.GRAPH)
+

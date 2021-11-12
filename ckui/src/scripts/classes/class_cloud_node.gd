@@ -8,6 +8,7 @@ var data := {}
 var scene : Object
 var connections := []
 var velocity : Vector2
+var velocity_3d : Vector3
 
 func clone(original : CloudNode):
 	id = original.id

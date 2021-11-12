@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=2]
+[gd_scene load_steps=42 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -19,8 +19,38 @@
 [ext_resource path="res://scripts/tools/jwt.gd" type="Script" id=17]
 [ext_resource path="res://scripts/networking/api.gd" type="Script" id=18]
 [ext_resource path="res://ui/elements/Element_Popup_ConnectToCore.tscn" type="PackedScene" id=19]
+[ext_resource path="res://ui/3delements/UIGraph3D.tscn" type="PackedScene" id=20]
 
-[sub_resource type="Shader" id=1]
+[sub_resource type="Shader" id=21]
+code = "shader_type canvas_item;
+
+uniform vec2 center = vec2(0.0, 0.0);
+uniform float size: hint_range(0.0,5.0) = 1.0;
+uniform vec2 squishness = vec2(1.0);
+
+uniform sampler2D gradient;
+
+void fragment() {
+	float d = length((2.0 * (UV - center) * squishness * size) - 1.0 * size * squishness );
+	vec4 color = texture( gradient, vec2(d, 0.0) );
+	COLOR = color;
+}"
+
+[sub_resource type="Gradient" id=23]
+colors = PoolColorArray( 0.0464516, 0.144741, 0.290039, 1, 0.027451, 0.0745098, 0.168627, 1 )
+
+[sub_resource type="GradientTexture" id=22]
+gradient = SubResource( 23 )
+width = 70
+
+[sub_resource type="ShaderMaterial" id=24]
+shader = SubResource( 21 )
+shader_param/center = Vector2( 0, 0 )
+shader_param/size = 0.5
+shader_param/squishness = Vector2( 1.5, 1 )
+shader_param/gradient = SubResource( 22 )
+
+[sub_resource type="Shader" id=25]
 code = "shader_type canvas_item;
 
 uniform vec2 center = vec2(0.0, 0.0);
@@ -38,16 +68,16 @@ void fragment() {
 [sub_resource type="Gradient" id=2]
 colors = PoolColorArray( 0.0464516, 0.144741, 0.290039, 1, 0.027451, 0.0745098, 0.168627, 1 )
 
-[sub_resource type="GradientTexture" id=3]
+[sub_resource type="GradientTexture" id=26]
 gradient = SubResource( 2 )
 width = 70
 
 [sub_resource type="ShaderMaterial" id=4]
-shader = SubResource( 1 )
+shader = SubResource( 25 )
 shader_param/center = Vector2( 0, 0 )
 shader_param/size = 0.5
 shader_param/squishness = Vector2( 1.5, 1 )
-shader_param/gradient = SubResource( 3 )
+shader_param/gradient = SubResource( 26 )
 
 [sub_resource type="RectangleShape2D" id=5]
 extents = Vector2( 960, 540 )
@@ -120,6 +150,8 @@ shader = SubResource( 15 )
 [sub_resource type="Environment" id=17]
 background_mode = 4
 background_canvas_max_layer = 10
+dof_blur_far_distance = 1000.0
+dof_blur_far_amount = 1.0
 glow_enabled = true
 glow_levels/2 = true
 glow_levels/4 = true
@@ -128,8 +160,13 @@ glow_blend_mode = 1
 glow_bicubic_upscale = true
 glow_high_quality = true
 
-[node name="CloudkeeperUI" type="Node2D"]
+[node name="CloudkeeperUI" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
 script = ExtResource( 6 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="API" type="Node" parent="."]
 script = ExtResource( 18 )
@@ -137,7 +174,40 @@ script = ExtResource( 18 )
 [node name="JWT" type="Node" parent="API"]
 script = ExtResource( 17 )
 
+[node name="BG" type="CanvasLayer" parent="."]
+layer = -2
+
+[node name="BG" type="ColorRect" parent="BG"]
+material = SubResource( 24 )
+margin_right = 1920.0
+margin_bottom = 1080.0
+mouse_filter = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="UIGraph3DViewport" type="ViewportContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Viewport" type="Viewport" parent="UIGraph3DViewport"]
+size = Vector2( 1920, 1080 )
+own_world = true
+transparent_bg = true
+handle_input_locally = false
+msaa = 3
+render_target_update_mode = 3
+
+[node name="UIGraph3D" parent="UIGraph3DViewport/Viewport" instance=ExtResource( 20 )]
+main_ui = NodePath("../../..")
+
 [node name="UIGraph" type="Node2D" parent="."]
+visible = false
 position = Vector2( 960, 540 )
 z_index = -1
 z_as_relative = false
@@ -269,6 +339,11 @@ environment = SubResource( 17 )
 [connection signal="tween_all_completed" from="UIGraph/CamMoveTween" to="UIGraph" method="_on_CamMoveTween_tween_all_completed"]
 [connection signal="timeout" from="UIGraph/NewNodeSelectionTimer" to="UIGraph" method="_on_NewNodeSelectionTimer_timeout"]
 [connection signal="close_blast_radius" from="UI/UIBlastradius" to="." method="_on_UIBlastradius_close_blast_radius"]
+[connection signal="load_file" from="UI/Popups/PopupLoadFile" to="UIGraph3DViewport/Viewport/UIGraph3D" method="read_data"]
 [connection signal="load_file" from="UI/Popups/PopupLoadFile" to="UIGraph" method="read_data"]
+[connection signal="use_example_data" from="UI/Popups/PopupLoadFile" to="UIGraph3DViewport/Viewport/UIGraph3D" method="read_data"]
+[connection signal="use_example_data" from="UI/Popups/PopupLoadFile" to="UIGraph" method="read_data"]
+[connection signal="create_graph" from="UI/Popups/PopupConnectCore" to="UIGraph3DViewport/Viewport/UIGraph3D" method="get_graph_from_api"]
 [connection signal="create_graph" from="UI/Popups/PopupConnectCore" to="UIGraph" method="get_graph_from_api"]
+[connection signal="use_example_data" from="UI/Popups/PopupConnectCore" to="UIGraph3DViewport/Viewport/UIGraph3D" method="read_data"]
 [connection signal="use_example_data" from="UI/Popups/PopupConnectCore" to="UIGraph" method="read_data"]
