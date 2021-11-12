@@ -27,7 +27,9 @@ class Cleaner:
             return
 
         log.info("Running cleanup")
-        cleanup_nodes = [node for node in self.graph.nodes() if node.clean]
+        cleanup_nodes = [
+            node for node in self.graph.nodes() if node.clean and not node.cleaned
+        ]
         cleanup_plan = defaultlist(lambda: [])
 
         for node in cleanup_nodes:
