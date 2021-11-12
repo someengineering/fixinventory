@@ -28,7 +28,6 @@ from core.model.adjust_node import AdjustNode
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind, TransformKind
 from core.model.resolve_in_graph import NodePath
-from core.model.typed_model import to_js
 from core.query.model import Query
 from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash
 
@@ -974,21 +973,17 @@ class EventGraphDB(GraphDB):
 
     async def create_node(self, model: Model, node_id: str, data: Json, under_node_id: str) -> Json:
         result = await self.real.create_node(model, node_id, data, under_node_id)
-        await self.event_sender.core_event(
-            CoreEvent.NodeCreated, {"graph": self.graph_name, "id": node_id, "parent": under_node_id}
-        )
+        await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
     async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
         result = await self.real.update_node(model, node_id, patch, section)
-        await self.event_sender.core_event(
-            CoreEvent.NodeUpdated, {"graph": self.graph_name, "id": node_id, "section": section}
-        )
+        await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
         return result
 
     async def delete_node(self, node_id: str) -> None:
         result = await self.real.delete_node(node_id)
-        await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name, "id": node_id})
+        await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name})
         return result
 
     def update_nodes(self, model: Model, patches_by_id: Dict[str, Json], **kwargs: Any) -> AsyncGenerator[Json, None]:
@@ -999,7 +994,7 @@ class EventGraphDB(GraphDB):
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_desired(model, patch, node_ids, **kwargs)
         await self.event_sender.core_event(
-            CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
+            CoreEvent.NodesDesiredUpdated, {"graph": self.graph_name}, updated=len(node_ids)
         )
         async for a in result:
             yield a
@@ -1009,7 +1004,7 @@ class EventGraphDB(GraphDB):
     ) -> AsyncGenerator[Json, None]:
         result = self.real.update_nodes_metadata(model, patch, node_ids, **kwargs)
         await self.event_sender.core_event(
-            CoreEvent.NodesMetadataUpdated, {"graph": self.graph_name, "ids": node_ids, "patch": patch}
+            CoreEvent.NodesMetadataUpdated, {"graph": self.graph_name}, updated=len(node_ids)
         )
         async for a in result:
             yield a
@@ -1021,13 +1016,22 @@ class EventGraphDB(GraphDB):
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
-        graph_info = {"nodes": len(graph_to_merge.nodes), "edges": len(graph_to_merge.edges)}
-        even_data = {"graph": self.graph_name, "root_ids": roots, "graph_info": graph_info, "update_info": to_js(info)}
-        if info.all_changes():  # do not emit an event in case nothing has changed
-            if is_batch:
-                await self.event_sender.core_event(CoreEvent.BatchUpdateGraphMerged, even_data)
-            else:
-                await self.event_sender.core_event(CoreEvent.GraphMerged, even_data)
+        even_data = {"graph": self.graph_name, "root_ids": roots}
+        kind = CoreEvent.BatchUpdateGraphMerged if is_batch else CoreEvent.GraphMerged
+        await self.event_sender.core_event(
+            kind,
+            even_data,
+            nodes=len(graph_to_merge.nodes),
+            edges=len(graph_to_merge.edges),
+            updated_roots=len(roots),
+            updated=info.all_changes(),
+            nodes_updated=info.nodes_updated,
+            nodes_deleted=info.nodes_deleted,
+            nodes_created=info.nodes_created,
+            edges_created=info.edges_created,
+            edges_updated=info.edges_updated,
+            edges_deleted=info.edges_deleted,
+        )
         return roots, info
 
     async def list_in_progress_updates(self) -> List[Json]:

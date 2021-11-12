@@ -101,9 +101,7 @@ class EventEntityDb(EntityDb[T]):
 
     async def update_many(self, elements: List[T]) -> None:
         result = await self.db.update_many(elements)
-        await self.event_sender.core_event(
-            f"{self.entity_name}-updated-many", {"updated": [to_js(e) for e in elements]}
-        )
+        await self.event_sender.core_event(f"{self.entity_name}-updated-many", count=len(elements))
         return result
 
     async def get(self, key: str) -> Optional[T]:
@@ -111,12 +109,12 @@ class EventEntityDb(EntityDb[T]):
 
     async def update(self, t: T) -> T:
         result = await self.db.update(t)
-        await self.event_sender.core_event(f"{self.entity_name}-updated", {"updated": to_js(result)})
+        await self.event_sender.core_event(f"{self.entity_name}-updated")
         return result
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
         await self.db.delete(key_or_object)
-        await self.event_sender.core_event(f"{self.entity_name}-deleted", {"deleted": to_js(key_or_object)})
+        await self.event_sender.core_event(f"{self.entity_name}-deleted")
 
     async def create_update_schema(self) -> None:
         return await self.db.create_update_schema()

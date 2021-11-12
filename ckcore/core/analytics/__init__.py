@@ -25,23 +25,20 @@ class CoreEvent:
     GraphDBWiped = "graphdb.wiped"
 
 
-@dataclass
+@dataclass(frozen=True)
 class AnalyticsEvent:
     system: str  # e.g. creator of the event: ckcore, ckui, cksh, etc.
     kind: str  # kind of the event. Every kind has a specific set of data and context vars
-    data: Mapping[str, JsonElement]  # specific data for this kind of event
     context: Mapping[str, JsonElement]  # context properties
+    counters: Mapping[str, int]  # all counters of this event
     at: datetime  # time, when this event has been created
 
 
 class AnalyticsEventSender(ABC):
     async def core_event(
-        self,
-        kind: str,
-        data: Optional[Mapping[str, JsonElement]] = None,
-        context: Optional[Mapping[str, JsonElement]] = None,
+        self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: int
     ) -> AnalyticsEvent:
-        event = AnalyticsEvent("ckcore", kind, data if data else {}, context if context else {}, utc())
+        event = AnalyticsEvent("ckcore", kind, context if context else {}, counters, utc())
         await self.send_event(event)
         return event
 
