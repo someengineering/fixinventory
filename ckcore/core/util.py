@@ -254,7 +254,7 @@ class Periodic:
 
     async def _run(self) -> None:
         while True:
-            await asyncio.sleep(self.frequency.seconds)
+            await asyncio.sleep(self.frequency.total_seconds())
             log.debug(f"Execute periodic task {self.name}.")
             try:
                 result = self.func()

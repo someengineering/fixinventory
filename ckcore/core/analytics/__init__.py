@@ -27,6 +27,9 @@ class CoreEvent:
     GraphDBWiped = "graphdb.wiped"
     CLICommand = "cli.command"
     Query = "graphdb.query"
+    ModelInfo = "model.info"
+    SubscriberInfo = "subscriber.info"
+    WorkerQueueInfo = "worker-queue.info"
 
 
 @dataclass(frozen=True)
@@ -64,7 +67,7 @@ class NoEventSender(AnalyticsEventSender):
     """
 
     async def send_event(self, event: AnalyticsEvent) -> None:
-        log.info(event)
+        log.debug(event)
 
 
 class InMemoryEventSender(AnalyticsEventSender):
