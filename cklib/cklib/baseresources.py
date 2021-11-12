@@ -119,12 +119,12 @@ class BaseResource(ABC):
         self.uuid = uuid.uuid4().hex
         self._clean: bool = False
         self._cleaned: bool = False
+        self._protected: bool = False
         self._changes: ResourceChanges = ResourceChanges(self)
         self._metrics: Dict = {}
         self._deferred_connections: List = []
         self.__graph = None
         self.__log: List = []
-        self.__protected: bool = False
         self.__custom_metrics: bool = False
         self._raise_tags_exceptions: bool = False
         self.max_graph_depth: int = 0
@@ -301,7 +301,7 @@ class BaseResource(ABC):
 
     @property
     def protected(self) -> bool:
-        return self.__protected
+        return self._protected
 
     @protected.setter
     def protected(self, value: bool) -> None:
@@ -315,7 +315,7 @@ class BaseResource(ABC):
             log.debug(f"Protecting resource {self.rtdname}")
             self.log("Protecting resource")
             self._changes.add("protected")
-            self.__protected = value
+            self._protected = value
 
     @metrics_resource_cleanup.time()
     @unless_protected

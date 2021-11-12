@@ -304,10 +304,13 @@ def node_from_dict(node_data: Dict) -> BaseResource:
 
     protect_node = node_data_metadata.get("protected", False)
     if protect_node:
-        node.protected = protect_node
+        node._protected = protect_node
+    cleaned_node = node_data_metadata.get("cleaned", False)
+    if cleaned_node:
+        node._cleaned = cleaned_node
     clean_node = node_data_desired.get("clean", False)
     if clean_node:
-        node.clean = clean_node
+        node._clean = clean_node
     return node
 
 
