@@ -23,7 +23,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
                 config_file=ArgumentParser.args.cleanup_aws_alarms_config
             )
             self.config.read()  # initial read to ensure config format is valid
-    
+
     def bootstrap(self) -> bool:
         return ArgumentParser.args.cleanup_aws_alarms
 
