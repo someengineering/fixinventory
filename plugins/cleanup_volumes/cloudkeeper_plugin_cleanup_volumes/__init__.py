@@ -39,6 +39,8 @@ class CleanupVolumesPlugin(BaseActionPlugin):
                 isinstance(node, BaseVolume)
                 and node.volume_status == "available"
                 and node.age > self.age
+                and node.last_access is not None
+                and node.last_update is not None
                 and node.last_access > self.age
                 and node.last_update > self.age
             ):
