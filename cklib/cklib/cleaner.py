@@ -1,6 +1,5 @@
 from cklib.args import ArgumentParser
 from cklib.graph import Graph
-from cklib.event import dispatch_event, Event, EventType
 from cklib.baseresources import BaseResource
 from cklib.utils import defaultlist
 from concurrent.futures import ThreadPoolExecutor
@@ -27,10 +26,7 @@ class Cleaner:
             )
             return
 
-        log.info("Notifying plugins to plan cleanup")
-        dispatch_event(Event(EventType.CLEANUP_PLAN, self.graph), blocking=True)
         log.info("Running cleanup")
-        dispatch_event(Event(EventType.CLEANUP_BEGIN, self.graph), blocking=True)
         cleanup_nodes = [node for node in self.graph.nodes() if node.clean]
         cleanup_plan = defaultlist(lambda: [])
 
@@ -55,8 +51,6 @@ class Cleaner:
                 thread_name_prefix="cleaner",
             ) as executor:
                 executor.map(self.clean, nodes)
-
-        dispatch_event(Event(EventType.CLEANUP_FINISH, self.graph))
 
     def pre_clean(self, node: BaseResource) -> None:
         if not hasattr(node, "pre_delete"):
@@ -102,13 +96,6 @@ class Cleaner:
             "--cleanup",
             help="Enable cleanup of resources (default: False)",
             dest="cleanup",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--no-cleanup-after-collect",
-            help="Do not automatically run cleanup after collect (default: False)",
-            dest="no_cleanup_after_collect",
             action="store_true",
             default=False,
         )

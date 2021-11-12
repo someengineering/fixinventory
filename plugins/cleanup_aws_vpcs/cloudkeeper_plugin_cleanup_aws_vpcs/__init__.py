@@ -24,7 +24,7 @@ from typing import Dict
 
 
 class CleanupAWSVPCsPlugin(BaseActionPlugin):
-    action = "cleanup_plan"
+    action = "post_cleanup_plan"
 
     def __init__(self):
         super().__init__()

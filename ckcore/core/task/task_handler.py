@@ -566,23 +566,7 @@ class TaskHandler(JobHandler):
 
     @staticmethod
     def known_jobs() -> List[Job]:
-        return [
-            Job(
-                "example-job",
-                ExecuteCommand("echo hello"),
-                EventTrigger("run_job"),
-                timedelta(seconds=10),
-                mutable=False,
-            ),
-            Job(
-                "example-wait-job",
-                ExecuteCommand("sleep 10; echo I was started at @NOW@"),
-                EventTrigger("run_job"),
-                timedelta(seconds=10),
-                (EventTrigger("wait"), timedelta(seconds=30)),
-                mutable=False,
-            ),
-        ]
+        return []
 
     @staticmethod
     def known_workflows() -> List[Workflow]:
@@ -592,17 +576,17 @@ class TaskHandler(JobHandler):
             Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
         ]
         cleanup_steps = [
-            Step("pre_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
-            Step("plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
-            Step("post_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
-            Step("pre_clean", PerformAction("pre_cleanup"), timedelta(seconds=10)),
-            Step("clean", PerformAction("cleanup"), timedelta(seconds=10)),
-            Step("post_clean", PerformAction("post_cleanup"), timedelta(seconds=10)),
+            Step("pre_cleanup_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
+            Step("cleanup_plan", PerformAction("cleanup_plan"), timedelta(seconds=10)),
+            Step("post_cleanup_plan", PerformAction("post_cleanup_plan"), timedelta(seconds=10)),
+            Step("pre_cleanup", PerformAction("pre_cleanup"), timedelta(seconds=10)),
+            Step("cleanup", PerformAction("cleanup"), timedelta(seconds=10)),
+            Step("post_cleanup", PerformAction("post_cleanup"), timedelta(seconds=10)),
         ]
         metrics_steps = [
-            Step("pre_metrics", PerformAction("pre_generate_metrics"), timedelta(seconds=10)),
-            Step("metrics", PerformAction("generate_metrics"), timedelta(seconds=10)),
-            Step("post_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
+            Step("pre_generate_metrics", PerformAction("pre_generate_metrics"), timedelta(seconds=10)),
+            Step("generate_metrics", PerformAction("generate_metrics"), timedelta(seconds=10)),
+            Step("post_generate_metrics", PerformAction("post_generate_metrics"), timedelta(seconds=10)),
         ]
         return [
             Workflow(
