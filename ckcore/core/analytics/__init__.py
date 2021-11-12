@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Mapping, List
+from typing import Optional, Mapping, List, Union
 
 from core.types import JsonElement
 from core.util import utc
@@ -13,6 +13,8 @@ log = logging.getLogger(__name__)
 
 
 class CoreEvent:
+    SystemStarted = "system.started"
+    SystemStopped = "system.stopped"
     NodeCreated = "graphdb.node-created"
     NodeUpdated = "graphdb.node-updated"
     NodesDesiredUpdated = "graphdb.nodes-desired-updated"
@@ -30,13 +32,13 @@ class AnalyticsEvent:
     system: str  # e.g. creator of the event: ckcore, ckui, cksh, etc.
     kind: str  # kind of the event. Every kind has a specific set of data and context vars
     context: Mapping[str, JsonElement]  # context properties
-    counters: Mapping[str, int]  # all counters of this event
+    counters: Mapping[str, Union[int, float]]  # all counters of this event
     at: datetime  # time, when this event has been created
 
 
 class AnalyticsEventSender(ABC):
     async def core_event(
-        self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: int
+        self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: Union[int, float]
     ) -> AnalyticsEvent:
         event = AnalyticsEvent("ckcore", kind, context if context else {}, counters, utc())
         await self.send_event(event)
@@ -46,6 +48,13 @@ class AnalyticsEventSender(ABC):
     async def send_event(self, event: AnalyticsEvent) -> None:
         pass
 
+    @staticmethod
+    async def flush() -> None:
+        """
+        Override this method to allow explicit flushing of events.
+        """
+        return None
+
 
 class NoEventSender(AnalyticsEventSender):
     """
@@ -53,7 +62,7 @@ class NoEventSender(AnalyticsEventSender):
     """
 
     async def send_event(self, event: AnalyticsEvent) -> None:
-        log.info(f"Analytics Event: {event}")
+        log.debug(event)
 
 
 class InMemoryEventSender(AnalyticsEventSender):
