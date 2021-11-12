@@ -7,12 +7,15 @@ from typing import Optional, List
 class NodePath:
     node_id = ["id"]
     kinds = ["kinds"]
+    type = ["type"]
+    revision = ["revision"]
     reported_kind = ["reported", "kind"]
     reported_ctime = ["reported", "ctime"]
     reported_id = ["reported", "id"]
     reported_name = ["reported", "name"]
     descendant_summary = ["metadata", "descendant_summary"]
     descendant_count = ["metadata", "descendant_count"]
+    python_type = ["metadata", "python_type"]
     is_phantom = ["metadata", "phantom"]
 
 

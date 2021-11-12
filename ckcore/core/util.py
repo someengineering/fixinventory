@@ -169,9 +169,10 @@ def value_in_path_get(element: JsonElement, path: List[str], if_none: AnyT) -> A
 
 
 def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
-    # implementation without allocations (path is not changed)
+    at = len(path)
+
     def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
-        if len(path) == idx:
+        if at == idx:
             return current
         elif current is None or not isinstance(current, dict) or path[idx] not in current:
             return None
@@ -182,8 +183,10 @@ def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
 
 
 def set_value_in_path(element: JsonElement, path: List[str], js: Optional[Json] = None) -> Json:
+    at = len(path) - 1
+
     def at_idx(current: Json, idx: int) -> None:
-        if len(path) - 1 == idx:
+        if at == idx:
             current[path[-1]] = element
         else:
             value = current.get(path[idx])
@@ -195,6 +198,24 @@ def set_value_in_path(element: JsonElement, path: List[str], js: Optional[Json] 
     js = js if js is not None else {}
     at_idx(js, 0)
     return js
+
+
+def del_value_in_path(element: JsonElement, path: List[str]) -> JsonElement:
+    pl = len(path) - 1
+
+    def at_idx(current: JsonElement, idx: int) -> JsonElement:
+        if current is None or not isinstance(current, dict) or path[idx] not in current:
+            return element
+        elif pl == idx:
+            current.pop(path[-1], None)
+            return element
+        else:
+            result = at_idx(current[path[idx]], idx + 1)
+            if not current[path[idx]]:
+                current[path[idx]] = None
+            return result
+
+    return at_idx(element, 0)
 
 
 async def force_gen(gen: AsyncIterator[AnyT]) -> AsyncIterator[AnyT]:

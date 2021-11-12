@@ -35,7 +35,7 @@ from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import CLIContext
 from core.config import ConfigEntity
-from core.constants import plain_text_whitelist
+from core.constants import plain_text_blacklist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import QueryTookToLongError
@@ -50,7 +50,14 @@ from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.types import Json, JsonElement
-from core.util import uuid_str, value_in_path, set_value_in_path, force_gen, rnd_str, if_set, duration
+from core.util import (
+    uuid_str,
+    force_gen,
+    rnd_str,
+    if_set,
+    duration,
+    del_value_in_path,
+)
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler
 from core.worker_task_queue import (
@@ -790,11 +797,9 @@ class Api:
 
         async def respond_text() -> AsyncGenerator[bytes, None]:
             def filter_attrs(js: Json) -> Json:
-                result: Json = {}
-                for path in plain_text_whitelist:
-                    value = value_in_path(js, path)
-                    if value:
-                        set_value_in_path(value, path, result)
+                result: Json = js
+                for path in plain_text_blacklist:
+                    del_value_in_path(js, path)
                 return result
 
             def to_result(js: JsonElement) -> JsonElement:
