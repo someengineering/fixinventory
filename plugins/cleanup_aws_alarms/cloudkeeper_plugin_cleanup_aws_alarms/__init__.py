@@ -12,6 +12,8 @@ from typing import Dict
 
 
 class CleanupAWSAlarmsPlugin(BaseActionPlugin):
+    action = "cleanup_plan"
+
     def __init__(self):
         super().__init__()
 

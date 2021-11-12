@@ -217,7 +217,9 @@ def get_node_attributes(node: BaseResource) -> Dict:
     return attributes
 
 
-def node_to_dict(node: BaseResource, changes_only: bool = False) -> Dict:
+def node_to_dict(
+    node: BaseResource, changes_only: bool = False, include_revision: bool = False
+) -> Dict:
     node_dict = {"id": node._ckcore_id if node._ckcore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
@@ -241,7 +243,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False) -> Dict:
                     }
                 }
             )
-    if node._ckcore_revision:
+    if include_revision and node._ckcore_revision:
         node_dict.update(
             {
                 "revision": node._ckcore_revision,
