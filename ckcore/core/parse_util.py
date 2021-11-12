@@ -65,7 +65,7 @@ variable_dp = (variable_dp_part + variable_dp_part_combine).at_least(1).map("".j
 
 
 unquoted_allowed_characters = re.compile("[A-Za-z0-9_\\-:]")
-unquoted_end_of_unquoted_str = re.compile("[\\[\\])(}{\\s]")
+unquoted_end_of_unquoted_str = re.compile("[,\\[\\])(}{\\s]")
 
 
 @make_direct_parser

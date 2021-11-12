@@ -43,3 +43,4 @@ def test_json_value_p() -> None:
     assert json_value_p.parse('["a", 1, "2", {"test":"a"}]') == ["a", 1, "2", {"test": "a"}]
     assert json_value_p.parse('{"test":{"foo":{"bla":123}}}') == {"test": {"foo": {"bla": 123}}}
     assert json_value_p.parse("test") is "test"
+    assert json_value_p.parse("[foo, bla, bar,baz]") == ["foo", "bla", "bar", "baz"]
