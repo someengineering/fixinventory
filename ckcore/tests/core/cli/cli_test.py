@@ -54,6 +54,7 @@ def cli_deps(
     args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     deps.lookup = {
         "message_bus": message_bus,
+        "event_sender": event_sender,
         "db_access": db_access,
         "model_handler": model_handler,
         "worker_task_queue": task_queue,

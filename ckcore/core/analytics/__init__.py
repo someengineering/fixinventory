@@ -25,6 +25,8 @@ class CoreEvent:
     BatchUpdateCommitted = "graphdb.batch-update-committed"
     BatchUpdateAborted = "graphdb.batch-update-aborted"
     GraphDBWiped = "graphdb.wiped"
+    CLICommand = "cli.command"
+    Query = "graphdb.query"
 
 
 @dataclass(frozen=True)
@@ -62,7 +64,7 @@ class NoEventSender(AnalyticsEventSender):
     """
 
     async def send_event(self, event: AnalyticsEvent) -> None:
-        log.debug(event)
+        log.info(event)
 
 
 class InMemoryEventSender(AnalyticsEventSender):

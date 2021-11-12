@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
+from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from functools import reduce
 from backports.cached_property import cached_property
@@ -260,7 +261,7 @@ class FunctionTerm(Term):
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class MergeQuery(Term):
+class MergeQuery:
     name: str
     query: Query
     only_first: bool = True
@@ -603,6 +604,82 @@ class Query:
             combined = Part(term, tag, with_clause, sort if sort else [], limit, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
         return Query(parts, preamble, aggregate)
+
+    def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
+        counters: Dict[str, int] = defaultdict(lambda: 0)
+        names: Dict[str, List[str]] = defaultdict(list)
+
+        def term_analytics(term: Term) -> None:
+            name = type(term).__name__
+            counters[f"term_{name.lower()}"] += 1
+            if isinstance(term, Predicate):
+                counters[f"op_{term.op}"] += 1
+                names["predicate_names"].append(term.name)
+            elif isinstance(term, CombinedTerm):
+                term_analytics(term.left)
+                term_analytics(term.right)
+
+        def with_clause_analytics(clause: WithClause) -> None:
+            counters["with_clause"] += 1
+            if clause.term:
+                term_analytics(clause.term)
+            if clause.navigation:
+                navigation_analytics(clause.navigation)
+            if clause.with_clause:
+                with_clause_analytics(clause.with_clause)
+
+        def navigation_analytics(navigation: Navigation) -> None:
+            counters["navigation"] += 1
+            counters[f"navigation_{navigation.direction}"] += 1
+            counters[f"navigation_{navigation.edge_type}"] += 1
+            counters["navigation_until_max"] = max(counters["navigation_until_max"], navigation.until)
+
+        def is_ancestor_merge(q: Query) -> bool:
+            return (
+                len(q.parts) == 2
+                and q.aggregate is None
+                and q.parts[1].navigation is not None
+                and q.parts[1].navigation.direction == "in"
+                and q.parts[1].navigation.until > 1
+                and isinstance(q.parts[0].term, IsTerm)
+            )
+
+        def query_analytics(q: Query) -> None:
+            if q.preamble:
+                names["preamble_keys"].extend(q.preamble.keys())
+            if q.aggregate:
+                if q.aggregate.group_by:
+                    names["aggregate_by"].extend(str(gb.name) for gb in q.aggregate.group_by)
+                    counters["aggregate_by"] += len(q.aggregate.group_by)
+                if q.aggregate.group_func:
+                    names["aggregate_func"].extend(str(gb.name) for gb in q.aggregate.group_func)
+                    counters["aggregate_func"] += len(q.aggregate.group_func)
+            for part in q.parts:
+                if isinstance(part.term, MergeTerm):
+                    term_analytics(part.term.pre_filter)
+                    counters["merge_terms"] += 1
+                    for merge in part.term.merge:
+                        names["merge_names"].append(merge.name)
+                        counter_name = "merge_ancestors_by_kind" if is_ancestor_merge(merge.query) else "merge_other"
+                        query_analytics(merge.query)
+                        counters[counter_name] += 1
+                    if part.term.post_filter:
+                        term_analytics(part.term.post_filter)
+                else:
+                    term_analytics(part.term)
+                if part.limit:
+                    counters["limits"] += 1
+                if part.sort:
+                    counters["sorts"] += 1
+                    names["sort_names"].extend(sort.name for sort in part.sort)
+                if part.navigation:
+                    navigation_analytics(part.navigation)
+                if part.with_clause:
+                    with_clause_analytics(part.with_clause)
+
+        query_analytics(self)
+
+        return counters, names
 
     @staticmethod
     def mk_term(term: Union[str, Term], *args: Union[str, Term]) -> Term:

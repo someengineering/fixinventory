@@ -1050,17 +1050,25 @@ class EventGraphDB(GraphDB):
     async def query_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_list(query, with_count, timeout, **kwargs)
 
     async def query_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_graph_gen(query, with_count, timeout)
 
     async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_aggregation(query)
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
+        counters, context = query.query.analytics()
+        await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_graph(query)
 
     async def explain(self, query: QueryModel) -> Json:

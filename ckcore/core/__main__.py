@@ -52,6 +52,7 @@ def main() -> None:
     task_handler = TaskHandler(db.running_task_db, db.job_db, message_bus, subscriptions, scheduler, cli, args)
     cli_deps.lookup = {
         "message_bus": message_bus,
+        "event_sender": event_sender,
         "db_access": db,
         "model_handler": model,
         "job_handler": task_handler,
