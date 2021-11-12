@@ -28,9 +28,10 @@ log = logging.getLogger(__name__)
 
 
 def main() -> None:
-
+    # os information
     cpus = multiprocessing.cpu_count()
     mem = psutil.virtual_memory()
+    in_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
     log.info(
         f"Starting up version={__version__} on system with cpus={cpus}, "
         f"available_mem={mem.available}, total_mem={mem.total}"
@@ -70,7 +71,12 @@ def main() -> None:
     async def on_start() -> None:
         await event_sender.core_event(
             CoreEvent.SystemStarted,
-            {"version": __version__, "system": platform.system(), "platform": platform.platform()},
+            {
+                "version": __version__,
+                "system": platform.system(),
+                "platform": platform.platform(),
+                "inside_docker": in_docker,
+            },
             cpu_count=cpus,
             mem_total=mem.total,
             mem_available=mem.available,
