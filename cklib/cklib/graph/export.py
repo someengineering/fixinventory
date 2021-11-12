@@ -301,16 +301,9 @@ def node_from_dict(node_data: Dict) -> BaseResource:
 
     node = node_type(**new_node_data)
     node._raise_tags_exceptions = True
-
-    protect_node = node_data_metadata.get("protected", False)
-    if protect_node:
-        node._protected = protect_node
-    cleaned_node = node_data_metadata.get("cleaned", False)
-    if cleaned_node:
-        node._cleaned = cleaned_node
-    clean_node = node_data_desired.get("clean", False)
-    if clean_node:
-        node._clean = clean_node
+    node._protected = node_data_metadata.get("protected", False)
+    node._cleaned = node_data_metadata.get("cleaned", False)
+    node._clean = node_data_desired.get("clean", False)
     return node
 
 
