@@ -4,15 +4,15 @@ from arango.database import StandardDatabase
 from datetime import timedelta
 from typing import List
 
+from core.analytics import InMemoryEventSender
 from core.db import jobdb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
 from core.db.jobdb import JobDb, EventJobDb
-from core.message_bus import MessageBus, Message
 from core.task.task_description import Job, ExecuteCommand, EventTrigger
 
 # noinspection PyUnresolvedReferences
-from tests.core.message_bus_test import message_bus, all_events
+from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db
@@ -28,8 +28,8 @@ async def job_db(test_db: StandardDatabase) -> JobDb:
 
 
 @pytest.fixture
-def event_db(job_db: JobDb, message_bus: MessageBus) -> EventJobDb:
-    return EventEntityDb(job_db, message_bus, "job")
+def event_db(job_db: JobDb, event_sender: InMemoryEventSender) -> EventJobDb:
+    return EventEntityDb(job_db, event_sender, "job")
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ async def test_delete(job_db: JobDb, jobs: List[Job]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventJobDb, jobs: List[Job], all_events: List[Message]) -> None:
+async def test_events(event_db: EventJobDb, jobs: List[Job], event_sender: InMemoryEventSender) -> None:
     # 2 times update
     await event_db.update_many(jobs)
     await event_db.update_many(jobs)
@@ -85,4 +85,4 @@ async def test_events(event_db: EventJobDb, jobs: List[Job], all_events: List[Me
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a.message_type for a in all_events] == ["job-updated-many"] * 2 + ["job-deleted"] * 2
+    assert [a.kind for a in event_sender.events] == ["job-updated-many"] * 2 + ["job-deleted"] * 2

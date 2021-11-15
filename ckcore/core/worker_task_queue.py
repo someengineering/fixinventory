@@ -105,6 +105,7 @@ class WorkerTaskQueue:
             raise AttributeError("Need at least one task description to attach!")
         try:
             async with self.lock:
+                self.work_count[worker_id] = 0
                 for subscription in subscriptions:
                     self.worker_by_task_name[subscription.task.name].append(subscription)
             log.info(f"Worker {worker_id} added to following task queues: {task_descriptions}")

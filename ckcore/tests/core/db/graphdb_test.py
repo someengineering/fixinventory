@@ -11,10 +11,10 @@ from arango.database import StandardDatabase
 from arango.typings import Json
 from networkx import DiGraph, MultiDiGraph
 
+from core.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
-from core.message_bus import MessageBus, Message
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType, Section
 from core.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
@@ -28,7 +28,7 @@ from core.util import AccessJson, utc, value_in_path, AccessNone
 from core.db.model import QueryModel, GraphUpdate
 
 # noinspection PyUnresolvedReferences
-from tests.core.message_bus_test import message_bus, all_events
+from tests.core.analytics import event_sender
 
 
 class BaseResource(ABC):
@@ -233,8 +233,8 @@ async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGr
 
 
 @pytest.fixture
-async def event_graph_db(filled_graph_db: ArangoGraphDB, message_bus: MessageBus) -> EventGraphDB:
-    return EventGraphDB(filled_graph_db, message_bus)
+async def event_graph_db(filled_graph_db: ArangoGraphDB, event_sender: AnalyticsEventSender) -> EventGraphDB:
+    return EventGraphDB(filled_graph_db, event_sender)
 
 
 async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> DiGraph:
@@ -540,7 +540,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events: List[Message]) -> None:
+async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
     await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
     await event_graph_db.delete_node("some_other")
@@ -549,12 +549,12 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, all_events
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a.message_type for a in all_events] == [
-        "node-created",
-        "node-updated",
-        "node-deleted",
-        "graph-merged",
-        "batch-update-graph-merged",
+    assert [a.kind for a in event_sender.events] == [
+        CoreEvent.NodeCreated,
+        CoreEvent.NodeUpdated,
+        CoreEvent.NodeDeleted,
+        CoreEvent.GraphMerged,
+        CoreEvent.BatchUpdateGraphMerged,
     ]
 
 

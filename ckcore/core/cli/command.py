@@ -27,6 +27,7 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 
+from core.analytics import AnalyticsEventSender
 from core.async_extensions import run_async
 from core.cli import key_values_parser, strip_quotes, is_node, JsGen
 from core.db.db_access import DbAccess
@@ -60,6 +61,10 @@ class CLIDependencies:
     @property
     def message_bus(self) -> MessageBus:
         return self.lookup["message_bus"]  # type:ignore
+
+    @property
+    def event_sender(self) -> AnalyticsEventSender:
+        return self.lookup["event_sender"]  # type:ignore
 
     @property
     def db_access(self) -> DbAccess:

@@ -38,6 +38,9 @@ from tests.core.db.runningtaskdb_test import running_task_db
 from tests.core.message_bus_test import message_bus
 
 # noinspection PyUnresolvedReferences
+from tests.core.analytics import event_sender
+
+# noinspection PyUnresolvedReferences
 from tests.core.task.task_handler_test import (
     task_handler,
     job_db,

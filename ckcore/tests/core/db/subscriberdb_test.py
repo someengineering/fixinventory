@@ -3,18 +3,18 @@ import pytest
 from arango.database import StandardDatabase
 from typing import List
 
+from core.analytics import AnalyticsEventSender, InMemoryEventSender
 from core.db import subscriberdb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
 from core.db.subscriberdb import SubscriberDb, EventSubscriberDb
-from core.message_bus import MessageBus, Message
 from core.task.model import Subscriber, Subscription
 
 # noinspection PyUnresolvedReferences
-from tests.core.message_bus_test import message_bus, all_events
+from tests.core.db.graphdb_test import test_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.analytics import event_sender
 
 
 @pytest.fixture
@@ -27,8 +27,8 @@ async def subscriber_db(test_db: StandardDatabase) -> SubscriberDb:
 
 
 @pytest.fixture
-def event_db(subscriber_db: SubscriberDb, message_bus: MessageBus) -> EventSubscriberDb:
-    return EventEntityDb(subscriber_db, message_bus, "subscriber")
+def event_db(subscriber_db: SubscriberDb, event_sender: AnalyticsEventSender) -> EventSubscriberDb:
+    return EventEntityDb(subscriber_db, event_sender, "subscriber")
 
 
 @pytest.fixture
@@ -67,7 +67,9 @@ async def test_delete(subscriber_db: SubscriberDb, subscribers: List[Subscriber]
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventSubscriberDb, subscribers: List[Subscriber], all_events: List[Message]) -> None:
+async def test_events(
+    event_db: EventSubscriberDb, subscribers: List[Subscriber], event_sender: InMemoryEventSender
+) -> None:
     # 2 times update
     await event_db.update_many(subscribers)
     await event_db.update_many(subscribers)
@@ -77,4 +79,4 @@ async def test_events(event_db: EventSubscriberDb, subscribers: List[Subscriber]
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
-    assert [a.message_type for a in all_events] == ["subscriber-updated-many"] * 2 + ["subscriber-deleted"] * 10
+    assert [a.kind for a in event_sender.events] == ["subscriber-updated-many"] * 2 + ["subscriber-deleted"] * 10

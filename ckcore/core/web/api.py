@@ -31,6 +31,7 @@ from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from networkx.readwrite import cytoscape_data
 
 from core import feature
+from core.analytics import AnalyticsEventSender
 from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import CLIContext
@@ -86,6 +87,7 @@ class Api:
         subscription_handler: SubscriptionHandler,
         workflow_handler: TaskHandler,
         message_bus: MessageBus,
+        event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
         cli: CLI,
         args: Namespace,
@@ -95,6 +97,7 @@ class Api:
         self.subscription_handler = subscription_handler
         self.workflow_handler = workflow_handler
         self.message_bus = message_bus
+        self.event_sender = event_sender
         self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.args = args
@@ -490,7 +493,7 @@ class Api:
         graph_id = request.match_info.get("graph_id", "ns")
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, None)
+        info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, None)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -500,7 +503,7 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(db, self.message_bus, self.args, it, self.merge_max_wait_time, batch_id)
+        info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, batch_id)
         return web.json_response(to_js(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

@@ -14,13 +14,13 @@ from typing import Optional, Union, AsyncGenerator, Any, Generator, List, cast
 from aiostream import stream
 from aiostream.core import Stream
 
+from core.analytics import AnalyticsEventSender, InMemoryEventSender, AnalyticsEvent
 from core.async_extensions import run_async
 from core.db.db_access import DbAccess
 from core.db.graphdb import GraphDB
 from core.db.model import GraphUpdate
 from core.dependencies import db_access, setup_process, reset_process_start_method
 from core.error import ImportAborted
-from core.message_bus import MessageBus, Message
 from core.model.graph_access import GraphBuilder
 from core.model.model import Model
 from core.types import Json
@@ -64,13 +64,13 @@ class MergeGraph(ProcessAction):
 
 
 @dataclass
-class EmitMessage(ProcessAction):
+class EmitAnalyticsEvent(ProcessAction):
     """
-    Emit this message to the event bus.
+    Emit this message to the event sender.
     Child -> Parent: to have the event from the child process propagated to the parent process.
     """
 
-    event: Message
+    event: AnalyticsEvent
 
 
 class PoisonPill(ProcessAction):
@@ -119,15 +119,6 @@ class DbUpdaterProcess(Process):
     def next_action(self) -> ProcessAction:
         return self.read_queue.get(True, 30)  # type: ignore
 
-    def forward_events(self, bus: MessageBus) -> Task:  # type: ignore # pypy
-        async def forward_events_forever() -> None:
-            async with bus.subscribe("event_forwarder") as events:
-                while True:
-                    event = await events.get()
-                    self.write_queue.put(EmitMessage(event))
-
-        return asyncio.create_task(forward_events_forever())
-
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
         model = Model.from_kinds([kind async for kind in db.model_db.all()])
         builder = GraphBuilder(model)
@@ -148,12 +139,11 @@ class DbUpdaterProcess(Process):
             return result
 
     async def setup_and_merge(self) -> GraphUpdate:
-        bus = MessageBus()
-        db = db_access(self.args, bus)
-        task = self.forward_events(bus)
+        sender = InMemoryEventSender()
+        db = db_access(self.args, sender)
         result = await self.merge_graph(db)
-        await asyncio.sleep(0.1)  # yield current process to drain event bus
-        task.cancel()
+        for event in sender.events:
+            self.write_queue.put(EmitAnalyticsEvent(event))
         return result
 
     def run(self) -> None:
@@ -174,7 +164,7 @@ class DbUpdaterProcess(Process):
 
 async def merge_graph_process(
     db: GraphDB,
-    bus: MessageBus,
+    event_sender: AnalyticsEventSender,
     args: Namespace,
     content: AsyncGenerator[Union[bytes, Json], None],
     max_wait: timedelta,
@@ -206,8 +196,8 @@ async def merge_graph_process(
                     dead_adjusted = True
                 try:
                     action = await run_async(read.get, True, stale)
-                    if isinstance(action, EmitMessage):
-                        await bus.emit(action.event)
+                    if isinstance(action, EmitAnalyticsEvent):
+                        await event_sender.send_event(action.event)
                     elif isinstance(action, Result):
                         return action.get_value()
                 except Empty:

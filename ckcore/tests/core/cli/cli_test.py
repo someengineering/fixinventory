@@ -3,6 +3,7 @@ from aiostream import stream
 from pytest import fixture
 from typing import Tuple, List
 
+from core.analytics import InMemoryEventSender
 from core.cli.cli import CLI, multi_command_parser, ParsedCommands, ParsedCommand
 from core.cli.command import (
     ExecuteQueryCommand,
@@ -34,21 +35,26 @@ from tests.core.message_bus_test import message_bus
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 
+# noinspection PyUnresolvedReferences
+from tests.core.analytics import event_sender
+
 
 @fixture
 def cli_deps(
     filled_graph_db: ArangoGraphDB,
     message_bus: MessageBus,
+    event_sender: InMemoryEventSender,
     foo_model: Model,
     task_queue: WorkerTaskQueue,
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
 ) -> CLIDependencies:
-    db_access = DbAccess(filled_graph_db.db.db, message_bus, NoAdjust())
+    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
     deps = CLIDependencies()
     args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     deps.lookup = {
         "message_bus": message_bus,
+        "event_sender": event_sender,
         "db_access": db_access,
         "model_handler": model_handler,
         "worker_task_queue": task_queue,

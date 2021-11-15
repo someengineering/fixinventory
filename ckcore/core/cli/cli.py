@@ -12,6 +12,7 @@ from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser
 
+from core.analytics import CoreEvent
 from core.cli import cmd_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
     CLIDependencies,
@@ -327,11 +328,21 @@ class CLI:
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
             return ParsedCommandLine(cmd_env, parsed, commands, not_met)
 
+        async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
+            command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
+            await self.dependencies.event_sender.core_event(
+                CoreEvent.CLICommand,
+                {"commands": command_names},
+                command_lines=len(parsed),
+                commands=len(command_names),
+            )
+
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
         keep_raw = not replace_place_holder or command_lines[0].commands[0].cmd == "add_job"
         command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
+        await send_analytics(res)
         return res
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:

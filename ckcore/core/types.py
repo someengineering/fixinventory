@@ -1,8 +1,9 @@
-from typing import Any, Optional, Callable, Union, Dict
+from typing import Any, Optional, Callable, Union, Dict, Sequence, Mapping
 
 Json = Dict[str, Any]
 
-JsonElement = Union[Json, str, int, float, bool, None]
+JsonArray = Sequence[Union[Mapping[str, Any], Sequence[Any], str, int, float, None]]
+JsonElement = Union[Mapping[str, Any], Sequence[Any], str, int, float, bool, None]
 
 ValidationResult = Optional[Any]
 ValidationFn = Callable[[Any], ValidationResult]

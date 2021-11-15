@@ -9,6 +9,7 @@ from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
 
+from core.analytics import AnalyticsEventSender
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.configdb import config_entity_db
 from core.db.entitydb import EventEntityDb
@@ -18,7 +19,6 @@ from core.db.modeldb import ModelDb, model_db
 from core.db.runningtaskdb import running_task_db
 from core.db.subscriberdb import subscriber_db
 from core.error import NoSuchGraph
-from core.message_bus import MessageBus
 from core.model.adjust_node import AdjustNode
 from core.util import Periodic, utc, shutdown_process
 
@@ -29,7 +29,7 @@ class DbAccess(ABC):
     def __init__(
         self,
         arango_database: StandardDatabase,
-        message_bus: MessageBus,
+        event_sender: AnalyticsEventSender,
         adjust_node: AdjustNode,
         model_name: str = "model",
         subscriber_name: str = "subscribers",
@@ -38,12 +38,12 @@ class DbAccess(ABC):
         config_entity: str = "configs",
         update_outdated: timedelta = timedelta(minutes=30),
     ):
-        self.message_bus = message_bus
+        self.event_sender = event_sender
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
         self.adjust_node = adjust_node
-        self.model_db = EventEntityDb(model_db(self.db, model_name), message_bus, model_name)
-        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), message_bus, subscriber_name)
+        self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
+        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
@@ -86,7 +86,7 @@ class DbAccess(ABC):
             if not no_check and not self.database.has_graph(name):
                 raise NoSuchGraph(name)
             graph_db = ArangoGraphDB(self.db, name, self.adjust_node)
-            event_db = EventGraphDB(graph_db, self.message_bus)
+            event_db = EventGraphDB(graph_db, self.event_sender)
             self.graph_dbs[name] = event_db
             return event_db
 

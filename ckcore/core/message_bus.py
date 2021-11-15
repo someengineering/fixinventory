@@ -15,17 +15,7 @@ from core.util import pop_keys
 log = logging.getLogger(__name__)
 
 
-class CoreEvent:
-    NodeCreated = "node-created"
-    NodeUpdated = "node-updated"
-    NodesDesiredUpdated = "nodes-desired-updated"
-    NodesMetadataUpdated = "nodes-metadata-updated"
-    NodeDeleted = "node-deleted"
-    GraphMerged = "graph-merged"
-    BatchUpdateGraphMerged = "batch-update-graph-merged"
-    BatchUpdateCommitted = "batch-update-committed"
-    BatchUpdateAborted = "batch-update-aborted"
-    GraphDBWiped = "graphdb-wiped"
+class CoreMessage:
     Connected = "message-listener-connected"
     Disconnected = "message-listener-disconnected"
 
@@ -213,7 +203,7 @@ class MessageBus:
         if len(ch_list) == 0:
             raise AttributeError("Need at least one channel to subscribe to!")
         try:
-            await self.emit_event(CoreEvent.Connected, {"subscriber_id": subscriber_id, "channels": channels})
+            await self.emit_event(CoreMessage.Connected, {"subscriber_id": subscriber_id, "channels": channels})
             self.active_listener[subscriber_id] = ch_list
             for channel in ch_list:
                 add_listener(channel)
@@ -224,7 +214,7 @@ class MessageBus:
             for channel in ch_list:
                 remove_listener(channel)
             self.active_listener.pop(subscriber_id, None)
-            await self.emit_event(CoreEvent.Disconnected, {"subscriber_id": subscriber_id, "channels": channels})
+            await self.emit_event(CoreMessage.Disconnected, {"subscriber_id": subscriber_id, "channels": channels})
 
     async def emit_event(self, event_type: str, data: Json) -> None:
         return await self.emit(Event(event_type, data))
