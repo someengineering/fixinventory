@@ -96,7 +96,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Max waiting time to complete a merge graph action.",
     )
     parser.add_argument(
-        "--stop-analytics",
+        "--analytics-opt-out",
         default=False,
         action="store_true",
         help="Stop collecting analytics data.",

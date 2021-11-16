@@ -45,7 +45,7 @@ def main() -> None:
 
     # wait here for an initial connection to the database before we continue. blocking!
     created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
-    event_sender = NoEventSender() if args.stop_analytics else PostHogEventSender(system_data)
+    event_sender = NoEventSender() if args.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(sdb, event_sender)
     message_bus = MessageBus()
     scheduler = Scheduler()
