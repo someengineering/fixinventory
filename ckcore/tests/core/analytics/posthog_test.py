@@ -22,3 +22,4 @@ async def test_send_analytics_no_service() -> None:
     ) as sender:
         event = await sender.core_event("test-event")
         assert event.kind == "test-event"
+    # reaching this point means: no exception has been thrown, which is the real test

@@ -110,7 +110,7 @@ def main() -> None:
 
         async def manage_event_sender(_: Application) -> AsyncIterator[None]:
             async with event_sender:
-                yield  # none is yielded: we only want to start/stop the task_handler reliably
+                yield  # none is yielded: we only want to start/stop the event_sender reliably
 
         api.app.cleanup_ctx.append(manage_event_sender)
         api.app.cleanup_ctx.append(on_start_stop)
