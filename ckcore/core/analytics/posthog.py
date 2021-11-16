@@ -53,6 +53,7 @@ class PostHogEventSender(AnalyticsEventSender):
         self.flusher = Periodic("flush_analytics", self.flush, interval)
         self.lock = asyncio.Lock()
         self.last_fetched: Optional[datetime] = None
+        self.session = ClientSession()
 
     async def capture(self, event: AnalyticsEvent) -> None:
         """
@@ -71,13 +72,12 @@ class PostHogEventSender(AnalyticsEventSender):
         The API key is public but not static, so we need to refresh it periodically.
         """
         try:
-            async with ClientSession() as session:
-                async with session.get("https://cdn.some.engineering/posthog/public_api_key") as resp:
-                    api_key = (await resp.text()).strip()
-                    self.client.api_key = api_key
-                    for consumer in self.client.consumers:
-                        consumer.api_key = api_key
-                    self.last_fetched = utc()
+            async with self.session.get("https://cdn.some.engineering/posthog/public_api_key") as resp:
+                api_key = (await resp.text()).strip()
+                self.client.api_key = api_key
+                for consumer in self.client.consumers:
+                    consumer.api_key = api_key
+                self.last_fetched = utc()
         except Exception as ex:
             log.warning(f"Could not fetch latest api key. Will use the current one. {ex}")
 
@@ -111,5 +111,6 @@ class PostHogEventSender(AnalyticsEventSender):
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self.flusher.stop()
         await self.flush()
+        await self.session.close()
         self.client.shutdown()
         logging.info("AnalyticsEventSender closed.")
