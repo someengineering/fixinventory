@@ -1,3 +1,4 @@
+import argparse
 import logging
 import multiprocessing as mp
 from argparse import Namespace
@@ -97,6 +98,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         default=3600,
         help="Max waiting time to complete a merge graph action.",
     )
+    parser.add_argument("--debug", default=False, action="store_true", help=argparse.SUPPRESS)
 
     TaskHandler.add_args(parser)
     return parser.parse_args(args, namespace)  # type: ignore

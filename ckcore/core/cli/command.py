@@ -44,15 +44,29 @@ from core.query.model import Query, P
 from core.query.query_parser import parse_query
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
-from core.util import AccessJson, uuid_str, value_in_path_get, value_in_path, utc, shutdown_process, if_set, duration
+from core.util import (
+    AccessJson,
+    uuid_str,
+    value_in_path_get,
+    value_in_path,
+    utc,
+    shutdown_process,
+    if_set,
+    duration,
+    identity,
+)
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
 log = logging.getLogger(__name__)
 
 
 class CLIDependencies:
-    def __init__(self) -> None:
-        self.lookup: Dict[str, Any] = {}
+    def __init__(self, **deps: Any) -> None:
+        self.lookup: Dict[str, Any] = deps
+
+    def extend(self, **deps: Any) -> CLIDependencies:
+        self.lookup = {**self.lookup, **deps}
+        return self
 
     @property
     def args(self) -> Namespace:
@@ -216,7 +230,16 @@ class CLICommand(ABC):
 
 
 class InternalPart(ABC):
-    pass
+    """
+    Internal parts can be executed but are not shown via help.
+    They usually get injected by the CLI Interpreter to ease usability.
+    """
+
+
+class OutputTransformer(ABC):
+    """
+    Mark all commands that transform the output stream (formatting).
+    """
 
 
 # A QueryPart is a command that can be used on the command line.
@@ -973,7 +996,7 @@ class UniqCommand(CLICommand):
         return CLIFlow(lambda in_stream: stream.filter(in_stream, has_not_seen))
 
 
-class JqCommand(CLICommand):
+class JqCommand(CLICommand, OutputTransformer):
     """
     Usage: jq <filter>
 
@@ -1356,7 +1379,7 @@ class ProtectCommand(SetMetadataStateBase):
         return {"protected": True}
 
 
-class FormatCommand(CLICommand):
+class FormatCommand(CLICommand, OutputTransformer):
     """
     Usage: format <format string>
 
@@ -1401,7 +1424,31 @@ def list_single_arg_parse() -> Parser:
 list_arg_parse = list_single_arg_parse.sep_by(comma_p, min=1)
 
 
-class ListCommand(CLICommand):
+class DumpCommand(CLICommand, OutputTransformer):
+    """
+    Usage: dump
+
+    Dump all properties of an incoming element.
+    If no output format is given, the output is transformed to fit on one line per element using the list command.
+    Dump will maintain all incoming properties.
+
+    See: list, jq, format
+    """
+
+    @property
+    def name(self) -> str:
+        return "dump"
+
+    def info(self) -> str:
+        return "Dump all properties of incoming objects."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+        # Dump returns the same stream as provided without changing anything.
+        # Since it is an OutputTransformer, the resulting transformer will be dump (not list).
+        return CLIFlow(identity)
+
+
+class ListCommand(CLICommand, OutputTransformer):
     """
     Usage: list [props_to_show]
 
@@ -1882,7 +1929,6 @@ class StartTaskCommand(CLICommand):
         return CLISource.single(start_task)
 
 
-# TODO: remove me once the file feature is implemented!
 class FileCommand(CLICommand, InternalPart):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         def file_command() -> Stream:
@@ -1903,7 +1949,6 @@ class FileCommand(CLICommand, InternalPart):
         return "only for debugging purposes..."
 
 
-# TODO: remove me once the file feature is implemented!
 class UploadCommand(CLICommand, InternalPart):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         if not arg:
@@ -2110,7 +2155,7 @@ class SystemCommand(CLICommand):
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
-    return [
+    commands = [
         AddJobCommand(d),
         AggregatePart(d),
         AggregateToCountCommand(d),
@@ -2121,10 +2166,10 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DeleteJobCommand(d),
         DescendantPart(d),
         DesiredPart(d),
+        DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
         ExecuteQueryCommand(d),
-        FileCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
@@ -2149,8 +2194,12 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TailCommand(d),
         TasksCommand(d),
         UniqCommand(d),
-        UploadCommand(d),
     ]
+    # commands that are only available when the system is started in debug mode
+    if d.args.debug:
+        commands.extend([FileCommand(d), UploadCommand(d)])
+
+    return commands
 
 
 def aliases() -> Dict[str, str]:

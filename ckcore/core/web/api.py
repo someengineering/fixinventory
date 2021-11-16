@@ -28,13 +28,14 @@ from aiohttp.abc import AbstractStreamWriter
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
+from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.analytics import AnalyticsEventSender
 from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
-from core.cli.command import CLIContext
+from core.cli.command import CLIContext, OutputTransformer, ListCommand
 from core.config import ConfigEntity
 from core.constants import plain_text_blacklist
 from core.db.db_access import DbAccess
@@ -673,14 +674,24 @@ class Api:
             headers={"Content-Type": f"multipart/mixed;boundary={boundary}"},
         )
 
+        async def list_or_gen(current: ParsedCommandLine) -> Tuple[Optional[int], Stream]:
+            maybe_count, out_gen = await current.execute()
+            if (
+                accept == "text/plain"
+                and current.executable_commands
+                and not isinstance(current.executable_commands[-1].command, OutputTransformer)
+            ):
+                out_gen = await ListCommand(self.cli.dependencies).parse().flow(out_gen)
+
+            return maybe_count, out_gen
+
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
             data = {"command": command, "env": dict(request.query), "required": to_js(requirements)}
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
-            count, generator = await first_result.execute()
-
+            count, generator = await list_or_gen(first_result)
             # flat the results from 0 or 1
             async with generator.stream() as streamer:
                 gen = await force_gen(streamer)
@@ -695,7 +706,7 @@ class Api:
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
-                count, generator = await single.execute()
+                count, generator = await list_or_gen(single)
                 async with generator.stream() as streamer:
                     gen = await force_gen(streamer)
                     if single.produces.json:
