@@ -72,7 +72,7 @@ class PostHogEventSender(AnalyticsEventSender):
         """
         try:
             async with ClientSession() as session:
-                async with session.get("https://fra1.digitaloceanspaces.com/cloudkeeper/api_key") as resp:
+                async with session.get("https://cdn.some.engineering/posthog/public_api_key") as resp:
                     api_key = (await resp.text()).strip()
                     self.client.api_key = api_key
                     for consumer in self.client.consumers:
