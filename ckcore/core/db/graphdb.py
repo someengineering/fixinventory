@@ -1019,9 +1019,13 @@ class EventGraphDB(GraphDB):
         event_data = {"graph": self.graph_name}
         root_counter: Dict[str, int] = {}
         for root in roots:
-            root_node = graph_to_merge.nodes(root)
-            name = value_in_path_get(root_node, NodePath.reported_id, root)
-            root_counter[f"{name}_total"] = value_in_path_get(root_node, NodePath.descendant_count, 0)
+            root_node = graph_to_merge.nodes[root]
+            rep_id = value_in_path_get(root_node, NodePath.reported_id, root)
+            root_counter[f"node_count_{rep_id}.total"] = value_in_path_get(root_node, NodePath.descendant_count, 0)
+            summary: Dict[str, int] = value_in_path_get(root_node, NodePath.descendant_summary, {})
+            for nd_name, nd_count in summary.items():
+                root_counter[f"node_count_{rep_id}.{nd_name}"] = nd_count
+
         kind = CoreEvent.BatchUpdateGraphMerged if is_batch else CoreEvent.GraphMerged
         await self.event_sender.core_event(
             kind,

@@ -33,6 +33,8 @@ class CoreEvent:
     WorkerQueueInfo = "worker-queue.info"
     TaskStarted = "task-handler.task-started"
     TaskCompleted = "task-handler.task-completed"
+    ClientError = "error.client"
+    ServerError = "error.server"
 
 
 @dataclass(frozen=True)

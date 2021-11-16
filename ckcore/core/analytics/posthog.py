@@ -58,6 +58,7 @@ class PostHogEventSender(AnalyticsEventSender):
                     properties={**event.context, **event.counters, "run_id": self.uid},  # type: ignore
                     timestamp=event.at,
                 )
+            self.queue.clear()
 
     async def __aenter__(self) -> PostHogEventSender:
         await self.flusher.start()

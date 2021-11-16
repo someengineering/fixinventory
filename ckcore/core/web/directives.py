@@ -6,6 +6,8 @@ from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
 
+from core import version
+from core.analytics import AnalyticsEventSender, CoreEvent
 from core.error import NotFoundError, ClientError
 from core.metrics import RequestInProgress, RequestLatency, RequestCount, perf_now
 from core.web import RequestHandler
@@ -30,7 +32,7 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         RequestInProgress.labels(request.path, request.method).dec()
 
 
-def error_handler() -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+def error_handler(event_sender: AnalyticsEventSender) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
     is_debug = logging.root.level < logging.INFO
 
     def exc_info(ex: Exception) -> Optional[Exception]:
@@ -51,13 +53,21 @@ def error_handler() -> Callable[[Request, RequestHandler], Awaitable[StreamRespo
             raise HTTPNotFound(text=message) from e
         except ClientError as e:
             kind = type(e).__name__
-            message = f"Error: {kind}\nMessage: {str(e)}"
+            ex_str = str(e)
+            message = f"Error: {kind}\nMessage: {ex_str}"
             log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
+            await event_sender.core_event(
+                CoreEvent.ClientError, {"version": version(), "kind": kind, "message": ex_str}
+            )
             raise HTTPBadRequest(text=message) from e
         except Exception as e:
             kind = type(e).__name__
-            message = f"Error: {kind}\nMessage: {str(e)}"
+            ex_str = str(e)
+            message = f"Error: {kind}\nMessage: {ex_str}"
             log.warning(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
+            await event_sender.core_event(
+                CoreEvent.ServerError, {"version": version(), "kind": kind, "message": ex_str}
+            )
             raise HTTPBadRequest(text=message) from e
 
     return error_handler_middleware

@@ -9,7 +9,7 @@ import psutil
 from aiohttp import web
 from aiohttp.web_app import Application
 
-from core import __version__
+from core import version
 from core.analytics import CoreEvent, NoEventSender
 from core.analytics.posthog import PostHogEventSender
 from core.analytics.recurrent_events import emit_recurrent_events
@@ -36,7 +36,7 @@ def main() -> None:
     mem = psutil.virtual_memory()
     in_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
     log.info(
-        f"Starting up version={__version__} on system with cpus={cpus}, "
+        f"Starting up version={version()} on system with cpus={cpus}, "
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
     started_at = utc()
@@ -77,7 +77,7 @@ def main() -> None:
         await event_sender.core_event(
             CoreEvent.SystemStarted,
             {
-                "version": __version__,
+                "version": version(),
                 "created_at": to_js(system_data.created_at),
                 "system": platform.system(),
                 "platform": platform.platform(),
