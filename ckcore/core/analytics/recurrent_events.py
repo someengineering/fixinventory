@@ -15,6 +15,7 @@ def emit_recurrent_events(
     worker_task_queue: WorkerTaskQueue,
     message_bus: MessageBus,
     frequency: timedelta,
+    first_run: timedelta = timedelta(minutes=1),
 ) -> Periodic:
     async def emit_events() -> None:
         # information about the model
@@ -37,4 +38,4 @@ def emit_recurrent_events(
             unassigned_tasks=len(worker_task_queue.unassigned_tasks),
         )
 
-    return Periodic("emit_recurrent_events", emit_events, frequency)
+    return Periodic("emit_recurrent_events", emit_events, frequency, first_run)
