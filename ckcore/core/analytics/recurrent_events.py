@@ -22,9 +22,11 @@ def emit_recurrent_events(
         await event_sender.core_event(CoreEvent.ModelInfo, model_count=len(model.kinds))
         # information about all subscribers/actors
         subscribers = await subscription_handler.all_subscribers()
-        active = message_bus.active_listener
         await event_sender.core_event(
-            CoreEvent.SubscriberInfo, subscriber_count=sum(1 for _ in subscribers), active=len(active)
+            CoreEvent.SubscriberInfo,
+            subscriber_count=sum(1 for _ in subscribers),
+            # do not count wildcard listeners
+            active=sum(1 for channels in message_bus.active_listener.values() if channels != ["*"]),
         )
         # information about all workers
         await event_sender.core_event(

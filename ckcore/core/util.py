@@ -260,6 +260,10 @@ class Periodic:
         self.frequency = frequency
         self._task: Optional[Task] = None  # type: ignore # pypy
 
+    @property
+    def started(self) -> bool:
+        return self._task is not None
+
     async def start(self) -> None:
         if self._task is None:
             # Start task to call func periodically:
@@ -300,6 +304,12 @@ class AccessNone:
 
     def __eq__(self, other: Any) -> bool:
         return other is None or isinstance(other, AccessNone)
+
+    def __iter__(self) -> Iterator[Any]:
+        return self
+
+    def __next__(self) -> None:
+        raise StopIteration()
 
 
 class AccessJson(Dict[Any, Any]):

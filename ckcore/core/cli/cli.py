@@ -332,7 +332,7 @@ class CLI:
             command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
-                {"commands": command_names},
+                {"command_names": command_names},
                 command_lines=len(parsed),
                 commands=len(command_names),
             )

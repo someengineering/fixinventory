@@ -1,22 +1,20 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
 import re
+from argparse import ArgumentParser, Namespace
 from asyncio import Task, CancelledError
+from copy import copy
 from datetime import timedelta
+from functools import reduce
 from io import TextIOWrapper
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 
-
-import argparse
 from aiostream import stream
-from argparse import ArgumentParser, Namespace
 
-from functools import reduce
-
-from copy import copy
-
+from core.analytics import AnalyticsEventSender, CoreEvent
 from core.cli.cli import CLI
 from core.cli.command import CLIContext
 from core.db.jobdb import JobDb
@@ -45,7 +43,7 @@ from core.task.task_description import (
     StepErrorBehaviour,
     RestartAgainStepAction,
 )
-from core.util import first, Periodic, group_by, uuid_str, utc_str
+from core.util import first, Periodic, group_by, uuid_str, utc_str, utc
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +72,7 @@ class TaskHandler(JobHandler):
         running_task_db: RunningTaskDb,
         job_db: JobDb,
         message_bus: MessageBus,
+        event_sender: AnalyticsEventSender,
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
         cli: CLI,
@@ -82,6 +81,7 @@ class TaskHandler(JobHandler):
         self.running_task_db = running_task_db
         self.job_db = job_db
         self.message_bus = message_bus
+        self.event_sender = event_sender
         self.subscription_handler = subscription_handler
         self.scheduler = scheduler
         self.cli = cli
@@ -138,7 +138,7 @@ class TaskHandler(JobHandler):
         updated.steps = [evaluate(step) for step in descriptor.steps]
         return updated
 
-    async def start_task(self, desc: TaskDescription) -> Optional[RunningTask]:
+    async def start_task(self, desc: TaskDescription, reason: str) -> Optional[RunningTask]:
         existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())  # type: ignore
         if existing:
             if desc.on_surpass == TaskSurpassBehaviour.Skip:
@@ -163,6 +163,15 @@ class TaskHandler(JobHandler):
         await self.running_task_db.insert(wi)
         self.tasks[wi.id] = wi
         await self.execute_task_commands(wi, commands)
+        await self.event_sender.core_event(
+            CoreEvent.TaskStarted,
+            {
+                "reason": reason,
+                "task_descriptor_id": updated.id,
+                "task_descriptor_name": updated.name,
+                "kind": type(updated).__name__,
+            },
+        )
         return wi
 
     async def start_interrupted_tasks(self) -> List[RunningTask]:
@@ -281,7 +290,7 @@ class TaskHandler(JobHandler):
     async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
         td = first(lambda t: t.id == uid, self.task_descriptions)  # type: ignore # pypy
         if td:
-            return await self.start_task(td)
+            return await self.start_task(td, "direct")
         else:
             raise NameError(f"No task with such id: {uid}")
 
@@ -303,6 +312,18 @@ class TaskHandler(JobHandler):
         await self.update_trigger(job)
 
     async def delete_running_task(self, task: RunningTask) -> None:
+        # send analytics event
+        await self.event_sender.core_event(
+            CoreEvent.TaskCompleted,
+            {
+                "task_descriptor_id": task.descriptor.id,
+                "task_descriptor_name": task.descriptor.name,
+                "kind": type(task.descriptor).__name__,
+                "success": not task.is_error,
+            },
+            duration=(utc() - task.task_started_at).total_seconds(),
+            step_count=len(task.descriptor.steps),
+        )
         task.descriptor_alive = False
         # remove tasks from list of running tasks
         self.tasks.pop(task.id, None)
@@ -336,7 +357,7 @@ class TaskHandler(JobHandler):
 
     async def time_triggered(self, descriptor: TaskDescription, trigger: TimeTrigger) -> None:
         log.info(f"Task {descriptor.name} triggered by time: {trigger.cron_expression}")
-        await self.start_task(descriptor)
+        await self.start_task(descriptor, "time")
 
     async def check_for_task_to_start_on_message(self, msg: Message) -> None:
         # check if this event triggers any new task
@@ -345,7 +366,7 @@ class TaskHandler(JobHandler):
                 comp = trigger.filter_data
                 if {key: msg.data.get(key) for key in comp} == comp if comp else True:
                     log.info(f"Event {msg.message_type} triggers task: {descriptor.name}")
-                    await self.start_task(descriptor)
+                    await self.start_task(descriptor, "event")
 
     async def handle_event(self, event: Event) -> None:
         # check if any running task want's to handle this event
@@ -462,8 +483,7 @@ class TaskHandler(JobHandler):
             if not task.is_active:
                 if task.update_task:
                     await task.update_task
-                del self.tasks[task.id]
-                await self.running_task_db.delete(task.id)
+                await self.delete_running_task(task)
 
     # endregion
 
