@@ -254,11 +254,16 @@ class Periodic:
     Periodic execution of a function based on a defined frequency that can be started and stopped.
     """
 
-    def __init__(self, name: str, func: Callable[[], Any], frequency: timedelta):
+    def __init__(self, name: str, func: Callable[[], Any], frequency: timedelta, first_run: Optional[timedelta] = None):
         self.name = name
         self.func = func
         self.frequency = frequency
+        self.first_run = first_run if first_run else frequency
         self._task: Optional[Task] = None  # type: ignore # pypy
+
+    @property
+    def started(self) -> bool:
+        return self._task is not None
 
     async def start(self) -> None:
         if self._task is None:
@@ -274,8 +279,8 @@ class Periodic:
                 await self._task
 
     async def _run(self) -> None:
+        await asyncio.sleep(self.first_run.total_seconds())
         while True:
-            await asyncio.sleep(self.frequency.total_seconds())
             log.debug(f"Execute periodic task {self.name}.")
             try:
                 result = self.func()
@@ -283,6 +288,7 @@ class Periodic:
                     await result
             except Exception as ex:
                 log.error(f"Periodic function {self.name} caught an exception: {ex}", exc_info=ex)
+            await asyncio.sleep(self.frequency.total_seconds())
 
 
 class AccessNone:
@@ -300,6 +306,12 @@ class AccessNone:
 
     def __eq__(self, other: Any) -> bool:
         return other is None or isinstance(other, AccessNone)
+
+    def __iter__(self) -> Iterator[Any]:
+        return self
+
+    def __next__(self) -> None:
+        raise StopIteration()
 
 
 class AccessJson(Dict[Any, Any]):

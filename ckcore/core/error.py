@@ -2,34 +2,46 @@ class CoreException(Exception):
     pass
 
 
-class NotFoundError(Exception):
-    pass
-
-
 class ClientError(Exception):
+    """
+    Mark error as something the client caused.
+    """
+
+
+class NotFoundError(ClientError):
+    """
+    Mark error as something that could not be found.
+    """
+
+
+class ServerError(Exception):
+    """
+    Mark error as something the server caused.
+    """
+
+
+class DatabaseError(CoreException):
+    """
+    Base for all database exceptions.
+    """
+
+
+class QueryTookToLongError(DatabaseError, ClientError):
     pass
 
 
-class DatabaseError(ClientError):
-    pass
-
-
-class QueryTookToLongError(DatabaseError):
-    pass
-
-
-class InvalidBatchUpdate(ClientError):
+class InvalidBatchUpdate(CoreException, ClientError):
     def __init__(self) -> None:
         super().__init__("The same batch can not update the same subgraph or any parent node!")
 
 
-class ConflictingChangeInProgress(ClientError):
+class ConflictingChangeInProgress(CoreException, ClientError):
     def __init__(self, other_change_id: str):
         super().__init__(f"Conflicting change in progress: {other_change_id}!")
         self.other_change_id = other_change_id
 
 
-class OptimisticLockingFailed(ClientError):
+class OptimisticLockingFailed(CoreException, ClientError):
     def __init__(self, uid: str, current_revision: str, read_revision: str) -> None:
         super().__init__(
             f"Node {uid}: The record to update has been changed since it was read!"
@@ -40,29 +52,29 @@ class OptimisticLockingFailed(ClientError):
         self.read_revision = read_revision
 
 
-class NoSuchGraph(ClientError, NotFoundError):
+class NoSuchGraph(CoreException, NotFoundError):
     def __init__(self, graph: str):
         super().__init__(f"No graph with this name {graph}")
         self.graph = graph
 
 
-class NoSuchChangeError(ClientError, NotFoundError):
+class NoSuchChangeError(CoreException, NotFoundError):
     def __init__(self, change_id: str):
         super().__init__(f"No batch with given id {change_id}")
         self.change_id = change_id
 
 
-class ImportAborted(CoreException):
+class ImportAborted(CoreException, ClientError):
     pass
 
 
-class CLIParseError(ClientError):
+class CLIParseError(CoreException, ClientError):
     pass
 
 
-class CLIExecutionError(ClientError):
+class CLIExecutionError(CoreException, ClientError):
     pass
 
 
-class ParseError(ClientError):
+class ParseError(CoreException, ClientError):
     pass

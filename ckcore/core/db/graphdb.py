@@ -1016,11 +1016,20 @@ class EventGraphDB(GraphDB):
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
         roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
-        even_data = {"graph": self.graph_name, "root_ids": roots}
+        event_data = {"graph": self.graph_name}
+        root_counter: Dict[str, int] = {}
+        for root in roots:
+            root_node = graph_to_merge.nodes[root]
+            rep_id = value_in_path_get(root_node, NodePath.reported_id, root)
+            root_counter[f"node_count_{rep_id}.total"] = value_in_path_get(root_node, NodePath.descendant_count, 0)
+            summary: Dict[str, int] = value_in_path_get(root_node, NodePath.descendant_summary, {})
+            for nd_name, nd_count in summary.items():
+                root_counter[f"node_count_{rep_id}.{nd_name}"] = nd_count
+
         kind = CoreEvent.BatchUpdateGraphMerged if is_batch else CoreEvent.GraphMerged
         await self.event_sender.core_event(
             kind,
-            even_data,
+            event_data,
             nodes=len(graph_to_merge.nodes),
             edges=len(graph_to_merge.edges),
             updated_roots=len(roots),
@@ -1031,6 +1040,7 @@ class EventGraphDB(GraphDB):
             edges_created=info.edges_created,
             edges_updated=info.edges_updated,
             edges_deleted=info.edges_deleted,
+            **root_counter,
         )
         return roots, info
 

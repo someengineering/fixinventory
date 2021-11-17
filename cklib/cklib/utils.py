@@ -1,8 +1,10 @@
+import string
 import threading
 import re
 import os
 import gc as garbage_collector
 import sys
+import random
 
 if sys.platform == "linux":
     import resource
@@ -116,6 +118,12 @@ class _LightSwitch:
         if self.__counter == 0:
             lock.release()
         self.__mutex.release()
+
+
+def rnd_str(str_len: int = 10) -> str:
+    return "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len)
+    )
 
 
 def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
