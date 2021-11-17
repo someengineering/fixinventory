@@ -22,7 +22,7 @@ Orphaned Load Balancers that have no active backend
 
 .. code-block:: bash
     
-    match is(aws_alb) and ctime < -7d and backends==[] with(empty, <-- is(aws_alb_target_group) and target_type = instance and ctime < -7d with(empty, <-- is(aws_ec2_instance) and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
+    match is(aws_alb) and age > 7d and backends==[] with(empty, <-- is(aws_alb_target_group) and target_type = instance and age > 7d with(empty, <-- is(aws_ec2_instance) and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
 
 aws_iam_access_key
 ==================
@@ -64,13 +64,13 @@ Find current quota consumption to prevent service interruptions
 volume
 ======
 
-Discover unused volumes
------------------------
+Discover unused AWS volumes
+---------------------------
 
 .. code-block:: bash
-    :caption: Find unused volumes older than 30 days with no IO in the past 7 days
+    :caption: Find unused AWS volumes older than 30 days with no IO in the past 7 days
     
-    match is(volume) and ctime < -30d and atime < -7d and mtime < -7d and volume_status = available
+    match is(aws_ec2_volume) and age > 30d and last_access > 7d and last_update > 7d and volume_status = available
 
 .. _query_missing:
 
