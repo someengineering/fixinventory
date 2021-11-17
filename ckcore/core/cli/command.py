@@ -1557,12 +1557,15 @@ class ListCommand(CLICommand, OutputTransformer):
         def fmt(elem: JsonElement) -> str:
             result = ""
             first = True
-            for path, name in props:
-                value = value_in_path(elem, path)
-                if value is not None:
-                    delim = "" if first else ", "
-                    result += f"{delim}{to_str(name, value)}"
-                    first = False
+            if isinstance(elem, dict):
+                for path, name in props:
+                    value = value_in_path(elem, path)
+                    if value is not None:
+                        delim = "" if first else ", "
+                        result += f"{delim}{to_str(name, value)}"
+                        first = False
+            else:
+                result = str(elem)
             return result
 
         return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
