@@ -820,7 +820,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     Usage: execute_query <query>
 
     A query is performed against the graph database and all resulting elements will be emitted.
-    To learn more about the query, visit todo: link is missing.
+    To learn more about the query, visit https://docs.some.engineering/
 
     Example:
         execute_query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, ..]
@@ -1516,7 +1516,8 @@ class ListCommand(CLICommand, OutputTransformer):
         ("reported.kind", "kind"),
         ("reported.id", "id"),
         ("reported.name", "name"),
-        ("reported.ctime", "ctime"),
+        ("reported.age", "age"),
+        ("reported.last_update", "last_update"),
         ("metadata.ancestors.cloud.name", "cloud"),
         ("metadata.ancestors.account.name", "account"),
         ("metadata.ancestors.region.name", "region"),
