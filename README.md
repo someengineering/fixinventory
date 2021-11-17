@@ -92,6 +92,7 @@ If you have any questions feel free to [join our Discord](https://discord.gg/som
 ## License
 ```
 Copyright 2021 Some Engineering Inc.
+Copyright 2019-2021 D2iQ, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
