@@ -330,9 +330,10 @@ class CLI:
 
         async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
+            ck_session_id = context.env.get("ck_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
-                {"command_names": command_names},
+                {"command_names": command_names, "session_id": ck_session_id},
                 command_lines=len(parsed),
                 commands=len(command_names),
             )
