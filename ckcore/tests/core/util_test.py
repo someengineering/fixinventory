@@ -38,6 +38,10 @@ def test_access_json() -> None:
     assert str(access["foo"]["bla"]["bar"][23]["now"]) is "null"
     assert json.dumps(access["b"]["d"], sort_keys=True) == '{"e": "e", "f": [0, 1, 2, 3, 4]}'
 
+    assert [a for a in access] == ["a", "b"]
+    assert [a for a in access.doesnt.exist] == []
+    assert [a for a in access.b.d.items()] == [("e", "e"), ("f", [0, 1, 2, 3, 4])]
+
 
 def test_uuid() -> None:
     assert uuid_str("foo") == uuid_str("foo")

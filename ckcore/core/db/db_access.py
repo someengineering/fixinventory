@@ -1,15 +1,18 @@
 import logging
 from abc import ABC
+from argparse import Namespace
 from datetime import datetime, timezone, timedelta
 from time import sleep
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-from arango import ArangoServerError
+from arango import ArangoServerError, ArangoClient
 from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
 
 from core.analytics import AnalyticsEventSender
+from core.db import SystemData
+from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.configdb import config_entity_db
 from core.db.entitydb import EventEntityDb
@@ -20,7 +23,8 @@ from core.db.runningtaskdb import running_task_db
 from core.db.subscriberdb import subscriber_db
 from core.error import NoSuchGraph
 from core.model.adjust_node import AdjustNode
-from core.util import Periodic, utc, shutdown_process
+from core.model.typed_model import to_js, from_js
+from core.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -105,12 +109,29 @@ class DbAccess(ABC):
 
     # Only used during startup.
     # Note: this call uses sleep and will block the current executing thread!
-    def wait_for_initial_connect(self, timeout: timedelta) -> None:
+    @classmethod
+    def connect(cls, args: Namespace, timeout: timedelta) -> Tuple[bool, SystemData, StandardDatabase]:
         deadline = utc() + timeout
+        db = cls.client(args)
+
+        def system_data() -> Tuple[bool, SystemData]:
+            def insert_system_data() -> SystemData:
+                system = SystemData(uuid_str(), utc(), 1)
+                log.info(f"Create new system data entry: {system}")
+                db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=True)
+                return system
+
+            if not db.has_collection("system_data"):
+                db.create_collection("system_data")
+
+            sys_js = db.collection("system_data").get("system")
+            return (True, insert_system_data()) if not sys_js else (False, from_js(sys_js, SystemData))
+
         while True:
             try:
-                self.db.db.echo()
-                return None
+                db.echo()
+                created, sys_data = system_data()
+                return created, sys_data, db
             except ArangoServerError as ex:
                 if utc() > deadline:
                     log.error("Can not connect to database. Giving up.")
@@ -120,3 +141,13 @@ class DbAccess(ABC):
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
                 sleep(5)
+
+    @staticmethod
+    def client(args: Namespace) -> StandardDatabase:
+        if args.graphdb_type not in "arangodb":
+            log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
+            shutdown_process(1)
+
+        http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
+        client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)
+        return client.db(args.graphdb_database, username=args.graphdb_username, password=args.graphdb_password)

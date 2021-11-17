@@ -17,6 +17,7 @@ from requests_toolbelt.multipart.decoder import BodyPart
 from cklib.args import ArgumentParser
 from cklib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
 from cklib.logging import log, setup_logger, add_args as logging_add_args
+from cklib.utils import rnd_str
 from cksh.protected_files import validate_paths
 
 
@@ -33,9 +34,10 @@ def main() -> None:
 
     headers = {"Accept": "text/plain"}
     execute_endpoint = f"{ArgumentParser.args.ckcore_uri}/cli/execute"
+    execute_endpoint += f"?ck_session_id={rnd_str()}"
     if ArgumentParser.args.ckcore_graph:
         query_string = urlencode({"graph": ArgumentParser.args.ckcore_graph})
-        execute_endpoint += f"?{query_string}"
+        execute_endpoint += f"&{query_string}"
 
     if ArgumentParser.args.stdin:
         log.debug("Reading commands from STDIN")

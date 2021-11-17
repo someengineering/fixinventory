@@ -102,7 +102,7 @@ class Api:
         self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.args = args
-        self.app = web.Application(middlewares=[metrics_handler, auth.auth_handler(args), error_handler()])
+        self.app = web.Application(middlewares=[metrics_handler, auth.auth_handler(args), error_handler(event_sender)])
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(

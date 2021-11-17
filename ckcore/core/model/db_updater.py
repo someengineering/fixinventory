@@ -140,7 +140,8 @@ class DbUpdaterProcess(Process):
 
     async def setup_and_merge(self) -> GraphUpdate:
         sender = InMemoryEventSender()
-        db = db_access(self.args, sender)
+        _, _, sdb = DbAccess.connect(self.args, timedelta(seconds=3))
+        db = db_access(sdb, sender)
         result = await self.merge_graph(db)
         for event in sender.events:
             self.write_queue.put(EmitAnalyticsEvent(event))
@@ -197,7 +198,7 @@ async def merge_graph_process(
                 try:
                     action = await run_async(read.get, True, stale)
                     if isinstance(action, EmitAnalyticsEvent):
-                        await event_sender.send_event(action.event)
+                        await event_sender.capture(action.event)
                     elif isinstance(action, Result):
                         return action.get_value()
                 except Empty:

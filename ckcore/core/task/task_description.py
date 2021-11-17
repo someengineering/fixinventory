@@ -665,8 +665,9 @@ class RunningTask:
         If this method is called, the task is marked as failed and moves to the end state.
         Use this method to abort a task.
         """
-        self.is_error = True
-        self._to_err()  # type: ignore # pylint: disable=no-member
+        if not isinstance(self.current_state, EndState):
+            self.is_error = True
+            self._to_err()  # type: ignore # pylint: disable=no-member
 
     def ack_for(self, message_type: str, subscriber: Subscriber) -> Optional[Message]:
         """

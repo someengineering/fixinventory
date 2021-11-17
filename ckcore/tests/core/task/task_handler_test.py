@@ -5,6 +5,7 @@ from argparse import ArgumentParser, Namespace
 from pytest import fixture
 from typing import AsyncGenerator, List
 
+from core.analytics import AnalyticsEventSender
 from core.cli.cli import CLI
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskDb
@@ -68,13 +69,14 @@ async def task_handler(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
     message_bus: MessageBus,
+    event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
     task_handler_args: Namespace,
 ) -> AsyncGenerator[TaskHandler, None]:
     task_handler = TaskHandler(
-        running_task_db, job_db, message_bus, subscription_handler, Scheduler(), cli, task_handler_args
+        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, task_handler_args
     )
     task_handler.task_descriptions = [test_workflow]
     cli.dependencies.lookup["job_handler"] = task_handler
@@ -139,6 +141,7 @@ async def test_recover_workflow(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
     message_bus: MessageBus,
+    event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
     all_events: List[Message],
     cli: CLI,
@@ -147,7 +150,14 @@ async def test_recover_workflow(
 ) -> None:
     def handler() -> TaskHandler:
         th = TaskHandler(
-            running_task_db, job_db, message_bus, subscription_handler, Scheduler(), cli, task_handler_args
+            running_task_db,
+            job_db,
+            message_bus,
+            event_sender,
+            subscription_handler,
+            Scheduler(),
+            cli,
+            task_handler_args,
         )
         th.task_descriptions = [test_workflow]
         return th

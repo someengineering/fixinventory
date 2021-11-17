@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Mapping, List, Union
+from typing import Optional, Mapping, List, Union, Any
 
 from core.types import JsonElement
 from core.util import utc
@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class CoreEvent:
+    SystemInstalled = "system.installed"
     SystemStarted = "system.started"
     SystemStopped = "system.stopped"
     NodeCreated = "graphdb.node-created"
@@ -30,6 +31,10 @@ class CoreEvent:
     ModelInfo = "model.info"
     SubscriberInfo = "subscriber.info"
     WorkerQueueInfo = "worker-queue.info"
+    TaskStarted = "task-handler.task-started"
+    TaskCompleted = "task-handler.task-completed"
+    ClientError = "error.client"
+    ServerError = "error.server"
 
 
 @dataclass(frozen=True)
@@ -46,18 +51,17 @@ class AnalyticsEventSender(ABC):
         self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: Union[int, float]
     ) -> AnalyticsEvent:
         event = AnalyticsEvent("ckcore", kind, context if context else {}, counters, utc())
-        await self.send_event(event)
+        await self.capture(event)
         return event
 
     @abstractmethod
-    async def send_event(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: AnalyticsEvent) -> None:
         pass
 
-    @staticmethod
-    async def flush() -> None:
-        """
-        Override this method to allow explicit flushing of events.
-        """
+    async def __aenter__(self) -> AnalyticsEventSender:
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         return None
 
 
@@ -66,8 +70,12 @@ class NoEventSender(AnalyticsEventSender):
     Use this sender to not emit any events other than writing it to the log file.
     """
 
-    async def send_event(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: AnalyticsEvent) -> None:
         log.debug(event)
+
+    async def __aenter__(self) -> AnalyticsEventSender:
+        log.info("Analytics has been turned off. No insights can be created.")
+        return self
 
 
 class InMemoryEventSender(AnalyticsEventSender):
@@ -78,5 +86,5 @@ class InMemoryEventSender(AnalyticsEventSender):
     def __init__(self) -> None:
         self.events: List[AnalyticsEvent] = []
 
-    async def send_event(self, event: AnalyticsEvent) -> None:
+    async def capture(self, event: AnalyticsEvent) -> None:
         self.events.append(event)

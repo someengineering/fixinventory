@@ -4,17 +4,15 @@ import multiprocessing as mp
 from argparse import Namespace
 from typing import Optional, List
 
-from arango import ArangoClient
+from arango.database import StandardDatabase
 from cklib.args import ArgumentParser
 from cklib.jwt import add_args as jwt_add_args
 
 from core import async_extensions
 from core.analytics import AnalyticsEventSender
-from core.db.arangodb_extensions import ArangoHTTPClient
 from core.db.db_access import DbAccess
 from core.model.adjust_node import DirectAdjuster
 from core.task.task_handler import TaskHandler
-from core.util import shutdown_process
 
 log = logging.getLogger(__name__)
 
@@ -99,6 +97,12 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Max waiting time to complete a merge graph action.",
     )
     parser.add_argument("--debug", default=False, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--analytics-opt-out",
+        default=False,
+        action="store_true",
+        help="Stop collecting analytics data.",
+    )
 
     TaskHandler.add_args(parser)
     return parser.parse_args(args, namespace)  # type: ignore
@@ -130,13 +134,6 @@ def reset_process_start_method() -> None:
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
-def db_access(args: Namespace, event_sender: AnalyticsEventSender) -> DbAccess:
-    if args.graphdb_type not in "arangodb":
-        log.fatal(f"Unknown Graph DB type {args.graphdb_type}")
-        shutdown_process(1)
-
-    http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
-    client = ArangoClient(hosts=args.graphdb_server, http_client=http_client)
-    database = client.db(args.graphdb_database, username=args.graphdb_username, password=args.graphdb_password)
+def db_access(db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
     adjuster = DirectAdjuster()
-    return DbAccess(database, event_sender, adjuster)
+    return DbAccess(db, event_sender, adjuster)

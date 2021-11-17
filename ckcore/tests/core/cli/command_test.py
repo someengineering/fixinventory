@@ -309,7 +309,7 @@ async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_work
 
 @pytest.mark.asyncio
 async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
-    await task_handler.start_task(test_workflow)
+    await task_handler.start_task(test_workflow, "direct")
     result = await cli.execute_cli_command("tasks", stream.list)
     assert len(result[0]) == 1
     task = AccessJson(result[0][0])
