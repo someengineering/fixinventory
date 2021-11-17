@@ -51,7 +51,7 @@ def error_handler(event_sender: AnalyticsEventSender) -> Callable[[Request, Requ
             message = f"Error: {kind}\nMessage: {str(e)}"
             log.info(f"Request {request} has failed with exception: {message}", exc_info=exc_info(e))
             raise HTTPNotFound(text=message) from e
-        except ClientError as e:
+        except (ClientError, AttributeError) as e:
             kind = type(e).__name__
             ex_str = str(e)
             message = f"Error: {kind}\nMessage: {ex_str}"
