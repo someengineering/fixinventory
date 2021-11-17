@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudkeeper.fullname" . }}-ckcore
+  labels:
+    {{- include "cloudkeeper.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /usr/local/cloudkeeper-venv-pypy3/bin/ckcore
+          args:
+            - --start-collect-on-subscriber-connect
+          env:
+          - name: CKCORE_GRAPHDB_SERVER
+            value: {{ .Values.ckcore.graphdb.server  | quote }}
+          - name: CKCORE_GRAPHDB_DATABASE
+            value: {{ .Values.ckcore.graphdb.database | quote }}
+          - name: CKCORE_GRAPHDB_LOGIN
+            value: {{ .Values.ckcore.graphdb.login | quote }}
+          - name: CKCORE_GRAPHDB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.ckcore.graphdb.passwordSecret.name }}
+                key: {{ .Values.ckcore.graphdb.passwordSecret.key }}
+
+          ports:
+            - name: http
+              containerPort: 8900
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /system/ready
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

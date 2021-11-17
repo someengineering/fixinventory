@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudkeeper.fullname" . }}-ckworker
+  labels:
+    {{- include "cloudkeeper.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+
+          command:
+            - /usr/local/cloudkeeper-venv-pypy3/bin/ckworker
+          args:
+          - --ckcore-uri
+          - {{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
+          - --ckcore-ws-uri
+          - {{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
+
+          {{- if .Values.ckworker.extraArgs }}
+          {{- toYaml .Values.ckworker.extraArgs | nindent 12 }}
+          {{- end }}
+          env:
+            - name: CKWORKER_COLLECTOR
+              value: {{ .Values.ckworker.collector }}
+          {{- if .Values.ckworker.extraEnv }}
+          {{- toYaml .Values.ckworker.extraEnv | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9956
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
