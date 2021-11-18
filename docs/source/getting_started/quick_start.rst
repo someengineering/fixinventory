@@ -183,7 +183,7 @@ Query your resource types
 .. code-block:: bash
 
     > help match
-    > match is(aws_ec2_instance) limit 1
+    > match is(aws_ec2_instance) limit 1 | dump
     reported:
     kind: aws_ec2_instance
     id: i-03df836cdd46e2f94
@@ -235,8 +235,8 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance) ctime < -1d | count
-    > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count
+    > match is(aws_ec2_instance) and age > 1d | count
+    > match is(aws_ec2_instance) and ctime < @YESTERDAY@ | count
 
 | ``help`` provides all available placeholder strings in section ``Valid placeholder string``
 | ``match`` automatically filters for the ``reported`` section of the response. With commands like ``query`` you need to explicitly select the reported section.  ``ctime`` is then selected via ``reported.ctime``.
@@ -247,7 +247,7 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance) ctime < "@YESTERDAY@" | count reported.instance_cores
+    > match is(aws_ec2_instance) and ctime < @YESTERDAY@ | count reported.instance_cores
     2: 1                         ← Number of occurences of reported.instance_cores = 2
     1: 1                         ← Number of occurences of reported.instance_cores = 1
     total matched: 2
@@ -257,7 +257,7 @@ As a small reminder: ``reported.instance_cores`` references to data from matched
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance)
+    > match is(aws_ec2_instance) | dump
     reported:
     kind: aws_ec2_instance
     [...]

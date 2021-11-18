@@ -51,21 +51,20 @@ def main() -> None:
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
-    cli_deps = CLIDependencies()
+    cli_deps = CLIDependencies(
+        message_bus=message_bus,
+        event_sender=event_sender,
+        db_access=db,
+        model_handler=model,
+        worker_task_queue=worker_task_queue,
+        args=args,
+    )
     cli = CLI(cli_deps, all_commands(cli_deps), dict(os.environ), aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandler(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
     )
-    cli_deps.lookup = {
-        "message_bus": message_bus,
-        "event_sender": event_sender,
-        "db_access": db,
-        "model_handler": model,
-        "job_handler": task_handler,
-        "worker_task_queue": worker_task_queue,
-        "args": args,
-    }
+    cli_deps.extend(job_handler=task_handler)
     api = Api(db, model, subscriptions, task_handler, message_bus, event_sender, worker_task_queue, cli, args)
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1)

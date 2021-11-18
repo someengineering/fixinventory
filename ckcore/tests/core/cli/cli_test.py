@@ -50,16 +50,15 @@ def cli_deps(
 ) -> CLIDependencies:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
-    deps = CLIDependencies()
     args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
-    deps.lookup = {
-        "message_bus": message_bus,
-        "event_sender": event_sender,
-        "db_access": db_access,
-        "model_handler": model_handler,
-        "worker_task_queue": task_queue,
-        "args": args,
-    }
+    deps = CLIDependencies(
+        message_bus=message_bus,
+        event_sender=event_sender,
+        db_access=db_access,
+        model_handler=model_handler,
+        worker_task_queue=task_queue,
+        args=args,
+    )
     return deps
 
 

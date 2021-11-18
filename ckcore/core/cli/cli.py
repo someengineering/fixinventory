@@ -233,7 +233,7 @@ class CLI:
         self.dependencies = dependencies
         self.aliases = aliases
 
-    def command(self, name: str, arg: Optional[str], ctx: CLIContext) -> ExecutableCommand:
+    def command(self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> ExecutableCommand:
         """
         Create an executable command for given command name, args and context.
         :param name: the name of the command to execute (must be a known command)
