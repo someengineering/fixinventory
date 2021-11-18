@@ -102,13 +102,13 @@ class PArray:
         self.name = name
 
     def for_any(self) -> P:
-        return P(self.name, array=True, filter="any")
+        return P(self.name, filter="any")
 
     def for_none(self) -> P:
-        return P(self.name, array=True, filter="none")
+        return P(self.name, filter="none")
 
     def for_all(self) -> P:
-        return P(self.name, array=True, filter="all")
+        return P(self.name, filter="all")
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -210,7 +210,8 @@ class Predicate(Term):
     args: Mapping[str, Any]
 
     def __str__(self) -> str:
-        return f"{self.name} {self.op} {self.value_str_rep(self.value)}"
+        modifier = f'{self.args["filter"]} ' if "filter" in self.args else ""
+        return f"{self.name} {modifier}{self.op} {self.value_str_rep(self.value)}"
 
     @staticmethod
     def value_str_rep(value: Any) -> str:

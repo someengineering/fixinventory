@@ -111,8 +111,8 @@ def query_string(
         path = p.name
 
         # handle that property is an array
-        if "array" in p.args:
-            arr_filter = p.args["filter"] if "filter" in p.args else "any"
+        if "filter" in p.args:
+            arr_filter = p.args["filter"]
             extra = f" {arr_filter} "
             path = f"{p.name}[]"
         elif "[*]" in p.name:
