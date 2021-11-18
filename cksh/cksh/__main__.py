@@ -165,7 +165,7 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
         if not first:
             print(line_delimiter)
         disposition = part.headers.get("Content-Disposition")
-        match = re.findall('filename="([^"]+)";', disposition if disposition else "")
+        match = re.findall('filename="([^"]+)"', disposition if disposition else "")
         name = match[0] if match else "out"
         path = os.path.join(ArgumentParser.args.download_directory, name)
         i = 0
