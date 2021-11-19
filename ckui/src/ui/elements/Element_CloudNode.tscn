@@ -1,8 +1,8 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://ui/elements/scripts/element_cloud_node.gd" type="Script" id=1]
 
-[sub_resource type="DynamicFontData" id=14]
+[sub_resource type="DynamicFontData" id=16]
 font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
 [sub_resource type="DynamicFont" id=15]
@@ -11,7 +11,10 @@ outline_size = 3
 outline_color = Color( 0.0980392, 0.184314, 0.313726, 1 )
 use_mipmaps = true
 use_filter = true
-font_data = SubResource( 14 )
+font_data = SubResource( 16 )
+
+[sub_resource type="DynamicFontData" id=14]
+font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
 
 [sub_resource type="DynamicFont" id=9]
 size = 128

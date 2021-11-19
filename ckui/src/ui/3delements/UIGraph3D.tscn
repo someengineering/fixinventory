@@ -8,7 +8,7 @@ script = ExtResource( 1 )
 main_ui = NodePath(".")
 
 [node name="GraphCam3D" type="Camera" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2000 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1000 )
 fov = 40.0
 near = 100.0
 far = 50000.0
@@ -19,3 +19,10 @@ script = ExtResource( 2 )
 [node name="CamMoveTween" type="Tween" parent="."]
 
 [node name="AnimTween" type="Tween" parent="."]
+
+[node name="NewNodeSelectionTimer" type="Timer" parent="."]
+wait_time = 0.05
+one_shot = true
+
+[connection signal="tween_all_completed" from="CamMoveTween" to="." method="_on_CamMoveTween_tween_all_completed"]
+[connection signal="timeout" from="NewNodeSelectionTimer" to="." method="_on_NewNodeSelectionTimer_timeout"]

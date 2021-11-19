@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://ui/3delements/scripts/element_cloudnode_3D.gd" type="Script" id=2]
 
@@ -8,6 +8,8 @@
 flags_unshaded = true
 albedo_color = Color( 0.290196, 0.576471, 0.788235, 1 )
 
+[sub_resource type="BoxShape" id=7]
+
 [node name="ElementCloudNode3D" type="Spatial"]
 transform = Transform( 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 )
 script = ExtResource( 2 )
@@ -16,3 +18,15 @@ script = ExtResource( 2 )
 transform = Transform( 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0, 0, 1, 0, 0, 0 )
 mesh = SubResource( 6 )
 material/0 = SubResource( 2 )
+
+[node name="Area" type="Area" parent="MeshInstance"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 )
+
+[node name="CollisionShape" type="CollisionShape" parent="MeshInstance/Area"]
+shape = SubResource( 7 )
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+transform = Transform( 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 1.93448 )
+billboard = 1
+
+[connection signal="input_event" from="MeshInstance/Area" to="." method="_on_Area_input_event"]

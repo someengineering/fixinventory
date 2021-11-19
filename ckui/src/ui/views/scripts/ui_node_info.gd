@@ -71,3 +71,7 @@ func _on_AnimTween_tween_all_completed() -> void:
 
 func _on_MarkForCleanupButton_pressed():
 	_e.emit_signal("show_blastradius", selected_node.id)
+
+
+func _on_CloseButton_pressed():
+	_e.emit_signal("nodeinfo_hide")

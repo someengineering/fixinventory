@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=2]
+[gd_scene load_steps=43 format=2]
 
 [ext_resource path="res://ui/views/UI_CommandLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=2]
@@ -20,6 +20,7 @@
 [ext_resource path="res://scripts/networking/api.gd" type="Script" id=18]
 [ext_resource path="res://ui/elements/Element_Popup_ConnectToCore.tscn" type="PackedScene" id=19]
 [ext_resource path="res://ui/3delements/UIGraph3D.tscn" type="PackedScene" id=20]
+[ext_resource path="res://ui/elements/LabelService.tscn" type="PackedScene" id=21]
 
 [sub_resource type="Shader" id=21]
 code = "shader_type canvas_item;
@@ -163,6 +164,7 @@ glow_high_quality = true
 [node name="CloudkeeperUI" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 script = ExtResource( 6 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -189,6 +191,7 @@ __meta__ = {
 [node name="UIGraph3DViewport" type="ViewportContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 __meta__ = {
@@ -202,6 +205,7 @@ transparent_bg = true
 handle_input_locally = false
 msaa = 3
 render_target_update_mode = 3
+physics_object_picking = true
 
 [node name="UIGraph3D" parent="UIGraph3DViewport/Viewport" instance=ExtResource( 20 )]
 main_ui = NodePath("../../..")
@@ -331,6 +335,8 @@ visible = false
 popup_exclusive = true
 
 [node name="PopupConnectCore" parent="UI/Popups" instance=ExtResource( 19 )]
+
+[node name="LabelService" parent="." instance=ExtResource( 21 )]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource( 17 )

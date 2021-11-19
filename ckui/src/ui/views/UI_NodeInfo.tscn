@@ -111,6 +111,7 @@ __meta__ = {
 }
 
 [node name="BackgroundBlur" type="Sprite" parent="."]
+visible = false
 material = SubResource( 2 )
 position = Vector2( 960, 540 )
 scale = Vector2( 1920, 1080 )
@@ -285,6 +286,18 @@ margin_right = 232.0
 margin_bottom = 30.0
 text = "Manage tags"
 
+[node name="CloseButton" parent="Background" instance=ExtResource( 5 )]
+margin_left = 592.0
+margin_top = 8.0
+margin_right = 632.0
+
+[node name="ButtonLabel" parent="Background/CloseButton/CenterContainer" index="0"]
+margin_left = 12.0
+margin_top = 2.0
+margin_right = 28.0
+margin_bottom = 30.0
+text = "X"
+
 [node name="Line2D" type="Line2D" parent="Background"]
 material = SubResource( 17 )
 position = Vector2( -1008, 584 )
@@ -310,9 +323,11 @@ position = Vector2( 960, 540 )
 position = Vector2( 344, 20 )
 
 [connection signal="pressed" from="Background/MarkForCleanupButton" to="." method="_on_MarkForCleanupButton_pressed"]
+[connection signal="pressed" from="Background/CloseButton" to="." method="_on_CloseButton_pressed"]
 [connection signal="tween_all_completed" from="AnimTween" to="." method="_on_AnimTween_tween_all_completed"]
 
 [editable path="Background/ContactOwnerButton"]
 [editable path="Background/MarkForCleanupButton"]
 [editable path="Background/StartQueryButton"]
 [editable path="Background/ManageTagsButton"]
+[editable path="Background/CloseButton"]

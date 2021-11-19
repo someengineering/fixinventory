@@ -19,3 +19,6 @@ signal connect_popup
 signal api_connect
 signal api_request
 signal change_cam_zoom
+signal request_label
+signal change_cam_zoom_3d
+signal go_to_graph_node_3d

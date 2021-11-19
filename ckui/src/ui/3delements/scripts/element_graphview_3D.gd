@@ -49,7 +49,7 @@ var rot := 0.0
 
 func _process(delta):
 	rot += delta*3
-	$Center.rotation_degrees.y = rot
+	#$Center.rotation_degrees.y = rot
 
 
 func add_structure():
@@ -138,8 +138,8 @@ func end_streaming():
 		if "metadata" in node.data and "descendant_count" in node.data.metadata:
 			node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
 	
-	for edge in graph_data.edges.values():
-		var edge_scale = edge.to.scene.descendant_scale
+#	for edge in graph_data.edges.values():
+#		var edge_scale = edge.to.scene.descendant_scale
 #		edge.line.width = clamp(4 * edge_scale, 1, 8)
 	
 #	node_group.modulate.a = 1

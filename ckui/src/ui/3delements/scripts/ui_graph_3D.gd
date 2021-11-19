@@ -4,6 +4,8 @@ signal filtering_done
 
 const MAX_ZOOM = 0.2
 const MIN_ZOOM = 8.0
+const MIN_ZOOM_3D = 1000
+const MAX_ZOOM_3D = 20000
 const TOUCH_ZOOM_SPEED = 0.1
 
 var root_node : Object = null
@@ -35,7 +37,7 @@ func _ready():
 	_e.connect("graph_order", self, "main_graph_order")
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
-	_e.connect("go_to_graph_node", self, "go_to_graph_node")
+	_e.connect("go_to_graph_node_3d", self, "go_to_graph_node_3d")
 	_e.connect("nodeinfo_hide", self, "hide_info")
 	self.connect("filtering_done", self, "generate_graph")
 
@@ -46,6 +48,7 @@ func set_is_active(value:bool):
 
 
 func _process(_delta):
+	#print("fps: " + str(Engine.get_frames_per_second()))
 	if root_node == null or !is_active:
 		return
 
@@ -111,7 +114,8 @@ func generate_graph(filtered_data_result:Dictionary):
 	root_node = graph.root_node
 	graph_cam.translation.x = root_node.global_transform.origin.x
 	graph_cam.translation.y = root_node.global_transform.origin.y
-	change_cam_zoom( 100 )
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 1000, 0.5, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.start()
 	
 	_e.emit_signal("nodes_changed")
 	graph.emit_signal("hide_nodes")
@@ -192,9 +196,9 @@ func _physics_process(delta):
 	var new_zoom_level := 0.0
 	if is_in_graph:
 		if Input.is_action_just_released("zoom_in"):
-			change_cam_zoom( max(graph_cam.translation.z * 0.95, 1000) )
+			change_cam_zoom( max(graph_cam.translation.z * 0.95, MIN_ZOOM_3D) )
 		elif Input.is_action_just_released("zoom_out"):
-			change_cam_zoom( min(graph_cam.translation.z * 1.05, 20000) )
+			change_cam_zoom( min(graph_cam.translation.z * 1.05, MAX_ZOOM_3D) )
 	
 
 
@@ -202,6 +206,7 @@ func _input(event):
 	if event is InputEventPanGesture:
 		var zoom_value = clamp(graph_cam.zoom.x + (-event.delta.y*TOUCH_ZOOM_SPEED), MAX_ZOOM, MIN_ZOOM)
 		change_cam_zoom(Vector2.ONE * zoom_value)
+
 
 func zoom_out():
 	original_zoom = graph_cam.translation.z
@@ -216,7 +221,7 @@ func zoom_in():
 	cam_tween.start()
 
 
-func go_to_graph_node(node_id, graph) -> void:
+func go_to_graph_node_3d(node_id, graph) -> void:
 	if !is_active or graph != _g.main_graph:
 		return
 	if target_node != null:
@@ -228,12 +233,12 @@ func go_to_graph_node(node_id, graph) -> void:
 	
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
-	var target_pos = target_node.scene.global_position - Vector2(344,20)
-	var target_zoom = target_node.scene.scale
-	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_position), 100, 1000), 100, 1000, 0.35, 1.5)
+	var target_pos = target_node.scene.global_transform.origin - Vector3(0,0,-200)# - Vector2(344,20)
+	#var target_zoom = target_node.scene.scale
+	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5)
 	cam_tween.remove_all()
-	cam_tween.interpolate_property(graph_cam, "global_position", graph_cam.global_position, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, target_zoom*0.5, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam, "global_transform:origin", graph_cam.global_transform.origin, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 500, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	target_node.scene.is_selected = true
 	cam_moving = true
@@ -250,22 +255,10 @@ func _on_CamMoveTween_tween_all_completed() -> void:
 func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
-
-func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
-	if !is_active:
-		return
-	if event is InputEventMouseButton:
-		if !event.pressed and !selected_new_node and target_node != null:
-			cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, 100, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
-			cam_tween.start()
-			target_node.scene.is_selected = false
-			target_node = null
-			cam_moving = false
-			_e.emit_signal("nodeinfo_hide")
-
 func hide_info():
 	pass
 
 func change_cam_zoom(zoom:float):
 	graph_cam.translation.z = zoom
-	#_e.emit_signal("change_cam_zoom", graph_cam.zoom)
+	var zoom_level = range_lerp(zoom, MIN_ZOOM_3D, MAX_ZOOM_3D, 1, 20)
+	_e.emit_signal("change_cam_zoom_3d", zoom_level)

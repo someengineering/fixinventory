@@ -12,6 +12,7 @@ onready var ui_search = $UI/UISearch
 onready var ui_blastradius = $UI/UIBlastradius
 onready var ui_commandline = $UI/UICommandLine
 
+
 var state = -1 setget set_state
 var old_state = -1
 
