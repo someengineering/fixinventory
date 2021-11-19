@@ -20,3 +20,4 @@ jq==1.2.1
 posthog==1.4.3
 # available in python 3.8
 backports.cached-property==1.0.1
+ustache==0.1.4
