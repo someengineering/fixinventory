@@ -74,7 +74,7 @@ kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckcore
 kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckworker
 kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckmetrics
 # see an example query!
-kubectl --namespace cloudkeeper exec -i deploy/cloudkeeper-ckcore -- cksh --stdin <<EOF
-kind
-query is(resource) | count reported.kind
-EOF
+#kubectl --namespace cloudkeeper exec -i deploy/cloudkeeper-ckcore -- cksh --stdin <<EOF
+#kind
+#query is(resource) | count reported.kind
+#EOF
