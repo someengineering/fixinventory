@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   name: {{ include "cloudkeeper.fullname" . }}-ckmetrics
   labels:
+    cloudkeeper: metrics
     {{- include "cloudkeeper.labels" . | nindent 4 }}
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/path: '/metrics'
     prometheus.io/port: '9955'
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
+      cloudkeeper: metrics
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
   template:
     metadata:
@@ -22,8 +22,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        cloudkeeper: metrics
         {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
     spec:
+      enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -41,9 +43,9 @@ spec:
             - /usr/local/cloudkeeper-venv-python3/bin/ckmetrics
           args:
           - --ckcore-uri
-          - {{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
           - --ckcore-ws-uri
-          - {{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
           
           ports:
             - name: http

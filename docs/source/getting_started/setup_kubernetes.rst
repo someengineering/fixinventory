@@ -91,11 +91,11 @@ Prepare your Helm values file:
     cat > cloudkeeper-values.yaml <<EOF
     ckcore:
         graphdb:
-        server: http://single-server:123
-        login: $CKCORE_GRAPHDB_LOGIN
-        passwordSecret:
-            name: cloudkeeper-graphdb-credentials
-            key: password
+            server: http://single-server:123
+            login: $CKCORE_GRAPHDB_LOGIN
+            passwordSecret:
+                name: cloudkeeper-graphdb-credentials
+                key: password
     # add your stuff here:
     ckworker:
         extraArgs:

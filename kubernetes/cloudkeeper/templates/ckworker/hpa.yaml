@@ -2,8 +2,9 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "cloudkeeper.fullname" . }}
+  name: {{ include "cloudkeeper.fullname" . }}-ckworker
   labels:
+    cloudkeeper: worker
     {{- include "cloudkeeper.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:

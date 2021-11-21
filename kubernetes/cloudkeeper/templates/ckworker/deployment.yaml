@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: {{ include "cloudkeeper.fullname" . }}-ckworker
   labels:
+    cloudkeeper: worker
     {{- include "cloudkeeper.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
@@ -10,6 +11,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
+      cloudkeeper: worker
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
   template:
     metadata:
@@ -18,8 +20,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        cloudkeeper: worker
         {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
     spec:
+      enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -34,15 +38,14 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
 
           command:
-            - /usr/local/cloudkeeper-venv-pypy3/bin/ckworker
+            - /usr/local/cloudkeeper-venv-python3/bin/ckworker
           args:
           - --ckcore-uri
-          - {{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
+          - http://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
           - --ckcore-ws-uri
-          - {{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
-
+          - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
           {{- if .Values.ckworker.extraArgs }}
-          {{- toYaml .Values.ckworker.extraArgs | nindent 12 }}
+          {{- toYaml .Values.ckworker.extraArgs | nindent 10 }}
           {{- end }}
           env:
             - name: CKWORKER_COLLECTOR
@@ -57,6 +60,10 @@ spec:
               port: 9956
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+    {{- if .Values.ckworker.volumeMounts }}
+          volumeMounts:
+    {{- toYaml .Values.ckworker.volumeMounts | indent 12 }}
+    {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -69,3 +76,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- if .Values.ckworker.volumes }}
+      volumes:
+{{ toYaml .Values.ckworker.volumes | indent 8 }}
+{{- end }}

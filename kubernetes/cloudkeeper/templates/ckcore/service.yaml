@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: {{ include "cloudkeeper.fullname" . }}-ckcore
   labels:
+    cloudkeeper: core
     {{- include "cloudkeeper.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.ckcore.service.type }}
@@ -12,4 +13,5 @@ spec:
       protocol: TCP
       name: http
   selector:
+    cloudkeeper: core
     {{- include "cloudkeeper.selectorLabels" . | nindent 4 }}

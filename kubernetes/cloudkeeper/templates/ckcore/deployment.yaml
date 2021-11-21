@@ -3,13 +3,13 @@ kind: Deployment
 metadata:
   name: {{ include "cloudkeeper.fullname" . }}-ckcore
   labels:
+    cloudkeeper: core
     {{- include "cloudkeeper.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
+      cloudkeeper: core
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
   template:
     metadata:
@@ -18,8 +18,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        cloudkeeper: core
         {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
-    spec:
+    spec: 
+      enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -36,19 +38,23 @@ spec:
           command:
             - /usr/local/cloudkeeper-venv-pypy3/bin/ckcore
           args:
+            - --host
+            - {{ .Values.ckcore.host | default "0.0.0.0" | quote }}
             - --start-collect-on-subscriber-connect
           env:
           - name: CKCORE_GRAPHDB_SERVER
             value: {{ .Values.ckcore.graphdb.server  | quote }}
           - name: CKCORE_GRAPHDB_DATABASE
             value: {{ .Values.ckcore.graphdb.database | quote }}
-          - name: CKCORE_GRAPHDB_LOGIN
+          - name: CKCORE_GRAPHDB_USERNAME
             value: {{ .Values.ckcore.graphdb.login | quote }}
+          {{- if .Values.ckcore.graphdb.passwordSecret }}
           - name: CKCORE_GRAPHDB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: {{ .Values.ckcore.graphdb.passwordSecret.name }}
                 key: {{ .Values.ckcore.graphdb.passwordSecret.key }}
+          {{- end }}
 
           ports:
             - name: http

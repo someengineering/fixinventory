@@ -66,16 +66,17 @@
                     "type": "object",
                     "required": [
                         "server",
-                        "login",
-                        "passwordSecret"
+                        "login"
                     ],
                     "properties": {
                         "server": {
                             "type": "string",
-                            "description": "The URL of the graph database server. i.e: http://foobar.tld:8529"
+                            "description": "The URL of the graph database server. i.e: http://foobar.tld:8529",
+                            "minLength": 1
                         },
                         "login": {
-                            "type": "string"
+                            "type": "string",
+                            "minLength": 1
                         },
                         "passwordSecret": {
                             "type": "object",
@@ -85,19 +86,27 @@
                             ],
                             "properties": {
                                 "name": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "minLength": 1
                                 },
                                 "key": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "minLength": 1
                                 }
                             }
                         }
                     }
+                },
+                "host": {
+                    "type": "string"
                 }
             }
         },
         "ckworker": {
             "type": "object",
+            "required": [
+                "collector"
+            ],
             "properties": {
                 "extraEnv": {
                     "type": "array",
@@ -123,6 +132,22 @@
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "collector": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "volumes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "volumeMounts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
                     }
                 }
             }

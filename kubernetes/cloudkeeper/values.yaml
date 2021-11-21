@@ -40,6 +40,7 @@ ckworker:
   extraEnv: []
 
 ckcore:
+  host: "0.0.0.0"
   service:
     type: ClusterIP
     port: 8900
@@ -60,7 +61,8 @@ ckcore:
     #    hosts:
     #      - chart-example.local
     # When installing, fill these in:
-    # graphdb:
+    graphdb:
+      database: cloudkeeper
     #   server: http://foo:123
     #   login: bar
     #   passwordSecret:
@@ -90,3 +92,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+
+db_install: false
