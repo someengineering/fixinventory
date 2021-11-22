@@ -10,7 +10,7 @@ from cklib.logging import log
 from typing import List, Optional
 
 
-def collect(collectors: List[BaseCollectorPlugin]):
+def collect(collectors: List[BaseCollectorPlugin]) -> None:
     graph_container = GraphContainer(cache_graph=False)
     graph = graph_container.graph
     max_workers = (
@@ -18,6 +18,11 @@ def collect(collectors: List[BaseCollectorPlugin]):
         if len(collectors) < ArgumentParser.args.pool_size
         else ArgumentParser.args.pool_size
     )
+    if max_workers == 0:
+        log.error(
+            "No workers configured or no collector plugins loaded - skipping collect"
+        )
+        return
     pool_args = {"max_workers": max_workers}
     if ArgumentParser.args.fork:
         pool_args["mp_context"] = multiprocessing.get_context("spawn")
