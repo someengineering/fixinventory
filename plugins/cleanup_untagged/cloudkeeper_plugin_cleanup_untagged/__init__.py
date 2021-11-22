@@ -110,7 +110,7 @@ class CleanupUntaggedConfig(dict):
 
     @staticmethod
     def validate(config) -> bool:
-        required_sections = ["tags", "classes", "accounts"]
+        required_sections = ["tags", "kinds", "accounts"]
         for section in required_sections:
             if section not in config:
                 raise ValueError(f"Section '{section}' not found in config")
@@ -118,8 +118,8 @@ class CleanupUntaggedConfig(dict):
         if not isinstance(config["tags"], list) or len(config["tags"]) == 0:
             raise ValueError("Error in 'tags' section")
 
-        if not isinstance(config["classes"], list) or len(config["classes"]) == 0:
-            raise ValueError("Error in 'classes' section")
+        if not isinstance(config["kinds"], list) or len(config["kinds"]) == 0:
+            raise ValueError("Error in 'kinds' section")
 
         if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
             raise ValueError("Error in 'accounts' section")
