@@ -8,35 +8,40 @@ from core.types import Json
 from core.util import identity
 
 
-def with_index(result: Any) -> Any:
-    def item(lst: List[Any], idx: int, i: Any) -> Any:
-        itm = i
-        if not isinstance(i, dict):
-            itm = {"value": i}
-        itm["index"] = idx
-        if idx == 0:
-            itm["first"] = True
-        if idx == len(lst) - 1:
-            itm["last"] = True
-        return itm
-
-    if isinstance(result, list):
-        result = [item(result, idx, a) for idx, a in enumerate(result)]
-    return result
-
-
-def json_stringify(data: Any, text: bool = False) -> Generator[Union[bytes, ByteString], None, None]:
-    if isinstance(data, ByteString) and not text:
-        yield data
-    elif isinstance(data, str):
-        yield data.encode()
-    elif isinstance(data, (list, dict)):
-        yield json.dumps(data).encode()
-    else:
-        yield f"{data}".encode()
-
-
 def render_template(template: str, props: Json) -> str:
+    """
+    Render given provided template with given property values.
+    :param template: the template string.
+    :param props: the properties to populate.
+    :return: the rendered template string.
+    """
+
+    def with_index(result: Any) -> Any:
+        def item(lst: List[Any], idx: int, i: Any) -> Any:
+            itm = i
+            if not isinstance(i, dict):
+                itm = {"value": i}
+            itm["index"] = idx
+            if idx == 0:
+                itm["first"] = True
+            if idx == len(lst) - 1:
+                itm["last"] = True
+            return itm
+
+        if isinstance(result, list):
+            result = [item(result, idx, a) for idx, a in enumerate(result)]
+        return result
+
+    def json_stringify(data: Any, text: bool = False) -> Generator[Union[bytes, ByteString], None, None]:
+        if isinstance(data, ByteString) and not text:
+            yield data
+        elif isinstance(data, str):
+            yield data.encode()
+        elif isinstance(data, (list, dict)):
+            yield json.dumps(data).encode()
+        else:
+            yield f"{data}".encode()
+
     getter = functools.partial(
         default_getter,
         virtuals={
