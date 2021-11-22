@@ -36,7 +36,28 @@ def in_subnet(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel)
     return f"BIT_AND(IPV4_TO_NUMBER({cursor}.{section_dot}{fn.property_path}), {mask}) == @{length}"
 
 
+def has_key(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:
+    assert (
+        len(fn.args) == 1
+    ), "has_key(path.to.property, name_of_prop) or has_key(path.to.property, [name_of_prop_a, name_of_prop_b])"
+    args = [fn.args[0]] if isinstance(fn.args[0], str) else fn.args[0]
+    for arg in args:
+        assert isinstance(arg, str), f"has_key: argument must be string, but got: {arg}"
+    section_dot = f"{model.query_section}." if model.query_section else ""
+    prop = f"fn{len(bind_vars)}"
+    if len(args) == 0:
+        return "true"
+    elif len(args) == 1:
+        bind_vars[prop] = fn.args[0]
+        return f"HAS({cursor}.{section_dot}{fn.property_path}, @{prop})"
+    else:
+        bind_vars[prop] = args
+        return f"@{prop} ALL IN ATTRIBUTES({cursor}.{section_dot}{fn.property_path}, true)"
+
+
 def as_arangodb_function(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:
+    if fn.fn == "has_key":
+        return has_key(cursor, bind_vars, fn, model)
     if fn.fn == "in_subnet":
         return in_subnet(cursor, bind_vars, fn, model)
     if fn.fn == "has_desired_change":

@@ -73,8 +73,12 @@ def test_parse_predicate() -> None:
 
 
 def test_parse_predicate_array() -> None:
-    # TODO: array params are not working
     assert_round_trip(predicate_term, P.array("mem").for_any() < 23)
+    assert_round_trip(predicate_term, P.array("mem").for_all() >= 23)
+    assert_round_trip(predicate_term, P.array("mem").for_none().matches("foo.*"))
+    assert_round_trip(predicate_term, P.array("num").for_any().is_in([1, 2, 5]))
+    assert_round_trip(predicate_term, P.array("num").for_all().is_in([1, 2, 5]))
+    assert_round_trip(predicate_term, P.array("num").for_none().is_in([1, 2, 5]))
 
 
 def test_kind() -> None:
@@ -85,6 +89,8 @@ def test_function() -> None:
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", 1, "2", True))
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", "in_subnet"))
     assert_round_trip(function_term, P.function("in_subnet").on("foo.bla.bar", "in_subnet", "1000"))
+    assert_round_trip(function_term, P.function("has_key").on("foo.bla.bar", "a", "b", "c"))
+    assert_round_trip(function_term, P.function("has_key").on("foo.bla.bar", "a"))
 
 
 def test_combined() -> None:

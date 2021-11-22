@@ -67,7 +67,9 @@ operation_p = (
     | lexeme(string("~")).result("=~")
 )
 
-function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change"]])
+array_modifier_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["all", "any", "none"]])
+
+function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change", "has_key"]])
 
 
 preamble_prop_p = reduce(
@@ -78,9 +80,11 @@ preamble_prop_p = reduce(
 @make_parser
 def predicate_term() -> Parser:
     name = yield variable_p
+    modifier = yield array_modifier_p.optional()
+    opts = {"filter": modifier} if modifier else {}
     op = yield operation_p
     value = yield json_value_p
-    return Predicate(name, op, value, {})
+    return Predicate(name, op, value, opts)
 
 
 @make_parser
