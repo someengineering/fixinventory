@@ -21,7 +21,7 @@ def test_ip_range() -> None:
 def test_has_key() -> None:
     bind_vars: Json = {}
     model = QueryModel(Query.by("foo"), Model.empty(), "reported")
-    result = has_key("crs", bind_vars, FunctionTerm("has_key", "foo.bla", ["a", "b", "c"]), model)
+    result = has_key("crs", bind_vars, FunctionTerm("has_key", "foo.bla", [["a", "b", "c"]]), model)
     assert result == "@fn0 ALL IN ATTRIBUTES(crs.reported.foo.bla, true)"
     assert bind_vars["fn0"] == ["a", "b", "c"]
     bind_vars2: Json = {}
