@@ -1,6 +1,6 @@
 import functools
 import json
-from typing import Any, List, Generator, ByteString
+from typing import Any, List, Generator, ByteString, Union
 
 from ustache import default_getter, default_virtuals, render
 
@@ -8,7 +8,7 @@ from core.types import Json
 from core.util import identity
 
 
-def with_index(result: Any) -> str:
+def with_index(result: Any) -> Any:
     def item(lst: List[Any], idx: int, i: Any) -> Any:
         itm = i
         if not isinstance(i, dict):
@@ -25,7 +25,7 @@ def with_index(result: Any) -> str:
     return result
 
 
-def json_stringify(data: Any, text: bool = False) -> Generator[bytes, None, None]:
+def json_stringify(data: Any, text: bool = False) -> Generator[Union[bytes, ByteString], None, None]:
     if isinstance(data, ByteString) and not text:
         yield data
     elif isinstance(data, str):
