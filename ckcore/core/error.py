@@ -78,3 +78,7 @@ class CLIExecutionError(CoreException, ClientError):
 
 class ParseError(CoreException, ClientError):
     pass
+
+
+class NoSuchTemplateError(CoreException, ClientError):
+    pass

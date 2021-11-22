@@ -1,11 +1,47 @@
 import functools
 import json
-from typing import Any, List, Generator, ByteString, Union
+from abc import abstractmethod
+from typing import Any, Generator, ByteString, Union
+from typing import Dict, Tuple
+from typing import List
+from typing import Optional
 
 from ustache import default_getter, default_virtuals, render
 
+from core.query import TemplateExpander
+from core.query import string_with_expands, Expandable
 from core.types import Json
 from core.util import identity
+
+
+class TemplateExpanderBase(TemplateExpander):
+    async def render(self, maybe_template: str) -> Tuple[str, List[Expandable]]:
+        parts = string_with_expands.parse(maybe_template)
+        expands = [exp for exp in parts if isinstance(exp, Expandable)]
+        if expands:
+            result = ""
+            for part in parts:
+                result += await self.expand(part) if isinstance(part, Expandable) else part
+            return result, expands
+        else:
+            # nothing to expand
+            return maybe_template, expands
+
+    async def expand(self, expand: Expandable) -> str:
+        tpl = await self.template(expand.template)
+        return render_template(tpl, expand.props)
+
+    @abstractmethod
+    async def template(self, name: str) -> Optional[str]:
+        pass
+
+
+class InMemoryTemplateExpander(TemplateExpanderBase):
+    def __init__(self):
+        self.templates: Dict[str, str] = {}
+
+    async def template(self, name: str) -> Optional[str]:
+        return self.templates.get(name)
 
 
 def render_template(template: str, props: Json) -> str:
