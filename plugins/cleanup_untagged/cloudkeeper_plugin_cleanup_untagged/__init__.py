@@ -1,12 +1,11 @@
-import inspect
 import yaml
 from cklib.baseplugin import BaseActionPlugin
 from cklib.logging import log
 from cklib.core.query import CoreGraph
-from cklib.graph import Graph
+from cklib.graph.export import node_from_dict
 from cklib.baseresources import *
 from cklib.args import ArgumentParser
-from cklib.utils import parse_delta
+from cklib.utils import parse_delta, delta_to_str
 from typing import Dict
 
 
@@ -25,60 +24,38 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
         return ArgumentParser.args.cleanup_untagged_config is not None
 
     def do_action(self, data: Dict) -> None:
+        log.debug("Cleanup Untagged called")
         cg = CoreGraph()
 
         self.config.read()  # runtime read in case config file was updated since last run
-        query = "is(resource) and age > 2h <-[0:]->"
-        graph = cg.graph(query)
-        self.vpc_cleanup(graph)
-        cg.patch_nodes(graph)
-
-    def cleanup_untagged(self, graph: Graph):
-        log.debug("Cleanup Untagged called")
-        
-        for node in graph.nodes:
-            cloud = node.cloud(graph)
-            account = node.account(graph)
-            region = node.region(graph)
-            node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
-            node_classes.remove("ABC")
-            node_classes.remove("object")
-
-            if (
-                not isinstance(node, BaseResource)
-                or isinstance(node, BaseCloud)
-                or isinstance(node, BaseAccount)
-                or isinstance(node, BaseRegion)
-                or not isinstance(cloud, BaseCloud)
-                or not isinstance(account, BaseAccount)
-                or not isinstance(region, BaseRegion)
-                or node.protected
-                or node.phantom
-                or cloud.id not in self.config["accounts"]
-                or account.id not in self.config["accounts"][cloud.id]
-                or node.age < self.config["accounts"][cloud.id][account.id]["age"]
-                or set(node_classes).isdisjoint(self.config["classes"])
-                or all(
-                    (
-                        tag in node.tags and len(node.tags[tag]) > 0
-                        for tag in self.config["tags"]
-                    )
+        tags_part = (
+            'not(has_key(reported.tags, ["' + '", "'.join(self.config["tags"]) + '"]))'
+        )
+        kinds_part = 'reported.kind in ["' + '", "'.join(self.config["kinds"]) + '"]'
+        account_parts = []
+        for cloud_id, account in self.config["accounts"].items():
+            for account_id, account_data in account.items():
+                age = delta_to_str(account_data.get("age"))
+                account_part = (
+                    f'(metadata.ancestors.cloud.id == "{cloud_id}" and '
+                    f'metadata.ancestors.account.id == "{account_id}" and '
+                    f"reported.age > {age})"
                 )
-            ):
-                continue
-
-            log_msg = (
-                f"Missing one or more of tags: {', '.join(self.config['tags'])} and age {node.age} is older "
-                f"than threshold of {self.config['accounts'][cloud.id][account.id]['age']}"
+                account_parts.append(account_part)
+        accounts_part = "(" + " or ".join(account_parts) + ")"
+        exclusion_part = "metadata.protected == false and metadata.phantom == false and metadata.cleaned == false"
+        required_tags = ", ".join(self.config["tags"])
+        reason = (
+            f"Missing one or more of required tags {required_tags}"
+            " and age more than threshold"
+        )
+        command = f'query {exclusion_part} and {kinds_part} and {tags_part} and {accounts_part} | clean "{reason}"'
+        for node_data in cg.execute(command):
+            node = node_from_dict(node_data)
+            log.debug(
+                f"Marking {node.rtdname} with age {node.age} for cleanup for"
+                f" missing one or more of tags: {required_tags}"
             )
-            log.error(
-                (
-                    f"Cleaning resource {node.rtdname} in cloud {cloud.name} "
-                    f"account {account.dname} region {region.name}: {log_msg}"
-                )
-            )
-            node.log(log_msg)
-            node.clean = True
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

@@ -1,5 +1,6 @@
 import requests
 import json
+from urllib.parse import urlencode
 from cklib.graph import Graph, sanitize
 from cklib.graph.export import node_from_dict, node_to_dict
 from cklib.args import ArgumentParser
@@ -20,17 +21,27 @@ class CoreGraph:
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
         self.query_uri = f"{self.graph_uri}/query/graph"
 
+    def execute(self, command: str):
+        headers = {"Accept": "application/x-ndjson", "Content-Type": "text/plain"}
+        execute_endpoint = f"{self.base_uri}/cli/execute"
+        if self.graph_name:
+            query_string = urlencode({"graph": self.graph_name})
+            execute_endpoint += f"?{query_string}"
+        return self.post(execute_endpoint, command, headers)
+
     def query(self, query: str):
         log.debug(f"Sending query {query}")
+        headers = {"Accept": "application/x-ndjson"}
+        return self.post(self.query_uri, query, headers)
 
-        headers = {"accept": "application/x-ndjson"}
+    @staticmethod
+    def post(uri, data, headers):
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-
-        r = requests.post(self.query_uri, data=query, headers=headers, stream=True)
+        r = requests.post(uri, data=data, headers=headers, stream=True)
         if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to query graph: {r.content}")
+            log.error(r.content.decode())
+            raise RuntimeError(f"Failed to query graph: {r.content.decode()}")
         for line in r.iter_lines():
             if not line:
                 continue

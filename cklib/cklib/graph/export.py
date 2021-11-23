@@ -259,7 +259,6 @@ def locate_python_type(python_type: str) -> Any:
 
 def node_from_dict(node_data: Dict) -> BaseResource:
     """Create a resource from ckcore graph node data"""
-    log.debug(f"Making node from {node_data}")
     node_data_reported = node_data.get("reported", {})
     if node_data_reported is None:
         node_data_reported = {}
@@ -311,9 +310,6 @@ def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
     valid_fields = set(field.name for field in fields(node_type))
     for field_name in list(node_data_reported.keys()):
         if field_name not in valid_fields:
-            log.debug(
-                f"Removing extra field {field_name} from new node of type {node_type}"
-            )
             del node_data_reported[field_name]
 
 
