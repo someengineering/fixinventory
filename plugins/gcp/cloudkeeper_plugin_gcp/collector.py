@@ -368,21 +368,22 @@ class GCPProjectCollector:
                     collector(zone=zone)
 
         remove_nodes = set()
-        for node in self.graph.nodes:
-            if (
-                isinstance(node, (GCPMachineType, GCPDiskType))
-                and len(self.graph.successors(node)) == 0
-            ):
-                remove_nodes.add(node)
-            elif (
-                isinstance(node, GCPServiceSKU)
-                and len(self.graph.successors(node)) == 0
-            ):
-                remove_nodes.add(node)
-            elif isinstance(node, GCPService) and len(self.graph.successors(node)) == 0:
-                remove_nodes.add(node)
-        for node in remove_nodes:
-            self.graph.remove_node(node)
+
+        def rmnodes(cls) -> None:
+            for node in self.graph.nodes:
+                if isinstance(node, cls) and not any(
+                    True for _ in self.graph.successors(node)
+                ):
+                    remove_nodes.add(node)
+            for node in remove_nodes:
+                self.graph.remove_node(node)
+            log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            remove_nodes.clear()
+
+        # nodes need to be removed in the correct order
+        rmnodes((GCPMachineType, GCPDiskType))
+        rmnodes(GCPServiceSKU)
+        rmnodes(GCPService)
 
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
