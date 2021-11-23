@@ -22,6 +22,7 @@ class CoreGraph:
         self.query_uri = f"{self.graph_uri}/query/graph"
 
     def execute(self, command: str):
+        log.debug(f"Executing command {command}")
         headers = {"Accept": "application/x-ndjson", "Content-Type": "text/plain"}
         execute_endpoint = f"{self.base_uri}/cli/execute"
         if self.graph_name:
