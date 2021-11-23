@@ -367,6 +367,23 @@ class GCPProjectCollector:
                     )
                     collector(zone=zone)
 
+        remove_nodes = set()
+        for node in self.graph.nodes:
+            if (
+                isinstance(node, (GCPMachineType, GCPDiskType))
+                and len(self.graph.successors(node)) == 0
+            ):
+                remove_nodes.add(node)
+            elif (
+                isinstance(node, GCPServiceSKU)
+                and len(self.graph.successors(node)) == 0
+            ):
+                remove_nodes.add(node)
+            elif isinstance(node, GCPService) and len(self.graph.successors(node)) == 0:
+                remove_nodes.add(node)
+        for node in remove_nodes:
+            self.graph.remove_node(node)
+
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
     ) -> Dict:
