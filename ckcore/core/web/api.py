@@ -35,7 +35,7 @@ from core import feature
 from core.analytics import AnalyticsEventSender
 from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
-from core.cli.command import CLIContext, OutputTransformer, ListCommand
+from core.cli.command import CLIContext, OutputTransformer, ListCommand, PreserveOutputFormat
 from core.config import ConfigEntity
 from core.constants import plain_text_blacklist
 from core.db.db_access import DbAccess
@@ -102,7 +102,9 @@ class Api:
         self.worker_task_queue = worker_task_queue
         self.cli = cli
         self.args = args
-        self.app = web.Application(middlewares=[metrics_handler, auth.auth_handler(args), error_handler(event_sender)])
+        self.app = web.Application(
+            middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender)]
+        )
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(
@@ -679,7 +681,7 @@ class Api:
             if (
                 accept == "text/plain"
                 and current.executable_commands
-                and not isinstance(current.executable_commands[-1].command, OutputTransformer)
+                and not isinstance(current.executable_commands[-1].command, (OutputTransformer, PreserveOutputFormat))
             ):
                 out_gen = await ListCommand(self.cli.dependencies).parse().flow(out_gen)
 

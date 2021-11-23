@@ -320,7 +320,7 @@ async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow:
 async def test_kind_command(cli: CLI) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
     for kind in predefined_kinds:
-        assert kind.fqn in result[0][0]
+        assert kind.fqn in result[0]
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
     result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)
@@ -402,3 +402,28 @@ async def test_system_restore_command(cli: CLI) -> None:
     finally:
         if tmp_dir:
             shutil.rmtree(tmp_dir)
+
+
+@pytest.mark.asyncio
+async def test_expand_query_template_command(cli: CLI) -> None:
+    pytest.fail("implement me")
+
+
+@pytest.mark.asyncio
+async def test_add_query_template_command(cli: CLI) -> None:
+    pytest.fail("implement me")
+
+
+@pytest.mark.asyncio
+async def test_show_query_template_command(cli: CLI) -> None:
+    pytest.fail("implement me")
+
+
+@pytest.mark.asyncio
+async def test_list_query_templates_command(cli: CLI) -> None:
+    pytest.fail("implement me")
+
+
+@pytest.mark.asyncio
+async def test_expand_template_command(cli: CLI) -> None:
+    pytest.fail("implement me")

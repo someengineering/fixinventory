@@ -84,7 +84,7 @@ def test_command_line_parser() -> None:
     check('a 1 | b "s" | c 1.23 | d', [["a 1", 'b "s"', "c 1.23", "d"]])
     check('jq ". | {a:.foo, b: .bla}" ', [['jq ". | {a:.foo, b: .bla}"']])
     check("a|b|c;d|e|f;g|e|h", [["a", "b", "c"], ["d", "e", "f"], ["g", "e", "h"]])
-    check("add_job 'what \" test | foo | bla'", [['add_job what " test | foo | bla']])
+    check("add_job 'what \" test | foo | bla'", [["add_job 'what \" test | foo | bla'"]])
     check('add_job what \\" test \\| foo \\| bla', [['add_job what " test | foo | bla']])
 
 

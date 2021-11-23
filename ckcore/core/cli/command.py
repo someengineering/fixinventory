@@ -39,9 +39,21 @@ from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKin
 from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
-from core.parse_util import double_quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
+from core.parse_util import (
+    double_quoted_or_simple_string_dp,
+    space_dp,
+    make_parser,
+    variable_dp,
+    literal_dp,
+    comma_p,
+    literal_p,
+    equals_p,
+    colon_p,
+)
+from core.query import TemplateExpander, Template
 from core.query.model import Query, P
 from core.query.query_parser import parse_query
+from core.query.template_expander import tpl_props_p
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
 from core.util import (
@@ -95,6 +107,10 @@ class CLIDependencies:
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:
         return self.lookup["worker_task_queue"]  # type:ignore
+
+    @property
+    def template_expander(self) -> TemplateExpander:
+        return self.lookup["template_expander"]  # type:ignore
 
 
 @dataclass
@@ -239,6 +255,12 @@ class InternalPart(ABC):
 class OutputTransformer(ABC):
     """
     Mark all commands that transform the output stream (formatting).
+    """
+
+
+class PreserveOutputFormat(ABC):
+    """
+    Mark all commands where the output should not be flattened to default line output.
     """
 
 
@@ -684,6 +706,36 @@ class CountCommand(QueryPart):
         return CLIFlow(count_in_stream)
 
 
+class ExpandQueryTemplateCommand(QueryPart):
+    """
+    Usage: expand_query_template [key1=value1, key2=value2, key3=value3] <template_to_expand>
+
+    Expand a given query template with parameter values.
+    The resulting rendered query is executed.
+    The result of this command is a query result of the rendered query template.
+
+    Placeholders are defined in 2 double curly braces {{placeholder}}
+    and get replaced by the provided placeholder value.
+    The name of the placeholder can be any valid alphanumeric string.
+    The template 'is({{kind}})' with expand parameters kind=volume becomes 'is(volume)'.
+
+    Parameter:
+        key=value: any number of key/value pairs separated by comma
+        template_to_expand [mandatory]:  The template to render.
+
+    Example:
+        $> expand_query_template kind=volume is({{kind}}) limit 1
+        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
+    """
+
+    @property
+    def name(self) -> str:
+        return "expand_query_template"
+
+    def info(self) -> str:
+        return "Expand query template with given parameters."
+
+
 class EchoCommand(CLICommand):
     """
     Usage: echo <message>
@@ -1038,7 +1090,7 @@ class JqCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, process))
 
 
-class KindCommand(CLICommand):
+class KindCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: kind [-p property_path] [name_of_kind]
 
@@ -1104,16 +1156,14 @@ class KindCommand(CLICommand):
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
             if show_kind:
-                count = 1
                 result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
+                return 1, stream.just(result)
             elif show_path:
-                count = 1
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
+                return 1, stream.just(result)
             else:
-                count = len(model.kinds)
                 result = sorted(list(model.kinds.keys()))
-
-            return count, stream.just(result)
+                return len(model.kinds), stream.iterate(result)
 
         return CLISource(source)
 
@@ -1571,7 +1621,7 @@ class ListCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
 
 
-class JobsCommand(CLICommand):
+class JobsCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: jobs
 
@@ -1606,7 +1656,7 @@ class JobsCommand(CLICommand):
         return CLISource(jobs)
 
 
-class AddJobCommand(CLICommand):
+class AddJobCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: add_job [<cron_expression>] [<event_name> :] <command>
 
@@ -1658,7 +1708,7 @@ class AddJobCommand(CLICommand):
         return CLISource.single(add_job)
 
 
-class DeleteJobCommand(CLICommand):
+class DeleteJobCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: delete_job [job_id]
 
@@ -1858,7 +1908,7 @@ class TagCommand(SendWorkerTaskCommand):
         return CLIFlow(setup_stream)
 
 
-class TasksCommand(CLICommand):
+class TasksCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: tasks
 
@@ -1895,7 +1945,7 @@ class TasksCommand(CLICommand):
         return CLISource(tasks_source)
 
 
-class StartTaskCommand(CLICommand):
+class StartTaskCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: start_task <name of task>
 
@@ -1976,7 +2026,7 @@ class UploadCommand(CLICommand, InternalPart):
         return "only for debugging purposes..."
 
 
-class SystemCommand(CLICommand):
+class SystemCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: system backup create [name]
            system backup restore <path>
@@ -2158,9 +2208,167 @@ class SystemCommand(CLICommand):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
+class AddQueryTemplateCommand(CLICommand, PreserveOutputFormat):
+    """
+    Usage: add_query_template <name_of_template> <query_template>
+
+    Add a query template to the query template library.
+    The template filled with values has to be a valid query.
+
+    Placeholders are defined in 2 double curly braces {{placeholder}}
+    and get replaced by the provided placeholder value during render time.
+    The name of the placeholder can be any valid alphanumeric string.
+    The template 'is({{kind}})' with expand parameters kind=volume becomes
+    'is(volume)' during expand time.
+
+    Parameter:
+        name_of_template [mandatory]:  The name of the query template.
+        query_template [mandatory]:  The query with template placeholders.
+
+    Example:
+        $> add_query_template filter_kind=is({{kind}})
+        Template filter_kind added to the query library.
+        is({{kind}})
+        $> query expand(filter_kind, kind=volume) limit 1
+        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
+        $> query expand(filter_kind, kind=volume) and reported.name==ag1
+        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
+    """
+
+    @property
+    def name(self) -> str:
+        return "add_query_template"
+
+    def info(self) -> str:
+        return "Add a query template to the query template library."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        async def add_query() -> AsyncIterator[str]:
+            if not arg:
+                raise CLIParseError("No argument provided!")
+            name, rest = literal_p.parse_partial(arg)
+            _, template_query = (equals_p | colon_p).optional().parse_partial(rest)
+            # try to render the template with dummy values and see if the query can be parsed
+            try:
+                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
+                parse_query(rendered_query)
+            except Exception as ex:
+                raise CLIParseError("Given template does not define a valid query") from ex
+            await self.dependencies.template_expander.add_template(Template(name, template_query))
+            yield f"Template {name} added to the query library.\n{template_query}"
+
+        return CLISource.single(add_query)
+
+
+class ShowQueryTemplateCommand(CLICommand, PreserveOutputFormat):
+    """
+    Usage: show_query_template <name_of_template>
+
+    Get the current definition of the template defined by given template name.
+
+    Parameter:
+        name_of_template [mandatory]:  The name of the query template.
+
+    Example:
+        $> show_query_template filter_kind
+        is({{kind}})
+    """
+
+    @property
+    def name(self) -> str:
+        return "show_query_template"
+
+    def info(self) -> str:
+        return "Get a single query template."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        async def get_template() -> AsyncIterator[JsonElement]:
+            if not arg:
+                raise CLIParseError("No name provided!")
+            maybe_template = await self.dependencies.template_expander.get_template(arg)
+            yield maybe_template.template if maybe_template else f"No template with this name: {arg}"
+
+        return CLISource.single(get_template)
+
+
+class ListQueryTemplatesCommand(CLICommand, PreserveOutputFormat):
+    """
+    Usage: list_query_templates
+
+    Get the list of all query templates.
+
+    Example:
+        > list_query_templates
+        filter_kind: is({{kind}})
+    """
+
+    @property
+    def name(self) -> str:
+        return "list_query_templates"
+
+    def info(self) -> str:
+        return "Lists all stored query templates."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        def template_str(template: Template) -> str:
+            tpl = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
+            return f"{template.name}: {tpl}"
+
+        async def list_templates() -> Tuple[Optional[int], AsyncIterator[Json]]:
+            templates = await self.dependencies.template_expander.list_templates()
+            return len(templates), stream.iterate(template_str(t) for t in templates)
+
+        return CLISource(list_templates)
+
+
+class ExpandTemplateCommand(CLICommand, PreserveOutputFormat):
+    """
+    Usage: expand_template [key1=value1, key2=value2, key3=value3] <template_to_expand>
+
+    Expand a given template with parameter values.
+    The result of this operation is the rendered template string.
+
+    Placeholders are defined in 2 double curly braces {{placeholder}}
+    and get replaced by the provided placeholder value.
+    The name of the placeholder can be any valid alphanumeric string.
+    The template 'hello {{name}}' with expand parameters name=world becomes 'hello world'.
+
+    Parameter:
+        key=value: any number of key/value pairs separated by comma
+        template_to_expand [mandatory]:  The template to render.
+
+    Example:
+        $> expand_template name=world hello {{name}}
+        hello world
+        $> expand_template left=max, right=moritz {{left}} and {{right}}
+        max and moritz
+    """
+
+    @property
+    def name(self) -> str:
+        return "expand_template"
+
+    def info(self) -> str:
+        return "Expand a given template with given parameters."
+
+    @staticmethod
+    def expand_template(template_expander: TemplateExpander, arg: str) -> str:
+        maybe_dict, template = tpl_props_p.parse_partial(arg)
+        return template_expander.render(template, maybe_dict if maybe_dict else {})
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        async def expand_query() -> AsyncIterator[str]:
+            if not arg:
+                raise CLIParseError("No argument provided!")
+            yield self.expand_template(self.dependencies.template_expander, arg)
+
+        return CLISource.single(expand_query)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AddJobCommand(d),
+        AddQueryTemplateCommand(d),
         AggregatePart(d),
         AggregateToCountCommand(d),
         AncestorPart(d),
@@ -2173,6 +2381,8 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
+        ExpandQueryTemplateCommand(d),
+        ExpandTemplateCommand(d),
         ExecuteQueryCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
@@ -2182,6 +2392,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JsonCommand(d),
         KindCommand(d),
         ListCommand(d),
+        ListQueryTemplatesCommand(d),
         MergeAncestorsPart(d),
         MetadataPart(d),
         PredecessorPart(d),
@@ -2190,6 +2401,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         ReportedPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
+        ShowQueryTemplateCommand(d),
         SleepCommand(d),
         StartTaskCommand(d),
         SuccessorPart(d),
