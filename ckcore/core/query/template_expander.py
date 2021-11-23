@@ -6,10 +6,26 @@ from typing import Dict, Tuple
 from typing import List
 from typing import Optional
 
+from parsy import string, Parser, regex, any_char
 from ustache import default_getter, default_virtuals, render
 
-from core.query import TemplateExpander
-from core.query import string_with_expands, Expandable
+from core.error import NoSuchTemplateError
+from core.parse_util import (
+    double_quote_dp,
+    single_quote_dp,
+    double_quoted_string_part_or_esc_dp,
+    single_quoted_string_part_or_esc_dp,
+    make_parser,
+    lparen_p,
+    literal_p,
+    equals_p,
+    json_value_p,
+    comma_p,
+    colon_p,
+    json_object_p,
+    rparen_dp,
+)
+from core.query import Expandable, TemplateExpander
 from core.types import Json
 from core.util import identity
 
@@ -29,7 +45,10 @@ class TemplateExpanderBase(TemplateExpander):
 
     async def expand(self, expand: Expandable) -> str:
         tpl = await self.template(expand.template)
-        return render_template(tpl, expand.props)
+        if tpl:
+            return render_template(tpl, expand.props)
+        else:
+            raise NoSuchTemplateError(expand.template)
 
     @abstractmethod
     async def template(self, name: str) -> Optional[str]:
@@ -37,7 +56,7 @@ class TemplateExpanderBase(TemplateExpander):
 
 
 class InMemoryTemplateExpander(TemplateExpanderBase):
-    def __init__(self):
+    def __init__(self) -> None:
         self.templates: Dict[str, str] = {}
 
     async def template(self, name: str) -> Optional[str]:
@@ -87,3 +106,36 @@ def render_template(template: str, props: Json) -> str:
         },
     )
     return render(template, props, escape=identity, stringify=json_stringify, getter=getter)  # type: ignore
+
+
+# double quoted string is maintained with quotes: "foo" -> "foo"
+double_quoted_string = double_quote_dp + double_quoted_string_part_or_esc_dp + double_quote_dp
+# single quoted string is parsed without surrounding quotes: 'foo' -> 'foo'
+single_quoted_string = single_quote_dp + single_quoted_string_part_or_esc_dp + single_quote_dp
+expand_fn = string("expand")
+not_expand_or_paren = regex("(?:(?!(?:(?:expand\\()|[\"'])).)+")
+
+
+@make_parser
+def key_value_parser() -> Parser:
+    key = yield literal_p
+    yield equals_p
+    value = yield json_value_p
+    return key, value
+
+
+@make_parser
+def expand_fn_parser() -> Parser:
+    yield expand_fn
+    yield lparen_p
+    template_name = yield literal_p
+    yield (comma_p | colon_p).optional()
+    props = yield (json_object_p | key_value_parser.sep_by(comma_p, min=1).map(dict)).optional()
+    yield rparen_dp
+    return Expandable(template_name, props if props else {})
+
+
+# a command are tokens until EOF or pipe
+string_with_expands = (
+    double_quoted_string | single_quoted_string | expand_fn_parser | not_expand_or_paren | any_char
+).at_least(1)

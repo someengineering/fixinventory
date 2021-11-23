@@ -1,6 +1,7 @@
 import pytest
 from pytest import fixture
 
+from core.error import NoSuchTemplateError
 from core.query.template_expander import InMemoryTemplateExpander, render_template
 
 
@@ -10,7 +11,7 @@ def expander() -> InMemoryTemplateExpander:
 
 
 @pytest.mark.asyncio
-async def test_simple_expand(expander) -> None:
+async def test_simple_expand(expander: InMemoryTemplateExpander) -> None:
     expander.templates["foo"] = "Hey {{name}} - this is {{noun}}"
     expander.templates["bla"] = "One, two, {{t3}}"
     expander.templates["bar"] = "Heureka"
@@ -28,15 +29,16 @@ async def test_simple_expand(expander) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_expand(expander) -> None:
-    expander.templates["unused_load_balancer"] = (
-        "is(aws_alb) and age>{{age}} and backends==[] "
-        'with(empty, <-- is(aws_alb_target_group) and target_type=="instance" and age>{{age}} '
-        'with(empty, <-- is(aws_ec2_instance) and instance_status!="terminated"))'
-        " <-[0:1]- is(aws_alb_target_group) or is(aws_alb)"
-    )
-    result, expands = await expander.render("query expand(unused_load_balancer, age=7d)")
-    print(result)
+async def test_query_expand(expander: InMemoryTemplateExpander) -> None:
+    expander.templates["albs"] = "is(aws_alb) and age>{{older_than}}"
+    result, expands = await expander.render("query expand(albs, older_than=7d)")
+    assert result == "query is(aws_alb) and age>7d"
+
+
+@pytest.mark.asyncio
+async def test_non_existent_template_expand(expander: InMemoryTemplateExpander) -> None:
+    with pytest.raises(NoSuchTemplateError, match="does_not_exist"):
+        await expander.render("query expand(does_not_exist)")
 
 
 def test_render_simple() -> None:
