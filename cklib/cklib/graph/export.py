@@ -6,7 +6,6 @@ from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
 from cklib.baseresources import BaseResource
 from cklib.utils import type_str, str2timedelta, str2timezone
-from cklib.logging import log
 
 # load the correct function depending on the version
 if sys.version_info >= (3, 8):
