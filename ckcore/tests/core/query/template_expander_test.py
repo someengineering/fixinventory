@@ -35,7 +35,7 @@ async def test_simple_expand(expander: InMemoryTemplateExpander) -> None:
 
 @pytest.mark.asyncio
 async def test_expand(expander: TemplateExpander) -> None:
-    await expander.add_template(Template("albs", "is(aws_alb) and age>{{older_than}}"))
+    await expander.put_template(Template("albs", "is(aws_alb) and age>{{older_than}}"))
     result, expands = await expander.expand("query expand(albs, older_than=7d)")
     assert result == "query is(aws_alb) and age>7d"
     with pytest.raises(NoSuchTemplateError, match="does_not_exist"):
@@ -43,11 +43,13 @@ async def test_expand(expander: TemplateExpander) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_delete_get_list(expander: TemplateExpander) -> None:
-    await expander.add_template(Template("albs", "is(aws_alb) and age>{{older_than}}"))
+async def test_add_update_delete_get_list(expander: TemplateExpander) -> None:
+    await expander.put_template(Template("albs", "is(aws_alb) and age>{{older_than}}"))
     result = await expander.get_template("albs")
     assert result and result.name == "albs" and result.template == "is(aws_alb) and age>{{older_than}}"
     assert len(await expander.list_templates()) == 1
+    await expander.put_template(Template("albs", "is(aws_alb) and age>{{old}} limit 3"))
+    assert (await expander.get_template("albs")).template == "is(aws_alb) and age>{{old}} limit 3"  # type: ignore
     await expander.delete_template("albs")
     assert len(await expander.list_templates()) == 0
 

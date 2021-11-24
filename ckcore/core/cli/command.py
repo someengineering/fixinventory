@@ -1576,8 +1576,8 @@ class ListCommand(CLICommand, OutputTransformer):
             result = ""
             first = True
             if isinstance(elem, dict):
-                for path, name in props:
-                    value = value_in_path(elem, path)
+                for prop_path, name in props:
+                    value = value_in_path(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
@@ -2181,6 +2181,7 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
     Usage: template
            template <name_of_template>
            template add <name_of_template> <query_template>
+           template update <name_of_template> <query_template>
            template delete <name_of_template>
            template expand key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
 
@@ -2225,8 +2226,8 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         def template_str(template: Template) -> str:
-            tpl = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
-            return f"{template.name}: {tpl}"
+            tpl_str = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
+            return f"{template.name}: {tpl_str}"
 
         async def get_template(name: str) -> AsyncIterator[JsonElement]:
             maybe_template = await self.dependencies.template_expander.get_template(name)
@@ -2236,14 +2237,14 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
             templates = await self.dependencies.template_expander.list_templates()
             return len(templates), stream.iterate(template_str(t) for t in templates)
 
-        async def add_template(name: str, template_query: str) -> AsyncIterator[str]:
+        async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
             # try to render the template with dummy values and see if the query can be parsed
             try:
                 rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
                 parse_query(rendered_query)
             except Exception as ex:
                 raise CLIParseError(f"Given template does not define a valid query: {template_query}") from ex
-            await self.dependencies.template_expander.add_template(Template(name, template_query))
+            await self.dependencies.template_expander.put_template(Template(name, template_query))
             yield f"Template {name} added to the query library.\n{template_query}"
 
         async def delete_template(name: str) -> AsyncIterator[str]:
@@ -2255,9 +2256,9 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
             yield self.dependencies.template_expander.render(template, maybe_dict if maybe_dict else {})
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
-        if arg and len(args) == 2 and args[0] == "add":
-            name, template = re.split("\\s+", args[1], maxsplit=1)
-            return CLISource.single(partial(add_template, name.strip(), template.strip()))
+        if arg and len(args) == 2 and args[0] in ("add", "update"):
+            nm, tpl = re.split("\\s+", args[1], maxsplit=1)
+            return CLISource.single(partial(put_template, nm.strip(), tpl.strip()))
         elif arg and len(args) == 2 and args[0] == "delete":
             return CLISource.single(partial(delete_template, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "expand":

@@ -55,12 +55,11 @@ class TemplateExpander(QueryParser):
         """
 
     @abstractmethod
-    async def add_template(self, template: Template) -> None:
+    async def put_template(self, template: Template) -> None:
         """
-        Add a named template to the template library.
-        :param template: the template to add.
+        Put a named template to the template library.
+        :param template: the template to put.
         :return: None.
-        :raises: AttributeError if there is already a template with this name.
         """
 
     @abstractmethod
