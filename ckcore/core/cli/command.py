@@ -862,13 +862,14 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         if not arg:
             raise CLIParseError("query command needs a query to execute, but nothing was given!")
 
+        # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(arg)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
         async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
-            db.to_query(query_model)  # only here to validate the query itself (can throw)
+            await db.to_query(query_model)  # only here to validate the query itself (can throw)
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("query_timeout"), duration)
             context = (

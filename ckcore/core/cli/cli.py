@@ -58,7 +58,7 @@ from core.query.model import (
     AggregateFunction,
     SortOrder,
 )
-from core.query.query_parser import aggregate_parameter_parser, parse_query
+from core.query.query_parser import aggregate_parameter_parser
 from core.types import JsonElement, Json
 from core.util import utc_str, utc, from_utc
 from tzlocal import get_localzone
@@ -253,7 +253,7 @@ class CLI:
         else:
             raise CLIParseError(f"Command >{name}< is not known. typo?")
 
-    def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+    async def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
         """
         Takes a list of query part commands and combine them to a single executable query command.
         This process can also introduce new commands that should run after the query is finished.
@@ -262,19 +262,23 @@ class CLI:
         :param ctx: the context to execute within.
         :return: the resulting list of commands to execute.
         """
+
+        async def parse_query(query_string: str) -> Query:
+            return await self.dependencies.template_expander.parse_query(query_string)
+
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
         for command in commands:
             part = command.command
             arg = command.arg if command.arg else ""
             if isinstance(part, QueryAllPart):
-                query = query.combine(parse_query(arg))
+                query = query.combine(await parse_query(arg))
             elif isinstance(part, ReportedPart):
-                query = query.combine(parse_query(arg).on_section(Section.reported))
+                query = query.combine((await parse_query(arg)).on_section(Section.reported))
             elif isinstance(part, DesiredPart):
-                query = query.combine(parse_query(arg).on_section(Section.desired))
+                query = query.combine((await parse_query(arg)).on_section(Section.desired))
             elif isinstance(part, MetadataPart):
-                query = query.combine(parse_query(arg).on_section(Section.metadata))
+                query = query.combine((await parse_query(arg)).on_section(Section.metadata))
             elif isinstance(part, PredecessorPart):
                 query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
             elif isinstance(part, SuccessorPart):
@@ -315,16 +319,16 @@ class CLI:
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
-        def combine_query_parts(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+        async def combine_query_parts(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
             parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
-            query_parts = self.create_query(parts, ctx) if parts else []
+            query_parts = await self.create_query(parts, ctx) if parts else []
             result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
             return result
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
-            commands = combine_query_parts([self.command(cmd.cmd, cmd.args, ctx) for cmd in parsed.commands], ctx)
+            commands = await combine_query_parts([self.command(cmd.cmd, cmd.args, ctx) for cmd in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
             return ParsedCommandLine(cmd_env, parsed, commands, not_met)
 

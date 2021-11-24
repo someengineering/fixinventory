@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, List, Optional
 
+from core.query.model import Query
 from core.types import Json
 
 
@@ -17,7 +18,18 @@ class Template:
     template: str  # the template string with placeholders
 
 
-class TemplateExpander(ABC):
+class QueryParser(ABC):
+    @abstractmethod
+    async def parse_query(self, to_parse: str) -> Query:
+        """
+        Parse given string into a query.
+        The query might contain expandable sections.
+        :param to_parse: the string to parse.
+        :return: the parsed query.
+        """
+
+
+class TemplateExpander(QueryParser):
     @abstractmethod
     async def expand(self, maybe_expandable: str) -> Tuple[str, List[Expandable]]:
         """

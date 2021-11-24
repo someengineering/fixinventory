@@ -25,7 +25,8 @@ from core.parse_util import (
     equals_p,
     json_value_p,
 )
-from core.query import Expandable, TemplateExpander, Template
+from core.query import Expandable, TemplateExpander, Template, query_parser
+from core.query.model import Query
 from core.types import Json
 from core.util import identity
 
@@ -35,6 +36,10 @@ class TemplateExpanderBase(TemplateExpander):
     Base expander functionality which implements the expanding functionality
     and leaves the storage functionality to the subsequent classes.
     """
+
+    async def parse_query(self, to_parse: str) -> Query:
+        expanded, _ = await self.expand(to_parse)
+        return query_parser.parse_query(expanded)
 
     async def expand(self, maybe_expandable: str) -> Tuple[str, List[Expandable]]:
         parts = string_with_expands.parse(maybe_expandable)

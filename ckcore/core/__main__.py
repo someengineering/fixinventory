@@ -68,7 +68,18 @@ def main() -> None:
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
     )
     cli_deps.extend(job_handler=task_handler)
-    api = Api(db, model, subscriptions, task_handler, message_bus, event_sender, worker_task_queue, cli, args)
+    api = Api(
+        db,
+        model,
+        subscriptions,
+        task_handler,
+        message_bus,
+        event_sender,
+        worker_task_queue,
+        cli,
+        template_expander,
+        args,
+    )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1)
     )
