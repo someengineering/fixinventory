@@ -57,11 +57,11 @@ def test_simple_query() -> None:
 
 def test_simplify() -> None:
     # some_criteria | all => all
-    assert str((IsTerm("test") | AllTerm()).simplify()) == "all"
+    assert str((IsTerm(["test"]) | AllTerm()).simplify()) == "all"
     # some_criteria & all => some_criteria
-    assert str((IsTerm("test") & AllTerm()).simplify()) == 'is("test")'
+    assert str((IsTerm(["test"]) & AllTerm()).simplify()) == 'is("test")'
     # also works in nested setup
-    q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm("test") | AllTerm()))).simplify()
+    q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm(["test"]) | AllTerm()))).simplify()
     assert (str(q)) == "test == true"
 
 
@@ -87,10 +87,10 @@ def test_combine() -> None:
     assert str(query3) == 'test == true --> is("boo") --> ((is("bar") and is("foo")) and is("bla"))'
     query4 = Query.by("a").with_limit(10).combine(Query.by("b").with_limit(2))
     assert query4.current_part.limit == 2  # minimum is taken
-    with pytest.raises(AttributeError) as ae:
+    with pytest.raises(AttributeError):
         # can not combine 2 aggregations
         parse_query("aggregate(sum(1)): is(a)").combine(parse_query("aggregate(sum(1)): is(a)"))
-    with pytest.raises(AttributeError) as ae:
+    with pytest.raises(AttributeError):
         # can not combine 2 with statements
         parse_query("is(foo) with(empty, -->)").combine(parse_query("is(bla) with(empty, -->)"))
 

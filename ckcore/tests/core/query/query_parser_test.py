@@ -48,8 +48,12 @@ from core.query.query_parser import (
 
 
 def test_parse_is_term() -> None:
-    assert is_term.parse('is("test")') == IsTerm("test")
-    assert is_term.parse("is(test)") == IsTerm("test")
+    assert is_term.parse("is(test)") == IsTerm(["test"])
+    assert is_term.parse("is(a, b, c)") == IsTerm(["a", "b", "c"])
+    assert is_term.parse("is([a,b,c])") == IsTerm(["a", "b", "c"])
+    assert is_term.parse("is(volume, instance)") == IsTerm(["volume", "instance"])
+    assert_round_trip(is_term, IsTerm(["volume", "instance"]))
+    assert_round_trip(is_term, IsTerm(["test"]))
 
 
 def test_parse_id_term() -> None:
