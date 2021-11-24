@@ -18,6 +18,7 @@ from core.cli.command import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
+from core.query.model import Template
 from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
 from core.types import Json
@@ -97,6 +98,11 @@ async def test_query_source(cli: CLI) -> None:
         'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
     )
     assert len(result[0]) == 10
+    await cli.dependencies.template_expander.put_template(
+        Template("test", 'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"')
+    )
+    result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
+    assert len(result2[0]) == 10
 
 
 @pytest.mark.asyncio
