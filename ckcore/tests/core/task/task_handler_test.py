@@ -44,6 +44,9 @@ from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender
 
+# noinspection PyUnresolvedReferences
+from tests.core.query.template_expander_test import expander
+
 
 @fixture
 async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:

@@ -81,6 +81,9 @@ class InMemoryTemplateExpander(TemplateExpanderBase):
             raise AttributeError("Template with this name already exists!")
         self.templates[template.name] = template
 
+    async def delete_template(self, name: str) -> None:
+        self.templates.pop(name, None)
+
     async def get_template(self, name: str) -> Optional[Template]:
         return self.templates.get(name)
 

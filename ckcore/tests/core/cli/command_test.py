@@ -52,6 +52,9 @@ from tests.core.task.task_handler_test import (
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 
+# noinspection PyUnresolvedReferences
+from tests.core.query.template_expander_test import expander
+
 
 @fixture
 def json_source() -> str:
@@ -405,25 +408,14 @@ async def test_system_restore_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_expand_query_template_command(cli: CLI) -> None:
-    pytest.fail("implement me")
-
-
-@pytest.mark.asyncio
-async def test_add_query_template_command(cli: CLI) -> None:
-    pytest.fail("implement me")
-
-
-@pytest.mark.asyncio
-async def test_show_query_template_command(cli: CLI) -> None:
-    pytest.fail("implement me")
-
-
-@pytest.mark.asyncio
-async def test_list_query_templates_command(cli: CLI) -> None:
-    pytest.fail("implement me")
-
-
-@pytest.mark.asyncio
-async def test_expand_template_command(cli: CLI) -> None:
-    pytest.fail("implement me")
+async def test_template_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command("template expand kind=volume is({{kind}})", stream.list)
+    assert result == [["is(volume)"]]
+    result = await cli.execute_cli_command("template add filter_kind is({{kind}})", stream.list)
+    assert result == [["Template filter_kind added to the query library.\nis({{kind}})"]]
+    result = await cli.execute_cli_command("template", stream.list)
+    assert result == [["filter_kind: is({{kind}})"]]
+    result = await cli.execute_cli_command("template filter_kind", stream.list)
+    assert result == [["is({{kind}})"]]
+    result = await cli.execute_cli_command("template delete filter_kind", stream.list)
+    assert result == [["Template filter_kind deleted from the query library."]]

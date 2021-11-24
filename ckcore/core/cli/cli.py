@@ -39,8 +39,6 @@ from core.cli.command import (
     CLIContext,
     EmptyContext,
     CLICommandRequirement,
-    ExpandQueryTemplateCommand,
-    ExpandTemplateCommand,
 )
 from core.error import CLIParseError
 from core.model.graph_access import EdgeType, Section
@@ -290,9 +288,6 @@ class CLI:
                 query = replace(query, aggregate=Aggregate(group_vars, group_function_vars))
             elif isinstance(part, MergeAncestorsPart):
                 query = replace(query, preamble={**query.preamble, **{"merge_with_ancestors": arg}})
-            elif isinstance(part, ExpandQueryTemplateCommand):
-                expanded = ExpandTemplateCommand.expand_template(self.dependencies.template_expander, arg)
-                query = query.combine(parse_query(expanded))
             elif isinstance(part, CountCommand):
                 # count command followed by a query: make it an aggregation
                 # since the output of aggregation is not exactly the same as count

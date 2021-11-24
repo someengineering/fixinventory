@@ -52,6 +52,14 @@ class TemplateExpander(ABC):
         """
 
     @abstractmethod
+    async def delete_template(self, name: str) -> None:
+        """
+        Delete a with given name from the template library.
+        :param name: the name of the template to delete.
+        :return: None.
+        """
+
+    @abstractmethod
     async def get_template(self, name: str) -> Optional[Template]:
         """
         Return the template with the given name.

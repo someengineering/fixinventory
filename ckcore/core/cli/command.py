@@ -46,9 +46,6 @@ from core.parse_util import (
     variable_dp,
     literal_dp,
     comma_p,
-    literal_p,
-    equals_p,
-    colon_p,
 )
 from core.query import TemplateExpander, Template
 from core.query.model import Query, P
@@ -704,36 +701,6 @@ class CountCommand(QueryPart):
 
         # noinspection PyTypeChecker
         return CLIFlow(count_in_stream)
-
-
-class ExpandQueryTemplateCommand(QueryPart):
-    """
-    Usage: expand_query_template [key1=value1, key2=value2, key3=value3] <template_to_expand>
-
-    Expand a given query template with parameter values.
-    The resulting rendered query is executed.
-    The result of this command is a query result of the rendered query template.
-
-    Placeholders are defined in 2 double curly braces {{placeholder}}
-    and get replaced by the provided placeholder value.
-    The name of the placeholder can be any valid alphanumeric string.
-    The template 'is({{kind}})' with expand parameters kind=volume becomes 'is(volume)'.
-
-    Parameter:
-        key=value: any number of key/value pairs separated by comma
-        template_to_expand [mandatory]:  The template to render.
-
-    Example:
-        $> expand_query_template kind=volume is({{kind}}) limit 1
-        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
-    """
-
-    @property
-    def name(self) -> str:
-        return "expand_query_template"
-
-    def info(self) -> str:
-        return "Expand query template with given parameters."
 
 
 class EchoCommand(CLICommand):
@@ -2208,12 +2175,20 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
-class AddQueryTemplateCommand(CLICommand, PreserveOutputFormat):
+class TemplateCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: add_query_template <name_of_template> <query_template>
+    Usage: template
+           template <name_of_template>
+           template add <name_of_template> <query_template>
+           template delete <name_of_template>
+           template expand key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
 
-    Add a query template to the query template library.
-    The template filled with values has to be a valid query.
+
+    template: get the list of all templates
+    template <name>: get the current definition of the template defined by given template name
+    template add <name> <template>: add a query template to the query template library under given name.
+    template delete <name>: delete the query template with given name.
+    template expand k=v <template_to_expand>: expand the defined template.
 
     Placeholders are defined in 2 double curly braces {{placeholder}}
     and get replaced by the provided placeholder value during render time.
@@ -2222,153 +2197,83 @@ class AddQueryTemplateCommand(CLICommand, PreserveOutputFormat):
     'is(volume)' during expand time.
 
     Parameter:
-        name_of_template [mandatory]:  The name of the query template.
-        query_template [mandatory]:  The query with template placeholders.
+        name_of_template:  The name of the query template.
+        query_template:  The query with template placeholders.
+        key=value: any number of key/value pairs separated by comma
 
     Example:
-        $> add_query_template filter_kind=is({{kind}})
+        $> template expand kind=volume is({{kind}})
+        is(volume)
+        $> template add filter_kind is({{kind}})
         Template filter_kind added to the query library.
         is({{kind}})
-        $> query expand(filter_kind, kind=volume) limit 1
-        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
-        $> query expand(filter_kind, kind=volume) and reported.name==ag1
-        kind=gcp_disk, id=123, name=ag1, age=3y7M, cloud=gcp, account=marketing, region=us-central1, zone=us-central1-c
-    """
-
-    @property
-    def name(self) -> str:
-        return "add_query_template"
-
-    def info(self) -> str:
-        return "Add a query template to the query template library."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        async def add_query() -> AsyncIterator[str]:
-            if not arg:
-                raise CLIParseError("No argument provided!")
-            name, rest = literal_p.parse_partial(arg)
-            _, template_query = (equals_p | colon_p).optional().parse_partial(rest)
-            # try to render the template with dummy values and see if the query can be parsed
-            try:
-                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
-                parse_query(rendered_query)
-            except Exception as ex:
-                raise CLIParseError("Given template does not define a valid query") from ex
-            await self.dependencies.template_expander.add_template(Template(name, template_query))
-            yield f"Template {name} added to the query library.\n{template_query}"
-
-        return CLISource.single(add_query)
-
-
-class ShowQueryTemplateCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: show_query_template <name_of_template>
-
-    Get the current definition of the template defined by given template name.
-
-    Parameter:
-        name_of_template [mandatory]:  The name of the query template.
-
-    Example:
-        $> show_query_template filter_kind
-        is({{kind}})
-    """
-
-    @property
-    def name(self) -> str:
-        return "show_query_template"
-
-    def info(self) -> str:
-        return "Get a single query template."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        async def get_template() -> AsyncIterator[JsonElement]:
-            if not arg:
-                raise CLIParseError("No name provided!")
-            maybe_template = await self.dependencies.template_expander.get_template(arg)
-            yield maybe_template.template if maybe_template else f"No template with this name: {arg}"
-
-        return CLISource.single(get_template)
-
-
-class ListQueryTemplatesCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: list_query_templates
-
-    Get the list of all query templates.
-
-    Example:
-        > list_query_templates
+        > template
         filter_kind: is({{kind}})
+        $> template filter_kind
+        is({{kind}})
+        $> template delete filter_kind
+        Template filter_kind deleted from the query library.
     """
 
     @property
     def name(self) -> str:
-        return "list_query_templates"
+        return "template"
 
     def info(self) -> str:
-        return "Lists all stored query templates."
+        return "Access the query template library."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
         def template_str(template: Template) -> str:
             tpl = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
             return f"{template.name}: {tpl}"
 
+        async def get_template(name: str) -> AsyncIterator[JsonElement]:
+            maybe_template = await self.dependencies.template_expander.get_template(name)
+            yield maybe_template.template if maybe_template else f"No template with this name: {name}"
+
         async def list_templates() -> Tuple[Optional[int], AsyncIterator[Json]]:
             templates = await self.dependencies.template_expander.list_templates()
             return len(templates), stream.iterate(template_str(t) for t in templates)
 
-        return CLISource(list_templates)
+        async def add_template(name: str, template_query: str) -> AsyncIterator[str]:
+            # try to render the template with dummy values and see if the query can be parsed
+            try:
+                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
+                parse_query(rendered_query)
+            except Exception as ex:
+                raise CLIParseError(f"Given template does not define a valid query: {template_query}") from ex
+            await self.dependencies.template_expander.add_template(Template(name, template_query))
+            yield f"Template {name} added to the query library.\n{template_query}"
 
+        async def delete_template(name: str) -> AsyncIterator[str]:
+            await self.dependencies.template_expander.delete_template(name)
+            yield f"Template {name} deleted from the query library."
 
-class ExpandTemplateCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: expand_template [key1=value1, key2=value2, key3=value3] <template_to_expand>
+        async def expand_template(spec: str) -> AsyncIterator[str]:
+            maybe_dict, template = tpl_props_p.parse_partial(spec)
+            yield self.dependencies.template_expander.render(template, maybe_dict if maybe_dict else {})
 
-    Expand a given template with parameter values.
-    The result of this operation is the rendered template string.
-
-    Placeholders are defined in 2 double curly braces {{placeholder}}
-    and get replaced by the provided placeholder value.
-    The name of the placeholder can be any valid alphanumeric string.
-    The template 'hello {{name}}' with expand parameters name=world becomes 'hello world'.
-
-    Parameter:
-        key=value: any number of key/value pairs separated by comma
-        template_to_expand [mandatory]:  The template to render.
-
-    Example:
-        $> expand_template name=world hello {{name}}
-        hello world
-        $> expand_template left=max, right=moritz {{left}} and {{right}}
-        max and moritz
-    """
-
-    @property
-    def name(self) -> str:
-        return "expand_template"
-
-    def info(self) -> str:
-        return "Expand a given template with given parameters."
-
-    @staticmethod
-    def expand_template(template_expander: TemplateExpander, arg: str) -> str:
-        maybe_dict, template = tpl_props_p.parse_partial(arg)
-        return template_expander.render(template, maybe_dict if maybe_dict else {})
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        async def expand_query() -> AsyncIterator[str]:
-            if not arg:
-                raise CLIParseError("No argument provided!")
-            yield self.expand_template(self.dependencies.template_expander, arg)
-
-        return CLISource.single(expand_query)
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] == "add":
+            name, template = re.split("\\s+", args[1], maxsplit=1)
+            return CLISource.single(partial(add_template, name.strip(), template.strip()))
+        elif arg and len(args) == 2 and args[0] == "delete":
+            return CLISource.single(partial(delete_template, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "expand":
+            return CLISource.single(partial(expand_template, args[1].strip()))
+        elif arg and len(args) == 2:
+            raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, delete, expand.")
+        elif arg and len(args) == 1:
+            return CLISource.single(partial(get_template, arg.strip()))
+        elif not arg:
+            return CLISource(list_templates)
+        else:
+            raise CLIParseError(f"Can not parse arguments: {arg}")
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AddJobCommand(d),
-        AddQueryTemplateCommand(d),
         AggregatePart(d),
         AggregateToCountCommand(d),
         AncestorPart(d),
@@ -2381,8 +2286,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
-        ExpandQueryTemplateCommand(d),
-        ExpandTemplateCommand(d),
         ExecuteQueryCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
@@ -2392,7 +2295,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JsonCommand(d),
         KindCommand(d),
         ListCommand(d),
-        ListQueryTemplatesCommand(d),
+        TemplateCommand(d),
         MergeAncestorsPart(d),
         MetadataPart(d),
         PredecessorPart(d),
@@ -2401,7 +2304,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         ReportedPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
-        ShowQueryTemplateCommand(d),
         SleepCommand(d),
         StartTaskCommand(d),
         SuccessorPart(d),
