@@ -246,7 +246,8 @@ class IsTerm(Term):
     kinds: List[str]
 
     def __str__(self) -> str:
-        kinds = f"{self.kinds[0]}" if len(self.kinds) == 1 else f'[{", ".join(self.kinds)}]'
+        kind_string = ", ".join(f'"{a}"' for a in self.kinds)
+        kinds = kind_string if len(self.kinds) == 1 else f"[{kind_string}]"
         return f"is({kinds})"
 
 
