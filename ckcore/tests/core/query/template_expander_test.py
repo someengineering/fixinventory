@@ -1,9 +1,33 @@
+from typing import Dict, Optional, List
+
 import pytest
 from pytest import fixture
 
 from core.error import NoSuchTemplateError
-from core.query import Template, TemplateExpander
-from core.query.template_expander import InMemoryTemplateExpander, render_template
+from core.query.model import Template
+from core.query.template_expander import render_template, TemplateExpanderBase, TemplateExpander
+from core.types import Json
+
+
+class InMemoryTemplateExpander(TemplateExpanderBase):
+    def __init__(self) -> None:
+        self.templates: Dict[str, Template] = {}
+        self.props: Json = {}
+
+    async def put_template(self, template: Template) -> None:
+        self.templates[template.name] = template
+
+    async def delete_template(self, name: str) -> None:
+        self.templates.pop(name, None)
+
+    async def get_template(self, name: str) -> Optional[Template]:
+        return self.templates.get(name)
+
+    async def list_templates(self) -> List[Template]:
+        return list(self.templates.values())
+
+    def default_props(self) -> Optional[Json]:
+        return self.props
 
 
 @fixture

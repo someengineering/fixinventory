@@ -8,7 +8,7 @@ from core.db import templatedb
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EventEntityDb
 from core.db.templatedb import TemplateEntityDb, EventTemplateEntityDb
-from core.query import Template
+from core.query.model import Template
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.graphdb_test import test_db

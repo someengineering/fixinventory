@@ -23,7 +23,7 @@ from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
 from core.model.model import Model
-from core.query import TemplateExpander
+from core.query.template_expander import TemplateExpander
 from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 from tests.core.model import ModelHandlerStatic
 

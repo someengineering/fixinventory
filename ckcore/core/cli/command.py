@@ -47,10 +47,9 @@ from core.parse_util import (
     literal_dp,
     comma_p,
 )
-from core.query import TemplateExpander, Template
-from core.query.model import Query, P
+from core.query.model import Query, P, Template
 from core.query.query_parser import parse_query
-from core.query.template_expander import tpl_props_p
+from core.query.template_expander import tpl_props_p, TemplateExpander
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
 from core.util import (

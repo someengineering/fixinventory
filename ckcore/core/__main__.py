@@ -20,7 +20,7 @@ from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
 from core.model.typed_model import to_js
-from core.query.template_expander import InMemoryTemplateExpander
+from core.query.template_expander import DBTemplateExpander
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
@@ -52,7 +52,7 @@ def main() -> None:
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
-    template_expander = InMemoryTemplateExpander()
+    template_expander = DBTemplateExpander(db.template_entity_db)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,

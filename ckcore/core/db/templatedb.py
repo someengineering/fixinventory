@@ -1,6 +1,6 @@
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EntityDb, EventEntityDb, ArangoEntityDb
-from core.query import Template
+from core.query.model import Template
 
 TemplateEntityDb = EntityDb[Template]
 EventTemplateEntityDb = EventEntityDb[Template]
