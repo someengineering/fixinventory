@@ -154,15 +154,12 @@ class DBTemplateExpander(TemplateExpanderBase):
         return [t async for t in self.db.all()]
 
 
-def render_template(template: str, props: Json, more_props: Iterable[Json] = ()) -> str:
+class VirtualFunctions:
     """
-    Render given provided template with given property values.
-    :param template: the template string.
-    :param props: the properties to populate.
-    :param more_props: additional property maps
-    :return: the rendered template string.
+    Virtual functions that can be used on template parameters.
     """
 
+    @staticmethod
     def with_index(result: Any) -> Any:
         def item(lst: List[Any], idx: int, i: Any) -> Any:
             itm = i
@@ -179,6 +176,30 @@ def render_template(template: str, props: Json, more_props: Iterable[Json] = ())
             result = [item(result, idx, a) for idx, a in enumerate(result)]
         return result
 
+    @staticmethod
+    def parens(result: Any) -> str:
+        return f'"{result}"'
+
+
+getter = functools.partial(
+    default_getter,
+    virtuals={
+        **default_virtuals,
+        "with_index": VirtualFunctions.with_index,
+        "parens": VirtualFunctions.parens,
+    },
+)
+
+
+def render_template(template: str, props: Json, more_props: Iterable[Json] = ()) -> str:
+    """
+    Render given provided template with given property values.
+    :param template: the template string.
+    :param props: the properties to populate.
+    :param more_props: additional property maps
+    :return: the rendered template string.
+    """
+
     def json_stringify(data: Any, text: bool = False) -> Generator[Union[bytes, ByteString], None, None]:
         if isinstance(data, ByteString) and not text:
             yield data
@@ -189,14 +210,6 @@ def render_template(template: str, props: Json, more_props: Iterable[Json] = ())
         else:
             yield f"{data}".encode()
 
-    getter = functools.partial(
-        default_getter,
-        virtuals={
-            **default_virtuals,
-            "with_index": with_index,
-            "parens": lambda s: f'"{s}"',
-        },
-    )
     # noinspection PyTypeChecker
     return render(  # type: ignore
         template,

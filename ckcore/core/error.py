@@ -80,5 +80,7 @@ class ParseError(CoreException, ClientError):
     pass
 
 
-class NoSuchTemplateError(CoreException, ClientError):
-    pass
+class NoSuchTemplateError(CoreException, NotFoundError):
+    def __init__(self, template: str):
+        super().__init__(f"Template {template} does not exist.")
+        self.template = template
