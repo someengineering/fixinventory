@@ -12,7 +12,7 @@ class Expandable:
     props: Json  # the properties to render this template
 
 
-@dataclass
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Template:
     name: str  # the name of the template
     template: str  # the template string with placeholders

@@ -262,12 +262,12 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     await graph_db.commit_batch_update(batch_id)
     assert len((await load_graph(graph_db, md)).nodes) == 111
     # ensure that all temp tables are removed
-    assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
+    assert len(list(filter(lambda c: c["name"].startswith("temp_"), test_db.collections()))) == 0
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
     await graph_db.merge_graph(g, foo_model, batch_id, True)
     await graph_db.abort_update(batch_id)
-    assert len(list(filter(lambda c: c["name"].startswith("temp"), test_db.collections()))) == 0
+    assert len(list(filter(lambda c: c["name"].startswith("temp_"), test_db.collections()))) == 0
 
 
 @pytest.mark.asyncio
