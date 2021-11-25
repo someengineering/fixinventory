@@ -100,6 +100,7 @@ class BaseResource(ABC):
     _zone: object = field(default=None, repr=False)
     _ckcore_id: Optional[str] = field(default=None, repr=False)
     _ckcore_revision: Optional[str] = field(default=None, repr=False)
+    _ckcore_query_tag: Optional[str] = field(default=None, repr=False)
     ctime: Optional[datetime] = field(
         default=None,
         metadata={"synthetic": {"age": "trafo.duration_to_datetime"}},
@@ -195,6 +196,7 @@ class BaseResource(ABC):
             "data": deepcopy(data),
         }
         self.__log.append(log_entry)
+        self._changes.add("log")
 
     @property
     def resource_type(self) -> str:

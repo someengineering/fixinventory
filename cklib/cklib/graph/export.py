@@ -294,6 +294,7 @@ def node_from_dict(node_data: Dict) -> BaseResource:
         {
             "_ckcore_id": node_data.get("id"),
             "_ckcore_revision": node_data.get("revision"),
+            "_ckcore_query_tag": node_data_metadata.get("query_tag"),
         }
     )
 

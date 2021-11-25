@@ -672,6 +672,8 @@ class ResourceChanges:
             self.desired.add(property)
         elif property in ("cleaned", "protected"):
             self.metadata.add(property)
+        elif property == "log":
+            pass
         else:
             raise ValueError(f"Unknown property {property}")
         self.changed = True

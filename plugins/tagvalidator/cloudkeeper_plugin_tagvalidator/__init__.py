@@ -1,179 +1,95 @@
-import cklib.logging
-import threading
-import inspect
-from .config import TagValidatorConfig
-from cklib.baseplugin import BasePlugin
-from cklib.baseresources import *
+from cklib.logging import log
+import yaml
+from cklib.baseplugin import BaseActionPlugin
 from cklib.args import ArgumentParser
+from cklib.core.query import CoreGraph
+from cklib.baseresources import BaseCloud, BaseRegion, BaseAccount, BaseResource
 from cklib.graph import Graph
-from cklib.event import (
-    Event,
-    EventType,
-    add_event_listener,
-    remove_event_listener,
-)
-from cklib.utils import parse_delta
-
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+from cklib.utils import parse_delta, delta_to_str
+from typing import Dict
 
 
-class TagValidatorPlugin(BasePlugin):
+class TagValidatorPlugin(BaseActionPlugin):
+    action = "pre_cleanup_plan"
+
     def __init__(self):
         super().__init__()
-        self.name = "tagvalidator"
-        self.exit = threading.Event()
-        self.run_lock = threading.Lock()
         if ArgumentParser.args.tagvalidator_config:
-            self.config = TagValidatorConfig(ArgumentParser.args.tagvalidator_config)
-            add_event_listener(EventType.SHUTDOWN, self.shutdown)
-            add_event_listener(
-                EventType.COLLECT_FINISH, self.tag_validator, blocking=True, timeout=900
+            self.config = TagValidatorConfig(
+                config_file=ArgumentParser.args.tagvalidator_config
             )
-        else:
-            self.exit.set()
+            self.config.read()
 
-    def __del__(self):
-        remove_event_listener(EventType.COLLECT_FINISH, self.tag_validator)
-        remove_event_listener(EventType.SHUTDOWN, self.shutdown)
+    def bootstrap(self) -> bool:
+        return ArgumentParser.args.tagvalidator_config is not None
 
-    def go(self):
-        self.exit.wait()
-
-    def tag_validator(self, event: Event):
-        if not self.run_lock.acquire(blocking=False):
-            log.error("Tag Validator is already running")
-            return
-
-        graph = event.data
+    def do_action(self, data: Dict) -> None:
         log.info("Tag Validator called")
-        try:
-            self.validate_tags(graph)
-        except Exception:
-            raise
-        finally:
-            self.run_lock.release()
+        self.config.read()
 
-    def validate_tags(self, graph: Graph):
-        config = self.config.read_config()
-        pt = ParallelTagger(self.name)
+        cg = CoreGraph()
+
+        query_tag = "tagvalidate"
+        exclusion_part = "metadata.protected == false and metadata.phantom == false and metadata.cleaned == false"
+        tags_part = "has_key(reported.tags, expiration)"
+        kinds_part = 'reported.kind in ["' + '", "'.join(self.config["kinds"]) + '"]'
+        account_parts = []
+        for cloud_id, account in self.config["accounts"].items():
+            for account_id in account.keys():
+                account_part = (
+                    f'(metadata.ancestors.cloud.id == "{cloud_id}" and '
+                    f'metadata.ancestors.account.id == "{account_id}")'
+                )
+                account_parts.append(account_part)
+        accounts_part = "(" + " or ".join(account_parts) + ")"
+        query = f"{exclusion_part} and {kinds_part} and {tags_part} and {accounts_part} #{query_tag} <-[0:]-"
+
+        graph = cg.graph(query)
+        commands = []
         for node in graph.nodes:
             cloud = node.cloud(graph)
             account = node.account(graph)
             region = node.region(graph)
-            node_classes = [cls.__name__ for cls in inspect.getmro(node.__class__)]
-            node_classes.remove("ABC")
-            node_classes.remove("object")
-
-            if (
-                not isinstance(node, BaseResource)
-                or isinstance(node, BaseCloud)
-                or isinstance(node, BaseAccount)
-                or isinstance(node, BaseRegion)
-                or not isinstance(cloud, BaseCloud)
-                or not isinstance(account, BaseAccount)
-                or not isinstance(region, BaseRegion)
-                or node.protected
-            ):
+            if node.protected or node._ckcore_query_tag != query_tag:
                 continue
-
-            if cloud.id in config and account.id in config[cloud.id]:
-                class_config = {}
-                node_class = None
-                for node_class in node_classes:
-                    node_class = node_class.lower()
-                    if node_class in config[cloud.id][account.id]:
-                        class_config = config[cloud.id][account.id][node_class]
-                        break
-
-                for tag, tag_config in class_config.items():
-                    if region.id in tag_config:
-                        desired_value = tag_config[region.id]
-                    elif "*" in tag_config:
-                        desired_value = tag_config["*"]
-                    else:
-                        log.error(
-                            (
-                                f"No tag config for node {node.dname} class {node_class} in account "
-                                f"{account.dname} cloud {cloud.id}"
-                            )
-                        )
-                        continue
-
-                    if tag in node.tags:
-                        current_value = node.tags[tag]
-                        log.debug(
-                            (
-                                f"Found {node.rtdname} age {node.age} in cloud {cloud.name}"
-                                f" account {account.dname} region {region.name} with tag {tag}: {current_value}"
-                            )
-                        )
-
-                        if desired_value == "never":
-                            continue
-
-                        if current_value == "never" and desired_value != "never":
-                            log_msg = (
-                                f"Current value {current_value} is not allowed - "
-                                f"setting tag {tag} to desired value {desired_value}"
-                            )
-                            log.debug(log_msg)
-                            set_tag(
-                                pt,
-                                node,
-                                tag,
-                                desired_value,
-                                log_msg,
-                                cloud,
-                                account,
-                                region,
-                            )
-                            continue
-
-                        try:
-                            current_value_td = parse_delta(current_value)
-                        except ValueError:
-                            log_msg = (
-                                f"Can't parse current value {current_value} - "
-                                f"setting tag {tag} to desired value {desired_value}"
-                            )
-                            log.error(log_msg)
-                            set_tag(
-                                pt,
-                                node,
-                                tag,
-                                desired_value,
-                                log_msg,
-                                cloud,
-                                account,
-                                region,
-                            )
-                            continue
-
-                        try:
-                            desired_value_td = parse_delta(desired_value)
-                        except (AssertionError, ValueError):
-                            log.error(
-                                "Can't parse desired value {} into timedelta - skipping tag"
-                            )
-                            continue
-
-                        if desired_value_td < current_value_td:
-                            log_msg = (
-                                f"Current value {current_value} is larger than desired value {desired_value} - "
-                                f"setting tag {tag}"
-                            )
-                            log.debug(log_msg)
-                            set_tag(
-                                pt,
-                                node,
-                                tag,
-                                desired_value,
-                                log_msg,
-                                cloud,
-                                account,
-                                region,
-                            )
-        pt.run()
+            update_node_tag = False
+            max_expiration = (
+                self.config["accounts"]
+                .get(cloud.id, {})
+                .get(account.id, {})
+                .get("expiration")
+            )
+            max_expiration_str = delta_to_str(max_expiration)
+            node_expiration_str = node.tags.get("expiration")
+            try:
+                node_expiration = parse_delta(node_expiration_str)
+            except (AssertionError, ValueError):
+                log_msg = (
+                    f"Invalid expiration tag value {node_expiration_str}"
+                    f" - updating tag to {max_expiration_str}"
+                )
+                node.log(log_msg)
+                log.error(
+                    f"{log_msg} on {node.rtdname} in {cloud.rtdname}"
+                    f" {account.rtdname} {region.rtdname}"
+                )
+                update_node_tag = True
+            else:
+                if max_expiration < node_expiration:
+                    log_msg = (
+                        f"Current expiration tag value {node_expiration_str} is larger"
+                        f" than {max_expiration_str} - updating tag"
+                    )
+                    node.log(log_msg)
+                    log.error(f"{log_msg} on {node.rtdname}")
+                    update_node_tag = True
+            if update_node_tag:
+                commands.append(
+                    f"query _key = {node._ckcore_id} | tag update expiration {max_expiration_str}"
+                )
+        cg.patch_nodes(graph)
+        for command in commands:
+            cg.execute(command)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
@@ -191,38 +107,55 @@ class TagValidatorPlugin(BasePlugin):
             default=False,
         )
 
-    def shutdown(self, event: Event):
-        log.debug(
-            f"Received event {event.event_type} - shutting down tag validator plugin"
-        )
-        self.exit.set()
 
+class TagValidatorConfig(dict):
+    def __init__(self, *args, config_file: str = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.config_file = config_file
 
-def set_tag(
-    pt: ParallelTagger,
-    node: BaseResource,
-    tag,
-    value,
-    log_msg: str,
-    cloud: BaseCloud = None,
-    account: BaseAccount = None,
-    region: BaseRegion = None,
-):
-    pt_key = None
-    if node and cloud and account and region:
-        metrics_tag_violations.labels(
-            cloud=cloud.name,
-            account=account.dname,
-            region=region.name,
-            kind=node.kind,
-        ).inc()
-        pt_key = f"{cloud.id}-{account.id}-{region.id}"
-    if ArgumentParser.args.tagvalidator_dry_run:
-        log_msg = f"DRY RUN - ACTION NOT PERFORMED: {log_msg}"
-        node.log(log_msg)
-        log.debug(
-            f"Tag Validator Dry Run - not setting {tag}: {value} for node {node.dname}"
-        )
-    else:
-        node.log(log_msg)
-        pt.add(node, tag, value, pt_key)
+    def read(self) -> bool:
+        if not self.config_file:
+            log.error(
+                "Attribute config_file is not set on TagValidatorConfig() instance"
+            )
+            return False
+
+        with open(self.config_file) as config_file:
+            config = yaml.load(config_file, Loader=yaml.FullLoader)
+        if self.validate(config):
+            self.update(config)
+        return True
+
+    @staticmethod
+    def validate(config) -> bool:
+        required_sections = ["kinds", "accounts"]
+        for section in required_sections:
+            if section not in config:
+                raise ValueError(f"Section '{section}' not found in config")
+
+        if not isinstance(config["kinds"], list) or len(config["kinds"]) == 0:
+            raise ValueError("Error in 'kinds' section")
+
+        if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
+            raise ValueError("Error in 'accounts' section")
+
+        default_expiration = config.get("default", {}).get("expiration")
+        if default_expiration is not None:
+            default_expiration = parse_delta(default_expiration)
+
+        for cloud_id, account in config["accounts"].items():
+            for account_id, account_data in account.items():
+                if "name" not in account_data:
+                    raise ValueError(
+                        f"Missing 'name' for account '{cloud_id}/{account_id}"
+                    )
+                if "expiration" in account_data:
+                    account_data["expiration"] = parse_delta(account_data["expiration"])
+                else:
+                    if default_expiration is None:
+                        raise ValueError(
+                            f"Missing 'expiration' for account '{cloud_id}/{account_id}'"
+                            "and no default expiration defined"
+                        )
+                    account_data["expiration"] = default_expiration
+        return True
