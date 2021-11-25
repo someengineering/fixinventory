@@ -414,14 +414,14 @@ async def test_system_restore_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_template_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command("template test kind=volume is({{kind}})", stream.list)
+async def test_templates_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command("templates test kind=volume is({{kind}})", stream.list)
     assert result == [["is(volume)"]]
-    result = await cli.execute_cli_command("template add filter_kind is({{kind}})", stream.list)
+    result = await cli.execute_cli_command("templates add filter_kind is({{kind}})", stream.list)
     assert result == [["Template filter_kind added to the query library.\nis({{kind}})"]]
-    result = await cli.execute_cli_command("template", stream.list)
+    result = await cli.execute_cli_command("templates", stream.list)
     assert result == [["filter_kind: is({{kind}})"]]
-    result = await cli.execute_cli_command("template filter_kind", stream.list)
+    result = await cli.execute_cli_command("templates filter_kind", stream.list)
     assert result == [["is({{kind}})"]]
-    result = await cli.execute_cli_command("template delete filter_kind", stream.list)
+    result = await cli.execute_cli_command("templates delete filter_kind", stream.list)
     assert result == [["Template filter_kind deleted from the query library."]]

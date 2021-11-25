@@ -2178,22 +2178,22 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
-class TemplateCommand(CLICommand, PreserveOutputFormat):
+class TemplatesCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: template
-           template <name_of_template>
-           template add <name_of_template> <query_template>
-           template update <name_of_template> <query_template>
-           template delete <name_of_template>
-           template test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
+    Usage: templates
+           templates <name_of_template>
+           templates add <name_of_template> <query_template>
+           templates update <name_of_template> <query_template>
+           templates delete <name_of_template>
+           templates test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
 
 
-    template: get the list of all templates
-    template <name>: get the current definition of the template defined by given template name
-    template add <name> <template>: add a query template to the query template library under given name.
-    template update <name> <template>: update a query template in the query template library.
-    template delete <name>: delete the query template with given name.
-    template test k=v <template_to_expand>: test the defined template.
+    templates: get the list of all templates
+    templates <name>: get the current definition of the template defined by given template name
+    templates add <name> <template>: add a query template to the query template library under given name.
+    templates update <name> <template>: update a query template in the query template library.
+    templates delete <name>: delete the query template with given name.
+    templates test k=v <template_to_expand>: test the defined template.
 
     Placeholders are defined in 2 double curly braces {{placeholder}}
     and get replaced by the provided placeholder value during render time.
@@ -2207,22 +2207,22 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
         key=value: any number of key/value pairs separated by comma
 
     Example:
-        $> template test kind=volume is({{kind}})
+        $> templates test kind=volume is({{kind}})
         is(volume)
-        $> template add filter_kind is({{kind}})
+        $> templates add filter_kind is({{kind}})
         Template filter_kind added to the query library.
         is({{kind}})
-        > template
+        > templates
         filter_kind: is({{kind}})
-        $> template filter_kind
+        $> templates filter_kind
         is({{kind}})
-        $> template delete filter_kind
+        $> templates delete filter_kind
         Template filter_kind deleted from the query library.
     """
 
     @property
     def name(self) -> str:
-        return "template"
+        return "templates"
 
     def info(self) -> str:
         return "Access the query template library."
@@ -2300,7 +2300,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JsonCommand(d),
         KindCommand(d),
         ListCommand(d),
-        TemplateCommand(d),
+        TemplatesCommand(d),
         MergeAncestorsPart(d),
         MetadataPart(d),
         PredecessorPart(d),
