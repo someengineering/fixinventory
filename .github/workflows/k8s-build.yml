@@ -1,0 +1,54 @@
+name: Build Docker Images
+
+on:
+    push:
+        tags:
+            - "*.*.*"
+        branches:
+            - main
+    pull_request:
+        paths:
+            - 'Dockerfile'
+            - 'docker/**'
+            - '.github/workflows/docker-build.yml'
+    workflow_dispatch:
+
+jobs:
+    build:
+        name: Build Docker Images
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Check out repository
+                uses: actions/checkout@v2
+
+            -   name: Build Docker image
+                uses: docker/build-push-action@v2
+                with:
+                    context: .
+                    file: ./Dockerfile
+                    platforms: linux/amd64
+                    push: false
+                    build-args: |
+                        SOURCE_COMMIT=${{ github.sha }}
+                        TESTS=false
+                    tags: ghcr.io/someengineering/cloudkeeper:test
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
+
+            - uses: engineerd/setup-kind@v0.5.0
+            - name: Testing
+              run: |
+                  kind load docker-image ghcr.io/someengineering/cloudkeeper:test
+                  NO_START_KIND=1 IMAGE_TAG=test bash -x ./kubernetes/setup-kind.sh
+                  # make sure we get the example collector in a reasonable time.
+                  timeout 1m /bin/bash -c "until echo kind |kubectl --namespace cloudkeeper exec -i deploy/cloudkeeper-ckcore -- cksh --stdin|grep example_resource; do sleep 1; done"
+            - name: Debug info on failure
+              if: ${{ failure() }}
+              run: |
+                  kubectl get all --namespace cloudkeeper
+                  echo "Core logs:"
+                  kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckcore
+                  echo "Worker logs:"
+                  kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckworker
+                  echo "Metrics logs:"
+                  kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckmetrics

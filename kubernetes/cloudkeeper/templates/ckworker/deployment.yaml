@@ -6,9 +6,7 @@ metadata:
     cloudkeeper: worker
     {{- include "cloudkeeper.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       cloudkeeper: worker
@@ -40,6 +38,8 @@ spec:
           command:
             - /usr/local/cloudkeeper-venv-python3/bin/ckworker
           args:
+          - --collector
+          - {{ .Values.ckworker.collector }}
           - --ckcore-uri
           - http://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
           - --ckcore-ws-uri
@@ -48,8 +48,10 @@ spec:
           {{- toYaml .Values.ckworker.extraArgs | nindent 10 }}
           {{- end }}
           env:
-            - name: CKWORKER_COLLECTOR
-              value: {{ .Values.ckworker.collector }}
+            - name: START_STACK
+              value: "false"
+            - name: START_CKWORKER
+              value: "true"
           {{- if .Values.ckworker.extraEnv }}
           {{- toYaml .Values.ckworker.extraEnv | nindent 12 }}
           {{- end }}

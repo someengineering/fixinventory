@@ -46,7 +46,11 @@ spec:
           - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
           - --ckcore-ws-uri
           - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
-          
+          env:
+          - name: START_STACK
+            value: "false"
+          - name: START_CKMETRICS
+            value: "true"
           ports:
             - name: http
               containerPort: 9955

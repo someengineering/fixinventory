@@ -11,6 +11,9 @@ spec:
     matchLabels:
       cloudkeeper: core
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  # We can remove/change the strategy when the core longer assumes it is a singlton.
+  strategy:
+    type: Recreate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -20,7 +23,7 @@ spec:
       labels:
         cloudkeeper: core
         {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
-    spec: 
+    spec:
       enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -41,13 +44,17 @@ spec:
             - --host
             - {{ .Values.ckcore.host | default "0.0.0.0" | quote }}
             - --start-collect-on-subscriber-connect
+            - --graphdb-server
+            - {{ .Values.ckcore.graphdb.server | quote }}
+            - --graphdb-database
+            - {{ .Values.ckcore.graphdb.database | quote }}
+            - --graphdb-username
+            - {{ .Values.ckcore.graphdb.login | quote }}
           env:
-          - name: CKCORE_GRAPHDB_SERVER
-            value: {{ .Values.ckcore.graphdb.server  | quote }}
-          - name: CKCORE_GRAPHDB_DATABASE
-            value: {{ .Values.ckcore.graphdb.database | quote }}
-          - name: CKCORE_GRAPHDB_USERNAME
-            value: {{ .Values.ckcore.graphdb.login | quote }}
+          - name: START_STACK
+            value: "false"
+          - name: START_CKCORE
+            value: "true"
           {{- if .Values.ckcore.graphdb.passwordSecret }}
           - name: CKCORE_GRAPHDB_PASSWORD
             valueFrom:
