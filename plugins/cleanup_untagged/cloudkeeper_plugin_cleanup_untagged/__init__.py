@@ -3,7 +3,6 @@ from cklib.baseplugin import BaseActionPlugin
 from cklib.logging import log
 from cklib.core.query import CoreGraph
 from cklib.graph.export import node_from_dict
-from cklib.baseresources import *
 from cklib.args import ArgumentParser
 from cklib.utils import parse_delta, delta_to_str
 from typing import Dict

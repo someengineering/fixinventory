@@ -1,4 +1,3 @@
-import threading
 from cklib.baseplugin import BaseActionPlugin
 from cklib.logging import log
 from cklib.core.query import CoreGraph

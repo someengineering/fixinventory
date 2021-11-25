@@ -33,7 +33,9 @@ class ProtectSnowflakesPlugin(BaseActionPlugin):
                     for kind, resources in kinds.items():
                         for resource_id in resources:
                             log.debug(
-                                f"Protecting {resource_id} of kind {kind} in region {region_id} account {account_id} cloud {cloud_id}"
+                                f"Protecting {resource_id} of kind {kind} in"
+                                f" region {region_id} account {account_id}"
+                                f" cloud {cloud_id}"
                             )
                             resource_parts.append(
                                 f'(reported.id == "{resource_id}"'
