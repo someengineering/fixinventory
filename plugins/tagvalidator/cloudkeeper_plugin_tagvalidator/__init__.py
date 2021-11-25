@@ -3,8 +3,6 @@ import yaml
 from cklib.baseplugin import BaseActionPlugin
 from cklib.args import ArgumentParser
 from cklib.core.query import CoreGraph
-from cklib.baseresources import BaseCloud, BaseRegion, BaseAccount, BaseResource
-from cklib.graph import Graph
 from cklib.utils import parse_delta, delta_to_str
 from typing import Dict
 
@@ -89,6 +87,9 @@ class TagValidatorPlugin(BaseActionPlugin):
                 )
         cg.patch_nodes(graph)
         for command in commands:
+            if ArgumentParser.args.tagvalidator_dry_run:
+                log.debug(f"Tag validator dry run - not executing: {command}")
+                continue
             cg.execute(command)
 
     @staticmethod
