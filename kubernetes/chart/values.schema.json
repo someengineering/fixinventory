@@ -66,7 +66,8 @@
                     "type": "object",
                     "required": [
                         "server",
-                        "login"
+                        "login",
+                        "database"
                     ],
                     "properties": {
                         "server": {
@@ -75,6 +76,10 @@
                             "minLength": 1
                         },
                         "login": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "database": {
                             "type": "string",
                             "minLength": 1
                         },

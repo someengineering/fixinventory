@@ -64,7 +64,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
     {{- if .Values.ckworker.volumeMounts }}
           volumeMounts:
-    {{- toYaml .Values.ckworker.volumeMounts | indent 12 }}
+    {{- toYaml .Values.ckworker.volumeMounts | nindent 12 }}
     {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -80,5 +80,5 @@ spec:
       {{- end }}
 {{- if .Values.ckworker.volumes }}
       volumes:
-{{ toYaml .Values.ckworker.volumes | indent 8 }}
+{{ toYaml .Values.ckworker.volumes | nindent 8 }}
 {{- end }}

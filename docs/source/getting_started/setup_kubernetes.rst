@@ -1,8 +1,6 @@
-NOTE: VERY ROUGH DRAFT!!!!!!!!!!
-
-===========================
+==============================
 Setup In Kubernetes Using Helm
-===========================
+==============================
 
 The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Cloudkeeper environment.
 
@@ -10,9 +8,6 @@ In this setup guide we're showing you three things:
     #. how to prepare your environment
     #. how to prepare your helm values file
     #. how to install each cloudkeeper in kubernetes using helm
-
-All the installation will take place in your home directory ``~/cloudkeeper/``. Choose a different ``INSTALL_PREFIX`` below if you prefer another location.
-
 
 Prerequisites
 *************
@@ -58,10 +53,17 @@ You can use these commands to install the DB, but do note that this is not produ
 
 Note: This readme was tested with version 1.2.4 of the operator.
 
-Setup a db and passowrd:
+Wait until the the ArangoDB deployment is ready. You can check the conditions in the status to see that it is ready:
 
 .. code-block:: bash
-    :caption: Prepare the environment
+    :caption: Check status
+
+    kubectl get arangodeployment single-server -o yaml
+
+Setup a db and password:
+
+.. code-block:: bash
+    :caption: Create db and credentials
 
     CKCORE_GRAPHDB_LOGIN=cloudkeeper
     CKCORE_GRAPHDB_DATABASE=cloudkeeper
@@ -77,7 +79,7 @@ Setup a db and passowrd:
 Create the secret with the credentials
 
 .. code-block:: bash
-    :caption: Prepare the environment
+     :caption: Upload db credentials as a secret
 
     kubectl create secret generic cloudkeeper-graphdb-credentials --from-literal=password=$CKCORE_GRAPHDB_PASSWORD
 
@@ -90,13 +92,14 @@ Prepare your Helm values file:
 
 
 .. code-block:: bash
-    :caption: Prepare the environment
+    :caption: Prepare the helm values file
 
     cat > cloudkeeper-values.yaml <<EOF
     ckcore:
         graphdb:
-            server: http://single-server:123
+            server: http://single-server:8529
             login: $CKCORE_GRAPHDB_LOGIN
+            database: $CKCORE_GRAPHDB_DATABASE
             passwordSecret:
                 name: cloudkeeper-graphdb-credentials
                 key: password
@@ -107,6 +110,66 @@ Prepare your Helm values file:
         collector: example
     EOF
 
+Optional - Configure Cloud Credentials
+======================================
+
+You can use helm values ckworker.extraArgs, ckworker.extraEnv, ckworker.volumes and ckworker.volumeMounts to injecti credentials and their configuration to ckworker.
+For example, for AWS and GCE, you would do the following:
+
+.. code-block:: bash
+    :caption: Create credentials
+
+    kubectl -n cloudkeeper create secret generic cloudkeeper-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
+
+Then you can use these values for ckwroker:
+
+.. code-block:: yaml
+    :caption: values with ckworker credentials
+
+    ckcore:
+        graphdb:
+            server: http://single-server:8529
+            login: cloudkeeper
+            passwordSecret:
+                name: cloudkeeper-graphdb-credentials
+                key: password
+    ckworker:
+      collector: aws gcp
+      volumeMounts:
+          - mountPath: /etc/tokens/
+            name: auth-secret
+      volumes:
+        - name: auth-secret
+          secret:
+            secretName: cloudkeeper-auth
+            items:
+              - key: GOOGLE_APPLICATION_CREDENTIALS
+                path: gcp-service-account.json
+      extraEnv:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: cloudkeeper-auth
+                key: AWS_ACCESS_KEY_ID
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: cloudkeeper-auth
+                key: AWS_SECRET_ACCESS_KEY
+      extraArgs:
+          - --fork
+          - --gcp-service-account
+          - /etc/tokens/gcp-service-account.json
+          - "--aws-fork"
+          - "--gcp-fork"
+          - "--aws-account-pool-size"
+          - "4"
+          - "--gcp-project-pool-size"
+          - "4"
+
+Installation
+************
+
 Get the helm chart. For now, to get the helm chart you will need to clone Cloudkeeper locally:
 
 .. code-block:: bash
@@ -114,15 +177,12 @@ Get the helm chart. For now, to get the helm chart you will need to clone Cloudk
 
     git clone https://github.com/someengineering/cloudkeeper
 
-Installation
-************
-
 Install Cloudkeeper:
 
 .. code-block:: bash
-    :caption: Prepare the environment
+    :caption: Install Cloudkeeper
 
-    helm install ./cloudkeeper/kubernetes/chart cloudkeeper -f cloudkeeper-values.yaml
+    helm install cloudkeeper ./cloudkeeper/kubernetes/chart --set image.tag=2.0.0a8 -f cloudkeeper-values.yaml
 
 
 
