@@ -79,12 +79,9 @@ Setup a db and password:
 Create the secret with the credentials
 
 .. code-block:: bash
-     :caption: Upload db credentials as a secret
+    :caption: Upload db credentials as a secret
 
     kubectl create secret generic cloudkeeper-graphdb-credentials --from-literal=password=$CKCORE_GRAPHDB_PASSWORD
-
-
-.. _configuration_environment:
 
 Configuration
 *************
