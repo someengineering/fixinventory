@@ -1,9 +1,8 @@
 name: Check PR (cklib)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - '.github/**'
+    branches:
+        - main
   pull_request:
     paths:
       - 'cklib/**'

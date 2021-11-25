@@ -4,10 +4,6 @@
 name: Check PR (Plugin protect_snowflakes)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/protect_snowflakes/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

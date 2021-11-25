@@ -1,10 +1,6 @@
 name: Check PR (ckworker)
 on:
   push:
-    paths:
-      - 'ckworker/**'
-      - 'cklib/**'
-      - '.github/**'
     branches:
         - main
   pull_request:
