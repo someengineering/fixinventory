@@ -1571,19 +1571,22 @@ class ListCommand(CLICommand, OutputTransformer):
             as_name = path[-1] if prop == as_name or as_name is None else as_name
             props.append((path, as_name))
 
-        def fmt(elem: JsonElement) -> str:
-            result = ""
-            first = True
-            if isinstance(elem, dict):
+        def fmt(elem: JsonElement) -> JsonElement:
+            is_vertex = is_node(elem)
+            if is_vertex and isinstance(elem, dict):
+                result = ""
+                first = True
                 for prop_path, name in props:
                     value = value_in_path(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
                         first = False
+                return result
+            elif isinstance(elem, dict):
+                return elem
             else:
-                result = str(elem)
-            return result
+                return str(elem)
 
         return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
 

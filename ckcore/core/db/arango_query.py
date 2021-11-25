@@ -146,12 +146,16 @@ def query_string(
         bind_vars[bvn] = t.id
         return f"{cursor}._key == @{bvn}"
 
-    def is_instance(cursor: str, t: IsTerm) -> str:
-        if t.kind not in model:
-            raise AttributeError(f"Given kind does not exist: {t.kind}")
-        bvn = next_bind_var_name()
-        bind_vars[bvn] = t.kind
-        return f"@{bvn} IN {cursor}.kinds"
+    def is_term(cursor: str, t: IsTerm) -> str:
+        is_results = []
+        for kind in t.kinds:
+            if kind not in model:
+                raise AttributeError(f"Given kind does not exist: {kind}")
+            bvn = next_bind_var_name()
+            bind_vars[bvn] = kind
+            is_results.append(f"@{bvn} IN {cursor}.kinds")
+        is_result = " or ".join(is_results)
+        return is_result if len(is_results) == 1 else f"({is_result})"
 
     def not_term(cursor: str, t: NotTerm) -> str:
         return f"NOT ({term(cursor, t.term)})"
@@ -166,7 +170,7 @@ def query_string(
         elif isinstance(ab_term, IdTerm):
             return with_id(cursor, ab_term)
         elif isinstance(ab_term, IsTerm):
-            return is_instance(cursor, ab_term)
+            return is_term(cursor, ab_term)
         elif isinstance(ab_term, NotTerm):
             return not_term(cursor, ab_term)
         elif isinstance(ab_term, CombinedTerm):
@@ -204,8 +208,15 @@ def query_string(
         # <-[1:]- is(cloud|account|region|zone)
         # noinspection PyUnresolvedReferences
         def is_already_resolved(q: Query) -> Optional[str]:
+            def check_is(t: IsTerm) -> Optional[str]:
+                for kind in t.kinds:
+                    if kind in GraphResolver.resolved_ancestors:
+                        return kind
+                return None
+
+            # noinspection PyTypeChecker
             return (
-                q.parts[0].term.kind
+                check_is(q.parts[0].term)
                 if (
                     len(q.parts) == 2
                     and not q.aggregate
@@ -213,7 +224,6 @@ def query_string(
                     and q.parts[1].navigation.direction == "in"
                     and q.parts[1].navigation.until > 1
                     and isinstance(q.parts[0].term, IsTerm)
-                    and q.parts[0].term.kind in GraphResolver.resolved_ancestors
                 )
                 else None
             )

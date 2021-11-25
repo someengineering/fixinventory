@@ -27,6 +27,7 @@ from cklib.baseresources import (
     BaseHealthCheck,
     BaseBucket,
     BaseDatabase,
+    PhantomBaseResource,
 )
 from .utils import (
     gcp_service,
@@ -590,7 +591,7 @@ class GCPDatabase(GCPResource, BaseDatabase):
 
 
 @dataclass(eq=False)
-class GCPService(GCPResource, BaseResource):
+class GCPService(GCPResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_service"
     api_identifier: ClassVar[str] = "service"
     client: ClassVar[str] = "cloudbilling"
@@ -599,7 +600,7 @@ class GCPService(GCPResource, BaseResource):
 
 
 @dataclass(eq=False)
-class GCPServiceSKU(GCPResource, BaseResource):
+class GCPServiceSKU(GCPResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_service_sku"
     api_identifier: ClassVar[str] = "service"
     client: ClassVar[str] = "cloudbilling"

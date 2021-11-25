@@ -57,7 +57,7 @@ class P:
 
     @staticmethod
     def of_kind(name: str) -> Term:
-        return IsTerm(name)
+        return IsTerm([name])
 
     @staticmethod
     def function(fn: str) -> PFunction:
@@ -266,10 +266,12 @@ class IdTerm(Term):
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class IsTerm(Term):
-    kind: str
+    kinds: List[str]
 
     def __str__(self) -> str:
-        return f'is("{self.kind}")'
+        kind_string = ", ".join(f'"{a}"' for a in self.kinds)
+        kinds = kind_string if len(self.kinds) == 1 else f"[{kind_string}]"
+        return f"is({kinds})"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -711,7 +713,7 @@ class Query:
             if isinstance(t, Term):
                 return t
             elif isinstance(t, str):
-                return IsTerm(t)
+                return IsTerm([t])
             else:
                 raise AttributeError(f"Expected term or string, but got {t}")
 

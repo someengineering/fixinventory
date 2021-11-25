@@ -338,6 +338,11 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 10
 
+    foos_or_blas = parse_query("is([foo, bla])")
+    async with await filled_graph_db.query_list(QueryModel(foos_or_blas, foo_model, "reported")) as gen:
+        result = [x async for x in gen]
+        assert len(result) == 113  # all documents, since there are only foos and blas
+
 
 @pytest.mark.asyncio
 async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
