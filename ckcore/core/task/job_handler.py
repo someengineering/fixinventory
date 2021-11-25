@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from core.task.task_description import Job, RunningTask
 
@@ -18,7 +18,9 @@ class JobHandler(ABC):
         pass
 
     @abstractmethod
-    async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
+    async def parse_job_line(
+        self, source: str, line: str, env: Optional[Dict[str, str]] = None, mutable: bool = True
+    ) -> Job:
         pass
 
     @abstractmethod

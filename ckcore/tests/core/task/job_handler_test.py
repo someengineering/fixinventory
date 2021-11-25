@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from core.task.job_handler import JobHandler
 from core.task.task_description import RunningTask, Job
@@ -24,7 +24,9 @@ class InMemJobHandler(JobHandler):
         else:
             return None
 
-    async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
+    async def parse_job_line(
+        self, source: str, line: str, env: Optional[Dict[str, str]] = None, mutable: bool = True
+    ) -> Job:
         raise NotImplementedError()
 
     async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:

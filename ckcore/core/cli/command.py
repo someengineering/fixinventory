@@ -99,7 +99,7 @@ class CLIDependencies:
 
 @dataclass
 class CLIContext:
-    env: Dict[str, Any] = field(default_factory=dict)
+    env: Dict[str, str] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
 
 
@@ -1654,7 +1654,7 @@ class AddJobCommand(CLICommand):
         async def add_job() -> AsyncIterator[str]:
             if not arg:
                 raise AttributeError("No parameters provided for add_job!")
-            job = await self.dependencies.job_handler.parse_job_line("cli", arg)
+            job = await self.dependencies.job_handler.parse_job_line("cli", arg, ctx.env)
             await self.dependencies.job_handler.add_job(job)
             yield f"Job {job.id} added."
 

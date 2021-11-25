@@ -59,7 +59,7 @@ def main() -> None:
         worker_task_queue=worker_task_queue,
         args=args,
     )
-    cli = CLI(cli_deps, all_commands(cli_deps), dict(os.environ), aliases())
+    cli = CLI(cli_deps, all_commands(cli_deps), {}, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandler(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
