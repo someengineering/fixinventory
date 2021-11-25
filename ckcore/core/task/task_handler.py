@@ -7,6 +7,7 @@ import re
 from argparse import ArgumentParser, Namespace
 from asyncio import Task, CancelledError
 from copy import copy
+from dataclasses import replace
 from datetime import timedelta
 from functools import reduce
 from io import TextIOWrapper
@@ -414,7 +415,7 @@ class TaskHandler(JobHandler):
                     results[command] = None
                 elif isinstance(command, ExecuteOnCLI):
                     # TODO: instead of executing it in process, we should do an http call here to a worker core.
-                    ctx = CLIContext(dict(command.env))
+                    ctx = CLIContext({**command.env, **wi.descriptor.environment})
                     result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
                     results[command] = result
                 else:
@@ -514,11 +515,14 @@ class TaskHandler(JobHandler):
                     jobs.append(job)
         return jobs
 
-    async def parse_job_line(self, source: str, line: str, mutable: bool = True) -> Job:
+    async def parse_job_line(
+        self, source: str, line: str, env: Optional[Dict[str, str]] = None, mutable: bool = True
+    ) -> Job:
         """
         Parse a single job line.
         :param source: the source of this line (just for naming purposes)
         :param line: the line of text
+        :param env: the context for this job
         :param mutable: defines if the resulting job is mutable or not.
         :return: the parsed jon
         """
@@ -527,6 +531,7 @@ class TaskHandler(JobHandler):
         uid = uuid_str(stripped)[0:8]
         timeout = timedelta(hours=1)
         wait_timeout = timedelta(hours=24)
+        ctx = replace(self.cli_context, env={**self.cli_context.env, **env}) if env else self.cli_context
 
         async def parse_with_cron() -> Job:
             parts = re.split("\\s+", stripped, 5)
@@ -539,12 +544,12 @@ class TaskHandler(JobHandler):
             if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
                 wait = EventTrigger(event), wait_timeout
-            await self.cli.evaluate_cli_command(command, self.cli_context, replace_place_holder=False)
-            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, mutable)
+            await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
+            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, env, mutable)
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
-            await self.cli.evaluate_cli_command(command, self.cli_context, replace_place_holder=False)
+            await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, mutable=mutable)
 
         try:

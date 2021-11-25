@@ -227,7 +227,8 @@ async def test_format(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
-    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list)
+    ctx = CLIContext(cli.cli_env)
+    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list, ctx)
     assert result == [["Job c6f602e8 added."]]
     job = await job_db.get("c6f602e8")
     assert job is not None

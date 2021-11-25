@@ -201,6 +201,7 @@ class TaskDescription(ABC):
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
         on_surpass: TaskSurpassBehaviour,
+        environment: Optional[Dict[str, str]],
         mutable: bool,
     ):
         self.id = uid
@@ -208,6 +209,7 @@ class TaskDescription(ABC):
         self.steps = steps
         self.triggers = triggers
         self.on_surpass = on_surpass
+        self.environment = environment if environment else {}
         self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
@@ -225,6 +227,7 @@ class Job(TaskDescription):
         trigger: Trigger,
         timeout: timedelta,
         wait: Optional[Tuple[EventTrigger, timedelta]] = None,
+        environment: Optional[Dict[str, str]] = None,
         mutable: bool = True,
     ):
         steps = []
@@ -233,7 +236,7 @@ class Job(TaskDescription):
             action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
             steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
         steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
-        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Parallel, mutable)
+        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Parallel, environment, mutable)
         self.command = command
         self.trigger = trigger
         self.timeout = timeout
@@ -242,12 +245,14 @@ class Job(TaskDescription):
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:
         wait = {"wait_trigger": to_js(o.wait[0]), "wait_timeout": to_js(o.wait[1])} if o.wait else {}
+        env = {"environment": o.environment} if o.environment else {}
         return {
             "id": o.id,
             "name": o.name,
             "command": to_js(o.command),
             "trigger": to_js(o.trigger),
             "timeout": to_js(o.timeout),
+            **env,
             **wait,
         }
 
@@ -264,6 +269,7 @@ class Job(TaskDescription):
             from_js(json["trigger"], Trigger),
             from_js(json["timeout"], timedelta),
             maybe_wait,
+            json.get("environment"),
         )
 
 
@@ -279,19 +285,22 @@ class Workflow(TaskDescription):
         steps: Sequence[Step],
         triggers: Sequence[Trigger],
         on_surpass: TaskSurpassBehaviour = TaskSurpassBehaviour.Skip,
+        environment: Optional[Dict[str, str]] = None,
     ) -> None:
-        super().__init__(uid, name, steps, triggers, on_surpass, mutable=False)
+        super().__init__(uid, name, steps, triggers, on_surpass, environment, mutable=False)
         self._triggers = triggers
         self._on_surpass = on_surpass
 
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:
+        env = {"environment": o.environment} if o.environment else {}
         return {
             "id": o.id,
             "name": o.name,
             "steps": to_js(o.steps),
             "triggers": to_js(o.triggers),
             "on_surpass": to_js(o.on_surpass),
+            **env,
         }
 
     @staticmethod
