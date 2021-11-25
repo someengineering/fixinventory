@@ -8,20 +8,18 @@ The :ref:`quickstart` guide used our Docker image. This tutorial will set up the
 
 In this setup guide we're showing you three things:
     #. how to prepare your environment
-    #. how to install each cloudkeeper component
-    #. how to run & access each component
+    #. how to prepare your helm values file
+    #. how to install each cloudkeeper in kubernetes using helm
 
 All the installation will take place in your home directory ``~/cloudkeeper/``. Choose a different ``INSTALL_PREFIX`` below if you prefer another location.
 
 
 Prerequisites
 *************
+You will need:
 
-Python >= 3.9 is required for all Cloudkeeper components. ArangoDB >= 3.8.1 is used as the ``ckcore`` graph storage.
-Optionally the Cloudkeeper Metrics Exporter ``ckmetrics`` can be installed and its metrics pulled by the Prometheus time series database.
-This guide uses ``curl`` and ``git`` to download components.
-
-The component set-up takes 20 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
+Helm (version 3 and above)
+A Kubernetes cluster (kind or minikube should work as well)
 
 To start filling the Cloudkeeper graph with resource data you will need AWS credentials with proper permissions.
 
@@ -37,33 +35,39 @@ If you don't have arangodb, you can use the operator to install it.
 see more info here:
 https://www.arangodb.com/docs/stable/tutorials-kubernetes.html
 
-but the gist of it is:
+You can use these commands to install the DB, but do note that this is not production-ready setup:
 
 .. code-block:: bash
     :caption: Prepare the environment
 
-    kubectl apply -f https://raw.githubusercontent.com/arangodb/kube-arangodb/1.2.4/manifests/arango-crd.yaml
-    kubectl apply -f https://raw.githubusercontent.com/arangodb/kube-arangodb/1.2.4/manifests/arango-deployment.yaml
-    kubectl apply -f <<EOF
+    helm repo add arangodb https://arangodb.github.io/kube-arangodb
+    helm repo update
+    helm install kube-arangodb-crd arangodb/kube-arangodb-crd
+    helm install kube-arangodb arangodb/kube-arangodb
+
+    kubectl apply -f - <<EOF
     apiVersion: "database.arangodb.com/v1alpha"
     kind: "ArangoDeployment"
     metadata:
-    name: "single-server"
+        name: "single-server"
     spec:
-    mode: Single
+        mode: Single
+        tls:
+            caSecretName: None
     EOF
 
+Note: This readme was tested with version 1.2.4 of the operator.
 
 Setup a db and passowrd:
 
 .. code-block:: bash
     :caption: Prepare the environment
 
-    CKCORE_GRAPHDB_LOGIN=ckcore
+    CKCORE_GRAPHDB_LOGIN=cloudkeeper
     CKCORE_GRAPHDB_DATABASE=cloudkeeper
     CKCORE_GRAPHDB_PASSWORD=$(head -c 1500 /dev/urandom | tr -dc 'a-zA-Z0-9' | cut -c -32)
-    POD=$(kubectl get pods --selector=arango_deployment=single-server -o name|head -1)
-    kubectl exec -i $(POD) -- arangosh  --console.history false --server.password "$GRAPHDB_ROOT_PASSWORD" <<EOF
+    POD=$(kubectl get pods --selector=arango_deployment=single-server -o jsonpath="{.items[0].metadata.name}")
+    kubectl exec -i ${POD} -- arangosh --console.history false --server.password "" <<EOF
         const users = require('@arangodb/users');
         users.save('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_PASSWORD');
         db._createDatabase('$CKCORE_GRAPHDB_DATABASE');
@@ -81,7 +85,7 @@ Create the secret with the credentials
 .. _configuration_environment:
 
 Configuration
-=============
+*************
 Prepare your Helm values file:
 
 
@@ -100,15 +104,25 @@ Prepare your Helm values file:
     ckworker:
         extraArgs:
             - --fork
+        collector: example
     EOF
 
+Get the helm chart. For now, to get the helm chart you will need to clone Cloudkeeper locally:
 
-install!
+.. code-block:: bash
+    :caption: Clone Cloudkeeper
+
+    git clone https://github.com/someengineering/cloudkeeper
+
+Installation
+************
+
+Install Cloudkeeper:
 
 .. code-block:: bash
     :caption: Prepare the environment
 
-    helm install cloudkeeper -f cloudkeeper-values.yaml --namespace=ck-system
+    helm install ./cloudkeeper/kubernetes/chart cloudkeeper -f cloudkeeper-values.yaml
 
 
 
