@@ -17,6 +17,7 @@ var drag_sensitivity := 1.0
 var drag_power := Vector2.ZERO
 var target_node : CloudNode = null
 var cam_moving := false
+var cam_target_zoom := 0.0
 var selected_new_node := false
 var original_zoom := 100.0
 var is_active := true setget set_is_active
@@ -33,7 +34,7 @@ export (NodePath) onready var main_ui = get_node(main_ui)
 
 func _ready():
 	_g.main_graph = graph
-	#_g.main_graph.connect("order_done", self, "save_order")
+	graph.connect("order_done", self, "save_order")
 	_e.connect("graph_order", self, "main_graph_order")
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
@@ -47,13 +48,6 @@ func set_is_active(value:bool):
 	graph.is_active = value
 
 
-func _process(_delta):
-	#print("fps: " + str(Engine.get_frames_per_second()))
-	if root_node == null or !is_active:
-		return
-
-
-
 func read_data( filter_by_kinds := [] ):
 	var file = File.new()
 	var new_data := {}
@@ -63,7 +57,7 @@ func read_data( filter_by_kinds := [] ):
 		file.open(_g.GRAPH_DUMP_JSON_PATH, file.READ)
 		var file_len : float = float( file.get_len() )
 		# warning-ignore:narrowing_conversion
-		var update_mod : int = max(file.get_len() / 500000, 100)
+		var update_mod : int = int( max( float( file.get_len() ) / 500000, 100.0 ) )
 		var index := 0
 		var benchmark_start = OS.get_ticks_usec()
 		_g.msg( "Reading file ..." )
@@ -177,7 +171,7 @@ func _physics_process(delta):
 	if !is_active:
 		return
 	mouse_is_pressed = Input.is_action_pressed("left_mouse")
-	var is_in_graph = true#main_ui.state == main_ui.states.GRAPH
+	var is_in_graph = true
 	if mouse_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
 		new_drag_pos = get_viewport().get_mouse_position()
 		if !is_dragging_cam:
@@ -189,6 +183,7 @@ func _physics_process(delta):
 	else:
 		drag_power *= 50*delta
 		is_dragging_cam = false
+	
 	graph_cam.translation.x -= drag_power.x
 	graph_cam.translation.y += drag_power.y
 	
@@ -199,7 +194,6 @@ func _physics_process(delta):
 			change_cam_zoom( max(graph_cam.translation.z * 0.95, MIN_ZOOM_3D) )
 		elif Input.is_action_just_released("zoom_out"):
 			change_cam_zoom( min(graph_cam.translation.z * 1.05, MAX_ZOOM_3D) )
-	
 
 
 func _input(event):
@@ -233,12 +227,13 @@ func go_to_graph_node_3d(node_id, graph) -> void:
 	
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
-	var target_pos = target_node.scene.global_transform.origin - Vector3(0,0,-200)# - Vector2(344,20)
-	#var target_zoom = target_node.scene.scale
-	var flytime = range_lerp(clamp(target_pos.distance_to(graph_cam.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5)
+	var target_pos = target_node.scene.global_transform.origin# - Vector3(0,0,-400)
+	cam_target_zoom = target_pos.z
+	var flytime = range_lerp( clamp(target_pos.distance_to(graph_cam.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5 )
 	cam_tween.remove_all()
-	cam_tween.interpolate_property(graph_cam, "global_transform:origin", graph_cam.global_transform.origin, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 500, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 500+cam_target_zoom, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam, "global_transform:origin:x", graph_cam.global_transform.origin.x, target_pos.x, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam, "global_transform:origin:y", graph_cam.global_transform.origin.y, target_pos.y, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	target_node.scene.is_selected = true
 	cam_moving = true
@@ -256,7 +251,12 @@ func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
 func hide_info():
-	pass
+	target_node.scene.is_selected = false
+	target_node = null
+	cam_moving = false
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 1000, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
+	cam_tween.start()
+
 
 func change_cam_zoom(zoom:float):
 	graph_cam.translation.z = zoom

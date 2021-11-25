@@ -29,11 +29,12 @@ func _ready() -> void:
 func deliver_label(_image):
 	var tex = ImageTexture.new()
 	tex.create_from_image(_image)
-	$Sprite3D.texture = tex
+	$Label.material_override.set_shader_param("texture_albedo", tex)
+	#$Sprite3D.texture = tex
 
 
 func change_cam_zoom_3d(zoom:float):
-	$Sprite3D.scale = Vector3.ONE * zoom * 4
+	$Label.scale = Vector3.ONE * zoom
 
 
 func set_descendant_scale(_value:float):

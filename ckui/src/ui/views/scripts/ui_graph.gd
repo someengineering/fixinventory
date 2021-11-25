@@ -291,20 +291,21 @@ func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
 
+func hide_info():
+	target_node.scene.is_selected = false
+	target_node = null
+	cam_moving = false
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2.ONE*0.5, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
+	cam_tween.start()
+
+
 func _on_MouseDetector_input_event(_viewport, event, _shape_idx):
 	if !is_active:
 		return
 	if event is InputEventMouseButton:
 		if !event.pressed and !selected_new_node and target_node != null:
-			cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.zoom, Vector2.ONE*0.8, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
-			cam_tween.start()
-			target_node.scene.is_selected = false
-			target_node = null
-			cam_moving = false
 			_e.emit_signal("nodeinfo_hide")
 
-func hide_info():
-	pass
 
 func change_cam_zoom(zoom:Vector2):
 	graph_cam.zoom = zoom

@@ -23,6 +23,8 @@ var graph_data := {
 	"edges" : {}
 	}
 
+var graphs := []
+
 var graph_mode := 0
 var CloudNodeScene = preload("res://ui/3delements/ElementCloudNode3D.tscn")
 var ConnectionLineScene = preload("res://ui/3delements/ElementConnectionLine3D.tscn")
@@ -40,19 +42,21 @@ var stream_index_mod := 10
 
 
 func _ready():
-	add_structure()
+	add_node_layout()
 	connect("hovering_node", self, "hovering_node")
 	connect("show_connected_nodes", self, "show_connected_nodes")
-
 
 var rot := 0.0
 
 func _process(delta):
-	rot += delta*3
-	#$Center.rotation_degrees.y = rot
+	if Input.is_action_pressed("ui_page_up"):
+		rot += delta*36
+	elif Input.is_action_pressed("ui_page_down"):
+		rot -= delta*36
+	$Center.rotation_degrees.y = rot
 
 
-func add_structure():
+func add_node_layout():
 	var center = Spatial.new()
 	center.name = "Center"
 	add_child(center)
@@ -138,11 +142,6 @@ func end_streaming():
 		if "metadata" in node.data and "descendant_count" in node.data.metadata:
 			node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
 	
-#	for edge in graph_data.edges.values():
-#		var edge_scale = edge.to.scene.descendant_scale
-#		edge.line.width = clamp(4 * edge_scale, 1, 8)
-	
-#	node_group.modulate.a = 1
 	emit_signal("graph_created")
 	_g.msg( "Visual elements done ... rendering" )
 	_e.emit_signal("loading", 1, "Creating visual elements" )

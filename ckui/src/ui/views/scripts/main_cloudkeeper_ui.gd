@@ -21,9 +21,6 @@ func _ready() -> void:
 	_g.interface = self
 	
 	ui_graph = $UIGraph if _g.use_2d_graph else $UIGraph3DViewport/Viewport/UIGraph3D
-	
-	# This was used for local testing using JSON files in the /data directory
-#	_e.emit_signal("load_nodes")
 
 	# The new default is to connect to ckcore
 	_e.emit_signal("connect_popup")
@@ -38,21 +35,18 @@ func _ready() -> void:
 	ui_query.show()
 	ui_search.modulate.a = 0
 	set_state(states.GRAPH)
+	get_tree().get_root().connect("size_changed", self, "resize_viewports")
+
+func resize_viewports():
+	var new_size = get_viewport().size
+	$UIGraph3DViewport/Viewport.size = new_size
 
 
 func _input(event) -> void:
 	if _g.spaceship_mode or _g.popup or ui_commandline.console_open:
 		return
-	if event.is_action_pressed("ui_left"):
-		if state == states.GRAPH:
-			set_state(states.DASHBOARD)
-	elif event.is_action_pressed("ui_right"):
-		if state == states.DASHBOARD:
-			set_state(states.GRAPH)
-		elif state == states.GRAPH:
-			set_state(states.QUERY)
 	
-	elif (state == states.SEARCH or state == states.QUERY) and event.is_action_pressed("ui_cancel"):
+	if (state == states.SEARCH or state == states.QUERY) and event.is_action_pressed("ui_cancel"):
 		set_state(states.GRAPH)
 	
 	elif event is InputEventKey and InputMap.event_is_action(event, "search") and event.pressed and state != states.QUERY:

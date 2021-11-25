@@ -35,6 +35,11 @@ _global_script_classes=[ {
 "path": "res://scripts/classes/class_layout_ref.gd"
 }, {
 "base": "Node",
+"class": "SubGraph",
+"language": "GDScript",
+"path": "res://scripts/classes/class_subgraph.gd"
+}, {
+"base": "Node",
 "class": "Utils",
 "language": "GDScript",
 "path": "res://scripts/tools/utils.gd"
@@ -45,6 +50,7 @@ _global_script_class_icons={
 "CloudGraph3D": "",
 "CloudNode": "",
 "NodeLayoutRef": "",
+"SubGraph": "",
 "Utils": ""
 }
 

@@ -105,6 +105,7 @@ font_data = SubResource( 15 )
 blend_mode = 1
 
 [node name="UINodeInfo" type="Control"]
+visible = false
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
