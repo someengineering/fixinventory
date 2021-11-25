@@ -415,7 +415,7 @@ async def test_system_restore_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_template_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command("template expand kind=volume is({{kind}})", stream.list)
+    result = await cli.execute_cli_command("template test kind=volume is({{kind}})", stream.list)
     assert result == [["is(volume)"]]
     result = await cli.execute_cli_command("template add filter_kind is({{kind}})", stream.list)
     assert result == [["Template filter_kind added to the query library.\nis({{kind}})"]]

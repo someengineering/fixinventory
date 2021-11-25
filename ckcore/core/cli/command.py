@@ -2185,14 +2185,15 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
            template add <name_of_template> <query_template>
            template update <name_of_template> <query_template>
            template delete <name_of_template>
-           template expand key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
+           template test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
 
 
     template: get the list of all templates
     template <name>: get the current definition of the template defined by given template name
     template add <name> <template>: add a query template to the query template library under given name.
+    template update <name> <template>: update a query template in the query template library.
     template delete <name>: delete the query template with given name.
-    template expand k=v <template_to_expand>: expand the defined template.
+    template test k=v <template_to_expand>: test the defined template.
 
     Placeholders are defined in 2 double curly braces {{placeholder}}
     and get replaced by the provided placeholder value during render time.
@@ -2206,7 +2207,7 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
         key=value: any number of key/value pairs separated by comma
 
     Example:
-        $> template expand kind=volume is({{kind}})
+        $> template test kind=volume is({{kind}})
         is(volume)
         $> template add filter_kind is({{kind}})
         Template filter_kind added to the query library.
@@ -2263,10 +2264,10 @@ class TemplateCommand(CLICommand, PreserveOutputFormat):
             return CLISource.single(partial(put_template, nm.strip(), tpl.strip()))
         elif arg and len(args) == 2 and args[0] == "delete":
             return CLISource.single(partial(delete_template, args[1].strip()))
-        elif arg and len(args) == 2 and args[0] == "expand":
+        elif arg and len(args) == 2 and args[0] == "test":
             return CLISource.single(partial(expand_template, args[1].strip()))
         elif arg and len(args) == 2:
-            raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, delete, expand.")
+            raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete, test.")
         elif arg and len(args) == 1:
             return CLISource.single(partial(get_template, arg.strip()))
         elif not arg:
