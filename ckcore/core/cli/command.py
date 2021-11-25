@@ -1557,13 +1557,16 @@ class ListCommand(CLICommand, OutputTransformer):
         def fmt(elem: JsonElement) -> str:
             result = ""
             first = True
-            if isinstance(elem, dict):
+            is_vertex = is_node(elem)
+            if is_vertex and isinstance(elem, dict):
                 for path, name in props:
                     value = value_in_path(elem, path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
                         first = False
+            elif isinstance(elem, dict):
+                result = elem
             else:
                 result = str(elem)
             return result
