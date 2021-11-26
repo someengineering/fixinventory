@@ -247,6 +247,10 @@ class CLI:
             self.reaper.cancel()
             await asyncio.gather(self.reaper)
 
+        while not self.dependencies.forked_tasks.empty():
+            task, _ = self.dependencies.forked_tasks.get_nowait()
+            task.cancel()
+
     async def reap_tasks(self) -> None:
         while True:
             try:

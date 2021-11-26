@@ -11,7 +11,7 @@ import tarfile
 import tempfile
 from abc import abstractmethod, ABC
 from argparse import Namespace
-from asyncio import iscoroutine, Queue, Future
+from asyncio import iscoroutine, Queue, Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
@@ -109,7 +109,7 @@ class CLIDependencies:
         return self.lookup["template_expander"]  # type:ignore
 
     @property
-    def forked_tasks(self) -> Queue[Tuple[Awaitable[JsonElement], str]]:
+    def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
         return self.lookup["forked_tasks"]  # type:ignore
 
 
@@ -1736,7 +1736,8 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             if wait_for_result:
                 return await result_future
             else:
-                await self.dependencies.forked_tasks.put((result_future, f"WorkerTask {task_name}:{task.id}"))
+                result_task: Task[JsonElement] = asyncio.create_task(result_future)
+                await self.dependencies.forked_tasks.put((result_task, f"WorkerTask {task_name}:{task.id}"))
                 return f"Spawned WorkerTask {task_name}:{task.id}"
 
         return stream.starmap(in_stream, send_to_queue, ordered=False, task_limit=self.task_limit())
