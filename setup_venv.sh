@@ -174,7 +174,7 @@ install_cloudkeeper() {
 }
 
 install_plugins() {
-    local collector_plugins=(aws gcp slack onelogin k8s onprem github example_collector)
+    local collector_plugins=(aws gcp slack onelogin k8s onprem github example_collector cleanup_expired cleanup_aws_alarms cleanup_aws_loadbalancers cleanup_aws_vpcs cleanup_untagged cleanup_volumes protect_snowflakes tagvalidator)
     for plugin in "${collector_plugins[@]}"; do
         pip_install "$plugin" true
     done
