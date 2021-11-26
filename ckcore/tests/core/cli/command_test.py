@@ -304,10 +304,19 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
     assert nr_of_performed() == 2
     assert len(res4[0]) == 2
     # make sure that 2 warnings are emitted
-    res = [a for a in caplog.records if a.levelno == logging.WARNING and a.message not in captured]
-    assert len(res) == 2
-    for a in res:
-        assert a.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+    res5 = [a for a in caplog.records if a.levelno == logging.WARNING and a.message not in captured]
+    assert len(res5) == 2
+    for res in res5:
+        assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+    # tag updates can be put into background
+    res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
+    assert cli.dependencies.forked_tasks.qsize() == 2
+    for res in res6[0]:
+        # in this case a message with the task id is emitted
+        assert res.startswith("Spawned WorkerTask tag:")  # type:ignore
+        # and the real result is found when the forked task is awaited, which happens by the CLI reaper
+        awaitable, info = await cli.dependencies.forked_tasks.get()
+        assert (await awaitable)["id"] in ["root", "collector"]  # type:ignore
 
 
 @pytest.mark.asyncio

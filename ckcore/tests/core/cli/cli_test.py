@@ -1,3 +1,5 @@
+from asyncio import Queue
+
 import pytest
 from aiostream import stream
 from pytest import fixture
@@ -64,6 +66,7 @@ def cli_deps(
         worker_task_queue=task_queue,
         args=args,
         template_expander=expander,
+        forked_tasks=Queue(),
     )
     return deps
 
