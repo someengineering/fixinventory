@@ -4,7 +4,7 @@ import pytest
 from dataclasses import replace
 
 from deepdiff import DeepDiff
-from hypothesis import given, settings
+from hypothesis import given, settings, HealthCheck
 
 from tests.core.query import query
 from core.query.model import (
@@ -282,7 +282,7 @@ def test_with_clause() -> None:
 
 
 @given(query)
-@settings(max_examples=50)
+@settings(max_examples=50, suppress_health_check=HealthCheck.all())
 def test_generated_query(q: Query) -> None:
     assert q == query_parser.parse(str(q))
 
