@@ -1769,8 +1769,8 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
 class TagCommand(SendWorkerTaskCommand):
     """
-    Usage: tag update [-b] [tag_name new_value]
-           tag delete [-b] [tag_name]
+    Usage: tag update [--nowait] [tag_name new_value]
+           tag delete [--nowait] [tag_name]
 
     This command can be used to update or delete a specific tag.
     Tags have a name and value - both name and value are strings.
@@ -1781,7 +1781,7 @@ class TagCommand(SendWorkerTaskCommand):
 
     The command would wait for th worker to report the result back synchronously.
     Once the cli command returns, also the tag update/delete is finished.
-    If the command should not wait for the result, the action can be performed in background via the -b flag.
+    If the command should not wait for the result, the action can be performed in background via the --nowait flag.
 
     There are 2 modes of operations:
     - The incoming elements are defined by a query:
@@ -1797,8 +1797,8 @@ class TagCommand(SendWorkerTaskCommand):
         command_name [mandatory]: is either update or delete
         tag_name [mandatory]: the name of the tag to change
         tag_value: in case of update: the new value of the tag_name
-        -b: background the task. if this flag is defined, the cli will send the tag command to the worker
-            and will not wait for the task to finish.
+        --nowait if this flag is defined, the cli will send the tag command to the worker
+                 and will not wait for the task to finish.
 
 
     Example:
@@ -1866,14 +1866,14 @@ class TagCommand(SendWorkerTaskCommand):
         parts = re.split(r"\s+", arg if arg else "")
         pl = len(parts)
         if pl >= 2 and parts[0] == "delete":
-            background, tag = (parts[1] == "-b", parts[2]) if pl == 3 else (False, parts[1])
+            nowait, tag = (parts[1] == "--nowait", parts[2]) if pl == 3 else (False, parts[1])
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
                 "tag",
                 self.carz_from_node(item),
                 {"delete": [tag], "node": item},
             )  # noqa: E731
         elif pl >= 3 and parts[0] == "update":
-            background, tag, vin = (parts[1] == "-b", parts[2], parts[3]) if pl == 4 else (False, parts[1], parts[2])
+            nowait, tag, vin = (parts[1] == "--nowait", parts[2], parts[3]) if pl == 4 else (False, parts[1], parts[2])
             value = double_quoted_or_simple_string_dp.parse(vin)
             fn = lambda item: (  # noqa: E731
                 "tag",
@@ -1887,7 +1887,7 @@ class TagCommand(SendWorkerTaskCommand):
             def with_dependencies(model: Model) -> Stream:
                 load = self.load_by_id_merged(model, in_stream, **ctx.env)
                 result_handler = self.handle_result(model, **ctx.env)
-                return self.send_to_queue_stream(stream.map(load, fn), result_handler, not background)
+                return self.send_to_queue_stream(stream.map(load, fn), result_handler, not nowait)
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(self.dependencies.model_handler.load_model)

@@ -309,7 +309,7 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
     for res in res5:
         assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
     # tag updates can be put into background
-    res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update -b foo bla', stream.list)
+    res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
     assert cli.dependencies.forked_tasks.qsize() == 2
     for res in res6[0]:
         # in this case a message with the task id is emitted
