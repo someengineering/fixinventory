@@ -16,7 +16,7 @@ You will need:
 Helm (version 3 and above)
 A Kubernetes cluster (kind or minikube should work as well)
 
-To start filling the Cloudkeeper graph with resource data you will need AWS credentials with proper permissions.
+To start filling the Cloudkeeper graph with resource data you will need AWS or GCP credentials with proper permissions.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
@@ -204,7 +204,7 @@ How you get more assistance
 | Contributions are very much appreciated.
 
 | Discord:
-| https://discord.gg/3G3sX6y3bt
+| https://discord.com/invite/someengineering
 
 | GitHub Issue:
 | https://github.com/someengineering/cloudkeeper/issues/new 

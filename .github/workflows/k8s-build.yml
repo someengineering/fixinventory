@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: Test k8s helm chart
 
 on:
     push:

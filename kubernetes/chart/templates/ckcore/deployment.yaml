@@ -11,7 +11,7 @@ spec:
     matchLabels:
       cloudkeeper: core
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
-  # We can remove/change the strategy when the core longer assumes it is a singlton.
+  # We can remove/change the strategy when the core no longer assumes it is a singleton.
   strategy:
     type: Recreate
   template:
@@ -38,8 +38,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /usr/local/cloudkeeper-venv-pypy3/bin/ckcore
           args:
             - --host
             - {{ .Values.ckcore.host | default "0.0.0.0" | quote }}

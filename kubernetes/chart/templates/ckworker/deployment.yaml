@@ -35,8 +35,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
 
-          command:
-            - /usr/local/cloudkeeper-venv-python3/bin/ckworker
           args:
           - --collector
           - {{ .Values.ckworker.collector }}
