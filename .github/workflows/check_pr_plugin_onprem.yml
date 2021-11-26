@@ -4,10 +4,6 @@
 name: Check PR (Plugin onprem)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/onprem/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

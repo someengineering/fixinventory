@@ -1,0 +1,31 @@
+default:
+    age: 2h
+
+tags:
+    - owner
+    - expiration
+
+kinds:
+    - aws_ec2_instance
+    - aws_ec2_volume
+    - aws_vpc
+    - aws_cloudformation_stack
+    - aws_elb
+    - aws_alb
+    - aws_alb_target_group
+    - aws_eks_cluster
+    - aws_eks_nodegroup
+    - example_instance
+    - example_network
+
+accounts:
+    aws:
+        068564737731:
+            name: playground
+            age: 7d
+        575584959047:
+            name: eng-sre
+
+    example:
+        Example Account:
+            name: example_account

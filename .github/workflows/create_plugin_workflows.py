@@ -10,10 +10,6 @@ install = """# Note: this workflow is automatically generated via the `create_pr
 name: Check PR (Plugin @name@)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/@name@/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

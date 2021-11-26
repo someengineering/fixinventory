@@ -1,10 +1,6 @@
 name: Check PR (ckmetrics)
 on:
   push:
-    paths:
-      - 'ckmetrics/**'
-      - 'cklib/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

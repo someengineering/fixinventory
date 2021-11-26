@@ -1,0 +1,16 @@
+# Format:
+# cloud.id:
+#   account.id:
+#     region.id:
+#       kind:
+#         - resource.id
+'aws':
+  '110465657741':
+    'us-east-1':
+      'aws_ec2_instance':
+        - 'i-0fcbe8974615bfd37'
+'example':
+  'Example Account':
+    'us-west':
+      'example_network':
+        - 'someNetwork'

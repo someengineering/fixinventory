@@ -4,10 +4,6 @@
 name: Check PR (Plugin example_collector)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/example_collector/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

@@ -4,10 +4,6 @@
 name: Check PR (Plugin vsphere)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/vsphere/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

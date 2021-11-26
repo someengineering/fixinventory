@@ -4,10 +4,6 @@
 name: Check PR (Plugin aws)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/aws/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

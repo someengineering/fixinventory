@@ -2,6 +2,7 @@ import yaml
 from cklib.baseplugin import BaseActionPlugin
 from cklib.logging import log
 from cklib.core.query import CoreGraph
+from cklib.graph import Graph
 from cloudkeeper_plugin_aws.resources import (
     AWSVPC,
     AWSVPCPeeringConnection,
@@ -24,7 +25,7 @@ from typing import Dict
 
 
 class CleanupAWSVPCsPlugin(BaseActionPlugin):
-    action = "cleanup_plan"
+    action = "post_cleanup_plan"
 
     def __init__(self):
         super().__init__()
@@ -47,7 +48,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
         self.vpc_cleanup(graph)
         cg.patch_nodes(graph)
 
-    def vpc_cleanup(self, graph):
+    def vpc_cleanup(self, graph: Graph):
         log.info("AWS VPC cleanup called")
         for node in graph.nodes:
             if node.protected or not node.clean or not isinstance(node, AWSVPC):

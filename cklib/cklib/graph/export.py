@@ -6,7 +6,6 @@ from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
 from cklib.baseresources import BaseResource
 from cklib.utils import type_str, str2timedelta, str2timezone
-from cklib.logging import log
 
 # load the correct function depending on the version
 if sys.version_info >= (3, 8):
@@ -217,7 +216,9 @@ def get_node_attributes(node: BaseResource) -> Dict:
     return attributes
 
 
-def node_to_dict(node: BaseResource, changes_only: bool = False) -> Dict:
+def node_to_dict(
+    node: BaseResource, changes_only: bool = False, include_revision: bool = False
+) -> Dict:
     node_dict = {"id": node._ckcore_id if node._ckcore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
@@ -241,7 +242,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False) -> Dict:
                     }
                 }
             )
-    if node._ckcore_revision:
+    if include_revision and node._ckcore_revision:
         node_dict.update(
             {
                 "revision": node._ckcore_revision,
@@ -257,7 +258,6 @@ def locate_python_type(python_type: str) -> Any:
 
 def node_from_dict(node_data: Dict) -> BaseResource:
     """Create a resource from ckcore graph node data"""
-    log.debug(f"Making node from {node_data}")
     node_data_reported = node_data.get("reported", {})
     if node_data_reported is None:
         node_data_reported = {}
@@ -294,18 +294,15 @@ def node_from_dict(node_data: Dict) -> BaseResource:
         {
             "_ckcore_id": node_data.get("id"),
             "_ckcore_revision": node_data.get("revision"),
+            "_ckcore_query_tag": node_data_metadata.get("query_tag"),
         }
     )
 
     node = node_type(**new_node_data)
     node._raise_tags_exceptions = True
-
-    protect_node = node_data_metadata.get("protected", False)
-    if protect_node:
-        node.protected = protect_node
-    clean_node = node_data_desired.get("clean", False)
-    if clean_node:
-        node.clean = clean_node
+    node._protected = node_data_metadata.get("protected", False)
+    node._cleaned = node_data_metadata.get("cleaned", False)
+    node._clean = node_data_desired.get("clean", False)
     return node
 
 
@@ -313,9 +310,6 @@ def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
     valid_fields = set(field.name for field in fields(node_type))
     for field_name in list(node_data_reported.keys()):
         if field_name not in valid_fields:
-            log.debug(
-                f"Removing extra field {field_name} from new node of type {node_type}"
-            )
             del node_data_reported[field_name]
 
 

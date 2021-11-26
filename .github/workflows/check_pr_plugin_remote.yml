@@ -4,10 +4,6 @@
 name: Check PR (Plugin remote)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/remote/**'
-      - '.github/**'
     branches:
         - main
   pull_request:

@@ -4,10 +4,6 @@
 name: Check PR (Plugin k8s)
 on:
   push:
-    paths:
-      - 'cklib/**'
-      - 'plugins/k8s/**'
-      - '.github/**'
     branches:
         - main
   pull_request:
