@@ -8,7 +8,7 @@ on those instances is set to no more than 2 days. If it is set to e.g. 50h it wo
 
 This in combination with a cleanup job can be used to enforce such an expiration rule org wide.
 ```
-add_job cleanup_plan: query metadata.expires < "@NOW@" | clean "Resource is expired"
+add_job cleanup_plan: query metadata.expires < "@NOW@" \| clean "Resource is expired"
 ```
 
 ## Usage
