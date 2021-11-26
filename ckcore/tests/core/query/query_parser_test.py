@@ -3,6 +3,10 @@ from typing import Callable, Optional, Any
 import pytest
 from dataclasses import replace
 
+from deepdiff import DeepDiff
+from hypothesis import given, settings
+
+from tests.core.query import query
 from core.query.model import (
     Navigation,
     Part,
@@ -277,8 +281,14 @@ def test_with_clause() -> None:
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)
 
 
+@given(query)
+@settings(max_examples=50)
+def test_generated_query(q: Query) -> None:
+    assert q == query_parser.parse(str(q))
+
+
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:
     str_rep = str(obj)
     parsed = parser.parse(str_rep)
     post = after_parsed(parsed) if after_parsed else parsed
-    assert str(post) == str_rep, f"Expected: {str(post)} but got {str_rep}"
+    assert str(post) == str_rep, f"Expected: {str(post)} but got {str_rep}.\nDifference: {DeepDiff(obj, post)}"

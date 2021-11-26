@@ -270,7 +270,8 @@ class MergeQuery:
     only_first: bool = True
 
     def __str__(self) -> str:
-        return f"{self.name}: {self.query}"
+        arr = "" if self.only_first else "[]"
+        return f"{self.name}{arr}: {self.query}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -385,7 +386,8 @@ class AggregateVariableCombined:
     parts: List[Union[str, AggregateVariableName]]
 
     def __str__(self) -> str:
-        return "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
+        combined = "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
+        return f'"{combined}"'
 
     def on_section(self, section: str) -> AggregateVariableCombined:
         return AggregateVariableCombined(
