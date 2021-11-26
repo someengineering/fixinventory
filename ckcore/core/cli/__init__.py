@@ -37,10 +37,10 @@ def key_value_parser() -> Parser:
 key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
 # anything that is not: | " ' ; \
 cmd_token = regex("[^|\"';\\\\]+")
-# double quoted string is maintained with quotes: "foo" -> "foo"
+# single and double quoted string are maintained with quotes: "foo"->"foo", 'foo'->'foo'
+# all characters inside the quoted string are not parsed
 double_quoted_string = double_quote_dp + double_quoted_string_part_or_esc_dp + double_quote_dp
-# single quoted string is parsed without surrounding quotes: 'foo' -> foo
-single_quoted_string = single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp
+single_quoted_string = single_quote_dp + single_quoted_string_part_or_esc_dp + single_quote_dp
 # parse \| \" \' \; and unescape it \| -> |
 escaped_token = regex("\\\\[|\"';]").map(lambda x: x[1])
 # a command are tokens until EOF or pipe

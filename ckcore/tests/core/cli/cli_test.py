@@ -23,6 +23,7 @@ from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
 from core.model.model import Model
+from core.query.template_expander import TemplateExpander
 from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 from tests.core.model import ModelHandlerStatic
 
@@ -38,6 +39,9 @@ from tests.core.worker_task_queue_test import worker, task_queue, performed_by
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender
 
+# noinspection PyUnresolvedReferences
+from tests.core.query.template_expander_test import expander
+
 
 @fixture
 def cli_deps(
@@ -47,6 +51,7 @@ def cli_deps(
     foo_model: Model,
     task_queue: WorkerTaskQueue,
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
+    expander: TemplateExpander,
 ) -> CLIDependencies:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
@@ -58,6 +63,7 @@ def cli_deps(
         model_handler=model_handler,
         worker_task_queue=task_queue,
         args=args,
+        template_expander=expander,
     )
     return deps
 
@@ -84,7 +90,7 @@ def test_command_line_parser() -> None:
     check('a 1 | b "s" | c 1.23 | d', [["a 1", 'b "s"', "c 1.23", "d"]])
     check('jq ". | {a:.foo, b: .bla}" ', [['jq ". | {a:.foo, b: .bla}"']])
     check("a|b|c;d|e|f;g|e|h", [["a", "b", "c"], ["d", "e", "f"], ["g", "e", "h"]])
-    check("add_job 'what \" test | foo | bla'", [['add_job what " test | foo | bla']])
+    check("add_job 'what \" test | foo | bla'", [["add_job 'what \" test | foo | bla'"]])
     check('add_job what \\" test \\| foo \\| bla', [['add_job what " test | foo | bla']])
 
 

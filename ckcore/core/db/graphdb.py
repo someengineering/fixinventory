@@ -123,7 +123,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -329,7 +329,7 @@ class ArangoGraphDB(GraphDB):
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        q_string, bind = self.to_query(query)
+        q_string, bind = await self.to_query(query)
         return await self.db.aql_cursor(
             query=q_string,
             trafo=self.document_to_instance_fn(query.model, query.query),
@@ -343,7 +343,7 @@ class ArangoGraphDB(GraphDB):
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        query_string, bind = self.to_query(query, with_edges=True)
+        query_string, bind = await self.to_query(query, with_edges=True)
         return await self.db.aql_cursor(
             query=query_string,
             trafo=self.document_to_instance_fn(query.model, query.query),
@@ -364,12 +364,12 @@ class ArangoGraphDB(GraphDB):
             return graph
 
     async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
-        q_string, bind = self.to_query(query)
+        q_string, bind = await self.to_query(query)
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(query=q_string, bind_vars=bind)
 
     async def explain(self, query: QueryModel) -> Json:
-        q_string, bind = self.to_query(query, with_edges=True)
+        q_string, bind = await self.to_query(query, with_edges=True)
         return await self.db.explain(query=q_string, bind_vars=bind)
 
     async def wipe(self) -> None:
@@ -781,7 +781,7 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
         return arango_query.to_query(self, query_model, with_edges)
 
     async def insert_genesis_data(self) -> None:
@@ -1089,8 +1089,8 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
         return result
 
-    def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return self.real.to_query(query_model, with_edges)
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+        return await self.real.to_query(query_model, with_edges)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()

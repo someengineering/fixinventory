@@ -21,6 +21,7 @@ from core.db.jobdb import job_db
 from core.db.modeldb import ModelDb, model_db
 from core.db.runningtaskdb import running_task_db
 from core.db.subscriberdb import subscriber_db
+from core.db.templatedb import template_entity_db
 from core.error import NoSuchGraph
 from core.model.adjust_node import AdjustNode
 from core.model.typed_model import to_js, from_js
@@ -40,6 +41,7 @@ class DbAccess(ABC):
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
         config_entity: str = "configs",
+        template_entity: str = "templates",
         update_outdated: timedelta = timedelta(minutes=30),
     ):
         self.event_sender = event_sender
@@ -51,6 +53,7 @@ class DbAccess(ABC):
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
+        self.template_entity_db = template_entity_db(self.db, template_entity)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.update_outdated = update_outdated
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -61,6 +64,7 @@ class DbAccess(ABC):
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
         await self.config_entity_db.create_update_schema()
+        await self.template_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])

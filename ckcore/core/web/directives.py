@@ -1,4 +1,5 @@
 import logging
+from argparse import Namespace
 from typing import Optional, Callable, Awaitable
 
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException
@@ -32,8 +33,10 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         RequestInProgress.labels(request.path, request.method).dec()
 
 
-def error_handler(event_sender: AnalyticsEventSender) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
-    is_debug = logging.root.level < logging.INFO
+def error_handler(
+    args: Namespace, event_sender: AnalyticsEventSender
+) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+    is_debug = (logging.root.level < logging.INFO) or args.debug
 
     def exc_info(ex: Exception) -> Optional[Exception]:
         return ex if is_debug else None

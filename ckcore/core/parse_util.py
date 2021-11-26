@@ -165,11 +165,11 @@ def json_object_pair() -> Parser:
     return key, val
 
 
-json_object = l_curly_dp >> json_object_pair.sep_by(comma_dp).map(dict) << r_curly_dp
+json_object_p = l_curly_dp >> json_object_pair.sep_by(comma_dp).map(dict) << r_curly_dp
 json_value_dp = (
     double_quoted_string_dp
     | json_array_parser
-    | json_object
+    | json_object_p
     | true_dp
     | false_dp
     | null_dp

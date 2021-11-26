@@ -39,9 +39,17 @@ from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKin
 from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_js
-from core.parse_util import double_quoted_or_simple_string_dp, space_dp, make_parser, variable_dp, literal_dp, comma_p
-from core.query.model import Query, P
+from core.parse_util import (
+    double_quoted_or_simple_string_dp,
+    space_dp,
+    make_parser,
+    variable_dp,
+    literal_dp,
+    comma_p,
+)
+from core.query.model import Query, P, Template
 from core.query.query_parser import parse_query
+from core.query.template_expander import tpl_props_p, TemplateExpander
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
 from core.util import (
@@ -95,6 +103,10 @@ class CLIDependencies:
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:
         return self.lookup["worker_task_queue"]  # type:ignore
+
+    @property
+    def template_expander(self) -> TemplateExpander:
+        return self.lookup["template_expander"]  # type:ignore
 
 
 @dataclass
@@ -239,6 +251,12 @@ class InternalPart(ABC):
 class OutputTransformer(ABC):
     """
     Mark all commands that transform the output stream (formatting).
+    """
+
+
+class PreserveOutputFormat(ABC):
+    """
+    Mark all commands where the output should not be flattened to default line output.
     """
 
 
@@ -843,13 +861,14 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         if not arg:
             raise CLIParseError("query command needs a query to execute, but nothing was given!")
 
+        # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(arg)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
         async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
-            db.to_query(query_model)  # only here to validate the query itself (can throw)
+            await db.to_query(query_model)  # only here to validate the query itself (can throw)
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("query_timeout"), duration)
             context = (
@@ -1038,7 +1057,7 @@ class JqCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, process))
 
 
-class KindCommand(CLICommand):
+class KindCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: kind [-p property_path] [name_of_kind]
 
@@ -1104,16 +1123,14 @@ class KindCommand(CLICommand):
         async def source() -> Tuple[int, Stream]:
             model = await self.dependencies.model_handler.load_model()
             if show_kind:
-                count = 1
                 result = kind_to_js(model[show_kind]) if show_kind in model else f"No kind with this name: {show_kind}"
+                return 1, stream.just(result)
             elif show_path:
-                count = 1
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
+                return 1, stream.just(result)
             else:
-                count = len(model.kinds)
                 result = sorted(list(model.kinds.keys()))
-
-            return count, stream.just(result)
+                return len(model.kinds), stream.iterate(result)
 
         return CLISource(source)
 
@@ -1559,8 +1576,8 @@ class ListCommand(CLICommand, OutputTransformer):
             if is_vertex and isinstance(elem, dict):
                 result = ""
                 first = True
-                for path, name in props:
-                    value = value_in_path(elem, path)
+                for prop_path, name in props:
+                    value = value_in_path(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(name, value)}"
@@ -1574,7 +1591,7 @@ class ListCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
 
 
-class JobsCommand(CLICommand):
+class JobsCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: jobs
 
@@ -1609,7 +1626,7 @@ class JobsCommand(CLICommand):
         return CLISource(jobs)
 
 
-class AddJobCommand(CLICommand):
+class AddJobCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: add_job [<cron_expression>] [<event_name> :] <command>
 
@@ -1661,7 +1678,7 @@ class AddJobCommand(CLICommand):
         return CLISource.single(add_job)
 
 
-class DeleteJobCommand(CLICommand):
+class DeleteJobCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: delete_job [job_id]
 
@@ -1861,7 +1878,7 @@ class TagCommand(SendWorkerTaskCommand):
         return CLIFlow(setup_stream)
 
 
-class TasksCommand(CLICommand):
+class TasksCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: tasks
 
@@ -1898,7 +1915,7 @@ class TasksCommand(CLICommand):
         return CLISource(tasks_source)
 
 
-class StartTaskCommand(CLICommand):
+class StartTaskCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: start_task <name of task>
 
@@ -1979,7 +1996,7 @@ class UploadCommand(CLICommand, InternalPart):
         return "only for debugging purposes..."
 
 
-class SystemCommand(CLICommand):
+class SystemCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: system backup create [name]
            system backup restore <path>
@@ -2161,6 +2178,104 @@ class SystemCommand(CLICommand):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
+class TemplatesCommand(CLICommand, PreserveOutputFormat):
+    """
+    Usage: templates
+           templates <name_of_template>
+           templates add <name_of_template> <query_template>
+           templates update <name_of_template> <query_template>
+           templates delete <name_of_template>
+           templates test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
+
+
+    templates: get the list of all templates
+    templates <name>: get the current definition of the template defined by given template name
+    templates add <name> <template>: add a query template to the query template library under given name.
+    templates update <name> <template>: update a query template in the query template library.
+    templates delete <name>: delete the query template with given name.
+    templates test k=v <template_to_expand>: test the defined template.
+
+    Placeholders are defined in 2 double curly braces {{placeholder}}
+    and get replaced by the provided placeholder value during render time.
+    The name of the placeholder can be any valid alphanumeric string.
+    The template 'is({{kind}})' with expand parameters kind=volume becomes
+    'is(volume)' during expand time.
+
+    Parameter:
+        name_of_template:  The name of the query template.
+        query_template:  The query with template placeholders.
+        key=value: any number of key/value pairs separated by comma
+
+    Example:
+        $> templates test kind=volume is({{kind}})
+        is(volume)
+        $> templates add filter_kind is({{kind}})
+        Template filter_kind added to the query library.
+        is({{kind}})
+        > templates
+        filter_kind: is({{kind}})
+        $> templates filter_kind
+        is({{kind}})
+        $> templates delete filter_kind
+        Template filter_kind deleted from the query library.
+    """
+
+    @property
+    def name(self) -> str:
+        return "templates"
+
+    def info(self) -> str:
+        return "Access the query template library."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        def template_str(template: Template) -> str:
+            tpl_str = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
+            return f"{template.name}: {tpl_str}"
+
+        async def get_template(name: str) -> AsyncIterator[JsonElement]:
+            maybe_template = await self.dependencies.template_expander.get_template(name)
+            yield maybe_template.template if maybe_template else f"No template with this name: {name}"
+
+        async def list_templates() -> Tuple[Optional[int], AsyncIterator[Json]]:
+            templates = await self.dependencies.template_expander.list_templates()
+            return len(templates), stream.iterate(template_str(t) for t in templates)
+
+        async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
+            # try to render the template with dummy values and see if the query can be parsed
+            try:
+                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
+                parse_query(rendered_query)
+            except Exception as ex:
+                raise CLIParseError(f"Given template does not define a valid query: {template_query}") from ex
+            await self.dependencies.template_expander.put_template(Template(name, template_query))
+            yield f"Template {name} added to the query library.\n{template_query}"
+
+        async def delete_template(name: str) -> AsyncIterator[str]:
+            await self.dependencies.template_expander.delete_template(name)
+            yield f"Template {name} deleted from the query library."
+
+        async def expand_template(spec: str) -> AsyncIterator[str]:
+            maybe_dict, template = tpl_props_p.parse_partial(spec)
+            yield self.dependencies.template_expander.render(template, maybe_dict if maybe_dict else {})
+
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] in ("add", "update"):
+            nm, tpl = re.split("\\s+", args[1], maxsplit=1)
+            return CLISource.single(partial(put_template, nm.strip(), tpl.strip()))
+        elif arg and len(args) == 2 and args[0] == "delete":
+            return CLISource.single(partial(delete_template, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "test":
+            return CLISource.single(partial(expand_template, args[1].strip()))
+        elif arg and len(args) == 2:
+            raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete, test.")
+        elif arg and len(args) == 1:
+            return CLISource.single(partial(get_template, arg.strip()))
+        elif not arg:
+            return CLISource(list_templates)
+        else:
+            raise CLIParseError(f"Can not parse arguments: {arg}")
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AddJobCommand(d),
@@ -2185,6 +2300,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JsonCommand(d),
         KindCommand(d),
         ListCommand(d),
+        TemplatesCommand(d),
         MergeAncestorsPart(d),
         MetadataPart(d),
         PredecessorPart(d),

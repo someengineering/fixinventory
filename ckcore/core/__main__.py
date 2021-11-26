@@ -20,6 +20,7 @@ from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
 from core.model.typed_model import to_js
+from core.query.template_expander import DBTemplateExpander
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
@@ -51,6 +52,7 @@ def main() -> None:
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
+    template_expander = DBTemplateExpander(db.template_entity_db)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
@@ -58,6 +60,7 @@ def main() -> None:
         model_handler=model,
         worker_task_queue=worker_task_queue,
         args=args,
+        template_expander=template_expander,
     )
     cli = CLI(cli_deps, all_commands(cli_deps), {}, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
@@ -65,7 +68,18 @@ def main() -> None:
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
     )
     cli_deps.extend(job_handler=task_handler)
-    api = Api(db, model, subscriptions, task_handler, message_bus, event_sender, worker_task_queue, cli, args)
+    api = Api(
+        db,
+        model,
+        subscriptions,
+        task_handler,
+        message_bus,
+        event_sender,
+        worker_task_queue,
+        cli,
+        template_expander,
+        args,
+    )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1)
     )

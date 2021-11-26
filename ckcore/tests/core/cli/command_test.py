@@ -18,6 +18,7 @@ from core.cli.command import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
+from core.query.model import Template
 from core.task.task_description import TimeTrigger, Workflow
 from core.task.task_handler import TaskHandler
 from core.types import Json
@@ -51,6 +52,9 @@ from tests.core.task.task_handler_test import (
 
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+
+# noinspection PyUnresolvedReferences
+from tests.core.query.template_expander_test import expander
 
 
 @fixture
@@ -94,6 +98,11 @@ async def test_query_source(cli: CLI) -> None:
         'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
     )
     assert len(result[0]) == 10
+    await cli.dependencies.template_expander.put_template(
+        Template("test", 'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"')
+    )
+    result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
+    assert len(result2[0]) == 10
 
 
 @pytest.mark.asyncio
@@ -321,7 +330,7 @@ async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow:
 async def test_kind_command(cli: CLI) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
     for kind in predefined_kinds:
-        assert kind.fqn in result[0][0]
+        assert kind.fqn in result[0]
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
     result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)
@@ -403,3 +412,17 @@ async def test_system_restore_command(cli: CLI) -> None:
     finally:
         if tmp_dir:
             shutil.rmtree(tmp_dir)
+
+
+@pytest.mark.asyncio
+async def test_templates_command(cli: CLI) -> None:
+    result = await cli.execute_cli_command("templates test kind=volume is({{kind}})", stream.list)
+    assert result == [["is(volume)"]]
+    result = await cli.execute_cli_command("templates add filter_kind is({{kind}})", stream.list)
+    assert result == [["Template filter_kind added to the query library.\nis({{kind}})"]]
+    result = await cli.execute_cli_command("templates", stream.list)
+    assert result == [["filter_kind: is({{kind}})"]]
+    result = await cli.execute_cli_command("templates filter_kind", stream.list)
+    assert result == [["is({{kind}})"]]
+    result = await cli.execute_cli_command("templates delete filter_kind", stream.list)
+    assert result == [["Template filter_kind deleted from the query library."]]

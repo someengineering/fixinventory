@@ -35,7 +35,7 @@ from core import feature
 from core.analytics import AnalyticsEventSender
 from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
-from core.cli.command import CLIContext, OutputTransformer, ListCommand
+from core.cli.command import CLIContext, OutputTransformer, ListCommand, PreserveOutputFormat
 from core.config import ConfigEntity
 from core.constants import plain_text_blacklist
 from core.db.db_access import DbAccess
@@ -47,7 +47,7 @@ from core.model.graph_access import Section
 from core.model.model import Kind
 from core.model.model_handler import ModelHandler
 from core.model.typed_model import to_js, from_js, to_js_str
-from core.query.query_parser import parse_query
+from core.query import QueryParser
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
@@ -91,6 +91,7 @@ class Api:
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
         cli: CLI,
+        query_parser: QueryParser,
         args: Namespace,
     ):
         self.db = db
@@ -101,8 +102,11 @@ class Api:
         self.event_sender = event_sender
         self.worker_task_queue = worker_task_queue
         self.cli = cli
+        self.query_parser = query_parser
         self.args = args
-        self.app = web.Application(middlewares=[metrics_handler, auth.auth_handler(args), error_handler(event_sender)])
+        self.app = web.Application(
+            middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender)]
+        )
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         self.app.add_routes(
@@ -530,15 +534,15 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         with_edges = request.query.get("edges") is not None
         m = await self.model_handler.load_model()
-        q = parse_query(query_string)
-        query, bind_vars = graph_db.to_query(QueryModel(q, m, section), with_edges)
+        q = await self.query_parser.parse_query(query_string)
+        query, bind_vars = await graph_db.to_query(QueryModel(q, m, section), with_edges)
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         result = await graph_db.explain(QueryModel(q, m, section))
         return web.json_response(result)
@@ -560,7 +564,7 @@ class Api:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("query_timeout"), duration)
@@ -571,7 +575,7 @@ class Api:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         result = await graph_db.query_graph(QueryModel(q, m, section))
         node_link_data = cytoscape_data(result)
@@ -580,7 +584,7 @@ class Api:
     async def query_graph_stream(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
-        q = parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         count = request.query.get("count", "true").lower() != "false"
@@ -591,7 +595,7 @@ class Api:
     async def query_aggregation(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
-        q = parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         async with await graph_db.query_aggregation(QueryModel(q, m, section)) as gen:
@@ -679,7 +683,7 @@ class Api:
             if (
                 accept == "text/plain"
                 and current.executable_commands
-                and not isinstance(current.executable_commands[-1].command, OutputTransformer)
+                and not isinstance(current.executable_commands[-1].command, (OutputTransformer, PreserveOutputFormat))
             ):
                 out_gen = await ListCommand(self.cli.dependencies).parse().flow(out_gen)
 

@@ -12,7 +12,30 @@ from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
 from core.model.typed_model import to_js
+from core.types import Json
 from core.util import combine_optional
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class Template:
+    """
+    A template has a name and a template string.
+    The template string might contain placeholder values.
+    """
+
+    name: str  # the name of the template
+    template: str  # the template string with placeholders
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class Expandable:
+    """
+    An expandable refers to a template with a given name
+    and has properties to render this template to a final string.
+    """
+
+    template: str  # the name of the template
+    props: Json  # the properties to render this template
 
 
 class P:
