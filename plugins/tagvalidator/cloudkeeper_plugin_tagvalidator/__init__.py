@@ -83,14 +83,15 @@ class TagValidatorPlugin(BaseActionPlugin):
                     update_node_tag = True
             if update_node_tag:
                 commands.append(
-                    f"query _key = {node._ckcore_id} | tag update expiration {max_expiration_str}"
+                    f"query id({node._ckcore_id}) | tag update --nowait expiration {max_expiration_str}"
                 )
         cg.patch_nodes(graph)
         for command in commands:
             if ArgumentParser.args.tagvalidator_dry_run:
                 log.debug(f"Tag validator dry run - not executing: {command}")
                 continue
-            cg.execute(command)
+            for response in cg.execute(command):
+                log.debug(f"Response: {response}")
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
