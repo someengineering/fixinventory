@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 import os
 import platform
+from asyncio import Queue
 from datetime import timedelta
 from typing import AsyncIterator
 
@@ -100,14 +101,18 @@ def main() -> None:
             mem_total=mem.total,
             mem_available=mem.available,
         )
+        # queue must be created inside an async function!
+        cli_deps.extend(forked_tasks=Queue())
         await db.start()
         await subscriptions.start()
         await scheduler.start()
         await worker_task_queue.start()
         await event_emitter.start()
+        await cli.start()
 
     async def on_stop() -> None:
         duration = utc() - started_at
+        await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
         await event_emitter.stop()
 

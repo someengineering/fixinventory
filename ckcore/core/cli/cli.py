@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import calendar
+import logging
+from asyncio import Task
 from dataclasses import dataclass, field, replace
 from datetime import timedelta, datetime
 from functools import reduce
@@ -11,6 +14,7 @@ from typing import Optional, Any
 from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser
+from tzlocal import get_localzone
 
 from core.analytics import CoreEvent
 from core.cli import cmd_args_parser, key_values_parser, T, Sink
@@ -61,7 +65,8 @@ from core.query.model import (
 from core.query.query_parser import aggregate_parameter_parser
 from core.types import JsonElement, Json
 from core.util import utc_str, utc, from_utc
-from tzlocal import get_localzone
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -232,6 +237,27 @@ class CLI:
         self.cli_env = env
         self.dependencies = dependencies
         self.aliases = aliases
+        self.reaper: Optional[Task[None]] = None
+
+    async def start(self) -> None:
+        self.reaper = asyncio.create_task(self.reap_tasks())
+
+    async def stop(self) -> None:
+        if self.reaper:
+            self.reaper.cancel()
+            await asyncio.gather(self.reaper)
+
+    async def reap_tasks(self) -> None:
+        while True:
+            try:
+                task, info = await self.dependencies.forked_tasks.get()
+                try:
+                    res = await task
+                    log.info(f"Spawned task {info} completed with: {res}")
+                except Exception as ex:
+                    log.info(f"Spawned task {info} failed. Reason {ex}")
+            except Exception as ex:
+                log.warning(f"Error in main loop: {ex}")
 
     def command(self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> ExecutableCommand:
         """
