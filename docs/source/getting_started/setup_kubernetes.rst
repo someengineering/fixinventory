@@ -110,7 +110,7 @@ Prepare your Helm values file:
 Optional - Configure Cloud Credentials
 ======================================
 
-You can use helm values ckworker.extraArgs, ckworker.extraEnv, ckworker.volumes and ckworker.volumeMounts to injecti credentials and their configuration to ckworker.
+You can use helm values ckworker.extraArgs, ckworker.extraEnv, ckworker.volumes and ckworker.volumeMounts to inject credentials and their configuration to ckworker.
 For example, for AWS and GCE, you would do the following:
 
 .. code-block:: bash
