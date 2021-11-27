@@ -107,6 +107,8 @@ Prepare your Helm values file:
         collector: example
     EOF
 
+See file `kubernetes/chart/values.yaml` for a list of possible values.
+
 Optional - Configure Cloud Credentials
 ======================================
 
