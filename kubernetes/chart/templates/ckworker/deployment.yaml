@@ -11,6 +11,8 @@ spec:
     matchLabels:
       cloudkeeper: worker
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -42,6 +44,8 @@ spec:
           - http://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
           - --ckcore-ws-uri
           - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
+          - --psk
+          - $(CK_PSK)
           {{- if .Values.ckworker.extraArgs }}
           {{- toYaml .Values.ckworker.extraArgs | nindent 10 }}
           {{- end }}
@@ -50,6 +54,12 @@ spec:
               value: "false"
             - name: START_CKWORKER
               value: "true"
+            - name: CK_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cloudkeeper.fullname" . }}-psk
+                  key: "psk"
+
           {{- if .Values.ckworker.extraEnv }}
           {{- toYaml .Values.ckworker.extraEnv | nindent 12 }}
           {{- end }}

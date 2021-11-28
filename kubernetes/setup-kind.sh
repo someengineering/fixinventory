@@ -8,7 +8,7 @@ IMAGE_TAG="${IMAGE_TAG:-2.0.0a8}"
 NO_START_KIND="${NO_START_KIND:-}"
 
 if [ -z "${NO_START_KIND}"]; then
-kind create cluster
+  kind create cluster
 fi
 
 kubectl create ns cloudkeeper
@@ -61,7 +61,7 @@ kubectl --namespace cloudkeeper create secret generic arango-user --from-literal
 # install cloud keeper with the example collector
 
 DIR="$(dirname "$(realpath "$0")")"
-helm upgrade -i --namespace cloudkeeper cloudkeeper "$DIR/cloudkeeper" --set image.tag=$IMAGE_TAG -f - <<EOF
+helm upgrade -i --namespace cloudkeeper cloudkeeper "$DIR/chart" --set image.tag=$IMAGE_TAG -f - <<EOF
 ckcore:
   graphdb:
     server: http://single-server:8529

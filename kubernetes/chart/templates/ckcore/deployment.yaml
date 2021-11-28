@@ -48,6 +48,8 @@ spec:
             - {{ .Values.ckcore.graphdb.database | quote }}
             - --graphdb-username
             - {{ .Values.ckcore.graphdb.login | quote }}
+            - --psk
+            - $(CK_PSK)
           env:
           - name: START_STACK
             value: "false"
@@ -60,6 +62,11 @@ spec:
                 name: {{ .Values.ckcore.graphdb.passwordSecret.name }}
                 key: {{ .Values.ckcore.graphdb.passwordSecret.key }}
           {{- end }}
+          - name: CK_PSK
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "cloudkeeper.fullname" . }}-psk
+                key: "psk"
 
           ports:
             - name: http

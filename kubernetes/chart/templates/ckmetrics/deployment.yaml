@@ -15,6 +15,8 @@ spec:
     matchLabels:
       cloudkeeper: metrics
       {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -44,11 +46,18 @@ spec:
           - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
           - --ckcore-ws-uri
           - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          - --psk
+          - $(CK_PSK)
           env:
           - name: START_STACK
             value: "false"
           - name: START_CKMETRICS
             value: "true"
+          - name: CK_PSK
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "cloudkeeper.fullname" . }}-psk
+                key: "psk"
           ports:
             - name: http
               containerPort: 9955
