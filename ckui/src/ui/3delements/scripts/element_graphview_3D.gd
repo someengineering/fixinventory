@@ -15,15 +15,14 @@ const GRAPH_MOVE_SPEED := 1.0
 const MAX_DISPLACE := 50000.0
 const DEFAULT_DAMPING := 0.95
 const DEFAULT_SPRING_LENGTH := 500.0
-const DEFAULT_MAX_ITERATIONS := 200
+const DEFAULT_MAX_ITERATIONS := 20000
 
-var graph_data := {
-	"id" : "",
-	"nodes" : {},
-	"edges" : {}
-	}
+# Multithreading variables
+var threads_finished_count := 0
+var threads := []
 
-var graphs := []
+var graph_data := {}
+var graph_node_groups := {}
 
 var graph_mode := 0
 var CloudNodeScene = preload("res://ui/3delements/ElementCloudNode3D.tscn")
@@ -31,7 +30,7 @@ var ConnectionLineScene = preload("res://ui/3delements/ElementConnectionLine3D.t
 var root_node : Object = null
 var is_removed := false
 var is_active := true
-var update_visuals := true
+var update_visuals := false
 
 var node_group : Spatial = null
 var line_group : Spatial = null
@@ -42,6 +41,8 @@ var stream_index_mod := 10
 
 
 func _ready():
+	threads_prepare(12)
+	clear_graph()
 	add_node_layout()
 	connect("hovering_node", self, "hovering_node")
 	connect("show_connected_nodes", self, "show_connected_nodes")
@@ -66,34 +67,29 @@ func add_node_layout():
 	center.add_child(graph)
 	
 	line_group = Spatial.new()
-	line_group.name = "LineGroup"
+	line_group.name = "Line_Group"
 	line_group.translation.z = -5
 	graph.add_child(line_group)
 	
 	node_group = Spatial.new()
-	node_group.name = "NodeGroup"
+	node_group.name = "Node_Group"
 	graph.add_child(node_group)
 
 
-func add_node(_data:Dictionary) -> CloudNode:
+func add_node(_data:Dictionary, _scene:Object, _parent:Object) -> CloudNode:
 	var new_cloud_node = CloudNode.new()
 	new_cloud_node.id = _data.id
 	new_cloud_node.reported = _data.reported
 	new_cloud_node.kind = _data.reported.kind
 	new_cloud_node.data = _data
 	
-	new_cloud_node.scene = CloudNodeScene.instance()
+	new_cloud_node.scene = _scene
 	new_cloud_node.scene.parent_graph = self
 	new_cloud_node.scene.cloud_node = new_cloud_node
-	node_group.add_child(new_cloud_node.scene)
-	new_cloud_node.scene.translation = get_random_pos()
+	_parent.add_child(new_cloud_node.scene)
+	new_cloud_node.scene.translation = Utils.get_random_pos_3D()
 	
 	return new_cloud_node
-
-
-func get_random_pos() -> Vector3:
-	var random_vec2 = Vector2(randf()*2000, 0).rotated(randf()*TAU)
-	return Vector3(random_vec2.x, random_vec2.y, rand_range(-30, 30))
 
 
 func add_edge(_data:Dictionary) -> CloudEdge:
@@ -121,7 +117,6 @@ func start_streaming( graph_id:String ):
 	stream_index = 0
 	_e.emit_signal("loading_start")
 	_e.emit_signal("loading", 0, "Creating visual elements" )
-#	node_group.modulate.a = 0.05
 
 
 func end_streaming():
@@ -151,12 +146,30 @@ func end_streaming():
 	center_diagram()
 
 
+class NodeGroup:
+	var node_group_object : Spatial = null
+	var nodes_in_group : PoolStringArray = []
+	var root_node : Spatial = null
+	
+	func _init(_parent_node:Spatial, _name:String, _root_node:Spatial):
+		node_group_object = Spatial.new()
+		node_group_object.name = "Grp_"+_name
+		root_node = _root_node
+		_parent_node.add_child(node_group_object)
+	
+	func add(_new_node:String):
+		nodes_in_group.append(_new_node)
+
+
+func add_new_node_group(_name:String, _group_parent:Spatial, _root_node:Spatial):
+	if !_name:
+		return
+	graph_node_groups[_name] = NodeGroup.new(_group_parent, _name, _root_node)
+
+
 func add_streamed_object( data : Dictionary ):
 	if "id" in data:
-		graph_data.nodes[data.id] = add_node(data)
-		
-		if data.reported.kind == "graph_root":
-			root_node = graph_data.nodes[data.id].scene
+		create_new_graph_node( data )
 			
 		if stream_index % stream_index_mod == 0:
 			_e.emit_signal("loading", float(stream_index) / float(total_elements), "Creating visual elements" )
@@ -172,9 +185,41 @@ func add_streamed_object( data : Dictionary ):
 		graph_data.edges[ graph_data.edges.size() ] = add_edge(data)
 
 
+func create_new_graph_node( data : Dictionary ):
+	var new_graph_node = CloudNodeScene.instance()
+	# Set the default parent for the new CloudNodeScene
+	var _parent_node = node_group
+	
+	if "metadata" in data:
+		if "cloud" in data.kinds:
+			new_graph_node.name = "Cloud_"+data.reported.name
+			add_new_node_group(data.reported.name, new_graph_node, new_graph_node )
+			graph_node_groups["root"].add(data.id)
+			
+		elif "account" in data.kinds:
+			new_graph_node.name = "Account_"+data.reported.name
+			_parent_node = graph_node_groups[ data.metadata.ancestors.cloud.id ].node_group_object
+			add_new_node_group(data.reported.name, new_graph_node, new_graph_node )
+			graph_node_groups[ data.metadata.ancestors.cloud.id ].add(data.id)
+			
+		elif "ancestors" in data.metadata and "account" in data.metadata.ancestors:
+			new_graph_node.name = "Region_"+data.reported.name
+			_parent_node = graph_node_groups[ data.metadata.ancestors.account.name ].node_group_object
+			graph_node_groups[ data.metadata.ancestors.account.name ].add(data.id)
+#			
+		else:
+			new_graph_node.name = "Root_Node"
+			add_new_node_group("root", _parent_node, new_graph_node)
+			graph_node_groups["root"].add(data.id)
+	
+	graph_data.nodes[data.id] = add_node(data, new_graph_node, _parent_node)
+	
+	if data.reported.kind == "graph_root":
+		root_node = graph_data.nodes[data.id].scene
+
+
 func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_e.emit_signal("loading", 0, "Creating visual elements" )
-#	node_group.modulate.a = 0.05
 	
 	var index := 0
 	var index_mod = int( max( float(raw_data.size() ) / 100.0, 1) )
@@ -188,10 +233,7 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 		if data == null:
 			continue
 		if "id" in data:
-			graph_data.nodes[data.id] = add_node(data)
-			
-			if data.reported.kind == "graph_root":
-				root_node = graph_data.nodes[data.id].scene
+			create_new_graph_node( data )
 		else:
 			# For SFDP creation
 			graph_data.nodes[data.from].connections.append( graph_data.nodes[data.to] )
@@ -231,7 +273,7 @@ func remove_graph():
 func layout_graph(graph_node_positions := {}) -> void:
 	if graph_node_positions.empty():
 		for node in graph_data.nodes.values():
-			node.scene.translation = get_random_pos()
+			node.scene.translation = Utils.get_random_pos_3D()
 			node.scene.random_pos = node.scene.translation
 	
 	update_connection_lines()
@@ -240,7 +282,46 @@ func layout_graph(graph_node_positions := {}) -> void:
 
 func graph_calc_layout():
 	center_diagram()
-	arrange(DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
+	
+	var benchmark_start = OS.get_ticks_usec()
+	var total_iterations := 0
+	var graph_data_node_keys = graph_data.nodes.keys()
+	for group in graph_node_groups.values():
+		var new_layout_group = []
+		for children in group.nodes_in_group:
+			new_layout_group.append( graph_data.nodes[children] )
+		total_iterations += arrange(new_layout_group, DEFAULT_DAMPING, DEFAULT_SPRING_LENGTH, DEFAULT_MAX_ITERATIONS, true)
+		center_diagram()
+		update_connection_lines()
+		yield(get_tree(), "idle_frame")
+	
+	var saved_node_positions := {}
+	for node in graph_data.nodes.values():
+		saved_node_positions[node.id] = var2str(node.scene.global_transform.origin)
+		node.scene.graph_pos = node.scene.global_transform.origin
+	
+	var benchmark_end = OS.get_ticks_usec()
+	var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
+	prints("Time to calculate {0} iterations: {1}".format([total_iterations-1, benchmark_time]))
+	
+	emit_signal("order_done", saved_node_positions)
+
+
+func threads_prepare(_threads_amount:int):
+	for i in _threads_amount:
+		threads.append(Thread.new())
+
+
+func thread_repulsion_start(_thread_id:int, node_a_pos:Vector3, node_b_pos:Vector3):
+	var thread_data := [_thread_id, node_a_pos, node_b_pos]
+	threads[_thread_id].start(self, "thread_calc_repulsion", thread_data)
+
+func thread_calc_repulsion(_thread_data:Array) -> Vector3:
+	call_deferred("_thread_repulsion_repulsion_finished", _thread_data)
+	return calc_repulsion_force_pos(_thread_data[1], _thread_data[2])
+
+func _thread_repulsion_repulsion_finished(_thread_data:Array) -> void:
+	pass
 
 
 func calc_repulsion_force_pos(node_a_pos, node_b_pos):
@@ -255,8 +336,7 @@ func calc_attraction_force_pos(node_a_pos, node_b_pos, spring_length):
 
 # Arrange the graph using Spring Electric Algorithm
 # returning the nodes positions
-func arrange(damping, spring_length, max_iterations, deterministic := false, refine := false):
-	var benchmark_start = OS.get_ticks_usec()
+func arrange(graph_data_node_array, damping, spring_length, max_iterations, deterministic := false, refine := false):
 	if !deterministic:
 		randomize()
 	
@@ -268,15 +348,15 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 	while true:
 		var total_displacement := 0.0
 		
-		for node in graph_data.nodes.values():
-			var current_node_position = node.scene.global_transform.origin
+		for node in graph_data_node_array:
+			var current_node_position = node.scene.transform.origin
 			var net_force = Vector3.ZERO
 			
-			for other_node in graph_data.nodes.values():
+			for other_node in graph_data_node_array:
 				if node == other_node:
 					continue
 				
-				var other_node_pos = other_node.scene.global_transform.origin
+				var other_node_pos = other_node.scene.transform.origin
 				
 				if !other_node in node.connections:
 					if current_node_position.distance_to(other_node_pos) < MAX_DISTANCE:
@@ -287,7 +367,7 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 			
 			node.velocity_3d = ((node.velocity_3d + net_force) * damping * GRAPH_MOVE_SPEED) #.clamped( MAX_DISPLACE )
 			damping *= 0.9999999
-			node.scene.global_transform.origin += node.velocity_3d
+			node.scene.transform.origin += node.velocity_3d
 			total_displacement += node.velocity_3d.length()
 		
 		iterations += 1
@@ -301,18 +381,11 @@ func arrange(damping, spring_length, max_iterations, deterministic := false, ref
 		if update_visuals:
 			center_diagram()
 			update_connection_lines()
-		yield(get_tree(), "idle_frame")
-		
-	center_diagram()
-	update_connection_lines()
-	
-	var saved_node_positions := {}
-	for node in graph_data.nodes.values():
-		saved_node_positions[node.id] = var2str(node.scene.global_transform.origin)
-		node.scene.graph_pos = node.scene.global_transform.origin
-	
-	var benchmark_end = OS.get_ticks_usec()
-	var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
-	prints("Time to calculate {0} iterations: {1}".format([iterations-1, benchmark_time]))
-	
-	emit_signal("order_done", saved_node_positions)
+	return iterations
+
+
+func _exit_tree():
+	# Check if threads are still active and if not, wait for them to finish
+	for thread in threads:
+		if thread.is_active():
+			thread.wait_to_finish()
