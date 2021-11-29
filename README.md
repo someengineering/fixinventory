@@ -1,9 +1,15 @@
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png" />
 <h1 align="center">Cloudkeeper</h1></p>
 
+
 # Housekeeping for Clouds!
 
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_banner.png" /></p>
+
+[![Version](https://img.shields.io/github/v/tag/someengineering/cloudkeeper?label=latest)](https://github.com/someengineering/cloudkeeper/tags/)
+[![Build](https://img.shields.io/github/workflow/status/someengineering/cloudkeeper/Build%20Docker%20Images/main)](https://github.com/someengineering/cloudkeeper/commits/main)
+[![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://docs.some.engineering)
+[![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.com/invite/someengineering)
 
 ## Table of contents
 
@@ -16,7 +22,7 @@
 
 
 ## Overview
-Cloudkeeper is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up. 
+Cloudkeeper is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
 
 Cloudkeeper indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
 
@@ -30,15 +36,9 @@ If you ever
 * cleaned up orphaned load balancers that had no active backends
 * wanted to automate any of the above
 
-Those are the kinds of situations Cloudkeeper was built for.  
+Those are the kinds of situations Cloudkeeper was built for.
 
-Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).  
-
-
-Cloudkeeper consists of multiple components described in [the component list below](#component-list)
-
-The latest Docker image is: `ghcr.io/someengineering/cloudkeeper:2.0.0a6`  
-The latest Documentation can be found on [https://docs.some.engineering](https://docs.some.engineering)
+Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
 
 ## Docker based quick start
@@ -46,15 +46,15 @@ In this quick start guide, we’re showing you three things, how to:
 
     1. install Cloudkeeper for AWS with docker
     2. use the Cloudkeeper CLI to run your first collect process
-    3. query the results of the collect process 
+    3. query the results of the collect process
 
-The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes. 
+The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
-Examples and data in this guide are based on a small AWS [Cloud9](https://aws.amazon.com/cloud9/) environment.  
-To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.  
+Examples and data in this guide are based on a small AWS [Cloud9](https://aws.amazon.com/cloud9/) environment.
+To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.
 We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
-**Continue reading the Quick Start Guide**  
+**Continue reading the Quick Start Guide**
 --> [https://docs.some.engineering/getting_started/quick_start.html](https://docs.some.engineering/getting_started/quick_start.html)
 
 
