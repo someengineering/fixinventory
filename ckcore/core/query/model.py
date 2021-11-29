@@ -481,6 +481,12 @@ class SortOrder:
     Asc = "asc"
     Desc = "desc"
 
+    all = [Asc, Desc]
+
+    @classmethod
+    def reverse(cls, order: str) -> str:
+        return cls.Asc if order == cls.Desc else cls.Desc
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Sort:
