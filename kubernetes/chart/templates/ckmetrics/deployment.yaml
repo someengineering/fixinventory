@@ -46,14 +46,12 @@ spec:
           - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
           - --ckcore-ws-uri
           - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
-          - --psk
-          - $(CK_PSK)
           env:
           - name: START_STACK
             value: "false"
           - name: START_CKMETRICS
             value: "true"
-          - name: CK_PSK
+          - name: PSK
             valueFrom:
               secretKeyRef:
                 name: {{ include "cloudkeeper.fullname" . }}-psk

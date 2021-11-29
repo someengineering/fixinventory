@@ -18,7 +18,7 @@ helm install --namespace cloudkeeper arango-crd https://github.com/arangodb/kube
 helm install --namespace cloudkeeper arango https://github.com/arangodb/kube-arangodb/releases/download/1.2.4/kube-arangodb-1.2.4.tgz --set operator.replicaCount=1
 
 # wait for operator to be ready.
-kubectl --namespace cloudkeeper rollout status deploy/arango-arango-operator
+kubectl --namespace cloudkeeper rollout status deploy/arango-arango-operator --timeout=300s
 # deploy a db.
 kubectl --namespace cloudkeeper apply -f - <<EOF
 apiVersion: "database.arangodb.com/v1alpha"
@@ -35,7 +35,7 @@ EOF
 kubectl --namespace cloudkeeper create secret generic arangodb-operator-dashboard --from-literal=username=a --from-literal=password=a
 
 # wait for the db deployment is ready.
-kubectl --namespace cloudkeeper wait --for=condition=ready arangodeployment/single-server --timeout=240s
+kubectl --namespace cloudkeeper wait --for=condition=ready arangodeployment/single-server --timeout=300s
 
 # get the db's pod.
 ARANGO_DB_POD=$(kubectl --namespace cloudkeeper get pod -larango_deployment=single-server -o name)
@@ -76,9 +76,9 @@ ckworker:
     - --fork
 EOF
 # wait for it to be ready
-kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckcore
-kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckworker
-kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckmetrics
+kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckcore --timeout=300s
+kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckworker --timeout=300s
+kubectl --namespace cloudkeeper rollout status deploy/cloudkeeper-ckmetrics --timeout=300s
 
 # see an example query!
 echo 'Setup done. You can now run queries. For example:'
