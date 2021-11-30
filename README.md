@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/github/v/tag/someengineering/cloudkeeper?label=latest)](https://github.com/someengineering/cloudkeeper/tags/)
 [![Build](https://img.shields.io/github/workflow/status/someengineering/cloudkeeper/Build%20Docker%20Images/main)](https://github.com/someengineering/cloudkeeper/commits/main)
 [![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://docs.some.engineering)
-[![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.com/invite/someengineering)
+[![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
 
 ## Table of contents
 
