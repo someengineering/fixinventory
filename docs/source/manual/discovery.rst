@@ -26,18 +26,24 @@ A graph node is a json document with a well defined structure and these top leve
 
     {
       "id": "xxx",
-      "kinds": [ ... ],
       "reported": { ... },
       "desired": { ... },
       "metadata": { ... }
     }
 
 
-Each graph node always has an ``id`` that is a unique id created by Cloudkeeper as well as a ``kinds`` array containing the kind of the node including all it's parents kinds.
+Each graph node always has an ``id`` that is a unique id created by Cloudkeeper.
 
-It also features three main sections: ``reported``, ``desired`` and ``metadata``.
+The ``reported`` section contains data reported from the specific cloud provider.
+The content and schema of the ``reported`` section is defined by the cloud provider and described formally in the :ref:`model`.
 
-You learn more about the structure and sections in our :ref:`graph_node_spotlight`.
+The ``desired`` section can be manipulated by users and tools to mark and trigger an intended change on the
+specific resource. Cleaning up a resource for example is done by setting ``clean=true`` in the desired section.
+
+The ``metadata`` section contains additional data of a resource, that is not reported by the cloud provider,
+but added by the Cloudkeeper tool chain.
+
+See an example and learn more about the structure in :ref:`graph_node_spotlight`.
 
 .. toctree::
    :maxdepth: 1
@@ -57,66 +63,41 @@ We advise to use ``help`` in the :ref:`component-cksh` CLI to get more informati
 query
 -----
 
-Using the ``query`` command, you access the root level of the node.
+Using the ``query`` command, you can define a search query to filter available nodes.
+
 
 .. admonition:: Example
 
-  ``query reported.kind == aws_region``
+  ``query is(account)``
 
-  This will select all AWS regions
+  This will select all accounts of all collected cloud providers.
+  In oder to select only accounts from AWS, we could achieve this with:
 
-reported
---------
+  ``query is(aws_account)``
 
-``reported`` will directly access the ``reported`` section of a graph_node.
+  It is possible to filter all found accounts by available properties.
+  Let us filter aws accounts, that are either older than 2 weeks.
 
-.. admonition:: Example
+  ``query is(aws_account) and reported.age>2w``
 
-  ``reported kind == aws_account``
+  As you can see multiple criteria can be combined with ``and`` but also with ``or``.
+  In order to define precedence, it is also possible to use parentheses.
+  To filter aws accounts, that are either older than 2 weeks or have more than 10 users, we would do the following:
 
-  This will select all AWS accounts
+  ``query is(aws_account) and (reported.age>2w or reported.users>1)``
 
-  You can also use the command ``match`` as an abbreviation for ``reported``:
+  All resources that match the defined criteria will be returned.
+  It is possible to limit the result via ``limit``.
 
-  ``match kind == aws_account``
+  ``query is(aws_account) and (reported.age>2w or reported.users>1) limit 3``
 
-desired
--------
+  In addition to the limit, it is also possible to define a sort criteria.
+  Following query will filter all aws accounts that are older than 2 weeks,
+  and return the 3 accounts with most users.
 
-``desired`` will directly access the ``desired`` section of a graph node.
+  ``query is(aws_account) and reported.age>2w sort reported.users desc limit 3``
 
-.. admonition:: Example
 
-  ``desired clean = true``
-
-  This will select all graph nodes that are marked for cleanup
-
-  You can also set properties in the ``desired`` section by using the ``set_desired`` command:
-
-  ``set_desired clean = false``
-
-  An example, selecting all graph nodes that are marked for cleanup and reversing this by chaining the two commands using a pipe:
-
-  ``desired clean == true  | set_desired clean = false``
-
-metadata
---------
-
-``metadata`` will directely access the ``metadata`` section of a graph node.
-
-.. admonition:: Example
-
-  ``metadata ancestors.cloud.name == aws``
-
-  This will select all graph nodes that are part of AWS clouds
-
-  You can set metadata directly or add custom metadata by using the ``set_metadata`` command.
-
-  ``match kind == aws_region | set_metadata foo = "bar"``
-
-  This will set the field ``foo`` to the value ``bar`` inside the graph nodes ``metadata`` section.
-
-The following sections always assume the global level using the ``query`` command.
 
 Selecting Nodes
 ===============
@@ -138,32 +119,20 @@ instances, e.g. google cloud instances.
 The term ``is(aws_ec2_instance)`` would select only
 ec2 instances from aws.
 
-Since the ``is(kind)`` does not belong to any section, it can be used on every level.
-
-.. admonition:: Example
-
-  ``query is(aws_ec2_instance)``
-
-  will select the same nodes as:
-
-  ``metadata is(aws_ec2_instance)``
-
-
 
 Select nodes by predicate
 -------------------------
 
 In order to filter for specific attributes of a node, it is possible to define predicates.
-A predicate always has the syntax: ``<property_path> <operation> <value>``.
+A predicate always has the syntax: ``<property_path> <operation> <value>`` (e.g. ``answer!=42``).
 
 
 property_path
 ^^^^^^^^^^^^^
 
 The ``property_path`` is the path to the property in the json structure.
-A nested attribute is accessed via the ``.``.
-
-To access the name in the reported section, one would write ``reported.name``.
+A nested attribute is accessed via the dot (``.``). To access the name in the reported section,
+one would write ``reported.name``. A nested property would be accessed via ``reported.deeply.nested.property``.
 
 A property inside an array is accessed via ``[position]``.
 So to access the first element of an array we can write ``[0]``.
@@ -186,14 +155,39 @@ The ``operation`` is one of the following options:
 | ``in`` : Property is one of the following values. The value has to be an array.
 | ``not in`` : Property is not one of the following values. The value has to be an array.
 
+
 value
 ^^^^^
 
 The ``value`` can be *any* json literal or *any* json conform value.
+A json conform value is:
+
+- string:  Examples: ``"hello world"``, ``"test"``. Note: the query parser is gracious with quotes.
+  If there are no white space and no special characters, it is possible to omit quotes.
+  In case you see parse errors, try adding quotes to your strings.
+- number: Integers and float numbers can be expressed. Examples: ``23``, ``12.123``.
+  The model itself clearly defines if a number is ``int32``, ``int64``, ``float`` or ``double``.
+  From the query point of view, all numbers are treated the same way.
+- boolean: Examples: ``true``, ``false``
+- array: Examples: ``[1, true, "test"]``
+- json object: Examples: ``{"a": 1, "b": 2}``
+- null: ``null``
+  This can be useful to query for properties that are unset or do not exist.
+
+array values
+^^^^^^^^^^^^
+
+If the filtered property is an array, it is also possible to define a criteria based on elements of the array using
+one of the operator modifier: ``all``, ``any`` or ``none`` in front of the operation.
+
+Let us assume following document: ``{"reported": { "test": [1, 2, 3, 4]}}``, we could define a query like:
+``reported.test all >= 1`` or ``reported.test any > 2`` or ``reported.test none > 100``, which would match the document.
 
 
 Example predicates
 ^^^^^^^^^^^^^^^^^^
+
+.. admonition:: Examples of combined terms
 
   | ``reported.name == "sunset"``
   | Select all nodes where reported.name is *exactly* the string "sunset".
@@ -214,7 +208,7 @@ Example predicates
 Select nodes by id
 ------------------
 
-Nodes can be selected by their id via the `id(xyz)` function.
+Nodes can be selected by their id via the ``id(xyz)`` function.
 This function can be used globally no matter which section is used.
 
 Combine selections
@@ -228,6 +222,21 @@ In order to define precedence, it is possible to put brackets around terms.
   | ``query reported.name == sunset or reported.name == sunrise`` : Select nodes where reported.name is either sunrise or sunset.
   | ``query is(aws_ec2_instance) and reported.name==sunrise`` : Select aws_ec2_instance nodes where reported.name is sunrise.
   | ``query is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` : Select aws_ec2_instance nodes of specific type or more than 2 cores.
+
+
+Query a specific section
+------------------------
+
+All examples here only used the reported section in order to filter the data.
+If your query also only filter data in one section, the section can be defined in front of the query once
+and then omitted in the following filter part.
+
+
+``query reported.instance_type=="m5a.large" or reported.instance_cores>2``
+
+This query can also be written with an explicit section ``reported``:
+
+``query reported instance_type=="m5a.large" or instance_cores>2``
 
 
 Graph Edges
@@ -465,6 +474,93 @@ which includes that all inner with clauses have to match as well.
 
 This is a powerful construct to define queries to match a defined graph structure or
 to select nodes which are not in a predefined graph structure.
+
+
+Merge node data with sub-queries
+================================
+
+The data in Cloudkeeper is stored in a graph.
+While it is possible to query and retrieve a subgraph, it is sometimes helpful to retrieve structural graph data as part of the node.
+The merge node feature allows for sub-queries, that are executed for every node in the result.
+The result of the sub-query is then merged with the node data.
+
+
+.. admonition:: Example
+
+    Most cloud resources are maintained in an account. Accounts are modeled as nodes in Cloudkeeper.
+    Resources reference the region node, while the region node references the account node.
+    In order to retrieve the account, the graph has to be traversed inbound from the resource node until the
+    account node is found. While this is possible, it might be more convenient to get the account information
+    as part of the node!
+
+    In this example we will query nodes of kind ``volume``. For every element that is returned,
+    a sub-query is executed, which will traverse the graph inbound until it finds a node of kind ``account``.
+    The result of this sub-query is merged with the volume node on root level under the name account.
+    The complete information about the account is available as part of the volume node:
+
+
+::
+
+    > query is(volume) { account: <-[0:]- is(account) } limit 1
+    reported:
+        .
+        .
+    account:
+        reported:
+            .
+            .
+
+
+A sub-query is a complete query and can use almost all features of a normal query (exception: sub-queries can not be tagged).
+The result of a sub-query is merged with the original node under the given merge name.
+If the merge name is a simple literal, zero or one result of the sub-query is expected.
+This also means, that the graph traversal of the sub-query stops, when the first matching element is found.
+If the expected result of the sub-query is a list, than the merge name has to be defined with square brackets.
+Following query will traverse inbound on every element and collect all predecessors under the name ``predecessors`` ).
+
+::
+
+    > query is(volume) { predecessors[]: <-- all }
+    reported:
+        .
+        .
+    predecessors:
+    - reported:
+        .
+        .
+    - reported:
+        .
+        .
+
+
+It is possible to define multiple merge queries in one query statement.
+
+::
+
+    > query is(volume) { account: <-[0:]- is(account), region: <-[0:]- is(region) } limit 1
+    reported:
+        .
+        .
+    account:
+        reported:
+            .
+            .
+    region:
+        reported:
+            .
+            .
+
+
+A sub-query can be defined using sub-queries.
+
+
+::
+
+    query = <pre_filter> { <merge_name_1>: <query>, .., <merge_name_n>: <query> } <post_filter>
+
+
+Note on performance: be aware that a sub-query is executed for every node of the original query and
+might be expensive and time intensive to compute.
 
 
 Aggregation of data
