@@ -6,6 +6,7 @@ ARG PYTHON_VERSION=3.10.0
 ARG PYPY_VERSION=7.3.7
 ARG ARANGODB_VERSION=3.8.1
 ARG PROMETHEUS_VERSION=2.30.1
+ARG GODOT_VERSION=3.4
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
@@ -15,6 +16,7 @@ RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
         curl \
+        unzip \
         zlib1g-dev \
         libncurses5-dev \
         libgdbm-dev \
@@ -49,6 +51,14 @@ WORKDIR /usr/local/tsdb
 RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
 COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
+
+# Download and install Godot
+WORKDIR /build/godot
+RUN mkdir -p /root/.godot
+RUN curl -L -o /tmp/godot.zip https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux_headless.64.zip
+RUN curl -L -o /tmp/godot.tpz https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+RUN unzip /tmp/godot.zip -d /build/godot
+RUN unzip /tmp/godot.tpz -d ~/.godot
 
 # Download and install CPython
 WORKDIR /build/python
