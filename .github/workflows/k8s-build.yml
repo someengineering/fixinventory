@@ -14,7 +14,7 @@ on:
 
 jobs:
     build:
-        name: Build Docker Images
+        name: Test k8s helm chart
         runs-on: ubuntu-latest
         steps:
             - name: Check out repository
@@ -34,7 +34,7 @@ jobs:
             - name: Debug info on failure
               if: ${{ failure() }}
               run: |
-                  kubectl get all --namespace cloudkeeper
+                  kubectl describe all --namespace cloudkeeper
                   echo "Core logs:"
                   kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckcore
                   echo "Worker logs:"
