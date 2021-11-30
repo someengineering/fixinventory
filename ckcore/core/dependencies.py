@@ -1,8 +1,9 @@
 import argparse
 import logging
 import multiprocessing as mp
+import os.path
 from argparse import Namespace
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 from arango.database import StandardDatabase
 from cklib.args import ArgumentParser
@@ -18,6 +19,15 @@ log = logging.getLogger(__name__)
 
 
 def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
+    def is_dir(message: str) -> Callable[[str], str]:
+        def check_dir(path: str) -> str:
+            if os.path.isdir(path):
+                return path
+            else:
+                raise AttributeError(f"{message}: path {path} is not a directory!")
+
+        return check_dir
+
     parser = ArgumentParser(
         env_args_prefix="CKCORE_",
         description="Maintains graphs of resources of any shape.",
@@ -102,6 +112,11 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         default=False,
         action="store_true",
         help="Stop collecting analytics data.",
+    )
+    parser.add_argument(
+        "--ui-path",
+        type=is_dir("can not parse --ui-dir"),
+        help="The directory where the UI is installed. This directory will be served under /ui/.",
     )
 
     TaskHandler.add_args(parser)

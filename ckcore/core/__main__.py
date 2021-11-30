@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 import os
 import platform
+import sys
 from asyncio import Queue
 from datetime import timedelta
 from typing import AsyncIterator
@@ -146,5 +147,5 @@ if __name__ == "__main__":
         log.info("Stopping Cloudkeeper graph core.")
         shutdown_process(0)
     except Exception as ex:
-        log.info(f"ckcore stopped. Reason: {ex}")
+        print(f"ckcore stopped. Reason: {ex}", file=sys.stderr)
         shutdown_process(1)
