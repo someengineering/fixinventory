@@ -109,6 +109,7 @@ class Api:
         )
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
+        ui_route = [web.static("/ui", self.args.ui_path)] if self.args.ui_path else []
         self.app.add_routes(
             [
                 # Model operations
@@ -180,6 +181,7 @@ class Api:
                 # system operations
                 web.get("/system/ping", self.ping),
                 web.get("/system/ready", self.ready),
+                *ui_route,
             ]
         )
         SwaggerFile(
