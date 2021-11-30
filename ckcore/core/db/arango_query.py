@@ -9,7 +9,7 @@ from core.constants import less_greater_then_operations as lgt_ops, arangodb_mat
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.model import QueryModel
 from core.model.graph_access import EdgeType, Section
-from core.model.model import SyntheticProperty
+from core.model.model import SyntheticProperty, ResolvedProperty
 from core.model.resolve_in_graph import GraphResolver
 from core.query.model import (
     Predicate,
@@ -31,6 +31,7 @@ from core.query.model import (
     MergeTerm,
     MergeQuery,
     Query,
+    SortOrder,
 )
 from core.query.query_parser import merge_ancestors_parser
 from core.util import first
@@ -74,6 +75,20 @@ def query_string(
 
     def next_bind_var_name() -> str:
         return f'b{next_counter("bind_vars")}'
+
+    def prop_name_kind(path: str) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
+        merge_name = first(lambda name: path.startswith(name + "."), merge_names)
+        # remove merge_name and section part (if existent) from the path
+        lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
+        resolved = model.property_by_path(lookup)
+
+        def synthetic_path(synth: SyntheticProperty) -> str:
+            before, after = path.rsplit(resolved.prop.name, 1)
+            return f'{before}{".".join(synth.path)}{after}'
+
+        prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else path
+
+        return prop_name, resolved, merge_name
 
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
         cursor = next_crs("agg")
@@ -119,22 +134,13 @@ def query_string(
             extra = " any " if "[*]" in p.name else " "
             path = p.name.replace("[*]", "[]")
 
-        merge_name = first(lambda name: path.startswith(name + "."), merge_names)
-        # remove merge_name and section part (if existent) from the path
-        lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
-        prop = model.property_by_path(lookup)
-
-        def synthetic_path(synth: SyntheticProperty) -> str:
-            before, after = p.name.rsplit(prop.prop.name, 1)
-            return f'{before}{".".join(synth.path)}{after}'
-
+        prop_name, prop, merge_name = prop_name_kind(path)
         bvn = next_bind_var_name()
         op = lgt_ops[p.op] if prop.kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
             bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
         else:
             bind_vars[bvn] = prop.kind.coerce(p.value)
-        prop_name = synthetic_path(prop.prop.synthetic) if prop.prop.synthetic else p.name
         # in case of section: add the section if the predicate does not belong to a merge attribute
         var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{section_dot}{prop_name}"
         p_term = f"{var_name}{extra} {op} @{bvn}"
@@ -417,7 +423,14 @@ def query_string(
         return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
 
     def sort(cursor: str, so: List[Sort], sect_dot: str) -> str:
-        sorts = ", ".join(f"{cursor}.{sect_dot}{s.name} {s.order}" for s in so)
+        def single_sort(single: Sort) -> str:
+            prop_name, resolved, merge_name = prop_name_kind(single.name)
+            # in case of section: add the section if the predicate does not belong to a merge attribute
+            var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{section_dot}{prop_name}"
+            order = SortOrder.reverse(single.order) if resolved.kind.reverse_order else single.order
+            return f"{var_name} {order}"
+
+        sorts = ", ".join(single_sort(s) for s in so)
         return f" SORT {sorts} "
 
     parts = []
