@@ -1,0 +1,222 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Values",
+    "type": "object",
+    "properties": {
+        "ckcore": {
+            "type": "object",
+            "required": [
+                "graphdb"
+            ],
+            "properties": {
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "port": {
+                            "type": "integer"
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "ingress": {
+                    "type": "object",
+                    "properties": {
+                        "annotations": {
+                            "type": "object"
+                        },
+                        "className": {
+                            "type": "string"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "hosts": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "host": {
+                                        "type": "string"
+                                    },
+                                    "paths": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": "string"
+                                                },
+                                                "pathType": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "tls": {
+                            "type": "array"
+                        }
+                    }
+                },
+                "graphdb": {
+                    "type": "object",
+                    "required": [
+                        "server",
+                        "login",
+                        "database"
+                    ],
+                    "properties": {
+                        "server": {
+                            "type": "string",
+                            "description": "The URL of the graph database server. i.e: http://foobar.tld:8529",
+                            "minLength": 1
+                        },
+                        "login": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "database": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "passwordSecret": {
+                            "type": "object",
+                            "required": [
+                                "name",
+                                "key"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "key": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    }
+                },
+                "host": {
+                    "type": "string"
+                }
+            }
+        },
+        "ckworker": {
+            "type": "object",
+            "required": [
+                "collector"
+            ],
+            "properties": {
+                "extraEnv": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            },
+                            "valueFrom": {
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    }
+                },
+                "extraArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "collector": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "volumes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "volumeMounts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "affinity": {
+            "type": "object"
+        },
+        "fullnameOverride": {
+            "type": "string"
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "pullPolicy": {
+                    "type": "string"
+                },
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "imagePullSecrets": {
+            "type": "array"
+        },
+        "nameOverride": {
+            "type": "string"
+        },
+        "nodeSelector": {
+            "type": "object"
+        },
+        "podAnnotations": {
+            "type": "object"
+        },
+        "podSecurityContext": {
+            "type": "object"
+        },
+        "replicaCount": {
+            "type": "integer"
+        },
+        "resources": {
+            "type": "object"
+        },
+        "securityContext": {
+            "type": "object"
+        },
+        "serviceAccount": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "tolerations": {
+            "type": "array"
+        }
+    }
+}

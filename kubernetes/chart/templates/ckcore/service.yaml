@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cloudkeeper.fullname" . }}-ckcore
+  labels:
+    cloudkeeper: core
+    {{- include "cloudkeeper.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.ckcore.service.type }}
+  ports:
+    - port: {{ .Values.ckcore.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    cloudkeeper: core
+    {{- include "cloudkeeper.selectorLabels" . | nindent 4 }}

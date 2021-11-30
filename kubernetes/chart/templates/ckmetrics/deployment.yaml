@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudkeeper.fullname" . }}-ckmetrics
+  labels:
+    cloudkeeper: metrics
+    {{- include "cloudkeeper.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/metrics'
+    prometheus.io/port: '9955'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cloudkeeper: metrics
+      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        cloudkeeper: metrics
+        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+    spec:
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          - --ckcore-uri
+          - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          - --ckcore-ws-uri
+          - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          env:
+          - name: START_STACK
+            value: "false"
+          - name: START_CKMETRICS
+            value: "true"
+          - name: PSK
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "cloudkeeper.fullname" . }}-psk
+                key: "psk"
+          ports:
+            - name: http
+              containerPort: 9955
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
