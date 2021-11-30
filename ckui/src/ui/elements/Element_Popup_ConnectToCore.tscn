@@ -105,6 +105,7 @@ use_filter = true
 font_data = SubResource( 17 )
 
 [node name="PopupConnectCore" type="Popup"]
+visible = true
 margin_right = 1920.0
 margin_bottom = 1080.0
 rect_pivot_offset = Vector2( 3068, -388 )

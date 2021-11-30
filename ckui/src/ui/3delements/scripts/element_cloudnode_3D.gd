@@ -9,6 +9,7 @@ var graph_pos := Vector3.ZERO
 var parent_graph : Object = null
 var descendant_scale := 1.0 setget set_descendant_scale
 var treemap : Object = null
+var line_length := 200.0 setget set_line_length
 
 
 func _ready() -> void:
@@ -34,6 +35,9 @@ func deliver_label(_image):
 
 func change_cam_zoom_3d(zoom:float):
 	$Label.scale = Vector3.ONE * zoom * 12
+
+func set_line_length(value:float):
+	line_length = value
 
 
 func set_descendant_scale(_value:float):

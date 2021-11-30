@@ -11,5 +11,5 @@ gradient = SubResource( 3 )
 resource_name = "None"
 flags_transparent = true
 flags_unshaded = true
-albedo_color = Color( 0.176471, 0.462745, 0.666667, 1 )
+albedo_color = Color( 0.176471, 0.462745, 0.666667, 0.513726 )
 albedo_texture = SubResource( 4 )
