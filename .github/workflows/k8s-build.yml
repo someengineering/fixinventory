@@ -34,6 +34,9 @@ jobs:
             - name: Debug info on failure
               if: ${{ failure() }}
               run: |
+                  echo "Nodes:"
+                  kubectl get nodes -o wide
+                  echo "Cluster state:"
                   kubectl describe all --namespace cloudkeeper
                   echo "Core logs:"
                   kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckcore
