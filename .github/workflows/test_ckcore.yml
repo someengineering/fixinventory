@@ -14,7 +14,7 @@ jobs:
                 working-directory: ./ckcore
         services:
             arangodb:
-                image: arangodb:3.8
+                image: arangodb:3.8.3
                 env:
                     ARANGO_ROOT_PASSWORD: root
                 ports:
