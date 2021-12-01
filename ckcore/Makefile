@@ -99,10 +99,13 @@ venv:
 	. ./venv/bin/activate && pip install -r requirements.txt
 	. ./venv/bin/activate && mypy --python-version 3.8 core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."
-	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive || true
+	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive core tests || true
 	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
 
 setup: clean clean-env venv
+
+list-outdated: venv
+	pip list --outdated
 
 install-latest: venv
 	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U

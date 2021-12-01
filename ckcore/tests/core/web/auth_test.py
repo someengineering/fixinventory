@@ -51,6 +51,5 @@ async def test_wrong_psk(aiohttp_client: Any, app_with_auth: Application) -> Non
 @mark.asyncio
 async def test_no_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
-    jwt = encode_jwt({"foo": "bla"}, "wrong!")
     resp = await client.get("/")
     assert resp.status == 401
