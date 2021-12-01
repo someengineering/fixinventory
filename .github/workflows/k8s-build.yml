@@ -26,6 +26,8 @@ jobs:
                 version: v3.4.0
 
             - uses: engineerd/setup-kind@v0.5.0
+              with:
+                version: "v0.11.1"
             - name: Testing
               run: |
                   NO_START_KIND=1 IMAGE_TAG=latest bash -x ./kubernetes/setup-kind.sh
@@ -34,6 +36,9 @@ jobs:
             - name: Debug info on failure
               if: ${{ failure() }}
               run: |
+                  echo "Nodes:"
+                  kubectl get nodes -o wide
+                  echo "Cluster state:"
                   kubectl describe all --namespace cloudkeeper
                   echo "Core logs:"
                   kubectl logs --namespace cloudkeeper deploy/cloudkeeper-ckcore
