@@ -1,5 +1,5 @@
 import multiprocessing
-import cklib.logging
+from cklib.logging import log, setup_logger
 import cklib.signal
 from concurrent import futures
 from typing import Dict, Optional
@@ -9,8 +9,6 @@ from cklib.args import ArgumentParser
 from .resources import GCPProject
 from .utils import Credentials
 from .collector import GCPProjectCollector
-
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
@@ -93,6 +91,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         if args is not None:
             ArgumentParser.args = args
+            setup_logger("ckworker-gcp")
 
         if credentials is not None:
             Credentials._credentials = credentials
