@@ -545,12 +545,12 @@ class TaskHandler(JobHandler):
                 event, command = re.split("\\s*:\\s*", command, 1)
                 wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
-            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, env, mutable)
+            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, ctx.env, mutable)
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
-            return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, mutable=mutable)
+            return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, None, ctx.env, mutable)
 
         try:
             return await (parse_event() if self.event_re.match(stripped) else parse_with_cron())

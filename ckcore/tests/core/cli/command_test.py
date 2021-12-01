@@ -245,14 +245,22 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
     assert job.trigger == TimeTrigger("23 1 * * *")
     assert job.wait is None
     assert job in task_handler.task_descriptions
-    with_event = await cli.execute_cli_command("add_job 23 1 * * * foo : echo Hello World", stream.list)
+    assert job.environment == {"graph": "ns"}
+    with_event = await cli.execute_cli_command("add_job 23 1 * * * foo : echo Hello World", stream.list, ctx)
     assert with_event == [["Job 86ecb12c added."]]
     job_with_event: Job = await job_db.get("86ecb12c")  # type: ignore
     assert job_with_event.wait is not None
     event_trigger, timeout = job_with_event.wait
     assert event_trigger.message_type == "foo"
     assert timeout == timedelta(hours=24)
+    assert job_with_event.environment == {"graph": "ns"}
     assert job_with_event in task_handler.task_descriptions
+    only_event = await cli.execute_cli_command("add_job foo : echo Hello World", stream.list, ctx)
+    assert only_event == [["Job 6614c963 added."]]
+    job_only_event: Job = await job_db.get("6614c963")  # type: ignore
+    assert job_only_event.wait is None
+    assert job_only_event.environment == {"graph": "ns"}
+    assert job_only_event in task_handler.task_descriptions
 
 
 @pytest.mark.asyncio
