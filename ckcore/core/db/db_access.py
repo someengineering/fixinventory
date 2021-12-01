@@ -22,7 +22,7 @@ from core.db.modeldb import ModelDb, model_db
 from core.db.runningtaskdb import running_task_db
 from core.db.subscriberdb import subscriber_db
 from core.db.templatedb import template_entity_db
-from core.error import NoSuchGraph
+from core.error import NoSuchGraph, RequiredDependencyMissingError
 from core.model.adjust_node import AdjustNode
 from core.model.typed_model import to_js, from_js
 from core.util import Periodic, utc, shutdown_process, uuid_str
@@ -134,6 +134,14 @@ class DbAccess(ABC):
         while True:
             try:
                 db.echo()
+                try:
+                    db_version = int(db.required_db_version())
+                except Exception as ex:
+                    log.warning(f"Not able to retrieve version of arangodb. Reason: {ex}. Continue.")
+                else:
+                    if db_version < 30802:
+                        raise RequiredDependencyMissingError("Need arangodb in version 3.8.2 or later")
+
                 created, sys_data = system_data()
                 return created, sys_data, db
             except ArangoServerError as ex:

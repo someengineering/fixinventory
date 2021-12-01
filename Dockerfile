@@ -4,7 +4,7 @@ ARG TESTS
 ARG SOURCE_COMMIT
 ARG PYTHON_VERSION=3.10.0
 ARG PYPY_VERSION=7.3.7
-ARG ARANGODB_VERSION=3.8.1
+ARG ARANGODB_VERSION=3.8.3
 ARG PROMETHEUS_VERSION=2.30.1
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

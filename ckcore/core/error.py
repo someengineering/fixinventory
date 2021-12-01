@@ -20,6 +20,12 @@ class ServerError(Exception):
     """
 
 
+class RequiredDependencyMissingError(ServerError):
+    """
+    Required downstream system is not available or not available in correct version.
+    """
+
+
 class DatabaseError(CoreException):
     """
     Base for all database exceptions.

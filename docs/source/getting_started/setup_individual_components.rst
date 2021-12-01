@@ -15,7 +15,7 @@ All the installation will take place in your home directory ``~/cloudkeeper/``. 
 Prerequisites
 *************
 
-Python >= 3.9 is required for all Cloudkeeper components. ArangoDB >= 3.8.1 is used as the ``ckcore`` graph storage.
+Python >= 3.9 is required for all Cloudkeeper components. ArangoDB >= 3.8.3 is used as the ``ckcore`` graph storage.
 Optionally the Cloudkeeper Metrics Exporter ``ckmetrics`` can be installed and its metrics pulled by the Prometheus time series database.
 This guide uses ``curl`` and ``git`` to download components.
 
