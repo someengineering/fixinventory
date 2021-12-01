@@ -41,7 +41,7 @@ def setup_logger(proc: str) -> None:
     log_format = (
         f"%(asctime)s|{proc}|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
     )
-    basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S")
+    basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=True)
     argv = sys.argv[1:]
     if (
         "-v" in argv
