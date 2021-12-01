@@ -1,5 +1,5 @@
 networkx==2.6.3
-typeguard==2.13.0
+typeguard==2.13.2
 websocket-client==1.2.1
 psutil==5.8.0
 requests==2.26.0
@@ -9,4 +9,4 @@ typing-compat==0.1.0
 CherryPy==18.6.1
 
 # only here to fix the version
-pyparsing==2.4.7
+pyparsing==3.0.6
