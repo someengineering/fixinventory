@@ -8,6 +8,7 @@ signal hide_nodes
 signal show_connected_nodes
 signal order_done
 signal graph_created
+signal reset_camera
 
 #const ATTRACTION_CONSTANT := 0.01
 const ATTRACTION_CONSTANT := 0.01
@@ -264,6 +265,9 @@ func create_graph_raw(raw_data : Dictionary, total_nodes:int):
 	_g.msg( "Visual elements done ... rendering" )
 	_e.emit_signal("loading", 1, "Creating visual elements" )
 	_e.emit_signal("loading_done")
+	
+	update_connection_lines()
+	center_diagram()
 
 
 func update_connection_lines() -> void:
@@ -275,6 +279,7 @@ func update_connection_lines() -> void:
 
 func center_diagram():
 	root_node.translation = Vector3.ZERO
+	emit_signal("reset_camera")
 
 
 func remove_graph():
@@ -416,8 +421,6 @@ func thread_layout(_thread_data:Array):
 func _thread_layout_finished(_thread_data:Array) -> void:
 	var arrange_result = threads[ _thread_data[0] ].wait_to_finish()
 	threads_result.append(arrange_result)
-	#threads[ _thread_data[0] ] = Thread.new()
-	#threads_idle[ _thread_data[0] ] = true
 
 
 # Arrange the graph using Spring Electric Algorithm
@@ -449,7 +452,7 @@ func arrange(_data:Dictionary, damping:float, spring_length:float, max_iteration
 			
 			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED)
 			#print(node.velocity)
-			damping *= 0.999#9999
+			damping *= 0.9999999
 			node.position += node.velocity
 			total_displacement += node.velocity.length()
 		

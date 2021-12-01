@@ -35,11 +35,6 @@ func _ready() -> void:
 	ui_query.show()
 	ui_search.modulate.a = 0
 	set_state(states.GRAPH)
-	get_tree().get_root().connect("size_changed", self, "resize_viewports")
-
-func resize_viewports():
-	var new_size = get_viewport().size
-	$UIGraph3DViewport/Viewport.size = new_size
 
 
 func _input(event) -> void:

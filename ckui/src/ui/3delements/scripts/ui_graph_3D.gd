@@ -35,6 +35,7 @@ export (NodePath) onready var main_ui = get_node(main_ui)
 func _ready():
 	_g.main_graph = graph
 	graph.connect("order_done", self, "save_order")
+	graph.connect("reset_camera", self, "reset_zoom")
 	_e.connect("graph_order", self, "main_graph_order")
 	_e.connect("graph_randomize", self, "main_graph_rand")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
@@ -213,6 +214,10 @@ func zoom_in():
 	cam_tween.remove_all()
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, original_zoom, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)
 	cam_tween.start()
+
+
+func reset_camera():
+	zoom_out()
 
 
 func go_to_graph_node_3d(node_id, graph) -> void:
