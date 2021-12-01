@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [sub_resource type="SpatialMaterial" id=1]
 flags_unshaded = true
@@ -9,6 +9,74 @@ particles_anim_h_frames = 1
 particles_anim_v_frames = 1
 particles_anim_loop = false
 
+[sub_resource type="Shader" id=6]
+code = "shader_type particles;
+uniform vec3 emission_box_extents;
+uniform vec4 color_value : hint_color;
+uniform float grid_amount;
+uniform sampler2D color_ramp;
+
+
+float rand_from_seed(inout uint seed) {
+	int k;
+	int s = int(seed);
+	if (s == 0)
+	s = 305420679;
+	k = s / 127773;
+	s = 16807 * (s - k * 127773) - 2836 * k;
+	if (s < 0)
+		s += 2147483647;
+	seed = uint(s);
+	return float(seed % uint(65536)) / 65535.0;
+}
+
+float rand_from_seed_m1_p1(inout uint seed) {
+	return rand_from_seed(seed) * 2.0 - 1.0;
+}
+
+uint hash(uint x) {
+	x = ((x >> uint(16)) ^ x) * uint(73244475);
+	x = ((x >> uint(16)) ^ x) * uint(73244475);
+	x = (x >> uint(16)) ^ x;
+	return x;
+}
+
+void vertex() {
+	uint base_number = NUMBER;
+	uint alt_seed = hash(base_number + uint(1) + RANDOM_SEED);
+	float angle_rand = rand_from_seed(alt_seed);
+	float scale_rand = rand_from_seed(alt_seed);
+	float hue_rot_rand = rand_from_seed(alt_seed);
+	float anim_offset_rand = rand_from_seed(alt_seed);
+	float pi = 3.14159;
+	float degree_to_rad = pi / 180.0;
+
+	bool restart = false;
+	float tv = 0.0;
+	if (CUSTOM.y > CUSTOM.w) {
+		restart = true;
+		tv = 1.0;
+	}
+
+	if (RESTART || restart) {
+		float x_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+		float y_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+		float z_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+		TRANSFORM[3].xyz = vec3(x_grid, y_grid, z_grid) * emission_box_extents;
+		VELOCITY = vec3(0.0);
+		TRANSFORM = EMISSION_TRANSFORM * TRANSFORM;
+	} else {
+		CUSTOM.y += DELTA / LIFETIME;
+		tv = CUSTOM.y / CUSTOM.w;
+	}
+	COLOR =  textureLod(color_ramp, vec2(tv, 0.0), 0.0) * color_value;
+
+	if (CUSTOM.y > CUSTOM.w) {		ACTIVE = false;
+	}
+}
+
+"
+
 [sub_resource type="Gradient" id=2]
 offsets = PoolRealArray( 0, 0.420635, 0.996032 )
 colors = PoolColorArray( 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 )
@@ -16,11 +84,12 @@ colors = PoolColorArray( 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 )
 [sub_resource type="GradientTexture" id=3]
 gradient = SubResource( 2 )
 
-[sub_resource type="ParticlesMaterial" id=4]
-emission_shape = 2
-emission_box_extents = Vector3( 1, 1, 1 )
-gravity = Vector3( 0, 0, 0 )
-color_ramp = SubResource( 3 )
+[sub_resource type="ShaderMaterial" id=7]
+shader = SubResource( 6 )
+shader_param/emission_box_extents = Vector3( 300, 300, 300 )
+shader_param/color_value = Color( 1, 1, 1, 1 )
+shader_param/grid_amount = 5.0
+shader_param/color_ramp = SubResource( 3 )
 
 [sub_resource type="QuadMesh" id=5]
 
@@ -28,8 +97,9 @@ color_ramp = SubResource( 3 )
 
 [node name="Particles" type="Particles" parent="."]
 material_override = SubResource( 1 )
-lifetime = 3.0
-visibility_aabb = AABB( 0, 0, 0, 0, 0, 0 )
+amount = 1000
+lifetime = 8.0
+visibility_aabb = AABB( -1, -1, -1, 2, 2, 2 )
 local_coords = false
-process_material = SubResource( 4 )
+process_material = SubResource( 7 )
 draw_pass_1 = SubResource( 5 )
