@@ -6,6 +6,7 @@ ARG PYTHON_VERSION=3.10.0
 ARG PYPY_VERSION=7.3.7
 ARG ARANGODB_VERSION=3.8.3
 ARG PROMETHEUS_VERSION=2.30.1
+ARG GODOT_VERSION=3.4
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
@@ -15,6 +16,7 @@ RUN apt-get -y install apt-utils
 RUN apt-get -y install \
         build-essential \
         curl \
+        unzip \
         zlib1g-dev \
         libncurses5-dev \
         libgdbm-dev \
@@ -50,6 +52,15 @@ RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
 COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 
+# Download and install Godot
+WORKDIR /build/godot
+RUN mkdir -p /root/.local/share/godot/templates
+RUN curl -L -o /tmp/godot.zip https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux_headless.64.zip
+RUN curl -L -o /tmp/godot.tpz https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+RUN unzip /tmp/godot.zip -d /build/godot
+RUN unzip /tmp/godot.tpz -d /root/.local/share/godot/templates
+RUN mv /root/.local/share/godot/templates/templates /root/.local/share/godot/templates/${GODOT_VERSION}.stable
+
 # Download and install CPython
 WORKDIR /build/python
 RUN curl -L -o /tmp/python.tar.gz  https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
@@ -59,6 +70,7 @@ RUN make -j 12
 RUN make install
 RUN /usr/local/python/bin/python3 -m ensurepip
 
+# Download and install PyPy
 WORKDIR /build
 RUN mkdir -p /build/pypy
 RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-linux64.tar.bz2
@@ -73,6 +85,11 @@ RUN /usr/local/pypy/bin/pypy3 -m venv cloudkeeper-venv-pypy3
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
+
+# Build ckui
+WORKDIR /usr/local/cloudkeeper/ui
+COPY ckui /usr/src/ckui
+RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/ckui/src --export HTML5 /usr/local/cloudkeeper/ui/index.html
 
 # Download and install Python test tools
 RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
