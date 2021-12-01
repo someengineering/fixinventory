@@ -146,6 +146,10 @@ func get_blastradius_from_selection(node_id) -> Dictionary:
 		"edges" : {}
 		}
 	
+	var graph_id = ""
+	var query = "is(graph_root) -[0:]->"
+	emit_signal("create_graph", graph_id, query)
+	
 	# create the root node
 	new_cloudgraph.nodes[node_id] = CloudNode.new()
 	new_cloudgraph.nodes[node_id].clone( _g.main_graph.graph_data.nodes[node_id] )

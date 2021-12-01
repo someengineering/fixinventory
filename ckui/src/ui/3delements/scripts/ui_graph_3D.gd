@@ -9,12 +9,23 @@ const MAX_ZOOM_3D = 20000
 const TOUCH_ZOOM_SPEED = 0.1
 
 var root_node : Object = null
-var mouse_is_pressed := false
-var last_drag_pos := Vector2.ZERO
-var new_drag_pos := Vector2.ZERO
-var is_dragging_cam := false
-var drag_sensitivity := 1.0
-var drag_power := Vector2.ZERO
+
+# Left Mouse Button Drag vars
+var mouse_lmb_is_pressed := false
+var last_lmb_drag_pos := Vector2.ZERO
+var new_lmb_drag_pos := Vector2.ZERO
+var is_lmb_dragging_cam := false
+var drag_lmb_sensitivity := 1.0
+var drag_lmb_power := Vector2.ZERO
+
+# Right Mouse Button Drag vars
+var mouse_rmb_is_pressed := false
+var last_rmb_drag_pos := Vector2.ZERO
+var new_rmb_drag_pos := Vector2.ZERO
+var is_rmb_dragging_cam := false
+var drag_rmb_sensitivity := 1.0
+var drag_rmb_power := Vector2.ZERO
+
 var target_node : CloudNode = null
 var cam_moving := false
 var cam_target_zoom := 0.0
@@ -27,7 +38,8 @@ var api_response_data : Dictionary
 var api_error := false
 
 onready var graph = $GraphView
-onready var graph_cam = $GraphCam3D
+onready var graph_cam = $CameraArm/GraphCam3D
+onready var graph_cam_arm = $CameraArm
 onready var cam_tween = $CamMoveTween
 
 export (NodePath) onready var main_ui = get_node(main_ui)
@@ -107,8 +119,8 @@ func generate_graph(filtered_data_result:Dictionary):
 	yield(graph, "graph_created")
 	graph.layout_graph(graph_node_positions)
 	root_node = graph.root_node
-	graph_cam.translation.x = root_node.global_transform.origin.x
-	graph_cam.translation.y = root_node.global_transform.origin.y
+	graph_cam_arm.translation.x = root_node.global_transform.origin.x
+	graph_cam_arm.translation.y = root_node.global_transform.origin.y
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 1000, 0.5, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	
@@ -171,23 +183,39 @@ func main_graph_rand():
 func _physics_process(delta):
 	if !is_active:
 		return
-	mouse_is_pressed = Input.is_action_pressed("left_mouse")
+	mouse_lmb_is_pressed = Input.is_action_pressed("left_mouse")
 	var is_in_graph = true
-	if mouse_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
-		new_drag_pos = get_viewport().get_mouse_position()
-		if !is_dragging_cam:
-			is_dragging_cam = true
-			last_drag_pos = new_drag_pos
+	if mouse_lmb_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
+		new_lmb_drag_pos = get_viewport().get_mouse_position()
+		if !is_lmb_dragging_cam:
+			is_lmb_dragging_cam = true
+			last_lmb_drag_pos = new_lmb_drag_pos
 		else:
-			drag_power = (new_drag_pos-last_drag_pos)
-			last_drag_pos = new_drag_pos
+			drag_lmb_power = (new_lmb_drag_pos - last_lmb_drag_pos)
+			last_lmb_drag_pos = new_lmb_drag_pos
 	else:
-		drag_power *= 50*delta
-		is_dragging_cam = false
+		drag_lmb_power *= 50*delta
+		is_lmb_dragging_cam = false
 	
-	graph_cam.translation.x -= drag_power.x
-	graph_cam.translation.y += drag_power.y
+	mouse_rmb_is_pressed = Input.is_action_pressed("right_mouse")
+	var is_rmb_in_graph = true
+	if mouse_rmb_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
+		new_rmb_drag_pos = get_viewport().get_mouse_position()
+		if !is_rmb_dragging_cam:
+			is_rmb_dragging_cam = true
+			last_rmb_drag_pos = new_rmb_drag_pos
+		else:
+			drag_rmb_power = (new_rmb_drag_pos - last_rmb_drag_pos)
+			last_rmb_drag_pos = new_rmb_drag_pos
+	else:
+		drag_rmb_power *= 25*delta
+		is_rmb_dragging_cam = false
 	
+	
+	var rot_drag_lmb_power = Vector3(drag_lmb_power.x, -drag_lmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
+	var rot_drag_rmb_power = Vector3(drag_rmb_power.x, -drag_rmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
+	graph_cam_arm.rotation_degrees.y += drag_rmb_power.x*0.2
+	graph_cam_arm.translation -= rot_drag_lmb_power + Vector3(0, rot_drag_rmb_power.y*0.5, 0)
 	
 	var new_zoom_level := 0.0
 	if is_in_graph:
@@ -234,11 +262,11 @@ func go_to_graph_node_3d(node_id, graph) -> void:
 	$NewNodeSelectionTimer.start()
 	var target_pos = target_node.scene.global_transform.origin# - Vector3(0,0,-400)
 	cam_target_zoom = target_pos.z
-	var flytime = range_lerp( clamp(target_pos.distance_to(graph_cam.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5 )
+	var flytime = range_lerp( clamp(target_pos.distance_to(graph_cam_arm.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5 )
 	cam_tween.remove_all()
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 500+cam_target_zoom, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	cam_tween.interpolate_property(graph_cam, "global_transform:origin:x", graph_cam.global_transform.origin.x, target_pos.x, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	cam_tween.interpolate_property(graph_cam, "global_transform:origin:y", graph_cam.global_transform.origin.y, target_pos.y, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam_arm, "global_transform:origin:x", graph_cam_arm.global_transform.origin.x, target_pos.x, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam_arm, "global_transform:origin:y", graph_cam_arm.global_transform.origin.y, target_pos.y, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	target_node.scene.is_selected = true
 	cam_moving = true

@@ -54,15 +54,6 @@ func _ready():
 	connect("hovering_node", self, "hovering_node")
 	connect("show_connected_nodes", self, "show_connected_nodes")
 
-var rot := 0.0
-
-func _process(delta):
-	if Input.is_action_pressed("ui_page_up"):
-		rot += delta*36
-	elif Input.is_action_pressed("ui_page_down"):
-		rot -= delta*36
-	$Center.rotation_degrees.y = rot
-
 
 func add_node_layout():
 	var center = Spatial.new()
@@ -451,8 +442,7 @@ func arrange(_data:Dictionary, damping:float, spring_length:float, max_iteration
 					net_force += calc_attraction_force_pos( current_node_position, other_node.position, spring_length  * other_node.length)# * node.scene.descendant_scale )
 			
 			node.velocity = ((node.velocity + net_force) * damping * GRAPH_MOVE_SPEED)
-			#print(node.velocity)
-			damping *= 0.9999999
+			damping *= 0.99999
 			node.position += node.velocity
 			total_displacement += node.velocity.length()
 		
