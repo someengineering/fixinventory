@@ -129,7 +129,7 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
     log_format = "%(asctime)s|ckcore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
     logging.basicConfig(
-        format=log_format, datefmt="%y-%m-%d %H:%M:%S", level=logging.getLevelName(args.log_level.upper())
+        format=log_format, datefmt="%y-%m-%d %H:%M:%S", level=logging.getLevelName(args.log_level.upper()), force=True
     )
 
     # set/reset process creation method

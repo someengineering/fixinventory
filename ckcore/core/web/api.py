@@ -11,7 +11,7 @@ from argparse import Namespace
 from dataclasses import replace
 from datetime import timedelta
 from random import SystemRandom
-from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple
+from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
 import prometheus_client
 import yaml
@@ -109,7 +109,15 @@ class Api:
         )
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
-        ui_route = [web.static("/ui", self.args.ui_path)] if self.args.ui_path else []
+        ui_route = (
+            [
+                web.get("/ui", self.forward("/ui/index.html")),
+                web.get("/ui/", self.forward("/ui/index.html")),
+                web.static("/ui/", self.args.ui_path),
+            ]
+            if self.args.ui_path
+            else []
+        )
         self.app.add_routes(
             [
                 # Model operations
@@ -189,6 +197,13 @@ class Api:
             spec_file=f"{static_path}/api-doc.yaml",
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
+
+    @staticmethod
+    def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
+        async def forward_to(_: Request) -> StreamResponse:
+            return web.HTTPFound(to)
+
+        return forward_to
 
     @staticmethod
     async def ping(_: Request) -> StreamResponse:
