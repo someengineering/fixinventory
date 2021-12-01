@@ -1,7 +1,8 @@
 import botocore.exceptions
-import cklib.logging
 import multiprocessing
 import cklib.signal
+import cklib.logging
+from cklib.logging import log, setup_logger
 from concurrent import futures
 from cklib.args import ArgumentParser
 from cklib.graph import Graph
@@ -15,7 +16,6 @@ from typing import List
 
 
 cklib.logging.getLogger("boto").setLevel(cklib.logging.CRITICAL)
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
 
 metrics_collect = Summary(
     "cloudkeeper_plugin_aws_collect_seconds", "Time it took the collect() method"
@@ -270,6 +270,7 @@ def collect_account(account: AWSAccount, regions: List, args=None):
 
     if args is not None:
         ArgumentParser.args = args
+        setup_logger("ckworker-aws")
 
     log.debug(f"Starting new collect process for account {account.dname}")
 

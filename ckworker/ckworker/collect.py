@@ -6,7 +6,7 @@ from networkx.algorithms.dag import is_directed_acyclic_graph
 from cklib.args import ArgumentParser
 from cklib.baseplugin import BaseCollectorPlugin
 from cklib.graph import GraphContainer, Graph, sanitize
-from cklib.logging import log
+from cklib.logging import log, setup_logger
 from typing import List, Optional
 
 
@@ -61,6 +61,7 @@ def collect_plugin_graph(
 
     if args is not None:
         ArgumentParser.args = args
+        setup_logger("ckworker")
 
     log.debug(f"Starting new collect process for {collector.cloud}")
     collector.start()

@@ -15,8 +15,6 @@ from cklib.args import ArgumentParser
 getLogger().setLevel(ERROR)
 getLogger("cloudkeeper").setLevel(INFO)
 
-log = getLogger("cloudkeeper")
-
 
 def add_args(arg_parser: ArgumentParser) -> None:
     group = arg_parser.add_mutually_exclusive_group()
@@ -37,11 +35,11 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
-def setup_logger(proc: str) -> None:
+def setup_logger(proc: str, force: bool = True) -> None:
     log_format = (
         f"%(asctime)s|{proc}|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
     )
-    basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S")
+    basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
     argv = sys.argv[1:]
     if (
         "-v" in argv
@@ -55,3 +53,7 @@ def setup_logger(proc: str) -> None:
     ):
         getLogger().setLevel(WARNING)
         getLogger("cloudkeeper").setLevel(CRITICAL)
+
+
+setup_logger("cloudkeeper", force=False)
+log = getLogger("cloudkeeper")
