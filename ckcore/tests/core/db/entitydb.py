@@ -1,6 +1,5 @@
 from typing import Union, Optional, AsyncGenerator, Type, Callable, Dict, List
 
-
 from core.db.entitydb import EntityDb, T
 from core.model.typed_model import from_js, to_js
 from core.types import Json
@@ -19,7 +18,7 @@ class InMemoryDb(EntityDb[T]):
     async def update_many(self, elements: List[T]) -> None:
         for elem in elements:
             key = self.key_fn(elem)
-            self.items[key] = to_js(key)
+            self.items[key] = to_js(elem)
 
     async def get(self, key: str) -> Optional[T]:
         js = self.items.get(key)

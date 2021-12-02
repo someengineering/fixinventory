@@ -38,7 +38,7 @@ from core.model.graph_access import Section
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
-from core.model.typed_model import to_js
+from core.model.typed_model import to_json, to_js
 from core.parse_util import (
     double_quoted_or_simple_string_dp,
     space_dp,
@@ -1119,8 +1119,8 @@ class KindCommand(CLICommand, PreserveOutputFormat):
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
             elif isinstance(kind, ComplexKind):
-                props = to_js(sorted(kind.all_props(), key=lambda k: k.name))
-                return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": props}
+                props = sorted(kind.all_props(), key=lambda k: k.name)
+                return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": to_json(props)}
             else:
                 return {"name": kind.fqn}
 
@@ -1925,7 +1925,7 @@ class TasksCommand(CLICommand, PreserveOutputFormat):
             return len(tasks), stream.iterate(
                 {
                     "id": t.id,
-                    "started_at": to_js(t.task_started_at),
+                    "started_at": to_json(t.task_started_at),
                     "descriptor": {"id": t.descriptor.id, "name": t.descriptor.name},
                 }
                 for t in tasks

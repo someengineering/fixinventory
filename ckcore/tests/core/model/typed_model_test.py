@@ -3,8 +3,8 @@ from datetime import datetime
 
 from deepdiff import DeepDiff
 
+from core.model.typed_model import from_js, to_js
 from core.query.model import Query, P
-from core.model.typed_model import to_js, from_js
 from core.query.query_parser import parse_query
 
 

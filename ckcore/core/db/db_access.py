@@ -24,7 +24,7 @@ from core.db.subscriberdb import subscriber_db
 from core.db.templatedb import template_entity_db
 from core.error import NoSuchGraph, RequiredDependencyMissingError
 from core.model.adjust_node import AdjustNode
-from core.model.typed_model import to_js, from_js
+from core.model.typed_model import from_js, to_js
 from core.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)

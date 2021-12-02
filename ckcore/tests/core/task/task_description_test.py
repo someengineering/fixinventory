@@ -5,11 +5,10 @@ from deepdiff import DeepDiff
 from frozendict import frozendict
 from pytest import fixture
 
-from core.model.typed_model import to_js, from_js
-from tests.core.db.entitydb import InMemoryDb
 from core.message_bus import MessageBus, Action, ActionDone, ActionError, Event
-from core.task.subscribers import SubscriptionHandler
+from core.model.typed_model import from_js, to_js
 from core.task.model import Subscriber, Subscription
+from core.task.subscribers import SubscriptionHandler
 from core.task.task_description import (
     Workflow,
     Step,
@@ -25,6 +24,7 @@ from core.task.task_description import (
     SendMessage,
     ExecuteOnCLI,
 )
+from tests.core.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
 from tests.core.message_bus_test import message_bus

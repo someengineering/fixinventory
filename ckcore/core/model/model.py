@@ -225,9 +225,9 @@ class Kind(ABC):
                 raise TypeError(f"Unhandled runtime kind: {rk}")
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
-            bases: List[str] = js.get("bases")  # type: ignore
+            bases: Optional[List[str]] = js.get("bases")
             allow_unknown_props = js.get("allow_unknown_props", False)
-            return ComplexKind(js["fqn"], bases, props, allow_unknown_props)
+            return ComplexKind(js["fqn"], bases if bases else [], props, allow_unknown_props)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 

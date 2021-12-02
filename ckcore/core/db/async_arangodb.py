@@ -10,7 +10,6 @@ from typing import (
     Sequence,
     Union,
     Any,
-    AsyncGenerator,
     Dict,
     List,
     Callable,
@@ -528,7 +527,7 @@ class AsyncArangoDB(AsyncArangoDBBase):
         allow_implicit: Optional[bool] = None,
         lock_timeout: Optional[int] = None,
         max_size: Optional[int] = None,
-    ) -> AsyncGenerator[AsyncArangoTransactionDB, None]:
+    ) -> AsyncIterator[AsyncArangoTransactionDB]:
         tx = await run_async(
             self.db.begin_transaction, read, write, exclusive, sync, allow_implicit, lock_timeout, max_size
         )

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from functools import reduce
@@ -11,8 +10,8 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType
-from core.model.typed_model import to_js
-from core.types import Json
+from core.model.typed_model import to_js_str
+from core.types import Json, JsonElement
 from core.util import combine_optional
 
 
@@ -229,8 +228,8 @@ class NotTerm(Term):
 class Predicate(Term):
     name: str
     op: str
-    value: Any
-    args: Mapping[str, Any]
+    value: JsonElement
+    args: Mapping[str, JsonElement]
 
     def __str__(self) -> str:
         modifier = f'{self.args["filter"]} ' if "filter" in self.args else ""
@@ -243,7 +242,7 @@ class Predicate(Term):
         :param value: the value to be represented.
         :return: the string representation.
         """
-        return json.dumps(to_js(value))
+        return to_js_str(value)
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

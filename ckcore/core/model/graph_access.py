@@ -8,12 +8,11 @@ from collections import namedtuple
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
-
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 
 from core import feature
-from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.model.model import Model
+from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
@@ -325,7 +324,7 @@ class GraphAccess:
 
     @staticmethod
     def dump_direct(node_id: str, node: Json) -> Json:
-        reported: Json = to_js(node[Section.reported])
+        reported = to_js(node[Section.reported])
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
         if "id" not in node:

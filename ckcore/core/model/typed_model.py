@@ -1,10 +1,10 @@
 import functools
 from pydoc import locate
-from typing import Type, Any, Optional
+from typing import Type, Any
 
 import jsons
 
-from core.types import Json
+from core.types import JsonElement, Json
 from core.util import AnyT
 
 
@@ -23,16 +23,25 @@ def type_fqn(tpe: type) -> str:
     return tpe.__name__ if module is None or module == str.__class__.__module__ else module + "." + tpe.__name__
 
 
-def from_js(json: Optional[Any], clazz: Type[AnyT]) -> AnyT:
+def from_js(json: JsonElement, clazz: Type[AnyT]) -> AnyT:
     return jsons.load(json, cls=clazz) if clazz != dict else json  # type: ignore
 
 
-def to_js(node: object, **kwargs: Any) -> Json:
+def to_js(node: Any, **kwargs: Any) -> Json:
+    """
+    Use this method, if the given node is known as complex object,
+    so the result will be a json object.
+    Otherwise: use to_json directly.
+    """
+    return to_json(node, **kwargs)  # type: ignore
+
+
+def to_json(node: Any, **kwargs: Any) -> JsonElement:
     # shortcut: assume a dict is already a json value
     if isinstance(node, dict):
         return node
     return jsons.dump(node, strip_privates=True, strip_microseconds=True, **kwargs)  # type: ignore
 
 
-def to_js_str(node: object) -> str:
+def to_js_str(node: Any) -> str:
     return jsons.dumps(node, strip_privates=True)  # type: ignore

@@ -11,7 +11,7 @@ from typing import Optional
 
 from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
 from core.model.model import Model
-from core.model.typed_model import to_js
+from core.model.typed_model import to_json
 from core.types import Json
 from core.util import AccessJson, AccessNone
 from tests.core.db.graphdb_test import Foo
@@ -36,10 +36,10 @@ def graph_access() -> GraphAccess:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         g.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    g.add_node("1", reported=to_js(FooTuple("1")), desired={"name": "a"}, metadata={"version": 1}, kinds=["foo"])
-    g.add_node("2", reported=to_js(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
-    g.add_node("3", reported=to_js(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
-    g.add_node("4", reported=to_js(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
+    g.add_node("1", reported=to_json(FooTuple("1")), desired={"name": "a"}, metadata={"version": 1}, kinds=["foo"])
+    g.add_node("2", reported=to_json(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
+    g.add_node("3", reported=to_json(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
+    g.add_node("4", reported=to_json(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
     add_edge("1", "2", edge_type=EdgeType.dependency)
     add_edge("1", "3", edge_type=EdgeType.dependency)
     add_edge("2", "3", edge_type=EdgeType.dependency)
@@ -54,7 +54,7 @@ def graph_access() -> GraphAccess:
 # noinspection PyArgumentList
 def test_access_node() -> None:
     g = MultiDiGraph()
-    g.add_node("1", reported=to_js(FooTuple(a="1")))
+    g.add_node("1", reported=to_json(FooTuple(a="1")))
     access: GraphAccess = GraphAccess(g)
     elem: Json = node(access, "1")  # type: ignore
     assert elem["hash"] == "4f226c613e168b79a94aa93493c3770ffc189f06a2569ce65f4a586f50682558"

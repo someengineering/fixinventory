@@ -38,7 +38,7 @@ AnyT = TypeVar("AnyT")
 AnyR = TypeVar("AnyR")
 
 
-def identity(o: Any) -> Any:
+def identity(o: AnyT) -> AnyT:
     return o
 
 

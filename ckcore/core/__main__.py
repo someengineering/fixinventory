@@ -21,7 +21,7 @@ from core.db.db_access import DbAccess
 from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
-from core.model.typed_model import to_js
+from core.model.typed_model import to_json
 from core.query.template_expander import DBTemplateExpander
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
@@ -93,7 +93,7 @@ def main() -> None:
             CoreEvent.SystemStarted,
             {
                 "version": version(),
-                "created_at": to_js(system_data.created_at),
+                "created_at": to_json(system_data.created_at),
                 "system": platform.system(),
                 "platform": platform.platform(),
                 "inside_docker": in_docker,
