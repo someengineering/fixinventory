@@ -14,18 +14,17 @@ from networkx import DiGraph, MultiDiGraph
 from core.analytics import AnalyticsEventSender, CoreEvent, InMemoryEventSender
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
+
+from core.db.model import QueryModel, GraphUpdate
 from core.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from core.model.adjust_node import NoAdjust
 from core.model.graph_access import GraphAccess, EdgeType, Section
 from core.model.model import Model, ComplexKind, Property, Kind, SyntheticProperty
-from core.model.typed_model import to_js, from_js
+from core.model.typed_model import from_js, to_js
 from core.query.model import Query, P, Navigation
 from core.query.query_parser import parse_query
 from core.types import JsonElement
 from core.util import AccessJson, utc, value_in_path, AccessNone
-
-# noinspection PyUnresolvedReferences
-from core.db.model import QueryModel, GraphUpdate
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender

@@ -46,7 +46,7 @@ from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
 from core.model.model import Kind
 from core.model.model_handler import ModelHandler
-from core.model.typed_model import to_js, from_js, to_js_str
+from core.model.typed_model import to_json, from_js, to_js_str, to_js
 from core.query import QueryParser
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
@@ -249,7 +249,7 @@ class Api:
 
     async def list_all_subscriptions(self, _: Request) -> StreamResponse:
         subscribers = await self.subscription_handler.all_subscribers()
-        return web.json_response(to_js(subscribers))
+        return web.json_response(to_json(subscribers))
 
     async def get_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
@@ -259,14 +259,14 @@ class Api:
     async def list_subscription_for_event(self, request: Request) -> StreamResponse:
         event_type = request.match_info["event_type"]
         subscribers = await self.subscription_handler.list_subscriber_for(event_type)
-        return web.json_response(to_js(subscribers))
+        return web.json_response(to_json(subscribers))
 
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         body = await request.json()
         subscriptions = from_js(body, List[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
-        return web.json_response(to_js(sub))
+        return web.json_response(to_json(sub))
 
     async def delete_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
@@ -416,7 +416,7 @@ class Api:
                 "task": ip.task.to_json(),
                 "worker": ip.worker.worker_id,
                 "retry_counter": ip.retry_counter,
-                "deadline": to_js(ip.deadline),
+                "deadline": to_json(ip.deadline),
             }
 
         return web.json_response([wt_to_js(ot) for ot in self.worker_task_queue.outstanding_tasks.values()])
@@ -526,7 +526,7 @@ class Api:
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
         info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, batch_id)
-        return web.json_response(to_js(info), headers={"BatchId": batch_id})
+        return web.json_response(to_json(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
@@ -644,7 +644,7 @@ class Api:
         parsed = await self.cli.evaluate_cli_command(command, ctx)
 
         def line_to_js(line: ParsedCommandLine) -> Json:
-            parsed_commands = to_js(line.parsed_commands.commands)
+            parsed_commands = to_json(line.parsed_commands.commands)
             execute_commands = [{"cmd": part.command.name, "arg": part.arg} for part in line.executable_commands]
             return {"parsed": parsed_commands, "execute": execute_commands, "env": line.parsed_commands.env}
 
@@ -708,7 +708,7 @@ class Api:
 
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
-            data = {"command": command, "env": dict(request.query), "required": to_js(requirements)}
+            data = {"command": command, "env": dict(request.query), "required": to_json(requirements)}
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
@@ -777,7 +777,7 @@ class Api:
     @staticmethod
     def optional_json(o: Any, hint: str) -> StreamResponse:
         if o:
-            return web.json_response(to_js(o))
+            return web.json_response(to_json(o))
         else:
             return web.HTTPNotFound(text=hint)
 
@@ -806,7 +806,7 @@ class Api:
             yield "[".encode("utf-8")
             first = True
             async for item in gen:
-                js = json.dumps(to_js(item))
+                js = json.dumps(to_json(item))
                 if not first:
                     yield sep
                 yield js.encode("utf-8")
@@ -816,7 +816,7 @@ class Api:
         async def respond_ndjson() -> AsyncGenerator[bytes, None]:
             sep = "\n".encode("utf-8")
             async for item in gen:
-                js = json.dumps(to_js(item), check_circular=False)
+                js = json.dumps(to_json(item), check_circular=False)
                 yield js.encode("utf-8")
                 yield sep
 
@@ -824,7 +824,7 @@ class Api:
             flag = False
             sep = "---\n".encode("utf-8")
             async for item in gen:
-                yml = yaml.dump(to_js(item), default_flow_style=False, sort_keys=False)
+                yml = yaml.dump(to_json(item), default_flow_style=False, sort_keys=False)
                 if flag:
                     yield sep
                 yield yml.encode("utf-8")
@@ -846,7 +846,7 @@ class Api:
                 sep = "---\n".encode("utf-8")
                 cr = "\n".encode("utf-8")
                 async for item in gen:
-                    js = to_js(item)
+                    js = to_json(item)
                     if isinstance(js, (dict, list)):
                         if flag:
                             yield sep

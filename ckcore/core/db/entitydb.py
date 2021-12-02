@@ -6,7 +6,7 @@ from jsons import JsonsError
 
 from core.analytics import AnalyticsEventSender
 from core.db.async_arangodb import AsyncArangoDB
-from core.model.typed_model import from_js, to_js, type_fqn
+from core.model.typed_model import from_js, type_fqn, to_js
 from core.types import Json
 
 log = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ import pytest
 from deepdiff import DeepDiff
 
 from datetime import datetime, timedelta
-from core.model.typed_model import to_js, from_js
+from core.model.typed_model import to_json, from_js
 from networkx import DiGraph
 
 from core.model.model import (
@@ -327,7 +327,7 @@ def test_graph(person_model: Model) -> None:
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
-    js = to_js(obj)
+    js = to_json(obj)
     again = from_js(js, clazz)
     assert type(obj) == type(again)
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"

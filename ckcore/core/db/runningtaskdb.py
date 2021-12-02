@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence, Optional
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-
-from abc import abstractmethod
+from typing import Sequence, Optional
 
 from core.db.async_arangodb import AsyncArangoDB
 from core.db.entitydb import EntityDb, ArangoEntityDb
 from core.message_bus import Message
 from core.model.typed_model import to_js
+from core.task.task_description import RunningTask
 from core.types import Json
 from core.util import utc
-from core.task.task_description import RunningTask
 
 log = logging.getLogger(__name__)
 

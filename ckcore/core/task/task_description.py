@@ -17,7 +17,7 @@ from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
 from core.message_bus import Event, Action, ActionDone, Message, ActionError
-from core.model.typed_model import to_js, from_js
+from core.model.typed_model import to_json, from_js, to_js
 from core.types import Json
 from core.util import first, interleave, empty, exist, identity, utc, utc_str
 from core.task.model import Subscriber
@@ -244,14 +244,14 @@ class Job(TaskDescription):
 
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:
-        wait = {"wait_trigger": to_js(o.wait[0]), "wait_timeout": to_js(o.wait[1])} if o.wait else {}
+        wait = {"wait_trigger": to_js(o.wait[0]), "wait_timeout": to_json(o.wait[1])} if o.wait else {}
         env = {"environment": o.environment} if o.environment else {}
         return {
             "id": o.id,
             "name": o.name,
             "command": to_js(o.command),
             "trigger": to_js(o.trigger),
-            "timeout": to_js(o.timeout),
+            "timeout": to_json(o.timeout),
             **env,
             **wait,
         }
@@ -292,13 +292,13 @@ class Workflow(TaskDescription):
         self._on_surpass = on_surpass
 
     @staticmethod
-    def to_json(o: Job, **_: object) -> Json:
+    def to_json(o: Workflow, **_: object) -> Json:
         env = {"environment": o.environment} if o.environment else {}
         return {
             "id": o.id,
             "name": o.name,
-            "steps": to_js(o.steps),
-            "triggers": to_js(o.triggers),
+            "steps": to_json(o.steps),
+            "triggers": to_json(o.triggers),
             "on_surpass": to_js(o.on_surpass),
             **env,
         }
