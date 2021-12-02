@@ -42,7 +42,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 ## Docker based quick start
 
-Docker images are hosted via GitHub container repository: [`ghcr.io/someengineering/cloudkeeper:latest`](https://github.com/someengineering/cloudkeeper/pkgs/container/cloudkeeper)
+Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/cloudkeeper:2.0.0a8`
 
 In this quick start guide, we’re showing you three things, how to:
 
