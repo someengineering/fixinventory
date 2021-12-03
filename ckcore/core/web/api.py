@@ -801,7 +801,7 @@ class Api:
         return response
 
     @staticmethod
-    async def on_prepare(request, response):
+    async def on_prepare(request, response) -> None:
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
