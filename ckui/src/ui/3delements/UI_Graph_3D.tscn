@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://ui/3delements/scripts/ui_graph_3D.gd" type="Script" id=1]
-[ext_resource path="res://ui/3delements/scripts/element_graphview_3D.gd" type="Script" id=2]
+[ext_resource path="res://ui/3delements/Element_GraphView_3D.tscn" type="PackedScene" id=2]
 
 [sub_resource type="Shader" id=8]
 code = "
@@ -203,8 +203,7 @@ remote_path = NodePath("../../ParticleDots")
 update_rotation = false
 update_scale = false
 
-[node name="GraphView" type="Spatial" parent="."]
-script = ExtResource( 2 )
+[node name="GraphView" parent="." instance=ExtResource( 2 )]
 
 [node name="CamMoveTween" type="Tween" parent="."]
 

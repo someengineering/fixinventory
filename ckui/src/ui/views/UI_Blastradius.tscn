@@ -163,7 +163,7 @@ __meta__ = {
 
 [node name="AnimTween" type="Tween" parent="."]
 
-[node name="UIGraph3DViewport2" type="ViewportContainer" parent="."]
+[node name="UIGraph3DViewport" type="ViewportContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -175,7 +175,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Viewport" type="Viewport" parent="UIGraph3DViewport2"]
+[node name="Viewport" type="Viewport" parent="UIGraph3DViewport"]
 size = Vector2( 1920, 1080 )
 own_world = true
 transparent_bg = true

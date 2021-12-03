@@ -284,7 +284,8 @@ func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
 func hide_info():
-	target_node.scene.is_selected = false
+	if target_node:
+		target_node.scene.is_selected = false
 	target_node = null
 	cam_moving = false
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.translation.z, 1000, 0.7, Tween.TRANS_EXPO, Tween.EASE_OUT)

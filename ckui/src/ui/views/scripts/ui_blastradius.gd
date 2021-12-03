@@ -3,7 +3,7 @@ extends Control
 signal close_blast_radius
 signal closing_anim_done
 
-var GraphView = preload("res://ui/elements/Element_GraphView.tscn")
+var GraphView = preload("res://ui/3delements/Element_GraphView_3D.tscn")
 var node_distance := {}
 var sort_dict := {}
 var blastradius_diameter := 400.0
@@ -11,6 +11,7 @@ var graph_view : Object = null
 var is_closing := false
 var core_node_id := ""
 var last_node_id := ""
+var api_error := false
 
 onready var tween = $Tween
 onready var blast_info = $BlastLabel/BlastNodeInfo
@@ -25,12 +26,10 @@ func show_blastradius(node_id) -> void:
 	$BackButton.visible = last_node_id != ""
 	core_node_id = node_id
 	graph_view = GraphView.instance()
-	add_child(graph_view)
-	graph_view.z_index = 5
-	graph_view.z_as_relative = false
-	graph_view.position = Vector2(1920, 1080)*0.5
+	$UIGraph3DViewport/Viewport.add_child(graph_view)
 	var blastradius = get_blastradius_from_selection(node_id)
-	graph_view.create_graph_direct(blastradius)
+	print(blastradius)
+	graph_view.create_graph_raw(blastradius[0], blastradius[1])
 	layout_blastradius()
 	graph_view.update_connection_lines()
 	graph_view.show_all()
@@ -139,47 +138,37 @@ func draw_blastradius(center, radius, is_green:=false) -> void:
 			blast_info.text += str(sort_dict[i].size()) + " nodes in " + str(i) + " edge radius\n"
 	
 
-func get_blastradius_from_selection(node_id) -> Dictionary:
-	node_distance.clear()
-	var new_cloudgraph = {
-		"nodes" : {},
-		"edges" : {}
-		}
+func get_blastradius_from_selection(node_id):
+	var graph_id = "ck"
+	var query = "id(" + node_id + ") -[0:]->"
 	
-	var graph_id = ""
-	var query = "is(graph_root) -[0:]->"
-	emit_signal("create_graph", graph_id, query)
+	graph_view.start_streaming( graph_id )
+	_g.api.connect("api_response", self, "api_response")
+	_g.api.connect("api_response_finished", self, "api_response_finished")
 	
-	# create the root node
-	new_cloudgraph.nodes[node_id] = CloudNode.new()
-	new_cloudgraph.nodes[node_id].clone( _g.main_graph.graph_data.nodes[node_id] )
-	
-	var iterations := 0
-	var all_children_resolved := false
-	var next_layer : Dictionary = new_cloudgraph.duplicate(true)
-	var current_layer : Dictionary = {}
-	current_layer["nodes"] = []
-	
-	while !all_children_resolved:
-		all_children_resolved = true
-		current_layer["nodes"].clear()
-		current_layer["nodes"] = next_layer.nodes.duplicate(true)
-		
-		for node in next_layer.nodes.values():
-			# set the node distance from center
-			node_distance[node.id] = iterations
-			var edge_keys = _g.main_graph.graph_data.edges.keys()
-			for edge_key in edge_keys:
-				var connection = _g.main_graph.graph_data.edges[ edge_key ]
-				if connection.from.id == node.id and !next_layer.edges.has(edge_key):
-					next_layer = get_children_from_selection(node.id, next_layer)
-					all_children_resolved = false
+	var url : String = "/graph/" + graph_id + "/query/graph"
+	_e.emit_signal("api_request", HTTPClient.METHOD_POST, url, query)
 
-		new_cloudgraph = merge_cloudgraphs(new_cloudgraph, next_layer, iterations)
-		next_layer = clean_duplicate_nodes(next_layer, current_layer)
-		iterations += 1
+
+func api_response( chunk:String ):
+	if chunk == "" or chunk == "[" or chunk == "\n]" or chunk == ",\n" or chunk.begins_with("Error:"):
+		if chunk.begins_with("Error:"):
+			api_error = true
+		return
 	
-	return new_cloudgraph
+	var parse_result : JSONParseResult = JSON.parse( chunk.trim_prefix(",\n") )
+	if parse_result.error == OK:
+		graph_view.add_streamed_object( parse_result.result )
+
+
+func api_response_finished():
+	_g.api.disconnect("api_response", self, "api_response")
+	_g.api.disconnect("api_response_finished", self, "api_response_finished")
+	if api_error:
+		print("API reported Error!")
+		return
+	graph_view.end_streaming()
+	print("API response finished!")
 
 
 func merge_cloudgraphs(original:Dictionary, update:Dictionary, iterations:int) -> Dictionary:

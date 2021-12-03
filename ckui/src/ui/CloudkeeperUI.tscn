@@ -17,7 +17,7 @@
 [ext_resource path="res://scripts/tools/jwt.gd" type="Script" id=17]
 [ext_resource path="res://scripts/networking/api.gd" type="Script" id=18]
 [ext_resource path="res://ui/elements/Element_Popup_ConnectToCore.tscn" type="PackedScene" id=19]
-[ext_resource path="res://ui/3delements/UIGraph3D.tscn" type="PackedScene" id=20]
+[ext_resource path="res://ui/3delements/UI_Graph_3D.tscn" type="PackedScene" id=20]
 [ext_resource path="res://ui/elements/LabelService.tscn" type="PackedScene" id=21]
 
 [sub_resource type="Shader" id=21]
@@ -172,6 +172,7 @@ margin_right = 1920.0
 [node name="UINodeInfo" parent="UI" instance=ExtResource( 11 )]
 
 [node name="UIBlastradius" parent="UI" instance=ExtResource( 14 )]
+visible = false
 
 [node name="UITopbar" parent="UI" instance=ExtResource( 8 )]
 margin_bottom = 70.0
