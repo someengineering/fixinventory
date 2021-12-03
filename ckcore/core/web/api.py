@@ -107,6 +107,7 @@ class Api:
         self.app = web.Application(
             middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender)]
         )
+        self.app.on_response_prepare.append(self.on_prepare)
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
@@ -798,6 +799,11 @@ class Api:
             await writer.write(data)
         await response.write_eof()
         return response
+
+    @staticmethod
+    async def on_prepare(request, response):
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
     @staticmethod
     async def result_binary_gen(accept: str, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
