@@ -81,7 +81,7 @@ class PostHogEventSender(AnalyticsEventSender):
                     consumer.api_key = api_key
                 self.last_fetched = utc()
         except Exception as ex:
-            log.warning(f"Could not fetch latest api key. Will use the current one. {ex}")
+            log.debug(f"Could not fetch latest api key. Will use the current one. {ex}")
 
     async def flush(self) -> None:
         """
