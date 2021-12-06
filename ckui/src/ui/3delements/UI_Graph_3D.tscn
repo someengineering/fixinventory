@@ -1,7 +1,10 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://ui/3delements/scripts/ui_graph_3D.gd" type="Script" id=1]
 [ext_resource path="res://ui/3delements/Element_GraphView_3D.tscn" type="PackedScene" id=2]
+
+[sub_resource type="Curve" id=13]
+_data = [ Vector2( 0, 0.581818 ), 0.0, 0.3, 0, 1, Vector2( 1, 0.881818 ), 0.3, 0.0, 1, 0 ]
 
 [sub_resource type="Shader" id=8]
 code = "
@@ -55,7 +58,7 @@ void fragment() {
 	METALLIC = metallic;
 	ROUGHNESS = roughness;
 	SPECULAR = specular;
-	ALPHA = albedo.a * COLOR.a;
+	ALPHA = albedo.a * albedo_tex.a * COLOR.a;
 	ALPHA*=clamp(smoothstep(distance_fade_min,distance_fade_max,-VERTEX.z),0.0,1.0);
 	ALPHA*=clamp(smoothstep(close_fade_min,close_fade_max,-VERTEX.z),0.0,1.0);
 }
@@ -63,8 +66,8 @@ void fragment() {
 
 [sub_resource type="ShaderMaterial" id=9]
 shader = SubResource( 8 )
-shader_param/albedo = Color( 0.364706, 0.643137, 1, 0.509804 )
-shader_param/specular = 0.5
+shader_param/albedo = Color( 0.364706, 0.643137, 1, 0.12549 )
+shader_param/specular = 0.0
 shader_param/metallic = 0.0
 shader_param/roughness = 1.0
 shader_param/point_size = 1.0
@@ -126,9 +129,13 @@ void vertex() {
 	}
 
 	if (RESTART || restart) {
-		float x_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
-		float y_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
-		float z_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+	//	float x_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+	//	float y_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+	//	float z_grid = round((rand_from_seed(alt_seed) * 2.0 - 1.0) * grid_amount) / grid_amount;
+		
+		float x_grid = (rand_from_seed(alt_seed) * 2.0 - 1.0);
+		float y_grid = (rand_from_seed(alt_seed) * 2.0 - 1.0);
+		float z_grid = (rand_from_seed(alt_seed) * 2.0 - 1.0);
 
 		CUSTOM.w = (1.0 * rand_from_seed(alt_seed));
 		TRANSFORM[3].xyz = vec3(x_grid, y_grid, z_grid) * emission_box_extents + vec3(emission_box_extents)/(grid_amount*2.0);
@@ -160,31 +167,33 @@ void vertex() {
 "
 
 [sub_resource type="Gradient" id=10]
-offsets = PoolRealArray( 0, 0.5, 0.996032 )
-colors = PoolColorArray( 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0 )
+offsets = PoolRealArray( 0, 0.22467, 0.797357, 0.996032 )
+colors = PoolColorArray( 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 )
 
 [sub_resource type="GradientTexture" id=3]
 gradient = SubResource( 10 )
 
 [sub_resource type="ShaderMaterial" id=11]
 shader = SubResource( 6 )
-shader_param/emission_box_extents = Vector3( 3000, 3000, 3000 )
+shader_param/emission_box_extents = Vector3( 4000, 4000, 4000 )
 shader_param/color_value = Color( 1, 1, 1, 1 )
 shader_param/grid_amount = 16.0
 shader_param/color_ramp = SubResource( 3 )
 
 [sub_resource type="QuadMesh" id=12]
+size = Vector2( 4, 4 )
 
 [node name="UIGraph3D" type="Spatial"]
 script = ExtResource( 1 )
+zoom_curve = SubResource( 13 )
 main_ui = NodePath(".")
 
 [node name="ParticleDots" type="Particles" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5 )
 material_override = SubResource( 9 )
-amount = 200000
-lifetime = 8.0
-visibility_aabb = AABB( -500, -500, -500, 1000, 1000, 1000 )
+amount = 10000
+lifetime = 20.0
+visibility_aabb = AABB( -800, -800, -800, 1600, 1600, 1600 )
 local_coords = false
 process_material = SubResource( 11 )
 draw_pass_1 = SubResource( 12 )
@@ -192,8 +201,9 @@ draw_pass_1 = SubResource( 12 )
 [node name="CameraArm" type="Spatial" parent="."]
 
 [node name="GraphCam3D" type="Camera" parent="CameraArm"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2000 )
 current = true
-fov = 40.0
+fov = 30.0
 near = 0.01
 far = 50000.0
 

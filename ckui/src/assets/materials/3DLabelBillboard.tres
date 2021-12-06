@@ -2,7 +2,7 @@
 
 [sub_resource type="Shader" id=8]
 code = "shader_type spatial;
-render_mode unshaded;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
 
 uniform sampler2D texture_albedo : hint_albedo;
 uniform float camera_offset = 1.0;
@@ -47,8 +47,8 @@ void fragment() {
 [resource]
 resource_local_to_scene = true
 shader = SubResource( 8 )
-shader_param/camera_offset = 0.25
-shader_param/camera_offset_min_dist = 2500.0
-shader_param/label_base_distance = 0.7
-shader_param/max_depth = 5000.0
+shader_param/camera_offset = 0.1
+shader_param/camera_offset_min_dist = 2000.0
+shader_param/label_base_distance = 1.0
+shader_param/max_depth = 2500.0
 shader_param/fadeout_dist = 600000.0

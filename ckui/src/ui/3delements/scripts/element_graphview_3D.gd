@@ -467,7 +467,6 @@ static func get_extends(_data:Dictionary):
 	return max_dist
 
 
-
 static func calc_repulsion_force_pos(node_a_pos, node_b_pos):
 	var force = -REPULSION_CONSTANT / (node_a_pos.distance_to(node_b_pos)+0.01)
 	return node_a_pos.direction_to(node_b_pos) * force

@@ -34,7 +34,7 @@ func deliver_label(_image):
 
 
 func change_cam_zoom_3d(zoom:float):
-	$Label.scale = Vector3.ONE * zoom * 12
+	$Label.scale = Vector3.ONE * zoom
 
 func set_line_length(value:float):
 	line_length = value

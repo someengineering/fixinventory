@@ -2,8 +2,8 @@
 
 importer="texture"
 type="StreamTexture"
-path.s3tc="res://.import/small-crosses_repeat.png-09c0b5d2c35b512e1612e1a0695bfa0a.s3tc.stex"
-path.etc2="res://.import/small-crosses_repeat.png-09c0b5d2c35b512e1612e1a0695bfa0a.etc2.stex"
+path.s3tc="res://.import/default_node_texture.png-6cc35911e6d8a18ad58338d56e4c8981.s3tc.stex"
+path.etc2="res://.import/default_node_texture.png-6cc35911e6d8a18ad58338d56e4c8981.etc2.stex"
 metadata={
 "imported_formats": [ "s3tc", "etc2" ],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/graphics/sci-fi/small-crosses_repeat.png"
-dest_files=[ "res://.import/small-crosses_repeat.png-09c0b5d2c35b512e1612e1a0695bfa0a.s3tc.stex", "res://.import/small-crosses_repeat.png-09c0b5d2c35b512e1612e1a0695bfa0a.etc2.stex" ]
+source_file="res://assets/graphics/sci-fi/default_node_texture.png"
+dest_files=[ "res://.import/default_node_texture.png-6cc35911e6d8a18ad58338d56e4c8981.s3tc.stex", "res://.import/default_node_texture.png-6cc35911e6d8a18ad58338d56e4c8981.etc2.stex" ]
 
 [params]
 
