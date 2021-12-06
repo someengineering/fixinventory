@@ -218,6 +218,7 @@ margin_left = 1920.0
 margin_right = 1920.0
 
 [node name="UINodeInfo" parent="UI" instance=ExtResource( 11 )]
+visible = false
 
 [node name="UIBlastradius" parent="UI" instance=ExtResource( 14 )]
 visible = false

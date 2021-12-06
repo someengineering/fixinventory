@@ -312,6 +312,7 @@ default_color = Color( 0.517647, 0.901961, 1, 0.32549 )
 [node name="AnimTween" type="Tween" parent="."]
 
 [node name="TreeMap" parent="." instance=ExtResource( 8 )]
+visible = false
 margin_left = 832.0
 margin_top = 88.0
 margin_right = 1776.0
