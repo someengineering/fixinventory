@@ -23,8 +23,10 @@ from aiohttp import (
     AsyncIterablePayload,
     BufferedReaderPayload,
     MultipartReader,
+    ClientSession,
 )
 from aiohttp.abc import AbstractStreamWriter
+from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
@@ -62,6 +64,7 @@ from core.util import (
 )
 from core.web import auth
 from core.web.directives import metrics_handler, error_handler, on_response_prepare
+from core.web.tsdb import tsdb
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
@@ -109,6 +112,7 @@ class Api:
         )
         self.app.on_response_prepare.append(on_response_prepare)
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
+        self.session: Optional[ClientSession] = None
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
             [
@@ -119,6 +123,7 @@ class Api:
             if self.args.ui_path
             else []
         )
+        tsdb_route = [web.route(METH_ANY, "/tsdb/{tail:.+}", tsdb(self))] if self.args.tsdb_proxy_url else []
         self.app.add_routes(
             [
                 # Model operations
@@ -191,6 +196,7 @@ class Api:
                 web.get("/system/ping", self.ping),
                 web.get("/system/ready", self.ready),
                 *ui_route,
+                *tsdb_route,
             ]
         )
         SwaggerFile(
