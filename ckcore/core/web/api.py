@@ -61,7 +61,7 @@ from core.util import (
     del_value_in_path,
 )
 from core.web import auth
-from core.web.directives import metrics_handler, error_handler
+from core.web.directives import metrics_handler, error_handler, on_response_prepare
 from core.worker_task_queue import (
     WorkerTaskDescription,
     WorkerTaskQueue,
@@ -107,6 +107,7 @@ class Api:
         self.app = web.Application(
             middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender)]
         )
+        self.app.on_response_prepare.append(on_response_prepare)
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
