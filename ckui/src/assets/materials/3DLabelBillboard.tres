@@ -1,4 +1,6 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=2]
+[gd_resource type="ShaderMaterial" load_steps=3 format=2]
+
+[ext_resource path="res://assets/graphics/sci-fi/xsmall-crosses_repeat.png" type="Texture" id=1]
 
 [sub_resource type="Shader" id=8]
 code = "shader_type spatial;
@@ -52,3 +54,4 @@ shader_param/camera_offset_min_dist = 2000.0
 shader_param/label_base_distance = 1.0
 shader_param/max_depth = 2500.0
 shader_param/fadeout_dist = 600000.0
+shader_param/texture_albedo = ExtResource( 1 )

@@ -125,16 +125,19 @@ func end_streaming():
 	var total_descendants := 0.0
 	var descendants_values := []
 	for node in graph_data.nodes.values():
-		if "metadata" in node.data and "descendant_count" in node.data.metadata and node.kind == "aws_account" or node.kind == "gcp_project":
+		if ("metadata" in node.data
+		and "descendant_count" in node.data.metadata
+		and (node.kind == "aws_account" or node.kind == "gcp_project")):
 			var node_descendant_count = node.data.metadata.descendant_count
 			descendants_values.append(node_descendant_count)
 			total_descendants += node_descendant_count
 	
-	var largest_descendant_value = descendants_values.max()
-	
-	for node in graph_data.nodes.values():
-		if "metadata" in node.data and "descendant_count" in node.data.metadata:
-			node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
+	if !descendants_values.empty():
+		var largest_descendant_value = descendants_values.max()
+		
+		for node in graph_data.nodes.values():
+			if "metadata" in node.data and "descendant_count" in node.data.metadata:
+				node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
 	
 	graph_rand_layout()
 	
