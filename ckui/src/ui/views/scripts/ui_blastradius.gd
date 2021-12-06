@@ -18,7 +18,7 @@ onready var blast_info = $BlastLabel/BlastNodeInfo
 
 func _ready():
 	_e.connect("show_blastradius", self, "show_blastradius")
-	_e.connect("go_to_graph_node", self, "go_to_graph_node")
+	_e.connect("go_to_graph_node_3d", self, "go_to_graph_node")
 
 
 func show_blastradius(node_id) -> void:
@@ -240,7 +240,7 @@ func go_to_graph_node(node_id, graph) -> void:
 	if graph != graph_view:
 		return
 	if node_id == core_node_id:
-		_e.emit_signal("go_to_graph_node", node_id, _g.main_graph)
+		_e.emit_signal("go_to_graph_node_3d", node_id, _g.main_graph)
 	else:
 		clear_blastradius()
 		yield(self, "closing_anim_done")

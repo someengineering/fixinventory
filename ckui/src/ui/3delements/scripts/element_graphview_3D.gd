@@ -342,16 +342,13 @@ func graph_calc_layout():
 	var benchmark_time = (benchmark_end - benchmark_start)/1000000.0
 	prints("Time to calculate {0}".format([benchmark_time]))
 	
-	#center_diagram()
-	#yield(get_tree(), "idle_frame")
-	
-	return
 	var saved_node_positions := {}
-	for node in graph_data.nodes.values():
-		saved_node_positions[node.id] = var2str(node.scene.global_transform.origin)
-		node.scene.graph_pos = node.scene.global_transform.origin
-	
+	# Node positions should be saved to local file
+#	for node in graph_data.nodes.values():
+#		saved_node_positions[node.id] = var2str(node.scene.global_transform.origin)
+#		node.scene.graph_pos = node.scene.global_transform.origin	
 	emit_signal("order_done", saved_node_positions)
+	return
 
 
 func apply_thread_pos_to_real():

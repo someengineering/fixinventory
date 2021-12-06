@@ -1,7 +1,9 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://assets/graphics/sci-fi/extra_border_dots.png" type="Texture" id=1]
 [ext_resource path="res://ui/elements/scripts/element_generic_button.gd" type="Script" id=4]
+
+[sub_resource type="StyleBoxEmpty" id=46]
 
 [sub_resource type="StyleBoxFlat" id=43]
 bg_color = Color( 0, 0, 0, 0.337255 )
@@ -49,6 +51,11 @@ font_data = SubResource( 40 )
 margin_right = 320.0
 margin_bottom = 40.0
 rect_pivot_offset = Vector2( 2464, 752 )
+custom_styles/hover = SubResource( 46 )
+custom_styles/pressed = SubResource( 46 )
+custom_styles/focus = SubResource( 46 )
+custom_styles/disabled = SubResource( 46 )
+custom_styles/normal = SubResource( 46 )
 script = ExtResource( 4 )
 __meta__ = {
 "_edit_use_anchors_": false

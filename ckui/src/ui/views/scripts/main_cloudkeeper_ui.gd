@@ -25,7 +25,7 @@ func _ready() -> void:
 	# The new default is to connect to ckcore
 	_e.emit_signal("connect_popup")
 	
-	_e.connect("go_to_graph_node", self, "go_to_graph_node")
+	_e.connect("go_to_graph_node_3d", self, "go_to_graph_node")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
 	_e.connect("load_query", self, "load_query")
 	_e.connect("show_blastradius", self, "show_blastradius")

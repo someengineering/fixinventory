@@ -201,7 +201,7 @@ draw_pass_1 = SubResource( 12 )
 [node name="CameraArm" type="Spatial" parent="."]
 
 [node name="GraphCam3D" type="Camera" parent="CameraArm"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2000 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1000 )
 current = true
 fov = 30.0
 near = 0.01

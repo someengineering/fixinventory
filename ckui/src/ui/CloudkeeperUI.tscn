@@ -56,6 +56,14 @@ sky_curve = 0.0743262
 ground_bottom_color = Color( 0.00784314, 0.117647, 0.227451, 1 )
 ground_horizon_color = Color( 0.0196078, 0.160784, 0.305882, 1 )
 ground_curve = 0.066986
+sun_color = Color( 0.27451, 0.192157, 1, 1 )
+sun_latitude = 25.0
+sun_longitude = 100.0
+sun_angle_min = 0.0
+sun_angle_max = 160.0
+sun_curve = 0.0450625
+sun_energy = 0.2
+texture_size = 0
 
 [sub_resource type="Environment" id=28]
 background_mode = 2
@@ -118,7 +126,9 @@ dof_blur_far_amount = 1.0
 glow_enabled = true
 glow_levels/2 = true
 glow_levels/4 = true
-glow_intensity = 0.4
+glow_levels/5 = false
+glow_intensity = 0.2
+glow_strength = 0.8
 glow_blend_mode = 1
 glow_bicubic_upscale = true
 glow_high_quality = true

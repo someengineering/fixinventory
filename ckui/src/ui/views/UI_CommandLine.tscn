@@ -376,6 +376,7 @@ __meta__ = {
 }
 
 [node name="ButtonSpaceship" type="Button" parent="."]
+visible = false
 margin_left = 1823.0
 margin_top = 4.0
 margin_right = 1847.0

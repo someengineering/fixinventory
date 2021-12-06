@@ -105,7 +105,6 @@ font_data = SubResource( 15 )
 blend_mode = 1
 
 [node name="UINodeInfo" type="Control"]
-visible = false
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -240,6 +239,7 @@ margin_left = 168.0
 margin_top = 656.0
 margin_right = 480.0
 margin_bottom = 688.0
+disabled = true
 
 [node name="ButtonLabel" parent="Background/ContactOwnerButton/CenterContainer" index="0"]
 margin_left = 69.0
@@ -253,6 +253,7 @@ margin_left = 168.0
 margin_top = 880.0
 margin_right = 480.0
 margin_bottom = 912.0
+disabled = true
 
 [node name="ButtonLabel" parent="Background/MarkForCleanupButton/CenterContainer" index="0"]
 margin_left = 54.0
@@ -266,6 +267,7 @@ margin_left = 168.0
 margin_top = 704.0
 margin_right = 480.0
 margin_bottom = 736.0
+disabled = true
 
 [node name="ButtonLabel" parent="Background/StartQueryButton/CenterContainer" index="0"]
 margin_left = 88.0
@@ -279,6 +281,7 @@ margin_left = 168.0
 margin_top = 752.0
 margin_right = 480.0
 margin_bottom = 784.0
+disabled = true
 
 [node name="ButtonLabel" parent="Background/ManageTagsButton/CenterContainer" index="0"]
 margin_left = 80.0

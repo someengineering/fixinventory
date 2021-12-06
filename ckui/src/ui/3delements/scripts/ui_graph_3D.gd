@@ -2,7 +2,7 @@ extends Spatial
 
 signal filtering_done
 
-const MIN_ZOOM_3D = 15
+const MIN_ZOOM_3D = 20
 const MAX_ZOOM_3D = 90
 const TOUCH_ZOOM_SPEED = 0.1
 
@@ -119,7 +119,6 @@ func generate_graph(filtered_data_result:Dictionary):
 	graph.layout_graph(graph_node_positions)
 	root_node = graph.root_node
 	graph_cam_arm.translation = root_node.global_transform.origin
-	#graph_cam_arm.translation.y = root_node.global_transform.origin
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.fov, 30, 0.5, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	
@@ -171,8 +170,15 @@ func main_graph_order():
 	graph.graph_calc_layout()
 
 
-func save_order(saved_node_positions):
-	Utils.save_json(_g.GRAPH_NODE_JSON_PATH, saved_node_positions)
+func save_order(_saved_node_positions):
+	var target_pos = graph.root_node.global_transform.origin
+	var flytime = range_lerp( clamp(target_pos.distance_to(graph_cam_arm.global_transform.origin), 100, 1000), 100, 1000, 0.35, 1.5 )
+	cam_tween.remove_all()
+	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.fov, 90, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.interpolate_property(graph_cam_arm, "global_transform:origin", graph_cam_arm.global_transform.origin, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
+	cam_tween.start()
+	# Node positions should be saved to file or local storage
+#	Utils.save_json(_g.GRAPH_NODE_JSON_PATH, saved_node_positions)
 
 
 func main_graph_rand():
@@ -190,10 +196,10 @@ func _physics_process(delta):
 			is_lmb_dragging_cam = true
 			last_lmb_drag_pos = new_lmb_drag_pos
 		else:
-			drag_lmb_power = (new_lmb_drag_pos - last_lmb_drag_pos)
+			drag_lmb_power = lerp(drag_lmb_power, (new_lmb_drag_pos - last_lmb_drag_pos), delta * 10 )
 			last_lmb_drag_pos = new_lmb_drag_pos
 	else:
-		drag_lmb_power *= 50*delta
+		drag_lmb_power *= 54*delta
 		is_lmb_dragging_cam = false
 	
 	mouse_rmb_is_pressed = Input.is_action_pressed("right_mouse")
@@ -204,16 +210,16 @@ func _physics_process(delta):
 			is_rmb_dragging_cam = true
 			last_rmb_drag_pos = new_rmb_drag_pos
 		else:
-			drag_rmb_power = (new_rmb_drag_pos - last_rmb_drag_pos)
+			drag_rmb_power =  lerp(drag_rmb_power, (new_rmb_drag_pos - last_rmb_drag_pos), delta * 10 )
 			last_rmb_drag_pos = new_rmb_drag_pos
 	else:
-		drag_rmb_power *= 25*delta
+		drag_rmb_power *= 54*delta
 		is_rmb_dragging_cam = false
 	
 	
 	var rot_drag_lmb_power = Vector3(drag_lmb_power.x, -drag_lmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
 	var rot_drag_rmb_power = Vector3(drag_rmb_power.x, -drag_rmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
-	graph_cam_arm.rotation_degrees.y += drag_rmb_power.x*0.2
+	graph_cam_arm.rotation_degrees.y -= drag_rmb_power.x*0.2
 	graph_cam_arm.translation -= rot_drag_lmb_power + Vector3(0, rot_drag_rmb_power.y*0.5, 0)
 	
 	var new_zoom_level := 0.0
@@ -264,7 +270,6 @@ func go_to_graph_node_3d(node_id, graph) -> void:
 	cam_tween.remove_all()
 	cam_tween.interpolate_method(self, "change_cam_zoom", graph_cam.fov, 15, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.interpolate_property(graph_cam_arm, "global_transform:origin", graph_cam_arm.global_transform.origin, target_pos, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
-	#cam_tween.interpolate_property(graph_cam_arm, "global_transform:origin:y", graph_cam_arm.global_transform.origin.y, target_pos.y, flytime, Tween.TRANS_QUART, Tween.EASE_IN_OUT)
 	cam_tween.start()
 	target_node.scene.is_selected = true
 	cam_moving = true
@@ -281,6 +286,7 @@ func _on_CamMoveTween_tween_all_completed() -> void:
 func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
+
 func hide_info():
 	if target_node:
 		target_node.scene.is_selected = false
@@ -293,5 +299,4 @@ func hide_info():
 func change_cam_zoom(zoom:float):
 	graph_cam.fov = zoom
 	var zoom_level = zoom_curve.interpolate( range_lerp(zoom, MIN_ZOOM_3D, MAX_ZOOM_3D, 0, 1) ) * 20
-	print(zoom_level)
 	_e.emit_signal("change_cam_zoom_3d", zoom_level)

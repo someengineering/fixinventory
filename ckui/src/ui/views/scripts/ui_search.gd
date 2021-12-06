@@ -88,7 +88,7 @@ func _on_LineEdit_text_changed( new_text : String ):
 	$ResultContainer.visible = has_query_result or has_node_result
 
 func result_node_pressed(node_id):
-	_e.emit_signal("go_to_graph_node", node_id, _g.main_graph)
+	_e.emit_signal("go_to_graph_node_3d", node_id, _g.main_graph)
 
 func result_query_pressed(query_id):
 	_e.emit_signal("load_query", query_id)
