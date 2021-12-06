@@ -313,6 +313,10 @@ class AccessNone:
     def __next__(self) -> None:
         raise StopIteration()
 
+    @property
+    def is_none(self) -> bool:
+        return True
+
 
 class AccessJson(Dict[Any, Any]):
     """
@@ -325,10 +329,14 @@ class AccessJson(Dict[Any, Any]):
         self.__not_existent = AccessNone(not_existent)
 
     def __getitem__(self, item: Any) -> Any:
-        return AccessJson.wrap(super().__getitem__(item), self.__not_existent) if item in self else self.__not_existent
+        if item in self:
+            iv = super().__getitem__(item)
+            return AccessJson.wrap(iv, self.__not_existent) if iv is not None else self.__not_existent
+        else:
+            return self.__not_existent
 
     def __getattr__(self, name: Any) -> Any:
-        return AccessJson.wrap(self[name], self.__not_existent) if name in self else self.__not_existent
+        return self.__getitem__(name)
 
     @staticmethod
     def wrap(obj: Any, not_existent: Any) -> Any:
