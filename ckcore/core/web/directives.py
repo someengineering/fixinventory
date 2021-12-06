@@ -1,5 +1,6 @@
 import logging
 from argparse import Namespace
+from re import RegexFlag, fullmatch
 from typing import Optional, Callable, Awaitable
 
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException
@@ -14,6 +15,14 @@ from core.metrics import RequestInProgress, RequestLatency, RequestCount, perf_n
 from core.web import RequestHandler
 
 log = logging.getLogger(__name__)
+
+
+async def on_response_prepare(request: Request, response: StreamResponse) -> None:
+    # Headers are required for the UI to work, since it uses SharedArrayBuffer.
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
+    if fullmatch("/ui/.*", request.path, RegexFlag.IGNORECASE):
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
 
 @middleware

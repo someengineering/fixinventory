@@ -46,4 +46,4 @@ jobs:
                 flake8 core
                 pylint core
             - name: MyPy
-              run: mypy core tests
+              run: mypy --strict core tests
