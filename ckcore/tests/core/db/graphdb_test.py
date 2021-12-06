@@ -394,9 +394,9 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
             assert "bar" in js.reported  # key exists
             assert "bar" in js.desired  # key exists
             assert "bar" in js.metadata  # key exists
-            assert js.reported.bar is None  # bla is not a parent of this node
-            assert js.desired.bar is None  # bla is not a parent of this node
-            assert js.metadata.bar is None  # bla is not a parent of this node
+            assert js.reported.bar.is_none  # bla is not a parent of this node
+            assert js.desired.bar.is_none  # bla is not a parent of this node
+            assert js.metadata.bar.is_none  # bla is not a parent of this node
             assert js.reported.foobar is not None  # foobar is merged into reported
             assert js.desired.foobar is not None  # foobar is merged into reported
             assert js.metadata.foobar is not None  # foobar is merged into reported
