@@ -73,10 +73,7 @@ extra_spacing_top = -6
 extra_spacing_char = 1
 font_data = SubResource( 28 )
 
-[node name="MetricViz-NumberMinMax" type="VBoxContainer" groups=[
-"metricviz",
-"metricviz_number_minmax",
-]]
+[node name="MetricViz-NumberMinMax" type="VBoxContainer" groups=["metricviz", "metricviz_number_minmax"]]
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false

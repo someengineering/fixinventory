@@ -9,9 +9,12 @@ onready var edges = $Background/Extra
 
 func _ready():
 	$CenterContainer/ButtonLabel.rect_pivot_offset.x = $CenterContainer/ButtonLabel.rect_size.x/2
-
+	if disabled:
+		modulate.a = 0.5
 
 func _process(delta) -> void:
+	if disabled:
+		return
 	if (hovering and hover_power < 1):
 		set_hover_power( min(hover_power + delta * speed, 1.0) )
 	elif (!hovering and hover_power > 0):
@@ -19,10 +22,14 @@ func _process(delta) -> void:
 
 
 func _on_GenericButton_mouse_entered() -> void:
+	if disabled:
+		return
 	set_hovering(true)
 
 
 func _on_GenericButton_mouse_exited() -> void:
+	if disabled:
+		return
 	set_hovering(false)
 
 

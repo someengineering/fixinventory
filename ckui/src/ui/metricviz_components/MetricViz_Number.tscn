@@ -80,10 +80,7 @@ use_mipmaps = true
 use_filter = true
 font_data = SubResource( 30 )
 
-[node name="MetricViz-Number" type="Control" groups=[
-"metricviz",
-"metricviz_number",
-]]
+[node name="MetricViz-Number" type="Control" groups=["metricviz", "metricviz_number"]]
 rect_min_size = Vector2( 100, 100 )
 size_flags_horizontal = 3
 size_flags_vertical = 3

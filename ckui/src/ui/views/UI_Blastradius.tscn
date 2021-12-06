@@ -1,6 +1,7 @@
-[gd_scene load_steps=14 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://ui/views/scripts/ui_blastradius.gd" type="Script" id=1]
+[ext_resource path="res://ui/3delements/scripts/3D_viewport.gd" type="Script" id=2]
 [ext_resource path="res://assets/graphics/1px.png" type="Texture" id=3]
 [ext_resource path="res://assets/graphics/sci-fi/small-crosses_repeat.png" type="Texture" id=4]
 [ext_resource path="res://ui/elements/Element_GenericButton.tscn" type="PackedScene" id=6]
@@ -55,7 +56,6 @@ shader_param/tex = ExtResource( 4 )
 font_data = SubResource( 5 )
 
 [node name="UIBlastradius" type="Control"]
-visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -162,6 +162,27 @@ __meta__ = {
 [node name="Tween" type="Tween" parent="."]
 
 [node name="AnimTween" type="Tween" parent="."]
+
+[node name="UIGraph3DViewport" type="ViewportContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+stretch = true
+script = ExtResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Viewport" type="Viewport" parent="UIGraph3DViewport"]
+size = Vector2( 1920, 1080 )
+own_world = true
+transparent_bg = true
+handle_input_locally = false
+msaa = 3
+render_target_update_mode = 3
+physics_object_picking = true
 
 [connection signal="pressed" from="CloseButton" to="." method="_on_CloseButton_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_BackButton_pressed"]

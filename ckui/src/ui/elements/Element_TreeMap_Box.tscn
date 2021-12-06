@@ -1,0 +1,111 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://ui/elements/scripts/element_treemap_box.gd" type="Script" id=1]
+
+[sub_resource type="DynamicFontData" id=4]
+font_path = "res://assets/fonts/Lato-Regular.ttf"
+
+[sub_resource type="DynamicFont" id=2]
+size = 1
+font_data = SubResource( 4 )
+
+[sub_resource type="StyleBoxFlat" id=5]
+content_margin_left = 0.0
+content_margin_right = 0.0
+content_margin_top = 0.0
+content_margin_bottom = 0.0
+bg_color = Color( 0.886275, 0.886275, 0.886275, 1 )
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color( 1, 1, 1, 1 )
+corner_detail = 1
+
+[sub_resource type="StyleBoxFlat" id=3]
+content_margin_left = 0.0
+content_margin_right = 0.0
+content_margin_top = 0.0
+content_margin_bottom = 0.0
+bg_color = Color( 0.705882, 0.705882, 0.705882, 1 )
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color( 1, 1, 1, 1 )
+corner_detail = 1
+
+[sub_resource type="DynamicFontData" id=6]
+font_path = "res://assets/fonts/Lato-Regular.ttf"
+
+[sub_resource type="DynamicFont" id=7]
+size = 14
+outline_size = 1
+outline_color = Color( 0, 0, 0, 1 )
+use_mipmaps = true
+use_filter = true
+font_data = SubResource( 6 )
+
+[node name="TreemapBox" type="MarginContainer"]
+margin_right = 2.0
+margin_bottom = 4.0
+mouse_filter = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+custom_constants/margin_right = 1
+custom_constants/margin_top = 1
+custom_constants/margin_left = 1
+custom_constants/margin_bottom = 1
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button" type="Button" parent="."]
+margin_left = 1.0
+margin_top = 1.0
+margin_right = 1.0
+margin_bottom = 3.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_fonts/font = SubResource( 2 )
+custom_styles/hover = SubResource( 5 )
+custom_styles/pressed = SubResource( 5 )
+custom_styles/focus = SubResource( 5 )
+custom_styles/disabled = SubResource( 3 )
+custom_styles/normal = SubResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Center" type="CenterContainer" parent="."]
+margin_left = 1.0
+margin_top = 1.0
+margin_right = 1.0
+margin_bottom = 3.0
+mouse_filter = 2
+
+[node name="C" type="Control" parent="Center"]
+margin_top = 1.0
+margin_bottom = 1.0
+mouse_filter = 2
+
+[node name="Z" type="Node2D" parent="Center/C"]
+z_index = 5
+z_as_relative = false
+
+[node name="Label" type="Label" parent="Center/C/Z"]
+margin_left = -89.0
+margin_right = 106.0
+margin_bottom = 14.0
+rect_pivot_offset = Vector2( 89, 0 )
+custom_constants/line_spacing = -2
+custom_fonts/font = SubResource( 7 )
+text = "500
+asda"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[connection signal="mouse_entered" from="Button" to="." method="_on_Button_mouse_entered"]

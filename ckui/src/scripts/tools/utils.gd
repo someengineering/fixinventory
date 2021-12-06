@@ -29,3 +29,8 @@ static func save_json(path, data):
 	file.open(path, file.WRITE)
 	file.store_string( to_json(data) )
 	file.close()
+
+
+static func get_random_pos_3D(_radius:=500.0, _z_depth:=50.0) -> Vector3:
+	var random_vec2 = Vector2(rand_range(_radius*0.75, _radius), 0).rotated(randf()*TAU)
+	return Vector3(random_vec2.x, random_vec2.y, rand_range(-_z_depth, _z_depth))
