@@ -4,6 +4,7 @@ import multiprocessing as mp
 import os.path
 from argparse import Namespace
 from typing import Optional, List, Callable
+from urllib.parse import urlparse
 
 from arango.database import StandardDatabase
 from cklib.args import ArgumentParser
@@ -27,6 +28,16 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
                 raise AttributeError(f"{message}: path {path} is not a directory!")
 
         return check_dir
+
+    def is_url(message: str) -> Callable[[str], str]:
+        def check_url(url: str) -> str:
+            try:
+                urlparse(url)
+                return url
+            except ValueError as ex:
+                raise AttributeError(f"{message}: url {url} can not be parsed!") from ex
+
+        return check_url
 
     parser = ArgumentParser(
         env_args_prefix="CKCORE_",
@@ -117,6 +128,11 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "--ui-path",
         type=is_dir("can not parse --ui-dir"),
         help="The directory where the UI is installed. This directory will be served under /ui/.",
+    )
+    parser.add_argument(
+        "--tsdb-proxy-url",
+        type=is_url("can not parse --tsdb-proxy-url"),
+        help="The url to the time series database. This path will be served under /tsdb/.",
     )
 
     TaskHandler.add_args(parser)

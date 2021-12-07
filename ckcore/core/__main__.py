@@ -110,9 +110,11 @@ def main() -> None:
         await worker_task_queue.start()
         await event_emitter.start()
         await cli.start()
+        await api.start()
 
     async def on_stop() -> None:
         duration = utc() - started_at
+        await api.stop()
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
         await event_emitter.stop()
