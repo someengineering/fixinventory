@@ -480,7 +480,12 @@ Merge node data with sub-queries
 ================================
 
 The data in Cloudkeeper is stored in a graph.
-While it is possible to query and retrieve a subgraph, it is sometimes helpful to retrieve structural graph data as part of the node.
+While it is possible to query and retrieve a filtered part of the graph, it is sometimes helpful to retrieve
+structural graph data as part of the node. This approach merges multiple nodes in a graph into one node.
+This combined node can simplify processing the node.
+
+.. image:: img/merge_nodes.png
+
 The merge node feature allows for sub-queries, that are executed for every node in the result.
 The result of the sub-query is then merged with the node data.
 
@@ -493,11 +498,14 @@ The result of the sub-query is then merged with the node data.
     account node is found. While this is possible, it might be more convenient to get the account information
     as part of the node!
 
+
     In this example we will query nodes of kind ``volume``. For every element that is returned,
     a sub-query is executed, which will traverse the graph inbound until it finds a node of kind ``account``.
     The result of this sub-query is merged with the volume node on root level under the name account.
     The complete information about the account is available as part of the volume node:
 
+
+.. image:: img/merge_nodes_1.png
 
 ::
 
@@ -511,7 +519,7 @@ The result of the sub-query is then merged with the node data.
             .
 
 
-A sub-query is a complete query and can use almost all features of a normal query (exception: sub-queries can not be tagged).
+A sub-query is a complete query and can use the features of any other query.
 The result of a sub-query is merged with the original node under the given merge name.
 If the merge name is a simple literal, zero or one result of the sub-query is expected.
 This also means, that the graph traversal of the sub-query stops, when the first matching element is found.
@@ -534,6 +542,8 @@ Following query will traverse inbound on every element and collect all predecess
 
 
 It is possible to define multiple merge queries in one query statement.
+
+.. image:: img/merge_nodes.png
 
 ::
 
