@@ -48,6 +48,10 @@ spec:
             - {{ .Values.ckcore.graphdb.database | quote }}
             - --graphdb-username
             - {{ .Values.ckcore.graphdb.login | quote }}
+            {{- if .Values.ckcore.tsdbProxyUrl }}
+            - --tsdb-proxy-url
+            - {{ .Values.ckcore.tsdbProxyUrl | quote }}
+            {{- end }}
           env:
           - name: START_STACK
             value: "false"

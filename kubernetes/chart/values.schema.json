@@ -104,6 +104,11 @@
                 },
                 "host": {
                     "type": "string"
+                },
+                "tsdbProxyUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https?://"
                 }
             }
         },
