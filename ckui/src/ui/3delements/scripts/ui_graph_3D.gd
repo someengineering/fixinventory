@@ -204,7 +204,7 @@ func _physics_process(delta):
 	
 	mouse_rmb_is_pressed = Input.is_action_pressed("right_mouse")
 	var is_rmb_in_graph = true
-	if mouse_rmb_is_pressed and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
+	if ((mouse_lmb_is_pressed and Input.is_key_pressed(KEY_SHIFT)) or mouse_rmb_is_pressed) and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
 		new_rmb_drag_pos = get_viewport().get_mouse_position()
 		if !is_rmb_dragging_cam:
 			is_rmb_dragging_cam = true
