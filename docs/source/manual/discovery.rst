@@ -509,7 +509,7 @@ The result of the sub-query is then merged with the node data.
 
 ::
 
-    > query is(volume) { account: <-[0:]- is(account) } limit 1
+    > query is(volume) { account: <-[0:]- is(account) } limit 1 | dump
     reported:
         .
         .
@@ -528,7 +528,7 @@ Following query will traverse inbound on every element and collect all predecess
 
 ::
 
-    > query is(volume) { predecessors[]: <-- all }
+    > query is(volume) { predecessors[]: <-- all } limit 1 | dump
     reported:
         .
         .
@@ -547,7 +547,7 @@ It is possible to define multiple merge queries in one query statement.
 
 ::
 
-    > query is(volume) { account: <-[0:]- is(account), region: <-[0:]- is(region) } limit 1
+    > query is(volume) { account: <-[0:]- is(account), region: <-[0:]- is(region) } limit 1 | dump
     reported:
         .
         .
