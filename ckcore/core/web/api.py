@@ -205,6 +205,13 @@ class Api:
             swagger_ui_settings=SwaggerUiSettings(path="/api-doc", layout="BaseLayout", docExpansion="none"),
         )
 
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        if self.session:
+            await self.session.close()
+
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
         async def forward_to(_: Request) -> StreamResponse:
