@@ -105,7 +105,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     parser.add_argument(
         "--plantuml-server",
         default="http://plantuml.cloudkeeper.org:8080",
-        help="PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)",
+        help="PlantUML server URI for UML image rendering.",
     )
     parser.add_argument(
         "--host",
