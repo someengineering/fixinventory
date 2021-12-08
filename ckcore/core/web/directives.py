@@ -32,7 +32,7 @@ async def on_response_prepare(request: Request, response: StreamResponse) -> Non
         response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
     # In case of a CORS request: a response header to allow the origin is required
-    if "sec-fetch-mode" in request.headers:
+    if request.headers.get("sec-fetch-mode") == "cors":
         response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
 
 
