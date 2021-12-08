@@ -41,3 +41,5 @@ mesh = SubResource( 10 )
 material/0 = null
 
 [connection signal="input_event" from="Cube/Area" to="." method="_on_Area_input_event"]
+[connection signal="mouse_entered" from="Cube/Area" to="." method="_on_Area_mouse_entered"]
+[connection signal="mouse_exited" from="Cube/Area" to="." method="_on_Area_mouse_exited"]
