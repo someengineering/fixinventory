@@ -7,7 +7,7 @@ const TEXT_ERROR_CONNECTION = "Can't connect to Cloudkeeper Core!\nPlease check 
 const CONNECT_TEXT = "Connecting to Cloudkeeper Core. ({0}s)\n{1}:{2}"
 
 var graph_id := "example"
-var api_response_data : Dictionary
+var api_response_data : String
 
 var adress : String
 var port : int
@@ -81,7 +81,7 @@ func _on_ConnectButton_pressed():
 	adress = $Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress/AdressEdit.text
 	port = int($Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port/PortEdit.text)
 	psk = $Margin/MarginContainer/Content/VBoxContainer/PSK/PSKEdit.text
-	api_response_data.clear()
+	api_response_data = ""
 	connect_form_visible(false)
 	status.text = CONNECT_TEXT.format(["0", adress, port])
 	yield(VisualServer, "frame_post_draw")
@@ -113,24 +113,24 @@ func api_connecting_timer( time:float ):
 
 
 func api_response( chunk:String ):
-	api_response_data[ api_response_data.size() ] = parse_json(chunk)
+	api_response_data += chunk
 
 
 func api_response_finished():
-	if api_response_data[0] == null:
+	var graph_results : Array = parse_json(api_response_data)
+	
+	if api_response_data.empty():
 		status.text = "No Graphs found!"
 		return
 	graph_dropdown.show()
 	graph_mode.show()
 	status.text = "Select Graph"
-	for i in api_response_data.values():
-		graph_dropdown.add_item(i[0])
+	
+	for i in graph_results:
+		graph_dropdown.add_item(i)
 	ok_btn.show()
 
 
 func _on_FileModeButton_pressed():
 	popup_close()
 	_e.emit_signal("load_nodes")
-
-
-

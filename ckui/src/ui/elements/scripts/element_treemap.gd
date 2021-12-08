@@ -134,7 +134,7 @@ func api_response_finished():
 	_g.api.disconnect("api_response", self, "api_response")
 	_g.api.disconnect("api_response_finished", self, "api_response_finished")
 	
-	var account_dict : Dictionary
+	var account_dict:= {}
 	for result in api_response_data:
 		if "descendant_count" in result.metadata:
 			account_dict[result.reported.name] = result.metadata.descendant_count

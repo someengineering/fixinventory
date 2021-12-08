@@ -60,7 +60,7 @@ func set_is_active(value:bool):
 	graph.is_active = value
 
 
-func read_data( filter_by_kinds := [] ):
+func read_data():
 	var file = File.new()
 	var new_data := {}
 	loaded_data_filtered_ids.clear()
@@ -145,15 +145,21 @@ func api_response_total_elements( total_elements:int ):
 
 
 func api_response( chunk:String ):
-	if chunk == "" or chunk == "[" or chunk == "\n]" or chunk == ",\n" or chunk.begins_with("Error:"):
+	if ["", "[", "\n]", ",\n"].has(chunk) or chunk.begins_with("Error:"):
 		if chunk.begins_with("Error:"):
 			api_error = true
 		return
 	
-	var parse_result : JSONParseResult = JSON.parse( chunk.trim_prefix(",\n") )
-	if parse_result.error == OK:
-		if typeof(parse_result.result) == TYPE_DICTIONARY:
-			_g.main_graph.add_streamed_object( parse_result.result )
+	var splitted_chunk = chunk.split("\n", false)
+	
+	if splitted_chunk.empty():
+		return
+	
+	for element in splitted_chunk:
+		var parse_result : JSONParseResult = JSON.parse( element )
+		if parse_result.error == OK:
+			if typeof(parse_result.result) == TYPE_DICTIONARY:
+				_g.main_graph.add_streamed_object( parse_result.result )
 
 
 func api_response_finished():
@@ -204,7 +210,6 @@ func _physics_process(delta):
 		is_lmb_dragging_cam = false
 	
 	mouse_rmb_is_pressed = Input.is_action_pressed("right_mouse")
-	var is_rmb_in_graph = true
 	if ((mouse_lmb_is_pressed and Input.is_key_pressed(KEY_SHIFT)) or mouse_rmb_is_pressed) and !target_node and !selected_new_node and is_in_graph and !_g.spaceship_mode:
 		new_rmb_drag_pos = get_viewport().get_mouse_position()
 		if !is_rmb_dragging_cam:
@@ -223,7 +228,6 @@ func _physics_process(delta):
 	graph_cam_arm.rotation_degrees.y -= drag_rmb_power.x*0.2
 	graph_cam_arm.translation -= rot_drag_lmb_power + Vector3(0, rot_drag_rmb_power.y*0.5, 0)
 	
-	var new_zoom_level := 0.0
 	if is_in_graph:
 		if Input.is_action_just_released("zoom_in"):
 			change_cam_zoom( max(graph_cam.fov * 0.95, MIN_ZOOM_3D) )
@@ -254,8 +258,8 @@ func reset_camera():
 	zoom_out()
 
 
-func go_to_graph_node_3d(node_id, graph) -> void:
-	if !is_active or graph != _g.main_graph:
+func go_to_graph_node_3d(node_id, _graph) -> void:
+	if !is_active or _graph != _g.main_graph:
 		return
 	if target_node != null:
 		target_node.scene.is_selected = false
