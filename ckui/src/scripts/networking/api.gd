@@ -107,8 +107,8 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 	
 	var headers = [
 		"User-Agent: Cloudkeeper UI",
-		"Accept: */*",
-		#"Ckui-via: " + ckui_via,
+		"Accept: application/x-ndjson",
+		"Ckui-via: " + ckui_via,
 		"Authorization: Bearer " + jwtlib.token,
 		"Content-Type: text/plain",
 		#"Accept-Encoding: gzip"
@@ -154,8 +154,8 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		if "Ck-Element-Count" in headers:
 			emit_signal("api_response_total_elements", int( headers["Ck-Element-Count"] ) )
 		
-		var gzip = "Content-Encoding" in headers and headers["Content-Encoding"] == "gzip"
-		var deflate = "Content-Encoding" in headers and headers["Content-Encoding"] == "deflate"
+		var _gzip = "Content-Encoding" in headers and headers["Content-Encoding"] == "gzip"
+		var _deflate = "Content-Encoding" in headers and headers["Content-Encoding"] == "deflate"
 		
 		# Getting the response body
 		if http.is_response_chunked():
@@ -185,7 +185,7 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 					yield(get_tree(), "idle_frame")
 					yield(get_tree(), "idle_frame")
 			else:
-				emit_signal("api_response", chunk.get_string_from_ascii() )
+				emit_signal("api_response", chunk.get_string_from_ascii())
 				read_buffer += chunk # Append to read buffer.
 			
 			index += 1
@@ -195,7 +195,8 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 				# Yielding here allows the UI to react to the received response
 				yield(get_tree(), "idle_frame")
 		
-		
+	
+		yield(get_tree(), "idle_frame")
 		emit_signal( "api_response_finished" )
 		debug_message("###########\nRequest finished - Bytes received: " + str( read_buffer.size() ) )
 

@@ -37,6 +37,7 @@ var root_node : Object = null
 var is_removed := false
 var is_active := true
 var update_visuals := false
+var size_by_descendants := false
 
 var node_group : Spatial = null
 var line_group : Spatial = null
@@ -122,22 +123,23 @@ func end_streaming():
 	if root_node == null:
 		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
 	
-	var total_descendants := 0.0
-	var descendants_values := []
-	for node in graph_data.nodes.values():
-		if ("metadata" in node.data
-		and "descendant_count" in node.data.metadata
-		and (node.kind == "aws_account" or node.kind == "gcp_project")):
-			var node_descendant_count = node.data.metadata.descendant_count
-			descendants_values.append(node_descendant_count)
-			total_descendants += node_descendant_count
-	
-	if !descendants_values.empty():
-		var largest_descendant_value = descendants_values.max()
-		
+	if size_by_descendants:
+		var _total_descendants:= 0.0
+		var descendants_values := []
 		for node in graph_data.nodes.values():
-			if "metadata" in node.data and "descendant_count" in node.data.metadata:
-				node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
+			if ("metadata" in node.data
+			and "descendant_count" in node.data.metadata
+			and (node.kind == "aws_account" or node.kind == "gcp_project")):
+				var node_descendant_count = node.data.metadata.descendant_count
+				descendants_values.append(node_descendant_count)
+				_total_descendants += node_descendant_count
+		
+		if !descendants_values.empty():
+			var largest_descendant_value = descendants_values.max()
+			
+			for node in graph_data.nodes.values():
+				if "metadata" in node.data and "descendant_count" in node.data.metadata:
+					node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
 	
 	graph_rand_layout()
 	
@@ -283,7 +285,7 @@ func remove_graph():
 	queue_free()
 
 
-func layout_graph(graph_node_positions := {}) -> void:
+func layout_graph(_graph_node_positions := {}) -> void:
 #	if graph_node_positions.empty():
 #		for node in graph_data.nodes.values():
 #			node.scene.translation = Utils.get_random_pos_3D()
@@ -297,7 +299,6 @@ func graph_calc_layout():
 	center_diagram()
 	
 	var benchmark_start = OS.get_ticks_usec()
-	var total_iterations := 0
 	
 	var layout_groups = []
 	threads_result.clear()
@@ -416,8 +417,7 @@ func _thread_layout_finished(_thread_data:Array) -> void:
 
 # Arrange the graph using Spring Electric Algorithm
 # returning the nodes positions
-func arrange(_data:Dictionary, damping:float, spring_length:float, max_iterations:int, deterministic := false, refine := false):
-	#prints("calculating", graph_data_node_array.size() )
+func arrange(_data:Dictionary, damping:float, spring_length:float, max_iterations:int, deterministic := false):
 	if !deterministic:
 		randomize()
 	

@@ -65,6 +65,7 @@ static func pbkdf2(hash_type: int, password: PoolByteArray, salt: PoolByteArray,
 		length = hash_length
 	
 	var output := PoolByteArray()
+	# warning-ignore:integer_division
 	var block_count := ceil(length / hash_length)
 	
 	var buffer := PoolByteArray()
