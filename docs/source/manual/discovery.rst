@@ -32,7 +32,7 @@ A graph node is a json document with a well defined structure and these top leve
     }
 
 
-Each graph node always has an ``id`` that is a unique id created by Cloudkeeper.
+Each graph node always has an ``id`` that is a unique ID created by Cloudkeeper.
 
 The ``reported`` section contains data reported from the specific cloud provider.
 The content and schema of the ``reported`` section is defined by the cloud provider and described formally in the :ref:`model`.
