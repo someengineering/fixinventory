@@ -2,14 +2,17 @@ import logging
 import multiprocessing
 import os
 import platform
+import ssl
+
 import sys
 from asyncio import Queue
 from datetime import timedelta
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 import psutil
 from aiohttp import web
 from aiohttp.web_app import Application
+from ssl import SSLContext
 
 from core import version
 from core.analytics import CoreEvent, NoEventSender
@@ -143,7 +146,12 @@ def main() -> None:
         log.info("Initialization done. Starting API.")
         return api.app
 
-    web.run_app(async_initializer(), host=args.host, port=args.port)
+    tls_context: Optional[SSLContext] = None
+    if args.tls_cert:
+        tls_context = SSLContext(ssl.PROTOCOL_TLS)
+        tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
+
+    web.run_app(async_initializer(), host=args.host, port=args.port, ssl_context=tls_context)
 
 
 if __name__ == "__main__":
