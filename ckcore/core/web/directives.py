@@ -3,7 +3,8 @@ from argparse import Namespace
 from re import RegexFlag, fullmatch
 from typing import Optional, Callable, Awaitable
 
-from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException
+from aiohttp.hdrs import METH_OPTIONS
+from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
 from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
@@ -17,12 +18,41 @@ from core.web import RequestHandler
 log = logging.getLogger(__name__)
 
 
+def enable_compression(request: Request, response: StreamResponse) -> None:
+    # The UI can not handle compressed responses. Allow compression only if requested by somebody else
+    if "ckui-via" not in request.headers:
+        response.enable_compression()
+
+
 async def on_response_prepare(request: Request, response: StreamResponse) -> None:
     # Headers are required for the UI to work, since it uses SharedArrayBuffer.
     # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
     if fullmatch("/ui/.*", request.path, RegexFlag.IGNORECASE):
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+
+    # In case of a CORS request: a response header to allow the origin is required
+    if "sec-fetch-mode" in request.headers:
+        response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+
+
+@middleware
+async def cors_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+    if request.method == METH_OPTIONS:
+        return HTTPNoContent(
+            headers={
+                # allow origin of request or all if none is defined.
+                "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+                # allow the requested method or all if none is defined.
+                "Access-Control-Allow-Methods": request.headers.get("access-control-request-method", "*"),
+                # allow the requested header names or all if none is defined.
+                "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "*"),
+                # allow the client to cache this result
+                "Access-Control-Max-Age": "86400",  # allow caching for one day
+            }
+        )
+    else:
+        return await handler(request)
 
 
 @middleware
