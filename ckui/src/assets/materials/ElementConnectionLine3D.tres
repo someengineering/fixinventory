@@ -8,6 +8,7 @@ colors = PoolColorArray( 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 )
 gradient = SubResource( 3 )
 
 [resource]
+resource_local_to_scene = true
 resource_name = "None"
 flags_transparent = true
 albedo_color = Color( 0.176471, 0.462745, 0.666667, 0.254902 )

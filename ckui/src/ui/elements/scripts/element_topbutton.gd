@@ -4,7 +4,8 @@ export var max_width := 145.0
 
 var active := false setget set_active
 
-func set_active(value:bool):
+
+func set_active(value: bool):
 	if active != value:
 		active = value
 		if active:

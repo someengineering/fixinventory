@@ -1,6 +1,5 @@
 extends Control
 
-
 onready var tween = $LoadingTween
 
 
@@ -9,8 +8,9 @@ func _ready():
 	_e.connect("loading", self, "update_loading_status")
 	_e.connect("loading_done", self, "loading_done")
 
-func update_loading_status( loading:float, text:String ):
-	$"MetricViz-NumberMinMaxHistoric".set_value( loading * 100, text, 1.0 )
+
+func update_loading_status(loading: float, text: String):
+	$"MetricViz-NumberMinMaxHistoric".set_value(loading * 100, text, 1.0)
 
 
 func loading_start():
@@ -20,7 +20,9 @@ func loading_start():
 
 func loading_done():
 	tween.remove_all()
-	tween.interpolate_property(self, "modulate:a", modulate.a, 0, 0.5, Tween.TRANS_QUAD, Tween.EASE_OUT, 0.3)
+	tween.interpolate_property(
+		self, "modulate:a", modulate.a, 0, 0.5, Tween.TRANS_QUAD, Tween.EASE_OUT, 0.3
+	)
 	tween.start()
 
 
