@@ -71,12 +71,12 @@ Using the ``query`` command, you can define a search query to filter available n
   ``query is(account)``
 
   This will select all accounts of all collected cloud providers.
-  In oder to select only accounts from AWS, we could achieve this with:
+  In order to select only accounts from AWS, we could achieve this with:
 
   ``query is(aws_account)``
 
   It is possible to filter all found accounts by available properties.
-  Let us filter aws accounts, that are either older than 2 weeks.
+  Let us filter AWS accounts, that are either older than 2 weeks.
 
   ``query is(aws_account) and reported.age>2w``
 
