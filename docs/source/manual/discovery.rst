@@ -38,12 +38,12 @@ The ``reported`` section contains data reported from the specific cloud provider
 The content and schema of the ``reported`` section is defined by the cloud provider and described formally in the :ref:`model`.
 
 The ``desired`` section can be manipulated by users and tools to mark and trigger an intended change on the
-specific resource. Cleaning up a resource for example is done by setting ``clean=true`` in the desired section.
+specific resource. Cleaning up a resource, for example, is done by setting ``clean=true`` in the desired section.
 
-The ``metadata`` section contains additional data of a resource, that is not reported by the cloud provider,
-but added by the Cloudkeeper tool chain.
+The ``metadata`` section contains additional data about the resource. This data is not from the cloud provider,
+but added by the Cloudkeeper toolchain.
 
-See an example and learn more about the structure in :ref:`graph_node_spotlight`.
+You can see an example and learn more about the structure in :ref:`graph_node_spotlight`.
 
 .. toctree::
    :maxdepth: 1
@@ -75,8 +75,8 @@ Using the ``query`` command, you can define a search query to filter available n
 
   ``query is(aws_account)``
 
-  It is possible to filter all found accounts by available properties.
-  Let us filter AWS accounts, that are either older than 2 weeks.
+  It is also possible to filter results by their available properties.
+  For example, let us find all AWS accounts that are more than 2 weeks old:
 
   ``query is(aws_account) and reported.age>2w``
 
@@ -86,14 +86,14 @@ Using the ``query`` command, you can define a search query to filter available n
 
   ``query is(aws_account) and (reported.age>2w or reported.users>1)``
 
-  All resources that match the defined criteria will be returned.
-  It is possible to limit the result via ``limit``.
+  By default, all resources that satisfy the defined criteria will be returned.
+  However, it is possible to limit the number of results by specifying ``limit``:
 
   ``query is(aws_account) and (reported.age>2w or reported.users>1) limit 3``
 
-  In addition to the limit, it is also possible to define a sort criteria.
-  Following query will filter all aws accounts that are older than 2 weeks,
-  and return the 3 accounts with most users.
+  In addition to ``limit``, it is also possible to define the sort order.
+  The following query will return the 3 AWS accounts that are more than 2 weeks old
+  with the most of users.
 
   ``query is(aws_account) and reported.age>2w sort reported.users desc limit 3``
 
@@ -160,7 +160,7 @@ value
 ^^^^^
 
 The ``value`` can be *any* json literal or *any* json conform value.
-A json conform value is:
+A JSON conform value is:
 
 - string:  Examples: ``"hello world"``, ``"test"``. Note: the query parser is gracious with quotes.
   If there are no white space and no special characters, it is possible to omit quotes.
