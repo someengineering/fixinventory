@@ -118,6 +118,10 @@ def main() -> None:
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
         await event_emitter.stop()
+        await worker_task_queue.stop()
+        await scheduler.stop()
+        await subscriptions.stop()
+        await db.stop()
 
     async def async_initializer() -> Application:
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
@@ -145,6 +149,7 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
+        print("Process finished.")
     except (KeyboardInterrupt, SystemExit):
         log.info("Stopping Cloudkeeper graph core.")
         shutdown_process(0)

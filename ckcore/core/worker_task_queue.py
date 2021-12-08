@@ -94,6 +94,9 @@ class WorkerTaskQueue:
     async def start(self) -> None:
         await self.outdated_checker.start()
 
+    async def stop(self) -> None:
+        await self.outdated_checker.stop()
+
     @asynccontextmanager
     async def attach(
         self, worker_id: str, task_descriptions: List[WorkerTaskDescription], queue_size: int = 0

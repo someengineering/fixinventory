@@ -71,6 +71,9 @@ class DbAccess(ABC):
             await db.create_update_schema()
         await self.cleaner.start()
 
+    async def stop(self) -> None:
+        await self.cleaner.stop()
+
     async def create_graph(self, name: str) -> GraphDB:
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
