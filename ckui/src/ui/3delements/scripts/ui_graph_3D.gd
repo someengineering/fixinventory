@@ -152,7 +152,8 @@ func api_response( chunk:String ):
 	
 	var parse_result : JSONParseResult = JSON.parse( chunk.trim_prefix(",\n") )
 	if parse_result.error == OK:
-		_g.main_graph.add_streamed_object( parse_result.result )
+		if typeof(parse_result.result) == TYPE_DICTIONARY:
+			_g.main_graph.add_streamed_object( parse_result.result )
 
 
 func api_response_finished():

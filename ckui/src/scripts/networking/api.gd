@@ -20,6 +20,8 @@ var connected := false
 var http = HTTPClient.new()
 var err = 0
 var psk := DEFAULT_PSK
+var current_adress := "http://127.0.0.1"
+var current_port := 8900
 
 onready var jwtlib = $JWT
 
@@ -30,9 +32,12 @@ func _ready():
 	_e.connect("api_request", self, "send_request")
 
 
-func connect_to_core( adress := "http://127.0.0.1", port := 8900, _psk := "changeme", timeout := 10 ):
+func connect_to_core( adress := current_adress, port := current_port, _psk := psk, timeout := 5 ):
 	var had_timeout = false
-	err = http.connect_to_host(adress, port)
+	current_adress = adress
+	current_port = port
+	
+	err = http.connect_to_host(current_adress, current_port)
 	if err != OK:
 		debug_message( "Error in connection! Check adress and port!" )
 		return
@@ -45,6 +50,8 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, _psk := "chang
 		debug_message("Connecting... - Timer: " + str(timeout_time) + "sec")
 		emit_signal("api_connecting_timer", timeout_time)
 		yield(get_tree(), "idle_frame")
+		yield(get_tree(), "idle_frame")
+		yield(get_tree(), "idle_frame")
 		
 		if timeout_time > timeout:
 			had_timeout = true
@@ -52,36 +59,63 @@ func connect_to_core( adress := "http://127.0.0.1", port := 8900, _psk := "chang
 		
 		if !OS.has_feature("web"):
 			OS.delay_msec(100)
+			#yield(Engine.get_main_loop(), "idle_frame")
 		else:
-			yield(Engine.get_main_loop(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
 	
-	emit_signal("api_connected", had_timeout)
 	
 	if http.get_status() == HTTPClient.STATUS_CONNECTED:
 		debug_message("Connected!")
 		connected = true
 	else:
 		debug_message("Could not connect - Timeout.")
-	
+		connected = false
+		
+	emit_signal("api_connected", had_timeout)
 	psk = _psk if _psk != "" else DEFAULT_PSK
+
+
+func check_status_and_reconnect():
+	if http.get_status() != HTTPClient.STATUS_CONNECTED:
+		connected = false
+		debug_message("Problem with connection, trying to reconnect...")
+		if http.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			connect_to_core()
+			yield(self, "api_connected")
+	return connected
 
 
 func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" ):
 	if jwtlib.token == "" or !jwtlib.token_expired():
 		_e.emit_signal("create_jwt", "", psk)
 	
+	
 	if http.get_status() != HTTPClient.STATUS_CONNECTED:
 		connected = false
-		debug_message("Problem with connection!")
+		debug_message("Problem with connection, trying to reconnect...")
+		if http.get_status() == HTTPClient.STATUS_DISCONNECTED:
+			connect_to_core()
+			yield(self, "api_connected")
+	
+	if !connected:
+		debug_message("Problem with connection, cancelling.")
 		return
+	
+	var ckui_via = "Web" if OS.has_feature("web") else "Desktop"
 	
 	var headers = [
 		"User-Agent: Cloudkeeper UI",
 		"Accept: */*",
+		#"Ckui-via: " + ckui_via,
 		"Authorization: Bearer " + jwtlib.token,
 		"Content-Type: text/plain",
 		#"Accept-Encoding: gzip"
 	]
+	
+	if http.get_status() != HTTPClient.STATUS_CONNECTED:
+		return
 	
 	err = http.request(method, url, headers, body)
 	
@@ -94,10 +128,13 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		http.poll()
 		debug_message("Requesting...")
 		if !OS.has_feature("web"):
+			#yield(Engine.get_main_loop(), "idle_frame")
 			OS.delay_msec(100)
 		else:
 			# Synchronous HTTP requests are not supported on the web, wait for the next main loop iteration.
-			yield(Engine.get_main_loop(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
+			yield(get_tree(), "idle_frame")
 	
 	# Make sure request finished well.
 	if!(http.get_status() == HTTPClient.STATUS_BODY or http.get_status() == HTTPClient.STATUS_CONNECTED): 
@@ -118,15 +155,17 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 			emit_signal("api_response_total_elements", int( headers["Ck-Element-Count"] ) )
 		
 		var gzip = "Content-Encoding" in headers and headers["Content-Encoding"] == "gzip"
+		var deflate = "Content-Encoding" in headers and headers["Content-Encoding"] == "deflate"
 		
 		# Getting the response body
 		if http.is_response_chunked():
 			# Does it use chunks?
-			debug_message("Response is Chunked!")
+			debug_message("Response is chunked.")
 		else:
+			debug_message("Response is non-chunked.")
 			# Or just plain Content-Length
-			var body_length = http.get_response_body_length()
-			debug_message("Response Length: "+ str(body_length) )
+#			var body_length = http.get_response_body_length()
+#			debug_message("Response Length: "+ str(body_length) )
 
 		var read_buffer = PoolByteArray()
 		
@@ -136,14 +175,17 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		while http.get_status() == HTTPClient.STATUS_BODY:
 			http.poll()
 			var chunk = http.read_response_body_chunk()
-			emit_signal("api_response", chunk.get_string_from_ascii() )
 			if chunk.size() == 0:
 				if !OS.has_feature("web"):
 					# Got nothing, wait for buffers to fill a bit.
+					#yield(Engine.get_main_loop(), "idle_frame")
 					OS.delay_usec(100)
 				else:
-					yield(Engine.get_main_loop(), "idle_frame")
+					yield(get_tree(), "idle_frame")
+					yield(get_tree(), "idle_frame")
+					yield(get_tree(), "idle_frame")
 			else:
+				emit_signal("api_response", chunk.get_string_from_ascii() )
 				read_buffer += chunk # Append to read buffer.
 			
 			index += 1
@@ -152,15 +194,16 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 				# bigger requests, eg. only yielding every x results.
 				# Yielding here allows the UI to react to the received response
 				yield(get_tree(), "idle_frame")
-			
-		if !gzip:
-			emit_signal( "api_response_finished" )
-		debug_message("###########\nRequest finished!\nBytes received: " + str(read_buffer.size()) )
 		
+		
+		emit_signal( "api_response_finished" )
+		debug_message("###########\nRequest finished - Bytes received: " + str( read_buffer.size() ) )
+
 		# The following part is not neccessary at the moment as 
 		# the result will be handled while receiving the response.
 #		var request_result = read_buffer.get_string_from_ascii()
 #		print("Result: ", result)
+
 
 func debug_message( message:String ):
 	if DEBUG_MESSAGES:

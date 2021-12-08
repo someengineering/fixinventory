@@ -225,6 +225,8 @@ func calc_map():
 		value_total += d.ds_value_temp
 		values_in_dataset.append(d.ds_value_temp)
 	
+	if values_in_dataset.empty():
+		return
 	var smallest_value = float( values_in_dataset.min() )
 	var biggest_value = float( values_in_dataset.max() )
 	
