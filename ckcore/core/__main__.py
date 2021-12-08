@@ -142,12 +142,12 @@ def main() -> None:
         log.info("Initialization done. Starting API.")
         return api.app
 
-    ssl_context: Optional[SSLContext] = None
-    if args.ssl_cert:
-        ssl_context = SSLContext(ssl.PROTOCOL_TLS)
-        ssl_context.load_cert_chain(args.ssl_cert, args.ssl_key, args.ssl_password)
+    tls_context: Optional[SSLContext] = None
+    if args.tls_cert:
+        tls_context = SSLContext(ssl.PROTOCOL_TLS)
+        tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
 
-    web.run_app(async_initializer(), host=args.host, port=args.port, ssl_context=ssl_context)
+    web.run_app(async_initializer(), host=args.host, port=args.port, ssl_context=tls_context)
 
 
 if __name__ == "__main__":
