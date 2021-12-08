@@ -4,6 +4,7 @@ from typing import Callable, Awaitable
 from aiohttp import ClientSession
 from aiohttp.web import HTTPNotFound, Request, StreamResponse
 from core.web import api  # pylint: disable=unused-import # prevent circular import
+from core.web.directives import enable_compression
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                 headers.popall("Content-Length", "none")
                 headers.popall("Content-Encoding", "none")
                 response = StreamResponse(status=cr.status, reason=cr.reason, headers=headers)
-                response.enable_compression()
+                enable_compression(request, response)
                 await response.prepare(request)
                 async for data in cr.content.iter_chunked(1024 * 1024):
                     await response.write(data)
