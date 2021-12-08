@@ -35,6 +35,9 @@ class SubscriptionHandler(ABC):
         log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
 
+    async def stop(self) -> None:
+        await self.cleaner.stop()
+
     async def all_subscribers(self) -> Iterable:  # type: ignore # pypy
         return self._subscribers_by_id.values()
 
