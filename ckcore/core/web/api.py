@@ -398,7 +398,6 @@ class Api:
         to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
         self.websocket_handler[wsid] = (to_wait, ws)
         await to_wait
-        self.websocket_handler.pop(wsid, None)
         return ws
 
     async def handle_work_tasks(
@@ -450,7 +449,6 @@ class Api:
         to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
         self.websocket_handler[worker_id] = (to_wait, ws)
         await to_wait
-        self.websocket_handler.pop(worker_id, None)
         return ws
 
     async def create_work(self, request: Request) -> StreamResponse:
