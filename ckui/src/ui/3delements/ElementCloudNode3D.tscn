@@ -6,6 +6,7 @@
 [ext_resource path="res://assets/graphics/sci-fi/default_node_texture.png" type="Texture" id=4]
 
 [sub_resource type="SpatialMaterial" id=13]
+resource_local_to_scene = true
 params_specular_mode = 4
 params_billboard_mode = 1
 albedo_color = Color( 0.101961, 0.470588, 0.647059, 0.94902 )

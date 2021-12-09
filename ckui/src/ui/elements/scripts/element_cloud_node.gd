@@ -25,8 +25,7 @@ func _ready() -> void:
 	parent_graph.connect("hide_nodes", self, "hide_detail")
 	_e.connect("change_cam_zoom", self, "change_cam_zoom")
 	_e.connect("graph_spaceship", self, "update_spaceship_mode")
-	#label_name.text = cloud_node.reported.name
-	node_name_full = cloud_node.reported.name
+	node_name_full = cloud_node.data.reported.name
 	node_name_short = node_name_full
 	var node_name_lenght = node_name_full.length()
 	if node_name_lenght > 16:
@@ -39,7 +38,7 @@ func _ready() -> void:
 	set_hover_power(0)
 
 	var icon
-	match cloud_node.reported.kind:
+	match cloud_node.data.reported.kind:
 		"graph_root":
 			icon = load("res://assets/icons/Icon_Root.tscn").instance()
 		"cloud":

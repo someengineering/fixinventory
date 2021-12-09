@@ -70,13 +70,13 @@ func _on_LineEdit_text_changed(new_text: String):
 	else:
 		for node in nodes.values():
 			if (
-				search_string.to_lower() in node.reported.name.to_lower()
+				search_string.to_lower() in node.data.reported.name.to_lower()
 				and cloud_results.get_child_count() < 30
 			):
 				has_node_result = true
 				var new_item = $ResultContainer/Results/ItemButtonRow.duplicate()
-				new_item.get_node("Content/Name").text = node.reported.kind
-				new_item.get_node("Content/Detail").text = node.reported.name
+				new_item.get_node("Content/Name").text = node.kind
+				new_item.get_node("Content/Detail").text = node.data.reported.name
 				new_item.connect("pressed", self, "result_node_pressed", [node.id])
 				new_item.show()
 				cloud_results.add_child(new_item)

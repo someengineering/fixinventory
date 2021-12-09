@@ -16,7 +16,7 @@ var default_material_color = Color("#f21a78a5")
 func _ready() -> void:
 	_e.connect("change_cam_zoom_3d", self, "change_cam_zoom_3d")
 
-	var node_name_full = cloud_node.reported.name
+	var node_name_full = cloud_node.data.reported.name
 	var node_name_short = node_name_full
 	var node_name_lenght = node_name_full.length()
 	if node_name_lenght > 16:
@@ -78,14 +78,17 @@ func set_is_hovered(value: bool) -> void:
 	is_hovered = value
 	
 	if is_hovered:
-		parent_graph.hovering_node(cloud_node.id)
+		parent_graph.hovering_node(cloud_node.id, true)
 	else:
-		parent_graph.hovering_node()
+		parent_graph.hovering_node(cloud_node.id, false)
 
 
-func highlight( _active:= false ):
+func highlight(_active:= false, _connection:=false):
 	if _active:
-		$Cube.material_override.albedo_color = default_material_color * 3
+		if _connection:
+			$Cube.material_override.albedo_color = default_material_color * Color(1.3,1.3,2,1)
+		else:
+			$Cube.material_override.albedo_color = default_material_color * 3
 	else:
 		$Cube.material_override.albedo_color = default_material_color
 

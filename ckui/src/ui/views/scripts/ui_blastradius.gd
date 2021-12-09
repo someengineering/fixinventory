@@ -36,7 +36,7 @@ func show_blastradius(node_id) -> void:
 	graph_view.show_all()
 	$BlastLabel/BlastNodeName.text = (
 		"Origin: "
-		+ _g.main_graph.graph_data.nodes[node_id].reported.name
+		+ _g.main_graph.graph_data.nodes[node_id].data.reported.name
 	)
 
 

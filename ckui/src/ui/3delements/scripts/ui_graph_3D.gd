@@ -304,6 +304,7 @@ func go_to_graph_node_3d(node_id, _graph) -> void:
 	target_node = _g.main_graph.graph_data.nodes[node_id]
 	graph.emit_signal("hide_nodes")
 	graph.emit_signal("show_node", node_id)
+	graph.show_info(target_node)
 
 	selected_new_node = true
 	$NewNodeSelectionTimer.start()
@@ -345,7 +346,7 @@ func _on_NewNodeSelectionTimer_timeout():
 	selected_new_node = false
 
 
-func hide_info():
+func hide_info(_target_node):
 	if target_node:
 		target_node.scene.is_selected = false
 	target_node = null
