@@ -19,6 +19,12 @@ from core.web import RequestHandler, api  # pylint: disable=unused-import # prev
 log = logging.getLogger(__name__)
 
 
+def enable_compression(request: Request, response: StreamResponse) -> None:
+    # The UI can not handle compressed responses. Allow compression only if requested by somebody else
+    if "ckui-via" not in request.headers:
+        response.enable_compression()
+
+
 async def on_response_prepare(request: Request, response: StreamResponse) -> None:
     # Headers are required for the UI to work, since it uses SharedArrayBuffer.
     # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
@@ -29,10 +35,6 @@ async def on_response_prepare(request: Request, response: StreamResponse) -> Non
     # In case of a CORS request: a response header to allow the origin is required
     if request.headers.get("sec-fetch-mode") == "cors":
         response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
-
-    # The UI can not handle compressed responses. Allow compression only if requested by somebody else
-    if "ckui-via" not in request.headers:
-        response.enable_compression()
 
 
 @middleware
@@ -72,7 +74,7 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
 
 
 def error_handler(
-    api_handler: "api.Api", args: Namespace, event_sender: AnalyticsEventSender
+    args: Namespace, event_sender: AnalyticsEventSender
 ) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
     is_debug = (logging.root.level < logging.INFO) or args.debug
 
@@ -82,11 +84,7 @@ def error_handler(
     @middleware
     async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
         try:
-            if api_handler.in_shutdown:
-                # We are currently in shutdown: inform the caller to retry later.
-                return HTTPServiceUnavailable(headers={"Retry-After": "5"})
-            else:
-                return await handler(request)
+            return await handler(request)
         except HTTPRedirection as e:
             # redirects are implemented as exceptions in aiohttp for whatever reason...
             raise e
@@ -115,3 +113,15 @@ def error_handler(
             raise HTTPBadRequest(text=message) from e
 
     return error_handler_middleware
+
+
+def default_middleware(api_handler: "api.Api") -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+    @middleware
+    async def default_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+        if api_handler.in_shutdown:
+            # We are currently in shutdown: inform the caller to retry later.
+            return HTTPServiceUnavailable(headers={"Retry-After": "5"})
+        else:
+            return await handler(request)
+
+    return default_handler

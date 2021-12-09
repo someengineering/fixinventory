@@ -66,7 +66,14 @@ from core.util import (
     del_value_in_path,
 )
 from core.web import auth
-from core.web.directives import metrics_handler, error_handler, on_response_prepare, cors_handler
+from core.web.directives import (
+    metrics_handler,
+    error_handler,
+    on_response_prepare,
+    cors_handler,
+    enable_compression,
+    default_middleware,
+)
 from core.web.tsdb import tsdb
 from core.worker_task_queue import (
     WorkerTaskDescription,
@@ -111,11 +118,13 @@ class Api:
         self.query_parser = query_parser
         self.args = args
         self.app = web.Application(
+            # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
                 auth.auth_handler(args),
-                error_handler(self, args, event_sender),
                 cors_handler,
+                error_handler(args, event_sender),
+                default_middleware(self),
             ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
@@ -840,6 +849,7 @@ class Api:
         content_type, result_gen = await Api.result_binary_gen(accept, gen)
         count_header = {"Ck-Element-Count": str(count)} if count else {}
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
+        enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
         async for data in result_gen:
             await writer.write(data)
