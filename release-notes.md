@@ -26,7 +26,7 @@ The data that is anonymized and purely focused on providing product insights.
 It is possible to opt out of sending this data by specifying the command line flag `--analytics-opt-out`.
 
 
-**Query language improvements**
+**Query language improvements**<br/>
 There are several significant improvements in this area.
 It is now possible to define sub-queries (#412) which allow merging nodes with other nodes in the graph.
 Additionally, the first step toward a full-featured query template engine has been implemented in #431.
