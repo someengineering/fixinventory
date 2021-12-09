@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="cloudkeeper-plugin-tag_aws_ctime",
-    version="2.0.0a9",
+    version="2.0.0a10",
     description="AWS ctime Tagging Plugin",
     license="Apache 2.0",
     packages=find_packages(),
