@@ -19,7 +19,7 @@ Try it out yourself by following the [Kubernetes setup tutorial in our documenta
 We needed to migrate all cleanup plugins to the 2.0 infrastructure.
 With this release, all cleanup plugins have been ported (#422) and (#439).
 
-**We integrated analytics sensors**<br/>
+**Analytics sensors were added**
 At Some Engineering, we believe that it is important to know how Cloudkeeper is used, and thus how we can improve.
 As such, we have added analytics to our codebase.
 The data that is anonymized and purely focused on providing product insights.
