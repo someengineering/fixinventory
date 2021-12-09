@@ -140,7 +140,7 @@ func generate_graph(filtered_data_result: Dictionary):
 
 func filter_data_on_load(element, filter_by_kinds):
 	if "id" in element:
-		if element.reported.kind in filter_by_kinds:
+		if element.kind in filter_by_kinds:
 			loaded_data_filtered_ids.append(element.id)
 			return true
 	elif element.to in loaded_data_filtered_ids and element.from in loaded_data_filtered_ids:

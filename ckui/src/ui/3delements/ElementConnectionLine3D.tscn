@@ -18,7 +18,7 @@ surfaces/0 = {
 }
 
 [node name="Line3D" type="MeshInstance"]
-transform = Transform( 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0 )
+material_override = ExtResource( 2 )
 mesh = SubResource( 1 )
-material/0 = ExtResource( 2 )
+material/0 = null
 script = ExtResource( 1 )

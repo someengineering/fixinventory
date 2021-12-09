@@ -5,7 +5,6 @@ signal multithreaded_layout_done
 signal hovering_node
 signal show_node
 signal hide_nodes
-signal show_connected_nodes
 signal order_done
 signal graph_created
 signal reset_camera
@@ -37,6 +36,7 @@ var root_node: Object = null
 var is_removed := false
 var is_active := true
 var update_visuals := false
+var node_selected := false
 
 var node_group: Spatial = null
 var line_group: Spatial = null
@@ -52,7 +52,8 @@ func _ready():
 	clear_graph()
 	add_node_layout()
 	connect("hovering_node", self, "hovering_node")
-	connect("show_connected_nodes", self, "show_connected_nodes")
+	_e.connect("nodeinfo_show", self, "show_info")
+	_e.connect("nodeinfo_hide", self, "hide_info")
 
 
 func add_node_layout():
@@ -77,7 +78,6 @@ func add_node_layout():
 func add_node(_data: Dictionary, _scene: Object, _parent: Object, _random_dist := 1000.0) -> CloudNode:
 	var new_cloud_node = CloudNode.new()
 	new_cloud_node.id = _data.id
-	new_cloud_node.reported = _data.reported
 	new_cloud_node.kind = _data.reported.kind
 	new_cloud_node.data = _data
 
@@ -91,13 +91,16 @@ func add_node(_data: Dictionary, _scene: Object, _parent: Object, _random_dist :
 	return new_cloud_node
 
 
-func add_edge(_data: Dictionary, _scene: Object, _parent: Object) -> CloudEdge:
+func add_edge(_data: Dictionary, _scene: Object, _parent: Object, _edge_id: int) -> CloudEdge:
 	var new_edge = CloudEdge.new()
 	new_edge.from = graph_data.nodes[_data.from]
+	graph_data.nodes[_data.from].edges_from.append(new_edge)
 	new_edge.to = graph_data.nodes[_data.to]
+	graph_data.nodes[_data.to].edges_to.append(new_edge)
+	new_edge.id = _edge_id
 
 	var new_edge_line = _scene
-	new_edge.line = new_edge_line
+	new_edge.scene = new_edge_line
 	_parent.add_child(new_edge_line)
 
 	return new_edge
@@ -107,11 +110,37 @@ func clear_graph(graph_id := ""):
 	graph_data = {"id": graph_id, "nodes": {}, "edges": {}}
 
 
-func hovering_node(_node_id := ""):
-	if "":
-		pass
-	else:
-		print(_node_id)
+func hovering_node(_node_id:= "", _activate:= false, _direct_call:= false):
+	if node_selected and !_direct_call:
+		return
+	
+	var _node = graph_data.nodes[_node_id]
+	_node.scene.highlight(_activate)
+	# This is a bit messy and also not complete. But after the benchmarks it's faster than a recursive function
+	# and three levels of depth should cover most cases.
+	for edge in _node.edges_from:
+		graph_data.edges[edge.id].scene.highlight(_activate)
+		graph_data.edges[edge.id].to.scene.highlight(_activate, true)
+		for edge_l2 in graph_data.edges[edge.id].to.edges_from:
+			graph_data.edges[edge_l2.id].scene.highlight(_activate)
+			graph_data.edges[edge_l2.id].to.scene.highlight(_activate, true)
+			for edge_l3 in graph_data.edges[edge_l2.id].to.edges_from:
+				graph_data.edges[edge_l3.id].scene.highlight(_activate)
+				graph_data.edges[edge_l3.id].to.scene.highlight(_activate, true)
+		
+	for edge in _node.edges_to:
+		graph_data.edges[edge.id].scene.highlight(_activate)
+		graph_data.edges[edge.id].from.scene.highlight(_activate, true)
+
+
+func show_info(target_node):
+	node_selected = true
+	hovering_node(target_node.id, true, true)
+
+
+func hide_info(target_node):
+	hovering_node(target_node.id, false, true)
+	node_selected = false
 
 
 func start_streaming(graph_id: String):
@@ -201,7 +230,8 @@ func create_new_graph_edge(data: Dictionary):
 	# For connection lines
 	var new_edge_line = ConnectionLineScene.instance()
 	var _parent = graph_data.nodes[data.to].scene
-	graph_data.edges[graph_data.edges.size()] = add_edge(data, new_edge_line, _parent)
+	var _edge_id = graph_data.edges.size()
+	graph_data.edges[_edge_id] = add_edge(data, new_edge_line, _parent, _edge_id)
 
 
 func create_new_graph_node(data: Dictionary):
@@ -278,9 +308,9 @@ func create_graph_raw(raw_data: Dictionary, total_nodes: int):
 
 func update_connection_lines() -> void:
 	for connection in graph_data.edges.values():
-		connection.line.global_transform.origin = connection.from.scene.global_transform.origin
-		connection.line.look_at(connection.to.scene.global_transform.origin, Vector3(0, -1, 0))
-		connection.line.scale.z = (connection.to.scene.global_transform.origin - connection.line.global_transform.origin).length()
+		connection.scene.global_transform.origin = connection.from.scene.global_transform.origin
+		connection.scene.look_at(connection.to.scene.global_transform.origin, Vector3(0, -1, 0))
+		connection.scene.scale.z = (connection.to.scene.global_transform.origin - connection.scene.global_transform.origin).length()
 
 
 func center_diagram():
@@ -291,7 +321,6 @@ func center_diagram():
 func remove_graph():
 	is_removed = true
 	disconnect("hovering_node", self, "hovering_node")
-	disconnect("show_connected_nodes", self, "show_connected_nodes")
 	queue_free()
 
 

@@ -80,10 +80,10 @@ func add_edge(_data: Dictionary) -> CloudEdge:
 	new_edge.to = graph_data.nodes[_data.to]
 
 	var new_edge_line = Line2D.new()
-	new_edge.line = new_edge_line
-	new_edge.line.width = 4
-	new_edge.line.antialiased = true
-	new_edge.line.default_color = new_edge.color
+	new_edge.scene = new_edge_line
+	new_edge.scene.width = 4
+	new_edge.scene.antialiased = true
+	new_edge.scene.default_color = new_edge.color
 	line_group.add_child(new_edge_line)
 
 	return new_edge
@@ -169,7 +169,7 @@ func end_streaming():
 
 	for edge in graph_data.edges.values():
 		var edge_scale = edge.to.scene.descendant_scale
-		edge.line.width = clamp(4 * edge_scale, 1, 8)
+		edge.scene.width = clamp(4 * edge_scale, 1, 8)
 
 	node_group.modulate.a = 1
 	emit_signal("graph_created")
@@ -224,7 +224,7 @@ func create_graph_direct(_graph_data: Dictionary):
 		new_edge_line.width = 2
 
 		new_edge_line.default_color = edge.color
-		edge.line = new_edge_line
+		edge.scene = new_edge_line
 		line_group.add_child(new_edge_line)
 
 	if root_node == null:
@@ -266,9 +266,9 @@ func graph_rand_layout():
 
 func update_connection_lines() -> void:
 	for connection in graph_data.edges.values():
-		connection.line.global_position = connection.from.scene.global_position
-		var point_to = connection.to.scene.global_position - connection.line.global_position
-		connection.line.points = PoolVector2Array([Vector2.ZERO, point_to])
+		connection.scene.global_position = connection.from.scene.global_position
+		var point_to = connection.to.scene.global_position - connection.scene.global_position
+		connection.scene.points = PoolVector2Array([Vector2.ZERO, point_to])
 
 
 func layout_graph(graph_node_positions := {}) -> void:
@@ -299,15 +299,15 @@ func hovering_node(node_id, power) -> void:
 				if connection.to.id == node_id
 				else Color(0.5, 1.5, 2, 1)
 			)
-			if is_instance_valid(connection.line):
-				connection.line.self_modulate = lerp(Color.white, line_color * 1.5, power)
+			if is_instance_valid(connection.scene):
+				connection.scene.self_modulate = lerp(Color.white, line_color * 1.5, power)
 
 
 func show_all() -> void:
 	emit_signal("hide_nodes")
 	for connection in graph_data.edges.values():
 		var line_color = Color(1, 0.2, 0.2, 0.5)
-		connection.line.default_color = line_color
+		connection.scene.default_color = line_color
 	for node in graph_data.nodes.values():
 		node.scene.labels_unisize(0.15)
 
