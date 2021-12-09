@@ -24,6 +24,9 @@ class Scheduler:
     async def start(self) -> None:
         self.scheduler.start()
 
+    async def stop(self) -> None:
+        self.scheduler.remove_all_jobs()
+
     def cron(
         self, job_id: str, name: str, cron_string: str, func: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> Job:

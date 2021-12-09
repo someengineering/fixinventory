@@ -140,8 +140,7 @@ func api_response(chunk: String):
 func api_response_finished():
 	_g.api.disconnect("api_response", self, "api_response")
 	_g.api.disconnect("api_response_finished", self, "api_response_finished")
-
-	var account_dict: Dictionary
+	var account_dict:= {}
 	for result in api_response_data:
 		if "descendant_count" in result.metadata:
 			account_dict[result.reported.name] = result.metadata.descendant_count
@@ -259,10 +258,13 @@ func calc_map():
 		value_total += d.ds_value_temp
 		values_in_dataset.append(d.ds_value_temp)
 
-	var smallest_value = float(values_in_dataset.min())
-	var biggest_value = float(values_in_dataset.max())
-
-	var zero_value = max(smallest_value / 4, 1)
+	if values_in_dataset.empty():
+		return
+	var smallest_value = float( values_in_dataset.min() )
+	var biggest_value = float( values_in_dataset.max() )
+	
+	var zero_value = max(smallest_value/4, 1)
+  
 	for d in datasets:
 		if d.ds_is_zero:
 			d.ds_value_temp = zero_value

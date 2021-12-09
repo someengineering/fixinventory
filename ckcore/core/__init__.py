@@ -11,7 +11,7 @@ __description__ = "Cloudkeeper core."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2021 Some Engineering Inc."
-__version__ = "2.0.0a9"
+__version__ = "2.0.0a10"
 
 
 def version() -> str:

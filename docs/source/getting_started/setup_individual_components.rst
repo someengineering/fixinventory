@@ -166,8 +166,8 @@ First you need to install :ref:`component-cklib` as a dependency to :ref:`setup-
 .. code-block:: bash
     :caption: Install cklib und ckcore
 
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=cklib&subdirectory=cklib"
-    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a6#egg=ckcore&subdirectory=ckcore"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a9#egg=cklib&subdirectory=cklib"
+    pip install "git+https://github.com/someengineering/cloudkeeper.git@2.0.0a9#egg=ckcore&subdirectory=ckcore"
 
 Usage
 -----

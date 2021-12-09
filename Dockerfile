@@ -2,11 +2,13 @@ FROM phusion/baseimage:focal-1.0.0 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
-ARG PYTHON_VERSION=3.10.0
+ARG PYTHON_VERSION=3.10.1
 ARG PYPY_VERSION=7.3.7
 ARG ARANGODB_VERSION=3.8.3
-ARG PROMETHEUS_VERSION=2.30.1
+ARG PROMETHEUS_VERSION=2.31.1
 ARG GODOT_VERSION=3.4
+ARG CRYPTO_EXPORT_TEMPLATES_DEBUG_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_debug.zip
+ARG CRYPTO_EXPORT_TEMPLATES_RELEASE_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_release.zip
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Install Build dependencies
@@ -57,9 +59,13 @@ WORKDIR /build/godot
 RUN mkdir -p /root/.local/share/godot/templates
 RUN curl -L -o /tmp/godot.zip https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux_headless.64.zip
 RUN curl -L -o /tmp/godot.tpz https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+RUN curl -L -o /tmp/webassembly_threads_debug.zip ${CRYPTO_EXPORT_TEMPLATES_DEBUG_URI}
+RUN curl -L -o /tmp/webassembly_threads_release.zip ${CRYPTO_EXPORT_TEMPLATES_RELEASE_URI}
 RUN unzip /tmp/godot.zip -d /build/godot
 RUN unzip /tmp/godot.tpz -d /root/.local/share/godot/templates
 RUN mv /root/.local/share/godot/templates/templates /root/.local/share/godot/templates/${GODOT_VERSION}.stable
+RUN mv -f /tmp/webassembly_threads_debug.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_debug.zip
+RUN mv -f /tmp/webassembly_threads_release.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_release.zip
 
 # Download and install CPython
 WORKDIR /build/python

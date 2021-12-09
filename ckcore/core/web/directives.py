@@ -3,7 +3,9 @@ from argparse import Namespace
 from re import RegexFlag, fullmatch
 from typing import Optional, Callable, Awaitable
 
-from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException
+from aiohttp.hdrs import METH_OPTIONS
+from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
+from aiohttp.web_exceptions import HTTPServiceUnavailable
 from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
@@ -12,9 +14,15 @@ from core import version
 from core.analytics import AnalyticsEventSender, CoreEvent
 from core.error import NotFoundError, ClientError
 from core.metrics import RequestInProgress, RequestLatency, RequestCount, perf_now
-from core.web import RequestHandler
+from core.web import RequestHandler, api  # pylint: disable=unused-import # prevent circular import
 
 log = logging.getLogger(__name__)
+
+
+def enable_compression(request: Request, response: StreamResponse) -> None:
+    # The UI can not handle compressed responses. Allow compression only if requested by somebody else
+    if "ckui-via" not in request.headers:
+        response.enable_compression()
 
 
 async def on_response_prepare(request: Request, response: StreamResponse) -> None:
@@ -23,6 +31,29 @@ async def on_response_prepare(request: Request, response: StreamResponse) -> Non
     if fullmatch("/ui/.*", request.path, RegexFlag.IGNORECASE):
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+
+    # In case of a CORS request: a response header to allow the origin is required
+    if request.headers.get("sec-fetch-mode") == "cors":
+        response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+
+
+@middleware
+async def cors_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+    if request.method == METH_OPTIONS:
+        return HTTPNoContent(
+            headers={
+                # allow origin of request or all if none is defined.
+                "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+                # allow the requested method or all if none is defined.
+                "Access-Control-Allow-Methods": request.headers.get("access-control-request-method", "*"),
+                # allow the requested header names or all if none is defined.
+                "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "*"),
+                # allow the client to cache this result
+                "Access-Control-Max-Age": "86400",  # allow caching for one day
+            }
+        )
+    else:
+        return await handler(request)
 
 
 @middleware
@@ -53,8 +84,7 @@ def error_handler(
     @middleware
     async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
         try:
-            response = await handler(request)
-            return response
+            return await handler(request)
         except HTTPRedirection as e:
             # redirects are implemented as exceptions in aiohttp for whatever reason...
             raise e
@@ -83,3 +113,15 @@ def error_handler(
             raise HTTPBadRequest(text=message) from e
 
     return error_handler_middleware
+
+
+def default_middleware(api_handler: "api.Api") -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+    @middleware
+    async def default_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+        if api_handler.in_shutdown:
+            # We are currently in shutdown: inform the caller to retry later.
+            return HTTPServiceUnavailable(headers={"Retry-After": "5"})
+        else:
+            return await handler(request)
+
+    return default_handler

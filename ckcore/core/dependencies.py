@@ -20,6 +20,15 @@ log = logging.getLogger(__name__)
 
 
 def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
+    def is_file(message: str) -> Callable[[str], str]:
+        def check_file(path: str) -> str:
+            if os.path.isfile(path):
+                return path
+            else:
+                raise AttributeError(f"{message}: path {path} is not a directory!")
+
+        return check_file
+
     def is_dir(message: str) -> Callable[[str], str]:
         def check_dir(path: str) -> str:
             if os.path.isdir(path):
@@ -95,8 +104,8 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     )
     parser.add_argument(
         "--plantuml-server",
-        default="https://www.plantuml.com/plantuml",
-        help="PlantUML server URI for UML image rendering (default: https://www.plantuml.com/plantuml)",
+        default="http://plantuml.cloudkeeper.org:8080",
+        help="PlantUML server URI for UML image rendering.",
     )
     parser.add_argument(
         "--host",
@@ -133,6 +142,23 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "--tsdb-proxy-url",
         type=is_url("can not parse --tsdb-proxy-url"),
         help="The url to the time series database. This path will be served under /tsdb/.",
+    )
+    parser.add_argument(
+        "--tls-cert",
+        type=is_file("can not parse --tls-cert"),
+        help="Path to a single file in PEM format containing the certificate as well as any number "
+        "of CA certificates needed to establish the certificate’s authenticity.",
+    )
+    parser.add_argument(
+        "--tls-key",
+        type=is_file("can not parse --tls-key"),
+        help="Path to a file containing the private key. "
+        "If not defined the private key will be taken from certfile as well.",
+    )
+    parser.add_argument(
+        "--tls-password",
+        type=str,
+        help="Optional password to decrypt the private key file.",
     )
 
     TaskHandler.add_args(parser)

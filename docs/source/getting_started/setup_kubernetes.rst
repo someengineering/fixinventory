@@ -181,7 +181,7 @@ Install Cloudkeeper:
 .. code-block:: bash
     :caption: Install Cloudkeeper
 
-    helm install cloudkeeper ./cloudkeeper/kubernetes/chart --set image.tag=2.0.0a8 -f cloudkeeper-values.yaml
+    helm install cloudkeeper ./cloudkeeper/kubernetes/chart --set image.tag=2.0.0a9 -f cloudkeeper-values.yaml
 
 
 
