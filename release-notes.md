@@ -1,3 +1,50 @@
+
+# Release Notes 2.0.0a9 (Dec 9th, 2021)
+
+We are happy to announce another small increment towards our plan to a stable 2.0 version.
+
+The following 4 feature increments should be highlighted:
+
+**The UI is now shipped as part of every release**<br/>
+This is the first version that ships with our gorgeous UI.
+Try it out by downloading the latest version and accessing it via `https://path.to.cloudkeeper:8900/ui`.
+The main graph view has changed from 2D to 3D and shows Treemap charts (#457).
+
+**We now have a helm chart**<br/>
+Thanks to a contribution from @yuval-k, we now have a helm chart (#428).
+With this chart in place, it is straightforward to deploy cloudkeeper in Kubernetes.
+Try it out yourself by following the [instructions](https://docs.some.engineering/getting_started/setup_kubernetes.html).
+
+**All cleanup plugins are now available**<br/>
+We needed to migrate all cleanup plugins to the 2.0 infrastructure.
+With this release, all cleanup plugins have been ported (#422) and (#439).
+
+**We integrated analytics sensors**<br/>
+You only care what you measure. We at Some Engineering believe, that it is important to know
+how Cloudkeeper is used and how we can improve it.
+That is the reason why we added analytics to our codebase.
+The data that we collect is anonymized with the pure focus of product insights.
+If this is a red flag for you, it is possible to opt-out via the command line flag.
+
+
+**Query language improvements**
+There are multiple bigger improvements here.
+It is now possible to define sub-queries (#412), that allow merging nodes with other nodes in the graph.
+
+Furthermore, the first step for a full-featured query template engine has been made with (#431).
+This feature allows defining queries as a template and reusing those templates in other queries.
+This greatly simplifies more complex queries.
+
+**Other improvements**
+
+- `[ckcore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. (#425)
+- `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. (#430)
+- `[ckcore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. (#427)
+- `[ckcore]` arangodb 3.8.2 or later is now the minimum required version to run cloudkeeper. (#445)
+- `[ckcore]` `tag` command can be backgrounded. (#437)
+- `[ckcore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) (#432)
+
+
 #  Release Notes 2.0.0a3 (Oct 4th, 2021)
 
 
@@ -23,7 +70,7 @@ For the past two months, we’ve been busy changing that. And the result is rele
 
 6. Workflows - from hard-coded to extendable
 
-We also wrote a lot of new documentation to make it easier for a new user to start with Cloudkeeper. It’s far from done yet, and we’re adding new sections every day.  
+We also wrote a lot of new documentation to make it easier for a new user to start with Cloudkeeper. It’s far from done yet, and we’re adding new sections every day.
 
 But let’s dive into the updates!
 
@@ -49,7 +96,7 @@ A bit more detail on the four components of the architecture.
 
 `ckcore` aka “the core” maintains the graph. Data collection happens via `ckworker`. The workers push data into `ckcore`, after the core has told the workers to start collecting data. In the graph, nodes are individual resources, edges are logical dependencies. Cloudkeeper stores a resource’s attributes in the node. These attributes are the basis for the dependencies that Cloudkeeper creates.
 
-We built `ckcore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `cksh`  
+We built `ckcore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `cksh`
 
 `ckworker` does all the collection and cleanup work in Cloudkeeper. It waits for instructions from ckcore over a WebSocket connection. By default ckworker subscribes to collect, clean up and tag tasks.
 
@@ -133,13 +180,13 @@ Writing queries may not be everyone’s thing though. For those users, we also m
 
 These pre-configured metrics are running as queries in `ckmetrics`. `ckmetrics` connects to the core, runs the queries and recalculates the metrics automatically every time something has changed in the graph, e.g. after a collect or a clean-up. The results are cached in `ckmetrics` and exported to Prometheus where they can be queried via PromQL. From there - you can send them to any visualization tool that understands the prometheus format, such as Grafana. Future versions of `ckmetrics` will allow a user to edit the pre-defined metrics as well as define their own.
 
-##  CLI - From Local To Remote Execution  
+##  CLI - From Local To Remote Execution
 
 The old CLI ran locally on a user’s desktop. That implied that two different users would never look at the same version of a graph - because it was their own “local” version that Cloudkeeper had generated at a specific point in time.
 
 The new CLI executes commands remotely in the core. That means everyone now looks at the same version of a graph, which opens up new collaboration use cases.
 
-##  Workflows - From Hard-Coded to Event-Based  
+##  Workflows - From Hard-Coded to Event-Based
 
 Currently we support three different workflows - collect, clean up and metrics. Workflows consist of steps that perform a specific action.
 
