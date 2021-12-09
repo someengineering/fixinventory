@@ -1,39 +1,36 @@
 
 # Release Notes 2.0.0a9 (Dec 9th, 2021)
 
-We are happy to announce another small increment towards our plan to a stable 2.0 version.
+We are very happy to announce that we are now another small step closer to a stable 2.0 release!
 
-The following 4 feature increments should be highlighted:
+Here are some highlights from this release:
 
 **The UI is now shipped as part of every release**<br/>
 This is the first version that ships with our gorgeous UI.
-Try it out by downloading the latest version and accessing it via `https://path.to.cloudkeeper:8900/ui`.
-The main graph view has changed from 2D to 3D and shows Treemap charts (#457).
+Please try it out by downloading the latest version and navigating to `https://path.to.cloudkeeper:8900/ui` in your browser.
+The main graph view has been upgraded from 2D to 3D, and shows Treemap charts (#457)!
 
 **We now have a helm chart**<br/>
-Thanks to a contribution from @yuval-k, we now have a helm chart (#428).
-With this chart in place, it is straightforward to deploy cloudkeeper in Kubernetes.
-Try it out yourself by following the [instructions](https://docs.some.engineering/getting_started/setup_kubernetes.html).
+Thanks to a contribution from @yuval-k, we now have a Helm chart (#428)!
+With this chart, it is easier to deploy Cloudkeeper in Kubernetes.
+Try it out yourself by following the [Kubernetes setup tutorial in our documentation](https://docs.some.engineering/getting_started/setup_kubernetes.html).
 
 **All cleanup plugins are now available**<br/>
 We needed to migrate all cleanup plugins to the 2.0 infrastructure.
 With this release, all cleanup plugins have been ported (#422) and (#439).
 
 **We integrated analytics sensors**<br/>
-You only care what you measure. We at Some Engineering believe, that it is important to know
-how Cloudkeeper is used and how we can improve it.
-That is the reason why we added analytics to our codebase.
-The data that we collect is anonymized with the pure focus of product insights.
-If this is a red flag for you, it is possible to opt-out via the command line flag.
+At Some Engineering, we believe that it is important to know how Cloudkeeper is used, and thus how we can improve.
+As such, we have added analytics to our codebase.
+The data that is anonymized and purely focused on providing product insights.
+It is possible to opt out of sending this data by specifying the command line flag `--analytics-opt-out`.
 
 
 **Query language improvements**
-There are multiple bigger improvements here.
-It is now possible to define sub-queries (#412), that allow merging nodes with other nodes in the graph.
-
-Furthermore, the first step for a full-featured query template engine has been made with (#431).
-This feature allows defining queries as a template and reusing those templates in other queries.
-This greatly simplifies more complex queries.
+There are several significant improvements in this area.
+It is now possible to define sub-queries (#412) which allow merging nodes with other nodes in the graph.
+Additionally, the first step toward a full-featured query template engine has been implemented in #431.
+This feature allows defining queries as a template and reusing those templates in other queries, greatly simplifying more complex queries.
 
 **Other improvements**
 
