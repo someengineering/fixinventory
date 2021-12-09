@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Mapping, List, Union, Any
+from typing import Optional, Mapping, List, Union
 
 from core.types import JsonElement
 from core.util import utc
@@ -58,10 +58,10 @@ class AnalyticsEventSender(ABC):
     async def capture(self, event: AnalyticsEvent) -> None:
         pass
 
-    async def __aenter__(self) -> AnalyticsEventSender:
+    async def start(self) -> AnalyticsEventSender:
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def stop(self) -> None:
         return None
 
 
@@ -73,9 +73,8 @@ class NoEventSender(AnalyticsEventSender):
     async def capture(self, event: AnalyticsEvent) -> None:
         log.debug(event)
 
-    async def __aenter__(self) -> AnalyticsEventSender:
+    async def stop(self) -> None:
         log.info("Analytics has been turned off. No insights can be created.")
-        return self
 
 
 class InMemoryEventSender(AnalyticsEventSender):

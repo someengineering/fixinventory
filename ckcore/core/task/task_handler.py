@@ -211,6 +211,12 @@ class TaskHandler(JobHandler):
         return instances
 
     async def __aenter__(self) -> TaskHandler:
+        return await self.start()
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        return await self.stop()
+
+    async def start(self) -> TaskHandler:
         log.info("TaskHandler is starting up!")
 
         # load job descriptions from configuration files
@@ -254,7 +260,7 @@ class TaskHandler(JobHandler):
         self.message_bus_watcher = asyncio.create_task(listen_to_message_bus())
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def stop(self) -> None:
         log.info("Tear down task handler")
         # deregister from all triggers
         for descriptor in self.task_descriptions:

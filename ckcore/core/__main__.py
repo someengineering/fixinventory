@@ -89,6 +89,17 @@ def main() -> None:
     )
 
     async def on_start() -> None:
+        # queue must be created inside an async function!
+        cli_deps.extend(forked_tasks=Queue())
+        await db.start()
+        await event_sender.start()
+        await subscriptions.start()
+        await scheduler.start()
+        await worker_task_queue.start()
+        await event_emitter.start()
+        await cli.start()
+        await task_handler.start()
+        await api.start()
         if created:
             await event_sender.core_event(CoreEvent.SystemInstalled)
         await event_sender.core_event(
@@ -104,19 +115,11 @@ def main() -> None:
             mem_total=mem.total,
             mem_available=mem.available,
         )
-        # queue must be created inside an async function!
-        cli_deps.extend(forked_tasks=Queue())
-        await db.start()
-        await subscriptions.start()
-        await scheduler.start()
-        await worker_task_queue.start()
-        await event_emitter.start()
-        await cli.start()
-        await api.start()
 
     async def on_stop() -> None:
         duration = utc() - started_at
         await api.stop()
+        await task_handler.stop()
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
         await event_emitter.stop()
@@ -124,6 +127,7 @@ def main() -> None:
         await scheduler.stop()
         await subscriptions.stop()
         await db.stop()
+        await event_sender.stop()
 
     async def async_initializer() -> Application:
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
@@ -133,16 +137,6 @@ def main() -> None:
             log.info("Shutdown initiated. Stop all tasks.")
             await on_stop()
 
-        async def manage_task_handler(_: Application) -> AsyncIterator[None]:
-            async with task_handler:
-                yield  # none is yielded: we only want to start/stop the task_handler reliably
-
-        async def manage_event_sender(_: Application) -> AsyncIterator[None]:
-            async with event_sender:
-                yield  # none is yielded: we only want to start/stop the event_sender reliably
-
-        api.app.cleanup_ctx.append(manage_event_sender)
-        api.app.cleanup_ctx.append(manage_task_handler)
         api.app.cleanup_ctx.append(on_start_stop)
         return api.app
 
