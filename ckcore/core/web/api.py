@@ -222,15 +222,20 @@ class Api:
         if not self.in_shutdown:
             self.in_shutdown = True
             for ws_id in list(self.websocket_handler):
-                with suppress(Exception):
-                    handler = self.websocket_handler.get(ws_id)
-                    if handler:
-                        self.websocket_handler.pop(ws_id, None)
-                        future, ws = handler
-                        future.cancel()
-                        await ws.close()
+                await self.clean_ws_handler(ws_id)
             if self.session:
                 await self.session.close()
+
+    async def clean_ws_handler(self, ws_id: str) -> None:
+        with suppress(Exception):
+            handler = self.websocket_handler.get(ws_id)
+            if handler:
+                self.websocket_handler.pop(ws_id, None)
+                future, ws = handler
+                future.cancel()
+                log.info(f"Cleanup ws handler: {ws_id} ({len(self.websocket_handler)} active)")
+                if not ws.closed:
+                    await ws.close()
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
@@ -349,6 +354,7 @@ class Api:
     ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
+        wsid = uuid_str()
 
         async def receive() -> None:
             async for msg in ws:
@@ -370,7 +376,8 @@ class Api:
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
-                    await ws.close()
+                finally:
+                    await self.clean_ws_handler(wsid)
 
         async def send() -> None:
             try:
@@ -381,13 +388,13 @@ class Api:
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Send: message listener {listener_id}: {ex}. Hang up.")
-                await ws.close()
+            finally:
+                await self.clean_ws_handler(wsid)
 
         if initial_messages:
             for msg in initial_messages:
                 await ws.send_str(to_js_str(msg) + "\n")
 
-        wsid = uuid_str()
         to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
         self.websocket_handler[wsid] = (to_wait, ws)
         await to_wait
@@ -425,7 +432,8 @@ class Api:
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
-                    await ws.close()
+                finally:
+                    await self.clean_ws_handler(worker_id)
 
         async def send() -> None:
             try:
@@ -436,7 +444,8 @@ class Api:
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Send: worker:{worker_id}: {ex}. Hang up.")
-                await ws.close()
+            finally:
+                await self.clean_ws_handler(worker_id)
 
         to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
         self.websocket_handler[worker_id] = (to_wait, ws)
