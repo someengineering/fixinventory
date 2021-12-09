@@ -3,16 +3,14 @@ import multiprocessing
 import os
 import platform
 import ssl
-
-import sys
 from asyncio import Queue
 from datetime import timedelta
+from ssl import SSLContext
 from typing import AsyncIterator, Optional
 
 import psutil
-from aiohttp import web
+import sys
 from aiohttp.web_app import Application
-from ssl import SSLContext
 
 from core import version
 from core.analytics import CoreEvent, NoEventSender
@@ -30,6 +28,7 @@ from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
 from core.util import shutdown_process, utc
+from core.web import runner
 from core.web.api import Api
 from core.worker_task_queue import WorkerTaskQueue
 
@@ -152,7 +151,7 @@ def main() -> None:
         tls_context = SSLContext(ssl.PROTOCOL_TLS)
         tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
 
-    web.run_app(async_initializer(), host=args.host, port=args.port, ssl_context=tls_context)
+    runner.run_app(async_initializer(), api.stop, host=args.host, port=args.port, ssl_context=tls_context)
 
 
 if __name__ == "__main__":

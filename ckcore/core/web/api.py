@@ -31,6 +31,9 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
+from asyncio import Future
+
+from contextlib import suppress
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -119,6 +122,7 @@ class Api:
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         self.session: Optional[ClientSession] = None
         self.in_shutdown = False
+        self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
             [
@@ -215,9 +219,18 @@ class Api:
         pass
 
     async def stop(self) -> None:
-        self.in_shutdown = True
-        if self.session:
-            await self.session.close()
+        if not self.in_shutdown:
+            self.in_shutdown = True
+            for ws_id in list(self.websocket_handler):
+                with suppress(Exception):
+                    handler = self.websocket_handler.get(ws_id)
+                    if handler:
+                        self.websocket_handler.pop(ws_id, None)
+                        future, ws = handler
+                        future.cancel()
+                        await ws.close()
+            if self.session:
+                await self.session.close()
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
@@ -373,7 +386,12 @@ class Api:
         if initial_messages:
             for msg in initial_messages:
                 await ws.send_str(to_js_str(msg) + "\n")
-        await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+
+        wsid = uuid_str()
+        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        self.websocket_handler[wsid] = (to_wait, ws)
+        await to_wait
+        self.websocket_handler.pop(wsid, None)
         return ws
 
     async def handle_work_tasks(
@@ -420,7 +438,10 @@ class Api:
                 log.info(f"Send: worker:{worker_id}: {ex}. Hang up.")
                 await ws.close()
 
-        await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        self.websocket_handler[worker_id] = (to_wait, ws)
+        await to_wait
+        self.websocket_handler.pop(worker_id, None)
         return ws
 
     async def create_work(self, request: Request) -> StreamResponse:
