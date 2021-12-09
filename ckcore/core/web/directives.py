@@ -5,6 +5,7 @@ from typing import Optional, Callable, Awaitable
 
 from aiohttp.hdrs import METH_OPTIONS
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
+from aiohttp.web_exceptions import HTTPServiceUnavailable
 from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import StreamResponse
@@ -13,7 +14,7 @@ from core import version
 from core.analytics import AnalyticsEventSender, CoreEvent
 from core.error import NotFoundError, ClientError
 from core.metrics import RequestInProgress, RequestLatency, RequestCount, perf_now
-from core.web import RequestHandler
+from core.web import RequestHandler, api  # pylint: disable=unused-import # prevent circular import
 
 log = logging.getLogger(__name__)
 
@@ -83,8 +84,7 @@ def error_handler(
     @middleware
     async def error_handler_middleware(request: Request, handler: RequestHandler) -> StreamResponse:
         try:
-            response = await handler(request)
-            return response
+            return await handler(request)
         except HTTPRedirection as e:
             # redirects are implemented as exceptions in aiohttp for whatever reason...
             raise e
@@ -113,3 +113,15 @@ def error_handler(
             raise HTTPBadRequest(text=message) from e
 
     return error_handler_middleware
+
+
+def default_middleware(api_handler: "api.Api") -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+    @middleware
+    async def default_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+        if api_handler.in_shutdown:
+            # We are currently in shutdown: inform the caller to retry later.
+            return HTTPServiceUnavailable(headers={"Retry-After": "5"})
+        else:
+            return await handler(request)
+
+    return default_handler

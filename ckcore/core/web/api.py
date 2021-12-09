@@ -31,6 +31,9 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
+from asyncio import Future
+
+from contextlib import suppress
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -63,7 +66,14 @@ from core.util import (
     del_value_in_path,
 )
 from core.web import auth
-from core.web.directives import metrics_handler, error_handler, on_response_prepare, enable_compression, cors_handler
+from core.web.directives import (
+    metrics_handler,
+    error_handler,
+    on_response_prepare,
+    cors_handler,
+    enable_compression,
+    default_middleware,
+)
 from core.web.tsdb import tsdb
 from core.worker_task_queue import (
     WorkerTaskDescription,
@@ -108,11 +118,20 @@ class Api:
         self.query_parser = query_parser
         self.args = args
         self.app = web.Application(
-            middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender), cors_handler]
+            # note on order: the middleware is passed in the order provided.
+            middlewares=[
+                metrics_handler,
+                auth.auth_handler(args),
+                cors_handler,
+                error_handler(args, event_sender),
+                default_middleware(self),
+            ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         self.session: Optional[ClientSession] = None
+        self.in_shutdown = False
+        self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
             [
@@ -209,8 +228,23 @@ class Api:
         pass
 
     async def stop(self) -> None:
-        if self.session:
-            await self.session.close()
+        if not self.in_shutdown:
+            self.in_shutdown = True
+            for ws_id in list(self.websocket_handler):
+                await self.clean_ws_handler(ws_id)
+            if self.session:
+                await self.session.close()
+
+    async def clean_ws_handler(self, ws_id: str) -> None:
+        with suppress(Exception):
+            handler = self.websocket_handler.get(ws_id)
+            if handler:
+                self.websocket_handler.pop(ws_id, None)
+                future, ws = handler
+                future.cancel()
+                log.info(f"Cleanup ws handler: {ws_id} ({len(self.websocket_handler)} active)")
+                if not ws.closed:
+                    await ws.close()
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
@@ -329,6 +363,7 @@ class Api:
     ) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
+        wsid = uuid_str()
 
         async def receive() -> None:
             async for msg in ws:
@@ -350,7 +385,8 @@ class Api:
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
-                    await ws.close()
+                finally:
+                    await self.clean_ws_handler(wsid)
 
         async def send() -> None:
             try:
@@ -361,12 +397,16 @@ class Api:
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Send: message listener {listener_id}: {ex}. Hang up.")
-                await ws.close()
+            finally:
+                await self.clean_ws_handler(wsid)
 
         if initial_messages:
             for msg in initial_messages:
                 await ws.send_str(to_js_str(msg) + "\n")
-        await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+
+        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        self.websocket_handler[wsid] = (to_wait, ws)
+        await to_wait
         return ws
 
     async def handle_work_tasks(
@@ -400,7 +440,8 @@ class Api:
                 except Exception as ex:
                     # do not allow any exception - it will destroy the async fiber and cleanup
                     log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
-                    await ws.close()
+                finally:
+                    await self.clean_ws_handler(worker_id)
 
         async def send() -> None:
             try:
@@ -411,9 +452,12 @@ class Api:
             except Exception as ex:
                 # do not allow any exception - it will destroy the async fiber and cleanup
                 log.info(f"Send: worker:{worker_id}: {ex}. Hang up.")
-                await ws.close()
+            finally:
+                await self.clean_ws_handler(worker_id)
 
-        await asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        to_wait = asyncio.gather(asyncio.create_task(receive()), asyncio.create_task(send()))
+        self.websocket_handler[worker_id] = (to_wait, ws)
+        await to_wait
         return ws
 
     async def create_work(self, request: Request) -> StreamResponse:
@@ -805,7 +849,6 @@ class Api:
         content_type, result_gen = await Api.result_binary_gen(accept, gen)
         count_header = {"Ck-Element-Count": str(count)} if count else {}
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
-        # this has to be done on response level before it is prepared
         enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
         async for data in result_gen:
