@@ -1,2 +1,2 @@
-cklib==2.0.0a9
-cloudkeeper-plugin-aws==2.0.0a9
+cklib==2.0.0a10
+cloudkeeper-plugin-aws==2.0.0a10
