@@ -35,8 +35,8 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                 headers.popall("Content-Length", "none")
                 headers.popall("Content-Encoding", "none")
                 response = StreamResponse(status=cr.status, reason=cr.reason, headers=headers)
-                await response.prepare(request)
                 enable_compression(request, response)
+                await response.prepare(request)
                 async for data in cr.content.iter_chunked(1024 * 1024):
                     await response.write(data)
                 await response.write_eof()
