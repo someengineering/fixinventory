@@ -63,7 +63,7 @@ from core.util import (
     del_value_in_path,
 )
 from core.web import auth
-from core.web.directives import metrics_handler, error_handler, on_response_prepare, enable_compression, cors_handler
+from core.web.directives import metrics_handler, error_handler, on_response_prepare, cors_handler
 from core.web.tsdb import tsdb
 from core.worker_task_queue import (
     WorkerTaskDescription,
@@ -108,11 +108,17 @@ class Api:
         self.query_parser = query_parser
         self.args = args
         self.app = web.Application(
-            middlewares=[metrics_handler, auth.auth_handler(args), error_handler(args, event_sender), cors_handler]
+            middlewares=[
+                metrics_handler,
+                auth.auth_handler(args),
+                error_handler(self, args, event_sender),
+                cors_handler,
+            ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
         self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         self.session: Optional[ClientSession] = None
+        self.in_shutdown = False
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
             [
@@ -209,6 +215,7 @@ class Api:
         pass
 
     async def stop(self) -> None:
+        self.in_shutdown = True
         if self.session:
             await self.session.close()
 
@@ -805,8 +812,6 @@ class Api:
         content_type, result_gen = await Api.result_binary_gen(accept, gen)
         count_header = {"Ck-Element-Count": str(count)} if count else {}
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
-        # this has to be done on response level before it is prepared
-        enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
         async for data in result_gen:
             await writer.write(data)
