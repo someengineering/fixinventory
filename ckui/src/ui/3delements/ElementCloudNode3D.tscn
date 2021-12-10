@@ -35,6 +35,7 @@ shape = SubResource( 12 )
 
 [node name="Label" type="MeshInstance" parent="."]
 transform = Transform( 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 )
+visible = false
 material_override = ExtResource( 3 )
 cast_shadow = 0
 generate_lightmap = false
