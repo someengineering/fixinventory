@@ -13,6 +13,8 @@ var treemap: Object = null
 var line_length := 200.0 setget set_line_length
 var default_material_color = Color("#f21a78a5")
 
+onready var label = $Label
+
 func _ready() -> void:
 	_e.connect("change_cam_zoom_3d", self, "change_cam_zoom_3d")
 
@@ -31,12 +33,12 @@ func _ready() -> void:
 func deliver_label(_image):
 	var tex = ImageTexture.new()
 	tex.create_from_image(_image)
-	$Label.material_override.set_shader_param("texture_albedo", tex)
-	$Label.show()
+	label.material_override.set_shader_param("texture_albedo", tex)
+	label.show()
 
 
 func change_cam_zoom_3d(zoom: float):
-	$Label.scale = Vector3.ONE * zoom
+	label.scale = Vector3.ONE * zoom
 
 
 func set_line_length(value: float):
