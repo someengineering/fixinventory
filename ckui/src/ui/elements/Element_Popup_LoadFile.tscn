@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://ui/elements/Element_Popup.tscn" type="PackedScene" id=1]
 [ext_resource path="res://ui/elements/scripts/element_popup_load_data.gd" type="Script" id=2]
@@ -14,19 +14,7 @@ use_mipmaps = true
 use_filter = true
 font_data = SubResource( 17 )
 
-[sub_resource type="DynamicFontData" id=41]
-font_path = "res://assets/fonts/GemunuLibre-Light.ttf"
-
-[sub_resource type="DynamicFont" id=42]
-size = 28
-use_mipmaps = true
-use_filter = true
-extra_spacing_top = -6
-extra_spacing_char = 1
-font_data = SubResource( 41 )
-
 [node name="PopupLoadFile" instance=ExtResource( 1 )]
-visible = true
 script = ExtResource( 2 )
 
 [node name="Mouseblock" type="Control" parent="." index="0"]
@@ -78,80 +66,13 @@ custom_colors/font_color_pressed = Color( 1, 1, 1, 0.784314 )
 pressed = true
 text = "cloud"
 
-[node name="FilterButtons" type="HBoxContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="2"]
+[node name="Spacer2" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="2"]
 margin_top = 97.0
-margin_right = 1660.0
-margin_bottom = 131.0
-custom_constants/separation = 20
-alignment = 1
-
-[node name="MetricDateRangeLabel" type="Label" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="0"]
-modulate = Color( 1, 1, 1, 0.784314 )
-use_parent_material = true
-margin_left = 630.0
-margin_top = 4.0
-margin_right = 770.0
-margin_bottom = 29.0
-mouse_filter = 1
-custom_colors/font_color = Color( 0.517647, 0.901961, 1, 1 )
-custom_colors/font_color_shadow = Color( 0, 0.843137, 1, 0.0392157 )
-custom_constants/shadow_offset_y = 5
-custom_constants/shadow_as_outline = 1
-custom_fonts/font = SubResource( 42 )
-text = "Filter by kind"
-align = 1
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="MarginContainer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="1"]
-margin_left = 790.0
-margin_right = 790.0
-margin_bottom = 34.0
-
-[node name="AllButton" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="2" instance=ExtResource( 4 )]
-margin_left = 810.0
-margin_right = 910.0
-margin_bottom = 34.0
-rect_min_size = Vector2( 100, 34 )
-size_flags_vertical = 0
-
-[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton/CenterContainer" index="0"]
-margin_left = 34.0
-margin_top = 3.0
-margin_right = 66.0
-margin_bottom = 31.0
-rect_pivot_offset = Vector2( 16, 16 )
-text = "All"
-
-[node name="NoneButton" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons" index="3" instance=ExtResource( 4 )]
-margin_left = 930.0
-margin_right = 1030.0
-margin_bottom = 34.0
-rect_min_size = Vector2( 100, 34 )
-size_flags_vertical = 0
-
-[node name="ButtonLabel" parent="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton/CenterContainer" index="0"]
-margin_left = 19.0
-margin_top = 3.0
-margin_right = 81.0
-margin_bottom = 31.0
-rect_pivot_offset = Vector2( 30, 16 )
-text = "None"
-
-[node name="GridContainer" type="GridContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="3"]
-margin_top = 161.0
-margin_right = 1660.0
-margin_bottom = 161.0
-columns = 5
-
-[node name="Spacer2" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="4"]
-margin_top = 191.0
 margin_right = 1660.0
 margin_bottom = 599.0
 size_flags_vertical = 3
 
-[node name="ApiModeButton" parent="Margin/MarginContainer/Content/VBoxContainer" index="5" instance=ExtResource( 4 )]
+[node name="ApiModeButton" parent="Margin/MarginContainer/Content/VBoxContainer" index="3" instance=ExtResource( 4 )]
 margin_left = 655.0
 margin_top = 629.0
 margin_right = 1005.0
@@ -168,7 +89,7 @@ margin_bottom = 31.0
 rect_pivot_offset = Vector2( 121, 16 )
 text = "Switch to API Connection"
 
-[node name="Spacer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="6"]
+[node name="Spacer" type="MarginContainer" parent="Margin/MarginContainer/Content/VBoxContainer" index="4"]
 margin_top = 693.0
 margin_right = 1660.0
 margin_bottom = 713.0
@@ -197,14 +118,10 @@ margin_right = 1360.0
 wait_time = 0.2
 autostart = true
 
-[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton" to="." method="_on_AllButton_pressed"]
-[connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton" to="." method="_on_NoneButton_pressed"]
 [connection signal="pressed" from="Margin/MarginContainer/Content/VBoxContainer/ApiModeButton" to="." method="_on_ApiModeButton_pressed"]
 [connection signal="pressed" from="Margin/MarginContainer/PopupButtons/ExampleDataButton" to="." method="_on_ExampleDataButton_pressed"]
 [connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
 
-[editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/AllButton"]
-[editable path="Margin/MarginContainer/Content/VBoxContainer/FilterButtons/NoneButton"]
 [editable path="Margin/MarginContainer/Content/VBoxContainer/ApiModeButton"]
 [editable path="Margin/MarginContainer/PopupButtons/CancelButton"]
 [editable path="Margin/MarginContainer/PopupButtons/ExampleDataButton"]
