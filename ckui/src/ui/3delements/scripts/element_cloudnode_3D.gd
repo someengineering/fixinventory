@@ -32,6 +32,7 @@ func deliver_label(_image):
 	var tex = ImageTexture.new()
 	tex.create_from_image(_image)
 	$Label.material_override.set_shader_param("texture_albedo", tex)
+	$Label.show()
 
 
 func change_cam_zoom_3d(zoom: float):
