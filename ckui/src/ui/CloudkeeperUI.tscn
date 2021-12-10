@@ -253,7 +253,6 @@ __meta__ = {
 }
 
 [node name="PopupLoadFile" parent="UI/Popups" instance=ExtResource( 16 )]
-visible = false
 popup_exclusive = true
 
 [node name="PopupConnectCore" parent="UI/Popups" instance=ExtResource( 19 )]
