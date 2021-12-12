@@ -99,12 +99,12 @@ func popup_ok():
 	for i in grid.get_children():
 		if i.pressed:
 			filters.append( i.text )
-	emit_signal("load_file", filters)
+	emit_signal( "load_file" )
 
 
 func _on_ExampleDataButton_pressed():
 	_g.use_example_data = true
-	emit_signal( "use_example_data", [] )
+	emit_signal( "use_example_data" )
 	popup_close()
 
 

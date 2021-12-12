@@ -72,7 +72,7 @@ func popup_ok():
 
 func _on_ExampleDataButton_pressed():
 	_g.use_example_data = true
-	emit_signal( "use_example_data", [] )
+	emit_signal( "use_example_data" )
 	popup_close()
 
 
