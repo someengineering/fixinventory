@@ -7,4 +7,5 @@ func _ready():
 
 func resize_viewports():
 	var new_size = get_viewport().size
+	$Viewport.set_size_override(true, Vector2(1920,1080))
 	$Viewport.size = new_size
