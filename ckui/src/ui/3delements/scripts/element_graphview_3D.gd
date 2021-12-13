@@ -36,6 +36,7 @@ var root_node: Object = null
 var is_removed := false
 var is_active := true
 var update_visuals := false
+var node_selected := false
 var size_by_descendants := false
 var node_selected := false
 
@@ -218,7 +219,13 @@ func add_streamed_object(data: Dictionary):
 	else:
 		create_new_graph_edge(data)
 
+		
+func create_new_graph_edge(data: Dictionary):
+	# For SFDP creation
+	graph_data.nodes[data.from].connections.append(graph_data.nodes[data.to])
+	graph_data.nodes[data.to].connections.append(graph_data.nodes[data.from])
 
+	
 func create_new_graph_edge(data: Dictionary):
 	# For SFDP creation
 	graph_data.nodes[data.from].connections.append(graph_data.nodes[data.to])
@@ -335,7 +342,6 @@ func graph_calc_layout():
 	center_diagram()
 
 	var benchmark_start = OS.get_ticks_usec()
-	
 	var layout_groups = []
 	threads_result.clear()
 

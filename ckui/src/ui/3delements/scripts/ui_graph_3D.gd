@@ -252,13 +252,13 @@ func _physics_process(delta):
 	else:
 		drag_rmb_power *= 54 * delta
 		is_rmb_dragging_cam = false
-	
-	
+  
 	var rot_drag_lmb_power = Vector3(drag_lmb_power.x, -drag_lmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
 	var rot_drag_rmb_power = Vector3(drag_rmb_power.x, -drag_rmb_power.y, 0).rotated(Vector3.UP, graph_cam_arm.rotation.y)
 	graph_cam_arm.rotation_degrees.y -= drag_rmb_power.x*0.2
 	graph_cam_arm.translation -= rot_drag_lmb_power + Vector3(0, rot_drag_rmb_power.y*0.5, 0)
 	
+
 	if is_in_graph:
 		if Input.is_action_just_released("zoom_in"):
 			change_cam_zoom(max(graph_cam.fov * 0.95, MIN_ZOOM_3D))
