@@ -3,48 +3,49 @@ extends Spatial
 var scanned := 0.0
 var is_scanned := false
 var is_selected := false setget set_is_selected
-var cloud_node : CloudNode = null setget set_cloud_node
+var is_hovered := false setget set_is_hovered
+var cloud_node: CloudNode = null setget set_cloud_node
 var random_pos := Vector3.ZERO
 var graph_pos := Vector3.ZERO
-var parent_graph : Object = null
+var parent_graph: Object = null
 var descendant_scale := 1.0 setget set_descendant_scale
-var treemap : Object = null
+var treemap: Object = null
 var line_length := 200.0 setget set_line_length
+var default_material_color = Color("#f21a78a5")
 
+onready var label = $Label
 
 func _ready() -> void:
-#	parent_graph.connect("show_node", self, "show_detail")
-#	parent_graph.connect("hide_nodes", self, "hide_detail")
 	_e.connect("change_cam_zoom_3d", self, "change_cam_zoom_3d")
-	_e.connect("graph_spaceship", self, "update_spaceship_mode")
-	set_hover_power(0)
-	
-	var node_name_full = cloud_node.reported.name
+
+	var node_name_full = cloud_node.data.reported.name
 	var node_name_short = node_name_full
 	var node_name_lenght = node_name_full.length()
 	if node_name_lenght > 16:
-		node_name_short = node_name_short.left(8) + "..." + node_name_short.right(node_name_lenght-6)
+		node_name_short = (
+			node_name_short.left(8)
+			+ "..."
+			+ node_name_short.right(node_name_lenght - 6)
+		)
 	_e.emit_signal("request_label", node_name_full, self)
 
 
 func deliver_label(_image):
 	var tex = ImageTexture.new()
 	tex.create_from_image(_image)
-	$Label.material_override.set_shader_param("texture_albedo", tex)
+	label.material_override.set_shader_param("texture_albedo", tex)
+	label.show()
 
 
-func change_cam_zoom_3d(zoom:float):
-	$Label.scale = Vector3.ONE * zoom
+func change_cam_zoom_3d(zoom: float):
+	label.scale = Vector3.ONE * zoom
 
-func set_line_length(value:float):
+
+func set_line_length(value: float):
 	line_length = value
 
 
-func set_descendant_scale(_value:float):
-	pass
-
-
-func update_spaceship_mode():
+func set_descendant_scale(_value: float):
 	pass
 
 
@@ -56,22 +57,43 @@ func scanning(_delta) -> void:
 	pass
 
 
-func set_cloud_node(value:CloudNode) -> void:
+func set_cloud_node(value: CloudNode) -> void:
 	cloud_node = value
 
 
-func set_node_type(_value:String) -> void:
+func set_node_type(_value: String) -> void:
 	pass
 
-func set_hovering(_value:bool) -> void:
+
+func set_hovering(_value: bool) -> void:
 	pass
 
-func set_is_selected(value:bool) -> void:
+
+func set_is_selected(value: bool) -> void:
+	if value == is_selected:
+		return
 	is_selected = value
 
 
-func set_hover_power(_value:float) -> void:
-	pass
+func set_is_hovered(value: bool) -> void:
+	if value == is_hovered:
+		return
+	is_hovered = value
+	
+	if is_hovered:
+		parent_graph.hovering_node(cloud_node.id, true)
+	else:
+		parent_graph.hovering_node(cloud_node.id, false)
+
+
+func highlight(_active:= false, _connection:=false):
+	if _active:
+		if _connection:
+			$Cube.material_override.albedo_color = default_material_color * Color(1.3,1.3,2,1)
+		else:
+			$Cube.material_override.albedo_color = default_material_color * 3
+	else:
+		$Cube.material_override.albedo_color = default_material_color
 
 
 func show_detail(node_id):
@@ -93,3 +115,11 @@ func _on_Area_input_event(_camera, event, _position, _normal, _shape_idx):
 		#right click
 		elif event.button_index == BUTTON_RIGHT:
 			pass
+
+
+func _on_Area_mouse_entered():
+	set_is_hovered(true)
+
+
+func _on_Area_mouse_exited():
+	set_is_hovered(false)

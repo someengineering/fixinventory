@@ -6,6 +6,7 @@
 [ext_resource path="res://assets/graphics/sci-fi/default_node_texture.png" type="Texture" id=4]
 
 [sub_resource type="SpatialMaterial" id=13]
+resource_local_to_scene = true
 params_specular_mode = 4
 params_billboard_mode = 1
 albedo_color = Color( 0.101961, 0.470588, 0.647059, 0.94902 )
@@ -34,6 +35,7 @@ shape = SubResource( 12 )
 
 [node name="Label" type="MeshInstance" parent="."]
 transform = Transform( 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 )
+visible = false
 material_override = ExtResource( 3 )
 cast_shadow = 0
 generate_lightmap = false
@@ -41,3 +43,5 @@ mesh = SubResource( 10 )
 material/0 = null
 
 [connection signal="input_event" from="Cube/Area" to="." method="_on_Area_input_event"]
+[connection signal="mouse_entered" from="Cube/Area" to="." method="_on_Area_mouse_entered"]
+[connection signal="mouse_exited" from="Cube/Area" to="." method="_on_Area_mouse_exited"]

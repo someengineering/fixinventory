@@ -549,8 +549,8 @@ custom_constants/separation = 50
 alignment = 1
 
 [node name="CancelButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
-margin_left = 360.0
-margin_right = 660.0
+margin_left = 535.0
+margin_right = 835.0
 margin_bottom = 34.0
 rect_min_size = Vector2( 300, 34 )
 size_flags_vertical = 0
@@ -563,8 +563,8 @@ margin_bottom = 31.0
 text = "Cancel"
 
 [node name="ExampleDataButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
-margin_left = 710.0
-margin_right = 1010.0
+margin_left = 885.0
+margin_right = 1185.0
 margin_bottom = 34.0
 rect_min_size = Vector2( 300, 34 )
 size_flags_vertical = 0
@@ -577,6 +577,7 @@ margin_bottom = 31.0
 text = "Use example data"
 
 [node name="FileModeButton" parent="Margin/MarginContainer/PopupButtons" instance=ExtResource( 1 )]
+visible = false
 margin_left = 1060.0
 margin_right = 1360.0
 margin_bottom = 34.0

@@ -3,14 +3,16 @@ class_name CloudNode
 
 var id := ""
 var kind := ""
-var reported := {}
 var data := {}
-var scene : Object
+var scene: Object
 var connections := []
-var velocity : Vector2
-var velocity_3d : Vector3
+var edges_to := []
+var edges_from := []
+var velocity: Vector2
+var velocity_3d: Vector3
 
-func clone(original : CloudNode):
+
+func clone(original: CloudNode):
 	id = original.id
 	kind = original.kind
-	reported = original.reported.duplicate(true)
+	data = original.data.duplicate(true)

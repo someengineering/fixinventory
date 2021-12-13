@@ -1,5 +1,6 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=4 format=2]
 
+[ext_resource path="res://ui/3delements/scripts/element_cloudedge_3D.gd" type="Script" id=1]
 [ext_resource path="res://assets/materials/ElementConnectionLine3D.tres" type="Material" id=2]
 
 [sub_resource type="ArrayMesh" id=1]
@@ -17,6 +18,7 @@ surfaces/0 = {
 }
 
 [node name="Line3D" type="MeshInstance"]
-transform = Transform( 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0 )
+material_override = ExtResource( 2 )
 mesh = SubResource( 1 )
-material/0 = ExtResource( 2 )
+material/0 = null
+script = ExtResource( 1 )

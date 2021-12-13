@@ -9,9 +9,9 @@ const CONNECT_TEXT = "Connecting to Cloudkeeper Core. ({0}s)\n{1}:{2}"
 var graph_id := "example"
 var api_response_data : String
 
-var adress : String
-var port : int
-var psk : String
+var adress: String
+var port: int
+var psk: String
 
 onready var connect_input = find_node("ConnectInput")
 onready var connect_btn = find_node("ConnectButton")
@@ -26,6 +26,7 @@ onready var box = find_node("CheckBox")
 
 func _ready():
 	_e.connect("connect_popup", self, "popup_show")
+
 
 func _on_CancelButton_pressed():
 	popup_close()
@@ -42,6 +43,16 @@ func popup_show():
 	_g.api.connect("api_connecting_timer", self, "api_connecting_timer")
 	_g.api.connect("api_response", self, "api_response")
 	_g.api.connect("api_response_finished", self, "api_response_finished")
+	load_default_values()
+
+
+func load_default_values():
+	var connection_data = Utils.load_json("res://data/connection_data.json")
+	if connection_data.empty():
+		return
+	$Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Adress/AdressEdit.text = connection_data.server
+	$Margin/MarginContainer/Content/VBoxContainer/ConnectInput/Port/PortEdit.text = str(connection_data.port)
+	$Margin/MarginContainer/Content/VBoxContainer/PSK/PSKEdit.text = connection_data.psk
 
 
 func popup_close():
@@ -55,8 +66,8 @@ func popup_close():
 func popup_ok():
 	popup_close()
 	graph_id = graph_dropdown.get_item_text(graph_dropdown.selected)
-	
-	var query : String
+
+	var query: String
 	match graph_mode.selected:
 		0:
 			query = "id(root) -[0:3]-> is(graph_root) or is(cloud) or is(account) or is(region)"
@@ -64,15 +75,15 @@ func popup_ok():
 			query = "id(root) -[0:2]-> is(graph_root) or is(cloud) or is(account)"
 		2:
 			query = "is(graph_root) -[0:]->"
-	
+
 	_g.main_graph.graph_mode = graph_mode.selected
-	_g.msg( "query " + query )
+	_g.msg("query " + query)
 	emit_signal("create_graph", graph_id, query)
 
 
 func _on_ExampleDataButton_pressed():
 	_g.use_example_data = true
-	emit_signal( "use_example_data" )
+	emit_signal("use_example_data")
 	popup_close()
 
 
@@ -85,10 +96,10 @@ func _on_ConnectButton_pressed():
 	connect_form_visible(false)
 	status.text = CONNECT_TEXT.format(["0", adress, port])
 	yield(VisualServer, "frame_post_draw")
-	_e.emit_signal( "api_connect", adress, port, psk, 10 )
-	
-	
-func connected_to_core_msg(had_timeout:bool):
+	_e.emit_signal("api_connect", adress, port, psk, 10)
+
+
+func connected_to_core_msg(had_timeout: bool):
 	status.text = "Connected!\nGetting graphs..." if !had_timeout else TEXT_ERROR_CONNECTION
 	yield(VisualServer, "frame_post_draw")
 	if !had_timeout:
@@ -96,20 +107,21 @@ func connected_to_core_msg(had_timeout:bool):
 	else:
 		retry_btn.show()
 
+
 func _on_RetryButton_pressed():
 	retry_btn.hide()
 	connect_form_visible(true)
 
 
-func connect_form_visible(value:bool):
+func connect_form_visible(value: bool):
 	connect_btn.visible = value
 	connect_input.visible = value
 	psk_input.visible = value
 	status.visible = !value
 
 
-func api_connecting_timer( time:float ):
-	status.text = CONNECT_TEXT.format([str( floor(time) ), adress, port])
+func api_connecting_timer(time: float):
+	status.text = CONNECT_TEXT.format([str(floor(time)), adress, port])
 
 
 func api_response( chunk:String ):

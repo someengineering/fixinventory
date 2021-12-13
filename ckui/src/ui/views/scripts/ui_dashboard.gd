@@ -1,16 +1,17 @@
 extends Control
 
-
-
 var data := {}
 var accounts := []
 var clouds := []
 
+
 func _ready():
 	read_data()
-	
+
 	for linechart in get_tree().get_nodes_in_group("metricviz_linechart"):
-		linechart.set_data( get_metric_data( "", clouds[ min(linechart.cloud_type, clouds.size()-1) ] ) )
+		linechart.set_data(
+			get_metric_data("", clouds[min(linechart.cloud_type, clouds.size() - 1)])
+		)
 
 
 func read_data():
@@ -24,7 +25,7 @@ func read_data():
 		var example_data_file = load("res://scripts/tools/example_data.gd")
 		var example_data = example_data_file.new()
 		data = example_data.tsdb_data.duplicate()
-	
+
 	for i in data.data.result:
 		if !accounts.has(i.metric.account):
 			accounts.append(i.metric.account)
@@ -32,18 +33,20 @@ func read_data():
 			clouds.append(i.metric.cloud)
 
 
-func get_metric_data( account := "", cloud := "" ) -> Array:
+func get_metric_data(account := "", cloud := "") -> Array:
 	var result := []
 	for i in data.data.result:
 		var result_cloud = i.metric.cloud
 		var result_account = i.metric.account
-		
-		if ((cloud == "" and account == "")  
-		or (cloud == result_cloud and account == "")
-		or (cloud == "" and account == result_account)
-		or (cloud == result_cloud and account == result_account)):
-			result.append( { "metrics" : i.metric, "values" : i.values } )
-	
+
+		if (
+			(cloud == "" and account == "")
+			or (cloud == result_cloud and account == "")
+			or (cloud == "" and account == result_account)
+			or (cloud == result_cloud and account == result_account)
+		):
+			result.append({"metrics": i.metric, "values": i.values})
+
 	return result
 
 

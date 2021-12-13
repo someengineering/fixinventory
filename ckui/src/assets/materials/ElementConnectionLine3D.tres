@@ -1,14 +1,15 @@
 [gd_resource type="SpatialMaterial" load_steps=3 format=2]
 
 [sub_resource type="Gradient" id=3]
-offsets = PoolRealArray( 0, 0.25, 0.75, 1 )
-colors = PoolColorArray( 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 )
+offsets = PoolRealArray( 0, 0.22, 0.519337, 0.8, 1 )
+colors = PoolColorArray( 0.0196078, 0.427451, 1, 0, 0.0196078, 0.427451, 1, 1, 0.297043, 0.581849, 0.738281, 1, 0.207843, 0.831373, 0.847059, 1, 0.207843, 0.831373, 0.847059, 0 )
 
 [sub_resource type="GradientTexture" id=4]
 gradient = SubResource( 3 )
 
 [resource]
+resource_local_to_scene = true
 resource_name = "None"
 flags_transparent = true
-albedo_color = Color( 0.176471, 0.462745, 0.666667, 0.254902 )
+albedo_color = Color( 1, 1, 1, 0.27451 )
 albedo_texture = SubResource( 4 )

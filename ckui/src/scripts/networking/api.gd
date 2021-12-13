@@ -39,14 +39,17 @@ func connect_to_core( adress := current_adress, port := current_port, _psk := ps
 	
 	err = http.connect_to_host(current_adress, current_port)
 	if err != OK:
-		debug_message( "Error in connection! Check adress and port!" )
+		debug_message("Error in connection! Check adress and port!")
 		return
-	
+
 	var timeout_start = OS.get_ticks_usec()
-	while http.get_status() == HTTPClient.STATUS_CONNECTING or http.get_status() == HTTPClient.STATUS_RESOLVING:
+	while (
+		http.get_status() == HTTPClient.STATUS_CONNECTING
+		or http.get_status() == HTTPClient.STATUS_RESOLVING
+	):
 		http.poll()
 		var timout_measure = OS.get_ticks_usec()
-		var timeout_time = (timout_measure - timeout_start)/1000000.0
+		var timeout_time = (timout_measure - timeout_start) / 1000000.0
 		debug_message("Connecting... - Timer: " + str(timeout_time) + "sec")
 		emit_signal("api_connecting_timer", timeout_time)
 		yield(get_tree(), "idle_frame")
@@ -56,7 +59,7 @@ func connect_to_core( adress := current_adress, port := current_port, _psk := ps
 		if timeout_time > timeout:
 			had_timeout = true
 			break
-		
+
 		if !OS.has_feature("web"):
 			OS.delay_msec(100)
 			#yield(Engine.get_main_loop(), "idle_frame")
@@ -111,16 +114,16 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 		"Ckui-via: " + ckui_via,
 		"Authorization: Bearer " + jwtlib.token,
 		"Content-Type: text/plain",
-		#"Accept-Encoding: gzip"
+#		"Accept-Encoding: gzip"
 	]
 	
 	if http.get_status() != HTTPClient.STATUS_CONNECTED:
 		return
 	
 	err = http.request(method, url, headers, body)
-	
+
 	if err != OK:
-		debug_message( "Request error! Something went wrong when sending the request." )
+		debug_message("Request error! Something went wrong when sending the request.")
 		return
 
 	while http.get_status() == HTTPClient.STATUS_REQUESTING:
@@ -137,20 +140,27 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 			yield(get_tree(), "idle_frame")
 	
 	# Make sure request finished well.
-	if!(http.get_status() == HTTPClient.STATUS_BODY or http.get_status() == HTTPClient.STATUS_CONNECTED): 
-		debug_message( "Request error! Something went wrong after the request." )
-	
-	var has_response = "ckcore has a response." if http.has_response() else "ckcore has no response."
+	if !(
+		http.get_status() == HTTPClient.STATUS_BODY
+		or http.get_status() == HTTPClient.STATUS_CONNECTED
+	):
+		debug_message("Request error! Something went wrong after the request.")
+
+	var has_response = (
+		"ckcore has a response."
+		if http.has_response()
+		else "ckcore has no response."
+	)
 	debug_message(has_response + "\n###########")
 
 	if http.has_response():
 		headers = http.get_response_headers_as_dictionary()
-		debug_message("Response code: " + str(http.get_response_code()) )
+		debug_message("Response code: " + str(http.get_response_code()))
 		debug_message("Response headers:")
 		var header_keys = headers.keys()
 		for header_key in header_keys:
 			debug_message(header_key + ": " + headers[header_key])
-		
+
 		if "Ck-Element-Count" in headers:
 			emit_signal("api_response_total_elements", int( headers["Ck-Element-Count"] ) )
 		
@@ -168,8 +178,7 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 #			debug_message("Response Length: "+ str(body_length) )
 
 		var read_buffer = PoolByteArray()
-		
-		
+
 		var index := 0
 		# While there is body left to be read, get chunks
 		while http.get_status() == HTTPClient.STATUS_BODY:
@@ -202,6 +211,8 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 
 		# The following part is not neccessary at the moment as 
 		# the result will be handled while receiving the response.
+
+
 #		var request_result = read_buffer.get_string_from_ascii()
 #		print("Result: ", result)
 
