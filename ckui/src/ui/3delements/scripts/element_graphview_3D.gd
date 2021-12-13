@@ -38,7 +38,6 @@ var is_active := true
 var update_visuals := false
 var node_selected := false
 var size_by_descendants := false
-var node_selected := false
 
 var node_group: Spatial = null
 var line_group: Spatial = null
@@ -219,13 +218,7 @@ func add_streamed_object(data: Dictionary):
 	else:
 		create_new_graph_edge(data)
 
-		
-func create_new_graph_edge(data: Dictionary):
-	# For SFDP creation
-	graph_data.nodes[data.from].connections.append(graph_data.nodes[data.to])
-	graph_data.nodes[data.to].connections.append(graph_data.nodes[data.from])
 
-	
 func create_new_graph_edge(data: Dictionary):
 	# For SFDP creation
 	graph_data.nodes[data.from].connections.append(graph_data.nodes[data.to])
