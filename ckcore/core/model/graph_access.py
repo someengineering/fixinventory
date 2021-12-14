@@ -217,11 +217,7 @@ class GraphAccess:
         self.at = utc()
         self.at_json = utc_str(self.at)
         self.maybe_root_id = maybe_root_id
-        log.info("Resolve attributes in graph")
-        for node_id in self.nodes:
-            self.__resolve(node_id, self.nodes[node_id])
-        self.__resolve_count_descendants()
-        log.info("Resolve attributes finished.")
+        self.resolved = False
 
     def root(self) -> str:
         return self.maybe_root_id if self.maybe_root_id else GraphAccess.root_id(self.g)
@@ -240,6 +236,15 @@ class GraphAccess:
         if result:
             self.visited_edges.add(key)
         return result
+
+    def resolve(self) -> None:
+        if not self.resolved:
+            self.resolved = True
+            log.info("Resolve attributes in graph")
+            for node_id in self.nodes:
+                self.__resolve(node_id, self.nodes[node_id])
+            self.__resolve_count_descendants()
+            log.info("Resolve attributes finished.")
 
     def __resolve_count_descendants(self) -> None:
         visited: Set[str] = set()
@@ -308,7 +313,7 @@ class GraphAccess:
     def ancestor_of(self, node_id: str, edge_type: str, kind: str) -> Optional[Json]:
         # note: we are using breadth first search here on purpose.
         # if there is an ancestor with less distance to this node, we should use this one
-        next_level = list(self.predecessors(node_id, edge_type))
+        next_level = [node_id]
 
         while next_level:
             parents: List[str] = []
@@ -358,7 +363,7 @@ class GraphAccess:
 
     @staticmethod
     def merge_graphs(
-        graph: DiGraph,
+        graph: MultiDiGraph,
     ) -> Tuple[List[str], GraphAccess, Generator[Tuple[str, GraphAccess], None, None]]:
         """
         Find all merge graphs in the provided graph.
@@ -383,12 +388,16 @@ class GraphAccess:
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
         def replace_roots() -> Dict[str, Set[str]]:
             graph_root = GraphAccess.root_id(graph)
-            replace_nodes = [node_id for node_id, data in graph.nodes(data=True) if data.get("replace", False)]
+            replace_nodes = {node_id: data for node_id, data in graph.nodes(data=True) if data.get("replace", False)}
             assert (
                 len(replace_nodes) > 0
             ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"
             result: Dict[str, Set[str]] = {}
-            for node in replace_nodes:
+            for node, data in replace_nodes.items():
+                kind = GraphResolver.resolved_kind(data)
+                assert (
+                    kind is not None
+                ), f"Node {node} is marked as replace node, but the kind is not resolved during import!"
                 # compute the shortest path from root to here
                 pres: Set[str] = reduce(lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set())
                 result[node] = pres
@@ -431,6 +440,7 @@ class GraphAccess:
                 sub = GraphAccess(graph.subgraph(successors), root, parent_nodes, parent_edges)
                 yield root, sub
 
+        GraphAccess(graph).resolve()  # resolve graph references
         roots = replace_roots()
         parents: Set[str] = reduce(lambda res, ps: {*res, *ps}, roots.values(), set())
         parent_graph = graph.subgraph(parents)

@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, List
 
+from core.types import Json
+from core.util import value_in_path_get
+
 
 class NodePath:
     node_id = ["id"]
@@ -95,3 +98,11 @@ class GraphResolver:
         "account": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
         "cloud": ResolveProp(NodePath.reported_kind, NodePath.descendant_summary),
     }
+
+    @staticmethod
+    def resolved_kind(node: Json) -> Optional[str]:
+        kinds: List[str] = value_in_path_get(node, NodePath.kinds, [])
+        for kind in kinds:
+            if kind in GraphResolver.resolved_ancestors:
+                return kind
+        return None

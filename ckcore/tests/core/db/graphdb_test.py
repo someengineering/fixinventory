@@ -90,7 +90,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
     def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
-        reported = node if node else to_json(Foo(uid))
+        reported = {**(node if node else to_json(Foo(uid))), "kind": kind}
         graph.add_node(
             uid,
             id=uid,
@@ -102,8 +102,8 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
         )
 
     # root -> collector -> sub_root -> **rest
-    add_node("root", "foo")
-    add_node("collector", "foo", replace=True)
+    add_node("root", "graph_root")
+    add_node("collector", "cloud", replace=True)
     add_node("sub_root", "foo")
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
@@ -126,32 +126,44 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(node_id: str, replace: bool = False) -> str:
-        graph.add_node(node_id, reported=to_json(Foo(node_id)), replace=replace, kinds=["foo"])
+    def add_node(node_id: str, kind: str, replace: bool = False) -> str:
+        reported = {**to_json(Foo(node_id)), "id": node_id, "name": node_id, "kind": kind}
+        graph.add_node(
+            node_id,
+            id=node_id,
+            reported=reported,
+            desired={},
+            metadata={},
+            hash="123",
+            replace=replace,
+            kind=kind,
+            kinds=[kind],
+            kinds_set={kind},
+        )
         return node_id
 
-    root = add_node("root")
-    for collector_num in range(0, 2):
-        collector = add_node(f"collector_{collector_num}")
-        add_edge(root, collector)
+    root = add_node("root", "graph_root")
+    for cloud_num in range(0, 2):
+        cloud = add_node(f"cloud_{cloud_num}", "cloud")
+        add_edge(root, cloud)
         for account_num in range(0, 2):
-            aid = f"{collector_num}:{account_num}"
-            account = add_node(f"account_{aid}")
-            add_edge(collector, account)
-            add_edge(account, collector, EdgeType.delete)
+            aid = f"{cloud_num}:{account_num}"
+            account = add_node(f"account_{aid}", "account")
+            add_edge(cloud, account)
+            add_edge(account, cloud, EdgeType.delete)
             for region_num in range(0, 2):
                 rid = f"{aid}:{region_num}"
-                region = add_node(f"region_{rid}", replace=True)
+                region = add_node(f"region_{rid}", "region", replace=True)
                 add_edge(account, region)
                 add_edge(region, account, EdgeType.delete)
                 for parent_num in range(0, width):
                     pid = f"{rid}:{parent_num}"
-                    parent = add_node(f"parent_{pid}")
+                    parent = add_node(f"parent_{pid}", "parent")
                     add_edge(region, parent)
                     add_edge(parent, region, EdgeType.delete)
                     for child_num in range(0, width):
                         cid = f"{pid}:{child_num}"
-                        child = add_node(f"child_{cid}")
+                        child = add_node(f"child_{cid}", "child")
                         add_edge(parent, child)
                         add_edge(child, parent, EdgeType.delete)
 
@@ -166,6 +178,7 @@ def foo_kinds() -> List[Kind]:
         [
             Property("identifier", "string", required=True),
             Property("kind", "string", required=True),
+            Property("ctime", "datetime"),
         ],
     )
     foo = ComplexKind(
@@ -190,7 +203,12 @@ def foo_kinds() -> List[Kind]:
             Property("g", "int32[]"),
         ],
     )
-    return [base, foo, bla]
+    cloud = ComplexKind("cloud", ["foo"], [])
+    account = ComplexKind("account", ["foo"], [])
+    region = ComplexKind("region", ["foo"], [])
+    parent = ComplexKind("parent", ["foo"], [])
+    child = ComplexKind("child", ["foo"], [])
+    return [base, foo, bla, cloud, account, region, parent, child]
 
 
 @pytest.fixture
@@ -226,6 +244,7 @@ async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
 
 @pytest.fixture
 async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
+    graph_db.db.collection("model").truncate()
     await graph_db.wipe()
     await graph_db.merge_graph(create_graph("yes or no"), foo_model)
     return graph_db
@@ -340,7 +359,7 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
     foos_or_blas = parse_query("is([foo, bla])")
     async with await filled_graph_db.query_list(QueryModel(foos_or_blas, foo_model, "reported")) as gen:
         result = [x async for x in gen]
-        assert len(result) == 113  # all documents, since there are only foos and blas
+        assert len(result) == 111  # 113 minus 1 graph_root, minus one cloud
 
 
 @pytest.mark.asyncio
@@ -349,7 +368,7 @@ async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> No
     blas = Query.by(Query.mk_term("foo").not_term())
     async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
-        assert len(result) == 100
+        assert len(result) == 102
 
 
 @pytest.mark.asyncio
@@ -376,13 +395,13 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)")
     async with await filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported")) as gen:
-        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 13}]
+        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 11}]
 
     agg_combined_var_query = parse_query(
         'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
     )
     async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model, "reported")) as g:
-        assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 13}]
+        assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 11}]
 
 
 @pytest.mark.asyncio
@@ -423,7 +442,7 @@ async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
             assert b.reported.kind == "bla"
             assert len(b.parents) == 4
             for parent in b.parents:
-                assert parent.reported.kind == "foo"
+                assert parent.reported.kind in ["foo", "cloud", "graph_root"]
             assert b.walk.reported.kind == "bla"
             assert b.child == AccessNone()
             assert b.agg == [{"count": 5}]
