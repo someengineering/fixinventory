@@ -112,7 +112,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         type=str,
         default="localhost",
         nargs="+",
-        help=f"TCP host(s) to bind on (default: localhost)",
+        help="TCP host(s) to bind on (default: localhost)",
     )
     parser.add_argument(
         "--port",
