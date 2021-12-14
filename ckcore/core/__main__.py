@@ -39,13 +39,13 @@ def main() -> None:
     # os information
     cpus = multiprocessing.cpu_count()
     mem = psutil.virtual_memory()
-    in_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
+    inside_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
     log.info(
         f"Starting up version={version()} on system with cpus={cpus}, "
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
     started_at = utc()
-    args = parse_args()
+    args = parse_args(inside_docker=inside_docker)
     setup_process(args)
 
     # wait here for an initial connection to the database before we continue. blocking!
@@ -109,7 +109,7 @@ def main() -> None:
                 "created_at": to_json(system_data.created_at),
                 "system": platform.system(),
                 "platform": platform.platform(),
-                "inside_docker": in_docker,
+                "inside_docker": inside_docker,
             },
             cpu_count=cpus,
             mem_total=mem.total,
