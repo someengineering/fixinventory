@@ -45,7 +45,7 @@ def main() -> None:
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
     started_at = utc()
-    args = parse_args(inside_docker=inside_docker)
+    args = parse_args()
     setup_process(args)
 
     # wait here for an initial connection to the database before we continue. blocking!

@@ -19,9 +19,7 @@ from core.task.task_handler import TaskHandler
 log = logging.getLogger(__name__)
 
 
-def parse_args(
-    args: Optional[List[str]] = None, namespace: Optional[str] = None, inside_docker: bool = False
-) -> Namespace:
+def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
     def is_file(message: str) -> Callable[[str], str]:
         def check_file(path: str) -> str:
             if os.path.isfile(path):
@@ -109,13 +107,12 @@ def parse_args(
         default="http://plantuml.cloudkeeper.org:8080",
         help="PlantUML server URI for UML image rendering.",
     )
-    host_default = "0.0.0.0" if inside_docker else "localhost"
     parser.add_argument(
         "--host",
         type=str,
-        default=host_default,
+        default="localhost",
         nargs="+",
-        help=f"TCP host(s) to bind on (default: {host_default})",
+        help=f"TCP host(s) to bind on (default: localhost)",
     )
     parser.add_argument(
         "--port",
