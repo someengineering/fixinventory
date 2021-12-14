@@ -48,6 +48,7 @@ from core.query.query_parser import (
     section_abbreviation_names,
     not_term,
     term_parser,
+    parse_query,
 )
 
 
@@ -174,6 +175,11 @@ def test_query() -> None:
         + "with(empty, -->) sort test asc limit 10"
     )
     assert_round_trip(query_parser, query)
+
+
+def test_special_queries() -> None:
+    # unquoted date like test_date < @YESTERDAY
+    assert str(parse_query("test_date < 2021-12-09")) == 'test_date < "2021-12-09"'
 
 
 def test_query_with_preamble() -> None:

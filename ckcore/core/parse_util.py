@@ -72,17 +72,23 @@ unquoted_end_of_unquoted_str = re.compile("[,\\[\\])(}{\\s]")
 def unquoted_string_parser(stream: str, index: int) -> parsy.Result:
     # read from index until -> end_of_unquoted_str
     # all characters in between have to be allowed characters
-    # there has to be at least one alpha character (to not read numbers as strings)
+    # there has to be at least one non-digit character (to not read numbers as strings)
     start = index
-    found_alpha = False
+    found_no_number = False
     valid_string_chars = True
+
+    # valid numbers are: digits or a minus at the start: 123, -321
+    def is_no_number() -> bool:
+        char = stream[index]
+        return not str.isdigit(char) and not (start == index and char == "-")
+
     # look ahead to next delimiter
     while index < len(stream) and valid_string_chars and not unquoted_end_of_unquoted_str.match(stream[index]):
-        found_alpha = str.isalpha(stream[index]) if not found_alpha else found_alpha
+        found_no_number = is_no_number() if not found_no_number else found_no_number
         valid_string_chars = unquoted_allowed_characters.match(stream[index]) is not None
         index += 1
 
-    if index <= len(stream) and valid_string_chars and found_alpha:
+    if index <= len(stream) and valid_string_chars and found_no_number:
         return parsy.Result.success(index, stream[start:index])
     else:
         return parsy.Result.failure(index, "A-Za-z0-9_-:")
