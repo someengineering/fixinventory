@@ -375,17 +375,14 @@ async def test_jq_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command("query all | count reported.kind", stream.list)
-    assert result[0] == ["graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"]
+    r = await cli.execute_cli_command("query all | count reported.kind", stream.list)
+    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
     # exactly the same command as above (above query would be rewritten as this)
-    result = await cli.execute_cli_command(
+    r = await cli.execute_cli_command(
         "execute_query aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
     )
-    rs = result[0]
-    assert set(rs) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
-    # order is undefined for the first 2 entries
-    assert rs[2:] == ["foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"]
+    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
 
 
 @pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
