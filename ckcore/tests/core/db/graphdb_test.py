@@ -244,8 +244,6 @@ async def graph_db(test_db: StandardDatabase) -> ArangoGraphDB:
 
 @pytest.fixture
 async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGraphDB:
-    if graph_db.db.has_collection("model"):
-        graph_db.db.collection("model").truncate()
     await graph_db.wipe()
     await graph_db.merge_graph(create_graph("yes or no"), foo_model)
     return graph_db
