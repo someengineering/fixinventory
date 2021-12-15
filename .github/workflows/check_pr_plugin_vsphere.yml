@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/vsphere
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-vsphere-code-coverage-report
+          path: ./plugins/vsphere/htmlcov/

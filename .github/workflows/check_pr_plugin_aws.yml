@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/aws
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-aws-code-coverage-report
+          path: ./plugins/aws/htmlcov/

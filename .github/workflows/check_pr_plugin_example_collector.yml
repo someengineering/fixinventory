@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/example_collector
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-example_collector-code-coverage-report
+          path: ./plugins/example_collector/htmlcov/

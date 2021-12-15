@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/github
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-github-code-coverage-report
+          path: ./plugins/github/htmlcov/
