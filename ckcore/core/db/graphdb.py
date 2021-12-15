@@ -29,7 +29,7 @@ from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, Section
 from core.model.model import Model, ComplexKind, TransformKind
 from core.model.resolve_in_graph import NodePath
 from core.query.model import Query
-from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash
+from core.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 
 log = logging.getLogger(__name__)
 
@@ -413,14 +413,14 @@ class ArangoGraphDB(GraphDB):
 
         def render_merge_results(doc: Json, result: Json, q: Query) -> Json:
             for mq in q.merge_query_by_name:
-                merged = doc.get(mq.name)
+                merged = value_in_path(doc, mq.name)
                 if merged:
                     if mq.only_first and isinstance(merged, dict):
                         rendered = render_merge_results(merged, render_prop(merged), mq.query)
-                        result[mq.name] = rendered
+                        set_value_in_path(rendered, mq.name, result)
                     elif isinstance(merged, list):
                         rendered = [render_merge_results(elem, render_prop(elem), mq.query) for elem in merged]
-                        result[mq.name] = rendered
+                        set_value_in_path(rendered, mq.name, result)
             return result
 
         def merge_results(doc: Json) -> Optional[Json]:

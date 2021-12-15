@@ -59,9 +59,11 @@ literal_dp = regex("[A-Za-z0-9][A-Za-z0-9_\\-]*")
 variable_dp_backtick_allowed = regex(r"[^`]+")
 variable_dp_backtick = backtick_dp + variable_dp_backtick_allowed + backtick_dp
 variable_dp_part_string = regex("[A-Za-z_][A-Za-z0-9_]*")
-variable_dp_part_combine = regex("[0-9.*\\[\\]]*")
+variable_dp_part_plain = regex("[.]*")
+variable_dp_part_extra = regex("[0-9.*\\[\\]]*")
 variable_dp_part = variable_dp_part_string | variable_dp_backtick
-variable_dp = (variable_dp_part + variable_dp_part_combine).at_least(1).map("".join)
+variable_dp = (variable_dp_part + variable_dp_part_extra).at_least(1).map("".join)
+variable_no_array_dp = (variable_dp_part + variable_dp_part_plain).at_least(1).map("".join)
 
 
 unquoted_allowed_characters = re.compile("[A-Za-z0-9_\\-:]")
@@ -148,6 +150,7 @@ null_p = lexeme(null_dp)
 float_p = lexeme(float_dp)
 integer_p = lexeme(integer_dp)
 variable_p = lexeme(variable_dp)
+variable_no_array_p = lexeme(variable_no_array_dp)
 literal_p = lexeme(literal_dp)
 quoted_string_p = lexeme(double_quoted_string_dp)
 unquoted_string_p = lexeme(unquoted_string_dp)

@@ -28,6 +28,7 @@ from core.parse_util import (
     space_dp,
     json_value_p,
     variable_p,
+    variable_no_array_p,
     integer_p,
     double_quote_dp,
     l_curly_dp,
@@ -141,7 +142,7 @@ square_brackets_p = lexeme(string("[]"))
 
 @make_parser
 def merge_query_parser() -> Parser:
-    name = yield literal_p
+    name = yield variable_no_array_p
     is_array = yield square_brackets_p.optional()
 
     yield colon_p

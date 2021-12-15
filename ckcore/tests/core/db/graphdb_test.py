@@ -410,10 +410,10 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
 async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     q = parse_query(
         "is(foo) --> is(bla) { "
-        "parents[]: <-[1:]-, "
-        "child: -->, "
+        "foo.bar.parents[]: <-[1:]-, "
+        "foo.child: -->, "
         "walk: <-- -->, "
-        "agg: aggregate(sum(1) as count): <-[0:]- "
+        "bla.agg: aggregate(sum(1) as count): <-[0:]- "
         "}"
     )
     async with await filled_graph_db.query_list(QueryModel(q, foo_model), with_count=True) as cursor:
@@ -421,12 +421,12 @@ async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
         async for bla in cursor:
             b = AccessJson(bla)
             assert b.reported.kind == "bla"
-            assert len(b.parents) == 4
-            for parent in b.parents:
+            assert len(b.foo.bar.parents) == 4
+            for parent in b.foo.bar.parents:
                 assert parent.reported.kind == "foo"
             assert b.walk.reported.kind == "bla"
-            assert b.child == AccessNone()
-            assert b.agg == [{"count": 5}]
+            assert b.foo.child == AccessNone()
+            assert b.bla.agg == [{"count": 5}]
 
 
 @pytest.mark.asyncio
