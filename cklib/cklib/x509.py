@@ -76,10 +76,6 @@ def bootstrap_ca(
 def gen_csr(
     csr_key: RSAPrivateKey,
     common_name: str = "some.engineering",
-    organization_name: str = "Some Engineering Inc.",
-    locality_name: str = "San Francisco",
-    state_or_province_name: str = "California",
-    country_name: str = "US",
     san_dns_names: Optional[List[str]] = None,
     san_ip_addresses: Optional[List[str]] = None,
 ) -> CertificateSigningRequest:
@@ -88,17 +84,7 @@ def gen_csr(
     if san_ip_addresses is None:
         san_ip_addresses = []
     csr_build = x509.CertificateSigningRequestBuilder().subject_name(
-        x509.Name(
-            [
-                x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-                x509.NameAttribute(
-                    NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name
-                ),
-                x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
-                x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
-                x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-            ]
-        )
+        x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     )
     if len(san_dns_names) + len(san_ip_addresses) > 0:
         csr_build = csr_build.add_extension(
@@ -154,6 +140,8 @@ def sign_csr(
             x509.ExtendedKeyUsage(key_usage), critical=False
         )
     for extension in csr.extensions:
+        if not isinstance(extension.value, x509.SubjectAlternativeName):
+            continue
         crt_build = crt_build.add_extension(
             extension.value, critical=extension.critical
         )
