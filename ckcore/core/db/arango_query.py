@@ -34,7 +34,7 @@ from core.query.model import (
     SortOrder,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first
+from core.util import first, set_value_in_path
 
 log = logging.getLogger(__name__)
 
@@ -190,7 +190,7 @@ def query_string(
         result_cursor = next_crs("merge_result")
         merge_cursor = next_crs()
         merge_result = f"LET {result_cursor} = (FOR {merge_cursor} in {cursor} "
-        merge_parts = []
+        merge_parts: Json = {}
 
         def add_merge_query(mq: MergeQuery, part_result: str) -> None:
             nonlocal merge_result
@@ -241,9 +241,13 @@ def query_string(
                 merge_result += f'LET {part_res} = DOCUMENT("{db.vertex_name}", {merge_cursor}.refs.{resolved}_id)'
             else:
                 add_merge_query(mq_in, part_res)
-            merge_parts.append(f"{mq_in.name}: {part_res}")
+            set_value_in_path(part_res, mq_in.name, merge_parts)
 
-        final_merge = f'RETURN MERGE({merge_cursor}, {{{", ".join(merge_parts)}}}))'
+        def merge_part_result(d: Json) -> str:
+            vals = [f"{k}: {merge_part_result(v)}" if isinstance(v, dict) else f"{k}: {v}" for k, v in d.items()]
+            return "{" + ", ".join(vals) + "}"
+
+        final_merge = f"RETURN MERGE({merge_cursor}, {merge_part_result(merge_parts)}))"
         return result_cursor, f"{merge_result} {final_merge}"
 
     def part(p: Part, in_cursor: str, part_idx: int) -> Tuple[Part, str, str, str]:

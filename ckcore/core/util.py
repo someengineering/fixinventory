@@ -25,6 +25,7 @@ from typing import (
     Tuple,
     AsyncIterator,
     Iterator,
+    Union,
 )
 
 from dateutil.parser import isoparse
@@ -163,12 +164,13 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
     return func(x) if x is not None else if_not
 
 
-def value_in_path_get(element: JsonElement, path: List[str], if_none: AnyT) -> AnyT:
-    result = value_in_path(element, path)
+def value_in_path_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
+    result = value_in_path(element, path_or_name)
     return result if result and isinstance(result, type(if_none)) else if_none
 
 
-def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
+def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path)
 
     def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
@@ -182,7 +184,8 @@ def value_in_path(element: JsonElement, path: List[str]) -> Optional[Any]:
     return at_idx(element, 0)
 
 
-def set_value_in_path(element: JsonElement, path: List[str], js: Optional[Json] = None) -> Json:
+def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str], js: Optional[Json] = None) -> Json:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path) - 1
 
     def at_idx(current: Json, idx: int) -> None:
