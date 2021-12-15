@@ -38,3 +38,9 @@ jobs:
       - name: Run tests
         working-directory: ./cklib
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: cklib/htmlcov/
