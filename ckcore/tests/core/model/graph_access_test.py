@@ -302,6 +302,7 @@ def test_ancestor_of() -> None:
 def test_resolve_graph_data() -> None:
     g = multi_cloud_graph("account")
     graph = GraphAccess(g)
+    graph.resolve()
 
     # ancestor data should be stored in metadata
     n1 = AccessJson(graph.node("child_parent_region_account_cloud_gcp_1_europe_1_0"))  # type: ignore
