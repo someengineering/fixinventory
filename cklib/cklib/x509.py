@@ -190,7 +190,7 @@ def key_to_bytes(
     return key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        **kwargs
+        **kwargs,
     )
 
 
