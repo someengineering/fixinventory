@@ -22,7 +22,7 @@ def test_x509():
         cert_csr = gen_csr(
             cert_key,
             san_dns_names=["example.com"],
-            san_ip_addresses=["10.0.0.1"],
+            san_ip_addresses=["10.0.1.1", "10.0.0.0/24"],
         )
         cert_crt = sign_csr(cert_csr, ca_key, ca_cert)
         ca_key_path = os.path.join(tmp, "ca.key")
