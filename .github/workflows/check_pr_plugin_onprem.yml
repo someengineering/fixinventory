@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/onprem
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-onprem-code-coverage-report
+          path: ./plugins/onprem/htmlcov/

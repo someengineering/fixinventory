@@ -47,3 +47,9 @@ jobs:
       - name: Run tests
         working-directory: ./ckmetrics
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: ckmetrics-code-coverage-report
+          path: ckmetrics/htmlcov/

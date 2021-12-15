@@ -71,6 +71,12 @@ step_run_test = """
       - name: Run tests
         working-directory: @directory@
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-@name@-code-coverage-report
+          path: @directory@/htmlcov/
 """
 
 
@@ -86,4 +92,8 @@ for plugin in os.listdir(plugins_path):
             # aws is a dependency that needs to be installed for all aws related plugins.
             if "aws" in plugin and plugin != "aws":
                 yml.write(step_aws)
-            yml.write(step_run_test.replace("@directory@", f"./plugins/{plugin}"))
+            yml.write(
+                step_run_test.replace("@directory@", f"./plugins/{plugin}").replace(
+                    "@name@", plugin
+                )
+            )
