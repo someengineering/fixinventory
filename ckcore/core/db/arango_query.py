@@ -247,7 +247,7 @@ def query_string(
             vals = [f"{k}: {merge_part_result(v)}" if isinstance(v, dict) else f"{k}: {v}" for k, v in d.items()]
             return "{" + ", ".join(vals) + "}"
 
-        final_merge = f"RETURN MERGE({merge_cursor}, {merge_part_result(merge_parts)}))"
+        final_merge = f"RETURN MERGE_RECURSIVE({merge_cursor}, {merge_part_result(merge_parts)}))"
         return result_cursor, f"{merge_result} {final_merge}"
 
     def part(p: Part, in_cursor: str, part_idx: int) -> Tuple[Part, str, str, str]:
