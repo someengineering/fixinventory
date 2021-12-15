@@ -50,10 +50,8 @@ def bootstrap_ca(
         .issuer_name(issuer)
         .public_key(ca_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.utcnow().replace(tzinfo=timezone.utc))
-        .not_valid_after(
-            datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=days_valid)
-        )
+        .not_valid_before(datetime.now(tz=timezone.utc))
+        .not_valid_after(datetime.now(tz=timezone.utc) + timedelta(days=days_valid))
         .add_extension(
             x509.BasicConstraints(ca=True, path_length=path_length), critical=True
         )
@@ -114,10 +112,8 @@ def sign_csr(
         .issuer_name(ca_cert.subject)
         .public_key(csr.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.utcnow().replace(tzinfo=timezone.utc))
-        .not_valid_after(
-            datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=days_valid)
-        )
+        .not_valid_before(datetime.now(tz=timezone.utc))
+        .not_valid_after(datetime.now(tz=timezone.utc) + timedelta(days=days_valid))
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,
