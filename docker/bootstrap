@@ -137,6 +137,7 @@ setup_ckcore() {
         export CKCORE_GRAPHDB_USERNAME
         export CKCORE_GRAPHDB_PASSWORD
         export CKCORE_PSK
+        export CKCORE_HOST
     fi
 }
 
