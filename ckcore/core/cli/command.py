@@ -1476,14 +1476,14 @@ class ListCommand(CLICommand, OutputTransformer):
     This command creates a string from the json input based on the defined properties to show.
 
     If no prop is defined a predefined list of properties will be shown:
-        - reported.kind
-        - reported.id
-        - reported.name
-        - reported.ctime
-        - metadata.ancestors.cloud.name as cloud
-        - metadata.ancestors.account.name as account
-        - metadata.ancestors.region.name as region
-        - metadata.ancestors.zone.name as zone
+        - reported.kind as kind
+        - reported.id as id
+        - reported.name as name
+        - reported.age as age
+        - ancestors.cloud.reported.name as cloud
+        - ancestors.account.reported.name as account
+        - ancestors.region.reported.name as region
+        - ancestors.zone.reported.name as zone
 
     If props_to_show is defined, it will override the default and will show the defined properties.
     The syntax for props_to_show is a comma delimited list of property paths.
@@ -1539,10 +1539,10 @@ class ListCommand(CLICommand, OutputTransformer):
         ("reported.name", "name"),
         ("reported.age", "age"),
         ("reported.last_update", "last_update"),
-        ("metadata.ancestors.cloud.name", "cloud"),
-        ("metadata.ancestors.account.name", "account"),
-        ("metadata.ancestors.region.name", "region"),
-        ("metadata.ancestors.zone.name", "zone"),
+        ("ancestors.cloud.reported.name", "cloud"),
+        ("ancestors.account.reported.name", "account"),
+        ("ancestors.region.reported.name", "region"),
+        ("ancestors.zone.reported.name", "zone"),
     ]
     dot_re = re.compile("[.]")
 

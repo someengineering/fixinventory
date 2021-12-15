@@ -194,7 +194,7 @@ class ArangoGraphDB(GraphDB):
             existing_section = existing_section if existing_section else {}
             updated[section] = {**existing_section, **patch}
         else:
-            for sect in Section.all_ordered:
+            for sect in Section.content_ordered:
                 if sect in patch:
                     existing_section = node.get(sect)
                     existing_section = existing_section if existing_section else {}
@@ -215,7 +215,7 @@ class ArangoGraphDB(GraphDB):
             "flat": adjusted["flat"],
         }
         # copy relevant sections into update node
-        for sec in [section] if section else Section.all:
+        for sec in [section] if section else Section.content_ordered:
             if sec in adjusted:
                 update[sec] = adjusted[sec]
 
@@ -240,7 +240,7 @@ class ArangoGraphDB(GraphDB):
                     deletes[section].append(uid)
                     del patch_js[section]
             # filter out empty changes (== noop patches)
-            for section in Section.all:
+            for section in Section.content_ordered:
                 if section in patch_js and patch_js[section] == {}:
                     del patch_js[section]
             # all remaining changes are updates
@@ -532,7 +532,7 @@ class ArangoGraphDB(GraphDB):
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
 
-        optional_properties = [*Section.all, "refs", "kinds", "flat", "hash"]
+        optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash"]
 
         def insert_node(node: Json) -> None:
             elem = self.adjust_node(model, node, access.at_json)

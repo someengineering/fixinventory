@@ -13,15 +13,18 @@ from networkx import DiGraph, MultiDiGraph, all_shortest_paths
 from core import feature
 from core.model.model import Model
 from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
-from core.model.typed_model import to_js
 from core.types import Json
 from core.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 
 log = logging.getLogger(__name__)
 
+# This version is used when the content hash of a node is computed.
+# All computed hashes will be invalidated, by incrementing the version.
+# This can be used, if computed values should be recomputed for all imported data.
+ContentHashVersion = 1
+
 
 class Section:
-
     # The reported section contains the data gathered by the collector.
     # This data is usually not changed by the user directly, but implicitly via changes on the
     # infrastructure, so the next collect run will change this state.
@@ -40,12 +43,28 @@ class Section:
     # querying the graph easy.
     metadata = "metadata"
 
-    # The set of all allowed sections
-    all_ordered = [reported, desired, metadata]
+    # Following sections are used to lookup special kinds in the graph hierarchy to simplify access.
+    # See GraphResolver for details.
+    # All resolved ancestors are written to this section.
+    ancestors = "ancestors"
+
+    # Resolved descendants would be written to this section.
+    # Only here for completeness - currently not used.
+    descendants = "descendants"
+
+    # The set of all content sections
+    content_ordered = [reported, desired, metadata]
+    content = set(content_ordered)
+
+    # The list of all lookup sections
+    lookup_sections_ordered = [ancestors, descendants]
+
+    # The list of all sections
+    all_ordered = [*content_ordered, *lookup_sections_ordered]
     all = set(all_ordered)
 
     # remove the section plus dot if it exists in the string: reported.foo => foo
-    __no_section = re.compile("^(" + "|".join(f"({s})" for s in all_ordered) + ")[.]")
+    __no_section = re.compile("^(" + "|".join(f"({s})" for s in content_ordered) + ")[.]")
 
     @classmethod
     def without_section(cls, path: str) -> str:
@@ -136,6 +155,8 @@ class GraphBuilder:
     @staticmethod
     def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
         sha256 = hashlib.sha256()
+        # all content hashes will be different, when the version changes
+        sha256.update(ContentHashVersion.to_bytes(2, "big"))
         sha256.update(json.dumps(js, sort_keys=True).encode("utf-8"))
         if desired:
             sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
@@ -329,7 +350,7 @@ class GraphAccess:
 
     @staticmethod
     def dump_direct(node_id: str, node: Json) -> Json:
-        reported = to_js(node[Section.reported])
+        reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
         if "id" not in node:

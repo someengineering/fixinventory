@@ -415,7 +415,7 @@ def query_string(
                 m_parts.append(f'LET {tr} = DOCUMENT("{db.vertex_name}", node.refs.{tr}_id)')
 
         result_parts = []
-        for section in Section.all:
+        for section in Section.content_ordered:
             ancestor_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in ancestors]) + "}"
             result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {ancestor_result})")
 

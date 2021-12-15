@@ -56,32 +56,32 @@ class GraphResolver:
         ResolveAncestor(
             "cloud",
             [
-                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "cloud", "name"]),
-                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "cloud", "id"]),
+                ResolveProp(NodePath.reported_name, ["ancestors", "cloud", "reported", "name"]),
+                ResolveProp(NodePath.reported_id, ["ancestors", "cloud", "reported", "id"]),
                 ResolveProp(NodePath.node_id, ["refs", "cloud_id"]),
             ],
         ),
         ResolveAncestor(
             "account",
             [
-                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "account", "name"]),
-                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "account", "id"]),
+                ResolveProp(NodePath.reported_name, ["ancestors", "account", "reported", "name"]),
+                ResolveProp(NodePath.reported_id, ["ancestors", "account", "reported", "id"]),
                 ResolveProp(NodePath.node_id, ["refs", "account_id"]),
             ],
         ),
         ResolveAncestor(
             "region",
             [
-                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "region", "name"]),
-                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "region", "id"]),
+                ResolveProp(NodePath.reported_name, ["ancestors", "region", "reported", "name"]),
+                ResolveProp(NodePath.reported_id, ["ancestors", "region", "reported", "id"]),
                 ResolveProp(NodePath.node_id, ["refs", "region_id"]),
             ],
         ),
         ResolveAncestor(
             "zone",
             [
-                ResolveProp(NodePath.reported_name, ["metadata", "ancestors", "zone", "name"]),
-                ResolveProp(NodePath.reported_id, ["metadata", "ancestors", "zone", "id"]),
+                ResolveProp(NodePath.reported_name, ["ancestors", "zone", "reported", "name"]),
+                ResolveProp(NodePath.reported_id, ["ancestors", "zone", "reported", "id"]),
                 ResolveProp(NodePath.node_id, ["refs", "zone_id"]),
             ],
         ),
