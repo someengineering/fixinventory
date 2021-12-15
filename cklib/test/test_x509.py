@@ -19,6 +19,7 @@ def test_x509():
     with tempfile.TemporaryDirectory() as tmp:
         ca_key, ca_cert = bootstrap_ca()
         cert_key = gen_rsa_key()
+        gen_csr(cert_key)  # dummy call to generate CSR without SANs
         cert_csr = gen_csr(
             cert_key,
             san_dns_names=["example.com"],
