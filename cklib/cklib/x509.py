@@ -27,11 +27,12 @@ def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
 
 def bootstrap_ca(
     days_valid: int = 3650,
-    common_name: str = "Cloudkeeper Certificate Authority",
+    common_name: str = "Cloudkeeper Root CA",
     organization_name: str = "Some Engineering Inc.",
     locality_name: str = "San Francisco",
     state_or_province_name: str = "California",
     country_name: str = "US",
+    path_length: int = 2,
 ) -> Tuple[RSAPrivateKey, Certificate]:
     ca_key = gen_rsa_key()
     subject = issuer = x509.Name(
@@ -53,7 +54,9 @@ def bootstrap_ca(
         .not_valid_after(
             datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=days_valid)
         )
-        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .add_extension(
+            x509.BasicConstraints(ca=True, path_length=path_length), critical=True
+        )
         .add_extension(
             x509.KeyUsage(
                 digital_signature=False,
