@@ -59,15 +59,15 @@ def bootstrap_ca(
             x509.KeyUsage(
                 digital_signature=False,
                 key_encipherment=False,
-                key_cert_sign=True,
+                key_cert_sign=True,  # CA Cert is only allowed to sign other certs
                 key_agreement=False,
                 content_commitment=False,
                 data_encipherment=False,
-                crl_sign=True,
+                crl_sign=True,  # and cert revocation lists
                 encipher_only=False,
                 decipher_only=False,
             ),
-            critical=True,
+            critical=True,  # KeyUsage extension is critical to support
         )
         .sign(ca_key, hashes.SHA256(), default_backend())
     )
@@ -93,7 +93,7 @@ def gen_csr(
                 [x509.DNSName(n) for n in san_dns_names]
                 + [x509.IPAddress(make_ip(i)) for i in san_ip_addresses]
             ),
-            critical=False,
+            critical=False,  # Optional extensions are not critical if unsupported
         )
     return csr_build.sign(csr_key, hashes.SHA256(), default_backend())
 
@@ -116,8 +116,8 @@ def sign_csr(
         .not_valid_after(datetime.now(tz=timezone.utc) + timedelta(days=days_valid))
         .add_extension(
             x509.KeyUsage(
-                digital_signature=True,
-                key_encipherment=True,
+                digital_signature=True,  # Server/client certs are allowed for
+                key_encipherment=True,  # signatures and encrypting traffic.
                 key_cert_sign=False,
                 key_agreement=False,
                 content_commitment=False,
