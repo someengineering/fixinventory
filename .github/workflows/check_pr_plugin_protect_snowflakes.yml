@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/protect_snowflakes
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-protect_snowflakes-code-coverage-report
+          path: ./plugins/protect_snowflakes/htmlcov/

@@ -50,3 +50,9 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/k8s
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-k8s-code-coverage-report
+          path: ./plugins/k8s/htmlcov/

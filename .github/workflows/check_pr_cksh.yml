@@ -47,3 +47,9 @@ jobs:
       - name: Run tests
         working-directory: ./cksh
         run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: cksh-code-coverage-report
+          path: cksh/htmlcov/
