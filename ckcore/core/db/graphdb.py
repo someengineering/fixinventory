@@ -482,6 +482,7 @@ class ArangoGraphDB(GraphDB):
             read=[temp_name],
             write=[self.edge_collection(a) for a in EdgeType.all] + [self.vertex_name, self.in_progress],
         )
+        log.info(f"Move temp->proper data: change_id={change_id} done.")
 
     async def mark_update(
         self, root_node_ids: List[str], parent_node_ids: List[str], change_id: str, is_batch: bool
@@ -727,7 +728,7 @@ class ArangoGraphDB(GraphDB):
             await execute_many_async(async_fn, name, array)
 
         async def update_directly() -> None:
-            log.debug("Persist the changes directly.")
+            log.debug(f"Persist the changes directly ({info.all_changes()} changes).")
             edge_collections = [self.edge_collection(a) for a in EdgeType.all]
             update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
@@ -762,7 +763,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_via_temp_collection() -> None:
             temp = await self.get_tmp_collection(change_id)
-            log.info(f"Update is too big for tx size: use temp collection {temp.name}")
+            log.info(f"Update is too big for tx size ({info.all_changes()} changes): use temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
                 await self.move_temp_to_proper(change_id, temp.name)
@@ -845,6 +846,9 @@ class ArangoGraphDB(GraphDB):
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
             if "root_nodes" not in progress_idxes:
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
+            # This index was used until 2.0.0a9
+            if "update_value" in node_idxes:
+                nodes.delete_index("update_value", True)
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in edges.indexes()}
