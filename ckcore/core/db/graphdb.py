@@ -194,7 +194,7 @@ class ArangoGraphDB(GraphDB):
             existing_section = existing_section if existing_section else {}
             updated[section] = {**existing_section, **patch}
         else:
-            for sect in Section.all_ordered:
+            for sect in Section.content_ordered:
                 if sect in patch:
                     existing_section = node.get(sect)
                     existing_section = existing_section if existing_section else {}
@@ -215,7 +215,7 @@ class ArangoGraphDB(GraphDB):
             "flat": adjusted["flat"],
         }
         # copy relevant sections into update node
-        for sec in [section] if section else Section.all:
+        for sec in [section] if section else Section.content_ordered:
             if sec in adjusted:
                 update[sec] = adjusted[sec]
 
@@ -240,7 +240,7 @@ class ArangoGraphDB(GraphDB):
                     deletes[section].append(uid)
                     del patch_js[section]
             # filter out empty changes (== noop patches)
-            for section in Section.all:
+            for section in Section.content_ordered:
                 if section in patch_js and patch_js[section] == {}:
                     del patch_js[section]
             # all remaining changes are updates
@@ -482,6 +482,7 @@ class ArangoGraphDB(GraphDB):
             read=[temp_name],
             write=[self.edge_collection(a) for a in EdgeType.all] + [self.vertex_name, self.in_progress],
         )
+        log.info(f"Move temp->proper data: change_id={change_id} done.")
 
     async def mark_update(
         self, root_node_ids: List[str], parent_node_ids: List[str], change_id: str, is_batch: bool
@@ -532,7 +533,7 @@ class ArangoGraphDB(GraphDB):
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
 
-        optional_properties = [*Section.all, "refs", "kinds", "flat", "hash"]
+        optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash"]
 
         def insert_node(node: Json) -> None:
             elem = self.adjust_node(model, node, access.at_json)
@@ -727,7 +728,7 @@ class ArangoGraphDB(GraphDB):
             await execute_many_async(async_fn, name, array)
 
         async def update_directly() -> None:
-            log.debug("Persist the changes directly.")
+            log.debug(f"Persist the changes directly ({info.all_changes()} changes).")
             edge_collections = [self.edge_collection(a) for a in EdgeType.all]
             update_many_no_merge = partial(self.db.update_many, merge=False)
             async with self.db.begin_transaction(write=edge_collections + [self.vertex_name, self.in_progress]) as tx:
@@ -762,7 +763,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_via_temp_collection() -> None:
             temp = await self.get_tmp_collection(change_id)
-            log.info(f"Update is too big for tx size: use temp collection {temp.name}")
+            log.info(f"Update is too big for tx size ({info.all_changes()} changes): use temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
                 await self.move_temp_to_proper(change_id, temp.name)
@@ -845,6 +846,9 @@ class ArangoGraphDB(GraphDB):
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
             if "root_nodes" not in progress_idxes:
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
+            # This index was used until 2.0.0a9
+            if "update_value" in node_idxes:
+                nodes.delete_index("update_value", True)
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in edges.indexes()}

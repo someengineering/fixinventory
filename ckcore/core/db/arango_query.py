@@ -247,7 +247,7 @@ def query_string(
             vals = [f"{k}: {merge_part_result(v)}" if isinstance(v, dict) else f"{k}: {v}" for k, v in d.items()]
             return "{" + ", ".join(vals) + "}"
 
-        final_merge = f"RETURN MERGE({merge_cursor}, {merge_part_result(merge_parts)}))"
+        final_merge = f"RETURN MERGE_RECURSIVE({merge_cursor}, {merge_part_result(merge_parts)}))"
         return result_cursor, f"{merge_result} {final_merge}"
 
     def part(p: Part, in_cursor: str, part_idx: int) -> Tuple[Part, str, str, str]:
@@ -419,7 +419,7 @@ def query_string(
                 m_parts.append(f'LET {tr} = DOCUMENT("{db.vertex_name}", node.refs.{tr}_id)')
 
         result_parts = []
-        for section in Section.all:
+        for section in Section.content_ordered:
             ancestor_result = "{" + ",".join([f"{p[1]}: {p[0]}.{section}" for p in ancestors]) + "}"
             result_parts.append(f"{section}: MERGE(NOT_NULL(node.{section},{{}}), {ancestor_result})")
 

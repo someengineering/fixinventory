@@ -88,7 +88,7 @@ log = logging.getLogger(__name__)
 
 def section_of(request: Request) -> Optional[str]:
     section = request.match_info.get("section")
-    if section and section not in Section.all:
+    if section and section not in Section.content:
         raise AttributeError(f"Given section does not exist: {section}")
     return section
 
@@ -540,13 +540,13 @@ class Api:
 
     async def update_nodes(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")
-        allowed = {*Section.all, "id", "revision"}
+        allowed = {*Section.content, "id", "revision"}
         updates: Dict[str, Json] = {}
         async for elem in self.to_json_generator(request):
             keys = set(elem.keys())
             assert keys.issubset(allowed), f"Invalid json. Allowed keys are: {allowed}"
             assert "id" in elem, f"No id given for element {elem}"
-            assert keys.intersection(Section.all), f"No update provided for element {elem}"
+            assert keys.intersection(Section.content), f"No update provided for element {elem}"
             uid = elem["id"]
             assert uid not in updates, f"Only one update allowed per id! {elem}"
             del elem["id"]

@@ -57,7 +57,7 @@ def test_access_node() -> None:
     g.add_node("1", reported=to_json(FooTuple(a="1")))
     access: GraphAccess = GraphAccess(g)
     elem: Json = node(access, "1")  # type: ignore
-    assert elem["hash"] == "4f226c613e168b79a94aa93493c3770ffc189f06a2569ce65f4a586f50682558"
+    assert elem["hash"] == "b49ddf056778567a83998f91ce83ab0603339c4d6a73e98159f3a5dbfa02ba8a"
     assert elem["reported"] == {
         "a": "1",
         "b": 0,
@@ -102,8 +102,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("3")
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0]["hash"] == "a9efa612d3c5a231c643d0b9f9aab3297b84c7433a009e772f4692cc016927aa"
-    assert not_visited[1]["hash"] == "28cd705c4a5378520969ab3e0ad229edda361536b581aa4a94d5f9dcdf2dcb87"
+    assert not_visited[0]["hash"] == "efe2ed11395ae3ab84c54ce06a6bb5bb0e9e68b2bc4a5fcfa91a1970ab03dfef"
+    assert not_visited[1]["hash"] == "832bc2adc16b7dcb8ed284e819784d77ca43cf44a56546fbe848a2560061a890"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
@@ -307,12 +307,12 @@ def test_resolve_graph_data() -> None:
     # ancestor data should be stored in metadata
     n1 = AccessJson(graph.node("child_parent_region_account_cloud_gcp_1_europe_1_0"))  # type: ignore
     assert n1.refs.region_id == "region_account_cloud_gcp_1_europe"
-    assert n1.metadata.ancestors.account.id == "id_account_cloud_gcp_1"
-    assert n1.metadata.ancestors.account.name == "name_account_cloud_gcp_1"
-    assert n1.metadata.ancestors.region.id == "id_region_account_cloud_gcp_1_europe"
-    assert n1.metadata.ancestors.region.name == "name_region_account_cloud_gcp_1_europe"
+    assert n1.ancestors.account.reported.id == "id_account_cloud_gcp_1"
+    assert n1.ancestors.account.reported.name == "name_account_cloud_gcp_1"
+    assert n1.ancestors.region.reported.id == "id_region_account_cloud_gcp_1_europe"
+    assert n1.ancestors.region.reported.name == "name_region_account_cloud_gcp_1_europe"
     # make sure there is no summary
-    assert n1.metadata.descendant_summary == AccessNone(None)
+    assert n1.descendant_summary == AccessNone(None)
 
     r1 = AccessJson(graph.node("region_account_cloud_gcp_1_europe"))  # type: ignore
     assert r1.metadata.descendant_summary == {"child": 9}

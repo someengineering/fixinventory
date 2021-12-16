@@ -45,7 +45,7 @@ async def worker(
                 elif task.name == "tag":
                     node = task.data["node"]
                     for key in GraphResolver.resolved_ancestors.keys():
-                        for section in Section.all:
+                        for section in Section.content:
                             if section in node:
                                 node[section].pop(key, None)
 
