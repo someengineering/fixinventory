@@ -8,7 +8,7 @@ from arango.typings import Json
 from core.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.model import QueryModel
-from core.model.graph_access import EdgeType, Section
+from core.model.graph_access import EdgeType, Section, Direction
 from core.model.model import SyntheticProperty, ResolvedProperty
 from core.model.resolve_in_graph import GraphResolver
 from core.query.model import (
@@ -299,7 +299,7 @@ def query_string(
             def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
                 nav = cl.navigation
                 crsr = cursor_in(depth)
-                direction = "OUTBOUND" if nav.direction == "out" else "INBOUND"
+                direction = "OUTBOUND" if nav.direction == Direction.outbound else "INBOUND"
                 unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
                 filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
@@ -347,7 +347,7 @@ def query_string(
             link = next_crs("io_link")
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
             link_str = f", {link}" if with_edges else ""
-            dir_bound = "OUTBOUND" if direction == "out" else "INBOUND"
+            dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
             inout_result = f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})" if with_edges else out_crsr
             if outer_merge and part_idx == 0:
                 graph_cursor = in_crsr
@@ -366,11 +366,11 @@ def query_string(
 
         def navigation(in_crsr: str, nav: Navigation) -> str:
             nonlocal query_part
-            if nav.direction == "inout":
+            if nav.direction == Direction.any:
                 # traverse to root
-                to_in = inout(in_crsr, nav.start, nav.until, nav.edge_type, "in")
+                to_in = inout(in_crsr, nav.start, nav.until, nav.edge_type, Direction.inbound)
                 # traverse to leaf (in case of 0: use 1 to not have the current element twice)
-                to_out = inout(in_crsr, max(1, nav.start), nav.until, nav.edge_type, "out")
+                to_out = inout(in_crsr, max(1, nav.start), nav.until, nav.edge_type, Direction.outbound)
                 nav_crsr = next_crs()
                 query_part += f"LET {nav_crsr} = UNION({to_in}, {to_out})"
                 return nav_crsr

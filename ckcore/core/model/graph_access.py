@@ -89,6 +89,18 @@ class EdgeType:
     all = {dependency, delete}
 
 
+class Direction:
+    # Opposite direction as the edge direction.
+    inbound = "in"
+    # Same direction as the edge direction
+    outbound = "out"
+    # Ignore the direction of the edge and traverse in any direction.
+    any = "inout"
+
+    # The list of all allowed directions.
+    all = [inbound, outbound, any]
+
+
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 

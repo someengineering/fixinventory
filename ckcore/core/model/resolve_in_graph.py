@@ -30,6 +30,10 @@ class ResolveProp:
     # Path to write this property to
     to_path: List[str]
 
+    @property
+    def to(self) -> str:
+        return ".".join(self.to_path)
+
 
 @dataclass(frozen=True)
 class ResolveAncestor:
@@ -87,9 +91,11 @@ class GraphResolver:
         ),
     ]
 
-    resolved_ancestors = {
-        kind: ".".join(prop.to_path) for kind, prop in {a.kind: a.resolves_id() for a in to_resolve}.items() if prop
-    }
+    # dict: kind->property name to get the id in order to resolve this kind
+    resolved_ancestors = {kind: prop.to for kind, prop in {a.kind: a.resolves_id() for a in to_resolve}.items() if prop}
+
+    # set of all resolved property names
+    resolved_property_names = {prop.to for elem in to_resolve for prop in elem.resolve}
 
     count_successors = {
         # note: order is important. zone is computed first and can be reused for region -> account -> cloud etc.

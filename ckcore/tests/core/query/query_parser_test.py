@@ -26,7 +26,7 @@ from core.query.model import (
     MergeTerm,
     MergeQuery,
 )
-from core.model.graph_access import EdgeType
+from core.model.graph_access import EdgeType, Direction
 from parsy import Parser
 from core.query.query_parser import (
     predicate_term,
@@ -139,7 +139,7 @@ def test_navigation() -> None:
     for edge_type in EdgeType.all:
         # the default edge type is not rendered, so we set it explicitly to make the mapping homogeneous
         fn = make_default if edge_type == EdgeType.default else None
-        for direction in ["in", "out", "inout"]:
+        for direction in Direction.all:
             for start, until in [(0, 0), (1, 1), (5, 5), (1, 10), (1, Navigation.Max), (10, Navigation.Max)]:
                 assert_round_trip(navigation_parser, Navigation(start, until, edge_type, direction), fn)
 

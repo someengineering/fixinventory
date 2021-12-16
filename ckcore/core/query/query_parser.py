@@ -5,7 +5,7 @@ import parsy
 from parsy import string, Parser, regex
 
 from core.error import ParseError
-from core.model.graph_access import EdgeType
+from core.model.graph_access import EdgeType, Direction
 from core.parse_util import (
     lparen_p,
     lexeme,
@@ -192,11 +192,13 @@ def edge_definition() -> Parser:
 
 
 out_p = lexeme(string("-") >> edge_definition << string("->")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], "out")
+    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.outbound)
 )
-in_p = lexeme(string("<-") >> edge_definition << string("-")).map(lambda nav: Navigation(nav[0], nav[1], nav[2], "in"))
+in_p = lexeme(string("<-") >> edge_definition << string("-")).map(
+    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.inbound)
+)
 in_out_p = lexeme(string("<-") >> edge_definition << string("->")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], "inout")
+    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.any)
 )
 navigation_parser = in_out_p | out_p | in_p
 
@@ -411,7 +413,7 @@ def query_parser() -> Parser:
         section = preamble.get("section")
         return query.on_section(section) if section else query
 
-    adapted = [set_edge_type_if_not_set(part) for part in parts]
+    adapted = [set_edge_type_if_not_set(part).rewrite_for_ancestors_descendants() for part in parts]
     # remove values from preamble, that are only used at parsing time
     resulting_preamble = preamble.copy()
     for key in ["section", "edge_type"]:
