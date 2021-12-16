@@ -151,3 +151,9 @@ def test_rewrite_ancestors_descendants() -> None:
         == str(parse_query("(c<d or ancestors.d.c<1) and (a<1 and b>1)"))
         == '(a < 1 and b > 1) {ancestors.d: all <-[1:]- is("d")} (c < "d" or ancestors.d.c < 1)'
     )
+    # multiple filters to the same kind only create one merge query
+    assert (
+        str(parse_query("ancestors.a.b<1 and ancestors.a.c>1 and ancestors.a.d=3 and ancestors.b.c>1 and a==1"))
+        == 'a == 1 {ancestors.a: all <-[1:]- is("a"), ancestors.b: all <-[1:]- is("b")} '
+        "(((ancestors.a.b < 1 and ancestors.a.c > 1) and ancestors.a.d == 3) and ancestors.b.c > 1)"
+    )

@@ -13,7 +13,7 @@ from core.model.graph_access import EdgeType, Direction
 from core.model.resolve_in_graph import GraphResolver
 from core.model.typed_model import to_js_str
 from core.types import Json, JsonElement
-from core.util import combine_optional
+from core.util import combine_optional, group_by
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -383,6 +383,10 @@ class Part:
         This function rewrites this part if predicates in the "magic" sections ancestors or descendants are used.
         Intention: a merge is performed by traversing the graph either inbound (ancestors) or outbound (descendants).
 
+        Important: the merge node is found by kind only! The first matching node with correct type is merged with
+        this node. The filter then is applied _after_ the node has been merged. So the filter can effectively
+        filter the current node, based on properties of the merged node.
+
         The ancestors or descendants predicate has this form and will create a merge query:
         ancestors.<kind>.<path.to.prop> creates a merge query: {ancestors.<kind> <-[0:]- is(<kind>)}
         descendants.<kind>.<path.to.prop> creates a merge query: {descendants.<kind> -[0:]-> is(<kind>)}
@@ -416,18 +420,18 @@ class Part:
             else:
                 return False
 
-        def ancestor_descendant_names(t: Term) -> List[str]:
+        def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
             if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
-                return [t.name]
+                return [t]
             elif isinstance(t, CombinedTerm):
-                return [*ancestor_descendant_names(t.left), *ancestor_descendant_names(t.right)]
+                return [*ancestor_descendant_predicates(t.left), *ancestor_descendant_predicates(t.right)]
             elif isinstance(t, MergeTerm):
-                result = ancestor_descendant_names(t.pre_filter)
+                result = ancestor_descendant_predicates(t.pre_filter)
                 if t.post_filter:
-                    result.extend(ancestor_descendant_names(t.post_filter))
+                    result.extend(ancestor_descendant_predicates(t.post_filter))
                 return result
             elif isinstance(t, NotTerm):
-                return ancestor_descendant_names(t.term)
+                return ancestor_descendant_predicates(t.term)
             else:
                 return []
 
@@ -463,18 +467,15 @@ class Part:
             else:
                 after_merge = after_merge & term
 
-        def merge_query_for(name: str) -> MergeQuery:
+        def name_predicate(predicate: Predicate) -> Tuple[str, str]:
+            anc_dec, kind, _ = predicate.name.split(".", 2)
+            return anc_dec, kind
+
+        def merge_query_for(anc_dec: str, kind: str) -> MergeQuery:
             try:
-                anc_dec, kind, _ = name.split(".", 2)
                 direction = Direction.inbound if anc_dec == "ancestors" else Direction.outbound
-                subquery = Query(
-                    [
-                        Part(
-                            IsTerm([kind]),
-                        ),
-                        Part(AllTerm(), navigation=Navigation(1, Navigation.Max, direction=direction)),
-                    ]
-                )
+                navigation = Navigation(1, Navigation.Max, direction=direction)
+                subquery = Query([Part(IsTerm([kind])), Part(AllTerm(), navigation=navigation)])
                 return MergeQuery(f"{anc_dec}.{kind}", subquery)
             except ValueError as ex:
                 raise AttributeError(
@@ -486,9 +487,9 @@ class Part:
 
         if has_ancestor_descendant(self.term):
             walk_term(self.term)
-            predicates = ancestor_descendant_names(after_merge)
+            predicates = group_by(name_predicate, ancestor_descendant_predicates(after_merge))
             existing = {a.name: a for a in (self.term.merge if isinstance(self.term, MergeTerm) else [])}
-            created = {a.name: a for a in [merge_query_for(name) for name in predicates]}
+            created = {a.name: a for a in [merge_query_for(*predicate) for predicate in predicates]}
             queries = list({**created, **existing}.values())
             return replace(self, term=MergeTerm(before_merge, queries, after_merge))
         else:
@@ -565,9 +566,9 @@ class Aggregate:
     group_func: List[AggregateFunction]
 
     def __str__(self) -> str:
-        group_by = ", ".join(str(a) for a in self.group_by) + ": " if self.group_by else ""
+        grouped = ", ".join(str(a) for a in self.group_by) + ": " if self.group_by else ""
         funcs = ", ".join(str(a) for a in self.group_func)
-        return f"aggregate({group_by}{funcs})"
+        return f"aggregate({grouped}{funcs})"
 
     def on_section(self, section: str) -> Aggregate:
         return Aggregate(
@@ -678,8 +679,8 @@ class Query:
             parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
-    def group_by(self, group_by: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
-        aggregate = Aggregate(group_by, funcs)
+    def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
+        aggregate = Aggregate(variables, funcs)
         return replace(self, aggregate=aggregate)
 
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
