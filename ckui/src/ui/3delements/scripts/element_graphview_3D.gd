@@ -114,7 +114,7 @@ func clear_graph(graph_id := ""):
 func hovering_node(_node_id:= "", _activate:= false, _direct_call:= false):
 	if node_selected and !_direct_call:
 		return
-	
+
 	var _node = graph_data.nodes[_node_id]
 	_node.scene.highlight(_activate)
 	# This is a bit messy and also not complete. But after the benchmarks it's faster than a recursive function
@@ -128,7 +128,7 @@ func hovering_node(_node_id:= "", _activate:= false, _direct_call:= false):
 			for edge_l3 in graph_data.edges[edge_l2.id].to.edges_from:
 				graph_data.edges[edge_l3.id].scene.highlight(_activate)
 				graph_data.edges[edge_l3.id].to.scene.highlight(_activate, true)
-		
+
 	for edge in _node.edges_to:
 		graph_data.edges[edge.id].scene.highlight(_activate)
 		graph_data.edges[edge.id].from.scene.highlight(_activate, true)
@@ -154,7 +154,7 @@ func start_streaming(graph_id: String):
 func end_streaming():
 	if root_node == null:
 		root_node = graph_data.nodes[ graph_data.nodes.keys()[0] ].scene
-	
+
 	if size_by_descendants:
 		var _total_descendants:= 0.0
 		var descendants_values := []
@@ -165,14 +165,14 @@ func end_streaming():
 				var node_descendant_count = node.data.metadata.descendant_count
 				descendants_values.append(node_descendant_count)
 				_total_descendants += node_descendant_count
-		
+
 		if !descendants_values.empty():
 			var largest_descendant_value = descendants_values.max()
-			
+
 			for node in graph_data.nodes.values():
 				if "metadata" in node.data and "descendant_count" in node.data.metadata:
 					node.scene.descendant_scale = node.data.metadata.descendant_count / largest_descendant_value
-	
+
 	graph_rand_layout()
 
 	emit_signal("graph_created")
@@ -247,15 +247,15 @@ func create_new_graph_node(data: Dictionary):
 		elif "account" in data.kinds:
 			new_graph_node.name = "Account_" + data.reported.name
 			new_graph_node.line_length = 500
-			_parent_node = graph_node_groups[data.metadata.ancestors.cloud.id].node_group_object
+			_parent_node = graph_node_groups[data.ancestors.cloud.reported.id].node_group_object
 			add_new_node_group(data.reported.name, new_graph_node, new_graph_node)
-			graph_node_groups[data.metadata.ancestors.cloud.id].add(data.id)
+			graph_node_groups[data.ancestors.cloud.reported.id].add(data.id)
 			#graph_node_groups["root"].add(data.id)
 
-		elif "ancestors" in data.metadata and "account" in data.metadata.ancestors:
+		elif "ancestors" in data and "account" in data.ancestors:
 			new_graph_node.name = "Region_" + data.reported.name
-			_parent_node = graph_node_groups[data.metadata.ancestors.account.name].node_group_object
-			graph_node_groups[data.metadata.ancestors.account.name].add(data.id)
+			_parent_node = graph_node_groups[data.ancestors.account.reported.name].node_group_object
+			graph_node_groups[data.ancestors.account.reported.name].add(data.id)
 #
 		else:
 			new_graph_node.name = "Root_Node"
