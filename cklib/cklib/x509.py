@@ -225,3 +225,9 @@ def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network
         return ip_network(ip)
     else:
         return ip_address(ip)
+
+
+def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
+    return ":".join(
+        f"{b:02X}" for b in cert.fingerprint(getattr(hashes, hash_algorithm.upper())())
+    )

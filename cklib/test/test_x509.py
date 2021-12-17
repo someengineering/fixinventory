@@ -12,6 +12,7 @@ from cklib.x509 import (
     load_cert_from_file,
     load_key_from_file,
     key_to_bytes,
+    cert_fingerprint,
 )
 
 
@@ -54,5 +55,7 @@ def test_x509():
         assert loaded_ca_cert == ca_cert
         assert loaded_cert_csr == cert_csr
         assert loaded_cert_crt == cert_crt
+        assert cert_fingerprint(loaded_ca_cert) == cert_fingerprint(ca_cert)
+        assert cert_fingerprint(loaded_cert_crt) == cert_fingerprint(cert_crt)
         assert key_to_bytes(ca_key) == key_to_bytes(loaded_ca_key)
         assert key_to_bytes(cert_key) == key_to_bytes(loaded_cert_key)
