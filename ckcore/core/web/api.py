@@ -8,13 +8,14 @@ import string
 import tempfile
 import uuid
 from argparse import Namespace
+from asyncio import Future
+from contextlib import suppress
 from dataclasses import replace
 from datetime import timedelta
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
 import prometheus_client
-import yaml
 from aiohttp import (
     web,
     WSMsgType,
@@ -31,21 +32,15 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
-from asyncio import Future
-
-from contextlib import suppress
 from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.analytics import AnalyticsEventSender
-from core.cli import is_node
 from core.cli.cli import CLI, ParsedCommandLine
 from core.cli.command import CLIContext, OutputTransformer, ListCommand, PreserveOutputFormat
 from core.config import ConfigEntity
-from core.constants import plain_text_blacklist
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
-from core.error import QueryTookToLongError
 from core.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
 from core.model.graph_access import Section
@@ -56,16 +51,16 @@ from core.query import QueryParser
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
 from core.task.task_handler import TaskHandler
-from core.types import Json, JsonElement
+from core.types import Json
 from core.util import (
     uuid_str,
     force_gen,
     rnd_str,
     if_set,
     duration,
-    del_value_in_path,
 )
 from core.web import auth
+from core.web.content_renderer import result_binary_gen
 from core.web.directives import (
     metrics_handler,
     error_handler,
@@ -744,7 +739,6 @@ class Api:
         # make sure, all requirements are fulfilled
         not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
-        accept = request.headers.get("accept", "application/json")
         # only required for multipart requests
         boundary = "----cli"
         mp_response = web.StreamResponse(
@@ -756,7 +750,7 @@ class Api:
         async def list_or_gen(current: ParsedCommandLine) -> Tuple[Optional[int], Stream]:
             maybe_count, out_gen = await current.execute()
             if (
-                accept == "text/plain"
+                request.headers.get("accept") == "text/plain"
                 and current.executable_commands
                 and not isinstance(current.executable_commands[-1].command, (OutputTransformer, PreserveOutputFormat))
             ):
@@ -790,7 +784,7 @@ class Api:
                     gen = await force_gen(streamer)
                     if single.produces.json:
                         with MultipartWriter(repr(single.produces), boundary) as mp:
-                            content_type, result_stream = await Api.result_binary_gen(accept, gen)
+                            content_type, result_stream = await result_binary_gen(request, gen)
                             mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
@@ -843,10 +837,9 @@ class Api:
     async def stream_response_from_gen(
         request: Request, gen_in: AsyncIterator[Json], count: Optional[int] = None
     ) -> StreamResponse:
-        accept = request.headers.get("accept", "application/json")
         # force the async generator, to get an early exception in case of failure
         gen = await force_gen(gen_in)
-        content_type, result_gen = await Api.result_binary_gen(accept, gen)
+        content_type, result_gen = await result_binary_gen(request, gen)
         count_header = {"Ck-Element-Count": str(count)} if count else {}
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
         enable_compression(request, response)
@@ -855,87 +848,6 @@ class Api:
             await writer.write(data)
         await response.write_eof()
         return response
-
-    @staticmethod
-    async def result_binary_gen(accept: str, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
-        async def respond_json() -> AsyncGenerator[bytes, None]:
-            sep = ",\n".encode("utf-8")
-            yield "[".encode("utf-8")
-            first = True
-            async for item in gen:
-                js = json.dumps(to_json(item))
-                if not first:
-                    yield sep
-                yield js.encode("utf-8")
-                first = False
-            yield "\n]".encode("utf-8")
-
-        async def respond_ndjson() -> AsyncGenerator[bytes, None]:
-            sep = "\n".encode("utf-8")
-            async for item in gen:
-                js = json.dumps(to_json(item), check_circular=False)
-                yield js.encode("utf-8")
-                yield sep
-
-        async def respond_yaml() -> AsyncGenerator[bytes, None]:
-            flag = False
-            sep = "---\n".encode("utf-8")
-            async for item in gen:
-                yml = yaml.dump(to_json(item), default_flow_style=False, sort_keys=False)
-                if flag:
-                    yield sep
-                yield yml.encode("utf-8")
-                flag = True
-
-        async def respond_text() -> AsyncGenerator[bytes, None]:
-            def filter_attrs(js: Json) -> Json:
-                result: Json = js
-                for path in plain_text_blacklist:
-                    del_value_in_path(js, path)
-                return result
-
-            def to_result(js: JsonElement) -> JsonElement:
-                # if js is a node, the resulting content should be filtered
-                return filter_attrs(js) if is_node(js) else js  # type: ignore
-
-            try:
-                flag = False
-                sep = "---\n".encode("utf-8")
-                cr = "\n".encode("utf-8")
-                async for item in gen:
-                    js = to_json(item)
-                    if isinstance(js, (dict, list)):
-                        if flag:
-                            yield sep
-                        yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
-                        yield yml.encode("utf-8")
-                    else:
-                        if flag:
-                            yield cr
-                        yield str(js).encode("utf-8")
-                    flag = True
-            except QueryTookToLongError:
-                yield (
-                    "\n\n---------------------------------------------------\n"
-                    "Query took too long.\n"
-                    "Try one of the following:\n"
-                    "- refine your query\n"
-                    "- add a limit to your query\n"
-                    "- define a longer timeout via env var query_timeout\n"
-                    "  e.g. $> query_timeout=60s query all\n"
-                    "---------------------------------------------------\n\n"
-                ).encode("utf-8")
-
-        if accept == "application/x-ndjson":
-            return "application/x-ndjson", respond_ndjson()
-        elif accept == "application/json":
-            return "application/json", respond_json()
-        elif accept in ["text/plain"]:
-            return "text/plain", respond_text()
-        elif accept in ["application/yaml", "text/yaml"]:
-            return "text/yaml", respond_yaml()
-        else:
-            return "application/json", respond_json()
 
     @staticmethod
     async def multi_file_response(results: AsyncIterator[str], boundary: str, response: StreamResponse) -> None:

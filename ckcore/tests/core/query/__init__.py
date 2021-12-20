@@ -1,10 +1,6 @@
-import string
-from typing import Any, Callable
-
 from hypothesis.strategies import (
     composite,
     SearchStrategy,
-    text,
     lists,
     sampled_from,
     builds,
@@ -15,7 +11,7 @@ from hypothesis.strategies import (
 )
 
 from core.model.graph_access import EdgeType, Direction
-from tests.core.hypothesis_extension import Drawer, optional
+from tests.core.hypothesis_extension import Drawer, optional, UD, any_string
 from core.query.model import (
     IsTerm,
     Predicate,
@@ -38,9 +34,7 @@ from core.query.model import (
     AggregateFunction,
 )
 
-UD = Callable[[SearchStrategy[Any]], Any]
 
-any_string = text(alphabet=string.ascii_letters, min_size=3, max_size=10)
 query_property = sampled_from(["reported.name", "reported.cpu_count"])
 kind = sampled_from(["bucket", "volume", "certificate", "cloud", "database", "endpoint"])
 query_operations = sampled_from(["==", ">=", "<=", ">", "<"])
