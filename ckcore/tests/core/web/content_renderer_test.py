@@ -103,7 +103,7 @@ async def test_graphml(elements: List[Json]) -> None:
         result = ""
         async for elem in respond_graphml(streamer):
             result += elem.decode("utf-8")
-    # The resulting string can be parsed as json
+    # The resulting string can be parsed as xml
     assert ElementTree.fromstring(result)
 
 
