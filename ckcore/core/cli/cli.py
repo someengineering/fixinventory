@@ -342,7 +342,7 @@ class CLI:
                 query = query.with_limit(size)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        args = str(query.simplify())
+        args = str(query)
         execute_query = self.command("execute_query", args, ctx)
         return [execute_query, *additional_commands]
 

@@ -57,11 +57,11 @@ def test_simple_query() -> None:
 
 def test_simplify() -> None:
     # some_criteria | all => all
-    assert str((IsTerm(["test"]) | AllTerm()).simplify()) == "all"
+    assert str((IsTerm(["test"]) | AllTerm())) == "all"
     # some_criteria & all => some_criteria
-    assert str((IsTerm(["test"]) & AllTerm()).simplify()) == 'is("test")'
+    assert str((IsTerm(["test"]) & AllTerm())) == 'is("test")'
     # also works in nested setup
-    q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm(["test"]) | AllTerm()))).simplify()
+    q = Query.by(AllTerm() & ((P("test") == True) & (IsTerm(["test"]) | AllTerm())))
     assert (str(q)) == "test == true"
 
 
@@ -102,3 +102,58 @@ def test_on_section() -> None:
         "(r.a < 1 and r.b == 23) sort r.foo asc"
     )
     assert str(parse_query(query).on_section("r")) == on_section
+
+
+def test_rewrite_ancestors_descendants() -> None:
+    # a query without ancestor/descendants is not changed
+    assert str(parse_query("(a<1 and b>1) or c==3")) == "((a < 1 and b > 1) or c == 3)"
+    # a query with resolved ancestor is not changed
+    assert (
+        str(parse_query('a<1 and ancestors.cloud.reported.name=="test"'))
+        == '(a < 1 and ancestors.cloud.reported.name == "test")'
+    )
+    # a query with unknown ancestor creates a merge query
+    assert (
+        str(parse_query('a<1 and ancestors.cloud.reported.kind=="cloud"'))
+        == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud")} ancestors.cloud.reported.kind == "cloud"'
+    )
+    # multiple ancestors are put into one merge query
+    assert (
+        str(parse_query('a<1 and ancestors.cloud.reported.kind=="c" and ancestors.account.reported.kind=="a"'))
+        == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud"), ancestors.account: all <-[1:]- is("account")} '
+        '(ancestors.cloud.reported.kind == "c" and ancestors.account.reported.kind == "a")'
+    )
+    # existing merge queries are preserved
+    assert (
+        str(parse_query('a<1 {children[]: --> all} ancestors.cloud.reported.kind=="c"'))
+        == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud"), children[]: all --> all} '
+        'ancestors.cloud.reported.kind == "c"'
+    )
+    # predefined merge queries are preserved
+    assert (
+        str(parse_query('a<1 {ancestors.cloud: --> is(region)} ancestors.cloud.reported.kind=="c"'))
+        == 'a < 1 {ancestors.cloud: all --> is("region")} ancestors.cloud.reported.kind == "c"'
+    )
+    # This is an example of a horrible query: all entries have to be merged, before a filter can be applied
+    assert (
+        str(parse_query("(a<1 and b>1) or ancestors.d.c<1"))
+        == 'all {ancestors.d: all <-[1:]- is("d")} ((a < 1 and b > 1) or ancestors.d.c < 1)'
+    )
+    # Test some special examples
+    assert (
+        str(parse_query("ancestors.d.c<1 and (a<1 or b>1) and ancestors.a.b>1"))
+        == '(a < 1 or b > 1) {ancestors.d: all <-[1:]- is("d"), ancestors.a: all <-[1:]- is("a")} '
+        "(ancestors.d.c < 1 and ancestors.a.b > 1)"
+    )
+    # the independent query terms are always in the pre-filter before the merge is applied
+    assert (
+        str(parse_query("(a<1 and b>1) and (c<d or ancestors.d.c<1)"))
+        == str(parse_query("(c<d or ancestors.d.c<1) and (a<1 and b>1)"))
+        == '(a < 1 and b > 1) {ancestors.d: all <-[1:]- is("d")} (c < "d" or ancestors.d.c < 1)'
+    )
+    # multiple filters to the same kind only create one merge query
+    assert (
+        str(parse_query("ancestors.a.b<1 and ancestors.a.c>1 and ancestors.a.d=3 and ancestors.b.c>1 and a==1"))
+        == 'a == 1 {ancestors.a: all <-[1:]- is("a"), ancestors.b: all <-[1:]- is("b")} '
+        "(((ancestors.a.b < 1 and ancestors.a.c > 1) and ancestors.a.d == 3) and ancestors.b.c > 1)"
+    )

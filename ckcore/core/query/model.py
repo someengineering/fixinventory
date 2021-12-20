@@ -9,10 +9,11 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 
 from jsons import set_deserializer
 
-from core.model.graph_access import EdgeType
+from core.model.graph_access import EdgeType, Direction
+from core.model.resolve_in_graph import GraphResolver
 from core.model.typed_model import to_js_str
 from core.types import Json, JsonElement
-from core.util import combine_optional
+from core.util import combine_optional, group_by
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -147,15 +148,19 @@ class Term(abc.ABC):
     def not_term(self) -> NotTerm:
         return NotTerm(self)
 
-    def or_term(self, other: Term) -> CombinedTerm:
-        if not isinstance(other, Term):
-            raise AttributeError(f"Expected Term but got {other}")
+    def or_term(self, other: Term) -> Term:
+        if isinstance(self, AllTerm):
+            return self
+        elif isinstance(other, AllTerm):
+            return other
         else:
             return CombinedTerm(self, "or", other)
 
-    def and_term(self, other: Term) -> CombinedTerm:
-        if not isinstance(other, Term):
-            raise AttributeError(f"Expected Term but got {other}")
+    def and_term(self, other: Term) -> Term:
+        if isinstance(self, AllTerm):
+            return other
+        elif isinstance(other, AllTerm):
+            return self
         else:
             return CombinedTerm(self, "and", other)
 
@@ -167,24 +172,6 @@ class Term(abc.ABC):
                 return Predicate(f"{section}.{term.name}", term.op, term.value, term.args)
             elif isinstance(term, FunctionTerm):
                 return FunctionTerm(term.fn, f"{section}.{term.property_path}", term.args)
-            else:
-                return term
-
-        return walk(self)
-
-    def simplify(self) -> Term:
-        def walk(term: Term) -> Term:
-            if isinstance(term, CombinedTerm):
-                left = walk(term.left)
-                right = walk(term.right)
-                left_all = isinstance(left, AllTerm)
-                right_all = isinstance(right, AllTerm)
-                if left_all or right_all:
-                    if (left_all and term.op == "and") or (right_all and term.op == "or"):
-                        return right
-                    elif (right_all and term.op == "and") or (left_all and term.op == "or"):
-                        return left
-                return CombinedTerm(left, term.op, right)
             else:
                 return term
 
@@ -316,7 +303,7 @@ class Navigation:
     start: int = 1
     until: int = 1
     edge_type: str = EdgeType.default
-    direction: str = "out"
+    direction: str = Direction.outbound
 
     def __str__(self) -> str:
         start = self.start
@@ -324,9 +311,9 @@ class Navigation:
         until_str = "" if until == Navigation.Max else until
         depth = ("" if start == 1 else f"[{start}]") if start == until else f"[{start}:{until_str}]"
         nav = depth if self.edge_type == EdgeType.default else f"{self.edge_type}{depth}"
-        if self.direction == "out":
+        if self.direction == Direction.outbound:
             return f"-{nav}->"
-        elif self.direction == "in":
+        elif self.direction == Direction.inbound:
             return f"<-{nav}-"
         else:
             return f"<-{nav}->"
@@ -390,6 +377,123 @@ class Part:
             with_clause=self.with_clause.on_section(section) if self.with_clause else None,
             sort=[sort.on_section(section) for sort in self.sort],
         )
+
+    def rewrite_for_ancestors_descendants(self) -> Part:
+        """
+        This function rewrites this part if predicates in the "magic" sections ancestors or descendants are used.
+        Intention: a merge is performed by traversing the graph either inbound (ancestors) or outbound (descendants).
+
+        Important: the merge node is found by kind only! The first matching node with correct type is merged with
+        this node. The filter then is applied _after_ the node has been merged. So the filter can effectively
+        filter the current node, based on properties of the merged node.
+
+        The ancestors or descendants predicate has this form and will create a merge query:
+        ancestors.<kind>.<path.to.prop> creates a merge query: {ancestors.<kind> <-[0:]- is(<kind>)}
+        descendants.<kind>.<path.to.prop> creates a merge query: {descendants.<kind> -[0:]-> is(<kind>)}
+
+        The query is rewritten in order to create a prefilter with all terms that do not depend on the merge.
+        A MergeTerm is either created if not existent or the existing one will be extended with all merge query
+        additions. All merge relevant parts will be performed as merge term post filter.
+        Even if the query is rewritten, the logic of the query is not changed and stays the same.
+
+        :return: the rewritten part with resolved merge parts if ancestor or descendant predicates are found.
+        """
+        before_merge: Term = AllTerm()
+        after_merge: Term = AllTerm()
+
+        def is_ancestor_descendant(name: str) -> bool:
+            return name not in GraphResolver.resolved_property_names and (
+                name.startswith("ancestors.") or name.startswith("descendants.")
+            )
+
+        def has_ancestor_descendant(t: Term) -> bool:
+            if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
+                return True
+            elif isinstance(t, CombinedTerm):
+                return has_ancestor_descendant(t.left) or has_ancestor_descendant(t.right)
+            elif isinstance(t, MergeTerm):
+                return has_ancestor_descendant(t.pre_filter) or (
+                    t.post_filter is not None and has_ancestor_descendant(t.post_filter)
+                )
+            elif isinstance(t, NotTerm):
+                return has_ancestor_descendant(t.term)
+            else:
+                return False
+
+        def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
+            if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
+                return [t]
+            elif isinstance(t, CombinedTerm):
+                return [*ancestor_descendant_predicates(t.left), *ancestor_descendant_predicates(t.right)]
+            elif isinstance(t, MergeTerm):
+                result = ancestor_descendant_predicates(t.pre_filter)
+                if t.post_filter:
+                    result.extend(ancestor_descendant_predicates(t.post_filter))
+                return result
+            elif isinstance(t, NotTerm):
+                return ancestor_descendant_predicates(t.term)
+            else:
+                return []
+
+        def walk_term(term: Term) -> None:
+            # precondition: this method is only called with a term that has ancestor/descendant
+            nonlocal before_merge
+            nonlocal after_merge
+            if isinstance(term, CombinedTerm):
+                left_has_ad = has_ancestor_descendant(term.left)
+                right_has_ad = has_ancestor_descendant(term.right)
+                if term.op == "or":
+                    after_merge = after_merge & term
+                elif left_has_ad and right_has_ad:
+                    walk_term(term.left)
+                    walk_term(term.right)
+                elif left_has_ad:
+                    before_merge = before_merge & term.right
+                    walk_term(term.left)
+                elif right_has_ad:
+                    before_merge = before_merge & term.left
+                    walk_term(term.right)
+                else:
+                    raise NotImplementedError("Logic unsound. This case should not happen!")
+            elif isinstance(term, MergeTerm):
+                # in case pre- and post- filter are defined, handle it as AND combined term
+                # background: pre- and post- filter will be applied on the result
+                #             that effectively reflects an and combination.
+                #             The merge part only merges data to the existing values.
+                if term.post_filter:
+                    walk_term(CombinedTerm(term.pre_filter, "and", term.post_filter))
+                else:
+                    walk_term(term.pre_filter)
+            else:
+                after_merge = after_merge & term
+
+        def name_predicate(predicate: Predicate) -> Tuple[str, str]:
+            anc_dec, kind, _ = predicate.name.split(".", 2)
+            return anc_dec, kind
+
+        def merge_query_for(anc_dec: str, kind: str) -> MergeQuery:
+            try:
+                direction = Direction.inbound if anc_dec == "ancestors" else Direction.outbound
+                navigation = Navigation(1, Navigation.Max, direction=direction)
+                subquery = Query([Part(IsTerm([kind])), Part(AllTerm(), navigation=navigation)])
+                return MergeQuery(f"{anc_dec}.{kind}", subquery)
+            except ValueError as ex:
+                raise AttributeError(
+                    "The name of an ancestor variable has to follow the format: ancestor.<kind>.<path.to.variable>. "
+                    "The kind defines the type of the ancestor to look for.\n"
+                    "Example: ancestors.account.reported.name=test\n"
+                    "Example: descendant..reported.name=test\n"
+                ) from ex
+
+        if has_ancestor_descendant(self.term):
+            walk_term(self.term)
+            predicates = group_by(name_predicate, ancestor_descendant_predicates(after_merge))
+            existing = {a.name: a for a in (self.term.merge if isinstance(self.term, MergeTerm) else [])}
+            created = {a.name: a for a in [merge_query_for(*predicate) for predicate in predicates]}
+            queries = list({**created, **existing}.values())
+            return replace(self, term=MergeTerm(before_merge, queries, after_merge))
+        else:
+            return self
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -462,9 +566,9 @@ class Aggregate:
     group_func: List[AggregateFunction]
 
     def __str__(self) -> str:
-        group_by = ", ".join(str(a) for a in self.group_by) + ": " if self.group_by else ""
+        grouped = ", ".join(str(a) for a in self.group_by) + ": " if self.group_by else ""
         funcs = ", ".join(str(a) for a in self.group_func)
-        return f"aggregate({group_by}{funcs})"
+        return f"aggregate({grouped}{funcs})"
 
     def on_section(self, section: str) -> Aggregate:
         return Aggregate(
@@ -549,15 +653,17 @@ class Query:
         return replace(self, parts=[first, *self.parts[1:]])
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
-        return self.traverse(start, until, edge_type, "out")
+        return self.traverse(start, until, edge_type, Direction.outbound)
 
     def traverse_in(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
-        return self.traverse(start, until, edge_type, "in")
+        return self.traverse(start, until, edge_type, Direction.inbound)
 
     def traverse_inout(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
-        return self.traverse(start, until, edge_type, "inout")
+        return self.traverse(start, until, edge_type, Direction.any)
 
-    def traverse(self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = "out") -> Query:
+    def traverse(
+        self, start: int, until: int, edge_type: str = EdgeType.default, direction: str = Direction.outbound
+    ) -> Query:
         parts = self.parts.copy()
         p0 = parts[0]
         if p0.navigation:
@@ -573,13 +679,9 @@ class Query:
             parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
         return replace(self, parts=parts)
 
-    def group_by(self, group_by: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
-        aggregate = Aggregate(group_by, funcs)
+    def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
+        aggregate = Aggregate(variables, funcs)
         return replace(self, aggregate=aggregate)
-
-    def simplify(self) -> Query:
-        parts = [replace(part, term=part.term.simplify()) for part in self.parts]
-        return replace(self, parts=parts)
 
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
         return self.__change_current_part(lambda p: replace(p, sort=[*p.sort, Sort(name, order)]))

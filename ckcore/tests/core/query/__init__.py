@@ -14,7 +14,7 @@ from hypothesis.strategies import (
     tuples,
 )
 
-from core.model.graph_access import EdgeType
+from core.model.graph_access import EdgeType, Direction
 from tests.core.hypothesis_extension import Drawer, optional
 from core.query.model import (
     IsTerm,
@@ -46,7 +46,7 @@ kind = sampled_from(["bucket", "volume", "certificate", "cloud", "database", "en
 query_operations = sampled_from(["==", ">=", "<=", ">", "<"])
 query_values = sampled_from(["test", 23, True, False, None])
 combine_term = sampled_from(["and", "or"])
-edge_direction = sampled_from(["in", "out", "inout"])
+edge_direction = sampled_from(Direction.all)
 edge_type = sampled_from(list(EdgeType.all))
 sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
 aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
