@@ -20,6 +20,9 @@ class NodePath:
     descendant_count = ["metadata", "descendant_count"]
     python_type = ["metadata", "python_type"]
     is_phantom = ["metadata", "phantom"]
+    from_node = ["from"]
+    to_node = ["to"]
+    ancestor_account_name = ["ancestors", "account", "reported", "name"]
 
 
 @dataclass(frozen=True)
