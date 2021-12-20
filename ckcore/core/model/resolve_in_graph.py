@@ -12,6 +12,7 @@ class NodePath:
     kinds = ["kinds"]
     type = ["type"]
     revision = ["revision"]
+    reported = ["reported"]
     reported_kind = ["reported", "kind"]
     reported_ctime = ["reported", "ctime"]
     reported_id = ["reported", "id"]
