@@ -5,7 +5,8 @@ var graph_data: Dictionary = {
 	{
 		"id": "61c43fa83a7027b9036c1a4b9df579033ffedfa0d7470d43fb379eec3eac84b4",
 		"reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "example_root"},
-		"metadata": {"python_type": "cloudkeeper.baseresources.GraphRoot", "ancestors": []},
+		"metadata": {"python_type": "cloudkeeper.baseresources.GraphRoot"},
+		"ancestors": {},
 		"kinds": ["root"],
 		"desired": {}
 	},
@@ -31,8 +32,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSAccount",
-			"ancestors": {"cloud": {"id": "example_aws"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSAccount"
+		},
+		"ancestors": 
+		{
+			"cloud": {
+				"reported": {
+					"id": "example_aws",
+					"name": "example_aws"
+					}
+				}
 		},
 		"kinds": ["account"],
 		"desired": {}
@@ -50,8 +59,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["region"],
 		"desired": {}
@@ -69,8 +86,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["region"],
 		"desired": {}
@@ -95,8 +120,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Snapshot",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Snapshot"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["snapshot"],
 		"desired": {}
@@ -114,8 +147,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3Bucket",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3Bucket"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["bucket"],
 		"desired": {}
@@ -133,8 +174,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3BucketQuota",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3BucketQuota"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["quota"],
 		"desired": {}
@@ -156,8 +205,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Instance",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Instance"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["instance"],
 		"desired": {}
@@ -178,8 +235,16 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2InstanceType",
-			"ancestors": {"account": {"name": "example_account"}}
+			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2InstanceType"
+		},
+		"ancestors": 
+		{
+			"account": {
+				"reported": {
+					"id": "575584959047",
+					"name": "example_account"
+					}
+				}
 		},
 		"kinds": ["instancetype"],
 		"desired": {}
