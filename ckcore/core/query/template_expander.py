@@ -1,10 +1,10 @@
 import functools
 import json
 from abc import abstractmethod
-from typing import Any, Generator, ByteString, Union, Iterable, Tuple, List, Optional
+from typing import Any, ByteString, Union, Iterable, Tuple, List, Optional, cast
 
 from parsy import string, Parser, regex, any_char
-from ustache import default_getter, default_virtuals, render
+from ustache import default_getter, default_virtuals, render, PropertyGetter
 
 from core.db.templatedb import TemplateEntityDb
 from core.error import NoSuchTemplateError
@@ -181,7 +181,8 @@ class VirtualFunctions:
         return f'"{result}"'
 
 
-getter = functools.partial(
+# noinspection PyTypeChecker
+getter: PropertyGetter = functools.partial(
     default_getter,
     virtuals={
         **default_virtuals,
@@ -200,25 +201,18 @@ def render_template(template: str, props: Json, more_props: Iterable[Json] = ())
     :return: the rendered template string.
     """
 
-    def json_stringify(data: Any, text: bool = False) -> Generator[Union[bytes, ByteString], None, None]:
+    def json_stringify(data: Any, text: bool = False) -> Union[bytes, ByteString]:
         if isinstance(data, ByteString) and not text:
-            yield data
+            return data
         elif isinstance(data, str):
-            yield data.encode()
+            return data.encode()
         elif isinstance(data, (list, dict)):
-            yield json.dumps(data).encode()
+            return json.dumps(data).encode()
         else:
-            yield f"{data}".encode()
+            return f"{data}".encode()
 
-    # noinspection PyTypeChecker
-    return render(  # type: ignore
-        template,
-        props,
-        scopes=more_props,
-        escape=identity,
-        stringify=json_stringify,
-        getter=getter,
-    )
+    rendered = render(template, props, scopes=more_props, escape=identity, stringify=json_stringify, getter=getter)
+    return cast(str, rendered)
 
 
 @make_parser

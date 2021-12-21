@@ -6,18 +6,18 @@ durations_nlp==1.0.1
 jsons==1.6.0
 parsy==1.4.0
 plantuml==0.3.0
-python-arango==7.2.0
+python-arango==7.3.0
 python-dateutil==2.8.2
 toolz==0.11.2
 transitions==0.8.10
 APScheduler==3.8.1
-aiostream==0.4.3
+aiostream==0.4.4
 tzlocal==4.1
-frozendict==2.1.1
+frozendict==2.1.2
 PyYAML==6.0
 cklib==2.0.0a10
 jq==1.2.1
 posthog==1.4.4
 # available in python 3.8
 backports.cached-property==1.0.1
-ustache==0.1.4
+ustache==0.1.5
