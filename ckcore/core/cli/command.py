@@ -893,9 +893,9 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     @staticmethod
     def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
         parser = NoExitArgumentParser()
-        parser.add_argument("--include-edges", dest="include-edges", action="store_true")
+        parser.add_argument("--include-edges", dest="include-edges", default=None, action="store_true")
         parsed, rest = parser.parse_known_args(arg.split(maxsplit=1))
-        return vars(parsed), " ".join(rest)
+        return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
 
     @staticmethod
     def argument_string(args: Dict[str, Any]) -> str:
