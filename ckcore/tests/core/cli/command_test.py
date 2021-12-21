@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -6,10 +5,9 @@ import shutil
 import tempfile
 from datetime import timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Awaitable, Callable, Any
+from typing import List, Dict, Optional
 
 import pytest
-import yaml
 from _pytest.logging import LogCaptureFixture
 from aiostream import stream
 from aiostream.core import Stream
@@ -478,28 +476,19 @@ async def test_templates_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_write_command(cli: CLI) -> None:
-    def check_file(check_fn: Callable[[str], Any]) -> Callable[[Stream], Awaitable[None]]:
-        async def check_stream(res: Stream) -> None:
-            async with res.stream() as streamer:
-                only_one = True
-                async for s in streamer:
-                    assert isinstance(s, str)
-                    p = Path(s)
-                    assert p.exists() and p.is_file()
-                    assert 1 < p.stat().st_size < 100000
-                    text = p.read_text("utf-8")
-                    assert check_fn(text)
-                    assert only_one
-                    only_one = False
-
-        return check_stream
+    async def check_file(res: Stream) -> None:
+        async with res.stream() as streamer:
+            only_one = True
+            async for s in streamer:
+                assert isinstance(s, str)
+                p = Path(s)
+                assert p.exists() and p.is_file()
+                assert 1 < p.stat().st_size < 100000
+                assert p.name.startswith("write_test")
+                assert only_one
+                only_one = False
 
     # result can be read as json
-    await cli.execute_cli_command("query all limit 3 | write write_test.json ", check_file(json.loads))
+    await cli.execute_cli_command("query all limit 3 | format --json | write write_test.json ", check_file)
     # result can be read as yaml
-    await cli.execute_cli_command("query all limit 3 | write write_test.yaml ", check_file(yaml.full_load_all))
-    # result includes the word digraph
-    await cli.execute_cli_command("query all limit 3 | write --format dot f ", check_file(re.compile("digraph").match))
-    with pytest.raises(Exception) as ex:
-        await cli.execute_cli_command("query all limit 3 | write --format does_not_exist foo", stream.count)
-    assert "Format not available: does_not_exist! Available: ndjson, json, text, yaml" in str(ex.value)
+    await cli.execute_cli_command("query all limit 3 | format --yaml | write write_test.yaml ", check_file)

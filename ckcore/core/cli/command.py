@@ -32,7 +32,6 @@ from typing import (
     Callable,
     Awaitable,
     cast,
-    AsyncGenerator,
 )
 
 import aiofiles
@@ -1449,14 +1448,52 @@ class FormatCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Transform incoming objects as string with a defined format."
 
+    formats = {
+        "ndjson": respond_ndjson,
+        "json": respond_json,
+        "text": respond_text,
+        "yaml": respond_yaml,
+        "cytoscape": respond_cytoscape,
+        "graphml": respond_graphml,
+        "dot": respond_dot,
+    }
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
-        def fmt(elem: Any) -> str:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--json", dest="json", action="store_true")
+        parser.add_argument("--ndjson", dest="ndjson", action="store_true")
+        parser.add_argument("--graphml", dest="graphml", action="store_true")
+        parser.add_argument("--text", dest="text", action="store_true")
+        parser.add_argument("--yaml", dest="yaml", action="store_true")
+        parser.add_argument("--cytoscape", dest="cytoscape", action="store_true")
+        parser.add_argument("--dot", dest="dot", action="store_true")
+        parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
+        format_to_use = {k for k, v in vars(parsed).items() if v is True}
+
+        def format_object_to_string(elem: Any) -> str:
             # wrap the object to account for non existent values.
             # if a format value is not existent, render is as null (json conform).
             wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
             return arg.format_map(wrapped)  # type: ignore
 
-        return CLIFlow(lambda in_stream: in_stream if arg is None else stream.map(in_stream, fmt))
+        async def render_format(format_name: str, iss: Stream) -> JsGen:
+            async with iss.stream() as streamer:
+                async for elem in self.formats[format_name](streamer):
+                    yield elem
+
+        async def format_stream(in_stream: Stream) -> Stream:
+            if format_to_use:
+                if len(format_to_use) > 1:
+                    raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
+                if len(formatting_string) > 0:
+                    raise AttributeError("A format renderer can not be combined together with a format string!")
+                return render_format(next(iter(format_to_use)), in_stream)
+            elif formatting_string:
+                return stream.map(in_stream, format_object_to_string)
+            else:
+                return in_stream
+
+        return CLIFlow(format_stream)
 
 
 @make_parser
@@ -2223,30 +2260,16 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
 
 class WriteCommand(CLICommand):
     """
-    Usage: write [--format <format>] <file-name>
+    Usage: write <file-name>
 
     Writes the result of this command to a file with given name.
 
-    The format can be defined via the format flag. Following formats are available:
-    - json [default]: the result will be an array of json objects.
-    - ndjson (newline delimited json): every line in the output is a json document representing one node.
-    - yaml: every node is converted to yaml. The entries are delimited by the yaml object delimiter (---).
-    - text: all nodes are rendered as plain text.
-    - cytoscape: https://js.cytoscape.org/#notation/elements-json.
-    - graphml: render the elements in graphml http://graphml.graphdrawing.org.
-    - dot: render the elements in graphviz dot format: https://graphviz.org/doc/info/lang.html
-
-    If no format is defined, the format is guessed by the file name extension.
-    Example: test.json -> json, test.yml -> yaml, test.graphml -> graphml, test.txt -> text
-
     Parameter:
         file-name [mandatory]:  The name of the file to write to.
-        format [optional]: Defines the format of the content of the file.
-                           One of: json, ndjson, yaml, text, cytoscape, graphml, dot
 
     Example:
-        query all limit 3 | write out.json # Write 3 nodes to the file out.json in json format.
-        query all limit 3 | list | write --format text out.txt # Write 3 nodes to the file out.txt in text format.
+        query all limit 3 | format --json | write out.json # Write 3 nodes to the file out.json in json format.
+        query all limit 3 | format --text | write out.txt # Write 3 nodes to the file out.txt in text format.
     """
 
     @property
@@ -2256,55 +2279,27 @@ class WriteCommand(CLICommand):
     def info(self) -> str:
         return "Writes the incoming stream of data to a file in the defined format."
 
-    formats = {
-        "ndjson": respond_ndjson,
-        "json": respond_json,
-        "text": respond_text,
-        "yaml": respond_yaml,
-        "cytoscape": respond_cytoscape,
-        "graphml": respond_graphml,
-        "dot": respond_dot,
-    }
-
-    mediatype_to_format = {**{f: f for f in formats}, "yml": "yaml", "js": "json", "txt": "text"}
-
     @staticmethod
-    async def write_result_to_file(
-        in_stream: Stream,
-        file_name: str,
-        renderer: Callable[[AsyncIterator[Json]], AsyncGenerator[str, None]],
-    ) -> AsyncIterator[str]:
+    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
         temp_dir: str = tempfile.mkdtemp()
         path = os.path.join(temp_dir, file_name)
         try:
             async with aiofiles.open(path, "w") as f:
                 async with in_stream.stream() as streamer:
-                    async for out in renderer(streamer):
-                        await f.write(out)
+                    async for out in streamer:
+                        if isinstance(out, str):
+                            await f.write(out)
+                        else:
+                            raise AttributeError("No output format is defined! Consider to use the format command.")
             yield path
         finally:
             shutil.rmtree(temp_dir)
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        parser = NoExitArgumentParser()
-        parser.add_argument("--format", dest="format")
-        parser.add_argument("filename")
-        parsed = parser.parse_args(arg.split() if arg else [])
-        if parsed.format and parsed.format not in self.formats:
-            raise AttributeError(f'Format not available: {parsed.format}! Available: {", ".join(self.formats)}')
-        filename: str = parsed.filename
-        filename_extension = filename.rsplit(".", 1)
-        fmt_name = parsed.format
-        # if format is not defined, try to guess it from the file name extension: test.json -> json
-        if not fmt_name and len(filename_extension) == 2:
-            fmt_name = self.mediatype_to_format.get(filename_extension[1])
-        # if it is not defined and can not be guessed, use json as default.
-        fmt = self.formats[fmt_name if fmt_name else "json"]
-
-        def write_file(in_stream: Stream) -> AsyncIterator[str]:
-            return self.write_result_to_file(in_stream, parsed.filename, fmt)
-
-        return CLIFlow(write_file, MediaType.FilePath)
+        if arg is None:
+            raise AttributeError("write requires a filename to write to")
+        defined_arg: str = arg
+        return CLIFlow(lambda in_stream: self.write_result_to_file(in_stream, defined_arg), MediaType.FilePath)
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
