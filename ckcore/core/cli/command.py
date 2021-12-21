@@ -1425,20 +1425,34 @@ class ProtectCommand(SetMetadataStateBase):
 
 class FormatCommand(CLICommand, OutputTransformer):
     """
-    Usage: format <format string>
+    Usage: format [--<format-name>] [format string]
 
     This command creates a string from the json input based on the format string.
     The format string might contain placeholders in curly braces that access properties of the json object.
     If a property is not available, it will result in the string `null`.
 
+    You can either use a format string or you can use a predefined format.
+    Following predefined formats are available via command line flag:
+
+    --json - will create a json string from the incoming json. The result will be a json array.
+    --ndjson - will create a json object for every element, where one element fits on one line.
+    --text - will create a text representation of every element.
+    --cytoscape - will create a string representation in the well known cytoscape format.
+                  See: https://js.cytoscape.org/#notation/elements-json
+    --graphml - will create string representaion of the result in graphml format.
+                See:http://graphml.graphdrawing.org
+    --dot - will create a string representation in graphviz dot format.
+            See: https://graphviz.org/doc/info/lang.html
+
     Parameter:
-        format_string [mandatory]: a string with any content with placeholders to be filled by the object.
+        format_string [optional]: a string with any content with placeholders to be filled by the object.
 
     Example:
         json {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
         json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
         json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
         json {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
+        query all | format --json | write out.json                  # This will write the result to file out.json.
     """
 
     @property
