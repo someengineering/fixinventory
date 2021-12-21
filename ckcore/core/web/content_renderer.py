@@ -25,44 +25,44 @@ from core.util import (
 log = logging.getLogger(__name__)
 
 
-async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
-    sep = ",\n".encode("utf-8")
-    yield "[\n".encode("utf-8")
+async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+    sep = ",\n"
+    yield "[\n"
     first = True
     async for item in gen:
         js = json.dumps(to_json(item))
         if not first:
             yield sep
-        yield js.encode("utf-8")
+        yield js
         first = False
-    yield "\n]".encode("utf-8")
+    yield "\n]"
 
 
-async def respond_ndjson(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_ndjson(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     sep = "\n"
     async for item in gen:
         js = json.dumps(to_json(item), check_circular=False)
-        yield (js + sep).encode("utf-8")
+        yield (js + sep)
 
 
-async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     flag = False
-    sep = "---\n".encode("utf-8")
+    sep = "---\n"
     async for item in gen:
         yml = yaml.dump(to_json(item), default_flow_style=False, sort_keys=False)
         if flag:
             yield sep
-        yield yml.encode("utf-8")
+        yield yml
         flag = True
 
 
-async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     # We use the paired12 color scheme: https://graphviz.org/doc/info/colors.html with color names as 1-12
     cit = count_iterator()
     colors: Dict[str, int] = defaultdict(lambda: (next(cit) % 12) + 1)
     node = "node [shape=Mrecord colorscheme=paired12]"
     edge = "edge [arrowsize=0.5]"
-    yield f"digraph {{\nrankdir=LR\noverlap=false\nsplines=true\n{node}\n{edge}\n".encode("utf-8")
+    yield f"digraph {{\nrankdir=LR\noverlap=false\nsplines=true\n{node}\n{edge}\n"
     in_account: Dict[str, List[str]] = defaultdict(list)
     async for item in gen:
         type_name = item.get("type")
@@ -74,23 +74,23 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
                 account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
                 paired12 = colors[kind]
                 in_account[account].append(uid)
-                yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];\n'.encode("utf-8")
+                yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];\n'
         elif type_name == "edge":
             from_node = value_in_path(item, NodePath.from_node)
             to_node = value_in_path(item, NodePath.to_node)
             if from_node and to_node:
-                yield f' "{from_node}" -> "{to_node}"\n'.encode("utf-8")
+                yield f' "{from_node}" -> "{to_node}"\n'
     # All elements in the same account are rendered as dedicated subgraph
     for account, uids in in_account.items():
-        yield f' subgraph "{account}" {{\n'.encode("utf-8")
+        yield f' subgraph "{account}" {{\n'
         for uid in uids:
-            yield f'    "{uid}"\n'.encode("utf-8")
-        yield " }\n".encode("utf-8")
+            yield f'    "{uid}"\n'
+        yield " }\n"
 
-    yield "}".encode("utf-8")
+    yield "}"
 
 
-async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     def filter_attrs(js: Json) -> Json:
         result: Json = js
         for path in plain_text_blacklist:
@@ -103,19 +103,19 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
 
     try:
         flag = False
-        sep = "---\n".encode("utf-8")
-        cr = "\n".encode("utf-8")
+        sep = "---\n"
+        cr = "\n"
         async for item in gen:
             js = to_json(item)
             if isinstance(js, (dict, list)):
                 if flag:
                     yield sep
                 yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
-                yield yml.encode("utf-8")
+                yield yml
             else:
                 if flag:
                     yield cr
-                yield str(js).encode("utf-8")
+                yield str(js)
             flag = True
     except QueryTookToLongError:
         yield (
@@ -127,7 +127,7 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
             "- define a longer timeout via env var query_timeout\n"
             "  e.g. $> query_timeout=60s query all\n"
             "---------------------------------------------------\n\n"
-        ).encode("utf-8")
+        )
 
 
 async def result_to_graph(gen: AsyncIterator[Json], render_node: Callable[[Json], Json] = identity) -> DiGraph:
@@ -147,15 +147,15 @@ async def result_to_graph(gen: AsyncIterator[Json], render_node: Callable[[Json]
     return result
 
 
-async def respond_cytoscape(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_cytoscape(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
     # on the server side, so we can reuse the networkx code.
     # This functionality can be reimplemented is a streaming way.
     graph = await result_to_graph(gen, lambda js: value_in_path_get(js, NodePath.reported, {}))
-    yield json.dumps(cytoscape_data(graph)).encode("utf-8")
+    yield json.dumps(cytoscape_data(graph))
 
 
-async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
     # on the server side, so we can reuse the networkx code.
     # This functionality can be reimplemented is a streaming way.
@@ -166,12 +166,12 @@ async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, Non
 
     graph = await result_to_graph(gen, no_nested_props)
     for line in generate_graphml(graph):
-        yield line.encode("utf-8")
+        yield line
 
 
-async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
+async def result_string_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[str]]:
     accept = request.headers.get("accept", "application/json")
-    if accept == "application/x-ndjson":
+    if accept in ["application/x-ndjson", "application/ndjson"]:
         return "application/x-ndjson", respond_ndjson(gen)
     elif accept == "application/json":
         return "application/json", respond_json(gen)
@@ -187,3 +187,13 @@ async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple
         return "text/yaml", respond_dot(gen)
     else:
         return "application/json", respond_json(gen)
+
+
+async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
+    content_type, str_gen = await result_string_gen(request, gen)
+
+    async def encode_utf8() -> AsyncIterator[bytes]:
+        async for elem in str_gen:
+            yield elem.encode("utf-8")
+
+    return content_type, encode_utf8()

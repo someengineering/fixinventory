@@ -12,6 +12,7 @@ from asyncio import Future
 from contextlib import suppress
 from dataclasses import replace
 from datetime import timedelta
+from pathlib import Path
 from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
@@ -839,8 +840,12 @@ class Api:
 
     @staticmethod
     async def multi_file_response(results: AsyncIterator[str], boundary: str, response: StreamResponse) -> None:
-        async for file_name in results:
-            with open(file_name, "rb") as content:
-                with MultipartWriter("application/octet-stream", boundary) as mp:
-                    mp.append_payload(BufferedReaderPayload(content))
+        async for file_path in results:
+            path = Path(file_path)
+            if not (path.exists() and path.is_file()):
+                raise HTTPNotFound(text=f"No file with this path: {file_path}")
+            with open(path.absolute(), "rb") as content:
+                with MultipartWriter(boundary=boundary) as mp:
+                    pl = BufferedReaderPayload(content, content_type="application/octet-stream", filename=path.name)
+                    mp.append_payload(pl)
                     await mp.write(response, close_boundary=True)

@@ -19,8 +19,23 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
 from functools import partial
-from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Union, Callable, Awaitable, cast
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    Any,
+    AsyncIterator,
+    Hashable,
+    Iterable,
+    Union,
+    Callable,
+    Awaitable,
+    cast,
+    AsyncGenerator,
+)
 
+import aiofiles
 import jq
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
@@ -29,7 +44,7 @@ from parsy import Parser, string
 
 from core.analytics import AnalyticsEventSender
 from core.async_extensions import run_async
-from core.cli import key_values_parser, strip_quotes, is_node, JsGen
+from core.cli import key_values_parser, strip_quotes, is_node, JsGen, NoExitArgumentParser
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
@@ -62,6 +77,15 @@ from core.util import (
     if_set,
     duration,
     identity,
+)
+from core.web.content_renderer import (
+    respond_ndjson,
+    respond_json,
+    respond_text,
+    respond_graphml,
+    respond_dot,
+    respond_yaml,
+    respond_cytoscape,
 )
 from core.worker_task_queue import WorkerTask, WorkerTaskQueue
 
@@ -2197,6 +2221,92 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
+class WriteCommand(CLICommand):
+    """
+    Usage: write [--format <format>] <file-name>
+
+    Writes the result of this command to a file with given name.
+
+    The format can be defined via the format flag. Following formats are available:
+    - json [default]: the result will be an array of json objects.
+    - ndjson (newline delimited json): every line in the output is a json document representing one node.
+    - yaml: every node is converted to yaml. The entries are delimited by the yaml object delimiter (---).
+    - text: all nodes are rendered as plain text.
+    - cytoscape: https://js.cytoscape.org/#notation/elements-json.
+    - graphml: render the elements in graphml http://graphml.graphdrawing.org.
+    - dot: render the elements in graphviz dot format: https://graphviz.org/doc/info/lang.html
+
+    If no format is defined, the format is guessed by the file name extension.
+    Example: test.json -> json, test.yml -> yaml, test.graphml -> graphml, test.txt -> text
+
+    Parameter:
+        file-name [mandatory]:  The name of the file to write to.
+        format [optional]: Defines the format of the content of the file.
+                           One of: json, ndjson, yaml, text, cytoscape, graphml, dot
+
+    Example:
+        query all limit 3 | write out.json # Write 3 nodes to the file out.json in json format.
+        query all limit 3 | list | write --format text out.txt # Write 3 nodes to the file out.txt in text format.
+    """
+
+    @property
+    def name(self) -> str:
+        return "write"
+
+    def info(self) -> str:
+        return "Writes the incoming stream of data to a file in the defined format."
+
+    formats = {
+        "ndjson": respond_ndjson,
+        "json": respond_json,
+        "text": respond_text,
+        "yaml": respond_yaml,
+        "cytoscape": respond_cytoscape,
+        "graphml": respond_graphml,
+        "dot": respond_dot,
+    }
+
+    mediatype_to_format = {**{f: f for f in formats}, "yml": "yaml", "js": "json", "txt": "text"}
+
+    @staticmethod
+    async def write_result_to_file(
+        in_stream: Stream,
+        file_name: str,
+        renderer: Callable[[AsyncIterator[Json]], AsyncGenerator[str, None]],
+    ) -> AsyncIterator[str]:
+        temp_dir: str = tempfile.mkdtemp()
+        path = os.path.join(temp_dir, file_name)
+        try:
+            async with aiofiles.open(path, "w") as f:
+                async with in_stream.stream() as streamer:
+                    async for out in renderer(streamer):
+                        await f.write(out)
+            yield path
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--format", dest="format")
+        parser.add_argument("filename")
+        parsed = parser.parse_args(arg.split() if arg else [])
+        if parsed.format and parsed.format not in self.formats:
+            raise AttributeError(f'Format not available: {parsed.format}! Available: {", ".join(self.formats)}')
+        filename: str = parsed.filename
+        filename_extension = filename.rsplit(".", 1)
+        fmt_name = parsed.format
+        # if format is not defined, try to guess it from the file name extension: test.json -> json
+        if not fmt_name and len(filename_extension) == 2:
+            fmt_name = self.mediatype_to_format.get(filename_extension[1])
+        # if it is not defined and can not be guessed, use json as default.
+        fmt = self.formats[fmt_name if fmt_name else "json"]
+
+        def write_file(in_stream: Stream) -> AsyncIterator[str]:
+            return self.write_result_to_file(in_stream, parsed.filename, fmt)
+
+        return CLIFlow(write_file, MediaType.FilePath)
+
+
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: templates
@@ -2336,6 +2446,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TailCommand(d),
         TasksCommand(d),
         UniqCommand(d),
+        WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
     if d.args.debug:
