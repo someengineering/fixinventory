@@ -1,9 +1,23 @@
 import string
-from typing import TypeVar, Callable, Any, cast, Optional
+from typing import TypeVar, Callable, Any, cast, Optional, List, Generator
 
-from hypothesis.strategies import SearchStrategy, just, text, dictionaries, booleans, integers, lists, composite
+from aiostream import stream
+from aiostream.core import Stream
+from hypothesis.strategies import (
+    SearchStrategy,
+    just,
+    text,
+    dictionaries,
+    booleans,
+    integers,
+    lists,
+    composite,
+    sampled_from,
+)
 
-from core.types import JsonElement
+from core.model.resolve_in_graph import NodePath
+from core.types import JsonElement, Json
+from core.util import value_in_path, interleave
 
 T = TypeVar("T")
 UD = Callable[[SearchStrategy[Any]], Any]
@@ -29,13 +43,44 @@ class Drawer:
 
 
 any_string = text(alphabet=string.ascii_letters, min_size=3, max_size=10)
+kind_gen = sampled_from(["volume", "instance", "load_balancer", "volume_type"])
 
 
 @composite
-def json_element(ud: UD) -> JsonElement:
-    return cast(JsonElement, ud(json_simple_element | json_object | json_array))
+def json_element_gen(ud: UD) -> JsonElement:
+    return cast(JsonElement, ud(json_simple_element_gen | json_object_gen | json_array_gen))
 
 
-json_simple_element = any_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
-json_object = dictionaries(any_string, json_element(), min_size=1)
-json_array = lists(json_element(), max_size=4)
+json_simple_element_gen = any_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
+json_object_gen = dictionaries(any_string, json_element_gen(), min_size=1, max_size=3)
+json_array_gen = lists(json_element_gen(), max_size=4)
+
+
+@composite
+def node_gen(ud: UD) -> Json:
+    d = Drawer(ud)
+    uid = d.draw(any_string)
+    name = d.draw(any_string)
+    kind = d.draw(kind_gen)
+    reported = d.draw(json_object_gen)
+    metadata = d.draw(json_object_gen)
+    desired = d.draw(json_object_gen)
+    return {
+        "id": uid,
+        "kinds": [kind],
+        "reported": {**reported, "kind": kind, "id": uid, "name": name},
+        "metadata": metadata,
+        "desired": desired,
+        "type": "node",
+    }
+
+
+def graph_stream(node_list: List[Json]) -> Stream:
+    def from_node() -> Generator[Json, Any, None]:
+        for node in node_list:
+            yield node
+        node_ids = [value_in_path(a, NodePath.node_id) for a in node_list]
+        for from_n, to_n in interleave(node_ids):
+            yield {"type": "edge", "from": from_n, "to": to_n}
+
+    return stream.iterate(from_node())

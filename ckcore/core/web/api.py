@@ -150,7 +150,6 @@ class Api:
                 web.post("/graph/{graph_id}", self.create_graph),
                 web.delete("/graph/{graph_id}", self.wipe),
                 # No section of the graph
-                web.post("/graph/{graph_id}/query", self.query),
                 web.post("/graph/{graph_id}/query/raw", self.raw),
                 web.post("/graph/{graph_id}/query/explain", self.explain),
                 web.post("/graph/{graph_id}/query/list", self.query_list),
@@ -170,7 +169,6 @@ class Api:
                 web.delete("/graph/{graph_id}/node/{node_id}", self.delete_node),
                 web.patch("/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
                 # specific section of the graph
-                web.post("/graph/{graph_id}/{section}/query", self.query),
                 web.post("/graph/{graph_id}/{section}/query/raw", self.raw),
                 web.post("/graph/{graph_id}/{section}/query/explain", self.explain),
                 web.post("/graph/{graph_id}/{section}/query/list", self.query_list),
@@ -670,16 +668,6 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         async with await graph_db.query_aggregation(QueryModel(q, m, section)) as gen:
             return await self.stream_response_from_gen(request, gen)
-
-    async def query(self, request: Request) -> StreamResponse:
-        if request.headers.get("format") == "cytoscape":
-            return await self.cytoscape(request)
-        if request.headers.get("format") == "graph":
-            return await self.query_graph_stream(request)
-        elif request.headers.get("format") == "list":
-            return await self.query_list(request)
-        else:
-            return web.HTTPPreconditionFailed(text="Define format header. `format: [graph|list|cytoscape]`")
 
     async def wipe(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "ns")

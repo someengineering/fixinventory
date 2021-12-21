@@ -2,10 +2,11 @@ import json
 import logging
 import re
 from collections import defaultdict
-from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple
+from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable
 
 import yaml
 from aiohttp.web import Request
+from networkx import DiGraph, cytoscape_data, generate_graphml
 
 from core.cli import is_node
 from core.constants import plain_text_blacklist
@@ -18,6 +19,7 @@ from core.util import (
     value_in_path,
     value_in_path_get,
     count_iterator,
+    identity,
 )
 
 log = logging.getLogger(__name__)
@@ -128,6 +130,45 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
         ).encode("utf-8")
 
 
+async def result_to_graph(gen: AsyncIterator[Json], render_node: Callable[[Json], Json] = identity) -> DiGraph:
+    result = DiGraph()
+    async for item in gen:
+        type_name = item.get("type")
+        if type_name == "node":
+            uid = value_in_path(item, NodePath.node_id)
+            json_result = render_node(item)
+            if uid:
+                result.add_node(uid, **json_result)
+        elif type_name == "edge":
+            from_node = value_in_path(item, NodePath.from_node)
+            to_node = value_in_path(item, NodePath.to_node)
+            if from_node and to_node:
+                result.add_edge(from_node, to_node)
+    return result
+
+
+async def respond_cytoscape(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+    # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
+    # on the server side, so we can reuse the networkx code.
+    # This functionality can be reimplemented is a streaming way.
+    graph = await result_to_graph(gen, lambda js: value_in_path_get(js, NodePath.reported, {}))
+    yield json.dumps(cytoscape_data(graph)).encode("utf-8")
+
+
+async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[bytes, None]:
+    # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
+    # on the server side, so we can reuse the networkx code.
+    # This functionality can be reimplemented is a streaming way.
+    def no_nested_props(js: Json) -> Json:
+        reported: Json = value_in_path_get(js, NodePath.reported, {})
+        res = {k: v for k, v in reported.items() if v is not None and not isinstance(v, (dict, list))}
+        return res
+
+    graph = await result_to_graph(gen, no_nested_props)
+    for line in generate_graphml(graph):
+        yield line.encode("utf-8")
+
+
 async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
     accept = request.headers.get("accept", "application/json")
     if accept == "application/x-ndjson":
@@ -138,7 +179,11 @@ async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple
         return "text/plain", respond_text(gen)
     elif accept in ["application/yaml", "text/yaml"]:
         return "text/yaml", respond_yaml(gen)
-    elif accept == "text/vnd.graphviz":
+    elif accept == "application/vnd.cytoscape+json":
+        return "application/vnd.cytoscape+json", respond_cytoscape(gen)
+    elif accept in ["application/graphml+xml", "application/vnd.graphml+xml"]:
+        return "application/graphml+xml", respond_graphml(gen)
+    elif accept.startswith("text/vnd.graphviz"):
         return "text/yaml", respond_dot(gen)
     else:
         return "application/json", respond_json(gen)

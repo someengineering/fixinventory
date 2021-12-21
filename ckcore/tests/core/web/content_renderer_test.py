@@ -1,18 +1,32 @@
 import json
 from typing import List
+from xml.etree import ElementTree
 
 import pytest
 import yaml
 from aiostream import stream
-from hypothesis import given, settings
+from hypothesis import given, settings, HealthCheck
 from hypothesis.strategies import lists
 
 from core.types import JsonElement, Json
-from core.web.content_renderer import respond_json, respond_ndjson, respond_yaml, respond_dot, respond_text
-from tests.core.hypothesis_extension import json_array, json_simple_element, json_object
+from core.web.content_renderer import (
+    respond_json,
+    respond_ndjson,
+    respond_yaml,
+    respond_dot,
+    respond_text,
+    respond_cytoscape,
+    respond_graphml,
+)
+from tests.core.hypothesis_extension import (
+    json_array_gen,
+    json_simple_element_gen,
+    node_gen,
+    graph_stream,
+)
 
 
-@given(json_array)
+@given(json_array_gen)
 @settings(max_examples=20)
 @pytest.mark.asyncio
 async def test_json(elements: List[JsonElement]) -> None:
@@ -23,7 +37,7 @@ async def test_json(elements: List[JsonElement]) -> None:
         assert json.loads(result) == elements
 
 
-@given(json_array)
+@given(json_array_gen)
 @settings(max_examples=20)
 @pytest.mark.asyncio
 async def test_ndjson(elements: List[JsonElement]) -> None:
@@ -34,7 +48,7 @@ async def test_ndjson(elements: List[JsonElement]) -> None:
         assert result == elements
 
 
-@given(json_array)
+@given(json_array_gen)
 @settings(max_examples=20)
 @pytest.mark.asyncio
 async def test_yaml(elements: List[JsonElement]) -> None:
@@ -45,7 +59,7 @@ async def test_yaml(elements: List[JsonElement]) -> None:
         assert [a for a in yaml.full_load_all(result)] == elements
 
 
-@given(lists(json_simple_element, min_size=1, max_size=10))
+@given(lists(json_simple_element_gen, min_size=1, max_size=10))
 @settings(max_examples=20)
 @pytest.mark.asyncio
 async def test_text_simple_elements(elements: List[JsonElement]) -> None:
@@ -57,8 +71,8 @@ async def test_text_simple_elements(elements: List[JsonElement]) -> None:
         assert len(elements) == len(result.split("\n"))
 
 
-@given(lists(json_object, min_size=1, max_size=10))
-@settings(max_examples=20)
+@given(lists(node_gen(), min_size=1, max_size=10))
+@settings(max_examples=20, suppress_health_check=HealthCheck.all())
 @pytest.mark.asyncio
 async def test_text_complex_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
@@ -67,6 +81,30 @@ async def test_text_complex_elements(elements: List[JsonElement]) -> None:
             result += elem.decode("utf-8")
         # every element is rendered as yaml with --- as object deliminator
         assert len(elements) == len(result.split("---"))
+
+
+@given(lists(node_gen(), min_size=1, max_size=10))
+@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@pytest.mark.asyncio
+async def test_cytoscape(elements: List[Json]) -> None:
+    async with graph_stream(elements).stream() as streamer:
+        result = ""
+        async for elem in respond_cytoscape(streamer):
+            result += elem.decode("utf-8")
+        # The resulting string can be parsed as json
+        assert json.loads(result)
+
+
+@given(lists(node_gen(), min_size=1, max_size=10))
+@settings(max_examples=20, suppress_health_check=HealthCheck.all())
+@pytest.mark.asyncio
+async def test_graphml(elements: List[Json]) -> None:
+    async with graph_stream(elements).stream() as streamer:
+        result = ""
+        async for elem in respond_graphml(streamer):
+            result += elem.decode("utf-8")
+    # The resulting string can be parsed as xml
+    assert ElementTree.fromstring(result)
 
 
 @pytest.mark.asyncio
