@@ -1,4 +1,5 @@
-from typing import TypeVar, Union, Coroutine, Any, Callable, AsyncIterator
+from argparse import ArgumentParser
+from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable
 
 from aiostream.core import Stream
 from parsy import Parser, regex
@@ -19,10 +20,10 @@ from core.types import JsonElement
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
-Result = Union[T, Coroutine[Any, Any, T]]
+Result = Union[T, Awaitable[T]]
 JsGen = Union[Stream, AsyncIterator[JsonElement]]
 # A sink function takes a stream and creates a result
-Sink = Callable[[JsGen], Coroutine[Any, Any, T]]
+Sink = Callable[[JsGen], Awaitable[T]]
 
 
 @make_parser
@@ -56,3 +57,12 @@ def strip_quotes(string: str, strip: str = '"') -> str:
 # check if a is a json node element
 def is_node(a: Any) -> bool:
     return "id" in a and Section.reported in a if isinstance(a, dict) else False
+
+
+class NoExitArgumentParser(ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        raise AttributeError(f"Could not parse arguments: {message}")
+
+    def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
+        msg = message if message else "unknown"
+        raise AttributeError(f"Could not parse arguments: {msg}")
