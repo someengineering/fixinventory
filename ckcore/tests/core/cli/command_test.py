@@ -1,12 +1,15 @@
+import json
 import logging
 import os
 import re
 import shutil
 import tempfile
 from datetime import timedelta
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import List, Dict, Optional, Awaitable, Callable, Any
 
 import pytest
+import yaml
 from _pytest.logging import LogCaptureFixture
 from aiostream import stream
 from aiostream.core import Stream
@@ -30,7 +33,13 @@ from tests.core.util_test import not_in_path
 from tests.core.cli.cli_test import cli, cli_deps
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model, foo_kinds
+from tests.core.db.graphdb_test import (
+    filled_graph_db,
+    graph_db,
+    test_db,
+    foo_model,
+    foo_kinds,
+)
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db
@@ -59,7 +68,9 @@ from tests.core.query.template_expander_test import expander
 
 @fixture
 def json_source() -> str:
-    nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
+    nums = ",".join(
+        [f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)]
+    )
     return "json [" + nums + "," + nums + "]"
 
 
@@ -95,11 +106,15 @@ async def test_json_source(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
     result = await cli.execute_cli_command(
-        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
+        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"',
+        stream.list,
     )
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
-        Template("test", 'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"')
+        Template(
+            "test",
+            'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"',
+        )
     )
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
@@ -127,34 +142,52 @@ async def test_count_command(cli: CLI, json_source: str) -> None:
     assert result[0][-1] == "total unmatched: 0"
 
     # count attributes with path
-    result = await cli.execute_cli_command(f"{json_source} | count inner.num", stream.list)
+    result = await cli.execute_cli_command(
+        f"{json_source} | count inner.num", stream.list
+    )
     assert len(result[0]) == 12
     assert result[0][-2] == "total matched: 200"
     assert result[0][-1] == "total unmatched: 0"
 
     # count unknown attributes
-    result = await cli.execute_cli_command(f"{json_source} | count does_not_exist", stream.list)
+    result = await cli.execute_cli_command(
+        f"{json_source} | count does_not_exist", stream.list
+    )
     assert len(result[0]) == 2
     assert result[0] == ["total matched: 0", "total unmatched: 200"]
 
 
 @pytest.mark.asyncio
 async def test_head_command(cli: CLI) -> None:
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2", stream.list) == [[1, 2]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head -2", stream.list) == [[1, 2]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head", stream.list) == [[1, 2, 3, 4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2", stream.list) == [
+        [1, 2]
+    ]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head -2", stream.list) == [
+        [1, 2]
+    ]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head", stream.list) == [
+        [1, 2, 3, 4, 5]
+    ]
 
 
 @pytest.mark.asyncio
 async def test_tail_command(cli: CLI) -> None:
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2", stream.list) == [[4, 5]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail -2", stream.list) == [[4, 5]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail", stream.list) == [[1, 2, 3, 4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2", stream.list) == [
+        [4, 5]
+    ]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail -2", stream.list) == [
+        [4, 5]
+    ]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail", stream.list) == [
+        [1, 2, 3, 4, 5]
+    ]
 
 
 @pytest.mark.asyncio
 async def test_chunk_command(cli: CLI, json_source: str) -> None:
-    result: List[List[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", stream.list)
+    result: List[List[str]] = await cli.execute_cli_command(
+        f"{json_source} | chunk 50", stream.list
+    )
     assert len(result[0]) == 4  # 200 in chunks of 50
     for a in result[0]:
         assert len(a) == 50
@@ -162,7 +195,9 @@ async def test_chunk_command(cli: CLI, json_source: str) -> None:
 
 @pytest.mark.asyncio
 async def test_flatten_command(cli: CLI, json_source: str) -> None:
-    result = await cli.execute_cli_command(f"{json_source} | chunk 50 | flatten", stream.list)
+    result = await cli.execute_cli_command(
+        f"{json_source} | chunk 50 | flatten", stream.list
+    )
     assert len(result[0]) == 200
 
 
@@ -174,7 +209,9 @@ async def test_uniq_command(cli: CLI, json_source: str) -> None:
 
 @pytest.mark.asyncio
 async def test_set_desired_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query is("foo") | set_desired a="test" b=1 c=true', stream.list)
+    result = await cli.execute_cli_command(
+        'query is("foo") | set_desired a="test" b=1 c=true', stream.list
+    )
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["desired"].items()
@@ -182,7 +219,9 @@ async def test_set_desired_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_set_metadata_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query is("foo") | set_metadata a="test" b=1 c=true', stream.list)
+    result = await cli.execute_cli_command(
+        'query is("foo") | set_metadata a="test" b=1 c=true', stream.list
+    )
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["metadata"].items()
@@ -213,7 +252,9 @@ async def test_list_sink(cli: CLI, cli_deps: CLIDependencies) -> None:
 @pytest.mark.asyncio
 async def test_flat_sink(cli: CLI) -> None:
     parsed = await cli.evaluate_cli_command("json [1,2,3]; json [4,5,6]; json [7,8,9]")
-    result = await stream.list(stream.concat(stream.iterate((await p.execute())[1] for p in parsed)))
+    result = await stream.list(
+        stream.concat(stream.iterate((await p.execute())[1] for p in parsed))
+    )
     assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 
@@ -226,18 +267,25 @@ async def test_format(cli: CLI) -> None:
     assert result[0] == ["a:b b:d na:null"]
     # access deeply nested properties with dict and array
     result = await cli.execute_cli_command(
-        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', stream.list
+        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<',
+        stream.list,
     )
     assert result[0] == ["will be an >f<"]
     # make sure any path that is not available leads to the null value
-    result = await cli.execute_cli_command("json {} | format {a}:{b.c.d}:{foo.bla[23].test}", stream.list)
+    result = await cli.execute_cli_command(
+        "json {} | format {a}:{b.c.d}:{foo.bla[23].test}", stream.list
+    )
     assert result[0] == ["null:null:null"]
 
 
 @pytest.mark.asyncio
-async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
+async def test_add_job_command(
+    cli: CLI, task_handler: TaskHandler, job_db: JobDb
+) -> None:
     ctx = CLIContext(cli.cli_env)
-    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list, ctx)
+    result = await cli.execute_cli_command(
+        "add_job 23 1 * * * echo Hello World @NOW@", stream.list, ctx
+    )
     assert result == [["Job c6f602e8 added."]]
     job = await job_db.get("c6f602e8")
     assert job is not None
@@ -246,7 +294,9 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
     assert job.wait is None
     assert job in task_handler.task_descriptions
     assert job.environment == {"graph": "ns"}
-    with_event = await cli.execute_cli_command("add_job 23 1 * * * foo : echo Hello World", stream.list, ctx)
+    with_event = await cli.execute_cli_command(
+        "add_job 23 1 * * * foo : echo Hello World", stream.list, ctx
+    )
     assert with_event == [["Job 86ecb12c added."]]
     job_with_event: Job = await job_db.get("86ecb12c")  # type: ignore
     assert job_with_event.wait is not None
@@ -255,7 +305,9 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
     assert timeout == timedelta(hours=24)
     assert job_with_event.environment == {"graph": "ns"}
     assert job_with_event in task_handler.task_descriptions
-    only_event = await cli.execute_cli_command("add_job foo : echo Hello World", stream.list, ctx)
+    only_event = await cli.execute_cli_command(
+        "add_job foo : echo Hello World", stream.list, ctx
+    )
     assert only_event == [["Job 6614c963 added."]]
     job_only_event: Job = await job_db.get("6614c963")  # type: ignore
     assert job_only_event.wait is None
@@ -264,7 +316,9 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
 
 
 @pytest.mark.asyncio
-async def test_delete_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
+async def test_delete_job_command(
+    cli: CLI, task_handler: TaskHandler, job_db: JobDb
+) -> None:
     await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
     assert await job_db.get("c0fa3076") is not None
     result = await cli.execute_cli_command("delete_job c0fa3076", stream.list)
@@ -284,7 +338,9 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
 
 
 @pytest.mark.asyncio
-async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog: LogCaptureFixture) -> None:
+async def test_tag_command(
+    cli: CLI, performed_by: Dict[str, List[str]], caplog: LogCaptureFixture
+) -> None:
     counter = 0
 
     def nr_of_performed() -> int:
@@ -296,28 +352,46 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
 
     nr_of_performed()  # reset to 0
 
-    assert await cli.execute_cli_command("echo id_does_not_exist | tag update foo bla", stream.list) == [[]]
+    assert await cli.execute_cli_command(
+        "echo id_does_not_exist | tag update foo bla", stream.list
+    ) == [[]]
     assert nr_of_performed() == 0
-    res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
+    res1 = await cli.execute_cli_command(
+        'json ["root", "collector"] | tag update foo bla', stream.list
+    )
     assert nr_of_performed() == 2
     assert {a["id"] for a in res1[0]} == {"root", "collector"}
-    res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
+    res2 = await cli.execute_cli_command(
+        'query is("foo") | tag update foo bla', stream.list
+    )
     assert nr_of_performed() == 11
     assert len(res2[0]) == 11
-    res3 = await cli.execute_cli_command('query is("foo") | tag delete foo', stream.list)
+    res3 = await cli.execute_cli_command(
+        'query is("foo") | tag delete foo', stream.list
+    )
     assert nr_of_performed() == 11
     assert len(res3[0]) == 11
     captured = {a.message for a in caplog.records}
-    res4 = await cli.execute_cli_command('query is("bla") limit 2 | tag delete foo', stream.list)
+    res4 = await cli.execute_cli_command(
+        'query is("bla") limit 2 | tag delete foo', stream.list
+    )
     assert nr_of_performed() == 2
     assert len(res4[0]) == 2
     # make sure that 2 warnings are emitted
-    res5 = [a for a in caplog.records if a.levelno == logging.WARNING and a.message not in captured]
+    res5 = [
+        a
+        for a in caplog.records
+        if a.levelno == logging.WARNING and a.message not in captured
+    ]
     assert len(res5) == 2
     for res in res5:
-        assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+        assert res.message.startswith(
+            "Tag update not reflected in db. Wait until next collector run."
+        )
     # tag updates can be put into background
-    res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
+    res6 = await cli.execute_cli_command(
+        'json ["root", "collector"] | tag update --nowait foo bla', stream.list
+    )
     assert cli.dependencies.forked_tasks.qsize() == 2
     for res in res6[0]:
         # in this case a message with the task id is emitted
@@ -328,14 +402,20 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
 
 
 @pytest.mark.asyncio
-async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
-    result = await cli.execute_cli_command(f"start_task {test_workflow.id}", stream.list)
+async def test_start_task_command(
+    cli: CLI, task_handler: TaskHandler, test_workflow: Workflow
+) -> None:
+    result = await cli.execute_cli_command(
+        f"start_task {test_workflow.id}", stream.list
+    )
     assert len(result[0]) == 1
     assert re.match("Task .+ has been started", result[0][0])
 
 
 @pytest.mark.asyncio
-async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
+async def test_tasks_command(
+    cli: CLI, task_handler: TaskHandler, test_workflow: Workflow
+) -> None:
     await task_handler.start_task(test_workflow, "direct")
     result = await cli.execute_cli_command("tasks", stream.list)
     assert len(result[0]) == 1
@@ -358,17 +438,23 @@ async def test_kind_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('reported is (foo) and identifier=="4" | list', stream.list)
+    result = await cli.execute_cli_command(
+        'reported is (foo) and identifier=="4" | list', stream.list
+    )
     assert len(result[0]) == 1
     assert result[0][0].startswith("kind=foo, age=")
     list_cmd = "list some_int as si, reported.some_string"
-    result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
+    result = await cli.execute_cli_command(
+        f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list
+    )
     assert result[0] == ["si=0, some_string=hello"]
 
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
+    result = await cli.execute_cli_command(
+        'json {"a":{"b":1}} | jq ".a.b"', stream.list
+    )
     assert len(result[0]) == 1
     assert result[0][0] == 1
 
@@ -376,16 +462,32 @@ async def test_jq_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command("query all | count reported.kind", stream.list)
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "foo: 11",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
     # exactly the same command as above (above query would be rewritten as this)
     r = await cli.execute_cli_command(
         "execute_query aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
     )
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "foo: 11",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
 
 
-@pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
+@pytest.mark.skipif(
+    not_in_path("arangodump"), reason="requires arangodump to be in path"
+)
 @pytest.mark.asyncio
 async def test_system_backup_command(cli: CLI) -> None:
     async def check_backup(res: Stream) -> None:
@@ -402,7 +504,10 @@ async def test_system_backup_command(cli: CLI) -> None:
     await cli.execute_cli_command("system backup create", check_backup)
 
 
-@pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
+@pytest.mark.skipif(
+    not_in_path("arangodump", "arangorestore"),
+    reason="requires arangodump and arangorestore",
+)
 @pytest.mark.asyncio
 async def test_system_restore_command(cli: CLI) -> None:
     tmp_dir: Optional[str] = None
@@ -433,13 +538,62 @@ async def test_system_restore_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_templates_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command("templates test kind=volume is({{kind}})", stream.list)
+    result = await cli.execute_cli_command(
+        "templates test kind=volume is({{kind}})", stream.list
+    )
     assert result == [["is(volume)"]]
-    result = await cli.execute_cli_command("templates add filter_kind is({{kind}})", stream.list)
-    assert result == [["Template filter_kind added to the query library.\nis({{kind}})"]]
+    result = await cli.execute_cli_command(
+        "templates add filter_kind is({{kind}})", stream.list
+    )
+    assert result == [
+        ["Template filter_kind added to the query library.\nis({{kind}})"]
+    ]
     result = await cli.execute_cli_command("templates", stream.list)
     assert result == [["filter_kind: is({{kind}})"]]
     result = await cli.execute_cli_command("templates filter_kind", stream.list)
     assert result == [["is({{kind}})"]]
     result = await cli.execute_cli_command("templates delete filter_kind", stream.list)
     assert result == [["Template filter_kind deleted from the query library."]]
+
+
+@pytest.mark.asyncio
+async def test_write_command(cli: CLI) -> None:
+    def check_file(
+        check_fn: Callable[[str], Any]
+    ) -> Callable[[Stream], Awaitable[None]]:
+        async def check_stream(res: Stream) -> None:
+            async with res.stream() as streamer:
+                only_one = True
+                async for s in streamer:
+                    assert isinstance(s, str)
+                    p = Path(s)
+                    assert p.exists() and p.is_file()
+                    assert 1 < p.stat().st_size < 100000
+                    text = p.read_text("utf-8")
+                    assert check_fn(text)
+                    assert only_one
+                    only_one = False
+
+        return check_stream
+
+    # result can be read as json
+    await cli.execute_cli_command(
+        "query all limit 3 | write write_test.json ", check_file(json.loads)
+    )
+    # result can be read as yaml
+    await cli.execute_cli_command(
+        "query all limit 3 | write write_test.yaml ", check_file(yaml.full_load_all)
+    )
+    # result includes the word digraph
+    await cli.execute_cli_command(
+        "query all limit 3 | write --format dot f ",
+        check_file(re.compile("digraph").match),
+    )
+    with pytest.raises(Exception) as ex:
+        await cli.execute_cli_command(
+            "query all limit 3 | write --format does_not_exist foo", stream.count
+        )
+    assert (
+        "Format not available: does_not_exist! Available: ndjson, json, text, yaml"
+        in str(ex.value)
+    )
