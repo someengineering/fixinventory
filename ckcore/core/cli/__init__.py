@@ -59,6 +59,11 @@ def is_node(a: Any) -> bool:
     return "id" in a and Section.reported in a if isinstance(a, dict) else False
 
 
+# check if given object is a json edge element
+def is_edge(a: Any) -> bool:
+    return "from" in a and "to" in a if isinstance(a, dict) else False
+
+
 class NoExitArgumentParser(ArgumentParser):
     def error(self, message: str) -> NoReturn:
         raise AttributeError(f"Could not parse arguments: {message}")

@@ -44,7 +44,7 @@ from parsy import Parser, string
 
 from core.analytics import AnalyticsEventSender
 from core.async_extensions import run_async
-from core.cli import key_values_parser, strip_quotes, is_node, JsGen, NoExitArgumentParser
+from core.cli import key_values_parser, strip_quotes, is_node, JsGen, NoExitArgumentParser, is_edge
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
@@ -299,7 +299,7 @@ class QueryPart(CLICommand, ABC):
 
 class QueryAllPart(QueryPart):
     """
-    Usage: query <property.path> <op> <value"
+    Usage: query [--include-edges] <property.path> <op> <value"
 
     Part of a query.
     With this command you can query all sections directly.
@@ -308,6 +308,9 @@ class QueryAllPart(QueryPart):
     The property is the complete path in the json structure.
     Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
     value is a json encoded value to match.
+
+    Parameter:
+        --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
 
     Example:
         query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
@@ -863,10 +866,14 @@ class AggregateToCountCommand(CLICommand, InternalPart):
 
 class ExecuteQueryCommand(CLICommand, InternalPart):
     """
-    Usage: execute_query <query>
+    Usage: execute_query [--include-edges] <query>
 
     A query is performed against the graph database and all resulting elements will be emitted.
     To learn more about the query, visit https://docs.some.engineering/
+
+    Parameter:
+        --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
+
 
     Example:
         execute_query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, ..]
@@ -883,14 +890,32 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "Query the database and pass the results to the output stream."
 
+    @staticmethod
+    def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--include-edges", dest="include-edges", action="store_true")
+        parsed, rest = parser.parse_known_args(arg.split(maxsplit=1))
+        return vars(parsed), " ".join(rest)
+
+    @staticmethod
+    def argument_string(args: Dict[str, Any]) -> str:
+        result = ""
+        for key, value in args.items():
+            if value is True:
+                result += f"--{key}"
+        return result + " " if result else ""
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         # db name is coming from the env
         graph_name = ctx.env["graph"]
         if not arg:
             raise CLIParseError("query command needs a query to execute, but nothing was given!")
 
+        # Read all argument flags / options
+        parsed, rest = self.parse_known(arg)
+
         # all templates are expanded at this point, so we can call the parser directly.
-        query = parse_query(arg)
+        query = parse_query(rest)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
         async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
@@ -902,7 +927,11 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
             context = (
                 await db.query_aggregation(query_model)
                 if query.aggregate
-                else await db.query_list(query_model, with_count=count, timeout=timeout)
+                else (
+                    await db.query_graph_gen(query_model, with_count=count, timeout=timeout)
+                    if parsed.get("include-edges")
+                    else await db.query_list(query_model, with_count=count, timeout=timeout)
+                )
             )
             cursor = context.cursor
 
@@ -1599,9 +1628,8 @@ class ListCommand(CLICommand, OutputTransformer):
             as_name = path[-1] if prop == as_name or as_name is None else as_name
             props.append((path, as_name))
 
-        def fmt(elem: JsonElement) -> JsonElement:
-            is_vertex = is_node(elem)
-            if is_vertex and isinstance(elem, dict):
+        def fmt_json(elem: Json) -> JsonElement:
+            if is_node(elem):
                 result = ""
                 first = True
                 for prop_path, name in props:
@@ -1611,10 +1639,13 @@ class ListCommand(CLICommand, OutputTransformer):
                         result += f"{delim}{to_str(name, value)}"
                         first = False
                 return result
-            elif isinstance(elem, dict):
-                return elem
+            elif is_edge(elem):
+                return f'{elem.get("from")} -> {elem.get("to")}'
             else:
-                return str(elem)
+                return elem
+
+        def fmt(elem: JsonElement) -> JsonElement:
+            return fmt_json(elem) if isinstance(elem, dict) else str(elem)
 
         return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
 

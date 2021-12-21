@@ -43,6 +43,7 @@ from core.cli.command import (
     CLIContext,
     EmptyContext,
     CLICommandRequirement,
+    ExecuteQueryCommand,
 )
 from core.error import CLIParseError
 from core.model.graph_access import EdgeType, Section
@@ -287,14 +288,21 @@ class CLI:
         """
         Takes a list of query part commands and combine them to a single executable query command.
         This process can also introduce new commands that should run after the query is finished.
-        Therefore a list of executable commands is returned.
+        Therefore, a list of executable commands is returned.
         :param commands: the incoming executable commands, which actions are all instances of QueryPart.
         :param ctx: the context to execute within.
         :return: the resulting list of commands to execute.
         """
 
-        async def parse_query(query_string: str) -> Query:
-            return await self.dependencies.template_expander.parse_query(query_string)
+        # Pass parsed options to execute query
+        # Multiple query commands are possible - so the dict is combined with every parsed query.
+        parsed_options: Dict[str, Any] = {}
+
+        async def parse_query(query_arg: str) -> Query:
+            nonlocal parsed_options
+            parsed, query_part = ExecuteQueryCommand.parse_known(query_arg)
+            parsed_options = {**parsed_options, **parsed}
+            return await self.dependencies.template_expander.parse_query("".join(query_part))
 
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
@@ -342,8 +350,10 @@ class CLI:
                 query = query.with_limit(size)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        args = str(query)
-        execute_query = self.command("execute_query", args, ctx)
+
+        options = ExecuteQueryCommand.argument_string(parsed_options)
+        query_string = str(query)
+        execute_query = self.command("execute_query", options + query_string, ctx)
         return [execute_query, *additional_commands]
 
     async def evaluate_cli_command(
