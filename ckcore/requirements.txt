@@ -21,3 +21,4 @@ posthog==1.4.4
 # available in python 3.8
 backports.cached-property==1.0.1
 ustache==0.1.5
+aiofiles==0.8.0

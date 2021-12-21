@@ -1,12 +1,15 @@
+import json
 import logging
 import os
 import re
 import shutil
 import tempfile
 from datetime import timedelta
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import List, Dict, Optional, Awaitable, Callable, Any
 
 import pytest
+import yaml
 from _pytest.logging import LogCaptureFixture
 from aiostream import stream
 from aiostream.core import Stream
@@ -30,7 +33,13 @@ from tests.core.util_test import not_in_path
 from tests.core.cli.cli_test import cli, cli_deps
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model, foo_kinds
+from tests.core.db.graphdb_test import (
+    filled_graph_db,
+    graph_db,
+    test_db,
+    foo_model,
+    foo_kinds,
+)
 
 # noinspection PyUnresolvedReferences
 from tests.core.db.runningtaskdb_test import running_task_db
@@ -95,11 +104,15 @@ async def test_json_source(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
     result = await cli.execute_cli_command(
-        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
+        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"',
+        stream.list,
     )
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
-        Template("test", 'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"')
+        Template(
+            "test",
+            'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"',
+        )
     )
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
@@ -226,7 +239,8 @@ async def test_format(cli: CLI) -> None:
     assert result[0] == ["a:b b:d na:null"]
     # access deeply nested properties with dict and array
     result = await cli.execute_cli_command(
-        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', stream.list
+        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<',
+        stream.list,
     )
     assert result[0] == ["will be an >f<"]
     # make sure any path that is not available leads to the null value
@@ -376,13 +390,27 @@ async def test_jq_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command("query all | count reported.kind", stream.list)
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "foo: 11",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
     # exactly the same command as above (above query would be rewritten as this)
     r = await cli.execute_cli_command(
         "execute_query aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
     )
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "foo: 11",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
 
 
 @pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
@@ -402,7 +430,10 @@ async def test_system_backup_command(cli: CLI) -> None:
     await cli.execute_cli_command("system backup create", check_backup)
 
 
-@pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
+@pytest.mark.skipif(
+    not_in_path("arangodump", "arangorestore"),
+    reason="requires arangodump and arangorestore",
+)
 @pytest.mark.asyncio
 async def test_system_restore_command(cli: CLI) -> None:
     tmp_dir: Optional[str] = None
@@ -443,3 +474,32 @@ async def test_templates_command(cli: CLI) -> None:
     assert result == [["is({{kind}})"]]
     result = await cli.execute_cli_command("templates delete filter_kind", stream.list)
     assert result == [["Template filter_kind deleted from the query library."]]
+
+
+@pytest.mark.asyncio
+async def test_write_command(cli: CLI) -> None:
+    def check_file(check_fn: Callable[[str], Any]) -> Callable[[Stream], Awaitable[None]]:
+        async def check_stream(res: Stream) -> None:
+            async with res.stream() as streamer:
+                only_one = True
+                async for s in streamer:
+                    assert isinstance(s, str)
+                    p = Path(s)
+                    assert p.exists() and p.is_file()
+                    assert 1 < p.stat().st_size < 100000
+                    text = p.read_text("utf-8")
+                    assert check_fn(text)
+                    assert only_one
+                    only_one = False
+
+        return check_stream
+
+    # result can be read as json
+    await cli.execute_cli_command("query all limit 3 | write write_test.json ", check_file(json.loads))
+    # result can be read as yaml
+    await cli.execute_cli_command("query all limit 3 | write write_test.yaml ", check_file(yaml.full_load_all))
+    # result includes the word digraph
+    await cli.execute_cli_command("query all limit 3 | write --format dot f ", check_file(re.compile("digraph").match))
+    with pytest.raises(Exception) as ex:
+        await cli.execute_cli_command("query all limit 3 | write --format does_not_exist foo", stream.count)
+    assert "Format not available: does_not_exist! Available: ndjson, json, text, yaml" in str(ex.value)

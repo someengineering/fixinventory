@@ -33,7 +33,7 @@ async def test_json(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_json(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         assert json.loads(result) == elements
 
 
@@ -44,7 +44,7 @@ async def test_ndjson(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = []
         async for elem in respond_ndjson(streamer):
-            result.append(json.loads(elem.decode("utf-8").strip()))
+            result.append(json.loads(elem.strip()))
         assert result == elements
 
 
@@ -55,7 +55,7 @@ async def test_yaml(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_yaml(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         assert [a for a in yaml.full_load_all(result)] == elements
 
 
@@ -66,7 +66,7 @@ async def test_text_simple_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_text(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         # every element is rendered as single line
         assert len(elements) == len(result.split("\n"))
 
@@ -78,7 +78,7 @@ async def test_text_complex_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_text(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         # every element is rendered as yaml with --- as object deliminator
         assert len(elements) == len(result.split("---"))
 
@@ -90,7 +90,7 @@ async def test_cytoscape(elements: List[Json]) -> None:
     async with graph_stream(elements).stream() as streamer:
         result = ""
         async for elem in respond_cytoscape(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         # The resulting string can be parsed as json
         assert json.loads(result)
 
@@ -102,7 +102,7 @@ async def test_graphml(elements: List[Json]) -> None:
     async with graph_stream(elements).stream() as streamer:
         result = ""
         async for elem in respond_graphml(streamer):
-            result += elem.decode("utf-8")
+            result += elem
     # The resulting string can be parsed as xml
     assert ElementTree.fromstring(result)
 
@@ -122,7 +122,7 @@ async def test_dot() -> None:
     async with stream.iterate(nodes + edges).stream() as streamer:
         result = ""
         async for elem in respond_dot(streamer):
-            result += elem.decode("utf-8")
+            result += elem
         expected = (
             "digraph {\n"
             "rankdir=LR\n"
