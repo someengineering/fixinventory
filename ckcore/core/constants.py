@@ -17,7 +17,6 @@ arangodb_matches_null_ops = {"<", "<=", "not in", "=~"}
 
 # Attribute blacklist to hide in text/plain mode.
 plain_text_blacklist = [
-    NodePath.node_id,
     NodePath.type,
     NodePath.revision,
     NodePath.kinds,
