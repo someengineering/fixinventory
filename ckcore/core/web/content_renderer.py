@@ -42,7 +42,7 @@ async def respond_ndjson(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     sep = "\n"
     async for item in gen:
         js = json.dumps(to_json(item), check_circular=False)
-        yield (js + sep)
+        yield js + sep
 
 
 async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:

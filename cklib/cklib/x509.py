@@ -148,7 +148,8 @@ def sign_csr(
 
 
 def write_csr_to_file(csr: CertificateSigningRequest, csr_path: str) -> None:
-    return write_cert_to_file(csr, csr_path)
+    with open(csr_path, "wb") as f:
+        f.write(csr_to_bytes(csr))
 
 
 def write_cert_to_file(cert: Certificate, cert_path: str) -> None:
@@ -179,6 +180,10 @@ def key_to_bytes(
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         **kwargs,
     )
+
+
+def csr_to_bytes(csr: CertificateSigningRequest) -> bytes:
+    return cert_to_bytes(csr)
 
 
 def cert_to_bytes(cert: Certificate) -> bytes:
