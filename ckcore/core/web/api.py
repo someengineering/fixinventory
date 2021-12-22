@@ -743,7 +743,7 @@ class Api:
                 and current.executable_commands
                 and not isinstance(current.executable_commands[-1].command, (OutputTransformer, PreserveOutputFormat))
             ):
-                out_gen = await ListCommand(self.cli.dependencies).parse().flow(out_gen)
+                out_gen = await ListCommand(self.cli.dependencies).parse(ctx=current.ctx).flow(out_gen)
 
             return maybe_count, out_gen
 

@@ -740,6 +740,30 @@ class Query:
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
         return Query(parts, preamble, aggregate)
 
+    @property
+    def predicates(self) -> List[Predicate]:
+        """
+        Returns a list of all predicates in this query.
+        """
+        result = []
+
+        def walk(term: Term) -> None:
+            if isinstance(term, Predicate):
+                result.append(term)
+            elif isinstance(term, CombinedTerm):
+                walk(term.left)
+                walk(term.right)
+            elif isinstance(term, MergeTerm):
+                walk(term.pre_filter)
+                if term.post_filter:
+                    walk(term.post_filter)
+            elif isinstance(term, NotTerm):
+                walk(term.term)
+
+        for part in self.parts:
+            walk(part.term)
+        return result
+
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)
         names: Dict[str, List[str]] = defaultdict(list)

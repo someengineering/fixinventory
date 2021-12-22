@@ -141,6 +141,8 @@ class CLIDependencies:
 class CLIContext:
     env: Dict[str, str] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
+    query: Optional[Query] = None
+    query_options: Dict[str, Any] = field(default_factory=dict)
 
 
 EmptyContext = CLIContext()
@@ -1590,6 +1592,8 @@ class ListCommand(CLICommand, OutputTransformer):
         ("reported.kind", "kind"),
         ("reported.id", "id"),
         ("reported.name", "name"),
+    ]
+    default_context_properties_to_show = [
         ("reported.age", "age"),
         ("reported.last_update", "last_update"),
         ("ancestors.cloud.reported.name", "cloud"),
@@ -1607,6 +1611,20 @@ class ListCommand(CLICommand, OutputTransformer):
         return "Transform incoming objects as string with defined properties."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+        def default_props_to_show() -> List[Tuple[str, str]]:
+            result = []
+            result.extend(self.default_properties_to_show)
+            if ctx.query:
+                # include the object id, if edges are requested
+                if ctx.query_options.get("include-edges") is True:
+                    result.append(("id", "node-id"))
+                # add all predicates the user has queried
+                for predicate in ctx.query.predicates:
+                    result.append((predicate.name, predicate.name.rsplit(".", 1)[-1]))
+
+            result.extend(self.default_context_properties_to_show)
+            return result
+
         def adjust_path(p: List[str]) -> List[str]:
             root = p[0]
             if root in Section.all or root == "id" or root == "kinds":
@@ -1623,7 +1641,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 return f"{name}={elem}"
 
         props: List[Tuple[List[str], str]] = []
-        for prop, as_name in list_arg_parse.parse(arg) if arg else self.default_properties_to_show:
+        for prop, as_name in list_arg_parse.parse(arg) if arg else default_props_to_show():
             path = adjust_path(self.dot_re.split(prop))
             as_name = path[-1] if prop == as_name or as_name is None else as_name
             props.append((path, as_name))
