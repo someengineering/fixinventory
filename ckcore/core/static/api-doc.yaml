@@ -8,7 +8,7 @@ info:
     title: keeper-core REST API
 tags:
     -   name: graph_query
-        description: Endpoints to query all sections of the graph
+        description: Endpoints to query all sections of the graph.
     -   name: graph_management
         description: Create, update wipe or delete a complete graph.
     -   name: node_management
@@ -16,17 +16,19 @@ tags:
     -   name: model
         description: Endpoints to maintain the schema and model of the entities inside a graph.
     -   name: config
-        description: Endpoints to maintain configuration data
+        description: Endpoints to maintain configuration data.
     -   name: cli
-        description: Endpoints to evaluate and execute cli commands
+        description: Endpoints to evaluate and execute cli commands.
     -   name: subscriptions
-        description: Endpoints to manipulate event subscriptions
+        description: Endpoints to manipulate event subscriptions.
     -   name: work_queue
-        description: Endpoints to attach to the work queue
+        description: Endpoints to attach to the work queue.
+    -   name: certificate
+        description: Endpoints to access the certificate authority as well as signing functionality.
     -   name: system
         description: Endpoints to get information about the system.
     -   name: debug
-        description: Endpoints to debug the system
+        description: Endpoints to debug the system.
 
 paths:
 
@@ -2127,6 +2129,98 @@ paths:
                                     type: object
                                     additionalProperties: true
 
+    # endregion
+
+    # region certificate
+    /ca/cert:
+        get:
+            summary: Retrieve the certificate authorities public certificate.
+            description: The certificate served here is only used to sign and validate.
+            tags:
+                - certificate
+            responses:
+                "200":
+                    description: "The certificate in PEM format."
+                    content:
+                        application/x-pem-file:
+                            schema:
+                                type: string
+                                example: |
+                                    -----BEGIN CERTIFICATE-----
+                                    MIIDUjCCAjqgAwIBAgIUEtDMkiSa2FYM5LVhZiPlspro39owDQYJKoZIhvcNAQEL
+                                    BQAweDELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcM
+                                    DVNhbiBGcmFuY2lzY28xHjAcBgNVBAoMFVNvbWUgRW5naW5lZXJpbmcgSW5jLjEc
+                                    MBoGA1UEAwwTQ2xvdWRrZWVwZXIgUm9vdCBDQTAeFw0yMTEyMjIwOTQ1NDJaFw0y
+                                    MjEyMjIwOTQ1NDJaMBsxGTAXBgNVBAMMEHNvbWUuZW5naW5lZXJpbmcwggEiMA0G
+                                    CSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5VIgOTR95jIxWJZHXUo6FUv4CyDn/
+                                    fZWxZQmFXC8c6SqspRNpXMgZq+riTm+yQ1l/kc2xVpr5S8tVeFGGjzaCcf51DMSx
+                                    j7SaUXP2oDtMi7e9wkfTaoN3z3erVwJl39znKQviEL8G7vYPCn7oDqt1HHry7ctN
+                                    crEMWYSQXUYe4s++K1q65VyGNBp6AcIrmefoH0pGARZs4MbvR74U44xsj25VFS+W
+                                    M3YSomBv4oB4QkqlcVWOU/Tlx7Tq7ASfkSqEkUigKMx/QKrdeQHxCkEtmjbiHhOk
+                                    VaCYsVbi8pVvE5URNrycvzJXGdimSL8pVZ8M89gUDoxUoiAneSswoRZrAgMBAAGj
+                                    MTAvMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH
+                                    AwIwDQYJKoZIhvcNAQELBQADggEBAA70yqOYfYtguJKji+IeIsZflNH2DH6lZ2Xe
+                                    mv5suRbjuKEApSDUL59rpliT1dAcX6+cfKDQjzZ/7VWmp+XZmehGRlhRNWJMzsOz
+                                    Xv8/5l0LL59yN4w4FNq2cREcLj35RVYUU7lssNr/RNE9xNMHeqLdC4oW22PUi1lY
+                                    iq212G5yQTg31lVmzA9Uzvz+p/A8CG24tSBFbydSIogprmALS+5rnso0bWJ3Owf1
+                                    CVz6Dc9UM4kBWDsb+iTffXwbgSDbG+lJ+9TEndcAzb7Zxs6ghMtv/PKR/tmw+O32
+                                    3da9fAZE2eZoDvssH6LAUcFjtP9SFb8ZOdHJ15l279vzgCvWsvU=
+                                    -----END CERTIFICATE-----
+    /ca/sign:
+        post:
+            summary: Sign a certificate request.
+            tags:
+                - certificate
+            requestBody:
+                description: The certificate signing request (csr) in pkcs10 format.
+                content:
+                    application/pkcs10:
+                        schema:
+                            type: string
+                            example: |
+                                -----BEGIN CERTIFICATE REQUEST-----
+                                MIICYDCCAUgCAQAwGzEZMBcGA1UEAwwQc29tZS5lbmdpbmVlcmluZzCCASIwDQYJ
+                                KoZIhvcNAQEBBQADggEPADCCAQoCggEBAM6QVB0C0G1yJRD1aWye8a1IscJa4cN4
+                                +PDWim+2qemCRpiIafgsict5AtlqmvDaYYs7uaLI8PLASMz0pnrxLaVbRVu5H7Ix
+                                KSh1Vz/WjsqTDNw5Q+qPpT/YPP5l02IrKrP/pdMNC0FYnDxr6Y4bXVuFqtMv+Zr2
+                                amJSIpOET2wswo6MRflfiO9jh8mD5mdU+SqDHAvBpU7H3L4rd3cWyVsz3Q4cqpwa
+                                SDayhRMewxusI2MTj/uNEzZYTWiHb2TXUkYYSMYazdbVRUKFNWOsq+z1RPV1IUUe
+                                g0yjNS+tfYF0numPzwt9GNuB18O3X1G5rs2nHDRQL8pAbcy5Wjsuwf0CAwEAAaAA
+                                MA0GCSqGSIb3DQEBCwUAA4IBAQAuI5ijV9ahWtRhondwOYuYFMZL+i+tXPdn+O/B
+                                V7WFVdbaV13TpJ3giJBhCY3mlQ+Vb7BNDhgqdcsiXr4M1fDC0gf8J/GYA2s4yvrf
+                                fCqnFA97UET0AwpIA22+JZnZVs+FXqDsU2VMBgmGToU0QgzBSVi8/exSx3CWBgAk
+                                x2q98/r/Dhbi2KQkOYJ7yQx1t0416UiFB9xUnDIreg0k5chP5NF1YRbsatParYhG
+                                OviEEbELaTnWbmfnveBWjxAImv5w3tkF/dapH+QQ5yTIzDEl/UoG2pXC6QGRaRsp
+                                Mft1XSBtZDykb6SrTTz/lUfjn3XX+zqQ7g466HvglAwqUfX1
+                                -----END CERTIFICATE REQUEST-----
+            responses:
+                "200":
+                    description: "The certificate in PEM format."
+                    content:
+                        application/x-pem-file:
+                            schema:
+                                type: string
+                                example: |
+                                    -----BEGIN CERTIFICATE-----
+                                    MIIDUjCCAjqgAwIBAgIUEtDMkiSa2FYM5LVhZiPlspro39owDQYJKoZIhvcNAQEL
+                                    BQAweDELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcM
+                                    DVNhbiBGcmFuY2lzY28xHjAcBgNVBAoMFVNvbWUgRW5naW5lZXJpbmcgSW5jLjEc
+                                    MBoGA1UEAwwTQ2xvdWRrZWVwZXIgUm9vdCBDQTAeFw0yMTEyMjIwOTQ1NDJaFw0y
+                                    MjEyMjIwOTQ1NDJaMBsxGTAXBgNVBAMMEHNvbWUuZW5naW5lZXJpbmcwggEiMA0G
+                                    CSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5VIgOTR95jIxWJZHXUo6FUv4CyDn/
+                                    fZWxZQmFXC8c6SqspRNpXMgZq+riTm+yQ1l/kc2xVpr5S8tVeFGGjzaCcf51DMSx
+                                    j7SaUXP2oDtMi7e9wkfTaoN3z3erVwJl39znKQviEL8G7vYPCn7oDqt1HHry7ctN
+                                    crEMWYSQXUYe4s++K1q65VyGNBp6AcIrmefoH0pGARZs4MbvR74U44xsj25VFS+W
+                                    M3YSomBv4oB4QkqlcVWOU/Tlx7Tq7ASfkSqEkUigKMx/QKrdeQHxCkEtmjbiHhOk
+                                    VaCYsVbi8pVvE5URNrycvzJXGdimSL8pVZ8M89gUDoxUoiAneSswoRZrAgMBAAGj
+                                    MTAvMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH
+                                    AwIwDQYJKoZIhvcNAQELBQADggEBAA70yqOYfYtguJKji+IeIsZflNH2DH6lZ2Xe
+                                    mv5suRbjuKEApSDUL59rpliT1dAcX6+cfKDQjzZ/7VWmp+XZmehGRlhRNWJMzsOz
+                                    Xv8/5l0LL59yN4w4FNq2cREcLj35RVYUU7lssNr/RNE9xNMHeqLdC4oW22PUi1lY
+                                    iq212G5yQTg31lVmzA9Uzvz+p/A8CG24tSBFbydSIogprmALS+5rnso0bWJ3Owf1
+                                    CVz6Dc9UM4kBWDsb+iTffXwbgSDbG+lJ+9TEndcAzb7Zxs6ghMtv/PKR/tmw+O32
+                                    3da9fAZE2eZoDvssH6LAUcFjtP9SFb8ZOdHJ15l279vzgCvWsvU=
+                                    -----END CERTIFICATE-----
     # endregion
 
     # region system
