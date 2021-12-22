@@ -1613,15 +1613,16 @@ class ListCommand(CLICommand, OutputTransformer):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
         def default_props_to_show() -> List[Tuple[str, str]]:
             result = []
+            # include the object id, if edges are requested
+            if ctx.query_options.get("include-edges") is True:
+                result.append(("id", "node_id"))
+            # add all default props
             result.extend(self.default_properties_to_show)
+            # add all predicates the user has queried
             if ctx.query:
-                # include the object id, if edges are requested
-                if ctx.query_options.get("include-edges") is True:
-                    result.append(("id", "node-id"))
-                # add all predicates the user has queried
                 for predicate in ctx.query.predicates:
                     result.append((predicate.name, predicate.name.rsplit(".", 1)[-1]))
-
+            # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
 
