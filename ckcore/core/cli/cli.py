@@ -7,12 +7,12 @@ from asyncio import Task
 from dataclasses import dataclass, field, replace
 from datetime import timedelta, datetime
 from functools import reduce
-from itertools import takewhile
 from typing import Dict, List, Tuple, Type, cast
 from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
+from itertools import takewhile
 from parsy import Parser
 from tzlocal import get_localzone
 
@@ -43,6 +43,7 @@ from core.cli.command import (
     CLIContext,
     EmptyContext,
     CLICommandRequirement,
+    ExecuteQueryCommand,
 )
 from core.error import CLIParseError
 from core.model.graph_access import EdgeType, Section
@@ -63,7 +64,7 @@ from core.query.model import (
     SortOrder,
 )
 from core.query.query_parser import aggregate_parameter_parser
-from core.types import JsonElement, Json
+from core.types import Json
 from core.util import utc_str, utc, from_utc
 
 log = logging.getLogger(__name__)
@@ -92,12 +93,12 @@ class ExecutableCommand:
 class ParsedCommandLine:
     """
     The parsed command line holds:
-    - env: the resulting environment coming from the parsed environment + the provided environment
+    - ctx: the resulting environment coming from the parsed environment + the provided environment
     - commands: all commands this command is defined from
     - generator: this generator can be used in order to execute the command line
     """
 
-    env: JsonElement
+    ctx: CLIContext
     parsed_commands: ParsedCommands
     executable_commands: List[ExecutableCommand]
     unmet_requirements: List[CLICommandRequirement]
@@ -283,18 +284,27 @@ class CLI:
         else:
             raise CLIParseError(f"Command >{name}< is not known. typo?")
 
-    async def create_query(self, commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+    async def create_query(
+        self, commands: List[ExecutableCommand], ctx: CLIContext
+    ) -> Tuple[Query, Dict[str, Any], List[ExecutableCommand]]:
         """
         Takes a list of query part commands and combine them to a single executable query command.
         This process can also introduce new commands that should run after the query is finished.
-        Therefore a list of executable commands is returned.
+        Therefore, a list of executable commands is returned.
         :param commands: the incoming executable commands, which actions are all instances of QueryPart.
         :param ctx: the context to execute within.
         :return: the resulting list of commands to execute.
         """
 
-        async def parse_query(query_string: str) -> Query:
-            return await self.dependencies.template_expander.parse_query(query_string)
+        # Pass parsed options to execute query
+        # Multiple query commands are possible - so the dict is combined with every parsed query.
+        parsed_options: Dict[str, Any] = {}
+
+        async def parse_query(query_arg: str) -> Query:
+            nonlocal parsed_options
+            parsed, query_part = ExecuteQueryCommand.parse_known(query_arg)
+            parsed_options = {**parsed_options, **parsed}
+            return await self.dependencies.template_expander.parse_query("".join(query_part))
 
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
@@ -342,25 +352,33 @@ class CLI:
                 query = query.with_limit(size)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
-        args = str(query)
-        execute_query = self.command("execute_query", args, ctx)
-        return [execute_query, *additional_commands]
+
+        options = ExecuteQueryCommand.argument_string(parsed_options)
+        query_string = str(query)
+        execute_query = self.command("execute_query", options + query_string, ctx)
+        return query, parsed_options, [execute_query, *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
-        async def combine_query_parts(commands: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
+        async def combine_query_parts(
+            commands: List[ExecutableCommand], ctx: CLIContext
+        ) -> Tuple[CLIContext, List[ExecutableCommand]]:
             parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
-            query_parts = await self.create_query(parts, ctx) if parts else []
-            result = [*query_parts, *commands[len(parts) :]] if parts else commands  # noqa: E203
-            return result
+            if parts:
+                query, options, query_parts = await self.create_query(parts, ctx)
+                ctx_wq = replace(ctx, query=query, query_options=options)
+                # re-evaluate remaining commands - to take the adapted context into account
+                remaining = [self.command(c.command.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
+                return ctx_wq, [*query_parts, *remaining]
+            return ctx, commands
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
-            commands = await combine_query_parts([self.command(cmd.cmd, cmd.args, ctx) for cmd in parsed.commands], ctx)
+            ctx, commands = await combine_query_parts([self.command(c.cmd, c.args, ctx) for c in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
-            return ParsedCommandLine(cmd_env, parsed, commands, not_met)
+            return ParsedCommandLine(ctx, parsed, commands, not_met)
 
         async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]

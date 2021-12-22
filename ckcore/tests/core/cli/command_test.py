@@ -115,6 +115,14 @@ async def test_query_source(cli: CLI) -> None:
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
 
+    result3 = await cli.execute_cli_command("query --include-edges is(graph_root) -[0:1]->", stream.list)
+    # node: graph_root
+    # node: collector
+    # edge: graph_root -> collector
+    # -----------------------------
+    # = 3 elements
+    assert len(result3[0]) == 3
+
 
 @pytest.mark.asyncio
 async def test_sleep_source(cli: CLI) -> None:
@@ -372,7 +380,7 @@ async def test_kind_command(cli: CLI) -> None:
 async def test_list_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('reported is (foo) and identifier=="4" | list', stream.list)
     assert len(result[0]) == 1
-    assert result[0][0].startswith("kind=foo, age=")
+    assert result[0][0].startswith("kind=foo, identifier=4, age=")
     list_cmd = "list some_int as si, reported.some_string"
     result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
