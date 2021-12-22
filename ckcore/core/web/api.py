@@ -296,7 +296,7 @@ class Api:
         cert, fingerprint = self.cert_handler.authority_certificate
         headers = {}
         if self.args.psk:
-            headers["Authorization"] = encode_jwt({"fingerprint": fingerprint}, self.args.psk)
+            headers["Authorization"] = "Bearer " + encode_jwt({"fingerprint": fingerprint}, self.args.psk)
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
 
     async def sign_certificate(self, request: Request) -> StreamResponse:
