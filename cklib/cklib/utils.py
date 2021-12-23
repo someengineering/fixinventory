@@ -1,5 +1,6 @@
 import string
 import threading
+import socket
 import re
 import os
 import gc as garbage_collector
@@ -10,6 +11,7 @@ if sys.platform == "linux":
     import resource
 import time
 import json
+from argparse import Namespace
 from cklib.logging import log
 from functools import wraps
 from pprint import pformat
@@ -695,3 +697,41 @@ class ResourceChanges:
                 changes[section] = {}
             changes["metadata"]["event_log"] = self.node.str_event_log
         return changes
+
+
+def get_local_hostnames(
+    include_loopback: bool = True, args: Namespace = None
+) -> List[str]:
+    hostnames = []
+    if include_loopback:
+        hostnames.append("localhost")
+    try:
+        local_hostname = socket.gethostname()
+    except Exception:
+        pass
+    else:
+        hostnames.append(local_hostname)
+    if args is not None:
+        csr_san_dns_names = getattr(args, "csr_san_dns_names", [])
+        if isinstance(csr_san_dns_names, list):
+            hostnames.extend(csr_san_dns_names)
+    return hostnames
+
+
+def get_local_ip_addresses(
+    include_loopback: bool = True, args: Namespace = None
+) -> List[str]:
+    ips = []
+    if include_loopback:
+        ips.extend(["127.0.0.1", "::1"])
+    try:
+        local_address = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        pass
+    else:
+        ips.append(local_address)
+    if args is not None:
+        csr_san_ip_addresses = getattr(args, "csr_san_ip_addresses", [])
+        if isinstance(csr_san_ip_addresses, list):
+            ips.extend(csr_san_ip_addresses)
+    return ips
