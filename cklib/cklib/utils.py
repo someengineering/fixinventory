@@ -700,9 +700,11 @@ class ResourceChanges:
 
 
 def get_local_ip_addresses(
-    include_loopback: bool = True, args: Namespace = None
+    include_loopback: bool = True, args: Namespace = None, connect_to_ips: List = None
 ) -> List[str]:
     ips = set()
+    if connect_to_ips is None:
+        connect_to_ips = ["8.8.8.8", "2001:4860:4860::8888"]
     if include_loopback:
         ips.add("127.0.0.1")
         ips.add("::1")
@@ -714,9 +716,9 @@ def get_local_ip_addresses(
     else:
         ips.add(local_address)
 
-    for dst_ip in ("8.8.8.8", "2001:4860:4860::8888"):
+    for dst_ip in connect_to_ips:
         try:
-            af_inet = socket.AF_INET if ":" not in dst_ip else socket.AF_INET6
+            af_inet = socket.AF_INET6 if ":" in dst_ip else socket.AF_INET
             s = socket.socket(af_inet, socket.SOCK_DGRAM)
             s.connect((dst_ip, 53))
             local_address = s.getsockname()[0]
