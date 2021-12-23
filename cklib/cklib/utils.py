@@ -699,39 +699,63 @@ class ResourceChanges:
         return changes
 
 
-def get_local_hostnames(
-    include_loopback: bool = True, args: Namespace = None
-) -> List[str]:
-    hostnames = []
-    if include_loopback:
-        hostnames.append("localhost")
-    try:
-        local_hostname = socket.gethostname()
-    except Exception:
-        pass
-    else:
-        hostnames.append(local_hostname)
-    if args is not None:
-        csr_san_dns_names = getattr(args, "csr_san_dns_names", [])
-        if isinstance(csr_san_dns_names, list):
-            hostnames.extend(csr_san_dns_names)
-    return hostnames
-
-
 def get_local_ip_addresses(
     include_loopback: bool = True, args: Namespace = None
 ) -> List[str]:
-    ips = []
+    ips = set()
     if include_loopback:
-        ips.extend(["127.0.0.1", "::1"])
+        ips.add("127.0.0.1")
+        ips.add("::1")
+
     try:
         local_address = socket.gethostbyname(socket.gethostname())
     except Exception:
         pass
     else:
-        ips.append(local_address)
+        ips.add(local_address)
+
+    for dst_ip in ("8.8.8.8", "2001:4860:4860::8888"):
+        try:
+            af_inet = socket.AF_INET if ":" not in dst_ip else socket.AF_INET6
+            s = socket.socket(af_inet, socket.SOCK_DGRAM)
+            s.connect((dst_ip, 53))
+            local_address = s.getsockname()[0]
+        except Exception:
+            pass
+        else:
+            ips.add(local_address)
+
     if args is not None:
         csr_san_ip_addresses = getattr(args, "csr_san_ip_addresses", [])
         if isinstance(csr_san_ip_addresses, list):
-            ips.extend(csr_san_ip_addresses)
-    return ips
+            ips.update(csr_san_ip_addresses)
+    return list(ips)
+
+
+def get_local_hostnames(
+    include_loopback: bool = True, args: Namespace = None
+) -> List[str]:
+    hostnames = set()
+    if include_loopback:
+        hostnames.add("localhost")
+
+    try:
+        local_hostname = socket.gethostname()
+    except Exception:
+        pass
+    else:
+        hostnames.add(local_hostname)
+
+    for ip in get_local_ip_addresses(include_loopback=include_loopback, args=args):
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+        except Exception:
+            pass
+        else:
+            hostnames.add(hostname)
+
+    if args is not None:
+        csr_san_dns_names = getattr(args, "csr_san_dns_names", [])
+        if isinstance(csr_san_dns_names, list):
+            hostnames.update(csr_san_dns_names)
+    return list(hostnames)
