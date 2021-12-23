@@ -1,7 +1,6 @@
 import requests
 from typing import Tuple, Optional, List
 from cklib.args import ArgumentParser
-from cklib.utils import get_local_hostnames, get_local_ip_addresses
 from cklib.x509 import (
     csr_to_bytes,
     load_cert_from_bytes,
@@ -37,10 +36,6 @@ def get_signed_cert(
     psk: str = None,
     ca_cert_path: str = None,
 ) -> Tuple[RSAPrivateKey, Certificate]:
-    if san_dns_names is None:
-        san_dns_names = get_local_hostnames(args=ArgumentParser.args)
-    if san_ip_addresses is None:
-        san_ip_addresses = get_local_ip_addresses(args=ArgumentParser.args)
     if ckcore_uri is None:
         ckcore_uri = getattr(ArgumentParser.args, "ckcore_uri", None)
     if psk is None:
