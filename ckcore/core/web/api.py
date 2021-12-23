@@ -294,15 +294,15 @@ class Api:
 
     async def certificate(self, _: Request) -> StreamResponse:
         cert, fingerprint = self.cert_handler.authority_certificate
-        headers = {}
+        headers = {"SHA256-Fingerprint": fingerprint}
         if self.args.psk:
-            headers["Authorization"] = "Bearer " + encode_jwt({"fingerprint": fingerprint}, self.args.psk)
+            headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.args.psk)
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
 
     async def sign_certificate(self, request: Request) -> StreamResponse:
         csr_bytes = await request.content.read()
         cert, fingerprint = self.cert_handler.sign(csr_bytes)
-        headers = {"fingerprint": fingerprint}
+        headers = {"SHA256-Fingerprint": fingerprint}
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
 
     # TODO: remove me once this functionality is implemented.
