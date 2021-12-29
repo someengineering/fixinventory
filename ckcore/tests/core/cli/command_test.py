@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -327,15 +328,15 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
     res3 = await cli.execute_cli_command('query is("foo") | tag delete foo', stream.list)
     assert nr_of_performed() == 11
     assert len(res3[0]) == 11
-    captured = {a.message for a in caplog.records}
-    res4 = await cli.execute_cli_command('query is("bla") limit 2 | tag delete foo', stream.list)
-    assert nr_of_performed() == 2
-    assert len(res4[0]) == 2
-    # make sure that 2 warnings are emitted
-    res5 = [a for a in caplog.records if a.levelno == logging.WARNING and a.message not in captured]
-    assert len(res5) == 2
-    for res in res5:
-        assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
+    with caplog.at_level(logging.WARNING):
+        caplog.clear()
+        res4 = await cli.execute_cli_command('query is("bla") limit 2 | tag delete foo', stream.list)
+        assert nr_of_performed() == 2
+        assert len(res4[0]) == 2
+        # make sure that 2 warnings are emitted
+        assert len(caplog.records) == 2
+        for res in caplog.records:
+            assert res.message.startswith("Tag update not reflected in db. Wait until next collector run.")
     # tag updates can be put into background
     res6 = await cli.execute_cli_command('json ["root", "collector"] | tag update --nowait foo bla', stream.list)
     assert cli.dependencies.forked_tasks.qsize() == 2
