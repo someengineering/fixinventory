@@ -34,7 +34,6 @@ from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from cklib.jwt import encode_jwt
-from cklib.x509 import gen_rsa_key, gen_csr, csr_to_bytes
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -213,7 +212,6 @@ class Api:
                 # ca operations
                 web.get("/ca/cert", self.certificate),
                 web.post("/ca/sign", self.sign_certificate),
-                web.get("/ca/csr", self.csr),
                 # system operations
                 web.get("/system/ping", self.ping),
                 web.get("/system/ready", self.ready),
@@ -304,11 +302,6 @@ class Api:
         cert, fingerprint = self.cert_handler.sign(csr_bytes)
         headers = {"SHA256-Fingerprint": fingerprint}
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
-
-    # TODO: remove me once this functionality is implemented.
-    @staticmethod
-    async def csr(_: Request) -> StreamResponse:
-        return HTTPOk(body=csr_to_bytes(gen_csr(gen_rsa_key())), content_type="application/pkcs10")
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:

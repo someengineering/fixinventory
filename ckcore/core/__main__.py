@@ -53,7 +53,7 @@ def main() -> None:
     created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
     event_sender = NoEventSender() if args.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(sdb)
+    cert_handler = CertificateHandler.lookup(args, sdb)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
