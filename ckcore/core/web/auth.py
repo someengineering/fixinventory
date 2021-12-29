@@ -31,7 +31,7 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
     return await handler(request)
 
 
-AlwaysAllowed = ["/metrics", "/api-doc.*", "/system/.*", "/ui.*"]
+AlwaysAllowed = ["/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert"]
 
 
 def check_jwt(psk: str) -> Middleware:

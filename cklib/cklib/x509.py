@@ -7,6 +7,8 @@ from ipaddress import (
     IPv4Network,
     IPv6Network,
 )
+from cklib.args import ArgumentParser
+from cklib.utils import get_local_hostnames, get_local_ip_addresses
 from datetime import datetime, timedelta, timezone
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -79,11 +81,16 @@ def gen_csr(
     common_name: str = "some.engineering",
     san_dns_names: Optional[List[str]] = None,
     san_ip_addresses: Optional[List[str]] = None,
+    include_loopback: bool = True,
 ) -> CertificateSigningRequest:
     if san_dns_names is None:
-        san_dns_names = []
+        san_dns_names = get_local_hostnames(
+            include_loopback=include_loopback, args=ArgumentParser.args
+        )
     if san_ip_addresses is None:
-        san_ip_addresses = []
+        san_ip_addresses = get_local_ip_addresses(
+            include_loopback=include_loopback, args=ArgumentParser.args
+        )
     csr_build = x509.CertificateSigningRequestBuilder().subject_name(
         x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     )

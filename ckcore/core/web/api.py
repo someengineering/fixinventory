@@ -30,9 +30,11 @@ from aiohttp import (
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse
-from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent
+from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
+from cklib.jwt import encode_jwt
+from cklib.x509 import gen_rsa_key, gen_csr, csr_to_bytes
 from networkx.readwrite import cytoscape_data
 
 from core import feature
@@ -61,6 +63,7 @@ from core.util import (
     duration,
 )
 from core.web import auth
+from core.web.certificate_handler import CertificateHandler
 from core.web.content_renderer import result_binary_gen
 from core.web.directives import (
     metrics_handler,
@@ -99,6 +102,7 @@ class Api:
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
+        cert_handler: CertificateHandler,
         cli: CLI,
         query_parser: QueryParser,
         args: Namespace,
@@ -110,6 +114,7 @@ class Api:
         self.message_bus = message_bus
         self.event_sender = event_sender
         self.worker_task_queue = worker_task_queue
+        self.cert_handler = cert_handler
         self.cli = cli
         self.query_parser = query_parser
         self.args = args
@@ -205,6 +210,10 @@ class Api:
                 web.get("/config/{config_id}", self.get_config),
                 web.patch("/config/{config_id}", self.patch_config),
                 web.delete("/config/{config_id}", self.delete_config),
+                # ca operations
+                web.get("/ca/cert", self.certificate),
+                web.post("/ca/sign", self.sign_certificate),
+                web.get("/ca/csr", self.csr),
                 # system operations
                 web.get("/system/ping", self.ping),
                 web.get("/system/ready", self.ready),
@@ -282,6 +291,24 @@ class Api:
         config_id = request.match_info["config_id"]
         await self.db.config_entity_db.delete(config_id)
         return HTTPNoContent()
+
+    async def certificate(self, _: Request) -> StreamResponse:
+        cert, fingerprint = self.cert_handler.authority_certificate
+        headers = {"SHA256-Fingerprint": fingerprint}
+        if self.args.psk:
+            headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.args.psk)
+        return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
+
+    async def sign_certificate(self, request: Request) -> StreamResponse:
+        csr_bytes = await request.content.read()
+        cert, fingerprint = self.cert_handler.sign(csr_bytes)
+        headers = {"SHA256-Fingerprint": fingerprint}
+        return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
+
+    # TODO: remove me once this functionality is implemented.
+    @staticmethod
+    async def csr(_: Request) -> StreamResponse:
+        return HTTPOk(body=csr_to_bytes(gen_csr(gen_rsa_key())), content_type="application/pkcs10")
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
