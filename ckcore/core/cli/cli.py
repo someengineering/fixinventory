@@ -339,7 +339,9 @@ class CLI:
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
                 aggregate = Aggregate(group_by, [AggregateFunction("sum", 1, [], "count")])
-                additional_commands.append(self.command("aggregate_to_count", None, ctx))
+                # If the query should be explained, we want the output as is
+                if "explain" not in parsed_options:
+                    additional_commands.append(self.command("aggregate_to_count", None, ctx))
                 query = replace(query, aggregate=aggregate)
                 query = query.add_sort("count")
             elif isinstance(part, HeadCommand):

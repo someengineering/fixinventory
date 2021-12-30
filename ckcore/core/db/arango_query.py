@@ -6,6 +6,7 @@ from typing import Union, List, Tuple, Any, Optional, Dict, Set
 from arango.typings import Json
 
 from core.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
+from core.db import EstimatedQueryCost, EstimatedQueryCostRating as Rating
 from core.db.arangodb_functions import as_arangodb_function
 from core.db.model import QueryModel
 from core.model.graph_access import EdgeType, Section, Direction
@@ -34,7 +35,7 @@ from core.query.model import (
     SortOrder,
 )
 from core.query.query_parser import merge_ancestors_parser
-from core.util import first, set_value_in_path
+from core.util import first, set_value_in_path, exist
 
 log = logging.getLogger(__name__)
 
@@ -463,3 +464,21 @@ def query_string(
             query_str += f" LET {nxt} = (FOR res in {tagged_union} RETURN res)"
             resulting_cursor = nxt
     return resulting_cursor, query_str
+
+
+async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedQueryCost:
+    q_string, bind = to_query(graph_db, model, with_edges=with_edges)
+    nr_nodes = await graph_db.db.count(graph_db.vertex_name)
+    plan = await graph_db.db.explain(query=q_string, bind_vars=bind)
+    full_collection_scan = exist(lambda node: node["type"] == "EnumerateCollectionNode", plan["nodes"])  # type: ignore
+    estimated_cost = int(plan["estimatedCost"])
+    estimated_items = int(plan["estimatedNrItems"])
+    # If the number of returned items is small, most of the computation happens on the db side
+    # A higher factor (==estimated cost) is acceptable in this case.
+    factor = 20 if estimated_items < 3 else 2.1
+    # max upper bound, if the number of nodes is very small
+    ratio = estimated_cost / max(10000, nr_nodes * factor)
+    # the best rating is complex, if a full collection scan is required.
+    best = Rating.complex if full_collection_scan else Rating.simple
+    rating = best if ratio < 0.2 else (Rating.complex if ratio < 1 else Rating.bad)
+    return EstimatedQueryCost(estimated_cost, estimated_items, nr_nodes, full_collection_scan, rating)

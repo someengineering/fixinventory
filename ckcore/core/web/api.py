@@ -634,7 +634,7 @@ class Api:
         q = await self.query_parser.parse_query(query_string)
         m = await self.model_handler.load_model()
         result = await graph_db.explain(QueryModel(q, m, section))
-        return web.json_response(result)
+        return web.json_response(to_js(result))
 
     async def search_graph(self, request: Request) -> StreamResponse:
         if not feature.DB_SEARCH:

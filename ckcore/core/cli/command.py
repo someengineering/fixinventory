@@ -300,7 +300,7 @@ class QueryPart(CLICommand, ABC):
 
 class QueryAllPart(QueryPart):
     """
-    Usage: query [--include-edges] <property.path> <op> <value"
+    Usage: query [--include-edges] [--explain] <property.path> <op> <value"
 
     Part of a query.
     With this command you can query all sections directly.
@@ -310,14 +310,37 @@ class QueryAllPart(QueryPart):
     Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
     value is a json encoded value to match.
 
+    Use --explain to understand the cost of a query. A query explanation has this form (example):
+    {
+        "available_nr_items": 142670,
+        "estimated_cost": 61424,
+        "estimated_nr_items": 1,
+        "full_collection_scan": false,
+        "rating": "Simple"
+    }
+
+    - `available_nr_items` describe the number of all available nodes in the graph.
+    - `estimated_cost` shows the absolute cost of this query. See rating for an interpreted number.
+    - `estimated_nr_items` estimated number of items returned for this query.
+                           It is computed based on query statistics and heuristics and does not reflect the real number.
+    - `full_collection_scan` indicates, if a full collection scan is required.
+                             In case this is true, the query does not take advantage of any indexes.
+    - `rating` The more general rating of this query.
+               Simple: The estimated cost is fine - the query will most probably run smoothly.
+               Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
+               Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
+
     Parameter:
         --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
+        --explain: Instead of executing this query, explain the query cost
 
     Example:
         query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
         query desired.some.nested in [1,2,3] # matches documents with desired section like { "some": { "nested" : 1 ..}
         query reported.array[*] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
         query reported.array[1] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
+        query --include-edges is(graph_root) -[0:2]-> # returns the descendants from the graph root 2 levels deep
+        query --explain is(graph_root) -[0:2]->       # Shows the query cost of provided query
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
@@ -895,16 +918,17 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
         parser = NoExitArgumentParser()
         parser.add_argument("--include-edges", dest="include-edges", default=None, action="store_true")
-        parsed, rest = parser.parse_known_args(arg.split(maxsplit=1))
+        parser.add_argument("--explain", dest="explain", default=None, action="store_true")
+        parsed, rest = parser.parse_known_args(arg.split(maxsplit=2))
         return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
 
     @staticmethod
     def argument_string(args: Dict[str, Any]) -> str:
-        result = ""
+        result = []
         for key, value in args.items():
             if value is True:
-                result += f"--{key}"
-        return result + " " if result else ""
+                result.append(f"--{key}")
+        return " ".join(result) + " " if result else ""
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
         # db name is coming from the env
@@ -914,15 +938,26 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
 
         # Read all argument flags / options
         parsed, rest = self.parse_known(arg)
+        with_edges: bool = parsed.get("include-edges", False)
+        explain: bool = parsed.get("explain", False)
 
         # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(rest)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
-        async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
+        async def load_query_model() -> QueryModel:
             model = await self.dependencies.model_handler.load_model()
             query_model = QueryModel(query, model)
             await db.to_query(query_model)  # only here to validate the query itself (can throw)
+            return query_model
+
+        async def explain_query() -> AsyncIterator[Json]:
+            query_model = await load_query_model()
+            explanation = await db.explain(query_model, with_edges)
+            yield to_js(explanation)
+
+        async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
+            query_model = await load_query_model()
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("query_timeout"), duration)
             context = (
@@ -930,7 +965,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
                 if query.aggregate
                 else (
                     await db.query_graph_gen(query_model, with_count=count, timeout=timeout)
-                    if parsed.get("include-edges")
+                    if with_edges
                     else await db.query_list(query_model, with_count=count, timeout=timeout)
                 )
             )
@@ -947,7 +982,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
 
             return cursor.count(), iterate_and_close()
 
-        return CLISource(prepare)
+        return CLISource.single(explain_query) if explain else CLISource(prepare)
 
 
 class EnvCommand(CLICommand):

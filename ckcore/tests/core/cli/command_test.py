@@ -123,6 +123,9 @@ async def test_query_source(cli: CLI) -> None:
     # = 3 elements
     assert len(result3[0]) == 3
 
+    result4 = await cli.execute_cli_command("query --explain --include-edges is(graph_root) -[0:1]->", stream.list)
+    assert result4[0][0]["rating"] == "simple"
+
 
 @pytest.mark.asyncio
 async def test_sleep_source(cli: CLI) -> None:
