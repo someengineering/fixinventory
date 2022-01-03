@@ -996,7 +996,7 @@ paths:
                 Example: reported.age>23 and desired.clean==true and metadata.version==2
 
             tags:
-                - debug
+                - graph_query
             parameters:
                 -   name: graph_id
                     in: path
@@ -1017,8 +1017,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: object
-                                additionalProperties: true
+                                $ref: "#/components/schemas/EstimatedQueryCost"
     /graph/{graph_id}/search:
         get:
             summary: "Search the graph"
@@ -1533,7 +1532,7 @@ paths:
             summary: "Explain the query execution plan"
 
             tags:
-                - debug
+                - graph_query
             parameters:
                 -   name: graph_id
                     in: path
@@ -1564,8 +1563,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: object
-                                additionalProperties: true
+                                $ref: "#/components/schemas/EstimatedQueryCost"
     # endregion
 
     # region events
@@ -2651,3 +2649,37 @@ components:
                     type: object
                     description: "All binding variables for this query"
                     additionalProperties: true
+
+        EstimatedQueryCost:
+            type: object
+            description: "The estimated cost of a query"
+            properties:
+                estimated_cost:
+                    type: integer
+                    description: Absolute number that shows the cost of this query. See rating for an interpreted number.
+                estimated_nr_items:
+                    type: integer
+                    description: |
+                        This is the estimated number of items returned for this query.
+                        Please note: it is computed based on query statistics and heuristics and does not reflect the real number.
+                available_nr_items:
+                    type: integer
+                    description: This is the number of available nodes in the graph.
+                full_collection_scan:
+                    type: boolean
+                    description: |
+                        Indicates, if a full collection scan is required.
+                        This means, that the query does not take advantage of any indexes!
+                rating:
+                    type: string
+                    description: |
+                        The rating of this query.
+                        A simple query is usually fine.
+                        A complex query might be acceptable in certain cases. Maybe an index can be used to make this query simple?
+                        A bad query is usually something where an index is missing or the query has to be rewritten.
+                    enum:
+                        - simple
+                        - complex
+                        - bad
+
+

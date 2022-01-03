@@ -15,7 +15,7 @@ from networkx import MultiDiGraph, DiGraph
 
 from core import feature
 from core.analytics import CoreEvent, AnalyticsEventSender
-from core.db import arango_query
+from core.db import arango_query, EstimatedQueryCost
 from core.db.async_arangodb import (
     AsyncArangoDB,
     AsyncArangoTransactionDB,
@@ -115,7 +115,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def explain(self, query: QueryModel) -> Json:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
         pass
 
     @abstractmethod
@@ -368,9 +368,8 @@ class ArangoGraphDB(GraphDB):
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(query=q_string, bind_vars=bind)
 
-    async def explain(self, query: QueryModel) -> Json:
-        q_string, bind = await self.to_query(query, with_edges=True)
-        return await self.db.explain(query=q_string, bind_vars=bind)
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+        return await arango_query.query_cost(self, query, with_edges)
 
     async def wipe(self) -> None:
         await self.db.truncate(self.vertex_name)
@@ -1119,7 +1118,7 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_graph(query)
 
-    async def explain(self, query: QueryModel) -> Json:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
         return await self.real.explain(query)
 
     async def wipe(self) -> None:

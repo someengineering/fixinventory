@@ -352,6 +352,9 @@ class AsyncArangoDBBase:
     async def all(self, collection: str, skip: Optional[int] = None, limit: Optional[int] = None) -> Cursor:
         return await run_async(self.db.collection(collection).all, skip, limit)
 
+    async def count(self, collection: str) -> int:
+        return await run_async(self.db.collection(collection).count)  # type: ignore
+
     @timed("arango", "insert_many")
     async def insert_many(
         self,
