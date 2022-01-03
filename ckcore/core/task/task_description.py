@@ -44,11 +44,14 @@ class TaskSurpassBehaviour(Enum):
     - Skip: the new task is not started and dropped.
     - Parallel: the new task is started and runs side by side with the already running instance.
     - Replace: the already running task is stopped and gets replaced by the new one.
+    - Wait: wait for the current job to finish and then execute.
+            Note: the same task description can only be enqueued once, not multiple times.
     """
 
     Skip = 1
     Parallel = 2
     Replace = 3
+    Wait = 4
 
 
 # region StepAction: what to do in one step
