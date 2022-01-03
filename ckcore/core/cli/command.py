@@ -48,7 +48,7 @@ from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
 from core.message_bus import MessageBus
-from core.model.graph_access import Section
+from core.model.graph_access import Section, EdgeType
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
 from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
@@ -445,14 +445,22 @@ class MetadataPart(QueryPart):
 
 class PredecessorPart(QueryPart):
     """
-    Usage: predecessors [edge_type]
+    Usage: predecessors [--with-origin] [edge_type]
 
     Part of a query.
     Select all predecessors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
 
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B: A --> B
+    $> query id(B) | predecessor
+    -> will select A
+    $> query id(B) | predecessor --with-origin
+    -> will select A and B
+
     Parameter:
+        --with-origin [Optional, default to false]: includes the current element into the result set.
         edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
@@ -469,17 +477,39 @@ class PredecessorPart(QueryPart):
     def info(self) -> str:
         return "Select all predecessors of this node in the graph."
 
+    @staticmethod
+    def parse_args(arg: Optional[str] = None) -> Tuple[int, str]:
+        def valid_edge_type(name: str) -> str:
+            if name in EdgeType.all:
+                return name
+            else:
+                raise AttributeError(f'Given name is not a valid edge type: {name}. {", ".join(EdgeType.all)}')
+
+        parser = NoExitArgumentParser()
+        parser.add_argument("--with-origin", dest="origin", default=1, action="store_const", const=0)
+        parser.add_argument("edge", default=EdgeType.default, type=valid_edge_type, nargs="?")
+        parsed = parser.parse_args(arg.split() if arg else [])
+        return parsed.origin, parsed.edge
+
 
 class SuccessorPart(QueryPart):
     """
-    Usage: successors [edge_type]
+    Usage: successors [--with-origin] [edge_type]
 
     Part of a query.
     Select all successors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
 
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B: A --> B
+    $> query id(A) | successor
+    -> will select B
+    $> query id(A) | successor --with-origin
+    -> will select A and B
+
     Parameter:
+        --with-origin [Optional, default to false]: includes the current element into the result set.
         edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
@@ -499,14 +529,22 @@ class SuccessorPart(QueryPart):
 
 class AncestorPart(QueryPart):
     """
-    Usage: ancestors [edge_type]
+    Usage: ancestors [--with-origin] [edge_type]
 
     Part of a query.
     Select all ancestors of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
 
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B with descendant C: A --> B --> C
+    $> query id(C) | ancestors
+    -> will select B and A
+    $> query id(C) | predecessor --with-origin
+    -> will select C and B and A
+
     Parameter:
+        --with-origin [Optional, default to false]: includes the current element into the result set.
         edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:
@@ -526,14 +564,22 @@ class AncestorPart(QueryPart):
 
 class DescendantPart(QueryPart):
     """
-    Usage: descendants [edge_type]
+    Usage: descendants [--with-origin] [edge_type]
 
     Part of a query.
     Select all descendants of this node in the graph.
     The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
     In order to define which graph to walk, the edge_type can be specified.
 
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B with descendant C: A --> B --> C
+    $> query id(A) | descendants
+    -> will select B and C
+    $> query id(A) | descendants --with-origin
+    -> will select A and B and C
+
     Parameter:
+        --with-origin [Optional, default to false]: includes the current element into the result set.
         edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
 
     Example:

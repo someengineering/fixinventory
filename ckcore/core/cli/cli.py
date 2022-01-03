@@ -46,7 +46,7 @@ from core.cli.command import (
     ExecuteQueryCommand,
 )
 from core.error import CLIParseError
-from core.model.graph_access import EdgeType, Section
+from core.model.graph_access import Section
 from core.model.typed_model import class_fqn
 from core.parse_util import (
     make_parser,
@@ -320,13 +320,17 @@ class CLI:
             elif isinstance(part, MetadataPart):
                 query = query.combine((await parse_query(arg)).on_section(Section.metadata))
             elif isinstance(part, PredecessorPart):
-                query = query.traverse_in(1, 1, arg if arg else EdgeType.default)
+                origin, edge = PredecessorPart.parse_args(arg)
+                query = query.traverse_in(origin, 1, edge)
             elif isinstance(part, SuccessorPart):
-                query = query.traverse_out(1, 1, arg if arg else EdgeType.default)
+                origin, edge = PredecessorPart.parse_args(arg)
+                query = query.traverse_out(origin, 1, edge)
             elif isinstance(part, AncestorPart):
-                query = query.traverse_in(1, Navigation.Max, arg if arg else EdgeType.default)
+                origin, edge = PredecessorPart.parse_args(arg)
+                query = query.traverse_in(origin, Navigation.Max, edge)
             elif isinstance(part, DescendantPart):
-                query = query.traverse_out(1, Navigation.Max, arg if arg else EdgeType.default)
+                origin, edge = PredecessorPart.parse_args(arg)
+                query = query.traverse_out(origin, Navigation.Max, edge)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
                 query = replace(query, aggregate=Aggregate(group_vars, group_function_vars))
