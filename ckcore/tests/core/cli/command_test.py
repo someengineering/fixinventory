@@ -100,10 +100,57 @@ async def test_json_source(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
+async def test_predecessors(cli: CLI) -> None:
+    r1 = await cli.execute_cli_command("query id(4_0) | predecessors", stream.list)
+    assert len(r1[0]) == 1
+    r2 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin", stream.list)
+    assert len(r2[0]) == 2
+    r3 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin dependency", stream.list)
+    assert len(r3[0]) == 2
+    r4 = await cli.execute_cli_command("query id(4_0) | predecessors delete", stream.list)
+    assert len(r4[0]) == 0
+
+
+@pytest.mark.asyncio
+async def test_ancestors(cli: CLI) -> None:
+    r1 = await cli.execute_cli_command("query id(4_0) | ancestors", stream.list)
+    assert len(r1[0]) == 4
+    r2 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin", stream.list)
+    assert len(r2[0]) == 5
+    r3 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin dependency", stream.list)
+    assert len(r3[0]) == 5
+    r4 = await cli.execute_cli_command("query id(4_0) | ancestors delete", stream.list)
+    assert len(r4[0]) == 0
+
+
+@pytest.mark.asyncio
+async def test_successors(cli: CLI) -> None:
+    r1 = await cli.execute_cli_command("query id(4) | successors", stream.list)
+    assert len(r1[0]) == 10
+    r2 = await cli.execute_cli_command("query id(4) | successors --with-origin", stream.list)
+    assert len(r2[0]) == 11
+    r3 = await cli.execute_cli_command("query id(4) | successors --with-origin dependency", stream.list)
+    assert len(r3[0]) == 11
+    r4 = await cli.execute_cli_command("query id(4) | successors delete", stream.list)
+    assert len(r4[0]) == 0
+
+
+@pytest.mark.asyncio
+async def test_descendants(cli: CLI) -> None:
+    r1 = await cli.execute_cli_command("query id(4) | descendants", stream.list)
+    assert len(r1[0]) == 10
+    r2 = await cli.execute_cli_command("query id(4) | descendants --with-origin", stream.list)
+    assert len(r2[0]) == 11
+    r3 = await cli.execute_cli_command("query id(4) | descendants --with-origin dependency", stream.list)
+    assert len(r3[0]) == 11
+    r4 = await cli.execute_cli_command("query id(4) | descendants delete", stream.list)
+    assert len(r4[0]) == 0
+
+
+@pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
     result = await cli.execute_cli_command(
-        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"',
-        stream.list,
+        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
     )
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(

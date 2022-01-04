@@ -17,6 +17,7 @@ from core.cli.command import (
     AggregateToCountCommand,
     CLIDependencies,
     all_commands,
+    PredecessorPart,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -24,6 +25,7 @@ from core.dependencies import parse_args
 from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.adjust_node import NoAdjust
+from core.model.graph_access import EdgeType
 from core.model.model import Model
 from core.query.template_expander import TemplateExpander
 from core.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
@@ -177,6 +179,13 @@ async def test_parse_env_vars(cli: CLI) -> None:
     result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', stream.list)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()
+
+
+def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
+    assert PredecessorPart.parse_args() == (1, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin") == (0, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin delete") == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("delete") == (1, EdgeType.delete)
 
 
 @pytest.mark.asyncio
