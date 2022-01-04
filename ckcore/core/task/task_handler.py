@@ -88,6 +88,8 @@ class TaskHandler(JobHandler):
         self.cli = cli
         self.cli_context = CLIContext()
         self.args = args
+        # note: the waiting queue is kept in memory and lost when the service is restarted.
+        self.start_when_done: Dict[str, TaskDescription] = {}
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(), *self.known_jobs()]
@@ -139,24 +141,7 @@ class TaskHandler(JobHandler):
         updated.steps = [evaluate(step) for step in descriptor.steps]
         return updated
 
-    async def start_task(self, desc: TaskDescription, reason: str) -> Optional[RunningTask]:
-        existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())  # type: ignore
-        if existing:
-            if desc.on_surpass == TaskSurpassBehaviour.Skip:
-                log.info(
-                    f"Task {desc.name} has been triggered. Since the last job is not finished, "
-                    f"the execution will be skipped, as defined by the task"
-                )
-                return None
-            elif desc.on_surpass == TaskSurpassBehaviour.Replace:
-                log.info(f"New task {desc.name} should replace existing run: {existing.id}.")
-                existing.end()
-                await self.store_running_task_state(existing)
-            elif desc.on_surpass == TaskSurpassBehaviour.Parallel:
-                log.info(f"New task {desc.name} will race with existing run {existing.id}.")
-            else:
-                raise AttributeError(f"Surpass behaviour not handled: {desc.on_surpass}")
-
+    async def start_task_directly(self, desc: TaskDescription, reason: str) -> RunningTask:
         updated = self.evaluate_task_definition(desc)
         wi, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
         log.info(f"Start new task: {updated.name} with id {wi.id}")
@@ -174,6 +159,32 @@ class TaskHandler(JobHandler):
             },
         )
         return wi
+
+    async def start_task(self, desc: TaskDescription, reason: str) -> Optional[RunningTask]:
+        existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())  # type: ignore
+        if existing:
+            if desc.on_surpass == TaskSurpassBehaviour.Skip:
+                log.info(
+                    f"Task {desc.name} has been triggered. Since the last job is not finished, "
+                    f"the execution will be skipped, as defined by the task"
+                )
+                return None
+            elif desc.on_surpass == TaskSurpassBehaviour.Replace:
+                log.info(f"New task {desc.name} should replace existing run: {existing.id}.")
+                existing.end()
+                await self.store_running_task_state(existing)
+                return await self.start_task_directly(desc, reason)
+            elif desc.on_surpass == TaskSurpassBehaviour.Parallel:
+                log.info(f"New task {desc.name} will race with existing run {existing.id}.")
+                return await self.start_task_directly(desc, reason)
+            elif desc.on_surpass == TaskSurpassBehaviour.Wait:
+                log.info(f"New task {desc.name} with reason {reason} will run when existing run {existing.id} is done.")
+                self.start_when_done[desc.id] = desc
+                return None
+            else:
+                raise AttributeError(f"Surpass behaviour not handled: {desc.on_surpass}")
+        else:
+            return await self.start_task_directly(desc, reason)
 
     async def start_interrupted_tasks(self) -> List[RunningTask]:
         descriptions = {w.id: w for w in self.task_descriptions}
@@ -491,6 +502,10 @@ class TaskHandler(JobHandler):
                 if task.update_task:
                     await task.update_task
                 await self.delete_running_task(task)
+            # if the task is finished, check if there is already the next run to start
+            if task.id not in self.tasks and task.descriptor.id in self.start_when_done:
+                self.start_when_done.pop(task.descriptor.id, None)
+                await self.start_task_directly(task.descriptor, "previous_task_finished")
 
     # endregion
 
@@ -600,24 +615,28 @@ class TaskHandler(JobHandler):
                 name="collect",
                 steps=collect_steps + metrics_steps,
                 triggers=[EventTrigger("start_collect_workflow")],
+                on_surpass=TaskSurpassBehaviour.Wait,
             ),
             Workflow(
                 uid="cleanup",
                 name="cleanup",
                 steps=cleanup_steps + metrics_steps,
                 triggers=[EventTrigger("start_cleanup_workflow")],
+                on_surpass=TaskSurpassBehaviour.Wait,
             ),
             Workflow(
                 uid="metrics",
                 name="metrics",
                 steps=metrics_steps,
                 triggers=[EventTrigger("start_metrics_workflow")],
+                on_surpass=TaskSurpassBehaviour.Wait,
             ),
             Workflow(
                 uid="collect_and_cleanup",
                 name="collect_and_cleanup",
                 steps=collect_steps + cleanup_steps + metrics_steps,
                 triggers=[EventTrigger("start_collect_and_cleanup_workflow"), TimeTrigger("0 * * * *")],
+                on_surpass=TaskSurpassBehaviour.Wait,
             ),
         ]
 

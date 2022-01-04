@@ -22,6 +22,7 @@ from core.task.task_description import (
     StepErrorBehaviour,
     TimeTrigger,
     Job,
+    TaskSurpassBehaviour,
 )
 from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
@@ -202,3 +203,31 @@ async def test_recover_workflow(
     # simulate a restart, wf3 should start from a clean slate, since all instances are done
     async with handler() as wf3:
         assert len(wf3.tasks) == 0
+
+
+@pytest.mark.asyncio
+async def test_wait_for_running_job(
+    task_handler: TaskHandler,
+    test_workflow: Workflow,
+    all_events: List[Message],
+) -> None:
+    test_workflow.on_surpass = TaskSurpassBehaviour.Wait
+    task_handler.task_descriptions = [test_workflow]
+    # subscribe as collect handler - the workflow will need to wait for this handler
+    sub = await task_handler.subscription_handler.add_subscription("sub_1", "collect", True, timedelta(seconds=30))
+    await task_handler.handle_event(Event("start me up"))
+    # check, that the workflow has started
+    running_before = await task_handler.running_tasks()
+    assert len(running_before) == 1
+    act: Action = await wait_for_message(all_events, "collect", Action)
+    # pull the same trigger: the workflow can not be started, since there is already one in progress -> wait
+    await task_handler.handle_event(Event("start me up"))
+    # report success of the only subscriber
+    await task_handler.handle_action_done(ActionDone("collect", act.task_id, act.step_name, sub.id, dict(act.data)))
+    # check overdue tasks: wipe finished tasks and eventually start waiting tasks
+    await task_handler.check_overdue_tasks()
+    # check, that the workflow has started
+    running_after = await task_handler.running_tasks()
+    assert len(running_after) == 1
+    t_before, t_after = running_before[0], running_after[0]
+    assert t_before.descriptor.id == t_after.descriptor.id and t_before.id != t_after.id
