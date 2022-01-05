@@ -15,6 +15,7 @@ from core.parse_util import (
     double_quoted_string_part_or_esc_dp,
     single_quoted_string_part_or_esc_dp,
     single_quote_dp,
+    any_non_whitespace_string,
 )
 from core.types import JsonElement
 
@@ -45,7 +46,14 @@ single_quoted_string = single_quote_dp + single_quoted_string_part_or_esc_dp + s
 # parse \| \" \' \; and unescape it \| -> |
 escaped_token = regex("\\\\[|\"';]").map(lambda x: x[1])
 # a command are tokens until EOF or pipe
-cmd_args_parser = (escaped_token | double_quoted_string | single_quoted_string | cmd_token).at_least(1).concat()
+cmd_with_args_parser = (escaped_token | double_quoted_string | single_quoted_string | cmd_token).at_least(1).concat()
+# command line arguments: foo "bla: 'foo = bla' -> [foo, bla, foo = bla]
+cmd_args_unquoted_parser = (
+    escaped_token
+    | (double_quote_dp >> double_quoted_string_part_or_esc_dp << double_quote_dp)
+    | (single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp)
+    | any_non_whitespace_string
+).sep_by(space_dp)
 
 
 def strip_quotes(string: str, strip: str = '"') -> str:

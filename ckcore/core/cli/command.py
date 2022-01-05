@@ -33,9 +33,11 @@ from typing import (
     Awaitable,
     cast,
 )
+from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
+from aiohttp import ClientSession, TCPConnector, ClientTimeout, JsonPayload, ClientResponse
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -43,7 +45,15 @@ from parsy import Parser, string
 
 from core.analytics import AnalyticsEventSender
 from core.async_extensions import run_async
-from core.cli import key_values_parser, strip_quotes, is_node, JsGen, NoExitArgumentParser, is_edge
+from core.cli import (
+    key_values_parser,
+    strip_quotes,
+    is_node,
+    JsGen,
+    NoExitArgumentParser,
+    is_edge,
+    cmd_args_unquoted_parser,
+)
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
@@ -134,6 +144,19 @@ class CLIDependencies:
     @property
     def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
         return self.lookup["forked_tasks"]  # type:ignore
+
+    @property
+    def http_session(self) -> ClientSession:
+        session: Optional[ClientSession] = self.lookup.get("http_session")
+        if not session:
+            connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
+            session = ClientSession(connector=connector)
+            self.lookup["http_session"] = session
+        return session
+
+    async def stop(self) -> None:
+        if "http_session" in self.lookup:
+            await self.http_session.close()
 
 
 @dataclass
@@ -2545,6 +2568,164 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"Can not parse arguments: {arg}")
 
 
+@dataclass
+class HttpRequestTemplate:
+    method: str
+    url: str
+    headers: Dict[str, str]
+    params: Dict[str, str]
+    timeout: ClientTimeout
+    compress: bool
+    no_ssl_verify: bool
+
+
+class HttpCommand(CLICommand):
+    """
+    Usage: http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [http_method] <url> [headers] [query_params]
+
+    This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
+    The payload of the request contains the object.
+    The shape and format of the object can be adjusted with other commands like: list, format, jq, etc.
+    Note: you can use the chunk command to send chunks of objects.
+          E.g.: query is(volume) limit 30 | chunk 10 | http test.foo.org
+                will perform up to 3 requests, where every request will contain up to 10 elements.
+
+    Parameter:
+        --compress [optional]: enable compression of the request body
+        --timeout <seconds> [optional, default: 30]: if the request takes longer than the specified seconds
+             it will be aborted
+        --no-ssl-verify [optional]: the ssl certificate will not be verified.
+        http_method [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
+        url: the full url of the endpoint to call. Example: https://localhost:8080/call/me
+             If the scheme is not defined, it is taken from the command (http or https).
+             If the host is localhost, it can be omitted (e.g. :8080/call/me)
+        headers: a list of http headers can be defined via <header_name>:<header_value>
+             Example: HeaderA:test HeaderB:rest
+             Note: You can use quotes to use whitespace chars: "HeaderC:this is the value"
+        query_params: a list of query parameters can be defined via <param>==<param_value>.
+             Example: param1==test param2==rest
+             Note: You can use quotes to use whitespace chars: "param3==this is the value"
+
+
+    Example:
+        $> query is(volume) and reported.volume_encrypted==false | https my.node.org/handle_unencrypted
+        3 requests with status 200 sent.
+        $> query is(volume) | chunk 50 | https --compress my.node.org/handle
+        2 requests with status 200 sent.
+        $> query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from ckcore" type==volume
+        2 requests with status 200 sent.
+    """
+
+    @property
+    def name(self) -> str:
+        return "http"
+
+    def info(self) -> str:
+        return "Perform http request with incoming data"
+
+    default_timeout = ClientTimeout(total=30)
+    colon_port = re.compile("^:(\\d+)(.*)$")
+    allowed_methods = {"GET", "PUT", "POST", "DELETE", "PATCH"}
+
+    @classmethod
+    def parse_args(cls, scheme: str, arg: Optional[str]) -> HttpRequestTemplate:
+        def parse_timeout(time_str: str) -> ClientTimeout:
+            return ClientTimeout(int(time_str))
+
+        def parse_method(remaining_args: List[str]) -> Tuple[str, List[str]]:
+            if remaining_args[0].upper() in cls.allowed_methods:
+                return remaining_args[0].upper(), remaining_args[1:]
+            else:
+                return "POST", remaining_args
+
+        def parse_url(remaining_args: List[str]) -> Tuple[str, List[str]]:
+            url = urlparse(remaining_args[0])
+            # fix shorthand notation
+            if url.scheme and not url.scheme.startswith("http") and not url.netloc:
+                url = urlparse(f"{scheme}://{remaining_args[0]}")
+            elif not url.scheme and not url.netloc and url.path.startswith("://"):
+                url = urlparse(scheme + remaining_args[0])
+            elif not url.scheme and not url.netloc and cls.colon_port.match(url.path):
+                url = urlparse(f"{scheme}://localhost{remaining_args[0]}")
+            elif not url.scheme and not url.netloc:
+                url = urlparse(f"{scheme}://{remaining_args[0]}")
+
+            assert url.scheme in ["http", "https"], f"Only http and https is allowed as scheme. Got: {url}"
+            return urlunparse(url), remaining_args[1:]
+
+        def parse_header_query_params(remaining_args: List[str]) -> Tuple[Dict[str, str], Dict[str, str]]:
+            headers = {}
+            params = {}
+            for prop in remaining_args:
+                prop = strip_quotes(prop)
+                if ":" in prop:
+                    k, v = re.split("\\s*:\\s*", prop, 1)
+                    headers[k] = v
+                elif "==" in prop:
+                    k, v = re.split("\\s*==\\s*", prop, 1)
+                    params[k] = v
+                else:
+                    raise AttributeError(f"Can not parse: >{prop}<")
+            return headers, params
+
+        arg_parser = NoExitArgumentParser(allow_abbrev=True)
+        arg_parser.add_argument("--compress", dest="compress", default=False, action="store_true")
+        arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
+        arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
+        args, remaining = arg_parser.parse_known_args(cmd_args_unquoted_parser.parse(arg.strip()) if arg else [])
+        if remaining:
+            method, remaining = parse_method(remaining)
+            parsed_url, remaining = parse_url(remaining)
+            hdr, prm = parse_header_query_params(remaining)
+            return HttpRequestTemplate(method, parsed_url, hdr, prm, args.timeout, args.compress, args.no_ssl_verify)
+        else:
+            raise AttributeError("No URL provided to connect to.")
+
+    def perform_requests(self, template: HttpRequestTemplate) -> Callable[[Stream], AsyncIterator[JsonElement]]:
+        async def perform_request(e: JsonElement) -> ClientResponse:
+            data = JsonPayload(e) if isinstance(e, dict) else e
+            async with self.dependencies.http_session.request(
+                template.method,
+                template.url,
+                headers=template.headers,
+                params=template.params,
+                data=data,
+                compress=template.compress,
+                timeout=template.timeout,
+                ssl=not template.no_ssl_verify,
+            ) as response:
+                log.debug(f"Request performed: {response}")
+                return response
+
+        async def iterate_stream(in_stream: Stream) -> AsyncIterator[JsonElement]:
+            results: Dict[int, int] = defaultdict(lambda: 0)
+            async with in_stream.stream() as streamer:
+                async for elem in streamer:
+                    response = await perform_request(elem)
+                    results[response.status] += 1
+            summary = ", ".join(f"{count} requests with status {status}" for status, count in results.items())
+            yield f"{summary} sent."
+
+        return iterate_stream
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        template = self.parse_args("http", arg)
+        return CLIFlow(self.perform_requests(template))
+
+
+class HttpsCommand(HttpCommand):
+    @property
+    def name(self) -> str:
+        return "https"
+
+    def info(self) -> str:
+        return "Perform https request with incoming data"
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+        template = self.parse_args("https", arg)
+        return CLIFlow(self.perform_requests(template))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AddJobCommand(d),
@@ -2564,6 +2745,8 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
+        HttpCommand(d),
+        HttpsCommand(d),
         JobsCommand(d),
         JqCommand(d),
         JsonCommand(d),

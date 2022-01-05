@@ -17,7 +17,7 @@ from parsy import Parser
 from tzlocal import get_localzone
 
 from core.analytics import CoreEvent
-from core.cli import cmd_args_parser, key_values_parser, T, Sink
+from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
     CLIDependencies,
     QueryAllPart,
@@ -144,7 +144,7 @@ class ParsedCommandLine:
 
 @make_parser
 def single_command_parser() -> Parser:
-    parsed = yield cmd_args_parser
+    parsed = yield cmd_with_args_parser
     cmd_args = [a.strip() for a in parsed.strip().split(" ", 1)]
     cmd, args = cmd_args if len(cmd_args) == 2 else (cmd_args[0], None)
     return ParsedCommand(cmd, args)
@@ -251,6 +251,8 @@ class CLI:
         while not self.dependencies.forked_tasks.empty():
             task, _ = self.dependencies.forked_tasks.get_nowait()
             task.cancel()
+
+        await self.dependencies.stop()
 
     async def reap_tasks(self) -> None:
         while True:

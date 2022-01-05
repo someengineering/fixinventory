@@ -195,7 +195,7 @@ def reset_process_start_method() -> None:
     current = mp.get_start_method(True)
     if current != preferred:
         if preferred in mp.get_all_start_methods():
-            log.info(f"Set process start method to {preferred}")
+            log.debug(f"Set process start method to {preferred}")
             mp.set_start_method(preferred, True)
             return
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
