@@ -495,7 +495,12 @@ class Api:
 
     async def model_uml(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else None
-        result = await self.model_handler.uml_image(show)
+        hide = request.query["hide"].split(",") if "hide" in request.query else None
+        with_bases = request.query.get("with_bases", "false") != "false"
+        with_descendants = request.query.get("with_descendants", "false") != "false"
+        result = await self.model_handler.uml_image(
+            show, hide, with_bases=with_bases, with_descendants=with_descendants
+        )
         response = web.StreamResponse()
         response.headers["Content-Type"] = "image/svg+xml"
         await response.prepare(request)

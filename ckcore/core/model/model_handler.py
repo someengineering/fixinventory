@@ -1,6 +1,8 @@
 import logging
+import re
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, List
+from functools import reduce
+from typing import Optional, List, Set
 
 from plantuml import PlantUML
 
@@ -18,7 +20,15 @@ class ModelHandler(ABC):
         pass
 
     @abstractmethod
-    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
+    async def uml_image(
+        self,
+        show_packages: Optional[List[str]] = None,
+        hide_packages: Optional[List[str]] = None,
+        output: str = "svg",
+        *,
+        with_bases: bool = False,
+        with_descendants: bool = False,
+    ) -> bytes:
         pass
 
     @abstractmethod
@@ -41,32 +51,54 @@ class ModelHandlerDB(ModelHandler):
             self.__loaded_model = model
             return model
 
-    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
+    async def uml_image(
+        self,
+        show_packages: Optional[List[str]] = None,
+        hide_packages: Optional[List[str]] = None,
+        output: str = "svg",
+        *,
+        with_bases: bool = False,
+        with_descendants: bool = False,
+    ) -> bytes:
         assert output in ("svg", "png"), "Only svg and png is supported!"
         model = await self.load_model()
         graph = model.graph()
+        show = [re.compile(s) for s in show_packages] if show_packages else None
+        hide = [re.compile(s) for s in hide_packages] if hide_packages else None
 
         def node_visible(key: str) -> bool:
-            if show_packages is None:
+            k: Kind = graph.nodes[key]["data"]
+            if hide and exist(lambda r: r.fullmatch(k.fqn), hide):  # type: ignore
+                return False
+            if show is None:
                 return True
             else:
-                k: Kind = graph.nodes[key]["data"]
-                return exist(k.fqn.startswith, show_packages)
-
-        def edge_visible(edge: Tuple[str, str]) -> bool:
-            return node_visible(edge[0]) and node_visible(edge[1])
+                return exist(lambda r: r.fullmatch(k.fqn), show)  # type: ignore
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"+ {p.name}: {p.kind}" for p in cpx.properties])
             return f"class {cpx.fqn} {{\n{props}\n}}"
 
-        def class_inheritance(edge: Tuple[str, str]) -> str:
-            return f"{edge[1]} <|--- {edge[0]}"
+        def class_inheritance(from_node: str, to_node: str) -> str:
+            return f"{to_node} <|--- {from_node}"
 
-        nodes = "\n".join([class_node(graph.nodes[node]["data"]) for node in graph.nodes() if node_visible(node)])
-        edges = "\n".join([class_inheritance(edge) for edge in graph.edges() if edge_visible(edge)])
+        def descendants(fqn: str) -> Set[str]:
+            return {kind.fqn for kind in model.complex_kinds if fqn in kind.kind_hierarchy()}
+
+        visible_kinds = [node["data"] for nid, node in graph.nodes(data=True) if node_visible(nid)]
+        visible = {v.fqn for v in visible_kinds}
+        if with_bases:
+            bases: Set[str] = reduce(lambda res, cpl: res.union(cpl.kind_hierarchy()), visible_kinds, set())
+            visible.update(bases)
+        if with_descendants:
+            desc: Set[str] = reduce(lambda res, cpl: res.union(descendants(cpl.fqn)), visible_kinds, set())
+            visible.update(desc)
+
+        params = "skinparam backgroundcolor transparent"
+        nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
+        edges = "\n".join([class_inheritance(fr, to) for fr, to in graph.edges() if fr in visible and to in visible])
         puml = PlantUML(f"{self.plantuml_server}/{output}/")
-        return await run_async(puml.processes, f"@startuml\n{nodes}\n{edges}\n@enduml")  # type: ignore
+        return await run_async(puml.processes, f"@startuml\n{params}\n{nodes}\n{edges}\n@enduml")  # type: ignore
 
     async def update_model(self, kinds: List[Kind]) -> Model:
         # load existing model
