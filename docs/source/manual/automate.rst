@@ -5,6 +5,8 @@ Automate
 ========
 
 
+.. _workflow-collect_and_cleanup:
+
 Workflows
 ---------
 
@@ -16,7 +18,6 @@ The whole workflow can be triggered and is started either by time or by event.
 While we want to enable users to create and manipulate workflows on their own, there is currently only one
 hard coded workflow that ships with cloudkeeper, which can be seen in the following diagram.
 
-.. _workflow-collect_and_cleanup:
 
 .. image:: img/default_workflow.svg
 
