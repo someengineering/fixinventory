@@ -94,7 +94,13 @@ class ModelHandlerDB(ModelHandler):
             desc: Set[str] = reduce(lambda res, cpl: res.union(descendants(cpl.fqn)), visible_kinds, set())
             visible.update(desc)
 
-        params = "skinparam backgroundcolor transparent"
+        params = (
+            "skinparam backgroundcolor transparent\n"
+            "skinparam class {\n  BackgroundColor Azure\n  ArrowColor Gray\n  BorderColor Gray\n}\n"
+            "skinparam stereotypeCBackgroundColor LightGrey\n"
+            "skinparam stereotypeIBackgroundColor LightGrey\n"
+        )
+
         nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
         edges = "\n".join([class_inheritance(fr, to) for fr, to in graph.edges() if fr in visible and to in visible])
         puml = PlantUML(f"{self.plantuml_server}/{output}/")
