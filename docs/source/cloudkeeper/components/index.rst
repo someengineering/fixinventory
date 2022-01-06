@@ -67,7 +67,7 @@ There can be one or more instances of :ref:`component-ckworker` in a Cloudkeeper
 
 Once :ref:`component-ckworker` is started you do not have to interact with it at all. It will just sit there, wait for work and do its job.
 
-| Most of the :ref:`actions <action>` are done by :ref:`component-ckworker`.
+| Most of the :ref:`actions <cleanup>` are done by :ref:`component-ckworker`.
 | Only exception is :ref:`workflow-metrics`, which are processed by :ref:`component-ckmetrics`
 
 .. _component-cklib:
