@@ -6,7 +6,7 @@ import ssl
 from asyncio import Queue
 from datetime import timedelta
 from ssl import SSLContext
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, List
 
 import psutil
 import sys
@@ -36,7 +36,7 @@ from core.worker_task_queue import WorkerTaskQueue
 log = logging.getLogger(__name__)
 
 
-def main() -> None:
+def main(argv: List[str]) -> None:
     # os information
     cpus = multiprocessing.cpu_count()
     mem = psutil.virtual_memory()
@@ -46,7 +46,7 @@ def main() -> None:
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
     started_at = utc()
-    args = parse_args()
+    args = parse_args(argv)
     setup_process(args)
 
     # wait here for an initial connection to the database before we continue. blocking!
@@ -153,7 +153,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        main(sys.argv[1:])
         log.info("Process finished.")
     except (KeyboardInterrupt, SystemExit):
         log.info("Stopping Cloudkeeper graph core.")
