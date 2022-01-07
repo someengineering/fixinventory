@@ -239,7 +239,7 @@ class Job(TaskDescription):
             action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
             steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
         steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
-        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Parallel, environment, mutable)
+        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Wait, environment, mutable)
         self.command = command
         self.trigger = trigger
         self.timeout = timeout

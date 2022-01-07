@@ -49,10 +49,13 @@ package Workflows {
       id: str
       name: str
     }
-    interface Step {
+    class Step {
+      name: str
       timeout: duration
     }
-    class EmitAction {
+    interface StepAction {
+    }
+    class PerformAction {
       message_type: str
     }
     class ExecuteCommand {
@@ -61,9 +64,10 @@ package Workflows {
     class WaitForEvent {
       message_type: str
     }
-    Step <|-- EmitAction
-    Step <|-- ExecuteCommand
-    Step <|-- WaitForEvent
+    Step -> StepAction
+    StepAction <|-- PerformAction
+    StepAction <|-- ExecuteCommand
+    StepAction <|-- WaitForEvent
     enum ErrorBehaviour {
         Stop
         Continue
@@ -136,7 +140,7 @@ class Step {
 }
 interface StepAction {
 }
-class EmitAction {
+class PerformAction {
   message_type: str
 }
 class ExecuteCommand {
@@ -145,13 +149,13 @@ class ExecuteCommand {
 class WaitForEvent {
   message_type: str
 }
-StepAction <|-- EmitAction
+StepAction <|-- PerformAction
 StepAction <|-- ExecuteCommand
 StepAction <|-- WaitForEvent
 
 Workflow *--> "*" Step
 Step --> StepAction
-note bottom of EmitAction {
+note bottom of PerformAction {
 - Emits a specified action.
 - Waits for all actors to respond with an ack.
 }
@@ -174,5 +178,5 @@ interface Actor
 Actor <|-- AWSCollector
 Actor <|-- GCPCollector
 
-Actor -> EmitAction: subscribe
+Actor -> PerformAction: subscribe
 @enduml
