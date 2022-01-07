@@ -295,10 +295,3 @@ class ApiClient:
                 return await r.text()
             else:
                 raise AttributeError(await r.text())
-
-    async def work(self) -> str:
-        async with self.session.get(self.base_path + f"/system/ready") as r:
-            if r.status == 200:
-                return await r.text()
-            else:
-                raise AttributeError(await r.text())
