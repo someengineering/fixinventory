@@ -9,9 +9,12 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from core.__main__ import main
+from core.config import ConfigEntity
+from core.db import EstimatedQueryCostRating
 from core.db.model import GraphUpdate
 from core.model.model import predefined_kinds, StringKind, ComplexKind, Property, Kind
 from core.model.typed_model import to_js
+from core.task.model import Subscription
 from core.util import rnd_str, AccessJson
 
 # noinspection PyUnresolvedReferences
@@ -61,6 +64,21 @@ async def core_client(
     process.close()
 
 
+g = "graphtest"
+
+
+@pytest.mark.asyncio
+async def test_system_api(core_client: ApiClient, client_session: ClientSession) -> None:
+    assert await core_client.ping() == "pong"
+    assert await core_client.ready() == "ok"
+    # make sure we get redirected to the api docs
+    async with client_session.get("http://localhost:8900", allow_redirects=False) as r:
+        assert r.headers["location"] == "api-doc"
+    # static api docs get served
+    async with client_session.get("http://localhost:8900") as r:
+        assert r.content_type == "text/html"
+
+
 @pytest.mark.asyncio
 async def test_model_api(core_client: ApiClient) -> None:
 
@@ -79,8 +97,11 @@ async def test_model_api(core_client: ApiClient) -> None:
 
 @pytest.mark.asyncio
 async def test_graph_api(core_client: ApiClient) -> None:
+    # make sure we have a clean slate
+    with suppress(Exception):
+        await core_client.delete_graph(g)
+
     # create a new graph
-    g = "graphtest"
     graph = await core_client.create_graph(g)
     assert graph.id == "root"
     assert graph.kinds == ["graph_root"]
@@ -122,9 +143,26 @@ async def test_graph_api(core_client: ApiClient) -> None:
         # node can not be found
         await core_client.get_node(g, uid)
 
-    # batch update
+    # merge a complete graph
     merged = await core_client.merge_graph(g, create_graph("test"))
     assert merged == GraphUpdate(112, 1, 0, 112, 0, 0)
+
+    # batch graph update and commit
+    batch1_id, batch1_info = await core_client.add_to_batch(g, create_graph("hello"), "batch1")
+    # assert batch1_info == GraphUpdate(0, 100, 0, 0, 0, 0)
+    assert batch1_id == "batch1"
+    batch_infos = await core_client.list_batches(g)
+    assert len(batch_infos) == 1
+    # assert batch_infos[0].id == batch1_id
+    assert batch_infos[0].affected_nodes == ["collector"]  # replace node
+    assert batch_infos[0].is_batch is True
+    await core_client.commit_batch(g, batch1_id)
+
+    # batch graph update and abort
+    batch2_id, batch2_info = await core_client.add_to_batch(g, create_graph("bonjour"), "batch2")
+    assert batch2_info == GraphUpdate(0, 100, 0, 0, 0, 0)
+    assert batch2_id == "batch2"
+    await core_client.abort_batch(g, batch2_id)
 
     # update nodes
     update = [{"id": node["id"], "reported": {"name": "bruce"}} for _, node in create_graph("foo").nodes(data=True)]
@@ -133,6 +171,113 @@ async def test_graph_api(core_client: ApiClient) -> None:
     for n in updated_nodes:
         assert n.reported.name == "bruce"
 
+    # create the raw query
+    raw = await core_client.query_graph_raw(g, 'id("3")')
+    assert raw == {
+        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        "FOR result in filter0 RETURN result",
+        "bind_vars": {"b0": "3"},
+    }
+
+    # estimate the query
+    cost = await core_client.query_graph_explain(g, 'id("3")')
+    assert cost.full_collection_scan is False
+    assert cost.rating == EstimatedQueryCostRating.simple
+
+    # query list
+    result_list = await core_client.query_list(g, 'id("3") -[0:]->')
+    assert len(result_list) == 11  # one parent node and 10 child nodes
+    assert result_list[0].id == "3"  # first node is the parent node
+
+    # query graph
+    result_graph = await core_client.query_graph(g, 'id("3") -[0:]->')
+    assert len(result_graph) == 21  # 11 nodes + 10 edges
+    assert result_list[0].id == "3"  # first node is the parent node
+
+    # aggregate
+    result_aggregate = await core_client.query_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
+    assert {r.group.kind: r.count for r in result_aggregate} == {"bla": 100, "cloud": 1, "foo": 11, "graph_root": 1}
+
     # delete the graph
     assert await core_client.delete_graph(g) == "Graph deleted."
     assert g not in await core_client.list_graphs()
+
+
+@pytest.mark.asyncio
+async def test_subscribers(core_client: ApiClient) -> None:
+    # provide a clean slate
+    for subscriber in await core_client.subscribers():
+        await core_client.delete_subscriber(subscriber.id)
+
+    sub_id = rnd_str()
+
+    # add subscription
+    subscriber = await core_client.add_subscription(sub_id, Subscription("test"))
+    assert subscriber.id == sub_id
+    assert len(subscriber.subscriptions) == 1
+    assert subscriber.subscriptions["test"] is not None
+
+    # delete subscription
+    subscriber = await core_client.delete_subscription(sub_id, Subscription("test"))
+    assert subscriber.id == sub_id
+    assert len(subscriber.subscriptions) == 0
+
+    # update subscriber
+    updated = await core_client.update_subscriber(sub_id, [Subscription("test"), Subscription("rest")])
+    assert updated is not None
+    assert updated.id == sub_id
+    assert len(updated.subscriptions) == 2
+
+    # subscriber for message type
+    assert await core_client.subscribers_for_event("test") == [updated]
+    assert await core_client.subscribers_for_event("rest") == [updated]
+    assert await core_client.subscribers_for_event("does_not_exist") == []
+
+    # get subscriber
+    sub = await core_client.subscriber(sub_id)
+    assert sub is not None
+
+
+@pytest.mark.asyncio
+async def test_cli(core_client: ApiClient) -> None:
+    # make sure we have a clean slate
+    with suppress(Exception):
+        await core_client.delete_graph(g)
+    await core_client.create_graph(g)
+    await core_client.merge_graph(g, create_graph("test"))
+
+    # evaluate query with count
+    result = await core_client.cli_evaluate(g, "query all | count reported.kind")
+    assert len(result) == 1
+    parsed, to_execute = result[0]
+    assert len(parsed.commands) == 2
+    assert (parsed.commands[0].cmd, parsed.commands[1].cmd) == ("query", "count")
+    assert len(to_execute) == 2
+    assert (to_execute[0].cmd, to_execute[1].cmd) == ("execute_query", "aggregate_to_count")
+
+    # execute query with count
+    executed = await core_client.cli_execute(g, "query is(foo) or is(bla) | count reported.kind")
+    assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
+
+
+@pytest.mark.asyncio
+async def test_config(core_client: ApiClient) -> None:
+    # make sure we have a clean slate
+    for config in await core_client.configs():
+        await core_client.delete_config(config.id)
+
+    # add/update config
+    cfg_id = rnd_str()
+    assert await core_client.patch_config(cfg_id, {"a": 1}) == {"a": 1}
+    assert await core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
+    assert await core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}
+
+    # get config
+    assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
+
+    # list configs
+    assert await core_client.configs() == [ConfigEntity(cfg_id, {"a": 1, "b": 2, "c": 3})]
+
+    # delete config
+    await core_client.delete_config(cfg_id)
+    assert await core_client.configs() == []

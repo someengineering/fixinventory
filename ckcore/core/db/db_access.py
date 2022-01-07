@@ -85,6 +85,10 @@ class DbAccess(ABC):
             db.delete_graph(name, drop_collections=True, ignore_missing=True)
             db.delete_collection(f"{name}_in_progress", ignore_missing=True)
             db.delete_view(f"search_{name}", ignore_missing=True)
+            # remove all temp collection names
+            for coll in db.collections():
+                if coll["name"].startswith(f"{name}_temp_"):
+                    db.delete_collection(coll["name"])
             self.graph_dbs.pop(name, None)
 
     async def list_graphs(self) -> List[str]:

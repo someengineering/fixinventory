@@ -1,12 +1,16 @@
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 from aiohttp import ClientSession
 from networkx import MultiDiGraph
 
+from core.cli.cli import ParsedCommands, ParsedCommand
+from core.config import ConfigEntity
+from core.db import EstimatedQueryCost
 from core.db.model import GraphUpdate
 from core.model.model import Model, Kind
 from core.model.typed_model import from_js, to_js
-from core.types import Json
+from core.task.model import Subscriber, Subscription
+from core.types import Json, JsonElement
 from core.util import AccessJson
 
 
@@ -87,17 +91,214 @@ class ApiClient:
     async def patch_nodes(self, graph: str, nodes: List[Json]) -> List[AccessJson]:
         async with self.session.patch(self.base_path + f"/graph/{graph}/nodes", json=nodes) as response:
             if response.status == 200:
-                return AccessJson.wrap(await response.json(), None)  # type: ignore
+                return AccessJson.wrap_list(await response.json())
             else:
                 raise AttributeError(await response.text())
+
+    @staticmethod
+    def graph_to_json(graph: MultiDiGraph) -> List[Json]:
+        ga: List[Json] = [{**node, "type": "node"} for _, node in graph.nodes(data=True)]
+        for from_node, to_node in graph.edges():
+            ga.append({"type": "edge", "from": from_node, "to": to_node})
+        return ga
 
     async def merge_graph(self, graph: str, update: MultiDiGraph) -> GraphUpdate:
-        ga: List[Json] = [{**node, "type": "node"} for _, node in update.nodes(data=True)]
-        for from_node, to_node in update.edges():
-            ga.append({"type": "edge", "from": from_node, "to": to_node})
-
-        async with self.session.post(self.base_path + f"/graph/{graph}/merge", json=ga) as response:
-            if response.status == 200:
-                return from_js(await response.json(), GraphUpdate)
+        js = self.graph_to_json(update)
+        async with self.session.post(self.base_path + f"/graph/{graph}/merge", json=js) as r:
+            if r.status == 200:
+                return from_js(await r.json(), GraphUpdate)
             else:
-                raise AttributeError(await response.text())
+                raise AttributeError(await r.text())
+
+    async def add_to_batch(
+        self, graph: str, update: MultiDiGraph, batch_id: Optional[str] = None
+    ) -> Tuple[str, GraphUpdate]:
+        js = self.graph_to_json(update)
+        props = {"batch_id": batch_id} if batch_id else None
+        async with self.session.post(self.base_path + f"/graph/{graph}/batch/merge", json=js, params=props) as r:
+            if r.status == 200:
+                return r.headers["BatchId"], from_js(await r.json(), GraphUpdate)
+            else:
+                raise AttributeError(await r.text())
+
+    async def list_batches(self, graph: str) -> List[AccessJson]:
+        async with self.session.get(self.base_path + f"/graph/{graph}/batch") as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def commit_batch(self, graph: str, batch_id: str) -> None:
+        async with self.session.post(self.base_path + f"/graph/{graph}/batch/{batch_id}") as r:
+            if r.status == 200:
+                return None
+            else:
+                raise AttributeError(await r.text())
+
+    async def abort_batch(self, graph: str, batch_id: str) -> None:
+        async with self.session.delete(self.base_path + f"/graph/{graph}/batch/{batch_id}") as r:
+            if r.status == 200:
+                return None
+            else:
+                raise AttributeError(await r.text())
+
+    async def query_graph_raw(self, graph: str, query: str) -> AccessJson:
+        async with self.session.post(self.base_path + f"/graph/{graph}/query/raw", data=query) as r:
+            if r.status == 200:
+                return AccessJson.wrap_object(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def query_graph_explain(self, graph: str, query: str) -> EstimatedQueryCost:
+        async with self.session.post(self.base_path + f"/graph/{graph}/query/explain", data=query) as r:
+            if r.status == 200:
+                return from_js(await r.json(), EstimatedQueryCost)
+            else:
+                raise AttributeError(await r.text())
+
+    async def query_list(self, graph: str, query: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/query/list", data=query) as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def query_graph(self, graph: str, query: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/query/graph", data=query) as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def query_aggregate(self, graph: str, query: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/query/aggregate", data=query) as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def subscribers(self) -> List[Subscriber]:
+        async with self.session.get(self.base_path + f"/subscribers") as r:
+            if r.status == 200:
+                return from_js(await r.json(), List[Subscriber])
+            else:
+                raise AttributeError(await r.text())
+
+    async def subscribers_for_event(self, event_type: str) -> List[Subscriber]:
+        async with self.session.get(self.base_path + f"/subscribers/for/{event_type}") as r:
+            if r.status == 200:
+                return from_js(await r.json(), List[Subscriber])
+            else:
+                raise AttributeError(await r.text())
+
+    async def subscriber(self, uid: str) -> Optional[Subscriber]:
+        async with self.session.get(self.base_path + f"/subscriber/{uid}") as r:
+            if r.status == 200:
+                return from_js(await r.json(), Subscriber)
+            else:
+                return None
+
+    async def update_subscriber(self, uid: str, subscriptions: List[Subscription]) -> Optional[Subscriber]:
+        async with self.session.put(self.base_path + f"/subscriber/{uid}", json=to_js(subscriptions)) as r:
+            if r.status == 200:
+                return from_js(await r.json(), Subscriber)
+            else:
+                raise AttributeError(await r.text())
+
+    async def add_subscription(self, uid: str, subscription: Subscription) -> Subscriber:
+        props = {
+            "timeout": str(int(subscription.timeout.total_seconds())),
+            "wait_for_completion": str(subscription.wait_for_completion),
+        }
+        async with self.session.post(
+            self.base_path + f"/subscriber/{uid}/{subscription.message_type}", params=props
+        ) as r:
+            if r.status == 200:
+                return from_js(await r.json(), Subscriber)
+            else:
+                raise AttributeError(await r.text())
+
+    async def delete_subscription(self, uid: str, subscription: Subscription) -> Subscriber:
+        async with self.session.delete(self.base_path + f"/subscriber/{uid}/{subscription.message_type}") as r:
+            if r.status == 200:
+                return from_js(await r.json(), Subscriber)
+            else:
+                raise AttributeError(await r.text())
+
+    async def delete_subscriber(self, uid: str) -> None:
+        async with self.session.delete(self.base_path + f"/subscriber/{uid}") as r:
+            if r.status == 204:
+                return None
+            else:
+                raise AttributeError(await r.text())
+
+    async def cli_evaluate(self, graph: str, command: str, **env: str) -> List[Tuple[ParsedCommands, List[AccessJson]]]:
+        props = {"graph": graph, **env}
+        async with self.session.post(self.base_path + f"/cli/evaluate", data=command, params=props) as r:
+            if r.status == 200:
+                return [
+                    (
+                        ParsedCommands(from_js(json["parsed"], List[ParsedCommand]), json["env"]),
+                        AccessJson.wrap(json["execute"]),
+                    )
+                    for json in await r.json()
+                ]
+            else:
+                raise AttributeError(await r.text())
+
+    async def cli_execute(self, graph: str, command: str, **env: str) -> List[JsonElement]:
+        props = {"graph": graph, **env}
+        async with self.session.post(self.base_path + f"/cli/execute", data=command, params=props) as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())  # type: ignore
+            else:
+                raise AttributeError(await r.text())
+
+    async def configs(self) -> List[ConfigEntity]:
+        async with self.session.get(self.base_path + f"/configs") as r:
+            if r.status == 200:
+                return [ConfigEntity(cid, config) for cid, config in (await r.json()).items()]
+            else:
+                raise AttributeError(await r.text())
+
+    async def config(self, config_id: str) -> AccessJson:
+        async with self.session.get(self.base_path + f"/config/{config_id}") as r:
+            if r.status == 200:
+                return AccessJson.wrap_object(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def patch_config(self, config_id: str, json: Json) -> AccessJson:
+        async with self.session.patch(self.base_path + f"/config/{config_id}", json=json) as r:
+            if r.status == 200:
+                return AccessJson.wrap_object(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
+    async def delete_config(self, config_id: str) -> None:
+        async with self.session.delete(self.base_path + f"/config/{config_id}") as r:
+            if r.status == 204:
+                return None
+            else:
+                raise AttributeError(await r.text())
+
+    async def ping(self) -> str:
+        async with self.session.get(self.base_path + f"/system/ping") as r:
+            if r.status == 200:
+                return await r.text()
+            else:
+                raise AttributeError(await r.text())
+
+    async def ready(self) -> str:
+        async with self.session.get(self.base_path + f"/system/ready") as r:
+            if r.status == 200:
+                return await r.text()
+            else:
+                raise AttributeError(await r.text())
+
+    async def work(self) -> str:
+        async with self.session.get(self.base_path + f"/system/ready") as r:
+            if r.status == 200:
+                return await r.text()
+            else:
+                raise AttributeError(await r.text())

@@ -977,7 +977,7 @@ class ArangoGraphDB(GraphDB):
     def query_active_updates(self) -> str:
         return f"""
         FOR c IN {self.in_progress}
-        RETURN {{id: c.change, created: c.created, affected_nodes: c.root_nodes, is_batch: c.is_batch}}
+        RETURN {{id: c.change, created: c.created, affected_nodes: c.root_node_ids, is_batch: c.is_batch}}
         """
 
     def query_active_change(self) -> str:
