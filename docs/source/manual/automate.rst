@@ -13,10 +13,10 @@ Workflows
 Cloudkeeper has a concept of workflows.
 A workflow is a set of steps that implements a finite state machine,
 where every step performs a specific action.
-The whole workflow can be triggered and is started either by time or by an event.
+Workflows can be triggered on a schedule or by an event.
 
 While we want to enable users to create and manipulate workflows on their own, there is currently only one
-hardcoded workflow that ships with cloudkeeper, which can be seen in the following diagram.
+hardcoded workflow that ships with Cloudkeeper, which is illustrated in the following diagram:
 
 
 .. image:: img/default_workflow.svg
@@ -27,8 +27,8 @@ According to this workflow, the following actions are performed every full hour:
 - ``collect`` All configured cloud providers are triggered to collect the available cloud resources.
   The collected resources are given to the core and update the internal database.
   After this step is done, all cloud resources should be available to cloudkeeper.
-- ``cleanup_plan`` This step is an entry point to customize the selection of resources, that should be cleaned up.
-  Cloudkeeper out of the box will select expired resources if ckworker is started with the relevant command
+- ``cleanup_plan`` This step allows selection of resources that should be cleaned up.
+Out of the box, Cloudkeeper will select expired resources if `ckworker` is started with the relevant command-
   line flag (``--cleanup-expired``). Users can hook into this step to select resources, that they think should
   be cleaned up.
   After this step is done, all resources that should be cleaned up are marked internally in ckcore.
@@ -44,8 +44,7 @@ to react on the ``post_collect`` action for example.
 
 The following diagram shows, how *ckworker* and *ckmetrics* use the default workflow. *ckworker* waits for the
 ``collect`` action. Once this is received, it will run all configured cloud providers to collect the available
-cloud resources. It will also listen to the `cleanup_plan` action in the case expired resources should be cleaned up,
-where it would select all resources for cleanup, that are expired according to their expiry definition.
+cloud resources. It will also listen to the `cleanup_plan` action in case expired resources should be cleaned up.
 *ckmetrics* will wait for the ``generate_metrics`` action. Since this action is performed after the collect step,
 the metrics operate on the latest available snapshot of data.
 
@@ -70,7 +69,7 @@ the ``tag`` command, which will update the tags of the elements to the defined v
 
     $> query is(resource) and reported.tags.owner==null | tag update owner "John Doe"
 
-While this is already an improvement, it will only update resources without tags at this moment.
+While this is already an improvement, it will only update resources without tags at the moment.
 Resources that are created in the future and do not have an owner tag have to be handled the same way again.
 Jobs allow you to take a defined CLI Command line, that can be triggered either by time (cron expression) or event.
 A job is executed automatically, once the related trigger triggers.
