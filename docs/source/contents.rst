@@ -26,7 +26,8 @@
    :name: sec-manual
 
    manual/discovery
-   manual/action
+   manual/automate
+   manual/cleanup
    manual/query_library
 
 .. toctree::

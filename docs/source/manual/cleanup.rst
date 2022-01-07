@@ -1,8 +1,9 @@
-.. _action:
+.. _cleanup:
 
-======
-Action
-======
+=======
+Cleanup
+=======
+
 
 You can modify your discovered cloud resources by using Cloudkeepers powerful commands like ``tag`` or ``clean``.
 
@@ -11,77 +12,6 @@ To learn about your new superpowers and use them in the best way, it is importan
 .. important::
     | Cloudkeeper will **NOT** delete resources marked for deletion by default!
     | Read more about this here: :ref:`delete_warning`
-
-How Cloudkeeper maintains your resources
-****************************************
-
-| Cloudkeeper does the housekeeping for you. It automatically uses workflows in the background to achive this which are triggered by events or by a specific time.
-| Therefor there typically is no need to trigger them manually in daily operations.
-
-Workflows
-=========
-
-| Cloudkeeper has four workflows we will now explain.
-| In our examples all workflows are triggered by the ``start_workflow`` command via :ref:`component-cksh`.
-
-:ref:`workflow-collect_and_cleanup` has an additional, built in, trigger by time. It runs every full hour.
-
-.. _workflow-collect:
-
-collect
--------
-.. code-block::
-    :caption: Start collect workflow
-    
-        > start_workflow collect
-        
-This will trigger all :ref:`plugins` to this workflow.
-As an additional step, this workflow will trigger :ref:`workflow-metrics` aswell, which will put :ref:`component-ckmetrics` into action.
-
-.. _workflow-cleanup:
-
-cleanup
--------
-
-This workflow triggers all :ref:`plugins` to delete ressources they manage, that were previously marked as to be cleand.
-To activate this feature, :ref:`setup-ckworker` needs to be started with the ``--cleanup`` parameter.
-Otherwise it will NOT delete any ressources.
-You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup to print what it would do without actually doing it.
-
-.. code-block::
-    :caption: Start cleanup workflow
-    
-        > start_workflow cleanup
-        
-As an additional step, this workflow will trigger :ref:`workflow-metrics` aswell.
-
-.. _workflow-metrics:
-
-metrics
--------
-
-.. code-block::
-    :caption: Start metrics workflow
-    
-        > start_workflow metrics
-        
-This will put :ref:`component-ckmetrics` into action.
-
-.. _workflow-collect_and_cleanup:
-
-collect_and_cleanup
--------------------
-This workflow combines :ref:`workflow-collect`, :ref:`workflow-cleanup` and :ref:`workflow-metrics` into one.
-
-You can trigger this workflow also like the others via :ref:`component-cksh` command.
-
-.. code-block::
-    :caption: Start collect_and_cleanup workflow
-    
-        > start_workflow collect_and_cleanup
-
-The :ref:`workflow-collect_and_cleanup` workflow is hardwired to run automatically every full hour.
-
 
 .. _action_tags:
 
@@ -115,7 +45,7 @@ Deleting resources
 
     | **Cloudkeeper is designed to clean up resources**.
     | Act with caution when selecting and filtering resources for cleanup.
-    
+
     If you run ``match is(aws_ec2_volume) | clean``, it marks **all** ``aws_ec2_volume`` resources in your cloud for deletion.
 
     | By default, :ref:`component-ckworker` will **NOT delete resources marked for deletion.**
@@ -123,17 +53,17 @@ Deleting resources
 
     | :ref:`component-ckworker` will only delete marked resources when started with the ``--cleanup`` command.
     | When started like that, marked resources will be cleaned every full hour via our :ref:`workflow-collect_and_cleanup` workflow.
-    
+
     You can provide ``--cleanup-dry-run`` to :ref:`setup-ckworker` startup, to print **what it would delete without actually deleting it**.
 
     When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like ``desired clean = true | count``.
 
     To quickly undo marking all ``aws_ec2_volumes`` for clean use ``match is(aws_ec2_volume) | set_desired clean=false``.
-    
+
     To remove all clean marker on all ressources you can use ``desired clean=true  | set_desired clean=false``.
 
 
-Deletion of ressources via Cloudkeeper is done in two phases.
+Deletion of resources via Cloudkeeper is done in two phases.
 
 #. :ref:`mark_resources_for_deletion`
 #. :ref:`delete_the_actual_ressources`
@@ -163,5 +93,5 @@ If done so, there will be an automatic cleanup every full hour.
 Otherwise the ``cleanup`` will only be simulated without actually being deleted.
 
 Instant cleanup can be triggered via starting the corresponding workflow.
-Please see :ref:`workflow-cleanup` or :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
+Please see :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
 
