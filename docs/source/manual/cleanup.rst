@@ -93,5 +93,5 @@ If done so, there will be an automatic cleanup every full hour.
 Otherwise the ``cleanup`` will only be simulated without actually being deleted.
 
 Instant cleanup can be triggered via starting the corresponding workflow.
-Please see :ref:`workflow-cleanup` or :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
+Please see :ref:`workflow-collect_and_cleanup` on how to trigger it manually.
 

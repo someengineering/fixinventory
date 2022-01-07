@@ -28,7 +28,7 @@ According to this workflow, the following actions are performed every full hour:
   The collected resources are given to the core and update the internal database.
   After this step is done, all cloud resources should be available to cloudkeeper.
 - ``cleanup_plan`` This step allows selection of resources that should be cleaned up.
-Out of the box, Cloudkeeper will select expired resources if `ckworker` is started with the relevant command-
+  Out of the box, Cloudkeeper will select expired resources if `ckworker` is started with the relevant command-
   line flag (``--cleanup-expired``). Users can hook into this step to select resources, that they think should
   be cleaned up.
   After this step is done, all resources that should be cleaned up are marked internally in ckcore.
