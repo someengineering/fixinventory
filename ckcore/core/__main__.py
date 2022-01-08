@@ -36,7 +36,20 @@ from core.worker_task_queue import WorkerTaskQueue
 log = logging.getLogger(__name__)
 
 
-def main(argv: List[str]) -> None:
+def main() -> None:
+    """
+    Application entrypoint - no arguments are allowed.
+    """
+    run(sys.argv[1:])
+
+
+def run(args: List[str]) -> None:
+    """
+    Run application. When this method returns, the process is done.
+    :param args: the arguments provided to this process.
+                 Note: this method is used in tests to specify arbitrary arguments.
+    """
+
     # os information
     cpus = multiprocessing.cpu_count()
     mem = psutil.virtual_memory()
@@ -46,18 +59,18 @@ def main(argv: List[str]) -> None:
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
     started_at = utc()
-    args = parse_args(argv)
-    setup_process(args)
+    conf = parse_args(args)
+    setup_process(conf)
 
     # wait here for an initial connection to the database before we continue. blocking!
-    created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
-    event_sender = NoEventSender() if args.analytics_opt_out else PostHogEventSender(system_data)
+    created, system_data, sdb = DbAccess.connect(conf, timedelta(seconds=60))
+    event_sender = NoEventSender() if conf.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(args, sdb)
+    cert_handler = CertificateHandler.lookup(conf, sdb)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
-    model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
+    model = ModelHandlerDB(db.get_model_db(), conf.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
@@ -65,13 +78,13 @@ def main(argv: List[str]) -> None:
         db_access=db,
         model_handler=model,
         worker_task_queue=worker_task_queue,
-        args=args,
+        args=conf,
         template_expander=template_expander,
     )
     cli = CLI(cli_deps, all_commands(cli_deps), {}, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandler(
-        db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
+        db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, conf
     )
     cli_deps.extend(job_handler=task_handler)
     api = Api(
@@ -85,7 +98,7 @@ def main(argv: List[str]) -> None:
         cert_handler,
         cli,
         template_expander,
-        args,
+        conf,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1)
@@ -144,16 +157,16 @@ def main(argv: List[str]) -> None:
         return api.app
 
     tls_context: Optional[SSLContext] = None
-    if args.tls_cert:
+    if conf.tls_cert:
         tls_context = SSLContext(ssl.PROTOCOL_TLS)
-        tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
+        tls_context.load_cert_chain(conf.tls_cert, conf.tls_key, conf.tls_password)
 
-    runner.run_app(async_initializer(), api.stop, host=args.host, port=args.port, ssl_context=tls_context)
+    runner.run_app(async_initializer(), api.stop, host=conf.host, port=conf.port, ssl_context=tls_context)
 
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1:])
+        main()
         log.info("Process finished.")
     except (KeyboardInterrupt, SystemExit):
         log.info("Stopping Cloudkeeper graph core.")

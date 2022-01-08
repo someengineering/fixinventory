@@ -8,7 +8,7 @@ from _pytest.fixtures import fixture
 from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
-from core.__main__ import main
+from core.__main__ import run
 from core.config import ConfigEntity
 from core.db import EstimatedQueryCostRating
 from core.db.model import GraphUpdate
@@ -44,7 +44,7 @@ async def core_client(
     test_db.collection("model").insert_many([{"_key": elem.fqn, **to_js(elem)} for elem in foo_kinds])
 
     process = Process(
-        target=main, args=(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"],)
+        target=run, args=(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"],)
     )
     process.start()
     ready = False
