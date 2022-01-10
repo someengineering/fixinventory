@@ -3,6 +3,12 @@
 name: Coverage (ckcore)
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'ckcore/**'
+      - '.github/**'
+  pull_request:
     paths:
       - 'ckcore/**'
       - '.github/**'
