@@ -864,6 +864,10 @@ class Model:
         else:
             return None
 
+    @property
+    def complex_kinds(self) -> List[ComplexKind]:
+        return [k for k in self.kinds.values() if isinstance(k, ComplexKind)]
+
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
         if path not in self.__property_kind_by_path:
