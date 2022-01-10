@@ -37,7 +37,7 @@ from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
-from aiohttp import ClientSession, TCPConnector, ClientTimeout, JsonPayload, ClientResponse
+from aiohttp import ClientSession, TCPConnector, ClientTimeout, JsonPayload
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -289,7 +289,7 @@ class CLICommand(ABC):
         pass
 
     @abstractmethod
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
 
 
@@ -317,7 +317,7 @@ class PreserveOutputFormat(ABC):
 # Therefore, the parse method is implemented in a dummy fashion here.
 # The real interpretation happens in CLI.create_query.
 class QueryPart(CLICommand, ABC):
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         return CLISource.empty()
 
 
@@ -724,7 +724,7 @@ class HeadCommand(QueryPart):
     def info(self) -> str:
         return "Return n first elements of the stream."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         size = self.parse_size(arg)
         return CLIFlow(lambda in_stream: stream.take(in_stream, size))
 
@@ -755,7 +755,7 @@ class TailCommand(QueryPart):
     def info(self) -> str:
         return "Return n last elements of the stream."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         size = HeadCommand.parse_size(arg)
         return CLIFlow(lambda in_stream: stream.takelast(in_stream, size))
 
@@ -783,7 +783,7 @@ class CountCommand(QueryPart):
     def info(self) -> str:
         return "Count incoming elements or sum defined property."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         get_path = arg.split(".") if arg else None
         counter: Dict[str, int] = defaultdict(int)
         matched = 0
@@ -843,7 +843,7 @@ class EchoCommand(CLICommand):
     def info(self) -> str:
         return "Send the provided message to downstream"
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.single(lambda: stream.just(strip_quotes(arg if arg else "")))
 
 
@@ -866,7 +866,7 @@ class JsonCommand(CLICommand):
     def info(self) -> str:
         return "Parse json and pass parsed objects to the output stream."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         if arg:
             js = json.loads(arg)
         else:
@@ -897,7 +897,7 @@ class SleepCommand(CLICommand):
     def info(self) -> str:
         return "Suspend execution for an interval of time"
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
 
         if not arg:
             raise AttributeError("Sleep needs an argument!")
@@ -933,7 +933,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
     def info(self) -> str:
         return "Convert the output of an aggregate query to the result of count."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         name_path = ["group", "name"]
         count_path = ["count"]
 
@@ -999,7 +999,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
                 result.append(f"--{key}")
         return " ".join(result) + " " if result else ""
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         # db name is coming from the env
         graph_name = ctx.env["graph"]
         if not arg:
@@ -1072,7 +1072,7 @@ class EnvCommand(CLICommand):
     def info(self) -> str:
         return "Retrieve the environment and pass it to the output stream."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env))
 
 
@@ -1101,7 +1101,7 @@ class ChunkCommand(CLICommand):
     def info(self) -> str:
         return "Chunk incoming elements in batches."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         size = int(arg) if arg else 100
         return CLIFlow(lambda in_stream: stream.chunks(in_stream, size))
 
@@ -1129,7 +1129,7 @@ class FlattenCommand(CLICommand):
     def info(self) -> str:
         return "Take incoming batches of elements and flattens them to a stream of single elements."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or isinstance(it, Iterable) else stream.just(it)
 
@@ -1156,7 +1156,7 @@ class UniqCommand(CLICommand):
     def info(self) -> str:
         return "Remove all duplicated objects from the stream."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         visited = set()
 
         def hashed(item: Any) -> Hashable:
@@ -1205,7 +1205,7 @@ class JqCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Filter and process json."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         if not arg:
             raise AttributeError("jq requires an argument to be parsed")
 
@@ -1258,7 +1258,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Retrieves information about the graph data kinds."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         show_path: Optional[str] = None
         show_kind: Optional[str] = None
 
@@ -1303,7 +1303,7 @@ class SetDesiredStateBase(CLICommand, ABC):
         # deriving classes need to define how to patch
         pass
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, **ctx.env))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
@@ -1447,7 +1447,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         # deriving classes need to define how to patch
         pass
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, **ctx.env))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
@@ -1607,7 +1607,7 @@ class FormatCommand(CLICommand, OutputTransformer):
         "dot": respond_dot,
     }
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
         parser.add_argument("--json", dest="json", action="store_true")
         parser.add_argument("--ndjson", dest="ndjson", action="store_true")
@@ -1673,7 +1673,7 @@ class DumpCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Dump all properties of incoming objects."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         # Dump returns the same stream as provided without changing anything.
         # Since it is an OutputTransformer, the resulting transformer will be dump (not list).
         return CLIFlow(identity)
@@ -1765,7 +1765,7 @@ class ListCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Transform incoming objects as string with defined properties."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         def default_props_to_show() -> List[Tuple[str, str]]:
             result = []
             # include the object id, if edges are requested
@@ -1845,7 +1845,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "List all jobs in the system."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
             listed = await self.dependencies.job_handler.list_jobs()
 
@@ -1900,7 +1900,7 @@ class AddJobCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Add job to the system."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def add_job() -> AsyncIterator[str]:
             if not arg:
                 raise AttributeError("No parameters provided for add_job!")
@@ -1935,7 +1935,7 @@ class DeleteJobCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Remove job from the system."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def delete_job() -> AsyncIterator[str]:
             if not arg:
                 raise AttributeError("No parameters provided for delete_job!")
@@ -2092,7 +2092,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         return to_result
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIFlow:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parts = re.split(r"\s+", arg if arg else "")
         pl = len(parts)
         if pl >= 2 and parts[0] == "delete":
@@ -2148,7 +2148,7 @@ class TasksCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Lists all currently running tasks."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def tasks_source() -> Tuple[int, Stream]:
             tasks = await self.dependencies.job_handler.running_tasks()
             return len(tasks), stream.iterate(
@@ -2190,7 +2190,7 @@ class StartTaskCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Start a task with the given name."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         async def start_task() -> AsyncIterator[str]:
             if not arg:
                 raise CLIParseError("Name of task is not provided")
@@ -2202,7 +2202,7 @@ class StartTaskCommand(CLICommand, PreserveOutputFormat):
 
 
 class FileCommand(CLICommand, InternalPart):
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         def file_command() -> Stream:
             if not arg:
                 raise AttributeError("file command needs a parameter!")
@@ -2222,7 +2222,7 @@ class FileCommand(CLICommand, InternalPart):
 
 
 class UploadCommand(CLICommand, InternalPart):
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         if not arg:
             raise AttributeError("upload command needs a parameter!")
         file_id = "file"
@@ -2405,7 +2405,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 # create a background task, so that the current request can be executed completely
                 asyncio.create_task(wait_and_exit())
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")
         if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
             rest = parts[2:]
@@ -2463,7 +2463,7 @@ class WriteCommand(CLICommand):
         finally:
             shutil.rmtree(temp_dir)
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         if arg is None:
             raise AttributeError("write requires a filename to write to")
         defined_arg: str = arg
@@ -2519,7 +2519,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "Access the query template library."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         def template_str(template: Template) -> str:
             tpl_str = f"{template.template[0:70]}..." if len(template.template) > 70 else template.template
             return f"{template.name}: {tpl_str}"
@@ -2574,14 +2574,18 @@ class HttpRequestTemplate:
     url: str
     headers: Dict[str, str]
     params: Dict[str, str]
+    retries: int
+    backoff_base: float
     timeout: ClientTimeout
     compress: bool
     no_ssl_verify: bool
+    no_body: bool
 
 
 class HttpCommand(CLICommand):
     """
-    Usage: http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [http_method] <url> [headers] [query_params]
+    Usage: http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
+                   [http_method] <url> [headers] [query_params]
 
     This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
     The payload of the request contains the object.
@@ -2595,6 +2599,9 @@ class HttpCommand(CLICommand):
         --timeout <seconds> [optional, default: 30]: if the request takes longer than the specified seconds
              it will be aborted
         --no-ssl-verify [optional]: the ssl certificate will not be verified.
+        --no-body [optional]: if this flag is enabled, no content is sent in the request body
+        --nr-of-retries [optional, default=3]: in case the request is not successful (no 2xx), the request
+             is retried this often. There will be an exponential backoff between the retries.
         http_method [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
         url: the full url of the endpoint to call. Example: https://localhost:8080/call/me
              If the scheme is not defined, it is taken from the command (http or https).
@@ -2670,59 +2677,85 @@ class HttpCommand(CLICommand):
 
         arg_parser = NoExitArgumentParser(allow_abbrev=True)
         arg_parser.add_argument("--compress", dest="compress", default=False, action="store_true")
+        arg_parser.add_argument("--backoff-base", dest="backoff_base", default=0.5, type=float)
+        arg_parser.add_argument("--nr-of-retries", dest="retries", default=3, type=int)
         arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
         arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
+        arg_parser.add_argument("--no-body", dest="no_body", default=False, action="store_true")
         args, remaining = arg_parser.parse_known_args(cmd_args_unquoted_parser.parse(arg.strip()) if arg else [])
         if remaining:
             method, remaining = parse_method(remaining)
             parsed_url, remaining = parse_url(remaining)
             hdr, prm = parse_header_query_params(remaining)
-            return HttpRequestTemplate(method, parsed_url, hdr, prm, args.timeout, args.compress, args.no_ssl_verify)
+            return HttpRequestTemplate(
+                method,
+                parsed_url,
+                hdr,
+                prm,
+                args.retries,
+                args.backoff_base,
+                args.timeout,
+                args.compress,
+                args.no_ssl_verify,
+                args.no_body,
+            )
         else:
             raise AttributeError("No URL provided to connect to.")
 
     def perform_requests(self, template: HttpRequestTemplate) -> Callable[[Stream], AsyncIterator[JsonElement]]:
-        async def perform_request(e: JsonElement) -> ClientResponse:
-            data = JsonPayload(e) if isinstance(e, dict) else e
-            async with self.dependencies.http_session.request(
-                template.method,
-                template.url,
-                headers=template.headers,
-                params=template.params,
-                data=data,
-                compress=template.compress,
-                timeout=template.timeout,
-                ssl=not template.no_ssl_verify,
-            ) as response:
-                log.debug(f"Request performed: {response}")
-                return response
+        retries_left = template.retries
+
+        async def perform_request(e: JsonElement) -> int:
+            nonlocal retries_left
+            data = None if template.no_body else (JsonPayload(e) if isinstance(e, dict) else e)
+            log.debug(f"Perform request with this template={template} and data={data}")
+            try:
+                async with self.dependencies.http_session.request(
+                    template.method,
+                    template.url,
+                    headers=template.headers,
+                    params=template.params,
+                    data=data,
+                    compress=template.compress,
+                    timeout=template.timeout,
+                    ssl=not template.no_ssl_verify,
+                ) as response:
+                    log.debug(f"Request performed: {response}")
+                    if (200 <= response.status < 400) or retries_left == 0:
+                        return response.status
+                    else:
+                        err_context = f"status={response.status} and message {await response.text()}"
+            except Exception as ex:
+                err_context = f"exception={ex}"
+
+            retries_left -= 1
+            sleep_time = template.backoff_base * pow(2, (template.retries - retries_left))
+            log.warning(
+                f"Request to {template.method} {template.url} failed. "
+                f"Reason: {err_context} Retry in {sleep_time} seconds."
+            )
+            if retries_left >= 0:
+                await asyncio.sleep(sleep_time)
+                return await perform_request(e)
+            else:
+                # define exceptions as server error
+                return 500
 
         async def iterate_stream(in_stream: Stream) -> AsyncIterator[JsonElement]:
             results: Dict[int, int] = defaultdict(lambda: 0)
             async with in_stream.stream() as streamer:
                 async for elem in streamer:
-                    response = await perform_request(elem)
-                    results[response.status] += 1
+                    status_code = await perform_request(elem)
+                    results[status_code] += 1
             summary = ", ".join(f"{count} requests with status {status}" for status, count in results.items())
             yield f"{summary} sent."
 
         return iterate_stream
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        template = self.parse_args("http", arg)
-        return CLIFlow(self.perform_requests(template))
-
-
-class HttpsCommand(HttpCommand):
-    @property
-    def name(self) -> str:
-        return "https"
-
-    def info(self) -> str:
-        return "Perform https request with incoming data"
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
-        template = self.parse_args("https", arg)
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        # command name is the default scheme: http, https etc.
+        default_scheme = kwargs.get("cmd_name", "http")
+        template = self.parse_args(default_scheme, arg)
         return CLIFlow(self.perform_requests(template))
 
 
@@ -2746,7 +2779,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         FormatCommand(d),
         HeadCommand(d),
         HttpCommand(d),
-        HttpsCommand(d),
         JobsCommand(d),
         JqCommand(d),
         JsonCommand(d),
@@ -2780,4 +2812,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "reported", "start_workflow": "start_task", "start_job": "start_task"}
+    return {"match": "reported", "start_workflow": "start_task", "start_job": "start_task", "https": "http"}

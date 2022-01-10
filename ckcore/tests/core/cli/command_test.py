@@ -79,7 +79,8 @@ async def echo_http_server() -> AsyncIterator[Tuple[int, List[Tuple[Request, Jso
 
     async def add_request(request: Request) -> Response:
         requests.append((request, await request.json()))
-        return Response()
+        status = 500 if request.path.startswith("/fail") else 200
+        return Response(status=status)
 
     app = Application()
     app.add_routes([route(METH_ANY, "/{tail:.+}", add_request)])
@@ -572,7 +573,7 @@ async def test_write_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_http_command(cli: CLI, echo_http_server: List[Tuple[Request, Json]]) -> None:
+async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
 
     def test_arg(
@@ -616,7 +617,13 @@ async def test_http_command(cli: CLI, echo_http_server: List[Tuple[Request, Json
     assert result == [["3 requests with status 200 sent."]]
     # make sure all 3 requests have been received - the body is the complete json node
     assert len(requests) == 3
-    for ar in (AccessJson(r[1]) for r in requests):
+    for ar in (AccessJson(content) for _, content in requests):
         assert is_node(ar)
         assert ar.kinds == ["bla"]
         assert ar.reported.kind == "bla"
+
+    # failing requests are retried
+    requests.clear()
+    await cli.execute_cli_command(f"query is(bla) limit 1 | http --backoff-base 0.001 :{port}/fail", stream.list)
+    # 1 request + 3 retries => 4 requests
+    assert len(requests) == 4
