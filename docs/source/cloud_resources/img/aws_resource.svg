@@ -1,9 +1,24 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="81px" preserveAspectRatio="none" style="width:139px;height:81px;background:#00000000;" version="1.1" viewBox="0 0 139 81" width="139px" zoomAndPan="magnify"><defs><filter height="300%" id="f4tkyyym3m86a" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[c069b88079f3e36515859a1683f3923c]
-class aws_resource--><rect codeLine="2" fill="#FEFECE" filter="url(#f4tkyyym3m86a)" height="60.8047" id="aws_resource" style="stroke:#A80036;stroke-width:1.5;" width="118" x="7" y="7"/><ellipse cx="22" cy="23" fill="#ADD1B2" rx="11" ry="11" style="stroke:#A80036;stroke-width:1.0;"/><path d="M24.9688,28.6406 Q24.3906,28.9375 23.75,29.0781 Q23.1094,29.2344 22.4063,29.2344 Q19.9063,29.2344 18.5781,27.5938 Q17.2656,25.9375 17.2656,22.8125 Q17.2656,19.6875 18.5781,18.0313 Q19.9063,16.375 22.4063,16.375 Q23.1094,16.375 23.75,16.5313 Q24.4063,16.6875 24.9688,16.9844 L24.9688,19.7031 Q24.3438,19.125 23.75,18.8594 Q23.1563,18.5781 22.5313,18.5781 Q21.1875,18.5781 20.5,19.6563 Q19.8125,20.7188 19.8125,22.8125 Q19.8125,24.9063 20.5,25.9844 Q21.1875,27.0469 22.5313,27.0469 Q23.1563,27.0469 23.75,26.7813 Q24.3438,26.5 24.9688,25.9219 L24.9688,28.6406 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="86" x="36" y="27.1543">aws_resource</text><line style="stroke:#A80036;stroke-width:1.5;" x1="8" x2="124" y1="39" y2="39"/><ellipse cx="18" cy="50" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;fill:none;"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="60" x="27" y="53.2104">arn: string</text><line style="stroke:#A80036;stroke-width:1.5;" x1="8" x2="124" y1="59.8047" y2="59.8047"/><!--MD5=[5ac56c5f0a7555d06fb571fe5258abc1]
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="84px" preserveAspectRatio="none" style="width:169px;height:84px;background:#00000000;" version="1.1" viewBox="0 0 169 84" width="169px" zoomAndPan="magnify"><defs/><g><!--MD5=[c069b88079f3e36515859a1683f3923c]
+class aws_resource--><rect codeLine="17" fill="#194875" height="70.5938" id="aws_resource" rx="2.5" ry="2.5" style="stroke:#000000;stroke-width:1.5;" width="155" x="7" y="7"/><ellipse cx="22" cy="26.8945" fill="#1A83AF" rx="11" ry="11" style="stroke:#000000;stroke-width:1.0;"/><path d="M24.9688,32.5352 Q24.3906,32.832 23.75,32.9727 Q23.1094,33.1289 22.4063,33.1289 Q19.9063,33.1289 18.5781,31.4883 Q17.2656,29.832 17.2656,26.707 Q17.2656,23.582 18.5781,21.9258 Q19.9063,20.2695 22.4063,20.2695 Q23.1094,20.2695 23.75,20.4258 Q24.4063,20.582 24.9688,20.8789 L24.9688,23.5977 Q24.3438,23.0195 23.75,22.7539 Q23.1563,22.4727 22.5313,22.4727 Q21.1875,22.4727 20.5,23.5508 Q19.8125,24.6133 19.8125,26.707 Q19.8125,28.8008 20.5,29.8789 Q21.1875,30.9414 22.5313,30.9414 Q23.1563,30.9414 23.75,30.6758 Q24.3438,30.3945 24.9688,29.8164 L24.9688,32.5352 Z " fill="#000000"/><text fill="#FFE797" font-family="Helvetica" font-size="17" lengthAdjust="spacing" textLength="113" x="41" y="32.7798">aws_resource</text><line style="stroke:#000000;stroke-width:1.5;" x1="8" x2="161" y1="46.7891" y2="46.7891"/><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="21" x="18" y="65.9995">arn</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="41" x="39" y="65.9995">: string</text><!--MD5=[5e5e35140df86771990c2828bde019db]
 @startuml
-skinparam backgroundcolor transparent
+hide empty members
+skinparam ArrowColor #ffaf37
+skinparam ArrowThickness 2
+skinparam BackgroundColor transparent
+skinparam ClassAttributeFontColor #ffe797
+skinparam ClassBackgroundColor #194875
+skinparam ClassBorderColor Black
+skinparam ClassFontColor #ffe797
+skinparam ClassFontName Helvetica
+skinparam ClassFontSize 17
+skinparam Padding 5
+skinparam RoundCorner 5
+skinparam Shadowing false
+skinparam stereotypeCBackgroundColor #1a83af
+skinparam stereotypeIBackgroundColor #1a83af
+
 class aws_resource {
-+ arn: string
+**arn**: string
 }
 @enduml
 

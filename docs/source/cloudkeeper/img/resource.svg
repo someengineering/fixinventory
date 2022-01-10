@@ -1,20 +1,35 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="318px" preserveAspectRatio="none" style="width:416px;height:318px;background:#00000000;" version="1.1" viewBox="0 0 416 318" width="416px" zoomAndPan="magnify"><defs><filter height="300%" id="f14hymg47t1nrq" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="4.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="8.0" dy="8.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[7f0ecf5f554433d3f2e1213379ac821c]
-class resource--><rect codeLine="3" fill="#FEFECE" filter="url(#f14hymg47t1nrq)" height="277.3711" id="resource" style="stroke:#A80036;stroke-width:3.0;" width="374" x="14" y="14"/><ellipse cx="142.5" cy="46" fill="#ADD1B2" rx="22" ry="22" style="stroke:#A80036;stroke-width:2.0;"/><path d="M147.4463,58.2861 Q146.2842,58.8838 145.0059,59.1826 Q143.7275,59.4814 142.3164,59.4814 Q137.3027,59.4814 134.6631,56.1777 Q132.0234,52.874 132.0234,46.6318 Q132.0234,40.373 134.6631,37.0693 Q137.3027,33.7656 142.3164,33.7656 Q143.7275,33.7656 145.0225,34.0645 Q146.3174,34.3633 147.4463,34.9609 L147.4463,40.4063 Q146.1846,39.2441 144.9976,38.7046 Q143.8105,38.165 142.5488,38.165 Q139.8594,38.165 138.4897,40.2983 Q137.1201,42.4316 137.1201,46.6318 Q137.1201,50.8154 138.4897,52.9487 Q139.8594,55.082 142.5488,55.082 Q143.8105,55.082 144.9976,54.5425 Q146.1846,54.0029 147.4463,52.8408 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="24" lengthAdjust="spacing" textLength="100" x="183.5" y="55.0703">resource</text><line style="stroke:#A80036;stroke-width:3.0;" x1="16" x2="386" y1="78" y2="78"/><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="94"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="96" x="54" y="107.2695">id: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="119.9102"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="134" x="54" y="133.1797">name: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="145.8203"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="122" x="54" y="159.0898">kind: string</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="171.7305"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="322" x="54" y="185">tags: dictionary[string, string]</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="197.6406"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="162" x="54" y="210.9102">ctime: datetime</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="223.5508"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="170" x="54" y="236.8203">mtime: datetime</text><rect fill="none" height="12" style="stroke:#C82930;stroke-width:2.0;" width="12" x="30" y="249.4609"/><text fill="#000000" font-family="sans-serif" font-size="22" lengthAdjust="spacing" textLength="162" x="54" y="262.7305">atime: datetime</text><line style="stroke:#A80036;stroke-width:3.0;" x1="16" x2="386" y1="275.3711" y2="275.3711"/><!--MD5=[d06a29ddcdfeeffe768c08501e14c106]
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="219px" preserveAspectRatio="none" style="width:197px;height:219px;background:#00000000;" version="1.1" viewBox="0 0 197 219" width="197px" zoomAndPan="magnify"><defs/><g><!--MD5=[7f0ecf5f554433d3f2e1213379ac821c]
+class resource--><rect codeLine="18" fill="#194875" height="205.6855" id="resource" rx="2.5" ry="2.5" style="stroke:#000000;stroke-width:1.5;" width="183" x="7" y="7"/><ellipse cx="56.25" cy="25.5" fill="#1A83AF" rx="11" ry="11" style="stroke:#000000;stroke-width:1.0;"/><path d="M58.7231,31.6431 Q58.1421,31.9419 57.5029,32.0913 Q56.8638,32.2407 56.1582,32.2407 Q53.6514,32.2407 52.3315,30.5889 Q51.0117,28.937 51.0117,25.8159 Q51.0117,22.6865 52.3315,21.0347 Q53.6514,19.3828 56.1582,19.3828 Q56.8638,19.3828 57.5112,19.5322 Q58.1587,19.6816 58.7231,19.9805 L58.7231,22.7031 Q58.0923,22.1221 57.4988,21.8523 Q56.9053,21.5825 56.2744,21.5825 Q54.9297,21.5825 54.2449,22.6492 Q53.5601,23.7158 53.5601,25.8159 Q53.5601,27.9077 54.2449,28.9744 Q54.9297,30.041 56.2744,30.041 Q56.9053,30.041 57.4988,29.7712 Q58.0923,29.5015 58.7231,28.9204 Z " fill="#000000"/><text fill="#FFE797" font-family="Helvetica" font-size="17" lengthAdjust="spacing" textLength="66" x="81.75" y="30.0903">resource</text><line style="stroke:#000000;stroke-width:1.5;" x1="8" x2="189" y1="44" y2="44"/><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="11" x="18" y="63.6348">id</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="38" x="29" y="63.6348">: string</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="30" x="18" y="86.5898">name</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="38" x="48" y="86.5898">: string</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="25" x="18" y="109.5449">kind</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="38" x="43" y="109.5449">: string</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="23" x="18" y="132.5">tags</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="138" x="41" y="132.5">: dictionary[string, string]</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="31" x="18" y="155.4551">ctime</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="52" x="49" y="155.4551">: datetime</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="36" x="18" y="178.4102">mtime</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="52" x="54" y="178.4102">: datetime</text><text fill="#FFE797" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacing" textLength="31" x="18" y="201.3652">atime</text><text fill="#FFE797" font-family="sans-serif" font-size="11" lengthAdjust="spacing" textLength="52" x="49" y="201.3652">: datetime</text><!--MD5=[dd15674cdd28f408d2c7adc71a93b817]
 @startuml
+    hide empty members
     skinparam backgroundColor transparent
+    skinparam ArrowColor #ffaf37
+    skinparam ArrowThickness 2
+    skinparam BackgroundColor transparent
+    skinparam ClassAttributeFontColor #ffe797
+    skinparam ClassBackgroundColor #194875
+    skinparam ClassBorderColor Black
+    skinparam ClassFontColor #ffe797
+    skinparam ClassFontName Helvetica
+    skinparam ClassFontSize 17
+    skinparam Padding 5
+    skinparam RoundCorner 5
+    skinparam Shadowing false
+    skinparam stereotypeCBackgroundColor #1a83af
+    skinparam stereotypeIBackgroundColor #1a83af
 
     class resource {
-    - id: string
-    - name: string
-    - kind: string
-    - tags: dictionary[string, string]
-    - ctime: datetime
-    - mtime: datetime
-    - atime: datetime
+     **id**: string
+     **name**: string
+     **kind**: string
+     **tags**: dictionary[string, string]
+     **ctime**: datetime
+     **mtime**: datetime
+     **atime**: datetime
     }
     @enduml
 
-PlantUML version 1.2021.7(Sun May 23 14:40:07 CEST 2021)
+PlantUML version 1.2021.16(Wed Dec 08 18:25:22 CET 2021)
 (GPL source distribution)
 Java Runtime: OpenJDK Runtime Environment
 JVM: OpenJDK 64-Bit Server VM
