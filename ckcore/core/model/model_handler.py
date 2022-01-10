@@ -76,7 +76,7 @@ class ModelHandlerDB(ModelHandler):
                 return exist(lambda r: r.fullmatch(k.fqn), show)  # type: ignore
 
         def class_node(cpx: ComplexKind) -> str:
-            props = "\n".join([f"+ {p.name}: {p.kind}" for p in cpx.properties])
+            props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties])
             return f"class {cpx.fqn} {{\n{props}\n}}"
 
         def class_inheritance(from_node: str, to_node: str) -> str:
@@ -95,10 +95,21 @@ class ModelHandlerDB(ModelHandler):
             visible.update(desc)
 
         params = (
-            "skinparam backgroundcolor transparent\n"
-            "skinparam class {\n  BackgroundColor Azure\n  ArrowColor Gray\n  BorderColor Gray\n}\n"
-            "skinparam stereotypeCBackgroundColor LightGrey\n"
-            "skinparam stereotypeIBackgroundColor LightGrey\n"
+            "hide empty members\n"
+            "skinparam ArrowColor #ffaf37\n"
+            "skinparam ArrowThickness 2\n"
+            "skinparam BackgroundColor transparent\n"
+            "skinparam ClassAttributeFontColor #ffe797\n"
+            "skinparam ClassBackgroundColor #194875\n"
+            "skinparam ClassBorderColor Black\n"
+            "skinparam ClassFontColor #ffe797\n"
+            "skinparam ClassFontName Helvetica\n  "
+            "skinparam ClassFontSize 17\n"
+            "skinparam Padding 5\n"
+            "skinparam RoundCorner 5\n"
+            "skinparam Shadowing false\n"
+            "skinparam stereotypeCBackgroundColor #1a83af\n"
+            "skinparam stereotypeIBackgroundColor #1a83af\n"
         )
 
         nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
