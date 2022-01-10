@@ -327,8 +327,8 @@ async def test_format(cli: CLI) -> None:
 async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
     ctx = CLIContext(cli.cli_env)
     result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list, ctx)
-    assert result == [["Job c6f602e8 added."]]
-    job = await job_db.get("c6f602e8")
+    assert result == [["Job 06bf8ab1 added."]]
+    job = await job_db.get("06bf8ab1")
     assert job is not None
     assert job.command.command == "echo Hello World @NOW@"
     assert job.trigger == TimeTrigger("23 1 * * *")
@@ -336,8 +336,8 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
     assert job in task_handler.task_descriptions
     assert job.environment == {"graph": "ns"}
     with_event = await cli.execute_cli_command("add_job 23 1 * * * foo : echo Hello World", stream.list, ctx)
-    assert with_event == [["Job 86ecb12c added."]]
-    job_with_event: Job = await job_db.get("86ecb12c")  # type: ignore
+    assert with_event == [["Job 2522f6d8 added."]]
+    job_with_event: Job = await job_db.get("2522f6d8")  # type: ignore
     assert job_with_event.wait is not None
     event_trigger, timeout = job_with_event.wait
     assert event_trigger.message_type == "foo"
@@ -345,8 +345,8 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
     assert job_with_event.environment == {"graph": "ns"}
     assert job_with_event in task_handler.task_descriptions
     only_event = await cli.execute_cli_command("add_job foo : echo Hello World", stream.list, ctx)
-    assert only_event == [["Job 6614c963 added."]]
-    job_only_event: Job = await job_db.get("6614c963")  # type: ignore
+    assert only_event == [["Job d11a8f65 added."]]
+    job_only_event: Job = await job_db.get("d11a8f65")  # type: ignore
     assert job_only_event.wait is None
     assert job_only_event.environment == {"graph": "ns"}
     assert job_only_event in task_handler.task_descriptions
@@ -355,18 +355,18 @@ async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobD
 @pytest.mark.asyncio
 async def test_delete_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
     await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
-    assert await job_db.get("c0fa3076") is not None
-    result = await cli.execute_cli_command("delete_job c0fa3076", stream.list)
-    assert result == [["Job c0fa3076 deleted."]]
-    assert await job_db.get("c0fa3076") is None
-    assert not exist(lambda x: x.id == "c0fa3076", task_handler.task_descriptions)  # type: ignore # pypy
+    assert await job_db.get("0814c88f") is not None
+    result = await cli.execute_cli_command("delete_job 0814c88f", stream.list)
+    assert result == [["Job 0814c88f deleted."]]
+    assert await job_db.get("0814c88f") is None
+    assert not exist(lambda x: x.id == "0814c88f", task_handler.task_descriptions)  # type: ignore # pypy
 
 
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
     await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
     result: List[Json] = (await cli.execute_cli_command("jobs", stream.list))[0]
-    job = first(lambda x: x.get("id") == "c0fa3076", result)  # type: ignore # pypy
+    job = first(lambda x: x.get("id") == "0814c88f", result)  # type: ignore # pypy
     assert job is not None
     assert job["trigger"] == {"cron_expression": "23 1 * * *"}
     assert job["command"] == "echo Hello World"
@@ -497,8 +497,8 @@ async def test_system_backup_command(cli: CLI) -> None:
             async for s in streamer:
                 assert isinstance(s, str)
                 assert os.path.exists(s)
-                # backup should have size between 30k and 100k (adjust size if necessary)
-                assert 30000 < os.path.getsize(s) < 100000
+                # backup should have size between 30k and 200k (adjust size if necessary)
+                assert 30000 < os.path.getsize(s) < 200000
                 assert only_one
                 only_one = False
 

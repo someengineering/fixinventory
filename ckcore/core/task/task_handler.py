@@ -16,6 +16,7 @@ from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 from aiostream import stream
 
 from core.analytics import AnalyticsEventSender, CoreEvent
+from core.cli import strip_quotes
 from core.cli.cli import CLI
 from core.cli.command import CLIContext
 from core.db.jobdb import JobDb
@@ -549,7 +550,6 @@ class TaskHandler(JobHandler):
         """
 
         stripped = line.strip()
-        uid = uuid_str(stripped)[0:8]
         timeout = timedelta(hours=1)
         wait_timeout = timedelta(hours=24)
         ctx = replace(self.cli_context, env={**self.cli_context.env, **env}) if env else self.cli_context
@@ -560,17 +560,21 @@ class TaskHandler(JobHandler):
                 raise ValueError(f"Invalid job {stripped}")
             wait: Optional[Tuple[EventTrigger, timedelta]] = None
             trigger = TimeTrigger(" ".join(parts[0:5]))
-            command = parts[5]
+            command = strip_quotes(parts[5], "'")
             # check if we also need to wait for an event: name_of_event : command
             if self.event_re.match(command):
                 event, command = re.split("\\s*:\\s*", command, 1)
+                command = strip_quotes(command, "'")
                 wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
+            uid = uuid_str(f"{command}{trigger}{wait}")[0:8]
             return Job(uid, ExecuteCommand(command), trigger, timeout, wait, ctx.env, mutable)
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
+            command = strip_quotes(command, "'")
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
+            uid = uuid_str(f"{command}{event}")[0:8]
             return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, None, ctx.env, mutable)
 
         try:

@@ -260,7 +260,7 @@ class Api:
 
     @staticmethod
     async def ready(_: Request) -> StreamResponse:
-        return web.HTTPOk()
+        return web.HTTPOk(text="ok")
 
     async def list_configs(self, _: Request) -> StreamResponse:
         configs = {config.id: config.config async for config in self.db.config_entity_db.all()}

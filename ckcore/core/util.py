@@ -1,10 +1,10 @@
+from __future__ import annotations
 import asyncio
 import hashlib
 import json
 import logging
 import random
 import string
-import sys
 import uuid
 from asyncio import Task, Future
 from collections import defaultdict
@@ -18,7 +18,6 @@ from typing import (
     Awaitable,
     TypeVar,
     Mapping,
-    MutableSequence,
     AsyncGenerator,
     Dict,
     List,
@@ -26,8 +25,10 @@ from typing import (
     AsyncIterator,
     Iterator,
     Union,
+    Sequence,
 )
 
+import sys
 from dateutil.parser import isoparse
 from durations_nlp import Duration
 
@@ -342,15 +343,25 @@ class AccessJson(Dict[Any, Any]):
         return self.__getitem__(name)
 
     @staticmethod
-    def wrap(obj: Any, not_existent: Any) -> Any:
+    def wrap(obj: Any, not_existent: Any = AccessNone(None)) -> Any:
         # dict like data structure -> wrap whole element
-        if isinstance(obj, AccessJson):
+        if isinstance(obj, (str, int, bool, float, AccessJson)):
             return obj
         elif isinstance(obj, Mapping):
             return AccessJson(obj, not_existent)
         # list like data structure -> wrap all elements
-        elif isinstance(obj, MutableSequence):
+        elif isinstance(obj, Sequence):
             return [AccessJson.wrap(item, not_existent) for item in obj]
         # simply return the object
         else:
             return obj
+
+    @staticmethod
+    def wrap_list(obj: Any, not_existent: Any = AccessNone(None)) -> List[AccessJson]:
+        # only here for a typed result
+        return AccessJson.wrap(obj, not_existent)  # type: ignore
+
+    @staticmethod
+    def wrap_object(obj: Any, not_existent: Any = AccessNone(None)) -> AccessJson:
+        # only here for a typed result
+        return AccessJson.wrap(obj, not_existent)  # type: ignore

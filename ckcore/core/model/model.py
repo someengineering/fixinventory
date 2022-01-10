@@ -223,6 +223,8 @@ class Kind(ABC):
                 return BooleanKind(fqn)
             else:
                 raise TypeError(f"Unhandled runtime kind: {rk}")
+        elif js.get("fqn") == "any" and js.get("runtime_kind") == "any":
+            return AnyKind.any()
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: Optional[List[str]] = js.get("bases")

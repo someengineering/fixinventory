@@ -9,7 +9,7 @@
    :titlesonly:
 
    index
-   
+
 .. toctree::
    :maxdepth: 1
    :caption: Getting Started
@@ -26,8 +26,17 @@
    :name: sec-manual
 
    manual/discovery
-   manual/action
+   manual/automate
+   manual/cleanup
    manual/query_library
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Cloud Resources
+   :name: sec-resources
+
+   cloud_resources/aws
+   cloud_resources/gcp
 
 .. toctree::
    :maxdepth: 1
