@@ -103,7 +103,7 @@ class ModelHandlerDB(ModelHandler):
             "skinparam ClassBackgroundColor #194875\n"
             "skinparam ClassBorderColor Black\n"
             "skinparam ClassFontColor #ffe797\n"
-            "skinparam ClassFontName Helvetica\n  "
+            "skinparam ClassFontName Helvetica\n"
             "skinparam ClassFontSize 17\n"
             "skinparam Padding 5\n"
             "skinparam RoundCorner 5\n"
