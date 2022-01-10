@@ -97,7 +97,7 @@ paths:
                   in: query
                   schema:
                       type: boolean
-                      default: false
+                      default: true
                 - name: with_descendants
                   description: Include all descendant classes of visible entries
                   in: query
