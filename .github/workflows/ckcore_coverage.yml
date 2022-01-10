@@ -1,4 +1,6 @@
-name: Test (ckcore)
+# Note: the testing steps are the same as ckcore_test but with different python runner
+#       Reason: coverage under pypy is super slow!
+name: Coverage (ckcore)
 on:
   push:
     paths:
@@ -7,7 +9,7 @@ on:
 
 jobs:
   lint-and-test:
-    name: "Test (ckcore)"
+    name: "Coverage (ckcore)"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,7 +27,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: 'pypy-3.8-v7.3.7'
+          python-version: '3.8'
           architecture: 'x64'
       - name: Restore dependency cache
         uses: actions/cache@v2
