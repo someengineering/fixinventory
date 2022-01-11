@@ -22,6 +22,9 @@ from cksh.protected_files import validate_paths
 
 
 def main() -> None:
+    """
+    Unrelated change.
+    """
     setup_logger("cksh")
     shutdown_event = Event()
     arg_parser = ArgumentParser(
