@@ -31,8 +31,11 @@ clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and 
 
 clean-build: ## remove build artifacts
 	rm -fr build/
+	rm -fr out/
+	rm -fr gen/
 	rm -fr dist/
 	rm -fr .eggs/
+	rm -fr .hypothesis/
 	rm -fr .mypy_cache/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -fr {} +
