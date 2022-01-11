@@ -11,7 +11,15 @@ class ModelHandlerStatic(ModelHandler):
     async def load_model(self) -> Model:
         return self.model
 
-    async def uml_image(self, show_packages: Optional[List[str]] = None, output: str = "svg") -> bytes:
+    async def uml_image(
+        self,
+        show_packages: Optional[List[str]] = None,
+        hide_packages: Optional[List[str]] = None,
+        output: str = "svg",
+        *,
+        with_bases: bool = False,
+        with_descendants: bool = False,
+    ) -> bytes:
         raise NotImplemented
 
     async def update_model(self, kinds: List[Kind]) -> Model:
