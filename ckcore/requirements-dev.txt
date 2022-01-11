@@ -1,10 +1,10 @@
 # dev dependencies
-mypy==0.920
-wheel==0.37.0
+mypy==0.931
+wheel==0.37.1
 flake8==4.0.1
 pep8-naming==0.12.1
-tox==3.24.4
+tox==3.24.5
 coverage==6.2
-setuptools==60.0.3
+setuptools==60.5.0
 pylint==2.12.2
 black==21.12b0
