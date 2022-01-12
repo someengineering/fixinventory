@@ -41,15 +41,15 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
 
 Start the resoto CLI
 ====================
-You interact with `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ via `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_
+You interact with `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ via `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``)
 
 .. code-block:: bash
 
-    $ docker exec -it resoto resotoshell
+    $ docker exec -it resoto resh
 
 
 | `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
-| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ the resoto shell to interact with the core.
+| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``) the resoto shell to interact with the core.
 
 Collect AWS Inventory
 ---------------------
@@ -107,7 +107,7 @@ In this section we show you how to use resoto CLI(`resotoshell <https://github.c
 
 How to access help
 ------------------------------------------------
-| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ ``help`` command list all commands available.
+| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``) ``help`` command list all commands available.
 | Guidance for a specific command is ``help <command>``
 
 .. code-block:: bash

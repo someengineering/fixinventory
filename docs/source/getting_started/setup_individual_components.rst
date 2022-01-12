@@ -222,7 +222,7 @@ Install resotoshell
 
 Back to our original terminal.
 
-We install :ref:`component-resotoshell` via python pip directly from our git repository.
+We install :ref:`component-resotoshell` (``resh``) via python pip directly from our git repository.
 
 .. code-block:: bash
     :caption: Install resotoshell
@@ -232,7 +232,7 @@ We install :ref:`component-resotoshell` via python pip directly from our git rep
 Usage
 -----
 
-You can access :ref:`setup-resotoshell` help via ``$ resotoshell --help``
+You can access :ref:`setup-resotoshell` help via ``$ resh --help``
 
 Every CLI arg can also be specified using ENV variables, see :ref:`configuration_environment` for examples.
 
@@ -250,7 +250,7 @@ Add ``--resotocore-graph`` if you defined another name of the graph for :ref:`se
 .. code-block:: bash
     :caption: Run resotoshell
 
-    resotoshell
+    resh
 
 .. code-block:: bash
     :caption: Verify resotoshell connection to resotocore

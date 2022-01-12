@@ -39,10 +39,10 @@ You can find more information in the section about :ref:`resotocore_spotlight`.
 
 .. _component-resotoshell:
 
-resotoshell (``resh``)
-**********************
+resotoshell
+***********
 
-:ref:`component-resotoshell` starts the resoto shell (``resh``). It is used to interact with :ref:`component-resotocore`.
+resotoshell (``resh``) starts the resoto shell. It is used to interact with :ref:`component-resotocore`.
 It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
 .. _component-resotometrics:
