@@ -5,4 +5,4 @@ if [ "$START_GRAPHDB" = true ]; then
     sleep 7
 fi
 source /usr/local/resoto-venv-pypy3/bin/activate
-exec /sbin/setuser resoto resotocore --ui-path /usr/local/resoto/ui/ --start-collect-on-subscriber-connect @CLOUDKEEPER_ARGSDISPATCHER@
+exec /sbin/setuser resoto resotocore --ui-path /usr/local/resoto/ui/ --start-collect-on-subscriber-connect @RESOTO_ARGSDISPATCHER@

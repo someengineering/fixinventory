@@ -26,7 +26,7 @@ def main():
     with open(infile, mode="r") as f:
         file_content = f.read()
 
-    file_content = file_content.replace("@CLOUDKEEPER_ARGSDISPATCHER@", " ".join(args))
+    file_content = file_content.replace("@RESOTO_ARGSDISPATCHER@", " ".join(args))
 
     print(file_content)
 

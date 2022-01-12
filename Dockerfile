@@ -128,8 +128,8 @@ RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
 # Build resotosh
-COPY resotosh /usr/src/resotosh
-WORKDIR /usr/src/resotosh
+COPY resotosh /usr/src/resotoshell
+WORKDIR /usr/src/resotoshell
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
@@ -152,9 +152,9 @@ COPY docker/argsdispatcher /usr/local/bin/argsdispatcher
 COPY docker/bootstrap /usr/local/sbin/bootstrap
 COPY docker/bootstrap-graphdb /usr/local/sbin/bootstrap-graphdb
 COPY docker/startup /usr/local/bin/startup
-COPY docker/resotosh-shim /usr/local/bin/resotosh-shim
+COPY docker/resh-shim /usr/local/bin/resh-shim
 RUN chmod 755 /usr/local/bin/startup \
-    /usr/local/bin/resotosh-shim \
+    /usr/local/bin/resh-shim \
     /usr/local/sbin/bootstrap \
     /usr/local/sbin/bootstrap-graphdb
 RUN if [ "${TESTS:-false}" = true ]; then \
@@ -199,7 +199,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
-    && ln -s /usr/local/bin/resotosh-shim /usr/bin/resotosh \
+    && ln -s /usr/local/bin/resh-shim /usr/bin/resh \
     && mv -f /usr/local/etc/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
