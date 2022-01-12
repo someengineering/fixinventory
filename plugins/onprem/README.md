@@ -1,5 +1,5 @@
 # resoto-plugin-onprem (WIP)
-On-Premises Collector Plugin for Cloudkeeper
+On-Premises Collector Plugin for resoto
 
 
 ```

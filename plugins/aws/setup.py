@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name="resoto-plugin-aws",
     version="2.0.0a10",
-    description="Cloudkeeper AWS Plugin",
+    description="resoto AWS Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),

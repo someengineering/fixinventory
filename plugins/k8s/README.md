@@ -1,5 +1,5 @@
 # resoto-plugin-k8s
-Kubernetes Collector Plugin for Cloudkeeper (Alpha)
+Kubernetes Collector Plugin for resoto (Alpha)
 !!! This plugin was created as part of a Hackathon and has not been extensively tested !!!
 It is meant as a starting point for K8S work but not intended for production use.
 

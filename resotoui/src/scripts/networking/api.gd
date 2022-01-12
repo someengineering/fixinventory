@@ -109,7 +109,7 @@ func send_request( method := HTTPClient.METHOD_GET, url := "/graph", body := "" 
 	var resotoui_via = "Web" if OS.has_feature("web") else "Desktop"
 
 	var headers = [
-		"User-Agent: Cloudkeeper UI",
+		"User-Agent: resoto UI",
 		"Accept: application/x-ndjson",
 		"Resotoui-via: " + resotoui_via,
 		"Authorization: Bearer " + jwtlib.token,

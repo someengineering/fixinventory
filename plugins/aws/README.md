@@ -1,5 +1,5 @@
 # resoto-plugin-aws
-An AWS collector plugin for Cloudkeeper.
+An AWS collector plugin for resoto.
 
 ## Usage
 When the collector is enabled (`--collector aws`) it will automatically collect any accounts the AWS boto3 SDK can authenticate for.

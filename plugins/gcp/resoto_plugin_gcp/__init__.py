@@ -12,16 +12,16 @@ from .collector import GCPProjectCollector
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
-    """Google Cloud Platform Cloudkeeper collector plugin.
+    """Google Cloud Platform resoto collector plugin.
 
-    Gets instantiated in Cloudkeeper's Processor thread. The collect() method
+    Gets instantiated in resoto's Processor thread. The collect() method
     is run during a resource collection loop.
     """
 
     cloud = "gcp"
 
     def collect(self) -> None:
-        """Run by Cloudkeeper during the global collect() run.
+        """Run by resoto during the global collect() run.
 
         This method kicks off code that adds GCP resources to `self.graph`.
         When collect() finishes the parent thread will take `self.graph` and merge
@@ -111,7 +111,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
-        """Called by Cloudkeeper upon startup to populate the ArgumentParser"""
+        """Called by resoto upon startup to populate the ArgumentParser"""
         arg_parser.add_argument(
             "--gcp-service-account",
             help="GCP Service Account File",

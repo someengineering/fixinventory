@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_expired
-Cloudkeeper plugin for cleanup of expired resources
+resoto plugin for cleanup of expired resources
 
 This plugin looks for resources with the tags `expiration` or `resoto:expires` and deletes them if they are expired.
 

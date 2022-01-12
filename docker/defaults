@@ -22,7 +22,7 @@ SYSLOG_REMOTE_HOST=${SYSLOG_REMOTE_HOST:-}
 SYSLOG_REMOTE_PORT=${SYSLOG_REMOTE_PORT:-514}
 SYSLOG_REMOTE_AND_LOCAL=${SYSLOG_REMOTE_AND_LOCAL:-true}
 
-# Legacy Cloudkeeper startup
+# Legacy resoto startup
 LEGACY_STARTUP=${LEGACY_STARTUP:-false}
 
 # Which services to start

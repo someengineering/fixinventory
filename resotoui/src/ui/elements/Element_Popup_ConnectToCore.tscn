@@ -213,7 +213,7 @@ custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
 custom_fonts/font = SubResource( 47 )
-text = "Connect to Cloudkeeper Core"
+text = "Connect to resoto Core"
 align = 1
 __meta__ = {
 "_edit_use_anchors_": false
@@ -246,7 +246,7 @@ rect_min_size = Vector2( 400, 0 )
 size_flags_horizontal = 3
 theme = ExtResource( 3 )
 custom_fonts/font = SubResource( 18 )
-text = "Connect to Cloudkeeper Core"
+text = "Connect to resoto Core"
 align = 1
 __meta__ = {
 "_edit_use_anchors_": false
@@ -417,7 +417,7 @@ rect_min_size = Vector2( 400, 0 )
 size_flags_horizontal = 3
 theme = ExtResource( 3 )
 custom_fonts/font = SubResource( 18 )
-text = "Connecting to Cloudkeeper Core...
+text = "Connecting to resoto Core...
 ( {0}:{1} )"
 align = 1
 __meta__ = {

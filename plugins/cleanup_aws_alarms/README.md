@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_aws_alarms
-AWS Cloudwatch Alarms Cleanup Plugin for Cloudkeeper
+AWS Cloudwatch Alarms Cleanup Plugin for resoto
 
 This plugin marks all orphaned Cloudwatch Alarms for cleanup.
 

@@ -394,10 +394,10 @@ class GCPProjectCollector:
         Args:
             result: Dict containing the result or a GCP API execute() call.
             attr_map: Dict of map_to: map_from pairs where map_to is the name of the arg
-                that a Cloudkeeper resource expects and map_from is the name of the key
+                that a resoto resource expects and map_from is the name of the key
                 in the result dictionary.
             search_map: Dict of map_to: [search_attr, search_value_name]. Where map_to
-                is the arg that a Cloudkeeper resource expects. search_attr is the
+                is the arg that a resoto resource expects. search_attr is the
                 attribute name to search for in the graph and search_value_name is the
                 name of the key in the result dictionary that is passed into the graph
                 search as attribute value.
@@ -556,7 +556,7 @@ class GCPProjectCollector:
 
         Args:
             resource_class: A GCP resource class name that inherits
-                Cloudkeeper's BaseResource
+                resoto's BaseResource
             paginate_method_name: usually "list" or "aggregatedList"
             paginate_items_name: key name that contains all the items
                 of our list/aggregatedList request
@@ -750,7 +750,7 @@ class GCPProjectCollector:
             list/aggregatedList functions only return predefined machine types.
             Custom ones have to be fetched individually when we encounter them
             on a instance.
-            Once added to the graph Cloudkeeper will find it for successive
+            Once added to the graph resoto will find it for successive
             instances of the same machine type.
             """
             if resource.instance_type == "" and "custom" in resource._machine_type_link:

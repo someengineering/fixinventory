@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name="resoto-plugin-remote",
     version="2.0.0a10",
-    description="Cloudkeeper Remote Plugin",
+    description="resoto Remote Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),

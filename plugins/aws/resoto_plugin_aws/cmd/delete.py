@@ -16,7 +16,7 @@ log = resotolib.logging.getLogger("resoto.cmd")
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
     resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.DEBUG)
-log.info("Cloudkeeper S3 object purger")
+log.info("resoto S3 object purger")
 
 
 def add_args(arg_parser: ArgumentParser) -> None:

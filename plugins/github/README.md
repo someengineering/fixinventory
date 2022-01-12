@@ -1,5 +1,5 @@
 # resoto-plugin-github (WIP)
-GitHub Collector Plugin for Cloudkeeper
+GitHub Collector Plugin for resoto
 
 ```
   --github-access-token GITHUB_ACCESS_TOKEN

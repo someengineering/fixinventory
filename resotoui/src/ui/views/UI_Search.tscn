@@ -183,7 +183,7 @@ custom_constants/shadow_offset_x = 0
 custom_constants/shadow_offset_y = 10
 custom_constants/shadow_as_outline = 1
 custom_fonts/font = SubResource( 8 )
-text = "Search in Cloudkeeper"
+text = "Search in resoto"
 align = 1
 __meta__ = {
 "_edit_use_anchors_": false

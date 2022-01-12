@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name="resoto-plugin-vsphere",
     version="2.0.0a10",
-    description="Cloudkeeper VSphere Collector Plugin",
+    description="resoto VSphere Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),

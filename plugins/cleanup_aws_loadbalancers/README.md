@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_aws_loadbalancers
-AWS Loadbalancers Cleanup Plugin for Cloudkeeper
+AWS Loadbalancers Cleanup Plugin for resoto
 
 This plugin cleans up AWS ALB/ELB load balancers with no instances attached to them.
 

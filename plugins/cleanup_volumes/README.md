@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_volumes
-Volume cleanup plugin for Cloudkeeper
+Volume cleanup plugin for resoto
 
 This plugin removes unused EBS volumes.
 

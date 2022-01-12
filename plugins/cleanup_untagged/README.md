@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_untagged
-Cleanup Untagged Plugin for Cloudkeeper
+Cleanup Untagged Plugin for resoto
 
 This plugin deletes cloud resources that are missing mandatory tags.
 

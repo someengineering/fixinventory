@@ -56,8 +56,8 @@ _global_script_class_icons={
 
 [application]
 
-config/name="Cloudkeeper UI - Prototype"
-run/main_scene="res://ui/CloudkeeperUI.tscn"
+config/name="resoto UI - Prototype"
+run/main_scene="res://ui/ResotoUI.tscn"
 config/icon="res://icon.png"
 
 [autoload]

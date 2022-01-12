@@ -189,7 +189,7 @@ class AWSEC2Volume(AWSResource, BaseVolume):
             self.log(log_msg)
             log.debug(f"{log_msg} of {self.kind} {self.dname}")
             snapshot = volume.create_snapshot(
-                Description=f"Cloudkeeper created snapshot for volume {self.id}",
+                Description=f"resoto created snapshot for volume {self.id}",
                 TagSpecifications=[
                     {
                         "ResourceType": "snapshot",

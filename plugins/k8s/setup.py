@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name="resoto-plugin-k8s",
     version="2.0.0a10",
-    description="Cloudkeeper Kubernetes Collector Plugin",
+    description="resoto Kubernetes Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),

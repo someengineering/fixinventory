@@ -1,5 +1,5 @@
 # resoto-plugin-vsphere
-VMWare VSphere Collector Plugin for Cloudkeeper (Alpha)
+VMWare VSphere Collector Plugin for resoto (Alpha)
 
 ## Usage
 Specify a user, password, host and optionally port to collect VSphere resources.

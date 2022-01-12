@@ -32,7 +32,7 @@ log = resotolib.logging.getLogger("resoto.cmd")
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
     resotolib.logging.getLogger("resoto.cmd").setLevel(resotolib.logging.DEBUG)
-log.info("Cloudkeeper S3 bucket collector")
+log.info("resoto S3 bucket collector")
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
