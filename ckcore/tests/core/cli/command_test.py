@@ -5,17 +5,21 @@ import shutil
 import tempfile
 from datetime import timedelta
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, AsyncIterator, Tuple
 
 import pytest
 from _pytest.logging import LogCaptureFixture
+from aiohttp import ClientTimeout
+from aiohttp.hdrs import METH_ANY
+from aiohttp.test_utils import TestServer
+from aiohttp.web import Request, Response, Application, route
 from aiostream import stream
 from aiostream.core import Stream
 from pytest import fixture
 
+from core.cli import is_node
 from core.cli.cli import CLI
-
-from core.cli.command import CLIDependencies, CLIContext
+from core.cli.command import CLIDependencies, CLIContext, HttpCommand
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
@@ -25,7 +29,8 @@ from core.task.task_handler import TaskHandler
 from core.types import Json
 from core.util import first, exist, AccessJson
 
-from tests.core.util_test import not_in_path
+# noinspection PyUnresolvedReferences
+from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
 from tests.core.cli.cli_test import cli, cli_deps
@@ -46,7 +51,7 @@ from tests.core.db.runningtaskdb_test import running_task_db
 from tests.core.message_bus_test import message_bus
 
 # noinspection PyUnresolvedReferences
-from tests.core.analytics import event_sender
+from tests.core.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
 from tests.core.task.task_handler_test import (
@@ -56,18 +61,33 @@ from tests.core.task.task_handler_test import (
     test_workflow,
     task_handler_args,
 )
+from tests.core.util_test import not_in_path
 
 # noinspection PyUnresolvedReferences
 from tests.core.worker_task_queue_test import worker, task_queue, performed_by
-
-# noinspection PyUnresolvedReferences
-from tests.core.query.template_expander_test import expander
 
 
 @fixture
 def json_source() -> str:
     nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
+
+
+@fixture
+async def echo_http_server() -> AsyncIterator[Tuple[int, List[Tuple[Request, Json]]]]:
+    requests = []
+
+    async def add_request(request: Request) -> Response:
+        requests.append((request, await request.json()))
+        status = 500 if request.path.startswith("/fail") else 200
+        return Response(status=status)
+
+    app = Application()
+    app.add_routes([route(METH_ANY, "/{tail:.+}", add_request)])
+    server = TestServer(app)
+    await server.start_server()
+    yield server.port, requests  # type: ignore
+    await server.close()
 
 
 @pytest.mark.asyncio
@@ -550,3 +570,60 @@ async def test_write_command(cli: CLI) -> None:
     await cli.execute_cli_command("query all limit 3 | format --json | write write_test.json ", check_file)
     # result can be read as yaml
     await cli.execute_cli_command("query all limit 3 | format --yaml | write write_test.yaml ", check_file)
+
+
+@pytest.mark.asyncio
+async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
+    port, requests = echo_http_server
+
+    def test_arg(
+        arg_str: str,
+        method: Optional[str] = None,
+        url: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, str]] = None,
+        timeout: Optional[ClientTimeout] = None,
+        compress: Optional[bool] = None,
+    ) -> None:
+        def test_if_set(prop: Any, value: Any) -> None:
+            if prop is not None:
+                assert prop == value, f"{prop} is not {value}"
+
+        arg = HttpCommand.parse_args("https", arg_str)
+        test_if_set(method, arg.method)
+        test_if_set(url, arg.url)
+        test_if_set(headers, arg.headers)
+        test_if_set(params, arg.params)
+        test_if_set(compress, arg.compress)
+        test_if_set(timeout, arg.timeout)
+
+    test_arg(":123", "POST", "https://localhost:123", {}, {}, ClientTimeout(30), False)
+    test_arg("GET :123", "GET", "https://localhost:123")
+    test_arg("://foo:123", "POST", "https://foo:123")
+    test_arg("foo:123/bla", "POST", "https://foo:123/bla")
+    test_arg("foo:123/bla", "POST", "https://foo:123/bla")
+    test_arg("foo/bla", "POST", "https://foo/bla")
+    test_arg(
+        '--compress --timeout 24 POST :123 "hdr1: test" qp==123  hdr2:fest "qp2 == 321"',
+        headers={"hdr1": "test", "hdr2": "fest"},
+        params={"qp": "123", "qp2": "321"},
+        compress=True,
+        timeout=ClientTimeout(24),
+    )
+
+    # take 3 instance of type bla and send it to the echo server
+    result = await cli.execute_cli_command(f"query is(bla) limit 3 | http :{port}/test", stream.list)
+    # one line is returned to the user with a summary of the response types.
+    assert result == [["3 requests with status 200 sent."]]
+    # make sure all 3 requests have been received - the body is the complete json node
+    assert len(requests) == 3
+    for ar in (AccessJson(content) for _, content in requests):
+        assert is_node(ar)
+        assert ar.kinds == ["bla"]
+        assert ar.reported.kind == "bla"
+
+    # failing requests are retried
+    requests.clear()
+    await cli.execute_cli_command(f"query is(bla) limit 1 | http --backoff-base 0.001 :{port}/fail", stream.list)
+    # 1 request + 3 retries => 4 requests
+    assert len(requests) == 4

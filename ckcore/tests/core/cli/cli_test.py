@@ -3,7 +3,7 @@ from asyncio import Queue
 import pytest
 from aiostream import stream
 from pytest import fixture
-from typing import Tuple, List
+from typing import Tuple, List, AsyncIterator
 
 from core.analytics import InMemoryEventSender
 from core.cli.cli import CLI, multi_command_parser, ParsedCommands, ParsedCommand
@@ -48,7 +48,7 @@ from tests.core.query.template_expander_test import expander
 
 
 @fixture
-def cli_deps(
+async def cli_deps(
     filled_graph_db: ArangoGraphDB,
     message_bus: MessageBus,
     event_sender: InMemoryEventSender,
@@ -56,7 +56,7 @@ def cli_deps(
     task_queue: WorkerTaskQueue,
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
     expander: TemplateExpander,
-) -> CLIDependencies:
+) -> AsyncIterator[CLIDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
     args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
@@ -70,7 +70,8 @@ def cli_deps(
         template_expander=expander,
         forked_tasks=Queue(),
     )
-    return deps
+    yield deps
+    await deps.stop()
 
 
 @fixture

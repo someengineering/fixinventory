@@ -54,13 +54,15 @@ def run(args: List[str]) -> None:
     cpus = multiprocessing.cpu_count()
     mem = psutil.virtual_memory()
     inside_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
+    started_at = utc()
+    conf = parse_args(args)
+    setup_process(conf)
+
+    # after setup, logging is possible
     log.info(
         f"Starting up version={version()} on system with cpus={cpus}, "
         f"available_mem={mem.available}, total_mem={mem.total}"
     )
-    started_at = utc()
-    conf = parse_args(args)
-    setup_process(conf)
 
     # wait here for an initial connection to the database before we continue. blocking!
     created, system_data, sdb = DbAccess.connect(conf, timedelta(seconds=60))

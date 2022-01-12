@@ -17,7 +17,7 @@ from parsy import Parser
 from tzlocal import get_localzone
 
 from core.analytics import CoreEvent
-from core.cli import cmd_args_parser, key_values_parser, T, Sink
+from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
     CLIDependencies,
     QueryAllPart,
@@ -84,6 +84,7 @@ class ParsedCommands:
 
 @dataclass
 class ExecutableCommand:
+    name: str  # the name of the command or alias
     command: CLICommand
     arg: Optional[str]
     action: CLIAction
@@ -144,7 +145,7 @@ class ParsedCommandLine:
 
 @make_parser
 def single_command_parser() -> Parser:
-    parsed = yield cmd_args_parser
+    parsed = yield cmd_with_args_parser
     cmd_args = [a.strip() for a in parsed.strip().split(" ", 1)]
     cmd, args = cmd_args if len(cmd_args) == 2 else (cmd_args[0], None)
     return ParsedCommand(cmd, args)
@@ -184,7 +185,7 @@ class HelpCommand(CLICommand):
     def info(self) -> str:
         return "Shows available commands, as well as help for any specific command."
 
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLISource:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         def help_command() -> Stream:
             def show_cmd(cmd: CLICommand) -> str:
                 return f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
@@ -252,6 +253,8 @@ class CLI:
             task, _ = self.dependencies.forked_tasks.get_nowait()
             task.cancel()
 
+        await self.dependencies.stop()
+
     async def reap_tasks(self) -> None:
         while True:
             try:
@@ -277,10 +280,10 @@ class CLI:
         if name in self.commands:
             command = self.commands[name]
             try:
-                action = command.parse(arg, ctx)
-                return ExecutableCommand(command, arg, action)
+                action = command.parse(arg, ctx, cmd_name=name)
+                return ExecutableCommand(name, command, arg, action)
             except Exception as ex:
-                raise CLIParseError(f"{command.name} can not parse arg {arg}. Reason: {ex}") from ex
+                raise CLIParseError(f"{name} can not parse arg {arg}. Reason: {ex}") from ex
         else:
             raise CLIParseError(f"Command >{name}< is not known. typo?")
 
@@ -375,7 +378,7 @@ class CLI:
                 query, options, query_parts = await self.create_query(parts, ctx)
                 ctx_wq = replace(ctx, query=query, query_options=options)
                 # re-evaluate remaining commands - to take the adapted context into account
-                remaining = [self.command(c.command.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
+                remaining = [self.command(c.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
                 return ctx_wq, [*query_parts, *remaining]
             return ctx, commands
 

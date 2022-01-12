@@ -121,6 +121,7 @@ double_quoted_string_dp = double_quote_dp >> double_quoted_string_part_or_esc_dp
 
 any_string = parsy.any_char.many().concat()
 double_quoted_or_simple_string_dp = double_quoted_string_dp | any_string
+any_non_whitespace_string = parsy.test_char(lambda c: c != " ", "non whitespace").at_least(1).concat()
 
 true_dp = string("true").result(True)
 false_dp = string("false").result(False)
