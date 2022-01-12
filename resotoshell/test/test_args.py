@@ -1,10 +1,10 @@
 from resotolib.args import ArgumentParser
-from resotosh.__main__ import add_args
+from resotoshell.__main__ import add_args
 
 
 def test_args():
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Shell", env_args_prefix="RESOTOSH_"
+        description="resoto Shell", env_args_prefix="RESOTOSHELL_"
     )
     add_args(arg_parser)
     arg_parser.parse_args()

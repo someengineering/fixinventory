@@ -1,5 +1,5 @@
 # `resotolib`
-Cloudkeeper common library
+resoto common library
 
 
 ## Table of contents
@@ -10,7 +10,7 @@ Cloudkeeper common library
 
 
 ## Overview
-This is the Cloudkeeper common library. Any functionality that is required by more than one of [our components](https://github.com/someengineering/resoto#component-list) will
+This is the resoto common library. Any functionality that is required by more than one of [our components](https://github.com/someengineering/resoto#component-list) will
 be put in here.
 
 ## Contact

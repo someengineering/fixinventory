@@ -1,13 +1,13 @@
 """
-Cloudkeeper Prometheus exporter
+resoto worker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Exports Cloudkeeper metrics in Prometheus format.
+Runs collector plugins and sends the result to resotocore.
 :copyright: © 2021 Some Engineering Inc.
 :license: Apache 2.0, see LICENSE for more details.
 """
 
 __title__ = "resotoworker"
-__description__ = "Exports Cloudkeeper metrics in Prometheus format."
+__description__ = "Runs collector plugins and sends the result to resotocore."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2021 Some Engineering Inc."

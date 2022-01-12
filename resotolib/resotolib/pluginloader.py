@@ -11,7 +11,7 @@ initialized = False
 
 
 class PluginLoader:
-    """Cloudkeeper Plugin Loader"""
+    """resoto plugin loader"""
 
     def __init__(self, plugin_type: Optional[PluginType] = None) -> None:
         # self.__plugins is a dict with key PluginType and value List
@@ -35,9 +35,9 @@ class PluginLoader:
                     plugins[plugin_type] = []
 
     def find_plugins(self) -> None:
-        """Finds Cloudkeeper Plugins
+        """Finds resoto plugins
 
-        Cloudkeeper Plugins have an entry point resoto.plugins.
+        resoto Plugins have an entry point resoto.plugins.
         Any package resource with an entry point of that name will be handed to
         app_plugin() which validates that the package resource is a subclass of
         BasePlugin.

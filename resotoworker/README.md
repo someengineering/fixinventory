@@ -1,5 +1,5 @@
 # `resotoworker`
-Cloudkeeper worker daemon
+resoto worker daemon
 
 
 ## Table of contents
@@ -16,12 +16,12 @@ Cloudkeeper worker daemon
 
 
 ## Overview
-`resotoworker` does all the collection and cleanup work in Cloudkeeper. It is connected to [`resotocore`](../resotocore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` actions as well as `tag` tasks.
+`resotoworker` does all the collection and cleanup work in resoto. It is connected to [`resotocore`](../resotocore/) over a websocket connection and waits for instructions. By default it subscribes to the `collect` and `cleanup` actions as well as `tag` tasks.
 
 `resotoworker` loads collector [`plugins`](../plugins/) like AWS, GCP, Slack, Onelogin, etc.
 Only those plugins have knowledge about how to communicate with each cloud. How to collect resources and how to clean them up.
 
-There can be one or more instances of `resotoworker` in a Cloudkeeper deployment. A single `resotoworker` can collect many clouds or you could have multiple `resotoworker` collecting one cloud or even one account in one cloud each.
+There can be one or more instances of `resotoworker` in a resoto deployment. A single `resotoworker` can collect many clouds or you could have multiple `resotoworker` collecting one cloud or even one account in one cloud each.
 
 
 ## Usage
@@ -70,7 +70,7 @@ $ resotoworker \
     --aws-account-pool-size 50 \
     --aws-access-key-id AKIAZGZEXAMPLE \
     --aws-secret-access-key vO51EW/8ILMGrSBV/Ia9FEXAMPLE \
-    --aws-role Cloudkeeper \
+    --aws-role resoto \
     --aws-scrape-org
 ```
 
@@ -80,7 +80,7 @@ Let us unpack this command
 - `collector aws` loads the AWS collector plugin
 - `aws-fork` tells the AWS collector plugin to also use forked processes instead of threads
 - `aws-access-key-id/-secret-access-key` AWS credentials for API acces. Instead of using credentials directly you can also opt to inherit them from the [`awscli`](https://aws.amazon.com/cli/) environment or when running on EC2 using an instance profile.
-- `aws-role` the IAM role Cloudkeeper should assume when making API requests
+- `aws-role` the IAM role resoto should assume when making API requests
 - `aws-scrape-org` tells the AWS collector plugin to retrieve a list of all org accounts and then assume into each one of them.
 
 The reason for using forked processes instead of threads is to work around performance limitations of Python's [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock). By forking we almost scale linearly with the number of CPU cores when collecting many accounts at once. The default is to use threads to conserve system resources.

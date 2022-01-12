@@ -20,7 +20,7 @@ setup(
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "resotosh = resotosh.__main__:main",
+            "resh = resotoshell.__main__:main",
         ]
     },
     include_package_data=True,

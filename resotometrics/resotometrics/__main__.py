@@ -41,7 +41,7 @@ def main() -> None:
     signal(SIGTERM, handler)
 
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Metrics Exporter", env_args_prefix="RESOTOMETRICS_"
+        description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
     add_args(arg_parser)
     logging_add_args(arg_parser)

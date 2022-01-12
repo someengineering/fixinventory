@@ -8,7 +8,7 @@ from resotolib.core import add_args as core_add_args
 
 def test_args():
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Worker",
+        description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
     )
     add_args(arg_parser)

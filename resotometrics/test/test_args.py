@@ -4,7 +4,7 @@ from resotometrics.__main__ import add_args
 
 def test_args():
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Metrics Exporter", env_args_prefix="RESOTOMETRICS_"
+        description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
     add_args(arg_parser)
     arg_parser.parse_args()

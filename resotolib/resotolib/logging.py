@@ -44,12 +44,12 @@ def setup_logger(proc: str, force: bool = True) -> None:
     if (
         "-v" in argv
         or "--verbose" in argv
-        or os.environ.get("CLOUDKEEPER_VERBOSE", "false").lower() == "true"
+        or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true"
     ):
         getLogger("resoto").setLevel(DEBUG)
     elif (
         "--quiet" in argv
-        or os.environ.get("CLOUDKEEPER_QUIET", "false").lower() == "true"
+        or os.environ.get("RESOTO_QUIET", "false").lower() == "true"
     ):
         getLogger().setLevel(WARNING)
         getLogger("resoto").setLevel(CRITICAL)

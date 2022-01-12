@@ -7,7 +7,7 @@ from resotolib.jwt import add_args as jwt_add_args
 def test_args():
     assert ArgumentParser.args.does_not_exist is None
 
-    os.environ["CLOUDKEEPER_PSK"] = "changeme"
+    os.environ["RESOTO_PSK"] = "changeme"
     arg_parser = get_arg_parser()
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
@@ -15,10 +15,10 @@ def test_args():
     assert ArgumentParser.args.verbose is False
     assert ArgumentParser.args.psk == "changeme"
 
-    os.environ["CLOUDKEEPER_PSK"] = ""
-    os.environ["CLOUDKEEPER_VERBOSE"] = "true"
-    os.environ["CLOUDKEEPER_TEST_INT"] = "123"
-    os.environ["CLOUDKEEPER_TEST_LIST0"] = "foobar"
+    os.environ["RESOTO_PSK"] = ""
+    os.environ["RESOTO_VERBOSE"] = "true"
+    os.environ["RESOTO_TEST_INT"] = "123"
+    os.environ["RESOTO_TEST_LIST0"] = "foobar"
     arg_parser = get_arg_parser()
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)

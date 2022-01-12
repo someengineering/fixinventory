@@ -1,5 +1,5 @@
 # `resotometrics`
-Cloudkeeper Prometheus exporter
+resoto Prometheus exporter
 
 
 ## Table of contents
@@ -40,7 +40,7 @@ Every CLI arg can also be specified using ENV variables.
 For instance the boolean `--verbose` would become `RESOTOMETRICS_VERBOSE=true` or `--timeout 300` would become `RESOTOMETRICS_TIMEOUT=300`.
 
 Once started `resotometrics` will register for `generate_metrics` core events. When such an event is received it will
-generate Cloudkeeper metrics and provide them at the `/metrics` endpoint.
+generate resoto metrics and provide them at the `/metrics` endpoint.
 
 A prometheus config could look like this:
 ```
@@ -51,13 +51,13 @@ scrape_configs:
 ```
 
 ## Details
-Cloudkeeper core supports aggregated queries to produce metrics. Our common library [`resotolib`](../resotolib/) define a number of base resources that are common to a lot of cloud proviers, like say compute instances, subnets, routers, load balancers, and so on. All of those ship with a standard set of metrics specific to each resource.
+resoto core supports aggregated queries to produce metrics. Our common library [`resotolib`](../resotolib/) define a number of base resources that are common to a lot of cloud proviers, like say compute instances, subnets, routers, load balancers, and so on. All of those ship with a standard set of metrics specific to each resource.
 
-For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of Cloudkeeper will allow you to define your own metrics in `resotocore` and have `resotometrics` export them.
+For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of resoto will allow you to define your own metrics in `resotocore` and have `resotometrics` export them.
 
 For right now you can use the aggregate API at `{resotocore}:8900/graph/{graph}/reported/query/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `resotocore` API documentation as well as the Swagger UI at `{resotocore}:8900/api-doc/`.
 
-In the following we will be using the Cloudkeeper shell `resotosh` and the `aggregate` command.
+In the following we will be using the resoto shell `resotosh` and the `aggregate` command.
 
 
 ### Example
@@ -148,7 +148,7 @@ group:
 instances_hourly_cost_estimate: 0.949995
 ```
 
-What did we do here? We told Cloudkeeper to find all resource of type compute instance (`query is(instance)`) with a status of `running` and then merge the result with ancestors (parents and parent parents) of type `cloud`, `account`, `region` and now also `instance_type`.
+What did we do here? We told resoto to find all resource of type compute instance (`query is(instance)`) with a status of `running` and then merge the result with ancestors (parents and parent parents) of type `cloud`, `account`, `region` and now also `instance_type`.
 
 Let us look at two things here. First, in the previous example we already aggregated by `instance_type`. However this was the string attribute called `instance_type` that is part of every instance resource and contains strings like `m5.xlarge` (AWS) or `n1-standard-4` (GCP).
 
@@ -158,7 +158,7 @@ Example
 aws_ec2_instance i-039e06bb2539e5484 t2.micro
 ```
 
-What we did now was ask Cloudkeeper to go up the graph and find the directly connected resource of kind `instance_type`.
+What we did now was ask resoto to go up the graph and find the directly connected resource of kind `instance_type`.
 
 An `instance_type` resource looks something like this
 ```

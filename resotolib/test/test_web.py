@@ -8,7 +8,7 @@ from resotolib.web.metrics import WebApp
 
 def test_web():
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Metrics Exporter", env_args_prefix="RESOTOMETRICS_"
+        description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
     WebServer.add_args(arg_parser)
     WebApp.add_args(arg_parser)

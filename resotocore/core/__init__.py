@@ -1,5 +1,5 @@
 """
-Cloudkeeper core graph platform
+resoto core graph platform
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Keeps all the things in resoto.
 :copyright: © 2021 Some Engineering Inc.
@@ -7,7 +7,7 @@ Keeps all the things in resoto.
 """
 
 __title__ = "resotocore"
-__description__ = "Cloudkeeper core."
+__description__ = "resoto core."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2021 Some Engineering Inc."

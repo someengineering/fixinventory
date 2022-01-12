@@ -29,7 +29,7 @@ def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
 
 def bootstrap_ca(
     days_valid: int = 3650,
-    common_name: str = "Cloudkeeper Root CA",
+    common_name: str = "resoto Root CA",
     organization_name: str = "Some Engineering Inc.",
     locality_name: str = "San Francisco",
     state_or_province_name: str = "California",

@@ -24,7 +24,7 @@ declare venv=true
 declare branch=main
 
 main() {
-    echo "Cloudkeeper bootstrapper"
+    echo "resoto bootstrapper"
 
     if grep "url =.*resoto.git" "$PWD/.git/config" > /dev/null 2>&1; then
         install_path="$PWD"
@@ -166,7 +166,7 @@ install_dev() {
 }
 
 install_resoto() {
-    echo "Installing Cloudkeeper"
+    echo "Installing resoto"
     local resoto_components=(resotolib resotocore resotosh resotoworker resotometrics)
     for component in "${resoto_components[@]}"; do
         pip_install "$component"

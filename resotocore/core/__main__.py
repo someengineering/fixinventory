@@ -172,7 +172,7 @@ if __name__ == "__main__":
         main()
         log.info("Process finished.")
     except (KeyboardInterrupt, SystemExit):
-        log.info("Stopping Cloudkeeper graph core.")
+        log.info("Stopping resoto graph core.")
         shutdown_process(0)
     except Exception as ex:
         print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)

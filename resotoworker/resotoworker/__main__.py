@@ -49,7 +49,7 @@ def main() -> None:
     # a user specifies e.g. `--collector aws --help`  they would
     # no longer be shown cli args for other collectors like gcp.
     collector_arg_parser = ArgumentParser(
-        description="Cloudkeeper Worker",
+        description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
         add_help=False,
         add_machine_help=False,
@@ -59,7 +59,7 @@ def main() -> None:
     ArgumentParser.args = args
 
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Worker",
+        description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
     )
     jwt_add_args(arg_parser)

@@ -75,8 +75,8 @@ def send_graph(
 
         headers = {
             "Content-Type": "application/x-ndjson",
-            "Cloudkeeper-Resotoworker-Nodes": str(graph.number_of_nodes()),
-            "Cloudkeeper-Resotoworker-Edges": str(graph.number_of_edges()),
+            "Resoto-Worker-Nodes": str(graph.number_of_nodes()),
+            "Resoto-Worker-Edges": str(graph.number_of_edges()),
         }
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)

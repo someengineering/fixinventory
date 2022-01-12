@@ -7,7 +7,7 @@ import subprocess
 from collections import defaultdict
 from typing import List, Dict
 
-DEFAULT_ENV_ARGS_PREFIX = "CLOUDKEEPER_"
+DEFAULT_ENV_ARGS_PREFIX = "RESOTO_"
 
 
 class Namespace(argparse.Namespace):
@@ -117,7 +117,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
 def get_arg_parser(
     add_help: bool = True,
-    description: str = "Cloudkeeper",
+    description: str = "resoto",
     env_args_prefix: str = DEFAULT_ENV_ARGS_PREFIX,
 ) -> ArgumentParser:
     arg_parser = ArgumentParser(

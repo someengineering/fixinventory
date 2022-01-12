@@ -1,5 +1,5 @@
-# `resotosh`
-Cloudkeeper Shell
+# `resh`
+resoto Shell
 
 
 ## Table of contents
@@ -15,11 +15,11 @@ Cloudkeeper Shell
 
 
 ## Overview
-`resotosh` starts the Cloudkeeper shell. It is used to interact with `resotocore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
+`resh` starts the resoto shell. It is used to interact with `resotocore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
 
 ## Usage
-`resotosh` uses the following commandline arguments:
+`resh` uses the following commandline arguments:
 ```
   -h, --help            show this help message and exit
   --resotocore-uri RESOTOCORE_URI
@@ -33,16 +33,16 @@ Cloudkeeper Shell
   --logfile LOGFILE     Logfile to log into
 ```
 
-ENV Prefix: `RESOTOSH_`
+ENV Prefix: `resh_`
 Every CLI arg can also be specified using ENV variables.
 
-For instance `--resotocore-uri http://foobar.tld:8900` would become `RESOTOSH_RESOTOCORE_URI=http://foobar.tld:8900`.
+For instance `--resotocore-uri http://foobar.tld:8900` would become `resh_RESOTOCORE_URI=http://foobar.tld:8900`.
 
 
 
 ## Examples
 ### Basics
-Enter `help` into `resotosh` to get an overview of all available commands
+Enter `help` into `resh` to get an overview of all available commands
 ```
 > help
 

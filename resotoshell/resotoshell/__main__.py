@@ -18,14 +18,14 @@ from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.utils import rnd_str
-from resotosh.protected_files import validate_paths
+from resotoshell.protected_files import validate_paths
 
 
 def main() -> None:
-    setup_logger("resotosh")
+    setup_logger("resotoshell")
     shutdown_event = Event()
     arg_parser = ArgumentParser(
-        description="Cloudkeeper Shell", env_args_prefix="RESOTOSH_"
+        description="resoto shell", env_args_prefix="RESOTOSHELL_"
     )
     add_args(arg_parser)
     logging_add_args(arg_parser)
@@ -55,7 +55,7 @@ def main() -> None:
             shutdown_event.set()
     else:
         completer = None
-        history_file = str(pathlib.Path.home() / ".resotosh_history")
+        history_file = str(pathlib.Path.home() / ".resotoshell_history")
         history = FileHistory(history_file)
         session = PromptSession(history=history)
         log.debug("Starting interactive session")
@@ -91,8 +91,8 @@ def send_command(
         log.debug(f"Setting columns {tty_columns}, rows {tty_rows}")
         headers.update(
             {
-                "Cloudkeeper-Resotosh-Columns": str(tty_columns),
-                "Cloudkeeper-Resotosh-Rows": str(tty_rows),
+                "Resoto-Shell-Columns": str(tty_columns),
+                "Resoto-Shell-Rows": str(tty_rows),
             }
         )
 

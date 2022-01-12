@@ -1,5 +1,5 @@
 """
-Cloudkeeper common library
+resoto common library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Common resoto functions.
 :copyright: © 2021 Some Engineering Inc.
@@ -7,7 +7,7 @@ Common resoto functions.
 """
 
 __title__ = "resotolib"
-__description__ = "Cloudkeeper common library."
+__description__ = "resoto common library."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2021 Some Engineering Inc."
