@@ -1732,7 +1732,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         return "jobs"
 
     def info(self) -> str:
-        return "List all jobs in the system."
+        return "Manage all jobs."
 
     @staticmethod
     def is_jobs_update(command: ParsedCommand) -> bool:
