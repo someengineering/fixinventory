@@ -16,7 +16,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--resotocore-graph",
-        help="resotocore graph name (default: ck)",
-        default="ck",
+        help="resotocore graph name (default: resoto)",
+        default="resoto",
         dest="resotocore_graph",
     )

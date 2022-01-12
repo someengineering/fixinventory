@@ -41,7 +41,7 @@ There can be one or more instances of `resotoworker` in a resoto deployment. A s
   --resotocore-ws-uri RESOTOCORE_WS_URI
                         resotocore Websocket URI (default: ws://localhost:8900)
   --resotocore-graph RESOTOCORE_GRAPH
-                        resotocore graph name (default: ck)
+                        resotocore graph name (default: resoto)
   --pool-size POOL_SIZE
                         Collector Thread/Process Pool Size (default: 5)
   --fork                Use forked process instead of threads (default: False)

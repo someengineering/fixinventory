@@ -28,7 +28,7 @@ can be changed using the `--web-port` argument.
   --resotocore-ws-uri RESOTOCORE_WS_URI
                         resotocore Websocket URI (default: ws://localhost:8900)
   --resotocore-graph RESOTOCORE_GRAPH
-                        resotocore graph name (default: ck)
+                        resotocore graph name (default: resoto)
   --timeout TIMEOUT     Metrics generation timeout in seconds (default: 300)
   --verbose, -v         Verbose logging
   --logfile LOGFILE     Logfile to log into

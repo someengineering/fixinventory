@@ -27,7 +27,7 @@ resoto Shell
   --resotocore-ws-uri RESOTOCORE_WS_URI
                         resotocore Websocket URI (default: ws://localhost:8900)
   --resotocore-graph RESOTOCORE_GRAPH
-                        resotocore graph name (default: ck)
+                        resotocore graph name (default: resoto)
   --stdin               Read from STDIN instead of opening a shell
   --verbose, -v         Verbose logging
   --logfile LOGFILE     Logfile to log into
