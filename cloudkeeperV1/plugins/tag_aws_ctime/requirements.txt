@@ -1,3 +1,0 @@
-cklib==2.0.0a10
-cloudkeeperV1==0.0.17
-cloudkeeper-plugin-aws==2.0.0a10

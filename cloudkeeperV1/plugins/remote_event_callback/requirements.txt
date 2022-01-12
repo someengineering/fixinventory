@@ -1,3 +1,0 @@
-cklib==2.0.0a10
-requests==2.26.0
-PyJWT==2.1.0
