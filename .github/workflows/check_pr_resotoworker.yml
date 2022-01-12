@@ -1,17 +1,17 @@
-name: Check PR (ckworker)
+name: Check PR (resotoworker)
 on:
   push:
     branches:
         - main
   pull_request:
     paths:
-      - 'ckworker/**'
+      - 'resotoworker/**'
       - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  ckworker:
-    name: "ckworker"
+  resotoworker:
+    name: "resotoworker"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,11 +45,11 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./ckworker
+        working-directory: ./resotoworker
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: ckworker-code-coverage-report
-          path: ckworker/htmlcov/
+          name: resotoworker-code-coverage-report
+          path: resotoworker/htmlcov/

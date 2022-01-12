@@ -1,17 +1,17 @@
-name: Check PR (cksh)
+name: Check PR (resotosh)
 on:
   push:
     branches:
         - main
   pull_request:
     paths:
-      - 'cksh/**'
+      - 'resotosh/**'
       - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  cksh:
-    name: "cksh"
+  resotosh:
+    name: "resotosh"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,11 +45,11 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./cksh
+        working-directory: ./resotosh
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: cksh-code-coverage-report
-          path: cksh/htmlcov/
+          name: resotosh-code-coverage-report
+          path: resotosh/htmlcov/

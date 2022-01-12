@@ -47,11 +47,6 @@ jobs:
           sudo mkdir -p /build -m a+rw
           pip wheel -w /build .
 
-      - name: Build cloudkeeperV1
-        working-directory: ./cloudkeeperV1
-        run: |
-          pip wheel -w /build -f /build .
-
       - name: Run tests
         working-directory: ./plugins/tagvalidator
         run: tox

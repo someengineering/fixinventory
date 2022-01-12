@@ -1,17 +1,17 @@
-name: Check PR (ckmetrics)
+name: Check PR (resotometrics)
 on:
   push:
     branches:
         - main
   pull_request:
     paths:
-      - 'ckmetrics/**'
+      - 'resotometrics/**'
       - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  ckmetrics:
-    name: "ckmetrics"
+  resotometrics:
+    name: "resotometrics"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,11 +45,11 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./ckmetrics
+        working-directory: ./resotometrics
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: ckmetrics-code-coverage-report
-          path: ckmetrics/htmlcov/
+          name: resotometrics-code-coverage-report
+          path: resotometrics/htmlcov/
