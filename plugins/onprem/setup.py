@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-onprem",
+    name="resoto-plugin-onprem",
     version="2.0.0a10",
     description="Cloudkeeper On-Premises Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "onprem = cloudkeeper_plugin_onprem:OnpremCollectorPlugin"
+        "resoto.plugins": [
+            "onprem = resoto_plugin_onprem:OnpremCollectorPlugin"
         ]
     },
     include_package_data=True,

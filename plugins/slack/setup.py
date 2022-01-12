@@ -11,16 +11,16 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-slack",
+    name="resoto-plugin-slack",
     version="2.0.0a10",
     description="Cloudkeeper Slack Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "slack_bot = cloudkeeper_plugin_slack:SlackBotPlugin",
-            "slack_collector = cloudkeeper_plugin_slack:SlackCollectorPlugin",
+        "resoto.plugins": [
+            "slack_bot = resoto_plugin_slack:SlackBotPlugin",
+            "slack_collector = resoto_plugin_slack:SlackCollectorPlugin",
         ]
     },
     install_requires=requirements,

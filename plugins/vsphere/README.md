@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-vsphere
+# resoto-plugin-vsphere
 VMWare VSphere Collector Plugin for Cloudkeeper (Alpha)
 
 ## Usage

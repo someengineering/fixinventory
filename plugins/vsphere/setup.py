@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-vsphere",
+    name="resoto-plugin-vsphere",
     version="2.0.0a10",
     description="Cloudkeeper VSphere Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "vsphere = cloudkeeper_plugin_vsphere:VSphereCollectorPlugin"
+        "resoto.plugins": [
+            "vsphere = resoto_plugin_vsphere:VSphereCollectorPlugin"
         ]
     },
     include_package_data=True,

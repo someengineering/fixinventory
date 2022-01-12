@@ -5,7 +5,7 @@ var graph_data: Dictionary = {
 	{
 		"id": "61c43fa83a7027b9036c1a4b9df579033ffedfa0d7470d43fb379eec3eac84b4",
 		"reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "example_root"},
-		"metadata": {"python_type": "cloudkeeper.baseresources.GraphRoot"},
+		"metadata": {"python_type": "resoto.baseresources.GraphRoot"},
 		"ancestors": {},
 		"kinds": ["root"],
 		"desired": {}
@@ -14,7 +14,7 @@ var graph_data: Dictionary = {
 	{
 		"id": "e368f0676555c60f685cf4a9f99589aac8ec51f5c48d4dd2e8c7db9c1454aec0",
 		"reported": {"kind": "cloud", "id": "aws", "tags": {}, "name": "example_aws"},
-		"metadata": {"python_type": "cloudkeeper.baseresources.Cloud"},
+		"metadata": {"python_type": "resoto.baseresources.Cloud"},
 		"kinds": ["cloud"],
 		"desired": {},
 		"merge": true
@@ -32,7 +32,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSAccount"
+			"python_type": "resoto_plugin_aws.resources.AWSAccount"
 		},
 		"ancestors": 
 		{
@@ -59,7 +59,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion"
+			"python_type": "resoto_plugin_aws.resources.AWSRegion"
 		},
 		"ancestors": 
 		{
@@ -86,7 +86,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSRegion"
+			"python_type": "resoto_plugin_aws.resources.AWSRegion"
 		},
 		"ancestors": 
 		{
@@ -120,7 +120,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Snapshot"
+			"python_type": "resoto_plugin_aws.resources.AWSEC2Snapshot"
 		},
 		"ancestors": 
 		{
@@ -147,7 +147,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3Bucket"
+			"python_type": "resoto_plugin_aws.resources.AWSS3Bucket"
 		},
 		"ancestors": 
 		{
@@ -174,7 +174,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSS3BucketQuota"
+			"python_type": "resoto_plugin_aws.resources.AWSS3BucketQuota"
 		},
 		"ancestors": 
 		{
@@ -205,7 +205,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2Instance"
+			"python_type": "resoto_plugin_aws.resources.AWSEC2Instance"
 		},
 		"ancestors": 
 		{
@@ -235,7 +235,7 @@ var graph_data: Dictionary = {
 		},
 		"metadata":
 		{
-			"python_type": "cloudkeeper_plugin_aws.resources.AWSEC2InstanceType"
+			"python_type": "resoto_plugin_aws.resources.AWSEC2InstanceType"
 		},
 		"ancestors": 
 		{

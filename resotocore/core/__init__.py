@@ -1,7 +1,7 @@
 """
 Cloudkeeper core graph platform
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Keeps all the things in cloudkeeper.
+Keeps all the things in resoto.
 :copyright: © 2021 Some Engineering Inc.
 :license: Apache 2.0, see LICENSE for more details.
 """

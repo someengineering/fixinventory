@@ -11,14 +11,14 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-remote",
+    name="resoto-plugin-remote",
     version="2.0.0a10",
     description="Cloudkeeper Remote Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["remote = cloudkeeper_plugin_remote:RemotePlugin"]
+        "resoto.plugins": ["remote = resoto_plugin_remote:RemotePlugin"]
     },
     include_package_data=True,
     zip_safe=False,

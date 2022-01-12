@@ -4,7 +4,7 @@ import resotolib.logging as logging
 from dataclasses import dataclass
 from typing import ClassVar
 
-logging.getLogger("cloudkeeper").setLevel(logging.DEBUG)
+logging.getLogger("resoto").setLevel(logging.DEBUG)
 
 
 @dataclass(eq=False)

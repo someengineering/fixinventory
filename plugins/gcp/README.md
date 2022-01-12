@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-gcp
+# resoto-plugin-gcp
 An GCP collector plugin for Cloudkeeper.
 
 ## Usage

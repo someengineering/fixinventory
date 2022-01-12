@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_protect_snowflakes import ProtectSnowflakesPlugin
+from resoto_plugin_protect_snowflakes import ProtectSnowflakesPlugin
 
 
 def test_args():

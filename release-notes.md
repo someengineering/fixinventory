@@ -7,17 +7,17 @@ Here are some highlights from this release:
 
 **The UI is now shipped as part of every release**<br/>
 This is the first version that ships with our gorgeous UI.
-Please try it out by downloading the latest version and navigating to `https://path.to.cloudkeeper:8900/ui` in your browser.
-The main graph view has been upgraded from 2D to 3D, and shows Treemap charts ([#457](https://github.com/someengineering/cloudkeeper/pull/457))!
+Please try it out by downloading the latest version and navigating to `https://path.to.resoto:8900/ui` in your browser.
+The main graph view has been upgraded from 2D to 3D, and shows Treemap charts ([#457](https://github.com/someengineering/resoto/pull/457))!
 
 **We now have a helm chart**<br/>
-Thanks to a contribution from @yuval-k, we now have a Helm chart ([#428](https://github.com/someengineering/cloudkeeper/pull/428))!
+Thanks to a contribution from @yuval-k, we now have a Helm chart ([#428](https://github.com/someengineering/resoto/pull/428))!
 With this chart, it is easier to deploy Cloudkeeper in Kubernetes.
 Try it out yourself by following the [Kubernetes setup tutorial in our documentation](https://docs.some.engineering/getting_started/setup_kubernetes.html).
 
 **All cleanup plugins are now available**<br/>
 We needed to migrate all cleanup plugins to the 2.0 infrastructure.
-With this release, all cleanup plugins have been ported ([#422](https://github.com/someengineering/cloudkeeper/pull/422)) and ([#439](https://github.com/someengineering/cloudkeeper/pull/439)).
+With this release, all cleanup plugins have been ported ([#422](https://github.com/someengineering/resoto/pull/422)) and ([#439](https://github.com/someengineering/resoto/pull/439)).
 
 **Analytics sensors were added**<br/>
 At Some Engineering, we believe that it is important to know how Cloudkeeper is used, and thus how we can improve.
@@ -28,18 +28,18 @@ It is possible to opt out of sending this data by specifying the command line fl
 
 **Query language improvements**<br/>
 There are several significant improvements in this area.
-It is now possible to define sub-queries ([#412](https://github.com/someengineering/cloudkeeper/pull/412)) which allow merging nodes with other nodes in the graph.
-Additionally, the first step toward a full-featured query template engine has been implemented in [#431](https://github.com/someengineering/cloudkeeper/pull/431).
+It is now possible to define sub-queries ([#412](https://github.com/someengineering/resoto/pull/412)) which allow merging nodes with other nodes in the graph.
+Additionally, the first step toward a full-featured query template engine has been implemented in [#431](https://github.com/someengineering/resoto/pull/431).
 This feature allows defining queries as a template and reusing those templates in other queries, greatly simplifying more complex queries.
 
 **Other improvements**
 
-- `[resotocore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/cloudkeeper/pull/425))
-- `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. ([#430](https://github.com/someengineering/cloudkeeper/pull/430))
-- `[resotocore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/cloudkeeper/pull/427))
-- `[resotocore]` arangodb 3.8.2 or later is now the minimum required version to run cloudkeeper. ([#445](https://github.com/someengineering/cloudkeeper/pull/445))
-- `[resotocore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/cloudkeeper/pull/437))
-- `[resotocore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/cloudkeeper/pull/432))
+- `[resotocore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/resoto/pull/425))
+- `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. ([#430](https://github.com/someengineering/resoto/pull/430))
+- `[resotocore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/resoto/pull/427))
+- `[resotocore]` arangodb 3.8.2 or later is now the minimum required version to run resoto. ([#445](https://github.com/someengineering/resoto/pull/445))
+- `[resotocore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/resoto/pull/437))
+- `[resotocore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/resoto/pull/432))
 
 
 #  Release Notes 2.0.0a3 (Oct 4th, 2021)

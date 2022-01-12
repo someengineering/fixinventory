@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-cleanup_aws_loadbalancers
+# resoto-plugin-cleanup_aws_loadbalancers
 AWS Loadbalancers Cleanup Plugin for Cloudkeeper
 
 This plugin cleans up AWS ALB/ELB load balancers with no instances attached to them.
@@ -6,7 +6,7 @@ This plugin cleans up AWS ALB/ELB load balancers with no instances attached to t
 ## Usage
 Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-aws-loadbalancers`.
 ```
-$ cloudkeeper -v --cleanup --cleanup-aws-loadbalancers
+$ resoto -v --cleanup --cleanup-aws-loadbalancers
 ```
 
 The default load balancer age is 7 days. Meaning if a load balancer is more than 7 days old and does not have any instances/backends
@@ -27,7 +27,7 @@ meaning `7d` and `7 days` are equivalent.
 
 ### Example:
 ```
-$ cloudkeeper -v --cleanup --cleanup-aws-loadbalancers --cleanup-aws-loadbalancers-age 2d
+$ resoto -v --cleanup --cleanup-aws-loadbalancers --cleanup-aws-loadbalancers-age 2d
 ```
 
 ## List of arguments

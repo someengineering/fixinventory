@@ -51,7 +51,7 @@ def initializer() -> None:
     signal(SIGTERM, handler)
 
 
-def set_thread_name(thread_name: str = "cloudkeeper") -> None:
+def set_thread_name(thread_name: str = "resoto") -> None:
     threading.current_thread().name = thread_name
 
 

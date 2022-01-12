@@ -1,11 +1,11 @@
 extends Node
 
 # Start docker with:
-# docker run -p 8900:8900 ghcr.io/someengineering/cloudkeeper:latest --host 0.0.0.0
+# docker run -p 8900:8900 ghcr.io/someengineering/resoto:latest --host 0.0.0.0
 #
 # Or start docker without JWT auth
 # ( NOT recommended and NOT necessary anymore ):
-# docker run -p 8900:8900 -e PSK="" ghcr.io/someengineering/cloudkeeper:latest --host 0.0.0.0
+# docker run -p 8900:8900 -e PSK="" ghcr.io/someengineering/resoto:latest --host 0.0.0.0
 
 const DEFAULT_PSK = "changeme"
 const DEBUG_MESSAGES := true

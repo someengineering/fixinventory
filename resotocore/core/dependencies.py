@@ -67,15 +67,15 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     )
     parser.add_argument(
         "--graphdb-database",
-        default="cloudkeeper",
+        default="resoto",
         dest="graphdb_database",
-        help="Graph database name (default: cloudkeeper)",
+        help="Graph database name (default: resoto)",
     )
     parser.add_argument(
         "--graphdb-username",
-        default="cloudkeeper",
+        default="resoto",
         dest="graphdb_username",
-        help="Graph database login (default: cloudkeeper)",
+        help="Graph database login (default: resoto)",
     )
     parser.add_argument(
         "--graphdb-password",
@@ -104,7 +104,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     )
     parser.add_argument(
         "--plantuml-server",
-        default="http://plantuml.cloudkeeper.org:8080",
+        default="http://plantuml.resoto.org:8080",
         help="PlantUML server URI for UML image rendering.",
     )
     parser.add_argument(

@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-tagvalidator
+# resoto-plugin-tagvalidator
 Tag Validator plugin for Cloudkeeper
 
 This plugin validates the contents of expiration tags. With it you can enforce a max. expiration length
@@ -44,7 +44,7 @@ accounts:
 
 Provide the path to that file to the `--tagvalidator-config` argument.
 ```
-$ cloudkeeper -v --tagvalidator-config /var/local/cloudkeeper/config/tagvalidator.ini
+$ resoto -v --tagvalidator-config /var/local/resoto/config/tagvalidator.ini
 ```
 
 ## Structure of the config file

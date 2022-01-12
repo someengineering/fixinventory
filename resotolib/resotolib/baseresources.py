@@ -26,7 +26,7 @@ metrics_resource_cleanup_exceptions = Counter(
     ["cloud", "account", "region", "kind"],
 )
 metrics_resource_cleanup = Summary(
-    "cloudkeeper_resource_cleanup_seconds", "Time it took the resource cleanup() method"
+    "resoto_resource_cleanup_seconds", "Time it took the resource cleanup() method"
 )
 
 
@@ -80,7 +80,7 @@ class BaseResource(ABC):
           'labels': ['cloud', 'account', 'region', 'type']
         }
     }
-    which would get exported as 'cloudkeeper_cores_total' with labels cloud=aws,
+    which would get exported as 'resoto_cores_total' with labels cloud=aws,
     account=1234567, region=us-west-2, type=m5.xlarge and value 8 if the instance has
     8 CPU cores. The actual /metrics endpoint would then SUM all the values from metrics
     with the same name and labels and export a total of e.g. 1105 cores accross all
@@ -256,8 +256,8 @@ class BaseResource(ABC):
             return now - self.mtime
 
     def _ctime_getter(self) -> Optional[datetime]:
-        if "cloudkeeper:ctime" in self.tags:
-            ctime = self.tags["cloudkeeper:ctime"]
+        if "resoto:ctime" in self.tags:
+            ctime = self.tags["resoto:ctime"]
             try:
                 ctime = make_valid_timestamp(datetime.fromisoformat(ctime))
             except ValueError:

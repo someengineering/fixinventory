@@ -15,7 +15,7 @@ find resotolib \
         resotosh \
         resotometrics \
         plugins \
-        cloudkeeperV1 \
+        resotoV1 \
     -name setup.py -o \
     -name __init__.py -o \
     -name requirements.txt \

@@ -11,14 +11,14 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-onelogin",
+    name="resoto-plugin-onelogin",
     version="2.0.0a10",
     description="Cloudkeeper OneLogin Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["onelogin = cloudkeeper_plugin_onelogin:OneLoginPlugin"]
+        "resoto.plugins": ["onelogin = resoto_plugin_onelogin:OneLoginPlugin"]
     },
     include_package_data=True,
     zip_safe=False,

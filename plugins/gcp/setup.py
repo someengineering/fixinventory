@@ -11,14 +11,14 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-gcp",
+    name="resoto-plugin-gcp",
     version="2.0.0a10",
     description="Cloudkeeper GCP Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["gcp = cloudkeeper_plugin_gcp:GCPCollectorPlugin"]
+        "resoto.plugins": ["gcp = resoto_plugin_gcp:GCPCollectorPlugin"]
     },
     include_package_data=True,
     zip_safe=False,

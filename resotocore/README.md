@@ -27,9 +27,9 @@ like [`resotoworker`](../resotoworker/) and [`restometrics`](../restometrics/).
   --graphdb-server GRAPHDB_SERVER
                         Graph database server (default: http://localhost:8529)
   --graphdb-database GRAPHDB_DATABASE
-                        Graph database name (default: cloudkeeper)
+                        Graph database name (default: resoto)
   --graphdb-username GRAPHDB_USERNAME
-                        Graph database login (default: cloudkeeper)
+                        Graph database login (default: resoto)
   --graphdb-password GRAPHDB_PASSWORD
                         Graph database password (default: "")
   --graphdb-type GRAPHDB_TYPE
@@ -49,7 +49,7 @@ like [`resotoworker`](../resotoworker/) and [`restometrics`](../restometrics/).
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
 
 ## License

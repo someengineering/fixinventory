@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-protect_snowflakes",
+    name="resoto-plugin-protect_snowflakes",
     version="2.0.0a10",
     description="Cloudkeeper Snowflake Protection Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "protect_snowflakes = cloudkeeper_plugin_protect_snowflakes:ProtectSnowflakesPlugin"
+        "resoto.plugins": [
+            "protect_snowflakes = resoto_plugin_protect_snowflakes:ProtectSnowflakesPlugin"
         ]
     },
     include_package_data=True,

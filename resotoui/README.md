@@ -50,7 +50,7 @@ The UI uses two files for the data it processes:
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
 
 ## License

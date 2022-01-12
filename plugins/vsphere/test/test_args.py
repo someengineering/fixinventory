@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_vsphere import VSphereCollectorPlugin
+from resoto_plugin_vsphere import VSphereCollectorPlugin
 
 
 def test_args():

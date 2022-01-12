@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_onelogin import OneLoginPlugin
+from resoto_plugin_onelogin import OneLoginPlugin
 
 
 def test_args():

@@ -23,20 +23,20 @@ def test_adjust_expired() -> None:
             assert expires.fullmatch(value_in_path(result, ["metadata", "expires"]))
 
     # test iso datetime
-    expect_expires({"tags": {"cloudkeeper:expires": utc_str(expires_at)}}, "2022-02-15T13:00:00Z")
-    expect_expires({"tags": {"cloudkeeper:expires": expires_at.isoformat()}}, re.compile("2022-02-1.*"))
-    expect_expires({"tags": {"cloudkeeper:expires": "15.02.2022"}}, re.compile("2022-02-1.*"))
-    expect_expires({"tags": {"cloudkeeper:expires": "02/15/2022"}}, re.compile("2022-02-1.*"))
-    expect_expires({"tags": {"cloudkeeper:expires": "+2d"}}, None)  # ony accept absolute time
-    expect_expires({"tags": {"cloudkeeper:expires": "never"}}, None)  # never can not be parsed
+    expect_expires({"tags": {"resoto:expires": utc_str(expires_at)}}, "2022-02-15T13:00:00Z")
+    expect_expires({"tags": {"resoto:expires": expires_at.isoformat()}}, re.compile("2022-02-1.*"))
+    expect_expires({"tags": {"resoto:expires": "15.02.2022"}}, re.compile("2022-02-1.*"))
+    expect_expires({"tags": {"resoto:expires": "02/15/2022"}}, re.compile("2022-02-1.*"))
+    expect_expires({"tags": {"resoto:expires": "+2d"}}, None)  # ony accept absolute time
+    expect_expires({"tags": {"resoto:expires": "never"}}, None)  # never can not be parsed
 
     # test duration
     reported: Json = {"ctime": utc_str(created_at)}
     expect_expires({**reported, "tags": {"expiration": "never"}}, None)  # never can not be parsed
-    expect_expires({**reported, "tags": {"cloudkeeper:expiration": "never"}}, None)  # never can not be parsed
-    expect_expires({"tags": {"cloudkeeper:expiration": "12h"}}, None)  # no ctime given
+    expect_expires({**reported, "tags": {"resoto:expiration": "never"}}, None)  # never can not be parsed
+    expect_expires({"tags": {"resoto:expiration": "12h"}}, None)  # no ctime given
     expect_expires({"tags": {"expiration": "2w3d4h5m"}}, None)  # no ctime given
-    expect_expires({**reported, "tags": {"cloudkeeper:expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
+    expect_expires({**reported, "tags": {"resoto:expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
     expect_expires({**reported, "tags": {"expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
 
     # multiple values given: use order: ck:expiration -> ck:expires -> expiration -> expires
@@ -45,8 +45,8 @@ def test_adjust_expired() -> None:
             **reported,
             "tags": {
                 "expiration": "2d",
-                "cloudkeeper:expires": "2021-01-01T11:20:00Z",
-                "cloudkeeper:expiration": "2w3d4h5m",
+                "resoto:expires": "2021-01-01T11:20:00Z",
+                "resoto:expiration": "2w3d4h5m",
             },
         },
         "2021-01-01T11:20:00Z",
@@ -67,4 +67,4 @@ def test_no_adjust() -> None:
         assert value_in_path(result, ["metadata", "expires"]) == expires
 
     expect_expires({"tags": {"expires": utc_str(expires_at)}}, None)
-    expect_expires({"tags": {"cloudkeeper:expires": "2w3d4h5m"}, **reported}, None)
+    expect_expires({"tags": {"resoto:expires": "2w3d4h5m"}, **reported}, None)

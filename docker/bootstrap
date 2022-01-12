@@ -3,9 +3,9 @@
 set -euo pipefail
 
 # Include defaults
-. /usr/local/etc/cloudkeeper/defaults
-. /usr/local/etc/cloudkeeper/common
-. /usr/local/cloudkeeper-venv-python3/bin/activate
+. /usr/local/etc/resoto/defaults
+. /usr/local/etc/resoto/common
+. /usr/local/resoto-venv-python3/bin/activate
 
 
 main() {
@@ -25,17 +25,17 @@ main() {
 
 # Apply user id and group id
 apply_permissions() {
-    info "Setting uid:gid of cloudkeeper to $PUID:$PGID"
-    groupmod -g "${PGID}" -o cloudkeeper
-    #usermod -u "${PUID}" -o -g cloudkeeper cloudkeeper
-    sed -i -E "s/^(cloudkeeper:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+    info "Setting uid:gid of resoto to $PUID:$PGID"
+    groupmod -g "${PGID}" -o resoto
+    #usermod -u "${PUID}" -o -g resoto resoto
+    sed -i -E "s/^(resoto:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
     mkdir -p \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 
-    chown -R cloudkeeper:cloudkeeper \
-        /home/cloudkeeper \
+    chown -R resoto:resoto \
+        /home/resoto \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 }
@@ -93,7 +93,7 @@ setup_dnsmasq() {
         cp "$runit_dnsmasq_conf_in" "$runit_dnsmasq_rundir/run"
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
-            echo "log-queries=extra" >> /etc/dnsmasq.d/cloudkeeper.conf
+            echo "log-queries=extra" >> /etc/dnsmasq.d/resoto.conf
         fi
         echo "nameserver 127.0.0.1" > /etc/resolv.conf
     fi

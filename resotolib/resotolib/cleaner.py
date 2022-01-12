@@ -7,7 +7,7 @@ from prometheus_client import Summary
 from resotolib.logging import log
 
 metrics_cleanup = Summary(
-    "cloudkeeper_cleanup_seconds", "Time it took the cleanup() method"
+    "resoto_cleanup_seconds", "Time it took the cleanup() method"
 )
 
 

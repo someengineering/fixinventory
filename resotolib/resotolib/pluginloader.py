@@ -37,14 +37,14 @@ class PluginLoader:
     def find_plugins(self) -> None:
         """Finds Cloudkeeper Plugins
 
-        Cloudkeeper Plugins have an entry point cloudkeeper.plugins.
+        Cloudkeeper Plugins have an entry point resoto.plugins.
         Any package resource with an entry point of that name will be handed to
         app_plugin() which validates that the package resource is a subclass of
         BasePlugin.
         """
         global initialized
         log.debug("Finding plugins")
-        for entry_point in pkg_resources.iter_entry_points("cloudkeeper.plugins"):
+        for entry_point in pkg_resources.iter_entry_points("resoto.plugins"):
             plugin = entry_point.load()
             self.add_plugin(plugin)
         initialized = True

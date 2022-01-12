@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_cleanup_aws_vpcs import CleanupAWSVPCsPlugin
+from resoto_plugin_cleanup_aws_vpcs import CleanupAWSVPCsPlugin
 
 
 def test_args():

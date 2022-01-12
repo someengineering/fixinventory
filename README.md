@@ -1,16 +1,16 @@
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png" />
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" />
 <h1 align="center">Cloudkeeper</h1></p>
 
 
 # Housekeeping for Clouds!
 
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_banner.png" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" /></p>
 
-[![Version](https://img.shields.io/github/v/tag/someengineering/cloudkeeper?label=latest)](https://github.com/someengineering/cloudkeeper/tags/)
-[![Build](https://img.shields.io/github/workflow/status/someengineering/cloudkeeper/Build%20Docker%20Images/main)](https://github.com/someengineering/cloudkeeper/commits/main)
+[![Version](https://img.shields.io/github/v/tag/someengineering/resoto?label=latest)](https://github.com/someengineering/resoto/tags/)
+[![Build](https://img.shields.io/github/workflow/status/someengineering/resoto/Build%20Docker%20Images/main)](https://github.com/someengineering/resoto/commits/main)
 [![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://docs.some.engineering)
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
-[![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/cloudkeeper?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/cloudkeeper/)
+[![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/resoto?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/resoto/)
 
 ## Table of contents
 
@@ -43,7 +43,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 ## Docker based quick start
 
-Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/cloudkeeper:2.0.0a9`
+Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/resoto:2.0.0a9`
 
 In this quick start guide, we’re showing you three things, how to:
 
@@ -68,8 +68,8 @@ If you would like to work on the UI [`resotoui`](resotoui/), before cloning the 
 
 One time setup:
 ```
-$ git clone https://github.com/someengineering/cloudkeeper.git
-$ cd cloudkeeper/
+$ git clone https://github.com/someengineering/resoto.git
+$ cd resoto/
 $ git lfs install  # installs git-lfs hooks
 ```
 
@@ -89,7 +89,7 @@ If you have no need for the UI assets git-lfs is optional.
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
 
 ## License

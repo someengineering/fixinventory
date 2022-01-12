@@ -25,11 +25,11 @@ class NoAdjust(AdjustNode):
 class DirectAdjuster(AdjustNode):
 
     # this holds a datetime
-    expires_value = [[Section.reported, "tags", "cloudkeeper:expires"]]
+    expires_value = [[Section.reported, "tags", "resoto:expires"]]
 
     # this holds a relative timedelta
     expiration_values = [
-        [Section.reported, "tags", "cloudkeeper:expiration"],
+        [Section.reported, "tags", "resoto:expiration"],
         [Section.reported, "tags", "expiration"],
     ]
 

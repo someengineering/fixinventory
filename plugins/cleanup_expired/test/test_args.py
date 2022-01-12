@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_cleanup_expired import CleanupExpiredPlugin
+from resoto_plugin_cleanup_expired import CleanupExpiredPlugin
 
 
 def test_args():

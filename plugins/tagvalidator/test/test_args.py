@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_tagvalidator import TagValidatorPlugin
+from resoto_plugin_tagvalidator import TagValidatorPlugin
 
 
 def test_args():

@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-cleanup_volumes",
+    name="resoto-plugin-cleanup_volumes",
     version="2.0.0a10",
     description="Volume Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "cleanup_volumes = cloudkeeper_plugin_cleanup_volumes:CleanupVolumesPlugin"
+        "resoto.plugins": [
+            "cleanup_volumes = resoto_plugin_cleanup_volumes:CleanupVolumesPlugin"
         ]
     },
     include_package_data=True,

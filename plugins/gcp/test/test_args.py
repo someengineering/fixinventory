@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_gcp import GCPCollectorPlugin
+from resoto_plugin_gcp import GCPCollectorPlugin
 
 
 def test_args():

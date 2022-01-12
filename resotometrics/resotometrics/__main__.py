@@ -154,13 +154,13 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
                         log.debug(f"Adding metric {metric_name} of type {metric_type}")
                         if metric_type == "gauge":
                             metrics.staging[metric_name] = GaugeMetricFamily(
-                                f"cloudkeeper_{metric_name}",
+                                f"resoto_{metric_name}",
                                 metric_help,
                                 labels=labels,
                             )
                         elif metric_type == "counter":
                             metrics.staging[metric_name] = CounterMetricFamily(
-                                f"cloudkeeper_{metric_name}",
+                                f"resoto_{metric_name}",
                                 metric_help,
                                 labels=labels,
                             )

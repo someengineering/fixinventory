@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-cleanup_volumes
+# resoto-plugin-cleanup_volumes
 Volume cleanup plugin for Cloudkeeper
 
 This plugin removes unused EBS volumes.
@@ -6,7 +6,7 @@ This plugin removes unused EBS volumes.
 ## Usage
 Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-volumes`.
 ```
-$ cloudkeeper -v --cleanup --cleanup-volumes
+$ resoto -v --cleanup --cleanup-volumes
 ```
 
 The default volume age is 14 days. Meaning if a volume is not in use and has not had any read or write IOPS within
@@ -27,7 +27,7 @@ meaning `7d` and `7 days` are equivalent.
 
 ### Example:
 ```
-$ cloudkeeper -v --cleanup --cleanup-volumes --cleanup-volumes-age 2d
+$ resoto -v --cleanup --cleanup-volumes --cleanup-volumes-age 2d
 ```
 
 ## List of arguments

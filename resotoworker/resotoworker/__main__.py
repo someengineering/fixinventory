@@ -75,7 +75,7 @@ def main() -> None:
     event_add_args(arg_parser)
     add_args(arg_parser)
 
-    # Find cloudkeeper Plugins in the cloudkeeper.plugins module
+    # Find resoto Plugins in the resoto.plugins module
     plugin_loader = PluginLoader()
     plugin_loader.add_plugin_args(arg_parser)
 

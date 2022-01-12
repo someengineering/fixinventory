@@ -29,54 +29,54 @@ from collections import defaultdict
 
 
 metrics_graph2metrics = Summary(
-    "cloudkeeper_graph2metrics_seconds", "Time it took the graph2metrics() method"
+    "resoto_graph2metrics_seconds", "Time it took the graph2metrics() method"
 )
 metrics_graph_search = Summary(
-    "cloudkeeper_graph_search_seconds", "Time it took the Graph search() method"
+    "resoto_graph_search_seconds", "Time it took the Graph search() method"
 )
 metrics_graph_searchall = Summary(
-    "cloudkeeper_graph_searchall_seconds", "Time it took the Graph searchall() method"
+    "resoto_graph_searchall_seconds", "Time it took the Graph searchall() method"
 )
 metrics_graph_searchre = Summary(
-    "cloudkeeper_graph_searchre_seconds", "Time it took the Graph searchre() method"
+    "resoto_graph_searchre_seconds", "Time it took the Graph searchre() method"
 )
 metrics_graph_search_first = Summary(
-    "cloudkeeper_graph_search_first_seconds",
+    "resoto_graph_search_first_seconds",
     "Time it took the Graph search_first() method",
 )
 metrics_graph_search_first_all = Summary(
-    "cloudkeeper_graph_search_first_all_seconds",
+    "resoto_graph_search_first_all_seconds",
     "Time it took the Graph search_first_all() method",
 )
 metrics_graph_search_first_parent_class = Summary(
-    "cloudkeeper_graph_search_first_parent_seconds",
+    "resoto_graph_search_first_parent_seconds",
     "Time it took the Graph search_first_parent_class() method",
 )
 metrics_graph_resolve_deferred_connections = Summary(
-    "cloudkeeper_graph_resolve_deferred_connections",
+    "resoto_graph_resolve_deferred_connections",
     "Time it took the Graph resolve_deferred_connections() method",
 )
 metrics_graphcache_update_cache = Summary(
-    "cloudkeeper_graphcache_update_cache_seconds",
+    "resoto_graphcache_update_cache_seconds",
     "Time it took the GraphCache update_cache() method",
 )
 metrics_graph2json = Summary(
-    "cloudkeeper_graph2json_seconds", "Time it took the graph2json() method"
+    "resoto_graph2json_seconds", "Time it took the graph2json() method"
 )
 metrics_graph2text = Summary(
-    "cloudkeeper_graph2text_seconds", "Time it took the graph2text() method"
+    "resoto_graph2text_seconds", "Time it took the graph2text() method"
 )
 metrics_graph2graphml = Summary(
-    "cloudkeeper_graph2graphml_seconds", "Time it took the graph2graphml() method"
+    "resoto_graph2graphml_seconds", "Time it took the graph2graphml() method"
 )
 metrics_graph2pickle = Summary(
-    "cloudkeeper_graph2pickle_seconds", "Time it took the graph2pickle() method"
+    "resoto_graph2pickle_seconds", "Time it took the graph2pickle() method"
 )
 metrics_graph2gexf = Summary(
-    "cloudkeeper_graph2gexf_seconds", "Time it took the graph2gexf() method"
+    "resoto_graph2gexf_seconds", "Time it took the graph2gexf() method"
 )
 metrics_graph2pajek = Summary(
-    "cloudkeeper_graph2pajek_seconds", "Time it took the graph2pajek() method"
+    "resoto_graph2pajek_seconds", "Time it took the graph2pajek() method"
 )
 
 
@@ -456,7 +456,7 @@ def graph2metrics(graph):
             for metric, data in node.metrics_description.items():
                 if metric not in metrics:
                     metrics[metric] = GaugeMetricFamily(
-                        f"cloudkeeper_{metric}",
+                        f"resoto_{metric}",
                         data["help"],
                         labels=mlabels(data["labels"]),
                     )

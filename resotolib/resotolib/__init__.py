@@ -1,7 +1,7 @@
 """
 Cloudkeeper common library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Common cloudkeeper functions.
+Common resoto functions.
 :copyright: © 2021 Some Engineering Inc.
 :license: Apache 2.0, see LICENSE for more details.
 """

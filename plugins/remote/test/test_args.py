@@ -1,5 +1,5 @@
 from resotolib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_remote import RemotePlugin
+from resoto_plugin_remote import RemotePlugin
 
 
 def test_args():

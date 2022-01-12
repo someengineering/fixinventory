@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-github (WIP)
+# resoto-plugin-github (WIP)
 GitHub Collector Plugin for Cloudkeeper
 
 ```

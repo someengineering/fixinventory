@@ -13,7 +13,7 @@ import time
 from typing import Dict
 
 metrics_unhandled_plugin_exceptions = Counter(
-    "cloudkeeper_unhandled_plugin_exceptions_total",
+    "resoto_unhandled_plugin_exceptions_total",
     "Unhandled plugin exceptions",
     ["plugin"],
 )
@@ -34,7 +34,7 @@ class PluginType(Enum):
 
 
 class BasePlugin(ABC, Thread):
-    """A cloudkeeper Plugin is a thread that does some work.
+    """A resoto Plugin is a thread that does some work.
 
     If the plugin_type is PluginType.COLLECTOR the Plugin gets instantiated each
     collect run.
@@ -162,7 +162,7 @@ class BaseActionPlugin(ABC, Process):
 
 
 class BaseCollectorPlugin(BasePlugin):
-    """A cloudkeeper Collector plugin is a thread that collects cloud resources.
+    """A resoto Collector plugin is a thread that collects cloud resources.
 
     Whenever the thread is started the collect() method is run. The collect() method
     is expected to add cloud resources to self.graph. Cloud resources must inherit
@@ -193,7 +193,7 @@ class BaseCollectorPlugin(BasePlugin):
 
 
 class BaseCliPlugin(ABC):
-    """A cloudkeeper CLI plugin adds new commands to the built-in CLI.
+    """A resoto CLI plugin adds new commands to the built-in CLI.
 
     The plugin has references to the current graph, scheduler and CLI clipboard.
     Every function that is prefixed with the string 'cmd_' will become a new CLI
@@ -220,7 +220,7 @@ class BaseCliPlugin(ABC):
     The function has to take care of tokenizing the string if desired.
     The functions docstring is being displayed when the user enters `help example`.
 
-    Like every plugin CLI plugins can specify cloudkeeper args by implementing
+    Like every plugin CLI plugins can specify resoto args by implementing
     the add_args() method.
     """
 

@@ -1,4 +1,4 @@
-# cloudkeeper-plugin-remote
+# resoto-plugin-remote
 Remote graph collector plugin for Cloudkeeper
 
 This plugin fetches a graph from a remote Cloudkeeper instance and attaches it to the local graph, allowing for distributed Cloudkeeper setups.
@@ -7,7 +7,7 @@ This plugin fetches a graph from a remote Cloudkeeper instance and attaches it t
 Provide a remote `/graph` endpoint:
 
 ```
-$ cloudkeeper -v --collector remote --remote-endpoint http://cloudkeeper.example.com:8000/graph
+$ resoto -v --collector remote --remote-endpoint http://resoto.example.com:8000/graph
 ```
 
 Multiple endpoints can be specified.

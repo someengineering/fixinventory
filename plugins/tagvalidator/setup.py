@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-tagvalidator",
+    name="resoto-plugin-tagvalidator",
     version="2.0.0a10",
     description="Cloudkeeper Tag Validator Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "tagvalidator = cloudkeeper_plugin_tagvalidator:TagValidatorPlugin"
+        "resoto.plugins": [
+            "tagvalidator = resoto_plugin_tagvalidator:TagValidatorPlugin"
         ]
     },
     include_package_data=True,

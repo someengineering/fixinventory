@@ -13,7 +13,7 @@ from resotolib.args import ArgumentParser
 
 
 getLogger().setLevel(ERROR)
-getLogger("cloudkeeper").setLevel(INFO)
+getLogger("resoto").setLevel(INFO)
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
@@ -46,14 +46,14 @@ def setup_logger(proc: str, force: bool = True) -> None:
         or "--verbose" in argv
         or os.environ.get("CLOUDKEEPER_VERBOSE", "false").lower() == "true"
     ):
-        getLogger("cloudkeeper").setLevel(DEBUG)
+        getLogger("resoto").setLevel(DEBUG)
     elif (
         "--quiet" in argv
         or os.environ.get("CLOUDKEEPER_QUIET", "false").lower() == "true"
     ):
         getLogger().setLevel(WARNING)
-        getLogger("cloudkeeper").setLevel(CRITICAL)
+        getLogger("resoto").setLevel(CRITICAL)
 
 
-setup_logger("cloudkeeper", force=False)
-log = getLogger("cloudkeeper")
+setup_logger("resoto", force=False)
+log = getLogger("resoto")
