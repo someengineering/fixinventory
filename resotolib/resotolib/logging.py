@@ -47,10 +47,7 @@ def setup_logger(proc: str, force: bool = True) -> None:
         or os.environ.get("RESOTO_VERBOSE", "false").lower() == "true"
     ):
         getLogger("resoto").setLevel(DEBUG)
-    elif (
-        "--quiet" in argv
-        or os.environ.get("RESOTO_QUIET", "false").lower() == "true"
-    ):
+    elif "--quiet" in argv or os.environ.get("RESOTO_QUIET", "false").lower() == "true":
         getLogger().setLevel(WARNING)
         getLogger("resoto").setLevel(CRITICAL)
 
