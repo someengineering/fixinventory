@@ -128,7 +128,7 @@ class HelpCommand(CLICommand):
                 )
                 replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
                 result = (
-                    f"\nckcore CLI\n\n\n"
+                    f"\nresotocore CLI\n\n\n"
                     f"Valid placeholder string:\n{replacements}\n\n"
                     f"Available Commands:\n{available}\n\n"
                     f"Available Aliases:\n{aliases}\n\n"

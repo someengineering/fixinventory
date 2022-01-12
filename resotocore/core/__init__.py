@@ -6,7 +6,7 @@ Keeps all the things in cloudkeeper.
 :license: Apache 2.0, see LICENSE for more details.
 """
 
-__title__ = "ckcore"
+__title__ = "resotocore"
 __description__ = "Cloudkeeper core."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"

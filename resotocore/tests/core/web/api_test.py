@@ -34,7 +34,7 @@ async def core_client(
     client_session: ClientSession, foo_kinds: List[Kind], test_db: StandardDatabase
 ) -> AsyncIterator[ApiClient]:
     """
-    Note: adding this fixture to a test: a complete ckcore process is started.
+    Note: adding this fixture to a test: a complete resotocore process is started.
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """

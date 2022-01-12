@@ -169,8 +169,8 @@ note bottom of WaitForEvent {
 
 note top of Actor {
 - Is able to perform one or more dedicated action.
-- Subscribes to those actions via ckcore
-- Listens to the action topic from ckcore
+- Subscribes to those actions via resotocore
+- Listens to the action topic from resotocore
 - Performs the action, when emitted on the action topic.
 - Signals to the core success or error
 }

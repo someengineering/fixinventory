@@ -49,7 +49,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         return check_url
 
     parser = ArgumentParser(
-        env_args_prefix="CKCORE_",
+        env_args_prefix="RESOTOCORE_",
         description="Maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
@@ -169,7 +169,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
 def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
-    log_format = "%(asctime)s|ckcore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+    log_format = "%(asctime)s|resotocore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
     logging.basicConfig(
         format=log_format,
         datefmt="%y-%m-%d %H:%M:%S",

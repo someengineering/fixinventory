@@ -175,5 +175,5 @@ if __name__ == "__main__":
         log.info("Stopping Cloudkeeper graph core.")
         shutdown_process(0)
     except Exception as ex:
-        print(f"ckcore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
+        print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
         shutdown_process(1)

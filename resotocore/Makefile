@@ -95,7 +95,7 @@ venv-pypy:
 
 
 venv:
-	python3 -m venv venv --prompt "ckcore env"
+	python3 -m venv venv --prompt "resotocore env"
 	. ./venv/bin/activate && python3 -m pip install --upgrade pip
 	. ./venv/bin/activate && pip install --upgrade --editable ../cklib
 	. ./venv/bin/activate && pip install -r requirements-dev.txt

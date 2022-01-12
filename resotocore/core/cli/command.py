@@ -2160,7 +2160,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
 
     Note: a backup acquires a global write lock. This basically means, that *no write* can be
           performed, while the backup is restored!
-    Note: After the restore process is done, the ckcore process will stop. It should be restarted by
+    Note: After the restore process is done, the resotocore process will stop. It should be restarted by
           the process supervisor automatically. The restart is necessary to take effect from the changed
           underlying data source.
 
@@ -2494,7 +2494,7 @@ class HttpCommand(CLICommand):
         3 requests with status 200 sent.
         $> query is(volume) | chunk 50 | https --compress my.node.org/handle
         2 requests with status 200 sent.
-        $> query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from ckcore" type==volume
+        $> query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from resotocore" type==volume
         2 requests with status 200 sent.
     """
 

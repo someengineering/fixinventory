@@ -1,4 +1,4 @@
-# `ckcore`
+# `resotocore`
 Cloudkeeper core graph platform
 
 
@@ -11,12 +11,12 @@ Cloudkeeper core graph platform
 
 
 ## Overview
-The Cloudkeeper graph platfrom `ckcore` is the persistance and query backend of Cloudkeeper. It maintains the graph
-of resources and provides APIs to update and access them. Within `ckcore` there are workflows consisting of steps
+The Cloudkeeper graph platfrom `resotocore` is the persistance and query backend of Cloudkeeper. It maintains the graph
+of resources and provides APIs to update and access them. Within `resotocore` there are workflows consisting of steps
 that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
 like [`ckworker`](../ckworker/) and [`ckmetrics`](../ckmetrics/).
 
-`ckcore` also provides the CLI API that [`cksh`](../cksh/) calls.
+`resotocore` also provides the CLI API that [`cksh`](../cksh/) calls.
 
 
 ## Usage

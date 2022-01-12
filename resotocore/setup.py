@@ -21,12 +21,12 @@ setup_requirements = [
 ]
 
 setup(
-    name="ckcore",
+    name="resotocore",
     version="2.0.0a10",
     description="Keeps all the things.",
     python_requires=">=3.5",
     classifiers=["Programming Language :: Python :: 3"],
-    entry_points={"console_scripts": ["ckcore=core.__main__:main"]},
+    entry_points={"console_scripts": ["resotocore=core.__main__:main"]},
     install_requires=required,
     license="Apache Software License 2.0",
     long_description=readme,
@@ -35,5 +35,5 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=dev_required + test_required,
-    url="https://github.com/someengineering/cloudkeeper/ckcore",
+    url="https://github.com/someengineering/resoto/resotocore",
 )
