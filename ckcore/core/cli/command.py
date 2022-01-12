@@ -1624,11 +1624,15 @@ class ListCommand(CLICommand, OutputTransformer):
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: jobs
+    Usage: jobs [show|add|update|delete|activate|deactivate|run|ps] [name] [--schedule <cron_expression>]
+                [--wait-for-event <event_name>] [--timeout <duration_in_seconds>] [command_line]
+           jobs
            jobs show <name>
            jobs add <name> [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
            jobs update <name> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
            jobs delete <name>
+           jobs activate <name>
+           jobs deactivate <name>
            jobs run <name>
            jobs ps
 
@@ -1638,6 +1642,8 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     jobs add <name> ...: add a job to the task handler with provided name, trigger and command line to execute.
     jobs update <name> ... : update trigger and or command line of an existing job with provided name.
     jobs delete <name>: delete the job with the provided name.
+    jobs activate <name>: activate the triggers of a job.
+    jobs activate <name>: deactivate the triggers of a job - so the job will not get started.
     jobs run <name>: run the job as if the trigger would be triggered.
     jobs ps: show all currently running jobs.
 
@@ -1660,6 +1666,8 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         --wait-for-event <event_name> [optional]: if defined, the job waits for the specified event to occur.
                                       If this parameter is defined in combination with a schedule, the schedule has
                                       to trigger first, before the event will trigger the execution.
+        --timeout [optional, default=3600] Number of seconds, the job is allowed to run. In case this timeout is
+                                      exceeded, the job run will be killed.
         command_line [mandatory]:     the CLI command line that will be executed, when the job is triggered.
                                       Note: It is recommended to wrap the command line into single quotes or escape all
                                       CLI terms like pipe or semicolon (| -> \\|).
