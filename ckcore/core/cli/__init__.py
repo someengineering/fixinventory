@@ -50,12 +50,11 @@ single_quoted_raw_string = single_quote_dp >> single_quoted_string_part_or_esc_d
 escaped_token = regex("\\\\[|\"';]").map(lambda x: x[1])
 # a command are tokens until EOF or pipe (all characters will be preserved)
 cmd_with_args_parser = (escaped_token | double_quoted_string | single_quoted_string | cmd_token).at_least(1).concat()
+
+# argument parser which will read the argument list while removing single and double quotes
 # command line arguments: foo "bla: 'foo = bla' -> [foo, bla, foo = bla]
-cmd_args_unquoted_parser = (
-    escaped_token
-    | (double_quote_dp >> double_quoted_string_part_or_esc_dp << double_quote_dp)
-    | (single_quote_dp >> single_quoted_string_part_or_esc_dp << single_quote_dp)
-    | any_non_white_space_string
+args_parts_unquoted_parser = (
+    escaped_token | double_quoted_raw_string | single_quoted_raw_string | any_non_white_space_string
 ).sep_by(space_dp)
 
 # argument parser which will read the argument list while removing single quotes

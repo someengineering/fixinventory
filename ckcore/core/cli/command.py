@@ -34,7 +34,7 @@ from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
-from aiohttp import ClientSession, TCPConnector, ClientTimeout, JsonPayload
+from aiohttp import ClientTimeout, JsonPayload
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -48,7 +48,7 @@ from core.cli import (
     JsGen,
     NoExitArgumentParser,
     is_edge,
-    cmd_args_unquoted_parser,
+    args_parts_unquoted_parser,
     args_parts_parser,
 )
 from core.cli.model import (
@@ -66,7 +66,6 @@ from core.cli.model import (
     CLIDependencies,
     ParsedCommand,
 )
-from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
 from core.model.graph_access import Section, EdgeType
@@ -2545,7 +2544,7 @@ class HttpCommand(CLICommand):
         arg_parser.add_argument("--timeout", dest="timeout", default=cls.default_timeout, type=parse_timeout)
         arg_parser.add_argument("--no-ssl-verify", dest="no_ssl_verify", default=False, action="store_true")
         arg_parser.add_argument("--no-body", dest="no_body", default=False, action="store_true")
-        args, remaining = arg_parser.parse_known_args(cmd_args_unquoted_parser.parse(arg.strip()) if arg else [])
+        args, remaining = arg_parser.parse_known_args(args_parts_unquoted_parser.parse(arg.strip()) if arg else [])
         if remaining:
             method, remaining = parse_method(remaining)
             parsed_url, remaining = parse_url(remaining)

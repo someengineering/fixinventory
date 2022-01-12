@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast
 
+from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
 
@@ -106,6 +107,19 @@ class CLIDependencies:
     @property
     def cli(self) -> CLIEngine:
         return self.lookup["cli"]  # type:ignore
+
+    @property
+    def http_session(self) -> ClientSession:
+        session: Optional[ClientSession] = self.lookup.get("http_session")
+        if not session:
+            connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
+            session = ClientSession(connector=connector)
+            self.lookup["http_session"] = session
+        return session
+
+    async def stop(self) -> None:
+        if "http_session" in self.lookup:
+            await self.http_session.close()
 
 
 @dataclass
@@ -211,7 +225,7 @@ class CLICommand(ABC):
         pass
 
     @abstractmethod
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> CLIAction:
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
 
 
@@ -248,6 +262,7 @@ class ParsedCommands:
 
 @dataclass
 class ExecutableCommand:
+    name: str  # the name of the command or alias
     command: CLICommand
     arg: Optional[str]
     action: CLIAction

@@ -19,17 +19,18 @@ from pytest import fixture
 
 from core.cli import is_node
 from core.cli.cli import CLI
-from core.cli.model import CLIDependencies, CLIContext, HttpCommand
+from core.cli.model import CLIDependencies, CLIContext
+from core.cli.command import HttpCommand
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
 from core.query.model import Template
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
-from core.types import JsonElement
+from core.types import JsonElement, Json
 
 # noinspection PyUnresolvedReferences
-from tests.core.analytics import event_sender
+from core.util import AccessJson
 
 # noinspection PyUnresolvedReferences
 from tests.core.cli.cli_test import cli, cli_deps
