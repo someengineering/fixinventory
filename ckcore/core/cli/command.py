@@ -1625,9 +1625,9 @@ class ListCommand(CLICommand, OutputTransformer):
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: jobs [show|add|update|delete|activate|deactivate|run|ps] [--id <id>] [--schedule <cron_expression>]
+    Usage: jobs [list|show|add|update|delete|activate|deactivate|run|running] [--id <id>] [--schedule <cron_expression>]
                 [--wait-for-event <event_name>] [--timeout <duration_in_seconds>] [command_line]
-           jobs
+           jobs list
            jobs show <id>
            jobs add [--id <id>] [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
            jobs update <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
@@ -1638,7 +1638,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
            jobs running
 
 
-    jobs: get the list of all jobs in the system
+    jobs list: get the list of all jobs in the system
     jobs show <id>: show the current definition of the job defined by given job identifier.
     jobs add ...: add a job to the task handler with provided identifier, trigger and command line to execute.
     jobs update <id> ... : update trigger and or command line of an existing job with provided identifier.
@@ -1681,7 +1681,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         Job say-hello added.
 
         # print all available jobs in the system
-        $> jobs
+        $> jobs list
         id: say-hello
         trigger:
           cron_expression: '* * * * *'
