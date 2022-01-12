@@ -120,6 +120,7 @@ double_quoted_string_part_or_esc_dp = (double_quoted_string_part_dp | string_esc
 double_quoted_string_dp = double_quote_dp >> double_quoted_string_part_or_esc_dp << double_quote_dp
 
 any_string = parsy.any_char.many().concat()
+any_non_white_space_string = parsy.test_char(lambda x: x != " ", "non whitespace").many().concat()
 double_quoted_or_simple_string_dp = double_quoted_string_dp | any_string
 any_non_whitespace_string = parsy.test_char(lambda c: c != " ", "non whitespace").at_least(1).concat()
 

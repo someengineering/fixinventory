@@ -4,10 +4,10 @@ import asyncio
 import calendar
 import logging
 from asyncio import Task
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from datetime import timedelta, datetime
 from functools import reduce
-from typing import Dict, List, Tuple, Type, cast
+from typing import Dict, List, Tuple
 from typing import Optional, Any
 
 from aiostream import stream
@@ -19,7 +19,6 @@ from tzlocal import get_localzone
 from core.analytics import CoreEvent
 from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
-    CLIDependencies,
     QueryAllPart,
     ReportedPart,
     DesiredPart,
@@ -34,16 +33,20 @@ from core.cli.command import (
     HeadCommand,
     TailCommand,
     QueryPart,
+    ExecuteQueryCommand,
+    JobsCommand,
+)
+from core.cli.model import (
+    ParsedCommand,
+    ParsedCommands,
+    ExecutableCommand,
+    ParsedCommandLine,
     CLICommand,
-    CLISource,
+    CLIDependencies,
     InternalPart,
-    CLIAction,
-    CLIFlow,
-    MediaType,
     CLIContext,
     EmptyContext,
-    CLICommandRequirement,
-    ExecuteQueryCommand,
+    CLISource,
 )
 from core.error import CLIParseError
 from core.model.graph_access import Section
@@ -64,83 +67,9 @@ from core.query.model import (
     SortOrder,
 )
 from core.query.query_parser import aggregate_parameter_parser
-from core.types import Json
 from core.util import utc_str, utc, from_utc
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class ParsedCommand:
-    cmd: str
-    args: Optional[str] = None
-
-
-@dataclass
-class ParsedCommands:
-    commands: List[ParsedCommand]
-    env: Json = field(default_factory=dict)
-
-
-@dataclass
-class ExecutableCommand:
-    name: str  # the name of the command or alias
-    command: CLICommand
-    arg: Optional[str]
-    action: CLIAction
-
-
-@dataclass
-class ParsedCommandLine:
-    """
-    The parsed command line holds:
-    - ctx: the resulting environment coming from the parsed environment + the provided environment
-    - commands: all commands this command is defined from
-    - generator: this generator can be used in order to execute the command line
-    """
-
-    ctx: CLIContext
-    parsed_commands: ParsedCommands
-    executable_commands: List[ExecutableCommand]
-    unmet_requirements: List[CLICommandRequirement]
-
-    def __post_init__(self) -> None:
-        def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:
-            action = cmd.action
-            if isinstance(action, expected):
-                return action
-            else:
-                message = "must be the first command" if issubclass(type(action), CLISource) else "no source data given"
-                raise CLIParseError(f"Command >{cmd.command.name}< can not be used in this position: {message}")
-
-        if self.executable_commands:
-            expect_action(self.executable_commands[0], CLISource)
-            for command in self.executable_commands[1:]:
-                expect_action(command, CLIFlow)
-
-    async def to_sink(self, sink: Sink[T]) -> T:
-        _, generator = await self.execute()
-        return await sink(generator)
-
-    @property
-    def commands(self) -> List[CLICommand]:
-        return [part.command for part in self.executable_commands]
-
-    @property
-    def produces(self) -> MediaType:
-        # the last command in the chain defines the resulting media type
-        return self.executable_commands[-1].action.produces if self.executable_commands else MediaType.Json
-
-    async def execute(self) -> Tuple[Optional[int], Stream]:
-        if self.executable_commands:
-            source_action = cast(CLISource, self.executable_commands[0].action)
-            count, flow = await source_action.source()
-            for command in self.executable_commands[1:]:
-                flow_action = cast(CLIFlow, command.action)
-                flow = await flow_action.flow(flow)
-            return count, flow
-        else:
-            return 0, stream.empty()
 
 
 @make_parser
@@ -226,12 +155,13 @@ CLIArg = Tuple[CLICommand, Optional[str]]
 class CLI:
     """
     The CLI has a defined set of dependencies and knows a list if commands.
-    A string can parsed into a command line that can be executed based on the list of available commands.
+    A string can be parsed into a command line that can be executed based on the list of available commands.
     """
 
     def __init__(
         self, dependencies: CLIDependencies, parts: List[CLICommand], env: Dict[str, Any], aliases: Dict[str, str]
     ):
+        dependencies.extend(cli=self)
         help_cmd = HelpCommand(dependencies, parts, aliases)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
@@ -401,7 +331,7 @@ class CLI:
 
         replaced = self.replace_placeholder(cli_input, **context.env)
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
-        keep_raw = not replace_place_holder or command_lines[0].commands[0].cmd == "add_job"
+        keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
         command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         await send_analytics(res)

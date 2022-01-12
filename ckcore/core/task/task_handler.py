@@ -6,6 +6,7 @@ import logging
 import re
 from argparse import ArgumentParser, Namespace
 from asyncio import Task, CancelledError
+from contextlib import suppress
 from copy import copy
 from dataclasses import replace
 from datetime import timedelta
@@ -18,7 +19,7 @@ from aiostream import stream
 from core.analytics import AnalyticsEventSender, CoreEvent
 from core.cli import strip_quotes
 from core.cli.cli import CLI
-from core.cli.command import CLIContext
+from core.cli.model import CLIContext
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from core.error import ParseError, CLIParseError
@@ -352,7 +353,8 @@ class TaskHandler(JobHandler):
         # mark step as error
         task.end()
         # remove from database
-        await self.running_task_db.delete(task.id)
+        with suppress(Exception):
+            await self.running_task_db.delete(task.id)
 
     async def delete_job(self, job_id: str) -> Optional[Job]:
         job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
@@ -568,14 +570,14 @@ class TaskHandler(JobHandler):
                 wait = EventTrigger(event), wait_timeout
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{trigger}{wait}")[0:8]
-            return Job(uid, ExecuteCommand(command), trigger, timeout, wait, ctx.env, mutable)
+            return Job(uid, ExecuteCommand(command), timeout, trigger, wait, ctx.env, mutable)
 
         async def parse_event() -> Job:
             event, command = re.split("\\s*:\\s*", stripped, 1)
             command = strip_quotes(command, "'")
             await self.cli.evaluate_cli_command(command, ctx, replace_place_holder=False)
             uid = uuid_str(f"{command}{event}")[0:8]
-            return Job(uid, ExecuteCommand(command), EventTrigger(event), timeout, None, ctx.env, mutable)
+            return Job(uid, ExecuteCommand(command), timeout, EventTrigger(event), None, ctx.env, mutable)
 
         try:
             return await (parse_event() if self.event_re.match(stripped) else parse_with_cron())

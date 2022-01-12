@@ -6,7 +6,9 @@ from pytest import fixture
 from typing import Tuple, List, AsyncIterator
 
 from core.analytics import InMemoryEventSender
-from core.cli.cli import CLI, multi_command_parser, ParsedCommands, ParsedCommand
+from core.cli.model import ParsedCommands, ParsedCommand
+from core.cli.cli import CLI, multi_command_parser
+from core.cli.model import CLIDependencies
 from core.cli.command import (
     ExecuteQueryCommand,
     ChunkCommand,
@@ -15,7 +17,6 @@ from core.cli.command import (
     EchoCommand,
     aliases,
     AggregateToCountCommand,
-    CLIDependencies,
     all_commands,
     PredecessorPart,
 )

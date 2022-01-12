@@ -3,7 +3,7 @@ from typing import List, Optional, Set, Tuple
 from aiohttp import ClientSession
 from networkx import MultiDiGraph
 
-from core.cli.cli import ParsedCommands, ParsedCommand
+from core.cli.model import ParsedCommands, ParsedCommand
 from core.config import ConfigEntity
 from core.db import EstimatedQueryCost
 from core.db.model import GraphUpdate

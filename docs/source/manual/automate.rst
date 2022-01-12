@@ -79,15 +79,15 @@ We can use the command line we have written above and turn it into a job:
 
 .. code-block:: bash
 
-    $> add_job post_collect: 'query is(resource) and reported.tags.owner==null | tag update owner "John Doe"'
-    Job bbbdcd24 added.
+    $> jobs add ensure-owner-tag --wait-for-event post_collect 'query is(resource) and reported.tags.owner==null | tag update owner "John Doe"'
+    Job ensure-owner-tag added.
 
 Let's revisit this line to understand what it does:
 
-- the query and tag command is the same that we used before. To not conflict with the `add_job` command line, the
-  job command line is wrapped in single quotes (if we would omit those, we would write: ``add_job ... | tag ...``
+- the query and tag command is the same that we used before. To not conflict with the `jobs` command line, the
+  job command line is wrapped in single quotes (if we would omit those, we would write: ``jobs add ... | tag ...``
   which is not what we want).
-- ``add_job`` is used to turn the command line into a job. A job is persisted in the database and will be available
+- ``jobs add`` is used to turn the command line into a job. A job is persisted in the database and will be available
   until it is deleted explicitly.
 - the job is triggered by the occurrence of the event `post_collect`. See :ref:`workflow-collect_and_cleanup` where
   this event is emitted by the default workflow after all resources have been collected. Since this workflow
@@ -103,15 +103,15 @@ since you will only see the result in the log stream.
     :caption: Further examples for job triggers
 
     # print hello world every minute to the log stream
-    $> add_job * * * * * echo hello world
+    $> jobs add say-hello --schedule '* * * * *' echo hello world
 
     # print a message when the post_collect event is received
-    $> add_job post_collect: echo collect is done!
+    $> jobs add on-collect-done --wait-for-event post_collect echo collect is done!
 
     # print a message when the first post_collect is received after 4 AM
     # Under the assumption that the post_collect event will come every hour,
     # this job would be only triggered once a day.
-    $> add_job 0 4 * * * post_collect: echo collect after 4AM is done!
+    $> jobs add early-message --schedule '0 4 * * *' --wait-for-event post_collect echo collect after 4AM is done!
 
 
 The job functionality can be used to automate actions. Here is a list of possible topics that
@@ -150,7 +150,7 @@ could be natural candidates for automation:
   hook a job into ``cleanup_plan``.
   Imagine you want to cleanup all compute instances in the load-testing account every Friday night, so they
   will not run over the weekend.
-  ``$> add_job 0 22 * * 5 cleanup_plan: 'query is(instance) and ancestors.account.reported.name==load-testing | clean'``
+  ``$> jobs add mark-resources-for-cleanup --schedule '0 22 * * 5' --wait-for-event cleanup_plan 'query is(instance) and ancestors.account.reported.name==load-testing | clean'``
 
 - Enforce tags structure
 

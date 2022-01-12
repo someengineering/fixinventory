@@ -19,15 +19,16 @@ from pytest import fixture
 
 from core.cli import is_node
 from core.cli.cli import CLI
-from core.cli.command import CLIDependencies, CLIContext, HttpCommand
+from core.cli.model import CLIDependencies, CLIContext
+from core.cli.command import HttpCommand
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
 from core.query.model import Template
-from core.task.task_description import TimeTrigger, Workflow
+from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
-from core.types import Json
-from core.util import first, exist, AccessJson
+from core.types import JsonElement, Json
+from core.util import AccessJson
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender
@@ -325,52 +326,78 @@ async def test_format(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
-    ctx = CLIContext(cli.cli_env)
-    result = await cli.execute_cli_command("add_job 23 1 * * * echo Hello World @NOW@", stream.list, ctx)
-    assert result == [["Job 06bf8ab1 added."]]
-    job = await job_db.get("06bf8ab1")
+async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
+    async def execute(cmd: str) -> List[List[JsonElement]]:
+        ctx = CLIContext(cli.cli_env)
+        return await cli.execute_cli_command(cmd, stream.list, ctx)
+
+    # add job with schedule
+    result = await execute('jobs add --id hello --schedule "23 1 * * *" echo Hello World @NOW@')
+    assert result == [["Job hello added."]]
+    job = await job_db.get("hello")
     assert job is not None
     assert job.command.command == "echo Hello World @NOW@"
     assert job.trigger == TimeTrigger("23 1 * * *")
     assert job.wait is None
     assert job in task_handler.task_descriptions
     assert job.environment == {"graph": "ns"}
-    with_event = await cli.execute_cli_command("add_job 23 1 * * * foo : echo Hello World", stream.list, ctx)
-    assert with_event == [["Job 2522f6d8 added."]]
-    job_with_event: Job = await job_db.get("2522f6d8")  # type: ignore
+
+    # add job with schedule and event
+    with_event = await execute('jobs add --id timed_hi --schedule "23 1 * * *" --wait-for-event foo echo Hello World')
+    assert with_event == [["Job timed_hi added."]]
+    job_with_event: Job = await job_db.get("timed_hi")  # type: ignore
     assert job_with_event.wait is not None
     event_trigger, timeout = job_with_event.wait
     assert event_trigger.message_type == "foo"
-    assert timeout == timedelta(hours=24)
+    assert timeout == timedelta(hours=1)
     assert job_with_event.environment == {"graph": "ns"}
     assert job_with_event in task_handler.task_descriptions
-    only_event = await cli.execute_cli_command("add_job foo : echo Hello World", stream.list, ctx)
-    assert only_event == [["Job d11a8f65 added."]]
-    job_only_event: Job = await job_db.get("d11a8f65")  # type: ignore
+
+    # add job with event
+    only_event = await execute("jobs add --id only_event --wait-for-event foo echo Hello World")
+    assert only_event == [["Job only_event added."]]
+    job_only_event: Job = await job_db.get("only_event")  # type: ignore
+    assert job_only_event.trigger == EventTrigger("foo")
     assert job_only_event.wait is None
     assert job_only_event.environment == {"graph": "ns"}
     assert job_only_event in task_handler.task_descriptions
 
+    # add job without any trigger
+    no_trigger = await execute("jobs add --id no_trigger echo Hello World")
+    assert no_trigger == [["Job no_trigger added."]]
+    job_no_trigger: Job = await job_db.get("no_trigger")  # type: ignore
+    assert job_no_trigger.wait is None
+    assert job_no_trigger.environment == {"graph": "ns"}
+    assert job_no_trigger in task_handler.task_descriptions
 
-@pytest.mark.asyncio
-async def test_delete_job_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
-    await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
-    assert await job_db.get("0814c88f") is not None
-    result = await cli.execute_cli_command("delete_job 0814c88f", stream.list)
-    assert result == [["Job 0814c88f deleted."]]
-    assert await job_db.get("0814c88f") is None
-    assert not exist(lambda x: x.id == "0814c88f", task_handler.task_descriptions)  # type: ignore # pypy
+    # deactivate timed_hi
+    deactivated = await execute("jobs deactivate timed_hi")
+    assert deactivated[0][0]["active"] is False  # type: ignore
 
+    # activate timed_hi
+    activated = await execute("jobs activate timed_hi")
+    assert activated[0][0]["active"] is True  # type: ignore
 
-@pytest.mark.asyncio
-async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
-    await cli.execute_cli_command("add_job 23 1 * * * echo Hello World", stream.list)
-    result: List[Json] = (await cli.execute_cli_command("jobs", stream.list))[0]
-    job = first(lambda x: x.get("id") == "0814c88f", result)  # type: ignore # pypy
-    assert job is not None
-    assert job["trigger"] == {"cron_expression": "23 1 * * *"}
-    assert job["command"] == "echo Hello World"
+    # show specific job
+    no_trigger_show = await execute("jobs show no_trigger")
+    assert len(no_trigger_show[0]) == 1
+
+    # show all jobs
+    all_jobs = await execute("jobs list")
+    assert len(all_jobs[0]) == 4
+
+    # start the job
+    run_hello = await execute("jobs run timed_hi")
+    assert run_hello[0][0].startswith("Job timed_hi started with id")  # type: ignore
+    assert [t for t in await task_handler.running_tasks() if t.descriptor.id == "timed_hi"]
+
+    # list all running jobs
+    all_running = await execute("jobs running")
+    assert [r["job"] for r in all_running[0]] == ["timed_hi"]  # type: ignore
+
+    # delete a job
+    deleted = await execute("jobs delete timed_hi")
+    assert deleted == [["Job timed_hi deleted."]]
 
 
 @pytest.mark.asyncio
@@ -422,15 +449,6 @@ async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_work
     result = await cli.execute_cli_command(f"start_task {test_workflow.id}", stream.list)
     assert len(result[0]) == 1
     assert re.match("Task .+ has been started", result[0][0])
-
-
-@pytest.mark.asyncio
-async def test_tasks_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
-    await task_handler.start_task(test_workflow, "direct")
-    result = await cli.execute_cli_command("tasks", stream.list)
-    assert len(result[0]) == 1
-    task = AccessJson(result[0][0])
-    assert task.descriptor.id == "test_workflow"
 
 
 @pytest.mark.asyncio

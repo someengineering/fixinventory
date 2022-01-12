@@ -205,9 +205,9 @@ def test_marshalling_step() -> None:
 
 
 def test_marshalling_job() -> None:
-    j = Job("id", ExecuteCommand("echo hello"), EventTrigger("run_job"), timedelta(seconds=10))
+    j = Job("id", ExecuteCommand("echo hello"), timedelta(seconds=10), EventTrigger("run_job"))
     roundtrip(j)
-    roundtrip(Job(j.id, j.command, j.trigger, j.timeout, (EventTrigger("test"), timedelta(hours=2))))
+    roundtrip(Job(j.id, j.command, j.timeout, j.trigger, (EventTrigger("test"), timedelta(hours=2))))
 
 
 def test_marshalling_workflow(test_workflow: Workflow) -> None:

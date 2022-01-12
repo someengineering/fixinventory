@@ -8,9 +8,9 @@ In this quick start guide, we’re showing you three things, how to:
 
     #. install Cloudkeeper for AWS with docker
     #. use the Cloudkeeper CLI to run your first ``collect`` process
-    #. query the results of the collect process 
+    #. query the results of the collect process
 
-The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes. 
+The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
 | Examples and data in this documentation are based on a small AWS `Cloud9 <https://aws.amazon.com/cloud9/>`_ environment.
 | To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.
@@ -118,7 +118,7 @@ How to access help
     @UTC@ -> 2021-09-25T19:11:19Z
     [...]
     Available Commands:
-    add_job - Add job to the system.
+    jobs - Manage all jobs.
     [...]
     Available Aliases:
     match (reported) - Matches a property in the reported section.
@@ -174,7 +174,7 @@ List your resource types
 
 See full list of currently `supported AWS ressources <https://github.com/someengineering/cloudkeeper/blob/main/plugins/aws/cloudkeeper_plugin_aws/resources.py>`_.
 
-We add new resources every week. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!. 
+We add new resources every week. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!.
 
 Query your resource types
 -------------------------
@@ -241,7 +241,7 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 | ``help`` provides all available placeholder strings in section ``Valid placeholder string``
 | ``match`` automatically filters for the ``reported`` section of the response. With commands like ``query`` you need to explicitly select the reported section.  ``ctime`` is then selected via ``reported.ctime``.
 
-| ``count`` has another handy feature: building a sum over a provided parameter results. 
+| ``count`` has another handy feature: building a sum over a provided parameter results.
 | In this case: ``reported.instance_cores``.
 | This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday, groups them by reported.instance_cores results and counts the occurences of them.
 
