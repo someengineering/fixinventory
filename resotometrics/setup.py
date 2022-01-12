@@ -1,4 +1,4 @@
-import restometrics
+import resotometrics
 from setuptools import setup, find_packages
 
 
@@ -12,15 +12,15 @@ with open("README.md") as f:
 
 
 setup(
-    name=restometrics.__title__,
-    version=restometrics.__version__,
-    description=restometrics.__description__,
-    license=restometrics.__license__,
+    name=resotometrics.__title__,
+    version=resotometrics.__version__,
+    description=resotometrics.__description__,
+    license=resotometrics.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
         "console_scripts": [
-            "restometrics = restometrics.__main__:main",
+            "resotometrics = resotometrics.__main__:main",
         ]
     },
     include_package_data=True,

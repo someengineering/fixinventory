@@ -18,9 +18,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "resoto.plugins": [
-            "github = resoto_plugin_github:GithubCollectorPlugin"
-        ]
+        "resoto.plugins": ["github = resoto_plugin_github:GithubCollectorPlugin"]
     },
     include_package_data=True,
     zip_safe=False,

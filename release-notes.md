@@ -81,7 +81,7 @@ We rebuilt Cloudkeeper from the ground up to make it extensible and scalable. Th
 
 `resotosh` - starts the Cloudkeeper shell
 
-`restometrics` - calculates metrics in Prometheus format
+`resotometrics` - calculates metrics in Prometheus format
 
 The benefit of this approach is that it scales. The length of a full Cloudkeeper run is subject to the number of accounts in a cloud. If you have hundreds or even thousands of accounts - it just takes longer to collect all resources. With this new architecture, you can now add more `resotoworker` for faster processing.
 
@@ -99,7 +99,7 @@ We built `resotocore` with a scheduler and a message bus. The message bus has to
 
 `resotosh` is our command-line interface, aka “the shell”. The CLI allows you to execute a variety of commands (see query language) to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
-`restometrics` restometrics takes graph data from resotocore and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
+`resotometrics` resotometrics takes graph data from resotocore and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
 
 ##  Graph storage - From In-Memory To On-Disk Persistence
 
@@ -175,7 +175,7 @@ The query then generates a new metric `instances_hourly_cost_estimate` - a total
 
 Writing queries may not be everyone’s thing though. For those users, we also maintain several pre-configured metrics per resource in Cloudkeeper.
 
-These pre-configured metrics are running as queries in `restometrics`. `restometrics` connects to the core, runs the queries and recalculates the metrics automatically every time something has changed in the graph, e.g. after a collect or a clean-up. The results are cached in `restometrics` and exported to Prometheus where they can be queried via PromQL. From there - you can send them to any visualization tool that understands the prometheus format, such as Grafana. Future versions of `restometrics` will allow a user to edit the pre-defined metrics as well as define their own.
+These pre-configured metrics are running as queries in `resotometrics`. `resotometrics` connects to the core, runs the queries and recalculates the metrics automatically every time something has changed in the graph, e.g. after a collect or a clean-up. The results are cached in `resotometrics` and exported to Prometheus where they can be queried via PromQL. From there - you can send them to any visualization tool that understands the prometheus format, such as Grafana. Future versions of `resotometrics` will allow a user to edit the pre-defined metrics as well as define their own.
 
 ##  CLI - From Local To Remote Execution
 

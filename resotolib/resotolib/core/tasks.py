@@ -92,7 +92,9 @@ class CoreTasks(threading.Thread):
         self.ws.run_forever()
 
     def shutdown(self, event: Event = None) -> None:
-        log.debug("Received shutdown event - shutting down resotocore task queue listener")
+        log.debug(
+            "Received shutdown event - shutting down resotocore task queue listener"
+        )
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()

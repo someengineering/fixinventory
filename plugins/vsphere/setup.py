@@ -18,9 +18,7 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "resoto.plugins": [
-            "vsphere = resoto_plugin_vsphere:VSphereCollectorPlugin"
-        ]
+        "resoto.plugins": ["vsphere = resoto_plugin_vsphere:VSphereCollectorPlugin"]
     },
     include_package_data=True,
     zip_safe=False,

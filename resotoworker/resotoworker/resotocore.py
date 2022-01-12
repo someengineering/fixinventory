@@ -57,7 +57,10 @@ def update_model(graph: Graph, resotocore_base_uri: str, dump_json: bool = False
 
 
 def send_graph(
-    graph: Graph, resotocore_base_uri: str, resotocore_graph: str, dump_json: bool = False
+    graph: Graph,
+    resotocore_base_uri: str,
+    resotocore_graph: str,
+    dump_json: bool = False,
 ):
     merge_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/merge"
 

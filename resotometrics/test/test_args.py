@@ -1,5 +1,5 @@
 from resotolib.args import ArgumentParser
-from restometrics.__main__ import add_args
+from resotometrics.__main__ import add_args
 
 
 def test_args():

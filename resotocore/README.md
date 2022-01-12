@@ -14,7 +14,7 @@ Cloudkeeper core graph platform
 The Cloudkeeper graph platfrom `resotocore` is the persistance and query backend of Cloudkeeper. It maintains the graph
 of resources and provides APIs to update and access them. Within `resotocore` there are workflows consisting of steps
 that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
-like [`resotoworker`](../resotoworker/) and [`restometrics`](../restometrics/).
+like [`resotoworker`](../resotoworker/) and [`resotometrics`](../resotometrics/).
 
 `resotocore` also provides the CLI API that [`resotosh`](../resotosh/) calls.
 

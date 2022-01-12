@@ -6,9 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
 from resotolib.logging import log
 
-metrics_cleanup = Summary(
-    "resoto_cleanup_seconds", "Time it took the cleanup() method"
-)
+metrics_cleanup = Summary("resoto_cleanup_seconds", "Time it took the cleanup() method")
 
 
 class Cleaner:

@@ -6,8 +6,8 @@ from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from functools import partial
 from resotolib.core.actions import CoreActions
-from restometrics.metrics import Metrics, GraphCollector
-from restometrics.query import (
+from resotometrics.metrics import Metrics, GraphCollector
+from resotometrics.query import (
     query,
     get_labels_from_result,
     get_metrics_from_result,
@@ -24,7 +24,7 @@ from signal import signal, SIGTERM, SIGINT
 shutdown_event = Event()
 
 metrics_update_metrics = Summary(
-    "restometrics_update_metrics_seconds",
+    "resotometrics_update_metrics_seconds",
     "Time it took the update_metrics() function",
 )
 
@@ -35,7 +35,7 @@ def handler(sig, frame) -> None:
 
 
 def main() -> None:
-    setup_logger("restometrics")
+    setup_logger("resotometrics")
 
     signal(SIGINT, handler)
     signal(SIGTERM, handler)
@@ -61,7 +61,7 @@ def main() -> None:
 
     message_processor = partial(core_actions_processor, metrics, query_uri)
     core_actions = CoreActions(
-        identifier="restometrics",
+        identifier="resotometrics",
         resotocore_uri=ArgumentParser.args.resotocore_uri,
         resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
         actions={

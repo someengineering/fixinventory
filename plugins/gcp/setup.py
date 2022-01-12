@@ -17,9 +17,7 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
-    entry_points={
-        "resoto.plugins": ["gcp = resoto_plugin_gcp:GCPCollectorPlugin"]
-    },
+    entry_points={"resoto.plugins": ["gcp = resoto_plugin_gcp:GCPCollectorPlugin"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requirements,

@@ -1,4 +1,4 @@
-# `restometrics`
+# `resotometrics`
 Cloudkeeper Prometheus exporter
 
 
@@ -14,13 +14,13 @@ Cloudkeeper Prometheus exporter
 
 
 ## Overview
-`restometrics` takes [`resotocore`](../resotocore/) graph data and runs aggregation functions on it. Those aggregated metrics
+`resotometrics` takes [`resotocore`](../resotocore/) graph data and runs aggregation functions on it. Those aggregated metrics
 are then exposed in a [Prometheus](https://prometheus.io/) compatible format. The default TCP port is `9955` but
 can be changed using the `--web-port` argument.
 
 
 ## Usage
-`restometrics` uses the following commandline arguments:
+`resotometrics` uses the following commandline arguments:
 ```
   --web-port WEB_PORT   TCP port to listen on (default: 9955)
   --resotocore-uri RESOTOCORE_URI
@@ -39,13 +39,13 @@ Every CLI arg can also be specified using ENV variables.
 
 For instance the boolean `--verbose` would become `RESOTOMETRICS_VERBOSE=true` or `--timeout 300` would become `RESOTOMETRICS_TIMEOUT=300`.
 
-Once started `restometrics` will register for `generate_metrics` core events. When such an event is received it will
+Once started `resotometrics` will register for `generate_metrics` core events. When such an event is received it will
 generate Cloudkeeper metrics and provide them at the `/metrics` endpoint.
 
 A prometheus config could look like this:
 ```
 scrape_configs:
-  - job_name: "restometrics"
+  - job_name: "resotometrics"
     static_configs:
       - targets: ["localhost:9955"]
 ```
@@ -53,7 +53,7 @@ scrape_configs:
 ## Details
 Cloudkeeper core supports aggregated queries to produce metrics. Our common library [`resotolib`](../resotolib/) define a number of base resources that are common to a lot of cloud proviers, like say compute instances, subnets, routers, load balancers, and so on. All of those ship with a standard set of metrics specific to each resource.
 
-For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of Cloudkeeper will allow you to define your own metrics in `resotocore` and have `restometrics` export them.
+For example, instances have CPU cores and memory, so they define default metrics for those attributes. Right now metrics are hard coded and read from the base resources, but future versions of Cloudkeeper will allow you to define your own metrics in `resotocore` and have `resotometrics` export them.
 
 For right now you can use the aggregate API at `{resotocore}:8900/graph/{graph}/reported/query/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `resotocore` API documentation as well as the Swagger UI at `{resotocore}:8900/api-doc/`.
 
@@ -177,7 +177,7 @@ reported:
 
 As you can see, the instance type resource has a float attribute called `ondemand_cost` which is the hourly cost a cloud provider charges for this particular type of compute instance. In our aggregation query we now sum up the hourly cost of all currently running compute instances and export them as a metric named `instances_hourly_cost_estimate`. If we now export this metric into a timeseries DB like Prometheus we are able to plot our instance cost over time.
 
-This is the core functionality `restometrics` provides.
+This is the core functionality `resotometrics` provides.
 
 
 ## Contact

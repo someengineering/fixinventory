@@ -17,7 +17,7 @@ main() {
     setup_tsdb
     setup_resotocore "$@"
     setup_resotoworker "$@"
-    setup_restometrics "$@"
+    setup_resotometrics "$@"
     setup_runit
     exec /sbin/my_init
 }
@@ -153,12 +153,12 @@ setup_resotoworker() {
     fi
 }
 
-setup_restometrics() {
-    rm -f "$runit_restometrics_rundir/run"
+setup_resotometrics() {
+    rm -f "$runit_resotometrics_rundir/run"
     if [ "$START_RESOTOMETRICS" = true ]; then
-        info "restometrics activated"
-        mkdir -p "$runit_restometrics_rundir"
-        argsdispatcher restometrics "$runit_restometrics_conf_in" "$@" > "$runit_restometrics_rundir/run"
+        info "resotometrics activated"
+        mkdir -p "$runit_resotometrics_rundir"
+        argsdispatcher resotometrics "$runit_resotometrics_conf_in" "$@" > "$runit_resotometrics_rundir/run"
         export RESOTOMETRICS_RESOTOCORE_URI
         export RESOTOMETRICS_RESOTOCORE_WS_URI
         export RESOTOMETRICS_PSK
