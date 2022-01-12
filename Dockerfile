@@ -127,8 +127,8 @@ WORKDIR /usr/src/resotometrics
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
-# Build resotosh
-COPY resotosh /usr/src/resotoshell
+# Build resotoshell
+COPY resotoshell /usr/src/resotoshell
 WORKDIR /usr/src/resotoshell
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
