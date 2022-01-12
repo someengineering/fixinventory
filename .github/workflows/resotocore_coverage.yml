@@ -1,23 +1,25 @@
-name: Test (ckcore)
+# Note: the testing steps are the same as resotocore_test but with different python runner
+#       Reason: coverage under pypy is super slow!
+name: Coverage (resotocore)
 on:
   push:
     branches:
       - main
     paths:
-      - 'ckcore/**'
+      - 'resotocore/**'
       - '.github/**'
   pull_request:
     paths:
-      - 'ckcore/**'
+      - 'resotocore/**'
       - '.github/**'
 
 jobs:
   lint-and-test:
-    name: "Test (ckcore)"
+    name: "Coverage (resotocore)"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./ckcore
+        working-directory: ./resotocore
     services:
       arangodb:
         image: arangodb:3.8.3
@@ -31,7 +33,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: 'pypy-3.8-v7.3.7'
+          python-version: '3.8'
           architecture: 'x64'
       - name: Restore dependency cache
         uses: actions/cache@v2
@@ -50,5 +52,13 @@ jobs:
           pip install -r requirements-test.txt
           pip install -r requirements.txt
       - name: Run Tests
-        run: pytest
+        run: |
+          coverage run --source core -m pytest
+          coverage combine
+          coverage xml
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          files: resotocore/coverage.xml
+          flags: resotocore
 

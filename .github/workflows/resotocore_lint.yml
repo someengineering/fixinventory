@@ -1,32 +1,23 @@
-# Note: the testing steps are the same as ckcore_test but with different python runner
-#       Reason: coverage under pypy is super slow!
-name: Coverage (ckcore)
+name: Lint (resotocore)
 on:
   push:
     branches:
       - main
     paths:
-      - 'ckcore/**'
+      - 'resotocore/**'
       - '.github/**'
   pull_request:
     paths:
-      - 'ckcore/**'
+      - 'resotocore/**'
       - '.github/**'
 
 jobs:
   lint-and-test:
-    name: "Coverage (ckcore)"
+    name: "Lint (resotocore)"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./ckcore
-    services:
-      arangodb:
-        image: arangodb:3.8.3
-        env:
-          ARANGO_ROOT_PASSWORD: root
-        ports:
-          - 8529:8529
+        working-directory: ./resotocore
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -49,16 +40,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade --editable ../cklib
+          pip install -r requirements-dev.txt
           pip install -r requirements-test.txt
           pip install -r requirements.txt
-      - name: Run Tests
+          mypy core tests > /dev/null 2>&1 || true
+          mypy --install-types --non-interactive || true
+      - name: Check Formatting
+        run: black --line-length 120 --check core tests
+      - name: Lint
         run: |
-          coverage run --source core -m pytest
-          coverage combine
-          coverage xml
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v2
-        with:
-          files: ckcore/coverage.xml
-          flags: ckcore
-
+          flake8 core
+          pylint core
+      - name: MyPy
+        run: mypy --strict core tests
