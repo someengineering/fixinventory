@@ -4,25 +4,25 @@
 Access Permissions
 ==================
 
-To use Cloudkeeper with all it's features - including cleanup - it requires wide permissions.
+To use resoto with all it's features - including cleanup - it requires wide permissions.
 It needs to collect all the resources, do tag validations and updates as well as deleting resources.
-To use Cloudkeeper in a read-only capacity you can limit access to your cloud provider accordingly.
+To use resoto in a read-only capacity you can limit access to your cloud provider accordingly.
 
 .. important::
-    | Cloudkeeper will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
+    | resoto will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
     | Read more about this here: :ref:`delete_warning`
 
-Cloudkeeper will **silently ignore** collecting specific resources if it does not have the required permissions.
+resoto will **silently ignore** collecting specific resources if it does not have the required permissions.
 
 AWS Permissions
 ***************
 
-To enable the full capabilities of Cloudkeeper it needs a PowerUser like role and then deny the ones we don't want it to have.
+To enable the full capabilities of resoto it needs a PowerUser like role and then deny the ones we don't want it to have.
 
 Discovery only
 ==============
 
-To use Cloudkeeper in a read-only capacity it needs the following IAM role permissions.
+To use resoto in a read-only capacity it needs the following IAM role permissions.
 
 .. code-block:: json
     :caption: Read Only permissions
@@ -340,18 +340,18 @@ To use Cloudkeeper in a read-only capacity it needs the following IAM role permi
 
 Full capabilities
 =================
-For production use - where Cloudkeeper also clean-up and validate tags - the needed permission role is a PowerUser that is locked down to not be able to create any resources or modify IAM settings.
+For production use - where resoto also clean-up and validate tags - the needed permission role is a PowerUser that is locked down to not be able to create any resources or modify IAM settings.
 
-The following three policies are needed for Cloudkeeper to run with full capabilities.
+The following three policies are needed for resoto to run with full capabilities.
 
 .. code-block:: json
-    :caption: Cloudkeeper allow
+    :caption: resoto allow
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "CloudkeeperAllow",
+                "Sid": "resotoAllow",
                 "Effect": "Allow",
                 "Action": "*",
                 "Resource": "*"
@@ -360,13 +360,13 @@ The following three policies are needed for Cloudkeeper to run with full capabil
     }
 
 .. code-block:: json
-    :caption: Cloudkeeper deny
+    :caption: resoto deny
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "CloudkeeperDeny",
+                "Sid": "resotoDeny",
                 "Effect": "Deny",
                 "Action": [
                     "support:Create*",
@@ -490,13 +490,13 @@ The following three policies are needed for Cloudkeeper to run with full capabil
     }
 
 .. code-block:: json
-    :caption: Cloudkeeper deny IAM
+    :caption: resoto deny IAM
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "CloudkeeperDenyIAM",
+                "Sid": "resotoDenyIAM",
                 "Effect": "Deny",
                 "Action": [
                     "iam:UploadSigningCertificate",
@@ -577,7 +577,7 @@ The following three policies are needed for Cloudkeeper to run with full capabil
                 "Resource": "*"
             },
             {
-                "Sid": "CloudkeeperDenyIAMPredefinedRoles",
+                "Sid": "resotoDenyIAMPredefinedRoles",
                 "Effect": "Deny",
                 "Action": [
                     "iam:UpdateRole",
@@ -606,7 +606,7 @@ The following three policies are needed for Cloudkeeper to run with full capabil
                 ]
             },
             {
-                "Sid": "CloudkeeperDenyIAMPredefinedPolicies",
+                "Sid": "resotoDenyIAMPredefinedPolicies",
                 "Effect": "Deny",
                 "Action": [
                     "iam:SetDefaultPolicyVersion",

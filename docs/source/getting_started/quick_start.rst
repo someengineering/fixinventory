@@ -4,10 +4,10 @@
 Quick start
 ===========
 
-In this quick start guide, we’re showing you three things, how to:
+In this quick start guide, we're showing you three things, how to:
 
-    #. install Cloudkeeper for AWS with docker
-    #. use the Cloudkeeper CLI to run your first ``collect`` process
+    #. install resoto for AWS with docker
+    #. use the resoto CLI to run your first ``collect`` process
     #. query the results of the collect process
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
@@ -16,8 +16,8 @@ The docker set-up takes 2-5 minutes. The duration of the first collect process d
 | To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.
 | We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
-Install & Run Cloudkeeper
-=========================
+Install & Run resoto
+====================
 
 AWS Credentials
 ---------------
@@ -26,9 +26,9 @@ Make sure the user has the permissions to access your cloud resources.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
-Run Cloudkeeper
----------------
-Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest Cloudkeeper release.
+Run resoto
+----------
+Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest resoto release.
 Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
 
 .. code-block:: bash
@@ -36,20 +36,20 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
     $ mkdir -p ~/data/test
     $ docker run -d -v "${HOME}/data/test":/data:rw \
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
-    -e CKWORKER_COLLECTOR='aws example' \
-    --name cloudkeeper ghcr.io/someengineering/cloudkeeper:2.0.0a9
+    -e RESOTOWORKER_COLLECTOR='aws example' \
+    --name resoto ghcr.io/someengineering/resoto:2.0.0a9
 
-Start the Cloudkeeper CLI
-=========================
-You interact with `ckcore <https://github.com/someengineering/cloudkeeper/tree/main/ckcore>`_ via `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_
+Start the resoto CLI
+====================
+You interact with `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ via `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_
 
 .. code-block:: bash
 
-    $ docker exec -it cloudkeeper cksh
+    $ docker exec -it resoto resotoshell
 
 
-| `ckcore <https://github.com/someengineering/cloudkeeper/tree/main/ckcore>`_ the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
-| `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_ the Cloudkeeper shell to interact with the core.
+| `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
+| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ the resoto shell to interact with the core.
 
 Collect AWS Inventory
 ---------------------
@@ -68,14 +68,14 @@ Collect AWS Inventory
 Depending on infrastructure size, the collect process usually takes anywhere between 2-5 minutes. Huge cloud accounts (>500+ instances) can take up to 15 minutes.
 
 
-The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/data/test/db (`ArangoDB <https://www.arangodb.com/learn/>`_) and $HOME/data/test/tsdb (`Prometheus <https://prometheus.io/docs/prometheus/latest/getting_started/>`_).
+The ``collect`` task runs every full hour. resoto persists data in $HOME/data/test/db (`ArangoDB <https://www.arangodb.com/learn/>`_) and $HOME/data/test/tsdb (`Prometheus <https://prometheus.io/docs/prometheus/latest/getting_started/>`_).
 
 | *Hint:*
 | You can observe the collect process in the logs
 
 .. code-block:: console
 
-    $ docker logs -f cloudkeeper | grep ckcore cloudkeeper.log | grep 501d6048-1e2e-11ec-ace0-330e870b1c75
+    $ docker logs -f resoto | grep resotocore resoto.log | grep 501d6048-1e2e-11ec-ace0-330e870b1c75
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: pre_collect [core.task.task_description]
     [INFO] Task 501d6048-1e2e-11ec-ace0-330e870b1c75: begin step is: collect [core.task.task_description]
     [INFO] Start new task: collect with id 501d6048-1e2e-11ec-ace0-330e870b1c75 [core.task.task_handler]
@@ -90,7 +90,7 @@ The ``collect`` task runs every full hour. Cloudkeeper persists data in $HOME/da
 
 You have this many ressources!
 ------------------------------
-Count the resources available in Cloudkeeper
+Count the resources available in resoto
 
 .. code-block:: bash
 
@@ -101,19 +101,19 @@ Count the resources available in Cloudkeeper
 What is your number? Let us know on `Discord <https://discord.gg/someengineering>`_!
 
 
-Usage of the Cloudkeeper CLI
-============================
-In this section we show you how to use Cloudkeeper CLI(`cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_) to discover your infrastructure by selecting, filtering and counting your resources.
+Usage of the resoto CLI
+=======================
+In this section we show you how to use resoto CLI(`resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_) to discover your infrastructure by selecting, filtering and counting your resources.
 
 How to access help
 ------------------------------------------------
-| `cksh <https://github.com/someengineering/cloudkeeper/tree/main/cksh>`_ ``help`` command list all commands available.
+| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ ``help`` command list all commands available.
 | Guidance for a specific command is ``help <command>``
 
 .. code-block:: bash
 
     > help
-    ckcore CLI
+    resotocore CLI
     Valid placeholder string:
     @UTC@ -> 2021-09-25T19:11:19Z
     [...]
@@ -126,7 +126,7 @@ How to access help
     Note that you can pipe commands using the pipe character (|)
     and chain multiple commands using the semicolon (;).
 
-This cksh output is shortened for readability.
+This resotoshell output is shortened for readability.
 
 List your resource types
 ------------------------
@@ -172,9 +172,9 @@ List your resource types
     [...]
 
 
-See full list of currently `supported AWS ressources <https://github.com/someengineering/cloudkeeper/blob/main/plugins/aws/cloudkeeper_plugin_aws/resources.py>`_.
+See full list of currently `supported AWS ressources <https://github.com/someengineering/resoto/blob/main/plugins/aws/resoto_plugin_aws/resources.py>`_.
 
-We add new resources every week. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!.
+We add new resources every week. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!.
 
 Query your resource types
 -------------------------
@@ -288,15 +288,15 @@ Output is shortened for documentation purposes
 You made it!
 ============
 Congratulations, you have now finished our basic starters tutorial.
-Thank you so much for exploring Cloudkeeper. This is just the beginning.
+Thank you so much for exploring resoto. This is just the beginning.
 
 What now?
 ---------
 All documentation is under heavy development, including this tutorial.
-We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date.
+We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
-| Please explore Cloudkeeper, build your queries and discover your infrastructure.
-| A good place to continue is joining our community to get the most out of Cloudkeeper and the experiences collected from many different SREs, companies and curious people.
+| Please explore resoto, build your queries and discover your infrastructure.
+| A good place to continue is joining our community to get the most out of resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
 How you get more assistance
@@ -309,4 +309,4 @@ How you get more assistance
 | https://discord.gg/someengineering
 
 | GitHub Issues:
-| https://github.com/someengineering/cloudkeeper/issues/new
+| https://github.com/someengineering/resoto/issues/new

@@ -2,12 +2,12 @@
 Setup In Kubernetes Using Helm
 ==============================
 
-The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Cloudkeeper environment.
+The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a resoto environment.
 
 In this setup guide we're showing you three things:
     #. how to prepare your environment
     #. how to prepare your helm values file
-    #. how to install each cloudkeeper in kubernetes using helm
+    #. how to install each resoto in kubernetes using helm
 
 Prerequisites
 *************
@@ -16,7 +16,7 @@ You will need:
 Helm (version 3 and above)
 A Kubernetes cluster (kind or minikube should work as well)
 
-To start filling the Cloudkeeper graph with resource data you will need AWS or GCP credentials with proper permissions.
+To start filling the resoto graph with resource data you will need AWS or GCP credentials with proper permissions.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
@@ -65,15 +65,15 @@ Setup a db and password:
 .. code-block:: bash
     :caption: Create db and credentials
 
-    CKCORE_GRAPHDB_LOGIN=cloudkeeper
-    CKCORE_GRAPHDB_DATABASE=cloudkeeper
-    CKCORE_GRAPHDB_PASSWORD=$(head -c 1500 /dev/urandom | tr -dc 'a-zA-Z0-9' | cut -c -32)
+    RESOTOCORE_GRAPHDB_LOGIN=resoto
+    RESOTOCORE_GRAPHDB_DATABASE=resoto
+    RESOTOCORE_GRAPHDB_PASSWORD=$(head -c 1500 /dev/urandom | tr -dc 'a-zA-Z0-9' | cut -c -32)
     POD=$(kubectl get pods --selector=arango_deployment=single-server -o jsonpath="{.items[0].metadata.name}")
     kubectl exec -i ${POD} -- arangosh --console.history false --server.password "" <<EOF
         const users = require('@arangodb/users');
-        users.save('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_PASSWORD');
-        db._createDatabase('$CKCORE_GRAPHDB_DATABASE');
-        users.grantDatabase('$CKCORE_GRAPHDB_LOGIN', '$CKCORE_GRAPHDB_DATABASE', 'rw');
+        users.save('$RESOTOCORE_GRAPHDB_LOGIN', '$RESOTOCORE_GRAPHDB_PASSWORD');
+        db._createDatabase('$RESOTOCORE_GRAPHDB_DATABASE');
+        users.grantDatabase('$RESOTOCORE_GRAPHDB_LOGIN', '$RESOTOCORE_GRAPHDB_DATABASE', 'rw');
     EOF
 
 Create the secret with the credentials
@@ -81,7 +81,7 @@ Create the secret with the credentials
 .. code-block:: bash
     :caption: Upload db credentials as a secret
 
-    kubectl create secret generic cloudkeeper-graphdb-credentials --from-literal=password=$CKCORE_GRAPHDB_PASSWORD
+    kubectl create secret generic resoto-graphdb-credentials --from-literal=password=$RESOTOCORE_GRAPHDB_PASSWORD
 
 Configuration
 *************
@@ -91,17 +91,17 @@ Prepare your Helm values file:
 .. code-block:: bash
     :caption: Prepare the helm values file
 
-    cat > cloudkeeper-values.yaml <<EOF
-    ckcore:
+    cat > resoto-values.yaml <<EOF
+    resotocore:
         graphdb:
             server: http://single-server:8529
-            login: $CKCORE_GRAPHDB_LOGIN
-            database: $CKCORE_GRAPHDB_DATABASE
+            login: $RESOTOCORE_GRAPHDB_LOGIN
+            database: $RESOTOCORE_GRAPHDB_DATABASE
             passwordSecret:
-                name: cloudkeeper-graphdb-credentials
+                name: resoto-graphdb-credentials
                 key: password
     # add your stuff here:
-    ckworker:
+    resotoworker:
         extraArgs:
             - --fork
         collector: example
@@ -112,27 +112,27 @@ See file `kubernetes/chart/values.yaml` for a list of possible values.
 Optional - Configure Cloud Credentials
 ======================================
 
-You can use helm values ckworker.extraArgs, ckworker.extraEnv, ckworker.volumes and ckworker.volumeMounts to inject credentials and their configuration to ckworker.
+You can use helm values resotoworker.extraArgs, resotoworker.extraEnv, resotoworker.volumes and resotoworker.volumeMounts to inject credentials and their configuration to resotoworker.
 For example, for AWS and GCE, you would do the following:
 
 .. code-block:: bash
     :caption: Create credentials
 
-    kubectl -n cloudkeeper create secret generic cloudkeeper-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
+    kubectl -n resoto create secret generic resoto-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
 
 Then you can use these values for ckwroker:
 
 .. code-block:: yaml
-    :caption: values with ckworker credentials
+    :caption: values with resotoworker credentials
 
-    ckcore:
+    resotocore:
         graphdb:
             server: http://single-server:8529
-            login: cloudkeeper
+            login: resoto
             passwordSecret:
-                name: cloudkeeper-graphdb-credentials
+                name: resoto-graphdb-credentials
                 key: password
-    ckworker:
+    resotoworker:
       collector: aws gcp
       volumeMounts:
           - mountPath: /etc/tokens/
@@ -140,7 +140,7 @@ Then you can use these values for ckwroker:
       volumes:
         - name: auth-secret
           secret:
-            secretName: cloudkeeper-auth
+            secretName: resoto-auth
             items:
               - key: GOOGLE_APPLICATION_CREDENTIALS
                 path: gcp-service-account.json
@@ -148,12 +148,12 @@ Then you can use these values for ckwroker:
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
-                name: cloudkeeper-auth
+                name: resoto-auth
                 key: AWS_ACCESS_KEY_ID
           - name: AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
-                name: cloudkeeper-auth
+                name: resoto-auth
                 key: AWS_SECRET_ACCESS_KEY
       extraArgs:
           - --fork
@@ -169,34 +169,34 @@ Then you can use these values for ckwroker:
 Installation
 ************
 
-Get the helm chart. For now, to get the helm chart you will need to clone Cloudkeeper locally:
+Get the helm chart. For now, to get the helm chart you will need to clone resoto locally:
 
 .. code-block:: bash
-    :caption: Clone Cloudkeeper
+    :caption: Clone resoto
 
-    git clone https://github.com/someengineering/cloudkeeper
+    git clone https://github.com/someengineering/resoto
 
-Install Cloudkeeper:
+Install resoto:
 
 .. code-block:: bash
-    :caption: Install Cloudkeeper
+    :caption: Install resoto
 
-    helm install cloudkeeper ./cloudkeeper/kubernetes/chart --set image.tag=2.0.0a9 -f cloudkeeper-values.yaml
+    helm install resoto ./resoto/kubernetes/chart --set image.tag=2.0.0a9 -f resoto-values.yaml
 
 
 
 You made it!
 ************
-Congratulations, you have now finished the setup of every cloudkeeper component.
-Thank you so much for exploring Cloudkeeper. This is just the beginning.
+Congratulations, you have now finished the setup of every resoto component.
+Thank you so much for exploring resoto. This is just the beginning.
 
 What now?
 =========
 All documentation is under heavy development, including this tutorial.
-We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/cloudkeeper>`_ to support us and stay up to date.
+We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
-| Please explore Cloudkeeper, build your queries and discover your infrastructure.
-| A good place to continue is joining our community to get the most out of Cloudkeeper and the experiences collected from many different SREs, companies and curious people.
+| Please explore resoto, build your queries and discover your infrastructure.
+| A good place to continue is joining our community to get the most out of resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
 How you get more assistance
@@ -209,4 +209,4 @@ How you get more assistance
 | https://discord.com/invite/someengineering
 
 | GitHub Issue:
-| https://github.com/someengineering/cloudkeeper/issues/new 
+| https://github.com/someengineering/resoto/issues/new 

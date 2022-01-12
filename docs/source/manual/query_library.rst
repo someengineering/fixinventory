@@ -2,7 +2,7 @@
 Query library
 =============
 
-In this library we collect and describe common queries for cloudkeeper.
+In this library we collect and describe common queries for resoto.
 
 If a query you need is missing, please jump to our :ref:`query_missing` section on how you can get help.
 
@@ -85,4 +85,4 @@ If you need support, have feedback, questions, queries and everything else you c
 You found a bug, have ideas or a proposal? Head over to our GitHub issues:
 
 | GitHub Issues:
-| https://github.com/someengineering/cloudkeeper/issues/new 
+| https://github.com/someengineering/resoto/issues/new 
