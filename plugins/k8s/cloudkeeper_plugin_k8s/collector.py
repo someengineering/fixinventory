@@ -1,6 +1,6 @@
-import cklib.logging
-from cklib.graph import Graph
-from cklib.args import ArgumentParser
+import resotolib.logging
+from resotolib.graph import Graph
+from resotolib.args import ArgumentParser
 
 from kubernetes import client
 from .resources.cluster import KubernetesCluster
@@ -11,7 +11,7 @@ from .resources import (
 )
 
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class KubernetesCollector:

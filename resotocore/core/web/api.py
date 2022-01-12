@@ -33,7 +33,7 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
-from cklib.jwt import encode_jwt
+from resotolib.jwt import encode_jwt
 from networkx.readwrite import cytoscape_data
 
 from core import feature

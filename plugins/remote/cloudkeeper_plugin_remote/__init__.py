@@ -1,13 +1,13 @@
-import cklib.logging
+import resotolib.logging
 import pickle
 import requests
-from cklib.baseplugin import BaseCollectorPlugin
-from cklib.baseresources import GraphRoot
-from cklib.graph import Graph, sanitize
-from cklib.args import ArgumentParser
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseresources import GraphRoot
+from resotolib.graph import Graph, sanitize
+from resotolib.args import ArgumentParser
 
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class RemotePlugin(BaseCollectorPlugin):

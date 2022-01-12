@@ -7,9 +7,9 @@ import re
 from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
-from cklib.args import ArgumentParser
-from cklib.graph import Graph
-from cklib.utils import make_valid_timestamp, chunks
+from resotolib.args import ArgumentParser
+from resotolib.graph import Graph
+from resotolib.utils import make_valid_timestamp, chunks
 from .utils import aws_session, paginate
 from .resources import *
 from prometheus_client import Summary, Counter
@@ -17,7 +17,7 @@ from pkg_resources import resource_filename
 from typing import List, Optional, Dict, Tuple
 from retrying import retry
 from pprint import pformat
-from cklib.logging import log
+from resotolib.logging import log
 
 # boto3 has no way of converting between short and long region names
 # The pricing API expects long region names, whereas ever other API works with short region names.

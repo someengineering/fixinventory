@@ -1,11 +1,11 @@
 import json
 import os
 import socket
-from cklib.baseresources import BaseResource
-from cklib.args import ArgumentParser
-from cklib.graph import Graph
-from cklib.utils import RWLock
-import cklib.logging
+from resotolib.baseresources import BaseResource
+from resotolib.args import ArgumentParser
+from resotolib.graph import Graph
+from resotolib.utils import RWLock
+import resotolib.logging
 from typing import Iterable, List, Union, Callable, Any, Dict
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError as GoogleApiClientHttpError
@@ -17,8 +17,8 @@ from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 # from google.oauth2.credentials import UserAccessTokenCredentials
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
-cklib.logging.getLogger("googleapiclient").setLevel(cklib.logging.ERROR)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
+resotolib.logging.getLogger("googleapiclient").setLevel(resotolib.logging.ERROR)
 
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]

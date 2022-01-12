@@ -2,13 +2,13 @@ import time
 import copy
 from datetime import date
 from enum import Enum, auto
-from cklib.baseresources import *
-from cklib.graph import Graph
-from cklib.utils import make_valid_timestamp
+from resotolib.baseresources import *
+from resotolib.graph import Graph
+from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource
 from typing import ClassVar
 from dataclasses import dataclass
-from cklib.logging import log
+from resotolib.logging import log
 
 
 default_ctime = make_valid_timestamp(date(2006, 3, 19))  # AWS public launch date

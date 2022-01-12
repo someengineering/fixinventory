@@ -1,6 +1,6 @@
 from kubernetes import client
 from .common import KubernetesResource
-from cklib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource
 from typing import ClassVar
 from dataclasses import dataclass
 

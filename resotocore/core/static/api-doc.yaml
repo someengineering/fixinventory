@@ -668,7 +668,7 @@ paths:
                                     tags: { }
                                     name: root
                                 metadata:
-                                    python_type: cklib.baseresources.GraphRoot
+                                    python_type: resotolib.baseresources.GraphRoot
                                     cleaned: false
                                     phantom: true
                                     protected: false
@@ -686,7 +686,7 @@ paths:
                                     ctime: '2021-12-14T08:49:52Z'
                                     age: 6d7h
                                 metadata:
-                                    python_type: cklib.baseresources.Cloud
+                                    python_type: resotolib.baseresources.Cloud
                                     cleaned: false
                                     phantom: false
                                     protected: false
@@ -864,7 +864,7 @@ paths:
                                     tags: { }
                                     name: root
                                 metadata:
-                                    python_type: cklib.baseresources.GraphRoot
+                                    python_type: resotolib.baseresources.GraphRoot
                                     cleaned: false
                                     phantom: true
                                     protected: false
@@ -882,7 +882,7 @@ paths:
                                     ctime: '2021-12-14T08:49:52Z'
                                     age: 6d7h
                                 metadata:
-                                    python_type: cklib.baseresources.Cloud
+                                    python_type: resotolib.baseresources.Cloud
                                     cleaned: false
                                     phantom: false
                                     protected: false
@@ -1193,7 +1193,7 @@ paths:
                                     tags: { }
                                     name: root
                                 metadata:
-                                    python_type: cklib.baseresources.GraphRoot
+                                    python_type: resotolib.baseresources.GraphRoot
                                     cleaned: false
                                     phantom: true
                                     protected: false
@@ -1211,7 +1211,7 @@ paths:
                                     ctime: '2021-12-14T08:49:52Z'
                                     age: 6d7h
                                 metadata:
-                                    python_type: cklib.baseresources.Cloud
+                                    python_type: resotolib.baseresources.Cloud
                                     cleaned: false
                                     phantom: false
                                     protected: false
@@ -1396,7 +1396,7 @@ paths:
                                     tags: { }
                                     name: root
                                 metadata:
-                                    python_type: cklib.baseresources.GraphRoot
+                                    python_type: resotolib.baseresources.GraphRoot
                                     cleaned: false
                                     phantom: true
                                     protected: false
@@ -1414,7 +1414,7 @@ paths:
                                     ctime: '2021-12-14T08:49:52Z'
                                     age: 6d7h
                                 metadata:
-                                    python_type: cklib.baseresources.Cloud
+                                    python_type: resotolib.baseresources.Cloud
                                     cleaned: false
                                     phantom: false
                                     protected: false

@@ -1,15 +1,15 @@
-from cklib.baseplugin import BaseActionPlugin
-from cklib.logging import log
-from cklib.core.query import CoreGraph
-from cklib.graph import Graph
+from resotolib.baseplugin import BaseActionPlugin
+from resotolib.logging import log
+from resotolib.core.query import CoreGraph
+from resotolib.graph import Graph
 from cloudkeeper_plugin_aws.resources import (
     AWSELB,
     AWSALB,
     AWSALBTargetGroup,
     AWSEC2Instance,
 )
-from cklib.args import ArgumentParser
-from cklib.utils import parse_delta
+from resotolib.args import ArgumentParser
+from resotolib.utils import parse_delta
 from typing import Dict
 
 

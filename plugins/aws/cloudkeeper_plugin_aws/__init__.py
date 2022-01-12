@@ -1,13 +1,13 @@
 import botocore.exceptions
 import multiprocessing
-import cklib.signal
-import cklib.logging
-from cklib.logging import log, setup_logger
+import resotolib.signal
+import resotolib.logging
+from resotolib.logging import log, setup_logger
 from concurrent import futures
-from cklib.args import ArgumentParser
-from cklib.graph import Graph
-from cklib.utils import log_runtime
-from cklib.baseplugin import BaseCollectorPlugin
+from resotolib.args import ArgumentParser
+from resotolib.graph import Graph
+from resotolib.utils import log_runtime
+from resotolib.baseplugin import BaseCollectorPlugin
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -15,7 +15,7 @@ from prometheus_client import Summary, Counter
 from typing import List
 
 
-cklib.logging.getLogger("boto").setLevel(cklib.logging.CRITICAL)
+resotolib.logging.getLogger("boto").setLevel(resotolib.logging.CRITICAL)
 
 metrics_collect = Summary(
     "cloudkeeper_plugin_aws_collect_seconds", "Time it took the collect() method"
@@ -173,7 +173,7 @@ class AWSPlugin(BaseCollectorPlugin):
         pool_args = {"max_workers": max_workers}
         if ArgumentParser.args.aws_fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = cklib.signal.initializer
+            pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -266,11 +266,11 @@ def all_regions() -> List:
 @log_runtime
 def collect_account(account: AWSAccount, regions: List, args=None):
     collector_name = f"aws_{account.id}"
-    cklib.signal.set_thread_name(collector_name)
+    resotolib.signal.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args
-        setup_logger("ckworker-aws")
+        setup_logger("resotoworker-aws")
 
     log.debug(f"Starting new collect process for account {account.dname}")
 

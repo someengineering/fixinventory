@@ -1,4 +1,4 @@
-import cklib.logging
+import resotolib.logging
 import threading
 import os
 import time
@@ -13,18 +13,18 @@ from .resources import (
     SlackUsergroup,
     SlackConversation,
 )
-from cklib.baseplugin import BasePlugin, BaseCollectorPlugin
-from cklib.baseresources import BaseCloud, BaseAccount, BaseRegion, BaseResource
-from cklib.args import ArgumentParser
-from cklib.event import (
+from resotolib.baseplugin import BasePlugin, BaseCollectorPlugin
+from resotolib.baseresources import BaseCloud, BaseAccount, BaseRegion, BaseResource
+from resotolib.args import ArgumentParser
+from resotolib.event import (
     Event,
     EventType,
     add_event_listener,
     remove_event_listener,
 )
-from cklib.graph import Graph
+from resotolib.graph import Graph
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 def retry_on_request_limit_exceeded(e):

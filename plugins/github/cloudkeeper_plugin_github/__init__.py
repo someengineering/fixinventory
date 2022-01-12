@@ -1,11 +1,11 @@
-import cklib.logging
-import cklib.signal
-from cklib.baseplugin import BaseCollectorPlugin
-from cklib.args import ArgumentParser
+import resotolib.logging
+import resotolib.signal
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.args import ArgumentParser
 from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo
 from github import Github
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class GithubCollectorPlugin(BaseCollectorPlugin):

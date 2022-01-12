@@ -1,6 +1,6 @@
 from arango.database import StandardDatabase
 from pytest import fixture
-from cklib.x509 import bootstrap_ca, load_cert_from_bytes, cert_fingerprint, csr_to_bytes, gen_csr, gen_rsa_key
+from resotolib.x509 import bootstrap_ca, load_cert_from_bytes, cert_fingerprint, csr_to_bytes, gen_csr, gen_rsa_key
 
 from core.dependencies import parse_args
 from core.web.certificate_handler import CertificateHandler

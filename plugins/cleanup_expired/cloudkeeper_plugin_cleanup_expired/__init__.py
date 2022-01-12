@@ -1,7 +1,7 @@
-from cklib.baseplugin import BaseActionPlugin
-from cklib.logging import log
-from cklib.core.query import CoreGraph
-from cklib.args import ArgumentParser
+from resotolib.baseplugin import BaseActionPlugin
+from resotolib.logging import log
+from resotolib.core.query import CoreGraph
+from resotolib.args import ArgumentParser
 from typing import Dict
 
 

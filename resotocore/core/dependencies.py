@@ -7,8 +7,8 @@ from typing import Optional, List, Callable
 from urllib.parse import urlparse
 
 from arango.database import StandardDatabase
-from cklib.args import ArgumentParser
-from cklib.jwt import add_args as jwt_add_args
+from resotolib.args import ArgumentParser
+from resotolib.jwt import add_args as jwt_add_args
 
 from core import async_extensions
 from core.analytics import AnalyticsEventSender

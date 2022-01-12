@@ -1,9 +1,9 @@
-from cklib.logging import log
+from resotolib.logging import log
 import yaml
-from cklib.baseplugin import BaseActionPlugin
-from cklib.args import ArgumentParser
-from cklib.core.query import CoreGraph
-from cklib.utils import parse_delta, delta_to_str
+from resotolib.baseplugin import BaseActionPlugin
+from resotolib.args import ArgumentParser
+from resotolib.core.query import CoreGraph
+from resotolib.utils import parse_delta, delta_to_str
 from typing import Dict
 
 
@@ -48,7 +48,7 @@ class TagValidatorPlugin(BaseActionPlugin):
             cloud = node.cloud(graph)
             account = node.account(graph)
             region = node.region(graph)
-            if node.protected or node._ckcore_query_tag != query_tag:
+            if node.protected or node._resotocore_query_tag != query_tag:
                 continue
             update_node_tag = False
             max_expiration = (
@@ -83,7 +83,7 @@ class TagValidatorPlugin(BaseActionPlugin):
                     update_node_tag = True
             if update_node_tag:
                 commands.append(
-                    f"query id({node._ckcore_id}) | tag update --nowait expiration {max_expiration_str}"
+                    f"query id({node._resotocore_id}) | tag update --nowait expiration {max_expiration_str}"
                 )
         cg.patch_nodes(graph)
         for command in commands:

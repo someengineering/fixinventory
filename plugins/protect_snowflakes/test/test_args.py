@@ -1,4 +1,4 @@
-from cklib.args import get_arg_parser, ArgumentParser
+from resotolib.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_protect_snowflakes import ProtectSnowflakesPlugin
 
 

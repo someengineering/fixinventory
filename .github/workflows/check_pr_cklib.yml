@@ -1,16 +1,16 @@
-name: Check PR (cklib)
+name: Check PR (resotolib)
 on:
   push:
     branches:
         - main
   pull_request:
     paths:
-      - 'cklib/**'
+      - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  cklib:
-    name: "cklib"
+  resotolib:
+    name: "resotolib"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,11 +36,11 @@ jobs:
           pip install tox wheel flake8
 
       - name: Run tests
-        working-directory: ./cklib
+        working-directory: ./resotolib
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: cklib-code-coverage-report
-          path: cklib/htmlcov/
+          name: resotolib-code-coverage-report
+          path: resotolib/htmlcov/

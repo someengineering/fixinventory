@@ -1,9 +1,9 @@
-import cklib.logging
+import resotolib.logging
 from collections import defaultdict
 from paramiko import SSHClient
 from .resources import OnpremInstance
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 def instance_from_ssh(

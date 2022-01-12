@@ -9,7 +9,7 @@ from typing import Any, Dict
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web import middleware
-from cklib import jwt as ck_jwt
+from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
 from core.web import RequestHandler, Middleware

@@ -4,18 +4,18 @@ from prompt_toolkit.shortcuts import button_dialog
 from cloudkeeper_plugin_aws.utils import aws_session
 from cloudkeeper_plugin_aws.resources import AWSAccount
 from cloudkeeper_plugin_aws import AWSPlugin, current_account_id
-from cklib.utils import make_valid_timestamp
-from cklib.args import get_arg_parser, ArgumentParser
-import cklib.logging
+from resotolib.utils import make_valid_timestamp
+from resotolib.args import get_arg_parser, ArgumentParser
+import resotolib.logging
 import re
 from datetime import datetime
 
-cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.INFO)
-log = cklib.logging.getLogger("cloudkeeper.cmd")
+resotolib.logging.getLogger("cloudkeeper.cmd").setLevel(resotolib.logging.INFO)
+log = resotolib.logging.getLogger("cloudkeeper.cmd")
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cklib.logging.getLogger("cloudkeeper.cmd").setLevel(cklib.logging.DEBUG)
+    resotolib.logging.getLogger("cloudkeeper.cmd").setLevel(resotolib.logging.DEBUG)
 log.info("Cloudkeeper S3 object purger")
 
 

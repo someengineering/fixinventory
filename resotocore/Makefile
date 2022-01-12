@@ -89,7 +89,7 @@ install: clean ## install the package to the active Python's site-packages
 venv-pypy:
 	pypy3.8 -m venv venv-pypy
 	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../cklib
+	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../resotolib
 	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
 	. ./venv-pypy/bin/activate && pip install -r requirements.txt
 
@@ -97,7 +97,7 @@ venv-pypy:
 venv:
 	python3 -m venv venv --prompt "resotocore env"
 	. ./venv/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv/bin/activate && pip install --upgrade --editable ../cklib
+	. ./venv/bin/activate && pip install --upgrade --editable ../resotolib
 	. ./venv/bin/activate && pip install -r requirements-dev.txt
 	. ./venv/bin/activate && pip install -r requirements-test.txt
 	. ./venv/bin/activate && pip install -r requirements.txt

@@ -1,4 +1,4 @@
-from cklib.args import ArgumentParser
+from resotolib.args import ArgumentParser
 
 from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect

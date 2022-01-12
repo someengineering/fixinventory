@@ -15,7 +15,7 @@ declare -a debian_packages=(curl bash python3-minimal python3-venv python3-dev g
 declare -a centos_packages=(curl bash python39 python39-devel git make gcc gcc-c++)
 declare -a fedora_packages=(curl bash python3 python3-devel git make gcc gcc-c++ findutils)
 declare -a alpine_packages=(curl bash python3 python3-dev git make gcc g++ linux-headers libffi-dev)
-declare install_path="$HOME/cloudkeeper"
+declare install_path="$HOME/resoto"
 declare python_cmd
 declare git_install=false
 declare dev_mode=false
@@ -26,7 +26,7 @@ declare branch=main
 main() {
     echo "Cloudkeeper bootstrapper"
 
-    if grep "url =.*cloudkeeper.git" "$PWD/.git/config" > /dev/null 2>&1; then
+    if grep "url =.*resoto.git" "$PWD/.git/config" > /dev/null 2>&1; then
         install_path="$PWD"
     fi
     local end_of_opt
@@ -85,7 +85,7 @@ main() {
     if [ "$dev_mode" = true ]; then
         install_dev
     fi
-    install_cloudkeeper
+    install_resoto
     install_plugins
     echo -e "Install/Update completed.\nRun\n\tsource ${install_path}/venv/bin/activate\nto activate venv."
 }
@@ -96,7 +96,7 @@ Usage: $(basename "$0") [options]
 
 Valid options:
   -h, --help        show this help message and exit
-  --path <path>     install directory (default: . if in cloudkeeper git repo else ~/cloudkeeper/)
+  --path <path>     install directory (default: . if in resoto git repo else ~/resoto/)
   --python <path>   Python binary to use (default: search for best match)
   --branch <branch> Git branch/tag to use (default: main)
   --dev             install development dependencies (default: false)
@@ -153,22 +153,22 @@ ensure_pip() {
 
 install_dev() {
     echo "Installing development dependencies"
-    if [ -f "ckcore/requirements-dev.txt" ]; then
-        pip install -q -r "ckcore/requirements-dev.txt"
+    if [ -f "resotocore/requirements-dev.txt" ]; then
+        pip install -q -r "resotocore/requirements-dev.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/cloudkeeper/main/ckcore/requirements-dev.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-dev.txt"
     fi
-    if [ -f "ckcore/requirements-test.txt" ]; then
-        pip install -q -r "ckcore/requirements-test.txt"
+    if [ -f "resotocore/requirements-test.txt" ]; then
+        pip install -q -r "resotocore/requirements-test.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/cloudkeeper/main/ckcore/requirements-test.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-test.txt"
     fi
 }
 
-install_cloudkeeper() {
+install_resoto() {
     echo "Installing Cloudkeeper"
-    local cloudkeeper_components=(cklib ckcore cksh ckworker ckmetrics)
-    for component in "${cloudkeeper_components[@]}"; do
+    local resoto_components=(resotolib resotocore resotosh resotoworker resotometrics)
+    for component in "${resoto_components[@]}"; do
         pip_install "$component"
     done
 }
@@ -194,7 +194,7 @@ pip_install() {
     local path_prefix=""
     if [ "$plugin" = true ]; then
         path_prefix="plugins/"
-        egg_prefix="cloudkeeper-plugin-"
+        egg_prefix="resoto-plugin-"
     fi
     local package_name="${egg_prefix}${package}"
     package_name=${package_name//_/-}
@@ -204,7 +204,7 @@ pip_install() {
         pip install -q --editable "$relative_path"
     else
         ensure_git
-        local git_repo="git+https://github.com/someengineering/cloudkeeper.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
+        local git_repo="git+https://github.com/someengineering/resoto.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
         echo "Installing $package_name from remote $git_repo"
         pip install -q -U "$git_repo"
     fi

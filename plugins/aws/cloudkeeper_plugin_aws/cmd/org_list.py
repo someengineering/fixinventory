@@ -1,15 +1,15 @@
 import sys
-import cklib.logging
-from cklib.args import get_arg_parser, ArgumentParser
+import resotolib.logging
+from resotolib.args import get_arg_parser, ArgumentParser
 from cloudkeeper_plugin_aws import get_org_accounts
 
 
-cklib.logging.getLogger("cloudkeeper").setLevel(cklib.logging.ERROR)
-log = cklib.logging.getLogger(__name__)
+resotolib.logging.getLogger("cloudkeeper").setLevel(resotolib.logging.ERROR)
+log = resotolib.logging.getLogger(__name__)
 
 argv = sys.argv[1:]
 if "-v" in argv or "--verbose" in argv:
-    cklib.logging.getLogger("cloudkeeper").setLevel(cklib.logging.DEBUG)
+    resotolib.logging.getLogger("cloudkeeper").setLevel(resotolib.logging.DEBUG)
 
 
 def main() -> None:

@@ -64,7 +64,7 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 # Cloning this repository
 This Git repo uses [Git Large File Storage (LFS)](https://git-lfs.github.com/).
 
-If you would like to work on the UI [`ckui`](ckui/), before cloning the repo make sure to have [`git-lfs`](https://git-lfs.github.com/) installed!
+If you would like to work on the UI [`resotoui`](resotoui/), before cloning the repo make sure to have [`git-lfs`](https://git-lfs.github.com/) installed!
 
 One time setup:
 ```
@@ -80,11 +80,11 @@ If you have no need for the UI assets git-lfs is optional.
 
 
 # Component list
-- [`ckcore`](ckcore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
-- [`cksh`](cksh/) the Cloudkeeper shell to interact with the core.
-- [`ckui`](ckui/) a UI prototype that can load ckcore exported data but has no backend connection yet.
-- [`ckworker`](ckworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
-- [`ckmetrics`](ckmetrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
+- [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
+- [`resotosh`](resotosh/) the Cloudkeeper shell to interact with the core.
+- [`resotoui`](resotoui/) a UI prototype that can load resotocore exported data but has no backend connection yet.
+- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
+- [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
 
 

@@ -5,8 +5,8 @@ from argparse import Namespace
 from typing import Tuple, Optional
 
 from arango.database import StandardDatabase
-from cklib.utils import get_local_ip_addresses, get_local_hostnames
-from cklib.x509 import (
+from resotolib.utils import get_local_ip_addresses, get_local_hostnames
+from resotolib.x509 import (
     bootstrap_ca,
     gen_rsa_key,
     gen_csr,

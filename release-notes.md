@@ -34,12 +34,12 @@ This feature allows defining queries as a template and reusing those templates i
 
 **Other improvements**
 
-- `[ckcore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/cloudkeeper/pull/425))
+- `[resotocore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/cloudkeeper/pull/425))
 - `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. ([#430](https://github.com/someengineering/cloudkeeper/pull/430))
-- `[ckcore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/cloudkeeper/pull/427))
-- `[ckcore]` arangodb 3.8.2 or later is now the minimum required version to run cloudkeeper. ([#445](https://github.com/someengineering/cloudkeeper/pull/445))
-- `[ckcore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/cloudkeeper/pull/437))
-- `[ckcore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/cloudkeeper/pull/432))
+- `[resotocore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/cloudkeeper/pull/427))
+- `[resotocore]` arangodb 3.8.2 or later is now the minimum required version to run cloudkeeper. ([#445](https://github.com/someengineering/cloudkeeper/pull/445))
+- `[resotocore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/cloudkeeper/pull/437))
+- `[resotocore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/cloudkeeper/pull/432))
 
 
 #  Release Notes 2.0.0a3 (Oct 4th, 2021)
@@ -75,15 +75,15 @@ But let’s dive into the updates!
 
 We rebuilt Cloudkeeper from the ground up to make it extensible and scalable. The first version of Cloudkeeper was monolithic with a single binary and ran in-memory locally on a laptop. We broke down the single binary and now provide four different binaries:
 
-`ckcore` - maintains cloud-agnostic data in a graph
+`resotocore` - maintains cloud-agnostic data in a graph
 
-`ckworker` - infrastructure-specific plug-ins
+`resotoworker` - infrastructure-specific plug-ins
 
-`cksh` - starts the Cloudkeeper shell
+`resotosh` - starts the Cloudkeeper shell
 
-`ckmetrics` - calculates metrics in Prometheus format
+`restometrics` - calculates metrics in Prometheus format
 
-The benefit of this approach is that it scales. The length of a full Cloudkeeper run is subject to the number of accounts in a cloud. If you have hundreds or even thousands of accounts - it just takes longer to collect all resources. With this new architecture, you can now add more `ckworker` for faster processing.
+The benefit of this approach is that it scales. The length of a full Cloudkeeper run is subject to the number of accounts in a cloud. If you have hundreds or even thousands of accounts - it just takes longer to collect all resources. With this new architecture, you can now add more `resotoworker` for faster processing.
 
 This distributed architecture is also more flexible. A clear and simple API helps deal with cloud-specific data. Right now we support AWS, but eventually, we will also build support for GCP, Azure, Alicloud, etc. Different workers give you the freedom of choice to allocate workers, with different configurations. For example, you can have different workers for different clouds, and split the workloads that way. Or, you assign a worker for each individual login. In other words, you can run workers in whatever combination, to reflect e.g. your multi-cloud, geo, account or login structure of your cloud.
 
@@ -91,15 +91,15 @@ This distributed architecture is also more flexible. A clear and simple API help
 
 A bit more detail on the four components of the architecture.
 
-`ckcore` aka “the core” maintains the graph. Data collection happens via `ckworker`. The workers push data into `ckcore`, after the core has told the workers to start collecting data. In the graph, nodes are individual resources, edges are logical dependencies. Cloudkeeper stores a resource’s attributes in the node. These attributes are the basis for the dependencies that Cloudkeeper creates.
+`resotocore` aka “the core” maintains the graph. Data collection happens via `resotoworker`. The workers push data into `resotocore`, after the core has told the workers to start collecting data. In the graph, nodes are individual resources, edges are logical dependencies. Cloudkeeper stores a resource’s attributes in the node. These attributes are the basis for the dependencies that Cloudkeeper creates.
 
-We built `ckcore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `cksh`
+We built `resotocore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `resotosh`
 
-`ckworker` does all the collection and cleanup work in Cloudkeeper. It waits for instructions from ckcore over a WebSocket connection. By default ckworker subscribes to collect, clean up and tag tasks.
+`resotoworker` does all the collection and cleanup work in Cloudkeeper. It waits for instructions from resotocore over a WebSocket connection. By default resotoworker subscribes to collect, clean up and tag tasks.
 
-`cksh` is our command-line interface, aka “the shell”. The CLI allows you to execute a variety of commands (see query language) to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
+`resotosh` is our command-line interface, aka “the shell”. The CLI allows you to execute a variety of commands (see query language) to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
-`ckmetrics` ckmetrics takes graph data from ckcore and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
+`restometrics` restometrics takes graph data from resotocore and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
 
 ##  Graph storage - From In-Memory To On-Disk Persistence
 
@@ -175,7 +175,7 @@ The query then generates a new metric `instances_hourly_cost_estimate` - a total
 
 Writing queries may not be everyone’s thing though. For those users, we also maintain several pre-configured metrics per resource in Cloudkeeper.
 
-These pre-configured metrics are running as queries in `ckmetrics`. `ckmetrics` connects to the core, runs the queries and recalculates the metrics automatically every time something has changed in the graph, e.g. after a collect or a clean-up. The results are cached in `ckmetrics` and exported to Prometheus where they can be queried via PromQL. From there - you can send them to any visualization tool that understands the prometheus format, such as Grafana. Future versions of `ckmetrics` will allow a user to edit the pre-defined metrics as well as define their own.
+These pre-configured metrics are running as queries in `restometrics`. `restometrics` connects to the core, runs the queries and recalculates the metrics automatically every time something has changed in the graph, e.g. after a collect or a clean-up. The results are cached in `restometrics` and exported to Prometheus where they can be queried via PromQL. From there - you can send them to any visualization tool that understands the prometheus format, such as Grafana. Future versions of `restometrics` will allow a user to edit the pre-defined metrics as well as define their own.
 
 ##  CLI - From Local To Remote Execution
 

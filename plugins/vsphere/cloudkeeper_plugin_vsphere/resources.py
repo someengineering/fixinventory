@@ -1,6 +1,6 @@
-from cklib.graph import Graph
-import cklib.logging
-from cklib.baseresources import (
+from resotolib.graph import Graph
+import resotolib.logging
+from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -11,7 +11,7 @@ from typing import ClassVar, Dict
 from pyVmomi import vim
 from .vsphere_client import get_vsphere_client, VSphereClient
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

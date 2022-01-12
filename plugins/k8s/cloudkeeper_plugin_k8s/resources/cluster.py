@@ -1,5 +1,5 @@
 from .common import KubernetesResource
-from cklib.baseresources import BaseAccount
+from resotolib.baseresources import BaseAccount
 from typing import ClassVar
 from dataclasses import dataclass
 

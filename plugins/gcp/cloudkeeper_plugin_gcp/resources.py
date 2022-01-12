@@ -1,9 +1,9 @@
 from typing import List, Dict, ClassVar, Optional
 from datetime import datetime, timezone, timedelta
-from cklib.graph import Graph
-from cklib.utils import make_valid_timestamp
-import cklib.logging
-from cklib.baseresources import (
+from resotolib.graph import Graph
+from resotolib.utils import make_valid_timestamp
+import resotolib.logging
+from resotolib.baseresources import (
     BaseQuota,
     BaseAccount,
     BaseLoadBalancer,
@@ -40,7 +40,7 @@ from .utils import (
 from dataclasses import dataclass, field, InitVar
 
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 # Resources that can exist within zones OR outside zones in regions only
 regional_resources = (

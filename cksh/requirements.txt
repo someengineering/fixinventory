@@ -1,3 +1,0 @@
-cklib==2.0.0a10
-prompt-toolkit==3.0.24
-requests-toolbelt==0.9.1

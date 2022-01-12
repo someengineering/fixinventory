@@ -1,9 +1,9 @@
-from cklib.logging import log
+from resotolib.logging import log
 import yaml
-from cklib.core.query import CoreGraph
-from cklib.baseplugin import BaseActionPlugin
-from cklib.graph.export import node_from_dict
-from cklib.args import ArgumentParser
+from resotolib.core.query import CoreGraph
+from resotolib.baseplugin import BaseActionPlugin
+from resotolib.graph.export import node_from_dict
+from resotolib.args import ArgumentParser
 from typing import Dict
 
 

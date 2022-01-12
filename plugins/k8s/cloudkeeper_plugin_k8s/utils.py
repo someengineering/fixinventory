@@ -1,10 +1,10 @@
-import cklib.logging
-from cklib.args import ArgumentParser
+import resotolib.logging
+from resotolib.args import ArgumentParser
 from typing import Dict
 from kubernetes import client, config
 
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 def k8s_config() -> Dict:

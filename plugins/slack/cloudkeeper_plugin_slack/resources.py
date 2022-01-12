@@ -1,7 +1,7 @@
 import time
 from typing import Dict, ClassVar, List, Optional
 from datetime import datetime
-from cklib.baseresources import (
+from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseUser,

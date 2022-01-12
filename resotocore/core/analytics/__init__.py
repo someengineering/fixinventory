@@ -39,7 +39,7 @@ class CoreEvent:
 
 @dataclass(frozen=True)
 class AnalyticsEvent:
-    system: str  # e.g. creator of the event: resotocore, ckui, cksh, etc.
+    system: str  # e.g. creator of the event: resotocore, resotoui, resotosh, etc.
     kind: str  # kind of the event. Every kind has a specific set of data and context vars
     context: Mapping[str, JsonElement]  # context properties
     counters: Mapping[str, Union[int, float]]  # all counters of this event

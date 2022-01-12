@@ -1,11 +1,11 @@
-import cklib.logging
-from cklib.graph import Graph
+import resotolib.logging
+from resotolib.graph import Graph
 from pprint import pformat
 from kubernetes import client
 from typing import ClassVar, Iterable, Dict, Union, Callable, Any, List, Optional
 from dataclasses import dataclass, field
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

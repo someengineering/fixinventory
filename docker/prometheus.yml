@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 120s 
+  scrape_interval: 120s
   evaluation_interval: 120s
 
 alerting:
@@ -18,14 +18,14 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "ckcore"
+  - job_name: "resotocore"
     static_configs:
       - targets: ["localhost:8900"]
 
-  - job_name: "ckmetrics"
+  - job_name: "resotometrics"
     static_configs:
       - targets: ["localhost:9955"]
 
-  - job_name: "ckworker"
+  - job_name: "resotoworker"
     static_configs:
       - targets: ["localhost:9956"]

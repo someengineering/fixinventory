@@ -1,8 +1,8 @@
-import cklib.logging
+import resotolib.logging
 from dataclasses import dataclass
 from typing import Optional, ClassVar
-from cklib.graph import Graph
-from cklib.baseresources import (
+from resotolib.graph import Graph
+from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -10,7 +10,7 @@ from cklib.baseresources import (
     InstanceStatus,
 )
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 @dataclass(eq=False)

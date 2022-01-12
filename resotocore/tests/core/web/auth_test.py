@@ -7,7 +7,7 @@ from multidict import CIMultiDict
 from pytest import mark
 from aiohttp.web import Application, Request, Response
 from core.web.auth import check_jwt, jwt_from_context
-from cklib.jwt import encode_jwt
+from resotolib.jwt import encode_jwt
 
 # noinspection PyUnresolvedReferences
 from aiohttp.pytest_plugin import aiohttp_client

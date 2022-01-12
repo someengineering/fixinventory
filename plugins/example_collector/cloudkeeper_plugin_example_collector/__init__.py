@@ -1,11 +1,11 @@
-import cklib.logging
+import resotolib.logging
 from dataclasses import dataclass, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
-from cklib.baseplugin import BaseCollectorPlugin
-from cklib.graph import Graph
-from cklib.args import ArgumentParser
-from cklib.baseresources import (
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.graph import Graph
+from resotolib.args import ArgumentParser
+from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseInstance,
@@ -14,7 +14,7 @@ from cklib.baseresources import (
     InstanceStatus,
 )
 
-log = cklib.logging.getLogger("cloudkeeper." + __name__)
+log = resotolib.logging.getLogger("cloudkeeper." + __name__)
 
 
 class ExampleCollectorPlugin(BaseCollectorPlugin):

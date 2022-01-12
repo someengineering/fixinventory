@@ -85,76 +85,76 @@ RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
 
 WORKDIR /usr/local
-RUN /usr/local/python/bin/python3 -m venv cloudkeeper-venv-python3
-RUN /usr/local/pypy/bin/pypy3 -m venv cloudkeeper-venv-pypy3
+RUN /usr/local/python/bin/python3 -m venv resoto-venv-python3
+RUN /usr/local/pypy/bin/pypy3 -m venv resoto-venv-pypy3
 
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
 
-# Build ckui
-WORKDIR /usr/local/cloudkeeper/ui
-COPY ckui /usr/src/ckui
-RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/ckui/src --export HTML5 /usr/local/cloudkeeper/ui/index.html
+# Build resotoui
+WORKDIR /usr/local/resoto/ui
+COPY resotoui /usr/src/resotoui
+RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/resotoui/src --export HTML5 /usr/local/resoto/ui/index.html
 
 # Download and install Python test tools
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip install -U pip wheel
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip install -U pip wheel
 
-# Build cklib
-COPY cklib /usr/src/cklib
-WORKDIR /usr/src/cklib
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
+# Build resotolib
+COPY resotolib /usr/src/resotolib
+WORKDIR /usr/src/resotolib
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
-# Build ckcore
-COPY ckcore /usr/src/ckcore
-WORKDIR /usr/src/ckcore
+# Build resotocore
+COPY resotocore /usr/src/resotocore
+WORKDIR /usr/src/resotocore
 #RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip wheel -w /build-pypy -f /build-pypy .
 
-# Build ckworker
-COPY ckworker /usr/src/ckworker
-WORKDIR /usr/src/ckworker
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+# Build resotoworker
+COPY resotoworker /usr/src/resotoworker
+WORKDIR /usr/src/resotoworker
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
-# Build ckmetrics
-COPY ckmetrics /usr/src/ckmetrics
-WORKDIR /usr/src/ckmetrics
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+# Build resotometrics
+COPY resotometrics /usr/src/resotometrics
+WORKDIR /usr/src/resotometrics
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
-# Build cksh
-COPY cksh /usr/src/cksh
-WORKDIR /usr/src/cksh
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
+# Build resotosh
+COPY resotosh /usr/src/resotosh
+WORKDIR /usr/src/resotosh
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
-# Build cloudkeeper plugins
+# Build resoto plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/cloudkeeper-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
+RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
+RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
 
 # Install all wheels
-RUN . /usr/local/cloudkeeper-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
-RUN . /usr/local/cloudkeeper-venv-pypy3/bin/activate && pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip install -f /build-pypy /build-pypy/*.whl
 
 # Copy image config and startup files
-WORKDIR /usr/src/cloudkeeper
+WORKDIR /usr/src/resoto
 COPY docker/service.in /usr/local/etc/service.in
-COPY docker/defaults /usr/local/etc/cloudkeeper/defaults
-COPY docker/common /usr/local/etc/cloudkeeper/common
+COPY docker/defaults /usr/local/etc/resoto/defaults
+COPY docker/common /usr/local/etc/resoto/common
 COPY docker/argsdispatcher /usr/local/bin/argsdispatcher
 COPY docker/bootstrap /usr/local/sbin/bootstrap
 COPY docker/bootstrap-graphdb /usr/local/sbin/bootstrap-graphdb
 COPY docker/startup /usr/local/bin/startup
-COPY docker/cksh-shim /usr/local/bin/cksh-shim
+COPY docker/resotosh-shim /usr/local/bin/resotosh-shim
 RUN chmod 755 /usr/local/bin/startup \
-    /usr/local/bin/cksh-shim \
+    /usr/local/bin/resotosh-shim \
     /usr/local/sbin/bootstrap \
     /usr/local/sbin/bootstrap-graphdb
 RUN if [ "${TESTS:-false}" = true ]; then \
@@ -175,8 +175,8 @@ ENV LANG="en_US.UTF-8"
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
-RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
-    && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home cloudkeeper \
+RUN groupadd -g "${PGID:-0}" -o resoto \
+    && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home resoto \
     && apt-get update \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
@@ -199,7 +199,7 @@ RUN groupadd -g "${PGID:-0}" -o cloudkeeper \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
-    && ln -s /usr/local/bin/cksh-shim /usr/bin/cksh \
+    && ln -s /usr/local/bin/resotosh-shim /usr/bin/resotosh \
     && mv -f /usr/local/etc/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

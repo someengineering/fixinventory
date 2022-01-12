@@ -1,5 +1,5 @@
 #!/bin/bash
 . /usr/local/etc/cloudkeeper/defaults
 . /usr/local/cloudkeeper-venv-python3/bin/activate
-export CKSH_PSK
-exec cksh "$@"
+export RESOTOSH_PSK
+exec resotosh "$@"
