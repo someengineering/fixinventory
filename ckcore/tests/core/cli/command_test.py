@@ -28,9 +28,10 @@ from core.query.model import Template
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
 from core.types import JsonElement, Json
+from core.util import AccessJson
 
 # noinspection PyUnresolvedReferences
-from core.util import AccessJson
+from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
 from tests.core.cli.cli_test import cli, cli_deps
