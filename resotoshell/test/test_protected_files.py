@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from resotosh.protected_files import is_protected_file, validate_paths
+from resotoshell.protected_files import is_protected_file, validate_paths
 
 
 def test_validate_path() -> None:
