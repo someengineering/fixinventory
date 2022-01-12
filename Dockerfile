@@ -94,8 +94,8 @@ RUN mkdir -p /build-pypy
 
 # Build resotoui
 WORKDIR /usr/local/resoto/ui
-COPY resotoui /usr/src/resotoui
-RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/resotoui/src --export HTML5 /usr/local/resoto/ui/index.html
+COPY ui /usr/src/ui
+RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/ui/src --export HTML5 /usr/local/resoto/ui/index.html
 
 # Download and install Python test tools
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8

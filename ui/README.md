@@ -1,4 +1,4 @@
-# `resotoui`
+# `ui`
 resoto UI prototype
 
 
