@@ -167,7 +167,7 @@ install_dev() {
 
 install_resoto() {
     echo "Installing resoto"
-    local resoto_components=(resotolib resotocore resotosh resotoworker resotometrics)
+    local resoto_components=(resotolib resotocore resotoshell resotoworker resotometrics)
     for component in "${resoto_components[@]}"; do
         pip_install "$component"
     done

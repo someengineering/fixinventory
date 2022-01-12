@@ -1,4 +1,4 @@
-import resotosh
+import resotoshell
 from setuptools import setup, find_packages
 
 
@@ -12,10 +12,10 @@ with open("README.md") as f:
 
 
 setup(
-    name=resotosh.__title__,
-    version=resotosh.__version__,
-    description=resotosh.__description__,
-    license=resotosh.__license__,
+    name=resotoshell.__title__,
+    version=resotoshell.__version__,
+    description=resotoshell.__description__,
+    license=resotoshell.__license__,
     packages=find_packages(),
     long_description=readme,
     entry_points={
