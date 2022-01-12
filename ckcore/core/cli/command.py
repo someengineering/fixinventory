@@ -95,6 +95,7 @@ from core.util import (
     if_set,
     duration,
     identity,
+    rnd_str,
 )
 from core.web.content_renderer import (
     respond_ndjson,
@@ -1624,44 +1625,44 @@ class ListCommand(CLICommand, OutputTransformer):
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: jobs [show|add|update|delete|activate|deactivate|run|ps] [name] [--schedule <cron_expression>]
+    Usage: jobs [show|add|update|delete|activate|deactivate|run|ps] [--id <id>] [--schedule <cron_expression>]
                 [--wait-for-event <event_name>] [--timeout <duration_in_seconds>] [command_line]
            jobs
-           jobs show <name>
-           jobs add <name> [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
-           jobs update <name> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
-           jobs delete <name>
-           jobs activate <name>
-           jobs deactivate <name>
-           jobs run <name>
-           jobs ps
+           jobs show <id>
+           jobs add [--id <id>] [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
+           jobs update <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
+           jobs delete <id>
+           jobs activate <id>
+           jobs deactivate <id>
+           jobs run <id>
+           jobs running
 
 
     jobs: get the list of all jobs in the system
-    jobs show <name>: show the current definition of the job defined by given job name
-    jobs add <name> ...: add a job to the task handler with provided name, trigger and command line to execute.
-    jobs update <name> ... : update trigger and or command line of an existing job with provided name.
-    jobs delete <name>: delete the job with the provided name.
-    jobs activate <name>: activate the triggers of a job.
-    jobs activate <name>: deactivate the triggers of a job - so the job will not get started.
-    jobs run <name>: run the job as if the trigger would be triggered.
-    jobs ps: show all currently running jobs.
+    jobs show <id>: show the current definition of the job defined by given job identifier.
+    jobs add ...: add a job to the task handler with provided identifier, trigger and command line to execute.
+    jobs update <id> ... : update trigger and or command line of an existing job with provided identifier.
+    jobs delete <id>: delete the job with the provided identifier.
+    jobs activate <id>: activate the triggers of a job.
+    jobs deactivate <id>: deactivate the triggers of a job - so the job will not get started.
+    jobs run <id>: run the job as if the trigger would be triggered.
+    jobs running: show all currently running jobs.
 
 
     A job can be scheduled, react on events or both:
         - scheduled via defined cron expression
-        - event triggered via defined name of event to trigger this job
+        - event triggered via defined identifier of event to trigger this job
         - combined scheduled + event trigger once the schedule triggers this job,
           it is possible to wait for an incoming event, before the command line is executed.
 
     Note:
         - if a job is triggered, while it is already running, the invocation will wait for the current run to finish.
-          This means that there will be no parallel execution of jobs with the same name at any moment in time.
+          This means that there will be no parallel execution of jobs with the same identifier at any moment in time.
         - a command line is not allowed to run longer than the specified timeout.
           It is killed in case this timeout is exceeded.
 
     Parameter:
-        name [mandatory]:             The name and identifier of this job.
+        --id <id> [optional]:         The identifier of this job. If no id is defined a random identifier is generated.
         --schedule <cron_expression>  [optional]: defines the recurrent schedule in crontab format.
         --wait-for-event <event_name> [optional]: if defined, the job waits for the specified event to occur.
                                       If this parameter is defined in combination with a schedule, the schedule has
@@ -1676,7 +1677,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
 
     Example:
         # print hello world every minute to the console
-        $> jobs add say-hello --schedule "* * * * *" echo hello world
+        $> jobs add --id say-hello --schedule "* * * * *" echo hello world
         Job say-hello added.
 
         # print all available jobs in the system
@@ -1686,19 +1687,19 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
           cron_expression: '* * * * *'
         command: echo hello world
 
-        # get a specific job by name
-        $> jobs say-hello
+        # show a specific job by identifier
+        $> jobs show say-hello
         id: say-hello
         trigger:
           cron_expression: '* * * * *'
         command: echo hello world
 
         # every morning at 4: wait for message of type collect_done and print a message
-        $> jobs add early_greeting --schedule "0 4 * * *" --wait-for-event collect_done 'match is("volume") | format id'
-        Job early_greeting added.
+        $> jobs add --id early_hi --schedule "0 4 * * *" --wait-for-event collect_done 'match is("volume") | format id'
+        Job early_hi added.
 
         # wait for message of type collect_done and print a message
-        $> jobs add wait_for_collect_done collect_done: echo hello world
+        $> jobs add --id wait_for_collect_done collect_done: echo hello world
         Job wait_for_collect_done added.
 
         # run the job directly without waiting for a trigger
@@ -1706,7 +1707,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         Job say-hello started with id a4bb64cc-7385-11ec-b2cb-dad780437c53.
 
         # show all currently running jobs
-        $> jobs ps
+        $> jobs running
         job: say-hello
         started_at: '2022-01-12T09:01:34Z'
         task-id: a4bb64cc-7385-11ec-b2cb-dad780437c53
@@ -1771,14 +1772,16 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             else:
                 yield f"No job with this id: {job_id}"
 
-        async def put_job(name: str, arg_str: str) -> AsyncIterator[str]:
+        async def put_job(arg_str: str) -> AsyncIterator[str]:
             arg_parser = NoExitArgumentParser()
+            arg_parser.add_argument("--id", dest="id", default=rnd_str())
             arg_parser.add_argument("--schedule", dest="schedule", type=lambda r: TimeTrigger(strip_quotes(r)))
             arg_parser.add_argument("--wait-for-event", dest="event", type=lambda e: EventTrigger(strip_quotes(e)))
             arg_parser.add_argument(
                 "--timeout", dest="timeout", default=timedelta(hours=1), type=lambda t: timedelta(seconds=int(t))
             )
             parsed, rest = arg_parser.parse_known_args(list(args_parts_parser.parse(arg_str)))
+            uid = parsed.id
             command = " ".join(rest)
             # only here to make sure the command can be executed
             await self.dependencies.cli.evaluate_cli_command(command, ctx)
@@ -1786,12 +1789,12 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             timeout: timedelta = parsed.timeout
             if parsed.schedule and parsed.event:
                 wait = (parsed.event, timeout)
-                job = Job(name, ExecuteCommand(command), timeout, parsed.schedule, wait, ctx.env)
+                job = Job(uid, ExecuteCommand(command), timeout, parsed.schedule, wait, ctx.env)
             elif parsed.schedule or parsed.event:
                 trigger = parsed.schedule or parsed.event
-                job = Job(name, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
+                job = Job(uid, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
             else:
-                job = Job(name, ExecuteCommand(command), timeout, environment=ctx.env)
+                job = Job(uid, ExecuteCommand(command), timeout, environment=ctx.env)
             await self.dependencies.job_handler.add_job(job)
             yield f"Job {job.id} added."
 
@@ -1828,10 +1831,12 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 if isinstance(t.descriptor, Job)
             )
 
+        async def show_help() -> AsyncIterator[str]:
+            yield f"{self.name} - {self.info()}\n\n{self.help()}"
+
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
-            nm, cmd_line = re.split("\\s+", args[1], maxsplit=1)
-            return CLISource.single(partial(put_job, nm.strip(), cmd_line.strip()))
+            return CLISource.single(partial(put_job, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "delete":
             return CLISource.single(partial(delete_job, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "show":
@@ -1844,12 +1849,12 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return CLISource.single((partial(activate_deactivate_job, args[1].strip(), False)))
         elif arg and len(args) == 2:
             raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete.")
-        elif arg and len(args) == 1 and args[0] == "ps":
+        elif arg and len(args) == 1 and args[0] == "running":
             return CLISource(running_jobs)
-        elif not arg:
+        elif arg and len(args) == 1 and args[0] == "list":
             return CLISource(list_jobs)
         else:
-            raise CLIParseError(f"Can not parse arguments: {arg}")
+            return CLISource.single(show_help)
 
 
 class SendWorkerTaskCommand(CLICommand, ABC):
@@ -2679,4 +2684,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "reported", "start_workflow": "start_task", "start_job": "start_task", "https": "http"}
+    return {"match": "reported", "start_workflow": "start_task", "https": "http"}

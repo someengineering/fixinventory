@@ -332,7 +332,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
         return await cli.execute_cli_command(cmd, stream.list, ctx)
 
     # add job with schedule
-    result = await execute('jobs add hello --schedule "23 1 * * *" echo Hello World @NOW@')
+    result = await execute('jobs add --id hello --schedule "23 1 * * *" echo Hello World @NOW@')
     assert result == [["Job hello added."]]
     job = await job_db.get("hello")
     assert job is not None
@@ -343,9 +343,9 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert job.environment == {"graph": "ns"}
 
     # add job with schedule and event
-    with_event = await execute('jobs add timed_hello --schedule "23 1 * * *" --wait-for-event foo  echo Hello World')
-    assert with_event == [["Job timed_hello added."]]
-    job_with_event: Job = await job_db.get("timed_hello")  # type: ignore
+    with_event = await execute('jobs add --id timed_hi --schedule "23 1 * * *" --wait-for-event foo echo Hello World')
+    assert with_event == [["Job timed_hi added."]]
+    job_with_event: Job = await job_db.get("timed_hi")  # type: ignore
     assert job_with_event.wait is not None
     event_trigger, timeout = job_with_event.wait
     assert event_trigger.message_type == "foo"
@@ -354,7 +354,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert job_with_event in task_handler.task_descriptions
 
     # add job with event
-    only_event = await execute("jobs add only_event --wait-for-event foo echo Hello World")
+    only_event = await execute("jobs add --id only_event --wait-for-event foo echo Hello World")
     assert only_event == [["Job only_event added."]]
     job_only_event: Job = await job_db.get("only_event")  # type: ignore
     assert job_only_event.trigger == EventTrigger("foo")
@@ -363,19 +363,19 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert job_only_event in task_handler.task_descriptions
 
     # add job without any trigger
-    no_trigger = await execute("jobs add no_trigger echo Hello World")
+    no_trigger = await execute("jobs add --id no_trigger echo Hello World")
     assert no_trigger == [["Job no_trigger added."]]
     job_no_trigger: Job = await job_db.get("no_trigger")  # type: ignore
     assert job_no_trigger.wait is None
     assert job_no_trigger.environment == {"graph": "ns"}
     assert job_no_trigger in task_handler.task_descriptions
 
-    # deactivate timed_hello
-    deactivated = await execute("jobs deactivate timed_hello")
+    # deactivate timed_hi
+    deactivated = await execute("jobs deactivate timed_hi")
     assert deactivated[0][0]["active"] is False  # type: ignore
 
-    # activate timed_hello
-    activated = await execute("jobs activate timed_hello")
+    # activate timed_hi
+    activated = await execute("jobs activate timed_hi")
     assert activated[0][0]["active"] is True  # type: ignore
 
     # show specific job
@@ -383,21 +383,21 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert len(no_trigger_show[0]) == 1
 
     # show all jobs
-    all_jobs = await execute("jobs")
+    all_jobs = await execute("jobs list")
     assert len(all_jobs[0]) == 4
 
     # start the job
-    run_hello = await execute("jobs run timed_hello")
-    assert run_hello[0][0].startswith("Job timed_hello started with id")  # type: ignore
-    assert [t for t in await task_handler.running_tasks() if t.descriptor.id == "timed_hello"]
+    run_hello = await execute("jobs run timed_hi")
+    assert run_hello[0][0].startswith("Job timed_hi started with id")  # type: ignore
+    assert [t for t in await task_handler.running_tasks() if t.descriptor.id == "timed_hi"]
 
     # list all running jobs
-    all_running = await execute("jobs ps")
-    assert [r["job"] for r in all_running[0]] == ["timed_hello"]  # type: ignore
+    all_running = await execute("jobs running")
+    assert [r["job"] for r in all_running[0]] == ["timed_hi"]  # type: ignore
 
     # delete a job
-    deleted = await execute("jobs delete timed_hello")
-    assert deleted == [["Job timed_hello deleted."]]
+    deleted = await execute("jobs delete timed_hi")
+    assert deleted == [["Job timed_hi deleted."]]
 
 
 @pytest.mark.asyncio

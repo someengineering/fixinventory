@@ -6,6 +6,7 @@ import logging
 import re
 from argparse import ArgumentParser, Namespace
 from asyncio import Task, CancelledError
+from contextlib import suppress
 from copy import copy
 from dataclasses import replace
 from datetime import timedelta
@@ -352,7 +353,8 @@ class TaskHandler(JobHandler):
         # mark step as error
         task.end()
         # remove from database
-        await self.running_task_db.delete(task.id)
+        with suppress(Exception):
+            await self.running_task_db.delete(task.id)
 
     async def delete_job(self, job_id: str) -> Optional[Job]:
         job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
