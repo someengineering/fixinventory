@@ -227,11 +227,12 @@ class Job(TaskDescription):
         self,
         uid: str,
         command: ExecuteCommand,
-        trigger: Trigger,
         timeout: timedelta,
+        trigger: Optional[Trigger] = None,
         wait: Optional[Tuple[EventTrigger, timedelta]] = None,
         environment: Optional[Dict[str, str]] = None,
         mutable: bool = True,
+        active: bool = True,
     ):
         steps = []
         if wait:
@@ -239,11 +240,13 @@ class Job(TaskDescription):
             action = WaitForEvent(wait_trigger.message_type, wait_trigger.filter_data)
             steps.append(Step("wait", action, wait_timeout, StepErrorBehaviour.Stop))
         steps.append(Step("execute", command, timeout, StepErrorBehaviour.Stop))
-        super().__init__(uid, uid, steps, [trigger], TaskSurpassBehaviour.Wait, environment, mutable)
+        start_trigger = [trigger] if active and trigger else []
+        super().__init__(uid, uid, steps, start_trigger, TaskSurpassBehaviour.Wait, environment, mutable)
         self.command = command
-        self.trigger = trigger
         self.timeout = timeout
+        self.trigger = trigger
         self.wait = wait
+        self.active = active
 
     @staticmethod
     def to_json(o: Job, **_: object) -> Json:
@@ -255,6 +258,7 @@ class Job(TaskDescription):
             "command": to_js(o.command),
             "trigger": to_js(o.trigger),
             "timeout": to_json(o.timeout),
+            "active": o.active,
             **env,
             **wait,
         }
@@ -266,13 +270,15 @@ class Job(TaskDescription):
             if "wait_trigger" in json
             else None
         )
+        trigger = json.get("trigger")
         return Job(
             json["id"],
             from_js(json["command"], ExecuteCommand),
-            from_js(json["trigger"], Trigger),
             from_js(json["timeout"], timedelta),
+            from_js(trigger, Trigger) if trigger is not None else None,
             maybe_wait,
             json.get("environment"),
+            active=json.get("active", True),  # backward compatibility: in case the prop is missing
         )
 
 

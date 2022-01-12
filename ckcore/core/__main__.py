@@ -17,7 +17,8 @@ from core.analytics import CoreEvent, NoEventSender
 from core.analytics.posthog import PostHogEventSender
 from core.analytics.recurrent_events import emit_recurrent_events
 from core.cli.cli import CLI
-from core.cli.command import aliases, CLIDependencies, all_commands
+from core.cli.model import CLIDependencies
+from core.cli.command import aliases, all_commands
 from core.db.db_access import DbAccess
 from core.dependencies import db_access, setup_process, parse_args
 from core.message_bus import MessageBus

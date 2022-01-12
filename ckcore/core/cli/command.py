@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 import json
 import logging
 import os.path
@@ -10,14 +9,12 @@ import shutil
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
-from argparse import Namespace
-from asyncio import iscoroutine, Queue, Future, Task
+from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
-from enum import Enum
 from functools import partial
 from typing import (
     Dict,
@@ -43,7 +40,6 @@ from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
 
-from core.analytics import AnalyticsEventSender
 from core.async_extensions import run_async
 from core.cli import (
     key_values_parser,
@@ -53,14 +49,28 @@ from core.cli import (
     NoExitArgumentParser,
     is_edge,
     cmd_args_unquoted_parser,
+    args_parts_parser,
+)
+from core.cli.model import (
+    CLICommand,
+    CLIContext,
+    EmptyContext,
+    CLIAction,
+    CLISource,
+    CLIFlow,
+    InternalPart,
+    OutputTransformer,
+    PreserveOutputFormat,
+    MediaType,
+    CLIFileRequirement,
+    CLIDependencies,
+    ParsedCommand,
 )
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
 from core.error import CLIParseError, ClientError, CLIExecutionError
-from core.message_bus import MessageBus
 from core.model.graph_access import Section, EdgeType
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
-from core.model.model_handler import ModelHandler
 from core.model.resolve_in_graph import NodePath
 from core.model.typed_model import to_json, to_js
 from core.parse_util import (
@@ -73,8 +83,8 @@ from core.parse_util import (
 )
 from core.query.model import Query, P, Template
 from core.query.query_parser import parse_query
-from core.query.template_expander import tpl_props_p, TemplateExpander
-from core.task.job_handler import JobHandler
+from core.query.template_expander import tpl_props_p
+from core.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
 from core.types import Json, JsonElement
 from core.util import (
     AccessJson,
@@ -96,220 +106,9 @@ from core.web.content_renderer import (
     respond_yaml,
     respond_cytoscape,
 )
-from core.worker_task_queue import WorkerTask, WorkerTaskQueue
+from core.worker_task_queue import WorkerTask
 
 log = logging.getLogger(__name__)
-
-
-class CLIDependencies:
-    def __init__(self, **deps: Any) -> None:
-        self.lookup: Dict[str, Any] = deps
-
-    def extend(self, **deps: Any) -> CLIDependencies:
-        self.lookup = {**self.lookup, **deps}
-        return self
-
-    @property
-    def args(self) -> Namespace:
-        return self.lookup["args"]  # type: ignore
-
-    @property
-    def message_bus(self) -> MessageBus:
-        return self.lookup["message_bus"]  # type:ignore
-
-    @property
-    def event_sender(self) -> AnalyticsEventSender:
-        return self.lookup["event_sender"]  # type:ignore
-
-    @property
-    def db_access(self) -> DbAccess:
-        return self.lookup["db_access"]  # type:ignore
-
-    @property
-    def model_handler(self) -> ModelHandler:
-        return self.lookup["model_handler"]  # type:ignore
-
-    @property
-    def job_handler(self) -> JobHandler:
-        return self.lookup["job_handler"]  # type:ignore
-
-    @property
-    def worker_task_queue(self) -> WorkerTaskQueue:
-        return self.lookup["worker_task_queue"]  # type:ignore
-
-    @property
-    def template_expander(self) -> TemplateExpander:
-        return self.lookup["template_expander"]  # type:ignore
-
-    @property
-    def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
-        return self.lookup["forked_tasks"]  # type:ignore
-
-    @property
-    def http_session(self) -> ClientSession:
-        session: Optional[ClientSession] = self.lookup.get("http_session")
-        if not session:
-            connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
-            session = ClientSession(connector=connector)
-            self.lookup["http_session"] = session
-        return session
-
-    async def stop(self) -> None:
-        if "http_session" in self.lookup:
-            await self.http_session.close()
-
-
-@dataclass
-class CLIContext:
-    env: Dict[str, str] = field(default_factory=dict)
-    uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
-    query: Optional[Query] = None
-    query_options: Dict[str, Any] = field(default_factory=dict)
-
-
-EmptyContext = CLIContext()
-
-
-class MediaType(Enum):
-    Json = 1
-    FilePath = 2
-
-    @property
-    def json(self) -> bool:
-        return self == MediaType.Json
-
-    @property
-    def file_path(self) -> bool:
-        return self == MediaType.FilePath
-
-    def __repr__(self) -> str:
-        return "application/json" if self == MediaType.Json else "application/octet-stream"
-
-
-@dataclass
-class CLICommandRequirement:
-    name: str
-
-
-@dataclass
-class CLIFileRequirement(CLICommandRequirement):
-    path: str  # local client path
-
-
-class CLIAction(ABC):
-    def __init__(self, produces: MediaType, requires: Optional[List[CLICommandRequirement]]) -> None:
-        self.produces = produces
-        self.required = requires if requires else []
-
-    @staticmethod
-    def make_stream(in_stream: JsGen) -> Stream:
-        return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
-
-
-class CLISource(CLIAction):
-    def __init__(
-        self,
-        fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
-        produces: MediaType = MediaType.Json,
-        requires: Optional[List[CLICommandRequirement]] = None,
-    ) -> None:
-        super().__init__(produces, requires)
-        self._fn = fn
-
-    async def source(self) -> Tuple[Optional[int], Stream]:
-        res = self._fn()
-        count, gen = await res if iscoroutine(res) else res
-        return count, self.make_stream(await gen if iscoroutine(gen) else gen)
-
-    @staticmethod
-    def with_count(
-        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
-        count: Optional[int],
-        produces: MediaType = MediaType.Json,
-        requires: Optional[List[CLICommandRequirement]] = None,
-    ) -> CLISource:
-        async def combine() -> Tuple[Optional[int], JsGen]:
-            res = fn()
-            gen = await res if iscoroutine(res) else res
-            return count, gen
-
-        return CLISource(combine, produces, requires)
-
-    @staticmethod
-    def single(
-        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
-        produces: MediaType = MediaType.Json,
-        requires: Optional[List[CLICommandRequirement]] = None,
-    ) -> CLISource:
-        return CLISource.with_count(fn, 1, produces, requires)
-
-    @staticmethod
-    def empty() -> CLISource:
-        return CLISource.with_count(stream.empty, 0)
-
-
-class CLIFlow(CLIAction):
-    def __init__(
-        self,
-        fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]],
-        produces: MediaType = MediaType.Json,
-        requires: Optional[List[CLICommandRequirement]] = None,
-    ) -> None:
-        super().__init__(produces, requires)
-        self._fn = fn
-
-    async def flow(self, in_stream: JsGen) -> Stream:
-        gen = self._fn(self.make_stream(in_stream))
-        return self.make_stream(await gen if iscoroutine(gen) else gen)
-
-
-class CLICommand(ABC):
-    """
-    The CLIPart is the base for all participants of the cli execution.
-    Source: generates a stream of objects
-    Flow: transforms the elements in a stream of objects
-    Sink: takes a stream of objects and creates a result
-    """
-
-    def __init__(self, dependencies: CLIDependencies):
-        self.dependencies = dependencies
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
-    def help(self) -> str:
-        # if not defined in subclass, fallback to inline doc
-        doc = inspect.getdoc(type(self))
-        return doc if doc else f"{self.name}: no help available."
-
-    @abstractmethod
-    def info(self) -> str:
-        pass
-
-    @abstractmethod
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        pass
-
-
-class InternalPart(ABC):
-    """
-    Internal parts can be executed but are not shown via help.
-    They usually get injected by the CLI Interpreter to ease usability.
-    """
-
-
-class OutputTransformer(ABC):
-    """
-    Mark all commands that transform the output stream (formatting).
-    """
-
-
-class PreserveOutputFormat(ABC):
-    """
-    Mark all commands where the output should not be flattened to default line output.
-    """
 
 
 # A QueryPart is a command that can be used on the command line.
@@ -1827,15 +1626,105 @@ class ListCommand(CLICommand, OutputTransformer):
 class JobsCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: jobs
+           jobs show <name>
+           jobs add <name> [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
+           jobs update <name> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
+           jobs delete <name>
+           jobs run <name>
+           jobs ps
 
-    List all jobs in the system.
 
-    Example
-        jobs   # Could show
-            [ { "id": "d20288f0", "command": "echo hi!", "trigger": { "cron_expression": "* * * * *" } ]
+    jobs: get the list of all jobs in the system
+    jobs show <name>: show the current definition of the job defined by given job name
+    jobs add <name> ...: add a job to the task handler with provided name, trigger and command line to execute.
+    jobs update <name> ... : update trigger and or command line of an existing job with provided name.
+    jobs delete <name>: delete the job with the provided name.
+    jobs run <name>: run the job as if the trigger would be triggered.
+    jobs ps: show all currently running jobs.
 
-    See: add_job, delete_job
-    }
+
+    A job can be scheduled, react on events or both:
+        - scheduled via defined cron expression
+        - event triggered via defined name of event to trigger this job
+        - combined scheduled + event trigger once the schedule triggers this job,
+          it is possible to wait for an incoming event, before the command line is executed.
+
+    Note:
+        - if a job is triggered, while it is already running, the invocation will wait for the current run to finish.
+          This means that there will be no parallel execution of jobs with the same name at any moment in time.
+        - a command line is not allowed to run longer than the specified timeout.
+          It is killed in case this timeout is exceeded.
+
+    Parameter:
+        name [mandatory]:             The name and identifier of this job.
+        --schedule <cron_expression>  [optional]: defines the recurrent schedule in crontab format.
+        --wait-for-event <event_name> [optional]: if defined, the job waits for the specified event to occur.
+                                      If this parameter is defined in combination with a schedule, the schedule has
+                                      to trigger first, before the event will trigger the execution.
+        command_line [mandatory]:     the CLI command line that will be executed, when the job is triggered.
+                                      Note: It is recommended to wrap the command line into single quotes or escape all
+                                      CLI terms like pipe or semicolon (| -> \\|).
+                                      Multiple command lines can be defined by separating them via semicolon.
+
+
+    Example:
+        # print hello world every minute to the console
+        $> jobs add say-hello --schedule "* * * * *" echo hello world
+        Job say-hello added.
+
+        # print all available jobs in the system
+        $> jobs
+        id: say-hello
+        trigger:
+          cron_expression: '* * * * *'
+        command: echo hello world
+
+        # get a specific job by name
+        $> jobs say-hello
+        id: say-hello
+        trigger:
+          cron_expression: '* * * * *'
+        command: echo hello world
+
+        # every morning at 4: wait for message of type collect_done and print a message
+        $> jobs add early_greeting --schedule "0 4 * * *" --wait-for-event collect_done 'match is("volume") | format id'
+        Job early_greeting added.
+
+        # wait for message of type collect_done and print a message
+        $> jobs add wait_for_collect_done collect_done: echo hello world
+        Job wait_for_collect_done added.
+
+        # run the job directly without waiting for a trigger
+        $> jobs run say-hello
+        Job say-hello started with id a4bb64cc-7385-11ec-b2cb-dad780437c53.
+
+        # show all currently running jobs
+        $> jobs ps
+        job: say-hello
+        started_at: '2022-01-12T09:01:34Z'
+        task-id: a4bb64cc-7385-11ec-b2cb-dad780437c53
+
+        # triggers can be activated and deactivated.
+        # Deactivated triggers will not trigger the job.
+        # The active flag shows the state of activation.
+        $> jobs deactivate say-hello
+        id: say-hello
+        command: echo hello world
+        active: false
+        trigger:
+          cron_expression: '* * * * *'
+
+        # activate the triggers of the job.
+        $> jobs activate say-hello
+        id: say-hello
+        command: echo hello world
+        active: true
+        trigger:
+          cron_expression: '* * * * *'
+
+        # delete a job
+        $> jobs delete say-hello
+        Job say-hello deleted.
     """
 
     @property
@@ -1845,104 +1734,115 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     def info(self) -> str:
         return "List all jobs in the system."
 
+    @staticmethod
+    def is_jobs_update(command: ParsedCommand) -> bool:
+        if command.cmd == "jobs":
+            args = re.split("\\s+", command.args, maxsplit=1) if command.args else []
+            return len(args) == 2 and args[0] in ("add", "update")
+        else:
+            return False
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
+        def job_to_json(job: Job) -> Json:
+            wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
+            trigger = {"trigger": to_js(job.trigger, strip_nulls=True)} if job.trigger else {}
+            return {"id": job.id, "command": job.command.command, "active": job.active, **trigger, **wait}
+
+        async def list_jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
             listed = await self.dependencies.job_handler.list_jobs()
 
             async def iterate() -> AsyncIterator[JsonElement]:
                 for job in listed:
-                    wait = {"wait": {"message_type": job.wait[0].message_type}} if job.wait else {}
-                    yield {"id": job.id, "trigger": to_js(job.trigger), "command": job.command.command, **wait}
+                    yield job_to_json(job)
 
             return len(listed), iterate()
 
-        return CLISource(jobs)
+        async def show_job(job_id: str) -> AsyncIterator[JsonElement]:
+            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            if matching:
+                yield job_to_json(matching[0])
+            else:
+                yield f"No job with this id: {job_id}"
 
+        async def put_job(name: str, arg_str: str) -> AsyncIterator[str]:
+            arg_parser = NoExitArgumentParser()
+            arg_parser.add_argument("--schedule", dest="schedule", type=lambda r: TimeTrigger(strip_quotes(r)))
+            arg_parser.add_argument("--wait-for-event", dest="event", type=lambda e: EventTrigger(strip_quotes(e)))
+            arg_parser.add_argument(
+                "--timeout", dest="timeout", default=timedelta(hours=1), type=lambda t: timedelta(seconds=int(t))
+            )
+            parsed, rest = arg_parser.parse_known_args(list(args_parts_parser.parse(arg_str)))
+            command = " ".join(rest)
+            # only here to make sure the command can be executed
+            await self.dependencies.cli.evaluate_cli_command(command, ctx)
 
-class AddJobCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: add_job [<cron_expression>] [<event_name> :] <command>
-
-    Add a job which either runs
-        - scheduled via defined cron expression
-        - event triggered via defined name of event to trigger this job
-        - combined scheduled + event trigger once the schedule triggers this job,
-          it is possible to wait for an incoming event, before the command is executed.
-
-    The result of `add_job` will be a job identifier, which identifies this job uniquely and can be used to
-    delete the job again.
-    Note: the command is not allowed to run longer than 1 hour. It is killed in such a case.
-    Note: if an event to wait for is specified, it has to arrive in 24 hours, otherwise the job is aborted.
-
-    Parameter:
-        cron_expression [optional]:  defines the recurrent schedule in crontab format.
-        event_name [optional]:       if defined, the command waits for the specified event _after_ the next scheduled
-                                     time has been reached. No waiting happens, if this parameter is not defined.
-        command [mandatory]:         the CLI command that will be executed, when the job is triggered.
-                                     Note: multiple commands can be defined by separating them via escaped semicolon.
-
-
-    Example:
-        # print hello world every minute to the console
-        add_job * * * * * echo hello world
-        # every morning at 4: wait for message of type collect_done and print a message
-        add_job 0 4 * * * collect_done: match is instance("compute_instance") and cores>4 \\| format id
-        # wait for message of type collect_done and print a message
-        add_job collect_done echo hello world
-
-    See: delete_job, jobs
-    """
-
-    @property
-    def name(self) -> str:
-        return "add_job"
-
-    def info(self) -> str:
-        return "Add job to the system."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def add_job() -> AsyncIterator[str]:
-            if not arg:
-                raise AttributeError("No parameters provided for add_job!")
-            job = await self.dependencies.job_handler.parse_job_line("cli", arg, ctx.env)
+            timeout: timedelta = parsed.timeout
+            if parsed.schedule and parsed.event:
+                wait = (parsed.event, timeout)
+                job = Job(name, ExecuteCommand(command), timeout, parsed.schedule, wait, ctx.env)
+            elif parsed.schedule or parsed.event:
+                trigger = parsed.schedule or parsed.event
+                job = Job(name, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
+            else:
+                job = Job(name, ExecuteCommand(command), timeout, environment=ctx.env)
             await self.dependencies.job_handler.add_job(job)
             yield f"Job {job.id} added."
 
-        return CLISource.single(add_job)
+        async def delete_job(job_id: str) -> AsyncIterator[str]:
+            job = await self.dependencies.job_handler.delete_job(job_id)
+            yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
+        async def run_job(job_id: str) -> AsyncIterator[str]:
+            task = await self.dependencies.job_handler.start_task_by_descriptor_id(job_id)
+            yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
-class DeleteJobCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: delete_job [job_id]
+        async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
+            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            if matching:
+                m = matching[0]
+                if m.trigger is not None:
+                    job = Job(m.id, m.command, m.timeout, m.trigger, m.wait, m.environment, m.mutable, active)
+                    await self.dependencies.job_handler.add_job(job)
+                    yield job_to_json(job)
+                else:
+                    yield f"Job {job_id} does not have any trigger that could be activated/deactivated."
+            else:
+                yield f"No job with this id: {job_id}"
 
-    Delete a job by a given job identifier.
-    Note: a job with an unknown id can not be deleted. It will not raise any error, but show a different message.
+        async def running_jobs() -> Tuple[int, Stream]:
+            tasks = await self.dependencies.job_handler.running_tasks()
+            return len(tasks), stream.iterate(
+                {
+                    "job": t.descriptor.id,
+                    "started_at": to_json(t.task_started_at),
+                    "task-id": t.id,
+                }
+                for t in tasks
+                if isinstance(t.descriptor, Job)
+            )
 
-
-    Parameter:
-        job_id [mandatory]: defines the identifier of the job to be deleted.
-
-    Example:
-        delete_job 123  # will delete the job with id 123
-
-    See: add_job, jobs
-    """
-
-    @property
-    def name(self) -> str:
-        return "delete_job"
-
-    def info(self) -> str:
-        return "Remove job from the system."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def delete_job() -> AsyncIterator[str]:
-            if not arg:
-                raise AttributeError("No parameters provided for delete_job!")
-            job = await self.dependencies.job_handler.delete_job(arg)
-            yield f"Job {arg} deleted." if job else f"No job with this id: {arg}"
-
-        return CLISource.single(delete_job)
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] in ("add", "update"):
+            nm, cmd_line = re.split("\\s+", args[1], maxsplit=1)
+            return CLISource.single(partial(put_job, nm.strip(), cmd_line.strip()))
+        elif arg and len(args) == 2 and args[0] == "delete":
+            return CLISource.single(partial(delete_job, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "show":
+            return CLISource.single(partial(show_job, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "run":
+            return CLISource.single(partial(run_job, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "activate":
+            return CLISource.single(partial(activate_deactivate_job, args[1].strip(), True))
+        elif arg and len(args) == 2 and args[0] == "deactivate":
+            return CLISource.single((partial(activate_deactivate_job, args[1].strip(), False)))
+        elif arg and len(args) == 2:
+            raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete.")
+        elif arg and len(args) == 1 and args[0] == "ps":
+            return CLISource(running_jobs)
+        elif not arg:
+            return CLISource(list_jobs)
+        else:
+            raise CLIParseError(f"Can not parse arguments: {arg}")
 
 
 class SendWorkerTaskCommand(CLICommand, ABC):
@@ -2124,43 +2024,6 @@ class TagCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         return CLIFlow(setup_stream)
-
-
-class TasksCommand(CLICommand, PreserveOutputFormat):
-    """
-    Usage: tasks
-
-    List all running tasks.
-
-    Example:
-        tasks
-        # Could return this output
-         [
-          { "id": "123", "descriptor": { "id": "231", "name": "example-job" }, "started_at": "2021-09-17T12:07:39Z" }
-         ]
-
-    """
-
-    @property
-    def name(self) -> str:
-        return "tasks"
-
-    def info(self) -> str:
-        return "Lists all currently running tasks."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def tasks_source() -> Tuple[int, Stream]:
-            tasks = await self.dependencies.job_handler.running_tasks()
-            return len(tasks), stream.iterate(
-                {
-                    "id": t.id,
-                    "started_at": to_json(t.task_started_at),
-                    "descriptor": {"id": t.descriptor.id, "name": t.descriptor.name},
-                }
-                for t in tasks
-            )
-
-        return CLISource(tasks_source)
 
 
 class StartTaskCommand(CLICommand, PreserveOutputFormat):
@@ -2761,14 +2624,12 @@ class HttpCommand(CLICommand):
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
-        AddJobCommand(d),
         AggregatePart(d),
         AggregateToCountCommand(d),
         AncestorPart(d),
         ChunkCommand(d),
         CleanCommand(d),
         CountCommand(d),
-        DeleteJobCommand(d),
         DescendantPart(d),
         DesiredPart(d),
         DumpCommand(d),
@@ -2799,7 +2660,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SystemCommand(d),
         TagCommand(d),
         TailCommand(d),
-        TasksCommand(d),
         UniqCommand(d),
         WriteCommand(d),
     ]

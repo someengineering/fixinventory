@@ -38,8 +38,9 @@ from networkx.readwrite import cytoscape_data
 
 from core import feature
 from core.analytics import AnalyticsEventSender
-from core.cli.cli import CLI, ParsedCommandLine
-from core.cli.command import CLIContext, OutputTransformer, ListCommand, PreserveOutputFormat
+from core.cli.cli import CLI
+from core.cli.model import ParsedCommandLine, CLIContext, OutputTransformer, PreserveOutputFormat
+from core.cli.command import ListCommand
 from core.config import ConfigEntity
 from core.db.db_access import DbAccess
 from core.db.model import QueryModel
