@@ -1,17 +1,17 @@
-name: Check PR (resotosh)
+name: Check PR (resotoshell)
 on:
   push:
     branches:
         - main
   pull_request:
     paths:
-      - 'resotosh/**'
+      - 'resotoshell/**'
       - 'resotolib/**'
       - '.github/**'
 
 jobs:
-  resotosh:
-    name: "resotosh"
+  resotoshell:
+    name: "resotoshell"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,11 +45,11 @@ jobs:
           pip wheel -w /build .
 
       - name: Run tests
-        working-directory: ./resotosh
+        working-directory: ./resotoshell
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: resotosh-code-coverage-report
-          path: resotosh/htmlcov/
+          name: resotoshell-code-coverage-report
+          path: resotoshell/htmlcov/
