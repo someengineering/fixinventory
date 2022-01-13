@@ -1,7 +1,7 @@
 # resoto-plugin-remote
 Remote graph collector plugin for Resoto
 
-This plugin fetches a graph from a remote Resoto instance and attaches it to the local graph, allowing for distributed resoto setups.
+This plugin fetches a graph from a remote Resoto instance and attaches it to the local graph, allowing for distributed Resoto setups.
 
 ## Usage
 Provide a remote `/graph` endpoint:
