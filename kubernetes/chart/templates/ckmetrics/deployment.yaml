@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cloudkeeper.fullname" . }}-ckmetrics
+  name: {{ include "resoto.fullname" . }}-resotometrics
   labels:
-    cloudkeeper: metrics
-    {{- include "cloudkeeper.labels" . | nindent 4 }}
+    resoto: metrics
+    {{- include "resoto.labels" . | nindent 4 }}
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/path: '/metrics'
@@ -13,8 +13,8 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      cloudkeeper: metrics
-      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+      resoto: metrics
+      {{- include "resoto.selectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
   template:
@@ -24,15 +24,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        cloudkeeper: metrics
-        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+        resoto: metrics
+        {{- include "resoto.selectorLabels" . | nindent 8 }}
     spec:
       enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      serviceAccountName: {{ include "resoto.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -42,10 +42,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-          - --ckcore-uri
-          - http://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
-          - --ckcore-ws-uri
-          - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:8900
+          - --resotocore-uri
+          - http://{{ include "resoto.fullname" . }}-resotocore:8900
+          - --resotocore-ws-uri
+          - ws://{{ include "resoto.fullname" . }}-resotocore:8900
           env:
           - name: START_STACK
             value: "false"
@@ -54,7 +54,7 @@ spec:
           - name: PSK
             valueFrom:
               secretKeyRef:
-                name: {{ include "cloudkeeper.fullname" . }}-psk
+                name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
           ports:
             - name: http

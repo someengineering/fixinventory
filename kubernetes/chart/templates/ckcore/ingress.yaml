@@ -1,10 +1,10 @@
-{{- if .Values.ckcore.ingress.enabled -}}
-{{- $fullName := include "cloudkeeper.fullname" . -}}
-{{- $fullName = (printf "%s%s" $fullName  "-ckcore") }}
-{{- $svcPort := .Values.ckcore.service.port -}}
-{{- if and .Values.ckcore.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ckcore.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ckcore.ingress.annotations "kubernetes.io/ingress.class" .Values.ckcore.ingress.className}}
+{{- if .Values.resotocore.ingress.enabled -}}
+{{- $fullName := include "resoto.fullname" . -}}
+{{- $fullName = (printf "%s%s" $fullName  "-resotocore") }}
+{{- $svcPort := .Values.resotocore.service.port -}}
+{{- if and .Values.resotocore.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.resotocore.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.resotocore.ingress.annotations "kubernetes.io/ingress.class" .Values.resotocore.ingress.className}}
   {{- end }}
 {{- end }}
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -18,18 +18,18 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    {{- include "cloudkeeper.labels" . | nindent 4 }}
-  {{- with .Values.ckcore.ingress.annotations }}
+    {{- include "resoto.labels" . | nindent 4 }}
+  {{- with .Values.resotocore.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.ckcore.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.ckcore.ingress.className }}
+  {{- if and .Values.resotocore.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.resotocore.ingress.className }}
   {{- end }}
-  {{- if .Values.ckcore.ingress.tls }}
+  {{- if .Values.resotocore.ingress.tls }}
   tls:
-    {{- range .Values.ckcore.ingress.tls }}
+    {{- range .Values.resotocore.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -38,7 +38,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.ckcore.ingress.hosts }}
+    {{- range .Values.resotocore.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:

@@ -3,7 +3,7 @@
     "title": "Values",
     "type": "object",
     "properties": {
-        "ckcore": {
+        "resotocore": {
             "type": "object",
             "required": [
                 "graphdb"
@@ -112,7 +112,7 @@
                 }
             }
         },
-        "ckworker": {
+        "resotoworker": {
             "type": "object",
             "required": [
                 "collector"
