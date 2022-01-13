@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
- Cloudkeeper Docs contents
+ Resoto Docs contents
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .. toctree::
@@ -40,8 +40,8 @@
 
 .. toctree::
    :maxdepth: 1
-   :caption: Cloudkeeper
-   :name: sec-cloudkeeper
+   :caption: resoto
+   :name: sec-resoto
 
-   cloudkeeper/components/index
-   cloudkeeper/model
+   resoto/components/index
+   resoto/model

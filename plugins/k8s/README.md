@@ -1,10 +1,10 @@
-# cloudkeeper-plugin-k8s
-Kubernetes Collector Plugin for Cloudkeeper (Alpha)
+# resoto-plugin-k8s
+Kubernetes Collector Plugin for Resoto (Alpha)
 !!! This plugin was created as part of a Hackathon and has not been extensively tested !!!
 It is meant as a starting point for K8S work but not intended for production use.
 
 ## Usage
-When the collector is enabled (`--collector k8s`) it will automatically collect the current active contex if any exists.
+When the collector is enabled (`--collector k8s`) it will automatically collect the current active context if any exists.
 Optionally a list of contexts to collect can be supplied using `--k8s-context contextA contextB contextC ...`.
 If a config file (`--k8s-config`) is supplied it will be used instead of the default `~/.kube/config`.
 

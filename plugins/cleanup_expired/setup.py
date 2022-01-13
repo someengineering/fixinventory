@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-cleanup_expired",
+    name="resoto-plugin-cleanup_expired",
     version="2.0.0a10",
-    description="Cloudkeeper Expired Resource Cleanup Plugin",
+    description="Resoto Expired Resource Cleanup Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "cleanup_expired = cloudkeeper_plugin_cleanup_expired:CleanupExpiredPlugin"
+        "resoto.plugins": [
+            "cleanup_expired = resoto_plugin_cleanup_expired:CleanupExpiredPlugin"
         ]
     },
     include_package_data=True,

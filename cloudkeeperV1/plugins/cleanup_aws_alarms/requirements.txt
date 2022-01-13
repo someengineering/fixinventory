@@ -1,3 +1,0 @@
-cklib==2.0.0a10
-cloudkeeper-plugin-aws==2.0.0a10
-PyYAML==5.4.1

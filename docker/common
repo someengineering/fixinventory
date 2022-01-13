@@ -4,17 +4,17 @@ runit_graphdb_conf_in=/usr/local/etc/service.in/graphdb.sh
 runit_graphdb_bootstrap_conf_in=/usr/local/etc/service.in/graphdb-bootstrap.sh
 runit_tsdb_conf_in=/usr/local/etc/service.in/tsdb.sh
 runit_dnsmasq_conf_in=/usr/local/etc/service.in/dnsmasq.sh
-runit_ckcore_conf_in=/usr/local/etc/service.in/ckcore.sh
-runit_ckworker_conf_in=/usr/local/etc/service.in/ckworker.sh
-runit_ckmetrics_conf_in=/usr/local/etc/service.in/ckmetrics.sh
+runit_resotocore_conf_in=/usr/local/etc/service.in/resotocore.sh
+runit_resotoworker_conf_in=/usr/local/etc/service.in/resotoworker.sh
+runit_resotometrics_conf_in=/usr/local/etc/service.in/resotometrics.sh
 # Output files
 runit_graphdb_rundir=/etc/service/graphdb
 runit_graphdb_bootstrap_rundir=/etc/service/graphdb-bootstrap
 runit_tsdb_rundir=/etc/service/tsdb
 runit_dnsmasq_rundir=/etc/service/dnsmasq
-runit_ckcore_rundir=/etc/service/ckcore
-runit_ckworker_rundir=/etc/service/ckworker
-runit_ckmetrics_rundir=/etc/service/ckmetrics
+runit_resotocore_rundir=/etc/service/resotocore
+runit_resotoworker_rundir=/etc/service/resotoworker
+runit_resotometrics_rundir=/etc/service/resotometrics
 
 # log levels
 debug=50

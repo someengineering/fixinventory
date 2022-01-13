@@ -1,0 +1,55 @@
+name: Check PR (resotometrics)
+on:
+  push:
+    branches:
+        - main
+  pull_request:
+    paths:
+      - 'resotometrics/**'
+      - 'resotolib/**'
+      - '.github/**'
+
+jobs:
+  resotometrics:
+    name: "resotometrics"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          restore-keys: |
+            $\{\{ runner.os }}-pip-
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable resotolib/
+          pip install tox wheel flake8
+
+      - name: Build resotolib
+        working-directory: ./resotolib
+        run: |
+          sudo rm -rf /build
+          sudo mkdir -p /build -m a+rw
+          pip wheel -w /build .
+
+      - name: Run tests
+        working-directory: ./resotometrics
+        run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: resotometrics-code-coverage-report
+          path: resotometrics/htmlcov/

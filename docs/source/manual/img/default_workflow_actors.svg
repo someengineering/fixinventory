@@ -46,17 +46,17 @@
       <line x1="522.48806" y1="396.75" x2="557.85" y2="396.75" marker-end="url(#FilledArrow_Marker)" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       <line x1="652.369" y1="381.75" x2="652.369" y2="360.65" marker-end="url(#FilledArrow_Marker)" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       <text transform="translate(524.75 297.82596)" fill="black">
-        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x=".224" y="12" textLength="39.552">ckcore</tspan>
+        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x=".224" y="12" textLength="39.552">resotocore</tspan>
       </text>
       <rect x="224.5" y="504.5" width="82.5" height="57" fill="#c0ffc0"/>
       <rect x="224.5" y="504.5" width="82.5" height="57" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
       <text transform="translate(229.5 525.32596)" fill="black">
-        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x="9.256" y="12" textLength="53.988">ckworker</tspan>
+        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x="9.256" y="12" textLength="53.988">resotoworker</tspan>
       </text>
       <rect x="740.5" y="183" width="82.5" height="57" fill="#c0ffc0"/>
       <rect x="740.5" y="183" width="82.5" height="57" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
       <text transform="translate(745.5 203.82596)" fill="black">
-        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x="7.822" y="12" textLength="56.856">ckmetrics</tspan>
+        <tspan font-family="Helvetica Neue" font-size="12" font-weight="bold" fill="black" x="7.822" y="12" textLength="56.856">resotometrics</tspan>
       </text>
       <line x1="751.2921" y1="240.75" x2="667.9885" y2="320.75" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" stroke-dasharray="1,4"/>
       <line x1="278.8365" y1="503.75" x2="354" y2="335.75" stroke="#a5a5a5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" stroke-dasharray="1,4"/>

@@ -31,7 +31,7 @@ jobs:
                 uses: docker/metadata-action@v3
                 with:
                     images: |
-                        ghcr.io/someengineering/cloudkeeper
+                        ghcr.io/someengineering/resoto
                     flavor: |
                       latest=true
                     tags: |

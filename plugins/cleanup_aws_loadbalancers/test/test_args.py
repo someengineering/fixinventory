@@ -1,5 +1,5 @@
-from cklib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_cleanup_aws_loadbalancers import CleanupAWSLoadbalancersPlugin
+from resotolib.args import get_arg_parser, ArgumentParser
+from resoto_plugin_cleanup_aws_loadbalancers import CleanupAWSLoadbalancersPlugin
 
 
 def test_args():

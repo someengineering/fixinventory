@@ -1,5 +1,5 @@
-from cklib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_aws import AWSPlugin
+from resotolib.args import get_arg_parser, ArgumentParser
+from resoto_plugin_aws import AWSPlugin
 
 
 def test_args():

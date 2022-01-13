@@ -11,17 +11,17 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-aws",
+    name="resoto-plugin-aws",
     version="2.0.0a10",
-    description="Cloudkeeper AWS Plugin",
+    description="Resoto AWS Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": ["aws = cloudkeeper_plugin_aws:AWSPlugin"],
+        "resoto.plugins": ["aws = resoto_plugin_aws:AWSPlugin"],
         "console_scripts": [
-            "cloudkeeper-aws-org-list = cloudkeeper_plugin_aws.cmd.org_list:main",
-            "cloudkeeper-aws-s3 = cloudkeeper_plugin_aws.cmd.s3:main",
+            "resoto-aws-org-list = resoto_plugin_aws.cmd.org_list:main",
+            "resoto-aws-s3 = resoto_plugin_aws.cmd.s3:main",
         ],
     },
     include_package_data=True,

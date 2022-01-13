@@ -1,5 +1,0 @@
-cklib==2.0.0a10
-APScheduler==3.8.1
-prompt-toolkit==3.0.20
-tzlocal==4.1
-PyYAML==6.0

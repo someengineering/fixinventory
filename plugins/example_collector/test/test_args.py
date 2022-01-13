@@ -1,5 +1,5 @@
-from cklib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_example_collector import ExampleCollectorPlugin
+from resotolib.args import get_arg_parser, ArgumentParser
+from resoto_plugin_example_collector import ExampleCollectorPlugin
 
 
 def test_args():

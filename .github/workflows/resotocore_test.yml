@@ -1,0 +1,54 @@
+name: Test (resotocore)
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'resotocore/**'
+      - '.github/**'
+  pull_request:
+    paths:
+      - 'resotocore/**'
+      - '.github/**'
+
+jobs:
+  lint-and-test:
+    name: "Test (resotocore)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./resotocore
+    services:
+      arangodb:
+        image: arangodb:3.8.3
+        env:
+          ARANGO_ROOT_PASSWORD: root
+        ports:
+          - 8529:8529
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 'pypy-3.8-v7.3.7'
+          architecture: 'x64'
+      - name: Restore dependency cache
+        uses: actions/cache@v2
+        with:
+          # This path is specific to Ubuntu
+          path: ~/.cache/pip
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{runner.os}}-pip-${{hashFiles('requirements.txt')}}-${{hashFiles('requirements-dev.txt')}}-${{hashFiles('requirements-test.txt')}}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --editable ../resotolib
+          pip install -r requirements-test.txt
+          pip install -r requirements.txt
+      - name: Run Tests
+        run: pytest
+

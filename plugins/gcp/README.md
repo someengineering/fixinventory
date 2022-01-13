@@ -1,5 +1,5 @@
-# cloudkeeper-plugin-gcp
-An GCP collector plugin for Cloudkeeper.
+# resoto-plugin-gcp
+An GCP collector plugin for Resoto.
 
 ## Usage
 When the collector is enabled (`--collector gcp`) it will automatically collect any accounts specified for `--gcp-service-account`. Set to empty string to use default service account discovery on GCE, GKE etc.

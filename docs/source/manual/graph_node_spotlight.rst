@@ -16,7 +16,7 @@ A graph node is a json document with a well defined structure and these top leve
       "metadata": { ... }
     }
 
-- ``id`` : This is a synthetic unique identifier of this node that is created by Cloudkeeper.
+- ``id`` : This is a synthetic unique identifier of this node that is created by Resoto.
   It is used to maintain the node as well as all edges from and to this node.
 - ``kinds``: This array contains all kinds of this node. It is derived from the kind of
   this node and includes the current kind as well as all parent kinds.

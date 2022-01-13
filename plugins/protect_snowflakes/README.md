@@ -1,7 +1,7 @@
-# cloudkeeper-plugin-protect_snowflakes
-Protect Snowflakes Plugin for Cloudkeeper
+# resoto-plugin-protect_snowflakes
+Protect Snowflakes Plugin for Resoto
 
-This plugin protects snowflake resources from deletion by Cloudkeeper by burning a resources protection fuse.
+This plugin protects snowflake resources from deletion by Resoto by burning a resources protection fuse.
 
 ## Usage
 Create a yaml config file.
@@ -30,13 +30,13 @@ Create a yaml config file.
 
 Provide the path to a config file via the `--protect-snowflakes-config` argument.
 ```
-$ cloudkeeper -v --protect-snowflakes-config /var/local/cloudkeeper/config/protect_snowflakes.yaml
+$ resotoworker -v --protect-snowflakes-config /var/local/resoto/config/protect_snowflakes.yaml
 ```
 
 ### Implementation details
-Each Cloudkeeper resource has an attributed `protected` which takes on a boolean value. By default it is set to `False`.
+Each Resoto resource has an attributed `protected` which takes on a boolean value. By default it is set to `False`.
 Once set to `True` it can not be changed back to `False` essentially burning a protection fuse.
-Each cloudkeeper resource inherits BaseResource which contains two methods for cleaning up a resource, `cleanup()` and `delete()`.
+Each Resoto resource inherits BaseResource which contains two methods for cleaning up a resource, `cleanup()` and `delete()`.
 Both those methods will refuse to manipulate a resource under any circumstances once the `protected` attribute has been set to `True`.
 
 ## List of arguments

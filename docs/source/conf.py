@@ -17,7 +17,7 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'Cloudkeeper'
+project = 'resoto'
 copyright = '2021, Some Engineering Inc.'
 author = 'Some Engineering Inc.'
 
