@@ -1,5 +1,5 @@
 """
-resoto worker
+Resoto worker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Runs collector plugins and sends the result to resotocore.
 :copyright: © 2021 Some Engineering Inc.

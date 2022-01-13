@@ -7,10 +7,10 @@ Cleanup
 
 You can modify your discovered cloud resources by using resotos powerful commands like ``tag`` or ``clean``.
 
-To learn about your new superpowers and use them in the best way, it is important to understand how resoto handles commands in the background.
+To learn about your new superpowers and use them in the best way, it is important to understand how Resoto handles commands in the background.
 
 .. important::
-    | resoto will **NOT** delete resources marked for deletion by default!
+    | Resoto will **NOT** delete resources marked for deletion by default!
     | Read more about this here: :ref:`delete_warning`
 
 .. _action_tags:
@@ -19,7 +19,7 @@ Working with tags
 *****************
 
 Tags are a very useful to organise your cloud infrastructure and provide additional information to your resources.
-resoto provides a powerful command to mass create, update or delete tags to keep everything clean and tidy.
+Resoto provides a powerful command to mass create, update or delete tags to keep everything clean and tidy.
 
 .. code-block:: bash
     :caption: update tag ``owner`` of instance ``i-039e06bb2539e5484`` if present, create if new.
@@ -63,7 +63,7 @@ Deleting resources
     To remove all clean marker on all ressources you can use ``desired clean=true  | set_desired clean=false``.
 
 
-Deletion of resources via resoto is done in two phases.
+Deletion of resources via Resoto is done in two phases.
 
 #. :ref:`mark_resources_for_deletion`
 #. :ref:`delete_the_actual_ressources`
@@ -88,7 +88,7 @@ Optionally you can provide a reason for marking the matched ressources for the n
 Delete the actual ressources
 ============================
 
-Resources in resoto will only be deleted if you started a :ref:`component-resotoworker` with the ``--cleanup`` parameter.
+Resources in Resoto will only be deleted if you started a :ref:`component-resotoworker` with the ``--cleanup`` parameter.
 If done so, there will be an automatic cleanup every full hour.
 Otherwise the ``cleanup`` will only be simulated without actually being deleted.
 

@@ -6,8 +6,8 @@ Quick start
 
 In this quick start guide, we're showing you three things, how to:
 
-    #. install resoto for AWS with docker
-    #. use the resoto CLI to run your first ``collect`` process
+    #. install Resoto for AWS with docker
+    #. use the Resoto CLI to run your first ``collect`` process
     #. query the results of the collect process
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
@@ -16,7 +16,7 @@ The docker set-up takes 2-5 minutes. The duration of the first collect process d
 | To start exploring you need AWS credentials and a working Docker environment with access to AWS APIs.
 | We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
-Install & Run resoto
+Install & Run Resoto
 ====================
 
 AWS Credentials
@@ -26,9 +26,9 @@ Make sure the user has the permissions to access your cloud resources.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
-Run resoto
+Run Resoto
 ----------
-Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest resoto release.
+Assuming `docker <https://www.docker.com/get-started>`_ is already present, run the latest Resoto release.
 Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
 
 .. code-block:: bash
@@ -39,7 +39,7 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
     -e RESOTOWORKER_COLLECTOR='aws example' \
     --name resoto ghcr.io/someengineering/resoto:2.0.0a9
 
-Start the resoto CLI
+Start the Resoto CLI
 ====================
 You interact with `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ via `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``)
 
@@ -49,7 +49,7 @@ You interact with `resotocore <https://github.com/someengineering/resoto/tree/ma
 
 
 | `resotocore <https://github.com/someengineering/resoto/tree/main/resotocore>`_ the platform maintaining the `MultiDiGraph <https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)>`_.
-| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``) the resoto shell to interact with the core.
+| `resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_ (``resh``) the Resoto shell to interact with the core.
 
 Collect AWS Inventory
 ---------------------
@@ -68,7 +68,7 @@ Collect AWS Inventory
 Depending on infrastructure size, the collect process usually takes anywhere between 2-5 minutes. Huge cloud accounts (>500+ instances) can take up to 15 minutes.
 
 
-The ``collect`` task runs every full hour. resoto persists data in $HOME/data/test/db (`ArangoDB <https://www.arangodb.com/learn/>`_) and $HOME/data/test/tsdb (`Prometheus <https://prometheus.io/docs/prometheus/latest/getting_started/>`_).
+The ``collect`` task runs every full hour. Resoto persists data in $HOME/data/test/db (`ArangoDB <https://www.arangodb.com/learn/>`_) and $HOME/data/test/tsdb (`Prometheus <https://prometheus.io/docs/prometheus/latest/getting_started/>`_).
 
 | *Hint:*
 | You can observe the collect process in the logs
@@ -90,7 +90,7 @@ The ``collect`` task runs every full hour. resoto persists data in $HOME/data/te
 
 You have this many ressources!
 ------------------------------
-Count the resources available in resoto
+Count the resources available in Resoto
 
 .. code-block:: bash
 
@@ -101,9 +101,9 @@ Count the resources available in resoto
 What is your number? Let us know on `Discord <https://discord.gg/someengineering>`_!
 
 
-Usage of the resoto CLI
+Usage of the Resoto CLI
 =======================
-In this section we show you how to use resoto CLI(`resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_) to discover your infrastructure by selecting, filtering and counting your resources.
+In this section we show you how to use Resoto CLI(`resotoshell <https://github.com/someengineering/resoto/tree/main/resotoshell>`_) to discover your infrastructure by selecting, filtering and counting your resources.
 
 How to access help
 ------------------------------------------------
@@ -296,7 +296,7 @@ All documentation is under heavy development, including this tutorial.
 We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
 | Please explore resoto, build your queries and discover your infrastructure.
-| A good place to continue is joining our community to get the most out of resoto and the experiences collected from many different SREs, companies and curious people.
+| A good place to continue is joining our community to get the most out of Resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
 How you get more assistance

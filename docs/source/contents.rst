@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
- resoto Docs contents
+ Resoto Docs contents
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .. toctree::

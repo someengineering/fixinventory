@@ -100,7 +100,7 @@ Execute
 More API Endpoints
 ==================
 
-:ref:`component-resotocore` is the central HUB for everything resoto does.
+:ref:`component-resotocore` is the central HUB for everything Resoto does.
 You can discover :ref:`component-resotocore` APIs directly via WebBrowser (exposed at ``http://<resoto-address>:8900/``) or in our `repository <https://github.com/someengineering/resoto/blob/main/resotocore/core/static/api-doc.yaml>`_
 
 There will be examples of typical API Calls in the in depth descriptions of every :ref:`resoto component <component-list>`.

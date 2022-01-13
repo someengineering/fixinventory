@@ -1,5 +1,5 @@
 # resoto-plugin-onprem (WIP)
-On-Premises Collector Plugin for resoto
+On-Premises Collector Plugin for Resoto
 
 
 ```

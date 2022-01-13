@@ -1,5 +1,5 @@
 # `resotocore`
-resoto core graph platform
+Resoto core graph platform
 
 
 ## Table of contents
@@ -11,7 +11,7 @@ resoto core graph platform
 
 
 ## Overview
-The resoto graph platfrom `resotocore` is the persistance and query backend of resoto. It maintains the graph
+The Resoto graph platfrom `resotocore` is the persistance and query backend of resoto. It maintains the graph
 of resources and provides APIs to update and access them. Within `resotocore` there are workflows consisting of steps
 that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
 like [`resotoworker`](../resotoworker/) and [`resotometrics`](../resotometrics/).

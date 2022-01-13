@@ -2,12 +2,12 @@
 Setup In Kubernetes Using Helm
 ==============================
 
-The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a resoto environment.
+The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Resoto environment.
 
 In this setup guide we're showing you three things:
     #. how to prepare your environment
     #. how to prepare your helm values file
-    #. how to install each resoto in kubernetes using helm
+    #. how to install each Resoto in kubernetes using helm
 
 Prerequisites
 *************
@@ -16,7 +16,7 @@ You will need:
 Helm (version 3 and above)
 A Kubernetes cluster (kind or minikube should work as well)
 
-To start filling the resoto graph with resource data you will need AWS or GCP credentials with proper permissions.
+To start filling the Resoto graph with resource data you will need AWS or GCP credentials with proper permissions.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
@@ -118,7 +118,7 @@ For example, for AWS and GCE, you would do the following:
 .. code-block:: bash
     :caption: Create credentials
 
-    kubectl -n resoto create secret generic resoto-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
+    kubectl -n Resoto create secret generic resoto-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
 
 Then you can use these values for ckwroker:
 
@@ -169,14 +169,14 @@ Then you can use these values for ckwroker:
 Installation
 ************
 
-Get the helm chart. For now, to get the helm chart you will need to clone resoto locally:
+Get the helm chart. For now, to get the helm chart you will need to clone Resoto locally:
 
 .. code-block:: bash
     :caption: Clone resoto
 
     git clone https://github.com/someengineering/resoto
 
-Install resoto:
+Install Resoto:
 
 .. code-block:: bash
     :caption: Install resoto
@@ -187,7 +187,7 @@ Install resoto:
 
 You made it!
 ************
-Congratulations, you have now finished the setup of every resoto component.
+Congratulations, you have now finished the setup of every Resoto component.
 Thank you so much for exploring resoto. This is just the beginning.
 
 What now?
@@ -196,7 +196,7 @@ All documentation is under heavy development, including this tutorial.
 We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
 | Please explore resoto, build your queries and discover your infrastructure.
-| A good place to continue is joining our community to get the most out of resoto and the experiences collected from many different SREs, companies and curious people.
+| A good place to continue is joining our community to get the most out of Resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
 How you get more assistance

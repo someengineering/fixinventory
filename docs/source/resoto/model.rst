@@ -4,20 +4,20 @@
 Model
 =====
 
-resoto is able to collect data from different data sources that is maintained in a graph.
+Resoto is able to collect data from different data sources that is maintained in a graph.
 It has a pluggable API to interface with different cloud providers.
-The data model of the cloud providers is naturally defined by the cloud provider, so resoto
+The data model of the cloud providers is naturally defined by the cloud provider, so Resoto
 needs to deal with different data sources and different data models.
 
-To make your life easier, resoto introduces a model abstraction.
-Every resource collected by resoto is described by a data model and checked for consistency during import time.
-To show an example, the following diagram shows an excerpt of the complete resoto data model.
+To make your life easier, Resoto introduces a model abstraction.
+Every resource collected by Resoto is described by a data model and checked for consistency during import time.
+To show an example, the following diagram shows an excerpt of the complete Resoto data model.
 
 
 Resource
 --------
 
-Every resource collected by resoto has the kind ``resource`` as base.
+Every resource collected by Resoto has the kind ``resource`` as base.
 Here we see properties, that is common to every resource, no matter which resource or which cloud provider:
 
 
@@ -44,32 +44,32 @@ Here we see properties, that is common to every resource, no matter which resour
 - ``id``: identifier of this cloud specific resource.
   This id does not need to be unique over all resources.
 - ``name``: the cloud specific name of this resource.
-- ``kind``: this property is synthesized by resoto and defines the concrete kind of this resource.
+- ``kind``: this property is synthesized by Resoto and defines the concrete kind of this resource.
   Example: in AWS there exist `AWS EC2 Volume <https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-ebs-volume.html>`_
   All collected AWS EC2 volumes would be of kind ``aws_ec2_volume``.
 - ``tags``: most cloud provider offer the ability to define tags on resources.
   Tags are simple key value pairs of type string that are held in a dictionary.
 - ``ctime``: the point in time when the resource has been created.
-  Note: when the cloud provider does not provide this information, resoto
+  Note: when the cloud provider does not provide this information, Resoto
   will set this property to the time, when it has discovered this resource the first time.
 - ``atime``: the last collected point in time when the resource has been accessed.
   Note: this this time is not available on all resources for all cloud providers.
-  resoto tries to do its best to synthesize the last access time based on the resource type.
+  Resoto tries to do its best to synthesize the last access time based on the resource type.
   (Example: it uses AWS CloudWatch to detect last usages etc).
 - ``mtime``: the last collected point in time when the resource has been modified.
   Note: this this time is not available on all resources for all cloud providers.
-  resoto tries to do its best to synthesize the last modification time based on the resource type.
+  Resoto tries to do its best to synthesize the last modification time based on the resource type.
 
 
 Resource Hierarchy
 ------------------
 
-resoto introduces a resource hierarchy. This hierarchy tries to do its best to abstract over
+Resoto introduces a resource hierarchy. This hierarchy tries to do its best to abstract over
 the different data models from different cloud providers, delivering a consistent model to retrieve
 data from your different clouds.
 
-Every concrete resource in resoto has the ``resource`` kind as root.
-resoto introduces abstract model classes for almost all different resources that are collected.
+Every concrete resource in Resoto has the ``resource`` kind as root.
+Resoto introduces abstract model classes for almost all different resources that are collected.
 
 ..
     @startuml
@@ -195,7 +195,7 @@ Complex and simple kinds
 | Each property has a name and also a kind.
 | The kind of such a property can be a complex or a simple kind.
 
-There are several simple kinds that are available in resoto out of the box:
+There are several simple kinds that are available in Resoto out of the box:
 
 .. list-table::
    :widths: 25 25 75
@@ -236,22 +236,22 @@ There are several simple kinds that are available in resoto out of the box:
      - null, true, "test", 123, -12.43
 
 
-Since resoto uses json in order to exchange data, all the different simple types
+Since Resoto uses json in order to exchange data, all the different simple types
 have to be expressed as simple json type.
 
-resoto also introduces some additional simple types like ``datetime`` or ``date``.
-The reason for this is the ability to coerce proper values from values given to resoto.
+Resoto also introduces some additional simple types like ``datetime`` or ``date``.
+The reason for this is the ability to coerce proper values from values given to Resoto.
 
 Example: Let us assume a user want to query a resource by creation time.
 According to the model we would need to filter for the ``ctime`` property.
-Since resoto knows the type of ``ctime`` (which is of kind datetime), it can
+Since Resoto knows the type of ``ctime`` (which is of kind datetime), it can
 do its best to interpret the value given by the user.
 
 ::
 
    match ctime < "2018-09-28"
 
-``ctime`` is of type datetime. datetime is stored in resoto always as ISO formatted datetime string.
+``ctime`` is of type datetime. datetime is stored in Resoto always as ISO formatted datetime string.
 To make this query effective, the term ``"2018-09-28"`` is coerced into a valid datetime.
 Depending on the server time the value would be evaluated to something like:
 

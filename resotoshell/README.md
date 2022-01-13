@@ -1,5 +1,5 @@
 # `resh`
-resoto Shell
+Resoto Shell
 
 
 ## Table of contents

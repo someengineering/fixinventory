@@ -10,13 +10,13 @@ Introduction
 ============
 
 .. code-block:: none
-    :caption: Hello World in resoto 🌍
+    :caption: Hello World in Resoto 🌍
     
     match is(resource) | count
     total matched: 459241
     total unmatched: 0
 
-Welcome to the official resoto documentation!
+Welcome to the official Resoto documentation!
 
 .. image:: https://img.shields.io/discord/778029408132923432?logo=discord&logoColor=%23ffffff
     :target: https://discord.gg/someengineering
@@ -27,18 +27,18 @@ Welcome to the official resoto documentation!
     :target: https://github.com/someengineering/resoto
 
 
-What is resoto?
+What is Resoto?
 ***************
 
 The official `GitHub repository can be found here <https://github.com/someengineering/resoto>`_.
 
-resoto indexes resources, captures dependencies and maps out your infrastructure in an understandable graph. The graph contains metrics for each resource.
+Resoto indexes resources, captures dependencies and maps out your infrastructure in an understandable graph. The graph contains metrics for each resource.
 
 Developers and SREs can **search the graph with a query language**, and create **alerting and clean-up workflows**.
 
 Metrics can be aggregated and exported to a time series database like Prometheus.
 
-Is resoto the tool I am looking for?
+Is Resoto the tool I am looking for?
 ------------------------------------
 
 If you ever
@@ -52,11 +52,11 @@ If you ever
 - cleaned up :ref:`orphaned load balancers <ql-kind-aws_alb>` that had no active backends
 - wanted to automate any of the above
 
-then you know the kind of situations resoto was built for and you will love it.
+then you know the kind of situations Resoto was built for and you will love it.
 
 Supported Clouds and Integrations
 *********************************
-resoto collects data using simple plugins written in Python.
+Resoto collects data using simple plugins written in Python.
 
 **The following plugins are supplied at the moment:**
 

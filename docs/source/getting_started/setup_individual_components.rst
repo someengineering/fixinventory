@@ -2,11 +2,11 @@
 Setup individual components
 ===========================
 
-The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a resoto environment.
+The :ref:`quickstart` guide used our Docker image. This tutorial will set up the individual components that make up a Resoto environment.
 
 In this setup guide we're showing you three things:
     #. how to prepare your environment
-    #. how to install each resoto component
+    #. how to install each Resoto component
     #. how to run & access each component
 
 All the installation will take place in your home directory ``~/resoto/``. Choose a different ``INSTALL_PREFIX`` below if you prefer another location.
@@ -15,13 +15,13 @@ All the installation will take place in your home directory ``~/resoto/``. Choos
 Prerequisites
 *************
 
-Python >= 3.9 is required for all resoto components. ArangoDB >= 3.8.3 is used as the ``resotocore`` graph storage.
-Optionally the resoto Metrics Exporter ``resotometrics`` can be installed and its metrics pulled by the Prometheus time series database.
+Python >= 3.9 is required for all Resoto components. ArangoDB >= 3.8.3 is used as the ``resotocore`` graph storage.
+Optionally the Resoto Metrics Exporter ``resotometrics`` can be installed and its metrics pulled by the Prometheus time series database.
 This guide uses ``curl`` and ``git`` to download components.
 
 The component set-up takes 20 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
-To start filling the resoto graph with resource data you will need AWS credentials with proper permissions.
+To start filling the Resoto graph with resource data you will need AWS credentials with proper permissions.
 
 You can look up specific permission configurations in your :ref:`access-permissions` section.
 
@@ -35,7 +35,7 @@ Prepare your environment
 Configuration
 =============
 
-Every resoto component can be configured via environment variables instead of commandline arguments.
+Every Resoto component can be configured via environment variables instead of commandline arguments.
 In this section we will prepare all configuration required.
 Each component has its own prefix.
 
@@ -133,7 +133,7 @@ Open a new terminal window and enter the following to run the ArangoDB database 
 Prepare graph database for ``resotocore``
 -----------------------------------------
 
-Back in our original terminal window enter the following to create the resoto database and user for ``resotocore``.
+Back in our original terminal window enter the following to create the Resoto database and user for ``resotocore``.
 
 .. code-block:: bash
     :caption: Run ``arangosh`` to configure graph database
@@ -146,7 +146,7 @@ Back in our original terminal window enter the following to create the resoto da
     EOF
 
 
-Install resoto components
+Install Resoto components
 *************************
 
 .. _setup-resotocore:
@@ -289,7 +289,7 @@ resotoworker plugins
 --------------------
 
 :ref:`setup-resotoworker` requires collector plugins to actually do something.
-A full list of available plugins can be found in the resoto `repository <https://github.com/someengineering/resoto/tree/main/plugins>`_
+A full list of available plugins can be found in the Resoto `repository <https://github.com/someengineering/resoto/tree/main/plugins>`_
 
 .. code-block:: bash
     :caption: Install plugins
@@ -339,7 +339,7 @@ As we are using AWS in this example, please replace ``--aws-access-key-id`` and 
 .. code-block:: console
     :caption: Successful launch log output
 
-    2021-10-05 13:03:36,924 - INFO - 3189/MainThread - resoto collectord initializing
+    2021-10-05 13:03:36,924 - INFO - 3189/MainThread - Resoto collectord initializing
     2021-10-05 13:03:36,924 - DEBUG - 3189/MainThread - Only loading plugins of type PluginType.COLLECTOR
     2021-10-05 13:03:36,925 - DEBUG - 3189/MainThread - Finding plugins
     2021-10-05 13:03:37,443 - DEBUG - 3189/MainThread - Found plugin <class 'resoto_plugin_aws.AWSPlugin'> (COLLECTOR)
@@ -382,7 +382,7 @@ You can access :ref:`setup-resotometrics` help via ``$ resotometrics --help``
 Every CLI arg can also be specified using ENV variables, see :ref:`configuration_environment` for examples.
 
 Once started :ref:`setup-resotometrics` will register for ``generate_metrics`` core events. When such an event is received it will
-generate resoto metrics and provide them at the ``/metrics`` endpoint.
+generate Resoto metrics and provide them at the ``/metrics`` endpoint.
 
 For prometheus, setup your configuration needs to contain this configuration snippet.
 
@@ -479,7 +479,7 @@ In this example we expect a configuration at your location defined in ``TSDB_CON
 
 You made it!
 ************
-Congratulations, you have now finished the setup of every resoto component.
+Congratulations, you have now finished the setup of every Resoto component.
 Thank you so much for exploring resoto. This is just the beginning.
 
 What now?
@@ -488,7 +488,7 @@ All documentation is under heavy development, including this tutorial.
 We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
 | Please explore resoto, build your queries and discover your infrastructure.
-| A good place to continue is joining our community to get the most out of resoto and the experiences collected from many different SREs, companies and curious people.
+| A good place to continue is joining our community to get the most out of Resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
 How you get more assistance

@@ -4,12 +4,12 @@
 Access Permissions
 ==================
 
-To use resoto with all it's features - including cleanup - it requires wide permissions.
+To use Resoto with all it's features - including cleanup - it requires wide permissions.
 It needs to collect all the resources, do tag validations and updates as well as deleting resources.
-To use resoto in a read-only capacity you can limit access to your cloud provider accordingly.
+To use Resoto in a read-only capacity you can limit access to your cloud provider accordingly.
 
 .. important::
-    | resoto will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
+    | Resoto will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
     | Read more about this here: :ref:`delete_warning`
 
 resoto will **silently ignore** collecting specific resources if it does not have the required permissions.
@@ -17,12 +17,12 @@ resoto will **silently ignore** collecting specific resources if it does not hav
 AWS Permissions
 ***************
 
-To enable the full capabilities of resoto it needs a PowerUser like role and then deny the ones we don't want it to have.
+To enable the full capabilities of Resoto it needs a PowerUser like role and then deny the ones we don't want it to have.
 
 Discovery only
 ==============
 
-To use resoto in a read-only capacity it needs the following IAM role permissions.
+To use Resoto in a read-only capacity it needs the following IAM role permissions.
 
 .. code-block:: json
     :caption: Read Only permissions
@@ -340,18 +340,18 @@ To use resoto in a read-only capacity it needs the following IAM role permission
 
 Full capabilities
 =================
-For production use - where resoto also clean-up and validate tags - the needed permission role is a PowerUser that is locked down to not be able to create any resources or modify IAM settings.
+For production use - where Resoto also clean-up and validate tags - the needed permission role is a PowerUser that is locked down to not be able to create any resources or modify IAM settings.
 
-The following three policies are needed for resoto to run with full capabilities.
+The following three policies are needed for Resoto to run with full capabilities.
 
 .. code-block:: json
-    :caption: resoto allow
+    :caption: Resoto allow
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "resotoAllow",
+                "Sid": "ResotoAllow",
                 "Effect": "Allow",
                 "Action": "*",
                 "Resource": "*"
@@ -360,13 +360,13 @@ The following three policies are needed for resoto to run with full capabilities
     }
 
 .. code-block:: json
-    :caption: resoto deny
+    :caption: Resoto deny
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "resotoDeny",
+                "Sid": "ResotoDeny",
                 "Effect": "Deny",
                 "Action": [
                     "support:Create*",
@@ -490,13 +490,13 @@ The following three policies are needed for resoto to run with full capabilities
     }
 
 .. code-block:: json
-    :caption: resoto deny IAM
+    :caption: Resoto deny IAM
 
     {
         "Version": "2012-10-17",
         "Statement": [
             {
-                "Sid": "resotoDenyIAM",
+                "Sid": "ResotoDenyIAM",
                 "Effect": "Deny",
                 "Action": [
                     "iam:UploadSigningCertificate",
@@ -577,7 +577,7 @@ The following three policies are needed for resoto to run with full capabilities
                 "Resource": "*"
             },
             {
-                "Sid": "resotoDenyIAMPredefinedRoles",
+                "Sid": "ResotoDenyIAMPredefinedRoles",
                 "Effect": "Deny",
                 "Action": [
                     "iam:UpdateRole",
@@ -606,7 +606,7 @@ The following three policies are needed for resoto to run with full capabilities
                 ]
             },
             {
-                "Sid": "resotoDenyIAMPredefinedPolicies",
+                "Sid": "ResotoDenyIAMPredefinedPolicies",
                 "Effect": "Deny",
                 "Action": [
                     "iam:SetDefaultPolicyVersion",

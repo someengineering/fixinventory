@@ -1,12 +1,12 @@
 # resoto-plugin-cleanup_aws_loadbalancers
-AWS Loadbalancers Cleanup Plugin for resoto
+AWS Loadbalancers Cleanup Plugin for Resoto
 
 This plugin cleans up AWS ALB/ELB load balancers with no instances attached to them.
 
 ## Usage
 Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-aws-loadbalancers`.
 ```
-$ resoto -v --cleanup --cleanup-aws-loadbalancers
+$ resotoworker -v --cleanup --cleanup-aws-loadbalancers
 ```
 
 The default load balancer age is 7 days. Meaning if a load balancer is more than 7 days old and does not have any instances/backends
@@ -27,7 +27,7 @@ meaning `7d` and `7 days` are equivalent.
 
 ### Example:
 ```
-$ resoto -v --cleanup --cleanup-aws-loadbalancers --cleanup-aws-loadbalancers-age 2d
+$ resotoworker -v --cleanup --cleanup-aws-loadbalancers --cleanup-aws-loadbalancers-age 2d
 ```
 
 ## List of arguments

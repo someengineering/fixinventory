@@ -1,5 +1,5 @@
 # resoto-plugin-cleanup_expired
-resoto plugin for cleanup of expired resources
+Resoto plugin for cleanup of expired resources
 
 This plugin looks for resources with the tags `expiration` or `resoto:expires` and deletes them if they are expired.
 
@@ -23,7 +23,7 @@ meaning `7d` and `7 days` are equivalent.
 ## Usage
 Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-expired`.
 ```
-$ resoto -v --cleanup --cleanup-expired
+$ resotoworker -v --cleanup --cleanup-expired
 ```
 
 ## List of arguments

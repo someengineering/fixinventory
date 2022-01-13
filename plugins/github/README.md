@@ -1,5 +1,5 @@
 # resoto-plugin-github (WIP)
-GitHub Collector Plugin for resoto
+GitHub Collector Plugin for Resoto
 
 ```
   --github-access-token GITHUB_ACCESS_TOKEN

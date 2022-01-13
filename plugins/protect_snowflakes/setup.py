@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name="resoto-plugin-protect_snowflakes",
     version="2.0.0a10",
-    description="resoto Snowflake Protection Plugin",
+    description="Resoto Snowflake Protection Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),

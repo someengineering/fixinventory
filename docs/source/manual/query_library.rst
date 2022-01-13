@@ -2,7 +2,7 @@
 Query library
 =============
 
-In this library we collect and describe common queries for resoto.
+In this library we collect and describe common queries for Resoto.
 
 If a query you need is missing, please jump to our :ref:`query_missing` section on how you can get help.
 

@@ -1,5 +1,5 @@
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" />
-<h1 align="center">resoto</h1></p>
+<h1 align="center">Resoto</h1></p>
 
 
 # Housekeeping for Clouds!
@@ -23,9 +23,9 @@
 
 
 ## Overview
-resoto is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
+Resoto is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
 
-resoto indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
+Resoto indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
 
 If you ever
 * had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
@@ -37,7 +37,7 @@ If you ever
 * cleaned up orphaned load balancers that had no active backends
 * wanted to automate any of the above
 
-Those are the kinds of situations resoto was built for.
+Those are the kinds of situations Resoto was built for.
 
 Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
@@ -47,8 +47,8 @@ Docker images are hosted via GitHub container repository: `ghcr.io/someengineeri
 
 In this quick start guide, we’re showing you three things, how to:
 
-    1. install resoto for AWS with docker
-    2. use the resoto CLI to run your first collect process
+    1. install Resoto for AWS with docker
+    2. use the Resoto CLI to run your first collect process
     3. query the results of the collect process
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
@@ -81,7 +81,7 @@ If you have no need for the UI assets git-lfs is optional.
 
 # Component list
 - [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
-- [`resotosh`](resotosh/) the resoto shell to interact with the core.
+- [`resotosh`](resotosh/) the Resoto shell to interact with the core.
 - [`ui`](ui/) a UI prototype that can load resotocore exported data but has no backend connection yet.
 - [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
 - [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).

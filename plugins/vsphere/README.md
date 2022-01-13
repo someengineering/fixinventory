@@ -1,5 +1,5 @@
 # resoto-plugin-vsphere
-VMWare VSphere Collector Plugin for resoto (Alpha)
+VMWare VSphere Collector Plugin for Resoto (Alpha)
 
 ## Usage
 Specify a user, password, host and optionally port to collect VSphere resources.

@@ -1,5 +1,5 @@
 # resoto-plugin-tagvalidator
-Tag Validator plugin for resoto
+Tag Validator plugin for Resoto
 
 This plugin validates the contents of expiration tags. With it you can enforce a max. expiration length
 for certain resources in an account. For instance you could have an org policy that says in our "dev" account
@@ -44,7 +44,7 @@ accounts:
 
 Provide the path to that file to the `--tagvalidator-config` argument.
 ```
-$ resoto -v --tagvalidator-config /var/local/resoto/config/tagvalidator.ini
+$ resotoworker -v --tagvalidator-config /var/local/resoto/config/tagvalidator.ini
 ```
 
 ## Structure of the config file

@@ -1,12 +1,12 @@
 # resoto-plugin-cleanup_volumes
-Volume cleanup plugin for resoto
+Volume cleanup plugin for Resoto
 
 This plugin removes unused EBS volumes.
 
 ## Usage
 Turn on general cleanup using the `--cleanup` argument and activate this plugin by adding `--cleanup-volumes`.
 ```
-$ resoto -v --cleanup --cleanup-volumes
+$ resotoworker -v --cleanup --cleanup-volumes
 ```
 
 The default volume age is 14 days. Meaning if a volume is not in use and has not had any read or write IOPS within
@@ -27,7 +27,7 @@ meaning `7d` and `7 days` are equivalent.
 
 ### Example:
 ```
-$ resoto -v --cleanup --cleanup-volumes --cleanup-volumes-age 2d
+$ resotoworker -v --cleanup --cleanup-volumes --cleanup-volumes-age 2d
 ```
 
 ## List of arguments
