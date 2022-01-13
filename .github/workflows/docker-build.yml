@@ -28,7 +28,7 @@ jobs:
 
             -   name: Docker meta
                 id: meta
-                uses: docker/metadata-action@v3.6.2
+                uses: docker/metadata-action@v3
                 with:
                     images: |
                         someengineering/resoto
@@ -40,6 +40,7 @@ jobs:
                         type=pep440,pattern={{major}}.{{minor}}
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
+                        type=edge
 
             -   name: Set up Docker Buildx
                 id: buildx
