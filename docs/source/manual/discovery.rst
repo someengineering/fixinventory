@@ -2,7 +2,7 @@
 Discovery
 =========
 
-You can search your cloud infrastructure and find the resources you are looking for using Resotos powerful query language.
+You can search your cloud infrastructure and find the resources you are looking for using Resoto's powerful query language.
 
 Resoto maintains its collected data in a graph database. This graph can be accessed via the query language.
 

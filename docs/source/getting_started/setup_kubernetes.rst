@@ -118,7 +118,7 @@ For example, for AWS and GCE, you would do the following:
 .. code-block:: bash
     :caption: Create credentials
 
-    kubectl -n Resoto create secret generic resoto-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
+    kubectl -n resoto create secret generic resoto-auth --from-file=GOOGLE_APPLICATION_CREDENTIALS=<PATH TO SERVICE ACCOUNT JSON CREDS> --from-literal=AWS_ACCESS_KEY_ID=<YOUR ACCESS KEY ID> --from-literal=AWS_SECRET_ACCESS_KEY=<YOUR ACCESS KEY>
 
 Then you can use these values for ckwroker:
 
@@ -188,14 +188,14 @@ Install Resoto:
 You made it!
 ************
 Congratulations, you have now finished the setup of every Resoto component.
-Thank you so much for exploring resoto. This is just the beginning.
+Thank you so much for exploring Resoto. This is just the beginning.
 
 What now?
 =========
 All documentation is under heavy development, including this tutorial.
 We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
-| Please explore resoto, build your queries and discover your infrastructure.
+| Please explore Resoto, build your queries and discover your infrastructure.
 | A good place to continue is joining our community to get the most out of Resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 

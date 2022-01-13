@@ -40,7 +40,7 @@ The collector will scrape resources in all regions unless regions are specified 
 ```
 
 ## Scraping multiple accounts
-If the given credentials are allowed to assume the specified role in other accounts of your AWS organisation resoto
+If the given credentials are allowed to assume the specified role in other accounts of your AWS organisation, Resoto
 can collect multiple accounts at the same time. To do so provide the account IDs to the `--aws-account` argument.
 
 ## Scraping the entire organisation

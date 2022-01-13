@@ -12,7 +12,7 @@ To use Resoto in a read-only capacity you can limit access to your cloud provide
     | Resoto will **NOT** delete resources marked for deletion by default, even when having the neccessary permissions!
     | Read more about this here: :ref:`delete_warning`
 
-resoto will **silently ignore** collecting specific resources if it does not have the required permissions.
+Resoto will **silently ignore** collecting specific resources if it does not have the required permissions.
 
 AWS Permissions
 ***************

@@ -2,7 +2,7 @@
 
 .. raw:: html
 
-   <div class="sparta">resoto is an open-source tool doing <b>“housekeeping for clouds”</b> - find leaky resources, manage quota limits, detect drift and clean up.</div>
+   <div class="sparta">Resoto is an open-source tool doing <b>“housekeeping for clouds”</b> - find leaky resources, manage quota limits, detect drift and clean up.</div>
 
 
 ============

@@ -5,7 +5,7 @@ Cleanup
 =======
 
 
-You can modify your discovered cloud resources by using resotos powerful commands like ``tag`` or ``clean``.
+You can modify your discovered cloud resources by using Resoto's powerful commands like ``tag`` or ``clean``.
 
 To learn about your new superpowers and use them in the best way, it is important to understand how Resoto handles commands in the background.
 
@@ -43,7 +43,7 @@ Deleting resources
 
 .. warning::
 
-    | **resoto is designed to clean up resources**.
+    | **Resoto is designed to clean up resources**.
     | Act with caution when selecting and filtering resources for cleanup.
 
     If you run ``match is(aws_ec2_volume) | clean``, it marks **all** ``aws_ec2_volume`` resources in your cloud for deletion.

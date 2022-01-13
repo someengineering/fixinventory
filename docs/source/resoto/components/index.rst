@@ -14,7 +14,7 @@ We will now guide you through the setup and run procedure for each one.
 - :ref:`component-resotoworker` provides workers that load `plugins <https://github.com/someengineering/resoto/tree/main/plugins>`_ to perform collect and cleanup operations.
 - :ref:`plugins` are a collection of worker plugins like `AWS <plugins/aws/>`_
 
-To give you a better understanding of how Resotos components interact with each other and where prometheus and arangoDB come in, we have prepared this visualization for you.
+To give you a better understanding of how Resoto's components interact with each other and where Prometheus and ArangoDB come in, we have prepared this visualization for you.
 
 .. image:: img/component_graph.png
   :alt: Component connection

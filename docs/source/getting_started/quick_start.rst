@@ -288,14 +288,14 @@ Output is shortened for documentation purposes
 You made it!
 ============
 Congratulations, you have now finished our basic starters tutorial.
-Thank you so much for exploring resoto. This is just the beginning.
+Thank you so much for exploring Resoto. This is just the beginning.
 
 What now?
 ---------
 All documentation is under heavy development, including this tutorial.
 We extend and improve this documentation almost daily. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date.
 
-| Please explore resoto, build your queries and discover your infrastructure.
+| Please explore Resoto, build your queries and discover your infrastructure.
 | A good place to continue is joining our community to get the most out of Resoto and the experiences collected from many different SREs, companies and curious people.
 | We would love to hear from you with your feedback, experiences and interesting queries and use cases.
 
