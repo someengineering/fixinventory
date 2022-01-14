@@ -1,6 +1,6 @@
 name: Compile Documentation
 
-on: 
+on:
   push:
     branches: [ main ]
     paths:
@@ -21,7 +21,7 @@ jobs:
     # ===============================
     - name: Commit documentation
       run: |
-        git clone https://github.com/someengineering/cloudkeeper.git --single-branch gh-pages
+        git clone https://github.com/someengineering/resoto.git --single-branch gh-pages
         cd gh-pages
         git switch --orphan gh-pages
         cd ..
