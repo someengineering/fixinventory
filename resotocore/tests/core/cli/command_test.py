@@ -19,8 +19,8 @@ from pytest import fixture
 
 from core.cli import is_node
 from core.cli.cli import CLI
-from core.cli.model import CLIDependencies, CLIContext
 from core.cli.command import HttpCommand
+from core.cli.model import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
@@ -319,6 +319,13 @@ async def test_format(cli: CLI) -> None:
     result = await cli.execute_cli_command("json {} | format {a}:{b.c.d}:{foo.bla[23].test}", stream.list)
     assert result[0] == ["null:null:null"]
 
+    # Queries that use the reported section, also interpret the format in the reported section
+    result = await cli.execute_cli_command(
+        "query id(sub_root) limit 1 | format {{aa}} {some_string} test}} {some_int} {_.metadata.node_id} {{",
+        stream.list,
+    )
+    assert result[0] == ["{aa} hello test} 0 sub_root {"]
+
 
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
@@ -464,9 +471,16 @@ async def test_list_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('query is (foo) and identifier=="4" | list', stream.list)
     assert len(result[0]) == 1
     assert result[0][0].startswith("kind=foo, identifier=4, age=")
-    list_cmd = "list some_int as si, reported.some_string"
+    list_cmd = "list some_int as si, some_string"
     result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
+
+    # Queries that use the reported section, also interpret the list format in the reported section
+    result = await cli.execute_cli_command(
+        "query id(sub_root) limit 1 | list some_string, some_int, _.metadata.node_id",
+        stream.list,
+    )
+    assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
 
 
 @pytest.mark.asyncio

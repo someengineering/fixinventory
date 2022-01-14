@@ -342,6 +342,9 @@ class AccessJson(Dict[Any, Any]):
     def __getattr__(self, name: Any) -> Any:
         return self.__getitem__(name)
 
+    def __str__(self) -> str:
+        return json.dumps(self)
+
     @staticmethod
     def wrap(obj: Any, not_existent: Any = AccessNone(None)) -> Any:
         # dict like data structure -> wrap whole element

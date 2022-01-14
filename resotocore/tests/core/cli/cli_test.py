@@ -216,10 +216,6 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete[1:]->"
     commands = await cli.evaluate_cli_command("query some_int==0 | ancestors delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete[1:]-"
-    # defining merge_ancestors
-    commands = await cli.evaluate_cli_command("query some_int==0 | merge_ancestors foo")
-    assert commands[0].executable_commands[0].arg == '(merge_with_ancestors="foo"):reported.some_int == 0'
-    # defining merge_ancestors
     commands = await cli.evaluate_cli_command("query some_int==0 | aggregate foo, bla as bla: sum(bar)")
     assert (
         commands[0].executable_commands[0].arg

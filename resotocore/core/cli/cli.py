@@ -25,7 +25,6 @@ from core.cli.command import (
     AncestorPart,
     DescendantPart,
     AggregatePart,
-    MergeAncestorsPart,
     CountCommand,
     HeadCommand,
     TailCommand,
@@ -260,8 +259,6 @@ class CLI:
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
                 query = replace(query, aggregate=Aggregate(group_vars, group_function_vars))
-            elif isinstance(part, MergeAncestorsPart):
-                query = replace(query, preamble={**query.preamble, **{"merge_with_ancestors": arg}})
             elif isinstance(part, CountCommand):
                 # count command followed by a query: make it an aggregation
                 # since the output of aggregation is not exactly the same as count
@@ -285,10 +282,11 @@ class CLI:
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
+        final_query = query.on_section(parsed_options["section"])
         options = ExecuteQueryCommand.argument_string(parsed_options)
-        query_string = str(query.on_section(parsed_options["section"]))
+        query_string = str(final_query)
         execute_query = self.command("execute_query", options + query_string, ctx)
-        return query, parsed_options, [execute_query, *additional_commands]
+        return final_query, parsed_options, [execute_query, *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True

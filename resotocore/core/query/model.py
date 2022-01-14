@@ -19,7 +19,7 @@ from core.util import combine_optional, group_by
 def variable_to_absolute(section: Optional[str], name: str) -> str:
     if name.startswith("_."):
         return name[2:]
-    elif section:
+    elif section and section != "_":
         return section + "." + name
     else:
         return name
@@ -27,7 +27,9 @@ def variable_to_absolute(section: Optional[str], name: str) -> str:
 
 def variable_to_relative(section: str, name: str) -> str:
     if name.startswith(f"{section}."):
-        return name[len(section) + 1 :]  # noqa: E203
+        return name[len(section) + 1 :]  # noqa: E203a
+    elif name.startswith("_."):
+        return name
     else:
         return "_." + name
 

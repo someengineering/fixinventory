@@ -38,7 +38,7 @@ from aiohttp import ClientTimeout, JsonPayload
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
-from parsy import Parser, string
+from parsy import Parser, string, test_char
 
 from core.async_extensions import run_async
 from core.cli import (
@@ -79,6 +79,8 @@ from core.parse_util import (
     variable_dp,
     literal_dp,
     comma_p,
+    l_curly_dp,
+    r_curly_dp,
 )
 from core.query.model import Query, P, Template
 from core.query.query_parser import parse_query
@@ -376,42 +378,6 @@ class AggregatePart(QueryPart):
         return "Aggregate this query by the provided specification"
 
 
-class MergeAncestorsPart(QueryPart):
-    """
-    Usage: merge_ancestors [kind, kind as name, ..., kind]
-
-    For all query results, merge the nodes with ancestor nodes of given kind.
-    Multiple ancestors can be provided.
-    Note: the first defined ancestor kind is used to stop the search of all other kinds.
-          This should be taken into consideration when the list of ancestor kinds is defined!
-    The resulting reported content of the ancestor node is merged into the current reported node
-    with the kind name or the alias.
-
-    Parameter:
-        kind [Mandatory] [as name]: search the ancestors of this node for a node of define kind.
-                                    Merge the result into the current node either under the kind name or the alias name.
-
-    Example:
-        compute_instance: the graph os traversed starting with the current node in direction to the root.
-                          When a node is found, which is of type compute_instance, the reported content of this node
-                          is merged with the reported content of the compute_instance node:
-                          { "id": "xyz", "reported": { "kind": "ebs", "compute_instance": { props from compute_instance}
-        compute_instance as ci:
-                          { "id": "xyz", "reported": { "kind": "ebs", "ci": { props from compute_instance}
-
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return "merge_ancestors"
-
-    def info(self) -> str:
-        return "Merge the results of this query with the content of ancestor nodes of given type"
-
-
 class HeadCommand(QueryPart):
     """
     Usage: head [num]
@@ -494,7 +460,7 @@ class CountCommand(QueryPart):
         return "Count incoming elements or sum defined property."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        get_path = arg.split(".") if arg else None
+        get_path = ctx.variable_in_section(arg).split(".") if arg else None
         counter: Dict[str, int] = defaultdict(int)
         matched = 0
         unmatched = 0
@@ -1010,13 +976,13 @@ class KindCommand(CLICommand, PreserveOutputFormat):
 
 class SetDesiredStateBase(CLICommand, ABC):
     @abstractmethod
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
         pass
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, **ctx.env))
+        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -1082,7 +1048,7 @@ class SetDesiredCommand(SetDesiredStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as desired for all incoming database objects."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
         else:
@@ -1136,7 +1102,7 @@ class CleanCommand(SetDesiredStateBase):
     def info(self) -> str:
         return "Mark all incoming database objects for cleaning."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"clean": True}
 
     async def set_desired(
@@ -1154,13 +1120,13 @@ class CleanCommand(SetDesiredStateBase):
 
 class SetMetadataStateBase(CLICommand, ABC):
     @abstractmethod
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
         pass
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, **ctx.env))
+        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -1221,7 +1187,7 @@ class SetMetadataCommand(SetMetadataStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as metadata for all incoming database objects."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
         else:
@@ -1265,7 +1231,7 @@ class ProtectCommand(SetMetadataStateBase):
     def info(self) -> str:
         return "Mark all incoming database objects as protected."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"protected": True}
 
 
@@ -1330,11 +1296,25 @@ class FormatCommand(CLICommand, OutputTransformer):
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
 
-        def format_object_to_string(elem: Any) -> str:
+        def format_variable(name: str) -> str:
+            assert "__" not in name, "No dunder attributes allowed"
+            return "{" + ctx.variable_in_section(name) + "}"
+
+        def format_string() -> str:
+            no_closing = test_char(lambda x: x != "}", "No closing bracket").at_least(1).concat()
+            no_bracket = test_char(lambda x: x not in ("{", "}"), "No opening bracket").at_least(1).concat()
+            escaped_open = string("{{")
+            escaped_close = string("}}")
+            variable = (l_curly_dp >> no_closing << r_curly_dp).map(format_variable)
+            bracket = string("{") | string("}")
+            format_string_parser = (escaped_open | escaped_close | no_bracket | variable | bracket).many().concat()
+            return format_string_parser.parse(arg)  # type: ignore
+
+        def format_object_to_string(frmt: str, elem: Any) -> str:
             # wrap the object to account for non existent values.
             # if a format value is not existent, render is as null (json conform).
             wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
-            return arg.format_map(wrapped)  # type: ignore
+            return frmt.format_map(wrapped)
 
         async def render_format(format_name: str, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
@@ -1349,7 +1329,7 @@ class FormatCommand(CLICommand, OutputTransformer):
                     raise AttributeError("A format renderer can not be combined together with a format string!")
                 return render_format(next(iter(format_to_use)), in_stream)
             elif formatting_string:
-                return stream.map(in_stream, format_object_to_string)
+                return stream.map(in_stream, partial(format_object_to_string, format_string()))
             else:
                 return in_stream
 
@@ -1455,17 +1435,17 @@ class ListCommand(CLICommand, OutputTransformer):
 
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
-        ("reported.kind", "kind"),
-        ("reported.id", "id"),
-        ("reported.name", "name"),
+        (["reported", "kind"], "kind"),
+        (["reported", "id"], "id"),
+        (["reported", "name"], "name"),
     ]
     default_context_properties_to_show = [
-        ("reported.age", "age"),
-        ("reported.last_update", "last_update"),
-        ("ancestors.cloud.reported.name", "cloud"),
-        ("ancestors.account.reported.name", "account"),
-        ("ancestors.region.reported.name", "region"),
-        ("ancestors.zone.reported.name", "zone"),
+        (["reported", "age"], "age"),
+        (["reported", "last_update"], "last_update"),
+        (["ancestors", "cloud", "reported", "name"], "cloud"),
+        (["ancestors", "account", "reported", "name"], "account"),
+        (["ancestors", "region", "reported", "name"], "region"),
+        (["ancestors", "zone", "reported", "name"], "zone"),
     ]
     dot_re = re.compile("[.]")
 
@@ -1477,27 +1457,23 @@ class ListCommand(CLICommand, OutputTransformer):
         return "Transform incoming objects as string with defined properties."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        def default_props_to_show() -> List[Tuple[str, str]]:
+        def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
             # include the object id, if edges are requested
             if ctx.query_options.get("include-edges") is True:
-                result.append(("id", "node_id"))
+                result.append((["id"], "node_id"))
             # add all default props
             result.extend(self.default_properties_to_show)
             # add all predicates the user has queried
             if ctx.query:
                 for predicate in ctx.query.predicates:
-                    result.append((predicate.name, predicate.name.rsplit(".", 1)[-1]))
+                    result.append((self.dot_re.split(predicate.name), predicate.name.rsplit(".", 1)[-1]))
             # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
 
-        def adjust_path(p: List[str]) -> List[str]:
-            root = p[0]
-            if root in Section.all or root == "id" or root == "kinds":
-                return p
-            else:
-                return [Section.reported, *p]
+        def adjust_path(prop_path: str) -> List[str]:
+            return self.dot_re.split(ctx.variable_in_section(prop_path))
 
         def to_str(name: str, elem: JsonElement) -> str:
             if isinstance(elem, dict):
@@ -1507,17 +1483,21 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return f"{name}={elem}"
 
-        props: List[Tuple[List[str], str]] = []
-        for prop, as_name in list_arg_parse.parse(arg) if arg else default_props_to_show():
-            path = adjust_path(self.dot_re.split(prop))
-            as_name = path[-1] if prop == as_name or as_name is None else as_name
-            props.append((path, as_name))
+        def parse_props_to_show(props_arg: str) -> List[Tuple[List[str], str]]:
+            props: List[Tuple[List[str], str]] = []
+            for prop, as_name in list_arg_parse.parse(props_arg):
+                path = adjust_path(prop)
+                as_name = path[-1] if prop == as_name or as_name is None else as_name
+                props.append((path, as_name))
+            return props
+
+        props_to_show = parse_props_to_show(arg) if arg is not None else default_props_to_show()
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):
                 result = ""
                 first = True
-                for prop_path, name in props:
+                for prop_path, name in props_to_show:
                     value = value_in_path(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
@@ -2569,7 +2549,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         KindCommand(d),
         ListCommand(d),
         TemplatesCommand(d),
-        MergeAncestorsPart(d),
         PredecessorPart(d),
         ProtectCommand(d),
         QueryAllPart(d),

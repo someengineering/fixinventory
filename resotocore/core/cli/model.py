@@ -18,7 +18,7 @@ from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandler
-from core.query.model import Query
+from core.query.model import Query, variable_to_absolute
 from core.query.template_expander import TemplateExpander
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
@@ -47,6 +47,9 @@ class CLIContext:
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(default_factory=dict)
+
+    def variable_in_section(self, variable: str) -> str:
+        return variable_to_absolute(self.query_options.get("section"), variable)
 
 
 EmptyContext = CLIContext()
