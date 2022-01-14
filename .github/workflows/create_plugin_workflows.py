@@ -14,7 +14,7 @@ on:
         - main
   pull_request:
     paths:
-      - 'cklib/**'
+      - 'resotolib/**'
       - 'plugins/@name@/**'
       - '.github/**'
 
@@ -43,11 +43,11 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable cklib/
+          pip install --upgrade --editable resotolib/
           pip install tox wheel flake8
 
-      - name: Build cklib
-        working-directory: ./cklib
+      - name: Build resotolib
+        working-directory: ./resotolib
         run: |
           sudo rm -rf /build
           sudo mkdir -p /build -m a+rw

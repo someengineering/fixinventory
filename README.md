@@ -1,16 +1,16 @@
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_200.png" />
-<h1 align="center">Cloudkeeper</h1></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" />
+<h1 align="center">Resoto</h1></p>
 
 
 # Housekeeping for Clouds!
 
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/cloudkeeper/main/misc/cloudkeeper_banner.png" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" /></p>
 
-[![Version](https://img.shields.io/github/v/tag/someengineering/cloudkeeper?label=latest)](https://github.com/someengineering/cloudkeeper/tags/)
-[![Build](https://img.shields.io/github/workflow/status/someengineering/cloudkeeper/Build%20Docker%20Images/main)](https://github.com/someengineering/cloudkeeper/commits/main)
+[![Version](https://img.shields.io/github/v/tag/someengineering/resoto?label=latest)](https://github.com/someengineering/resoto/tags/)
+[![Build](https://img.shields.io/github/workflow/status/someengineering/resoto/Build%20Docker%20Images/main)](https://github.com/someengineering/resoto/commits/main)
 [![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://docs.some.engineering)
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
-[![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/cloudkeeper?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/cloudkeeper/)
+[![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/resoto?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/resoto/)
 
 ## Table of contents
 
@@ -23,9 +23,9 @@
 
 
 ## Overview
-Cloudkeeper is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
+Resoto is “housekeeping for clouds” - find leaky resources, manage quota limits, detect drift and clean up.
 
-Cloudkeeper indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
+Resoto indexes resources, captures dependencies and maps out your infrastructure in a graph so that it’s understandable for a human. The graph contains metrics for each resource. Developers and SREs can search the graph with a query language, and create alerting and clean-up workflows. Metrics can be aggregated and exported to a time series database like Prometheus.
 
 If you ever
 * had a standstill in your CI pipeline because a broken job leaked cloud resources which triggered a quota limit
@@ -37,18 +37,18 @@ If you ever
 * cleaned up orphaned load balancers that had no active backends
 * wanted to automate any of the above
 
-Those are the kinds of situations Cloudkeeper was built for.
+Those are the kinds of situations Resoto was built for.
 
 Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
 ## Docker based quick start
 
-Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/cloudkeeper:2.0.0a9`
+Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/resoto:2.0.0a9`
 
 In this quick start guide, we’re showing you three things, how to:
 
-    1. install Cloudkeeper for AWS with docker
-    2. use the Cloudkeeper CLI to run your first collect process
+    1. install Resoto for AWS with docker
+    2. use the Resoto CLI to run your first collect process
     3. query the results of the collect process
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
@@ -64,12 +64,12 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 # Cloning this repository
 This Git repo uses [Git Large File Storage (LFS)](https://git-lfs.github.com/).
 
-If you would like to work on the UI [`ckui`](ckui/), before cloning the repo make sure to have [`git-lfs`](https://git-lfs.github.com/) installed!
+If you would like to work on the UI [`ui`](ui/), before cloning the repo make sure to have [`git-lfs`](https://git-lfs.github.com/) installed!
 
 One time setup:
 ```
-$ git clone https://github.com/someengineering/cloudkeeper.git
-$ cd cloudkeeper/
+$ git clone https://github.com/someengineering/resoto.git
+$ cd resoto/
 $ git lfs install  # installs git-lfs hooks
 ```
 
@@ -80,22 +80,21 @@ If you have no need for the UI assets git-lfs is optional.
 
 
 # Component list
-- [`ckcore`](ckcore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
-- [`cksh`](cksh/) the Cloudkeeper shell to interact with the core.
-- [`ckui`](ckui/) a UI prototype that can load ckcore exported data but has no backend connection yet.
-- [`ckworker`](ckworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
-- [`ckmetrics`](ckmetrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
+- [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
+- [`resotosh`](resotosh/) the Resoto shell to interact with the core.
+- [`ui`](ui/) a UI prototype that can load resotocore exported data but has no backend connection yet.
+- [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
+- [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/cloudkeeper/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
 
 ## License
 ```
-Copyright 2021 Some Engineering Inc.
-Copyright 2019-2021 D2iQ, Inc.
+Copyright 2022 Some Engineering Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

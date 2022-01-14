@@ -11,16 +11,14 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-github",
+    name="resoto-plugin-github",
     version="2.0.0a10",
-    description="Cloudkeeper Github Collector Plugin",
+    description="Resoto Github Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "github = cloudkeeper_plugin_github:GithubCollectorPlugin"
-        ]
+        "resoto.plugins": ["github = resoto_plugin_github:GithubCollectorPlugin"]
     },
     include_package_data=True,
     zip_safe=False,

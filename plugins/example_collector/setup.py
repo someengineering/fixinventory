@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-example_collector",
+    name="resoto-plugin-example_collector",
     version="2.0.0a10",
-    description="Cloudkeeper Example Collector Plugin",
+    description="Resoto Example Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "example_collector = cloudkeeper_plugin_example_collector:ExampleCollectorPlugin"
+        "resoto.plugins": [
+            "example_collector = resoto_plugin_example_collector:ExampleCollectorPlugin"
         ]
     },
     include_package_data=True,

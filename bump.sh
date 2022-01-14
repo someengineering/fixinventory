@@ -9,13 +9,13 @@ fi
 
 bump_from=$1
 bump_to=$2
-find cklib \
-        ckcore \
-        ckworker \
-        cksh \
-        ckmetrics \
+find resotolib \
+        resotocore \
+        resotoworker \
+        resotosh \
+        resotometrics \
         plugins \
-        cloudkeeperV1 \
+        resotoV1 \
     -name setup.py -o \
     -name __init__.py -o \
     -name requirements.txt \

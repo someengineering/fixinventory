@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-k8s",
+    name="resoto-plugin-k8s",
     version="2.0.0a10",
-    description="Cloudkeeper Kubernetes Collector Plugin",
+    description="Resoto Kubernetes Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "k8s_collector = cloudkeeper_plugin_k8s:KubernetesCollectorPlugin"
+        "resoto.plugins": [
+            "k8s_collector = resoto_plugin_k8s:KubernetesCollectorPlugin"
         ]
     },
     include_package_data=True,

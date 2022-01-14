@@ -1,5 +1,5 @@
-from cklib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_slack import SlackBotPlugin, SlackCollectorPlugin
+from resotolib.args import get_arg_parser, ArgumentParser
+from resoto_plugin_slack import SlackBotPlugin, SlackCollectorPlugin
 
 
 def test_args():

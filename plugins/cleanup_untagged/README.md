@@ -1,5 +1,5 @@
-# cloudkeeper-plugin-cleanup_untagged
-Cleanup Untagged Plugin for Cloudkeeper
+# resoto-plugin-cleanup_untagged
+Cleanup Untagged Plugin for Resoto
 
 This plugin deletes cloud resources that are missing mandatory tags.
 
@@ -33,7 +33,7 @@ accounts:
 
 Turn on general cleanup using the `--cleanup` argument and provide the path to a config file via the `--cleanup-untagged-config` argument.
 ```
-$ cloudkeeper -v --cleanup --cleanup-untagged-config /var/local/cloudkeeper/config/cleanup_untagged.yaml
+$ resotoworker -v --cleanup --cleanup-untagged-config /var/local/resoto/config/cleanup_untagged.yaml
 ```
 
 ### Config file format

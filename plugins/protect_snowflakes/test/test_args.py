@@ -1,5 +1,5 @@
-from cklib.args import get_arg_parser, ArgumentParser
-from cloudkeeper_plugin_protect_snowflakes import ProtectSnowflakesPlugin
+from resotolib.args import get_arg_parser, ArgumentParser
+from resoto_plugin_protect_snowflakes import ProtectSnowflakesPlugin
 
 
 def test_args():

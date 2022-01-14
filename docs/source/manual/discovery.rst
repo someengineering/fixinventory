@@ -2,12 +2,12 @@
 Discovery
 =========
 
-You can search your cloud infrastructure and find the resources you are looking for using Cloudkeepers powerful query language.
+You can search your cloud infrastructure and find the resources you are looking for using Resoto's powerful query language.
 
-Cloudkeeper maintains its collected data in a graph database. This graph can be accessed via the query language.
+Resoto maintains its collected data in a graph database. This graph can be accessed via the query language.
 
 .. hint::
-  Sending a query in the :ref:`component-cksh` CLI is done by using the ``query`` command.
+  Sending a query in the :ref:`component-resotoshell` CLI is done by using the ``query`` command.
 
   ``query is(aws_account)``
 
@@ -32,7 +32,7 @@ A graph node is a json document with a well defined structure and these top leve
     }
 
 
-Each graph node always has an ``id`` that is a unique ID created by Cloudkeeper.
+Each graph node always has an ``id`` that is a unique ID created by Resoto.
 
 The ``reported`` section contains data reported from the specific cloud provider.
 The content and schema of the ``reported`` section is defined by the cloud provider and described formally in the :ref:`model`.
@@ -41,7 +41,7 @@ The ``desired`` section can be manipulated by users and tools to mark and trigge
 specific resource. Cleaning up a resource, for example, is done by setting ``clean=true`` in the desired section.
 
 The ``metadata`` section contains additional data about the resource. This data is not from the cloud provider,
-but added by the Cloudkeeper toolchain.
+but added by the Resoto toolchain.
 
 You can see an example and learn more about the structure in :ref:`graph_node_spotlight`.
 
@@ -54,11 +54,11 @@ You can see an example and learn more about the structure in :ref:`graph_node_sp
 
 Available Commands
 ==================
-In the :ref:`component-cksh` CLI you have have a couple of commands available that help you accessing the graph database.
+In the :ref:`component-resotoshell` CLI you have have a couple of commands available that help you accessing the graph database.
 
 Commands can also be chained by using ``|`` pipes - and not just the following commands!
 Chaining is very powerful when used with other commands like ``count``.
-We advise to use ``help`` in the :ref:`component-cksh` CLI to get more information about the commands.
+We advise to use ``help`` in the :ref:`component-resotoshell` CLI to get more information about the commands.
 
 query
 -----
@@ -246,7 +246,7 @@ Nodes in the graph are connected via edges.
 Edges in the graph are directed, starting from a node pointing to a node.
 In order to traverse the graph in a meaningful way,
 it is important to understand the structure of the graph.
-The following model is only a subset of the graph model you will find in Cloudkeeper, but
+The following model is only a subset of the graph model you will find in Resoto, but
 illustrates nicely how we can walk edges in the graph.
 
 .. image:: img/graph_query_graph_edges.png
@@ -364,7 +364,7 @@ The same applies for inbound traversals with ``<-[start:]-``.
   ``query is(aws_account) and reported.name==sunshine -[0:]->``
 
   This query will select the aws account with name ``sunshine`` and then select all nodes outbound to this node.
-  This will select everything Cloudkeeper knows about nodes in this account.
+  This will select everything Resoto knows about nodes in this account.
 
 Select inbound and outbound nodes
 ---------------------------------
@@ -479,7 +479,7 @@ to select nodes which are not in a predefined graph structure.
 Merge node data with sub-queries
 ================================
 
-The data in Cloudkeeper is stored in a graph.
+The data in Resoto is stored in a graph.
 While it is possible to query and retrieve a filtered part of the graph, it is sometimes helpful to retrieve
 structural graph data as part of the node. This approach merges multiple nodes in a graph into one node.
 This combined node can simplify processing the node.
@@ -492,7 +492,7 @@ The result of the sub-query is then merged with the node data.
 
 .. admonition:: Example
 
-    Most cloud resources are maintained in an account. Accounts are modeled as nodes in Cloudkeeper.
+    Most cloud resources are maintained in an account. Accounts are modeled as nodes in Resoto.
     Resources reference the region node, while the region node references the account node.
     In order to retrieve the account, the graph has to be traversed inbound from the resource node until the
     account node is found. While this is possible, it might be more convenient to get the account information
@@ -603,7 +603,7 @@ If I only want to know the number of instances, that matches that criteria, I co
 which would return the total number of all compute instances that are older than 3 years.
 
 | You can see the ``aggregate():`` part in front of the filter query part.
-| The query part itself has not changed - the aggregation part tells Cloudkeeper to aggregate the resulting data based on the defined criteria.
+| The query part itself has not changed - the aggregation part tells Resoto to aggregate the resulting data based on the defined criteria.
 
 | Every resulting element of the filter query is passed to the aggregation function.
 | This function can aggregate data from the incoming element using on of ``sum(x)``, ``min(x)``, ``max(x)`` or ``avg(x)``.

@@ -3,9 +3,9 @@
 set -euo pipefail
 
 # Include defaults
-. /usr/local/etc/cloudkeeper/defaults
-. /usr/local/etc/cloudkeeper/common
-. /usr/local/cloudkeeper-venv-python3/bin/activate
+. /usr/local/etc/resoto/defaults
+. /usr/local/etc/resoto/common
+. /usr/local/resoto-venv-python3/bin/activate
 
 
 main() {
@@ -15,9 +15,9 @@ main() {
     setup_dnsmasq
     setup_graphdb
     setup_tsdb
-    setup_ckcore "$@"
-    setup_ckworker "$@"
-    setup_ckmetrics "$@"
+    setup_resotocore "$@"
+    setup_resotoworker "$@"
+    setup_resotometrics "$@"
     setup_runit
     exec /sbin/my_init
 }
@@ -25,17 +25,17 @@ main() {
 
 # Apply user id and group id
 apply_permissions() {
-    info "Setting uid:gid of cloudkeeper to $PUID:$PGID"
-    groupmod -g "${PGID}" -o cloudkeeper
-    #usermod -u "${PUID}" -o -g cloudkeeper cloudkeeper
-    sed -i -E "s/^(cloudkeeper:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+    info "Setting uid:gid of resoto to $PUID:$PGID"
+    groupmod -g "${PGID}" -o resoto
+    #usermod -u "${PUID}" -o -g resoto resoto
+    sed -i -E "s/^(resoto:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
     mkdir -p \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 
-    chown -R cloudkeeper:cloudkeeper \
-        /home/cloudkeeper \
+    chown -R resoto:resoto \
+        /home/resoto \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 }
@@ -93,7 +93,7 @@ setup_dnsmasq() {
         cp "$runit_dnsmasq_conf_in" "$runit_dnsmasq_rundir/run"
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
-            echo "log-queries=extra" >> /etc/dnsmasq.d/cloudkeeper.conf
+            echo "log-queries=extra" >> /etc/dnsmasq.d/resoto.conf
         fi
         echo "nameserver 127.0.0.1" > /etc/resolv.conf
     fi
@@ -126,42 +126,42 @@ setup_tsdb() {
     fi
 }
 
-setup_ckcore() {
-    rm -f "$runit_ckcore_rundir/run"
-    if [ "$START_CKCORE" = true ]; then
-        info "ckcore activated"
-        mkdir -p "$runit_ckcore_rundir"
-        argsdispatcher ckcore "$runit_ckcore_conf_in" "$@" > "$runit_ckcore_rundir/run"
-        export CKCORE_GRAPHDB_SERVER
-        export CKCORE_GRAPHDB_DATABASE
-        export CKCORE_GRAPHDB_USERNAME
-        export CKCORE_GRAPHDB_PASSWORD
-        export CKCORE_PSK
-        export CKCORE_HOST
+setup_resotocore() {
+    rm -f "$runit_resotocore_rundir/run"
+    if [ "$START_RESOTOCORE" = true ]; then
+        info "resotocore activated"
+        mkdir -p "$runit_resotocore_rundir"
+        argsdispatcher resotocore "$runit_resotocore_conf_in" "$@" > "$runit_resotocore_rundir/run"
+        export RESOTOCORE_GRAPHDB_SERVER
+        export RESOTOCORE_GRAPHDB_DATABASE
+        export RESOTOCORE_GRAPHDB_USERNAME
+        export RESOTOCORE_GRAPHDB_PASSWORD
+        export RESOTOCORE_PSK
+        export RESOTOCORE_HOST
     fi
 }
 
-setup_ckworker() {
-    rm -f "$runit_ckworker_rundir/run"
-    if [ "$START_CKWORKER" = true ]; then
-        info "ckworker activated"
-        mkdir -p "$runit_ckworker_rundir"
-        argsdispatcher ckworker "$runit_ckworker_conf_in" "$@" > "$runit_ckworker_rundir/run"
-        export CKWORKER_CKCORE_URI
-        export CKWORKER_CKCORE_WS_URI
-        export CKWORKER_PSK
+setup_resotoworker() {
+    rm -f "$runit_resotoworker_rundir/run"
+    if [ "$START_RESOTOWORKER" = true ]; then
+        info "resotoworker activated"
+        mkdir -p "$runit_resotoworker_rundir"
+        argsdispatcher resotoworker "$runit_resotoworker_conf_in" "$@" > "$runit_resotoworker_rundir/run"
+        export RESOTOWORKER_RESOTOCORE_URI
+        export RESOTOWORKER_RESOTOCORE_WS_URI
+        export RESOTOWORKER_PSK
     fi
 }
 
-setup_ckmetrics() {
-    rm -f "$runit_ckmetrics_rundir/run"
-    if [ "$START_CKMETRICS" = true ]; then
-        info "ckmetrics activated"
-        mkdir -p "$runit_ckmetrics_rundir"
-        argsdispatcher ckmetrics "$runit_ckmetrics_conf_in" "$@" > "$runit_ckmetrics_rundir/run"
-        export CKMETRICS_CKCORE_URI
-        export CKMETRICS_CKCORE_WS_URI
-        export CKMETRICS_PSK
+setup_resotometrics() {
+    rm -f "$runit_resotometrics_rundir/run"
+    if [ "$START_RESOTOMETRICS" = true ]; then
+        info "resotometrics activated"
+        mkdir -p "$runit_resotometrics_rundir"
+        argsdispatcher resotometrics "$runit_resotometrics_conf_in" "$@" > "$runit_resotometrics_rundir/run"
+        export RESOTOMETRICS_RESOTOCORE_URI
+        export RESOTOMETRICS_RESOTOCORE_WS_URI
+        export RESOTOMETRICS_PSK
     fi
 }
 

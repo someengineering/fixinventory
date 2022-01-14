@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-cleanup_untagged",
+    name="resoto-plugin-cleanup_untagged",
     version="2.0.0a10",
-    description="Cloudkeeper Cleanup Untagged Plugin",
+    description="Resoto Cleanup Untagged Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "cleanup_untagged = cloudkeeper_plugin_cleanup_untagged:CleanupUntaggedPlugin"
+        "resoto.plugins": [
+            "cleanup_untagged = resoto_plugin_cleanup_untagged:CleanupUntaggedPlugin"
         ]
     },
     include_package_data=True,

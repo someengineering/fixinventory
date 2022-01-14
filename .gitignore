@@ -26,4 +26,4 @@ docs/build/
 docs/_build/
 .DS_Store
 .coverage
-cksh/backup_*
+resotosh/backup_*

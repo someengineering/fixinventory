@@ -8,16 +8,16 @@ Here are some highlights from this release:
 **The UI is now shipped as part of every release**<br/>
 This is the first version that ships with our gorgeous UI.
 Please try it out by downloading the latest version and navigating to `https://path.to.cloudkeeper:8900/ui` in your browser.
-The main graph view has been upgraded from 2D to 3D, and shows Treemap charts ([#457](https://github.com/someengineering/cloudkeeper/pull/457))!
+The main graph view has been upgraded from 2D to 3D, and shows Treemap charts ([#457](https://github.com/someengineering/resoto/pull/457))!
 
 **We now have a helm chart**<br/>
-Thanks to a contribution from @yuval-k, we now have a Helm chart ([#428](https://github.com/someengineering/cloudkeeper/pull/428))!
+Thanks to a contribution from @yuval-k, we now have a Helm chart ([#428](https://github.com/someengineering/resoto/pull/428))!
 With this chart, it is easier to deploy Cloudkeeper in Kubernetes.
 Try it out yourself by following the [Kubernetes setup tutorial in our documentation](https://docs.some.engineering/getting_started/setup_kubernetes.html).
 
 **All cleanup plugins are now available**<br/>
 We needed to migrate all cleanup plugins to the 2.0 infrastructure.
-With this release, all cleanup plugins have been ported ([#422](https://github.com/someengineering/cloudkeeper/pull/422)) and ([#439](https://github.com/someengineering/cloudkeeper/pull/439)).
+With this release, all cleanup plugins have been ported ([#422](https://github.com/someengineering/resoto/pull/422)) and ([#439](https://github.com/someengineering/resoto/pull/439)).
 
 **Analytics sensors were added**<br/>
 At Some Engineering, we believe that it is important to know how Cloudkeeper is used, and thus how we can improve.
@@ -28,18 +28,18 @@ It is possible to opt out of sending this data by specifying the command line fl
 
 **Query language improvements**<br/>
 There are several significant improvements in this area.
-It is now possible to define sub-queries ([#412](https://github.com/someengineering/cloudkeeper/pull/412)) which allow merging nodes with other nodes in the graph.
-Additionally, the first step toward a full-featured query template engine has been implemented in [#431](https://github.com/someengineering/cloudkeeper/pull/431).
+It is now possible to define sub-queries ([#412](https://github.com/someengineering/resoto/pull/412)) which allow merging nodes with other nodes in the graph.
+Additionally, the first step toward a full-featured query template engine has been implemented in [#431](https://github.com/someengineering/resoto/pull/431).
 This feature allows defining queries as a template and reusing those templates in other queries, greatly simplifying more complex queries.
 
 **Other improvements**
 
-- `[ckcore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/cloudkeeper/pull/425))
-- `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. ([#430](https://github.com/someengineering/cloudkeeper/pull/430))
-- `[ckcore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/cloudkeeper/pull/427))
-- `[ckcore]` arangodb 3.8.2 or later is now the minimum required version to run cloudkeeper. ([#445](https://github.com/someengineering/cloudkeeper/pull/445))
-- `[ckcore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/cloudkeeper/pull/437))
-- `[ckcore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/cloudkeeper/pull/432))
+- `[ckcore]` In the CLI the default output style is now the list style. Every node is printed as one line. To show all available data as yaml node, we introduced the dump command. ([#425](https://github.com/someengineering/resoto/pull/425))
+- `[plugin/gcp]` only collect referenced type and service resources, so the graph only contains used resources. ([#430](https://github.com/someengineering/resoto/pull/430))
+- `[ckcore]` Add support for array modifiers `all, any, none`. Example: `reported.array all > 3`, which selects all nodes where the property `reported.array` points to an array of integers and all integers in that array are bigger than 3. ([#427](https://github.com/someengineering/resoto/pull/427))
+- `[ckcore]` arangodb 3.8.2 or later is now the minimum required version to run resoto. ([#445](https://github.com/someengineering/resoto/pull/445))
+- `[ckcore]` `tag` command can be backgrounded. ([#437](https://github.com/someengineering/resoto/pull/437))
+- `[ckcore]` `is()` now also supports multiple kinds, with an or meaning. Example `is(volume, instance) ([#432](https://github.com/someengineering/resoto/pull/432))
 
 
 #  Release Notes 2.0.0a3 (Oct 4th, 2021)
@@ -79,7 +79,7 @@ We rebuilt Cloudkeeper from the ground up to make it extensible and scalable. Th
 
 `ckworker` - infrastructure-specific plug-ins
 
-`cksh` - starts the Cloudkeeper shell
+`cksh` - starts the resoto shell
 
 `ckmetrics` - calculates metrics in Prometheus format
 
@@ -93,13 +93,13 @@ A bit more detail on the four components of the architecture.
 
 `ckcore` aka “the core” maintains the graph. Data collection happens via `ckworker`. The workers push data into `ckcore`, after the core has told the workers to start collecting data. In the graph, nodes are individual resources, edges are logical dependencies. Cloudkeeper stores a resource’s attributes in the node. These attributes are the basis for the dependencies that Cloudkeeper creates.
 
-We built `ckcore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `cksh`
+We built `ckcore` with a scheduler and a message bus. The message bus has topics and queues. The scheduler runs internally in the core, by default the collect event gets triggered once per hour. A user can however define their own schedule by using the Cloudkeeper shell `cksh`.
 
-`ckworker` does all the collection and cleanup work in Cloudkeeper. It waits for instructions from ckcore over a WebSocket connection. By default ckworker subscribes to collect, clean up and tag tasks.
+`ckworker` does all the collection and cleanup work in Cloudkeeper. It waits for instructions from `ckcore` over a WebSocket connection. By default `ckworker` subscribes to collect, clean up and tag tasks.
 
 `cksh` is our command-line interface, aka “the shell”. The CLI allows you to execute a variety of commands (see query language) to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
-`ckmetrics` ckmetrics takes graph data from ckcore and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
+`ckmetrics` takes graph data from `ckcore` and runs aggregation functions on it. The aggregated metrics are then exposed in a Prometheus-compatible format for consumption in other services. For example, D2iQ uses Grafana dashboards to visualize infrastructure metrics for Engineering, Finance and the CEO.
 
 ##  Graph storage - From In-Memory To On-Disk Persistence
 
@@ -198,4 +198,4 @@ Workflows are an area that we’re investing strongly in. If you have ideas - pl
 
 This current release makes it much easier to use Cloudkeeper to keep your cloud clean of drift. We made it easier and more intuitive for first-time users to start with Cloudkeeper. And we have a lot more ideas to keep going in that direction. For example, the next release will have a built-in library of useful query templates to give users a jump start. We’re also working on authentication, authorization and encrypted communication.
 
-Meanwhile - please let us know what’s important for you as we continue building out Cloudkeeper. We also offer custom onboarding sessions - **again, reach out to us via our [Discord channel](https://discord.gg/3G3sX6y3bt).**
+Meanwhile - please let us know what’s important for you as we continue building out Cloudkeeper. We also offer custom onboarding sessions - **again, reach out to us via our [Discord channel](https://discord.gg/someengineering).**

@@ -11,15 +11,15 @@ def read(fname):
 
 
 setup(
-    name="cloudkeeper-plugin-cleanup_aws_vpcs",
+    name="resoto-plugin-cleanup_aws_vpcs",
     version="2.0.0a10",
     description="AWS VPC Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "cloudkeeper.plugins": [
-            "cleanup_aws_vpcs = cloudkeeper_plugin_cleanup_aws_vpcs:CleanupAWSVPCsPlugin"
+        "resoto.plugins": [
+            "cleanup_aws_vpcs = resoto_plugin_cleanup_aws_vpcs:CleanupAWSVPCsPlugin"
         ]
     },
     include_package_data=True,
