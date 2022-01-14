@@ -74,19 +74,19 @@ class Section:
 class EdgeType:
     # This edge type defines logical dependencies between resources.
     # It is the main edge type and is assumed, if no edge type is given.
-    dependency = "dependency"
+    dependency: str = "dependency"
 
     # This edge type defines the order of delete operations.
     # A resource can be deleted, if all outgoing resources are deleted.
-    delete = "delete"
+    delete: str = "delete"
 
     # The default edge type, that is used as fallback if no edge type is given.
     # The related graph is also used as source of truth for graph updates.
-    default = dependency
+    default: str = dependency
 
     # The list of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    all = {dependency, delete}
+    all: Set[str] = {dependency, delete}
 
 
 class Direction:
@@ -98,7 +98,7 @@ class Direction:
     any = "inout"
 
     # The list of all allowed directions.
-    all = [inbound, outbound, any]
+    all: List[str] = [inbound, outbound, any]
 
 
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])

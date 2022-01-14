@@ -20,9 +20,6 @@ from core.analytics import CoreEvent
 from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
     QueryAllPart,
-    ReportedPart,
-    DesiredPart,
-    MetadataPart,
     PredecessorPart,
     SuccessorPart,
     AncestorPart,
@@ -49,7 +46,6 @@ from core.cli.model import (
     CLISource,
 )
 from core.error import CLIParseError
-from core.model.graph_access import Section
 from core.model.typed_model import class_fqn
 from core.parse_util import (
     make_parser,
@@ -237,7 +233,10 @@ class CLI:
             nonlocal parsed_options
             parsed, query_part = ExecuteQueryCommand.parse_known(query_arg)
             parsed_options = {**parsed_options, **parsed}
-            return await self.dependencies.template_expander.parse_query("".join(query_part))
+            # section expansion is disabled here: it will happen on the final query after all parts have been combined
+            return await self.dependencies.template_expander.parse_query(
+                "".join(query_part), None, omit_section_expansion=True
+            )
 
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
@@ -246,12 +245,6 @@ class CLI:
             arg = command.arg if command.arg else ""
             if isinstance(part, QueryAllPart):
                 query = query.combine(await parse_query(arg))
-            elif isinstance(part, ReportedPart):
-                query = query.combine((await parse_query(arg)).on_section(Section.reported))
-            elif isinstance(part, DesiredPart):
-                query = query.combine((await parse_query(arg)).on_section(Section.desired))
-            elif isinstance(part, MetadataPart):
-                query = query.combine((await parse_query(arg)).on_section(Section.metadata))
             elif isinstance(part, PredecessorPart):
                 origin, edge = PredecessorPart.parse_args(arg)
                 query = query.traverse_in(origin, 1, edge)
@@ -280,7 +273,7 @@ class CLI:
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))
                 query = replace(query, aggregate=aggregate)
-                query = query.add_sort("count")
+                query = query.add_sort("_.count")
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
                 query = query.with_limit(size)
@@ -293,7 +286,7 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
         options = ExecuteQueryCommand.argument_string(parsed_options)
-        query_string = str(query)
+        query_string = str(query.on_section(parsed_options["section"]))
         execute_query = self.command("execute_query", options + query_string, ctx)
         return query, parsed_options, [execute_query, *additional_commands]
 

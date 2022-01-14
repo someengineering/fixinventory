@@ -176,95 +176,6 @@ class QueryAllPart(QueryPart):
         return "Matches a property in all sections."
 
 
-class ReportedPart(QueryPart):
-    """
-    Usage: reported <property.path> <op> <value"
-
-    Part of a query.
-    The reported section contains the values directly from the collector.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        reported prop1 == "a"             # matches documents with reported section like { "prop1": "a" ....}
-        reported some.nested in [1,2,3]   # matches documents with reported section like { "some": { "nested" : 1 ..}..}
-        reported array[*] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
-        reported array[1] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.reported
-
-    def info(self) -> str:
-        return "Matches a property in the reported section."
-
-
-class DesiredPart(QueryPart):
-    """
-    Usage: desired <property.path> <op> <value"
-
-    Part of a query.
-    The desired section contains values set by tools to change the state of this node.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        desired prop1 == "a"             # matches documents with desired section like { "prop1": "a" ....}
-        desired prop1 =~ "a.*"           # matches documents with desired section like { "prop1": "a" ....}
-        desired some.nested in [1,2,3]   # matches documents with desired section like { "some": { "nested" : 1 ..}..}
-        desired array[*] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
-        desired array[1] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.desired
-
-    def info(self) -> str:
-        return "Matches a property in the desired section."
-
-
-class MetadataPart(QueryPart):
-    """
-    Usage: metadata <property.path> <op> <value"
-
-    Part of a query.
-    The metadata section is set by the collector and holds additional meta information about this node.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        metadata prop1 == "a"             # matches documents with metadata section like { "prop1": "a" ....}
-        metadata prop1 =~ "a.*"           # matches documents with metadata section like { "prop1": "a" ....}
-        metadata some.nested in [1,2,3]   # matches documents with metadata section like { "some": { "nested" : 1 ..}..}
-        metadata array[*] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
-        metadata array[1] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.metadata
-
-    def info(self) -> str:
-        return "Matches a property in the metadata section."
-
-
 class PredecessorPart(QueryPart):
     """
     Usage: predecessors [--with-origin] [edge_type]
@@ -787,6 +698,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         parser = NoExitArgumentParser()
         parser.add_argument("--include-edges", dest="include-edges", default=None, action="store_true")
         parser.add_argument("--explain", dest="explain", default=None, action="store_true")
+        parser.add_argument("--section", dest="section", default="reported")
         parsed, rest = parser.parse_known_args(arg.split(maxsplit=2))
         return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
 
@@ -2643,7 +2555,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CleanCommand(d),
         CountCommand(d),
         DescendantPart(d),
-        DesiredPart(d),
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
@@ -2659,11 +2570,9 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         ListCommand(d),
         TemplatesCommand(d),
         MergeAncestorsPart(d),
-        MetadataPart(d),
         PredecessorPart(d),
         ProtectCommand(d),
         QueryAllPart(d),
-        ReportedPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
@@ -2684,4 +2593,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "reported", "start_workflow": "start_task", "https": "http"}
+    return {"match": "query", "start_workflow": "start_task", "https": "http"}

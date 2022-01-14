@@ -258,7 +258,7 @@ async def event_graph_db(filled_graph_db: ArangoGraphDB, event_sender: Analytics
 
 async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> DiGraph:
     blas = Query.by("foo", P("identifier") == base_id).traverse_out(0, Navigation.Max)
-    return await db.query_graph(QueryModel(blas, model, "reported"))
+    return await db.query_graph(QueryModel(blas.on_section("reported"), model))
 
 
 @pytest.mark.asyncio
@@ -353,12 +353,12 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
 @pytest.mark.asyncio
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
-    async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
+    async with await filled_graph_db.query_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 10
 
     foos_or_blas = parse_query("is([foo, bla])")
-    async with await filled_graph_db.query_list(QueryModel(foos_or_blas, foo_model, "reported")) as gen:
+    async with await filled_graph_db.query_list(QueryModel(foos_or_blas.on_section("reported"), foo_model)) as gen:
         result = [x async for x in gen]
         assert len(result) == 111  # 113 minus 1 graph_root, minus one cloud
 
@@ -367,7 +367,7 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
 async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     # select everything that is not foo --> should be blas
     blas = Query.by(Query.mk_term("foo").not_term())
-    async with await filled_graph_db.query_list(QueryModel(blas, foo_model, "reported")) as gen:
+    async with await filled_graph_db.query_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 102
 
@@ -380,7 +380,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 
     # filter data and tag result, and then traverse to the end of the graph in both directions
     around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)
-    graph = await filled_graph_db.query_graph(QueryModel(around_me, foo_model, "reported"))
+    graph = await filled_graph_db.query_graph(QueryModel(around_me.on_section("reported"), foo_model))
     assert len({x for x in graph.nodes}) == 12
     assert GraphAccess.root_id(graph) == "sub_root"
     assert list(graph.successors("sub_root"))[0] == "9"
@@ -394,21 +394,22 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 
 @pytest.mark.asyncio
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)")
-    async with await filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model, "reported")) as gen:
-        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 11}]
+    agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)").on_section("reported")
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_query, foo_model)) as gen:
+        assert [x async for x in gen] == [{"group": {"reported.kind": "foo"}, "instances": 11}]
 
     agg_combined_var_query = parse_query(
         'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
-    )
-    async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model, "reported")) as g:
+    ).on_section("reported")
+
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model)) as g:
         assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 11}]
 
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     query = parse_query('(merge_with_ancestors="foo as foobar,bar"): is("bla")')
-    async with await filled_graph_db.query_list(QueryModel(query, foo_model, "reported")) as cursor:
+    async with await filled_graph_db.query_list(QueryModel(query, foo_model)) as cursor:
         async for bla in cursor:
             js = AccessJson(bla)
             assert "bar" in js.reported  # key exists
@@ -453,7 +454,7 @@ async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     async def query(q: str) -> List[Json]:
         agg_query = parse_query(q)
-        async with await filled_graph_db.query_list(QueryModel(agg_query, foo_model, "reported")) as cursor:
+        async with await filled_graph_db.query_list(QueryModel(agg_query.on_section("reported"), foo_model)) as cursor:
             return [bla async for bla in cursor]
 
     assert len(await query("is(bla) with(any, <-- is(foo))")) == 100

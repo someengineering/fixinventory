@@ -629,17 +629,17 @@ class Api:
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         with_edges = request.query.get("edges") is not None
         m = await self.model_handler.load_model()
-        q = await self.query_parser.parse_query(query_string)
-        query, bind_vars = await graph_db.to_query(QueryModel(q, m, section), with_edges)
+        q = await self.query_parser.parse_query(query_string, section)
+        query, bind_vars = await graph_db.to_query(QueryModel(q, m), with_edges)
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string, section)
         m = await self.model_handler.load_model()
-        result = await graph_db.explain(QueryModel(q, m, section))
+        result = await graph_db.explain(QueryModel(q, m))
         return web.json_response(to_js(result))
 
     async def search_graph(self, request: Request) -> StreamResponse:
@@ -659,41 +659,41 @@ class Api:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string, section)
         m = await self.model_handler.load_model()
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_list(QueryModel(q, m, section), count, timeout) as cursor:
+        async with await graph_db.query_list(QueryModel(q, m), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string, section)
         m = await self.model_handler.load_model()
-        result = await graph_db.query_graph(QueryModel(q, m, section))
+        result = await graph_db.query_graph(QueryModel(q, m))
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
     async def query_graph_stream(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
-        q = await self.query_parser.parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string, section)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_graph_gen(QueryModel(q, m, section), count, timeout) as cursor:
+        async with await graph_db.query_graph_gen(QueryModel(q, m), count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
         section = section_of(request)
         query_string = await request.text()
-        q = await self.query_parser.parse_query(query_string)
+        q = await self.query_parser.parse_query(query_string, section)
         m = await self.model_handler.load_model()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        async with await graph_db.query_aggregation(QueryModel(q, m, section)) as gen:
+        async with await graph_db.query_aggregation(QueryModel(q, m)) as gen:
             return await self.stream_response_from_gen(request, gen)
 
     async def wipe(self, request: Request) -> StreamResponse:

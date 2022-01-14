@@ -98,9 +98,12 @@ class TemplateExpanderBase(TemplateExpander):
     and leaves the storage functionality to the subsequent classes.
     """
 
-    async def parse_query(self, to_parse: str) -> Query:
+    async def parse_query(
+        self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False
+    ) -> Query:
         expanded, _ = await self.expand(to_parse)
-        return query_parser.parse_query(expanded)
+        result = query_parser.parse_query(expanded)
+        return result if omit_section_expansion else result.on_section(on_section)
 
     async def expand(self, maybe_expandable: str) -> Tuple[str, List[Expandable]]:
         parts = string_with_expands.parse(maybe_expandable)

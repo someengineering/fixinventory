@@ -170,15 +170,10 @@ async def test_descendants(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
-    result = await cli.execute_cli_command(
-        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
-    )
+    result = await cli.execute_cli_command('query is("foo") and some_int==0 --> identifier=~"9_"', stream.list)
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
-        Template(
-            "test",
-            'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"',
-        )
+        Template("test", 'is(foo) and some_int==0 --> identifier=~"{{fid}}"')
     )
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
@@ -466,11 +461,11 @@ async def test_kind_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('reported is (foo) and identifier=="4" | list', stream.list)
+    result = await cli.execute_cli_command('query is (foo) and identifier=="4" | list', stream.list)
     assert len(result[0]) == 1
     assert result[0][0].startswith("kind=foo, identifier=4, age=")
     list_cmd = "list some_int as si, reported.some_string"
-    result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
+    result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
 
 
@@ -483,7 +478,7 @@ async def test_jq_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
-    r = await cli.execute_cli_command("query all | count reported.kind", stream.list)
+    r = await cli.execute_cli_command("query all | count kind", stream.list)
     assert set(r[0]) == {
         "graph_root: 1",
         "cloud: 1",

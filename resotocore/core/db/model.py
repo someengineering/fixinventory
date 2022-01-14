@@ -1,16 +1,15 @@
 from __future__ import annotations
 from abc import ABC
-from typing import Optional, Any
+from typing import Any
 
 from core.model.model import Model
 from core.query.model import Query
 
 
 class QueryModel(ABC):
-    def __init__(self, query: Query, model: Model, query_section: Optional[str] = None):
+    def __init__(self, query: Query, model: Model):
         self.query = query
         self.model = model
-        self.query_section = query_section
 
 
 class GraphUpdate(ABC):

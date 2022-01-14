@@ -22,8 +22,9 @@ venv*
 .vscode/
 /config/
 *.code-workspace
-docs/build/
+*/build/
 docs/_build/
 .DS_Store
 .coverage
-resotosh/backup_*
+resotoshell/backup_*
+

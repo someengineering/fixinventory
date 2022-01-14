@@ -73,9 +73,7 @@ array_modifier_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["all"
 function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet", "has_desired_change", "has_key"]])
 
 
-preamble_prop_p = reduce(
-    lambda x, y: x | y, [lexeme(string(a)) for a in ["section", "edge_type", "merge_with_ancestors"]]
-)
+preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
 
 
 @make_parser
@@ -285,28 +283,6 @@ def preamble_tags_parser() -> Parser:
     return dict(key_values)
 
 
-section_abbreviation_names = {
-    "reported": "reported",
-    "rep": "reported",
-    "r": "reported",
-    "metadata": "metadata",
-    "meta": "metadata",
-    "m": "metadata",
-    "desired": "desired",
-    "des": "desired",
-    "d": "desired",
-}
-section_name_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in section_abbreviation_names])
-no_dot = lexeme(regex("[^.]"))
-
-
-@make_parser
-def section_name_parser() -> Parser:
-    abbrev = yield section_name_p
-    yield parsy.peek(no_dot)  # make sure, there is no dot after the section name
-    return {"section": section_abbreviation_names[abbrev]}
-
-
 as_p = lexeme(string("as"))
 aggregate_p = lexeme(string("aggregate"))
 aggregate_func_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg"]])
@@ -379,10 +355,7 @@ def aggregate_parser() -> Parser:
 def preamble_parser() -> Parser:
     maybe_aggregate = yield aggregate_parser.optional()
     maybe_preamble = yield preamble_tags_parser.optional()
-    section_preamble = yield section_name_parser.optional()
-    pr = maybe_preamble if maybe_preamble else {}
-    sp = section_preamble if section_preamble else {}
-    preamble = {**pr, **sp}
+    preamble = maybe_preamble if maybe_preamble else {}
     yield colon_p if maybe_aggregate or maybe_preamble else colon_p.optional()
     return maybe_aggregate, preamble
 
@@ -409,16 +382,10 @@ def query_parser() -> Parser:
         adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
         return replace(part, navigation=nav, with_clause=adapted_wc)
 
-    def adapt_section(query: Query) -> Query:
-        section = preamble.get("section")
-        return query.on_section(section) if section else query
-
     adapted = [set_edge_type_if_not_set(part).rewrite_for_ancestors_descendants() for part in parts]
     # remove values from preamble, that are only used at parsing time
     resulting_preamble = preamble.copy()
-    for key in ["section", "edge_type"]:
-        resulting_preamble.pop(key, None)
-    return adapt_section(Query(adapted[::-1], resulting_preamble, maybe_aggregate))
+    return Query(adapted[::-1], resulting_preamble, maybe_aggregate)
 
 
 def parse_query(query: str) -> Query:
