@@ -49,12 +49,8 @@ class CLIContext:
     query_options: Dict[str, Any] = field(default_factory=dict)
 
     def variable_in_section(self, variable: str) -> str:
-        if self.query:
-            section = self.query_options.get("section", self.env.get("section"))
-            return variable_to_absolute(section, variable)
-        else:
-            # if there is no query, no section should be adjusted
-            return variable
+        # if there is no query, no section should be adjusted
+        return variable_to_absolute(self.env.get("section"), variable) if self.query else variable
 
 
 EmptyContext = CLIContext()

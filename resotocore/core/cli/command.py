@@ -124,15 +124,59 @@ class QueryPart(CLICommand, ABC):
 
 class QueryAllPart(QueryPart):
     """
-    Usage: query [--include-edges] [--explain] <property.path> <op> <value"
+    Usage: query [--include-edges] [--explain] <query>
 
-    Part of a query.
-    With this command you can query all sections directly.
-    In order to define the section, all parameters have to be prefixed by the section name.
+    This command allows to query the graph using filters, traversals and functions.
 
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
+    Filters have the form <path.to.property> <op> <value>.
+    - path is the complete path of names in the json structure combined with a dot (e.g. reported.cpu_count).
+      In case the path contains elements, that are not json conform,
+      they can be put into backticks (e.g. foo.bla.`:-)`.baz).
+    - operator is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in (e.g. !=)
+    - value is a json literal (e.g. "test", 23, [1, 2, 3], true, {"a": 12}).
+      Note: the query parser allows to omit the parentheses for strings most of the time.
+      In case the string contains whitespace or a special character, you should
+      put the string into parentheses.
+    Example: reported.cpu_count >= 4, name!="test", title in ["first", "second"]
+
+    Filters can be combined with `and` and `or` and use parentheses.
+    Example: (cpu_count>=4 and name!="test") or title in ["first", "second"]
+
+    Outbound traversals are traversals from a node in direction of the edge to another node, while
+    inbound traversals walk the graph in opposite direction.
+    Example:
+        Assuming 2 nodes with one connecting directed edge: NodeA ---> NodeB
+        - traversing outbound from NodeA will yield NodeB
+        - traversing inbound from NodeB will yield NodeA
+    The syntax for outbound traversals is --> and for inbound traversals is <--.
+    The traversal also allows to define the number of levels to walk in the graph:
+    -[1:1]-> (shorthand for -->) starts from the current node and selects all nodes that can be reached by walking
+        exactly one step outbound.
+    -[0:1]-> starts (and includes) the current node and selects all nodes that can be reached by walking exactly
+        one step outbound.
+    -[<x>:<y>]-> walks from the current node to all nodes that can be reached with x steps outbound.
+        From here all nodes are selected including all nodes that can be reached in y steps outbound
+        relative to the starting node.
+    -[<x>]-> shorthand -[<x>:<x>]->
+    -[<x>:]->  walks from the current node to all nodes that can be reached with x steps outbound.
+        From here all nodes to the graph leafs are selected.
+    The same logic is used for inbound traversals (<--, <-[0:1]-, <-[2]-, <-[2:]-).
+
+    There are predefined functions that can be used in combination with any filter.
+    - is(<kind>): selects all nodes that are of type <kind> or any subtype of <kind>.
+      Example: is(volume) will select all GCP disks and all AWS EC2 volumes, since both types inherit from
+      base type volume.
+    - id(<identifier>): selects the node with the given node identifier <identifier>.
+      Example: id(foo) will select the node with id foo. The id is a synthetic id created by the collector
+      and usually does not have a meaning, other than identifying a node uniquely.
+    - has_key(<path>): tests if the specified name is defined in the json object.
+      Example: is(volume) and has_key(tags, owner)
+
+    Limit and sort.
+    The number of query results can be limited to a defined number by using limit <limit>
+    and sorted by using sort <sort_column> [asc, desc].
+    Limit and sort is allowed before a traversal and as last statement to the query result.
+    Example: query is(volume) sort volume_size desc limit 3 <-[2]- sort name limit 1
 
     Use --explain to understand the cost of a query. A query explanation has this form (example):
     {
@@ -143,31 +187,52 @@ class QueryAllPart(QueryPart):
         "rating": "Simple"
     }
 
-    - `available_nr_items` describe the number of all available nodes in the graph.
-    - `estimated_cost` shows the absolute cost of this query. See rating for an interpreted number.
-    - `estimated_nr_items` estimated number of items returned for this query.
-                           It is computed based on query statistics and heuristics and does not reflect the real number.
-    - `full_collection_scan` indicates, if a full collection scan is required.
-                             In case this is true, the query does not take advantage of any indexes.
-    - `rating` The more general rating of this query.
-               Simple: The estimated cost is fine - the query will most probably run smoothly.
-               Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
-               Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
+    - available_nr_items describe the number of all available nodes in the graph.
+    - estimated_cost shows the absolute cost of this query. See rating for an interpreted number.
+    - estimated_nr_items estimated number of items returned for this query.
+        It is computed based on query statistics and heuristics and does not reflect the real number.
+    - full_collection_scan indicates, if a full collection scan is required.
+        In case this is true, the query does not take advantage of any indexes.
+    - rating The more general rating of this query.
+        Simple: The estimated cost is fine - the query will most probably run smoothly.
+        Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
+        Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
+
 
     Parameter:
         --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
         --explain: Instead of executing this query, explain the query cost
 
+
     Example:
-        query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
-        query desired.some.nested in [1,2,3] # matches documents with desired section like { "some": { "nested" : 1 ..}
-        query reported.array[*] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
-        query reported.array[1] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
-        query --include-edges is(graph_root) -[0:2]-> # returns the descendants from the graph root 2 levels deep
-        query --explain is(graph_root) -[0:2]->       # Shows the query cost of provided query
+        # matches documents with reported section like { "reported": { "prop1": "a" ....} }
+        query /reported.prop1 == "a"
+        # resotoshell set's the command section to reported by default. So the query above can simply be written as:
+        query prop1 == "a"
+        # matches documents with desired section like { "desired": { "some": { "nested" : 1 ..}}
+        query /desired.some.nested in [1,2,3]
+        # matches documents with reported section like { "reported": { "array": [1, 2, 3] ... }}
+        # reported.array[*] means any index would suffice, if one element would be 2
+        query reported.array[*] == 2
+        # in this example the index is defined explicitly, meaning the second element of the array should be 2
+        query reported.array[1] == 2
+        # this will not only select nodes, but also edges. Downstream commands need to handle the different types.
+        query --include-edges is(graph_root) -[0:2]->
+        # does not execute the query, but will show an explanation of the query cost.
+        query --explain is(graph_root) -[0:2]->
+
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
+        section [optional]: interpret all property paths with respect to this section.
+            With section "reported" set, the query `name=~"test"` would be interpreted as `reported.name=~"test"`.
+            Note: the resotoshell sets the section to reported by default.
+            If you want to quickly override the section on one command line, you can define env vars in from of the
+            command line (e.g.: `section=desired query clean==true`). It is possible to use absolute path using `/`,
+            so the section will not have any effect (e.g.: `query /desired.clean==true`)
+
+
+    See https://docs.some.engineering/manual/discovery.html for a more detailed explanation of query.
     """
 
     @property
@@ -175,7 +240,7 @@ class QueryAllPart(QueryPart):
         return "query"
 
     def info(self) -> str:
-        return "Matches a property in all sections."
+        return "Query the graph."
 
 
 class PredecessorPart(QueryPart):
@@ -1098,20 +1163,20 @@ class CleanCommand(SetDesiredStateBase):
     Example:
         query isinstance("ec2") and atime<"-2d" | clean
             [
-                { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "abc" "desired": { "clean": true }, "reported": { .. } },
                 .
                 .
-                { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "xyz" "desired": { "clean": true }, "reported": { .. } },
             ]
         json [{"id": "id1"}, {"id": "id2"}] | clean
             [
-                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
             ]
         json ["id1", "id2"] | clean
             [
-                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
             ]
     """
 
