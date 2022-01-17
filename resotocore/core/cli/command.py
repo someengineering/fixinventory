@@ -1532,6 +1532,7 @@ class ListCommand(CLICommand, OutputTransformer):
         (["ancestors", "region", "reported", "name"], "region"),
         (["ancestors", "zone", "reported", "name"], "zone"),
     ]
+    all_default_props = {".".join(path) for path, _ in default_properties_to_show + default_context_properties_to_show}
     dot_re = re.compile("[.]")
 
     @property
@@ -1552,7 +1553,8 @@ class ListCommand(CLICommand, OutputTransformer):
             # add all predicates the user has queried
             if ctx.query:
                 for predicate in ctx.query.predicates:
-                    result.append((self.dot_re.split(predicate.name), predicate.name.rsplit(".", 1)[-1]))
+                    if predicate.name not in self.all_default_props:
+                        result.append((self.dot_re.split(predicate.name), predicate.name.rsplit(".", 1)[-1]))
             # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
