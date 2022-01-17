@@ -84,7 +84,8 @@ def run(args: List[str]) -> None:
         args=conf,
         template_expander=template_expander,
     )
-    cli = CLI(cli_deps, all_commands(cli_deps), {}, aliases())
+    default_env = {"graph": "resoto", "section": "reported"}
+    cli = CLI(cli_deps, all_commands(cli_deps), default_env, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandler(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, conf

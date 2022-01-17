@@ -205,14 +205,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--resotocore-section",
-        help='All queries are interpreted with this section name (default: "reported")',
-        default="reported",
+        help="All queries are interpreted with this section name. If not set, the server default is used.",
         dest="resotocore_section",
     )
     arg_parser.add_argument(
         "--resotocore-graph",
-        help="resotocore graph name (default: resoto)",
-        default="resoto",
+        help="The name of the graph to use by default. If not set, the server default is used.",
         dest="resotocore_graph",
     )
     arg_parser.add_argument(
