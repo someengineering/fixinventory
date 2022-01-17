@@ -664,7 +664,6 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         parser = NoExitArgumentParser()
         parser.add_argument("--include-edges", dest="include-edges", default=None, action="store_true")
         parser.add_argument("--explain", dest="explain", default=None, action="store_true")
-        parser.add_argument("--section", dest="section", default="reported")
         parsed, rest = parser.parse_known_args(arg.split(maxsplit=2))
         return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
 

@@ -38,6 +38,9 @@ def main() -> None:
     if ArgumentParser.args.resotocore_graph:
         query_string = urlencode({"graph": ArgumentParser.args.resotocore_graph})
         execute_endpoint += f"&{query_string}"
+    if ArgumentParser.args.resotocore_section:
+        query_string = urlencode({"section": ArgumentParser.args.resotocore_section})
+        execute_endpoint += f"&{query_string}"
 
     if ArgumentParser.args.stdin:
         log.debug("Reading commands from STDIN")
@@ -199,6 +202,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="resotocore Websocket URI (default: ws://localhost:8900)",
         default="ws://localhost:8900",
         dest="resotocore_ws_uri",
+    )
+    arg_parser.add_argument(
+        "--resotocore-section",
+        help='All queries are interpreted with this section name (default: "reported")',
+        default="reported",
+        dest="resotocore_section",
     )
     arg_parser.add_argument(
         "--resotocore-graph",

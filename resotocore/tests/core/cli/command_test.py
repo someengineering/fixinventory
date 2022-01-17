@@ -24,7 +24,7 @@ from core.cli.model import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
-from core.query.model import Template
+from core.query.model import Template, Query
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
 from core.types import JsonElement, Json
@@ -170,15 +170,16 @@ async def test_descendants(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query is("foo") and some_int==0 --> identifier=~"9_"', stream.list)
+    ctx = CLIContext(env={"section": "reported"})
+    result = await cli.execute_cli_command('query is("foo") and some_int==0 --> identifier=~"9_"', stream.list, ctx)
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
         Template("test", 'is(foo) and some_int==0 --> identifier=~"{{fid}}"')
     )
-    result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
+    result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list, ctx)
     assert len(result2[0]) == 10
 
-    result3 = await cli.execute_cli_command("query --include-edges is(graph_root) -[0:1]->", stream.list)
+    result3 = await cli.execute_cli_command("query --include-edges is(graph_root) -[0:1]->", stream.list, ctx)
     # node: graph_root
     # node: collector
     # edge: graph_root -> collector
@@ -321,8 +322,9 @@ async def test_format(cli: CLI) -> None:
 
     # Queries that use the reported section, also interpret the format in the reported section
     result = await cli.execute_cli_command(
-        "query id(sub_root) limit 1 | format {{aa}} {some_string} test}} {some_int} {_.metadata.node_id} {{",
+        "query id(sub_root) limit 1 | format {{aa}} {some_string} test}} {some_int} {/metadata.node_id} {{",
         stream.list,
+        CLIContext(env={"section": "reported"}),
     )
     assert result[0] == ["{aa} hello test} 0 sub_root {"]
 
@@ -468,24 +470,24 @@ async def test_kind_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('query is (foo) and identifier=="4" | list', stream.list)
+    ctx = CLIContext(env={"section": "reported"})
+    result = await cli.execute_cli_command('query is (foo) and identifier=="4" | list', stream.list, ctx)
     assert len(result[0]) == 1
     assert result[0][0].startswith("kind=foo, identifier=4, age=")
     list_cmd = "list some_int as si, some_string"
-    result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list)
+    result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list, ctx)
     assert result[0] == ["si=0, some_string=hello"]
 
     # Queries that use the reported section, also interpret the list format in the reported section
     result = await cli.execute_cli_command(
-        "query id(sub_root) limit 1 | list some_string, some_int, _.metadata.node_id",
-        stream.list,
+        "query id(sub_root) limit 1 | list some_string, some_int, /metadata.node_id", stream.list, ctx
     )
     assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
 
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
-    ctx = CLIContext(query_options={"section": "reported"})
+    ctx = CLIContext(env={"section": "reported"}, query=Query.by("test"))
     # .test -> .reported.test
     assert JqCommand.rewrite_props(".a,.b", ctx) == ".reported.a,.reported.b"
     # object construction is supported
@@ -493,18 +495,20 @@ async def test_jq_command(cli: CLI) -> None:
     # no replacement after pipe
     assert JqCommand.rewrite_props("map(.color) | {a:.a, b:.b}", ctx) == "map(.reported.color) | {a:.a, b:.b}"
 
-    result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
+    ctx = CLIContext(env={"section": "reported"})
+    result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list, ctx)
     assert len(result[0]) == 1
     assert result[0][0] == 1
 
     # jq .kind is rewritten as .reported.kind
-    result = await cli.execute_cli_command("query is(foo) limit 2 | jq .kind", stream.list)
+    result = await cli.execute_cli_command("query is(foo) limit 2 | jq .kind", stream.list, ctx)
     assert result[0] == ["foo", "foo"]
 
 
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
-    r = await cli.execute_cli_command("query all | count kind", stream.list)
+    ctx = CLIContext(env={"section": "reported"})
+    r = await cli.execute_cli_command("query all | count kind", stream.list, ctx)
     assert set(r[0]) == {
         "graph_root: 1",
         "cloud: 1",
@@ -517,6 +521,7 @@ async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command(
         "execute_query aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
+        ctx,
     )
     assert set(r[0]) == {
         "graph_root: 1",

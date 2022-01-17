@@ -6,7 +6,7 @@ from pytest import fixture
 from typing import Tuple, List, AsyncIterator
 
 from core.analytics import InMemoryEventSender
-from core.cli.model import ParsedCommands, ParsedCommand
+from core.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from core.cli.cli import CLI, multi_command_parser
 from core.cli.model import CLIDependencies
 from core.cli.command import (
@@ -192,31 +192,32 @@ def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
 
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
-    commands = await cli.evaluate_cli_command('query some_int==0 | query identifier=~"9_" | descendants')
+    ctx = CLIContext(env={"section": "reported"})
+    commands = await cli.evaluate_cli_command('query some_int==0 | query identifier=~"9_" | descendants', ctx)
     assert len(commands) == 1
     assert len(commands[0].commands) == 1
     assert commands[0].commands[0].name == "execute_query"
     assert commands[0].executable_commands[0].arg == '(reported.some_int == 0 and reported.identifier =~ "9_") -[1:]->'
-    commands = await cli.evaluate_cli_command("query some_int==0 | descendants")
+    commands = await cli.evaluate_cli_command("query some_int==0 | descendants", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -[1:]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors | ancestors")
+    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors | ancestors", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-[2:]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors | predecessors")
+    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors | predecessors", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-[2]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors | successors | successors")
+    commands = await cli.evaluate_cli_command("query some_int==0 | successors | successors | successors", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -[3]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors | predecessors")
+    commands = await cli.evaluate_cli_command("query some_int==0 | successors | predecessors", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 --> all <--"
     # defining the edge type is supported as well
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors delete")
+    commands = await cli.evaluate_cli_command("query some_int==0 | successors delete", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors delete")
+    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors delete", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | descendants delete")
+    commands = await cli.evaluate_cli_command("query some_int==0 | descendants delete", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete[1:]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors delete")
+    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors delete", ctx)
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete[1:]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | aggregate foo, bla as bla: sum(bar)")
+    commands = await cli.evaluate_cli_command("query some_int==0 | aggregate foo, bla as bla: sum(bar)", ctx)
     assert (
         commands[0].executable_commands[0].arg
         == "aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0"

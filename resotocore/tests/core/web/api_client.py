@@ -233,7 +233,7 @@ class ApiClient:
                 raise AttributeError(await r.text())
 
     async def cli_evaluate(self, graph: str, command: str, **env: str) -> List[Tuple[ParsedCommands, List[AccessJson]]]:
-        props = {"graph": graph, **env}
+        props = {"graph": graph, "section": "reported", **env}
         async with self.session.post(self.base_path + f"/cli/evaluate", data=command, params=props) as r:
             if r.status == 200:
                 return [
@@ -247,7 +247,7 @@ class ApiClient:
                 raise AttributeError(await r.text())
 
     async def cli_execute(self, graph: str, command: str, **env: str) -> List[JsonElement]:
-        props = {"graph": graph, **env}
+        props = {"graph": graph, "section": "reported", **env}
         async with self.session.post(self.base_path + f"/cli/execute", data=command, params=props) as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())  # type: ignore

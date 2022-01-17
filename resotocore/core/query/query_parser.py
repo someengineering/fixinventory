@@ -287,7 +287,7 @@ as_p = lexeme(string("as"))
 aggregate_p = lexeme(string("aggregate"))
 aggregate_func_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg"]])
 match_p = lexeme(string("match"))
-variable_name_p = variable_p.map(AggregateVariableName)
+aggregate_variable_name_p = variable_p.map(AggregateVariableName)
 no_curly_dp = regex(r'[^{"]+')
 var_in_curly = (l_curly_dp >> variable_p << r_curly_dp).map(AggregateVariableName)
 aggregate_group_variable_name_combined_p = (
@@ -297,7 +297,7 @@ aggregate_group_variable_name_combined_p = (
 
 @make_parser
 def aggregate_group_variable_parser() -> Parser:
-    name = yield variable_name_p | aggregate_group_variable_name_combined_p
+    name = yield aggregate_variable_name_p | aggregate_group_variable_name_combined_p
     as_name = yield (as_p >> literal_p).optional()
     return AggregateVariable(name, as_name)
 

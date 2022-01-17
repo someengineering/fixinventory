@@ -60,6 +60,7 @@ from core.query.model import (
     AggregateVariableName,
     AggregateFunction,
     SortOrder,
+    PathRoot,
 )
 from core.query.query_parser import aggregate_parameter_parser
 from core.util import utc_str, utc, from_utc
@@ -270,7 +271,7 @@ class CLI:
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))
                 query = replace(query, aggregate=aggregate)
-                query = query.add_sort("_.count")
+                query = query.add_sort(f"{PathRoot}count")
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
                 query = query.with_limit(size)
@@ -282,7 +283,7 @@ class CLI:
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
-        final_query = query.on_section(parsed_options["section"])
+        final_query = query.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteQueryCommand.argument_string(parsed_options)
         query_string = str(final_query)
         execute_query = self.command("execute_query", options + query_string, ctx)

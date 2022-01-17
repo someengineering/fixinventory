@@ -41,7 +41,7 @@ class MediaType(Enum):
         return "application/json" if self == MediaType.Json else "application/octet-stream"
 
 
-@dataclass
+@dataclass(frozen=True)
 class CLIContext:
     env: Dict[str, str] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
@@ -49,7 +49,12 @@ class CLIContext:
     query_options: Dict[str, Any] = field(default_factory=dict)
 
     def variable_in_section(self, variable: str) -> str:
-        return variable_to_absolute(self.query_options.get("section"), variable)
+        if self.query:
+            section = self.query_options.get("section", self.env.get("section"))
+            return variable_to_absolute(section, variable)
+        else:
+            # if there is no query, no section should be adjusted
+            return variable
 
 
 EmptyContext = CLIContext()

@@ -15,23 +15,25 @@ from core.model.typed_model import to_js_str
 from core.types import Json, JsonElement
 from core.util import combine_optional, group_by
 
+PathRoot = "/"
+
 
 def variable_to_absolute(section: Optional[str], name: str) -> str:
-    if name.startswith("_."):
-        return name[2:]
-    elif section and section != "_":
+    if name.startswith(PathRoot):
+        return name[1:]
+    elif section and section != PathRoot:
         return section + "." + name
     else:
         return name
 
 
 def variable_to_relative(section: str, name: str) -> str:
-    if name.startswith(f"{section}."):
-        return name[len(section) + 1 :]  # noqa: E203a
-    elif name.startswith("_."):
+    if name.startswith(PathRoot):
         return name
+    elif name.startswith(f"{section}."):
+        return name[len(section) + 1 :]  # noqa: E203a
     else:
-        return "_." + name
+        return PathRoot + name
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -717,11 +719,11 @@ class Query:
         return replace(self, aggregate=aggregate, parts=parts)
 
     def on_section(self, section: Optional[str]) -> Query:
-        root_or_section = None if section is None or section == "_" else section
+        root_or_section = None if section is None or section == PathRoot else section
         return self.change_variable(partial(variable_to_absolute, root_or_section))
 
     def relative_to_section(self, section: str) -> Query:
-        return self.change_variable(partial(variable_to_relative, section)) if section != "_" else self
+        return self.change_variable(partial(variable_to_relative, section)) if section != PathRoot else self
 
     def tag(self, name: str) -> Query:
         return self.__change_current_part(lambda p: replace(p, tag=name))
