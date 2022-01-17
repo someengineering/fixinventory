@@ -160,6 +160,21 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         type=str,
         help="Optional password to decrypt the private key file.",
     )
+    parser.add_argument(
+        "--cli-default-graph",
+        type=str,
+        default="resoto",
+        dest="cli_default_graph",
+        help="Use this graph for CLI actions, if no graph is specified explicitly.",
+    )
+    parser.add_argument(
+        "--cli-default-section",
+        type=str,
+        default="reported",
+        dest="cli_default_section",
+        help="Use this graph section by default, if no section is specified."
+        "Relative paths will be interpreted with respect to this section.",
+    )
 
     TaskHandler.add_args(parser)
     return parser.parse_args(args, namespace)  # type: ignore
