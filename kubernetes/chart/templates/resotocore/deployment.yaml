@@ -55,10 +55,10 @@ spec:
           env:
           - name: START_STACK
             value: "false"
-          - name: START_CKCORE
+          - name: START_RESOTOCORE
             value: "true"
           {{- if .Values.resotocore.graphdb.passwordSecret }}
-          - name: CKCORE_GRAPHDB_PASSWORD
+          - name: RESOTOCORE_GRAPHDB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: {{ .Values.resotocore.graphdb.passwordSecret.name }}

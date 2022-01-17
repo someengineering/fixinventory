@@ -50,7 +50,7 @@ spec:
           env:
             - name: START_STACK
               value: "false"
-            - name: START_CKWORKER
+            - name: START_RESOTOWORKER
               value: "true"
             - name: PSK
               valueFrom:

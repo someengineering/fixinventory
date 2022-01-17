@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-IMAGE_TAG="${IMAGE_TAG:-2.0.0a9}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
 NO_START_KIND="${NO_START_KIND:-}"
 
 if [ -z "${NO_START_KIND}"]; then
