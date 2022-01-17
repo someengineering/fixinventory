@@ -32,8 +32,7 @@ def in_subnet(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel)
     expected = int(network.network_address) & mask
     length = str(len(bind_vars))
     bind_vars[length] = expected
-    section_dot = f"{model.query_section}." if model.query_section else ""
-    return f"BIT_AND(IPV4_TO_NUMBER({cursor}.{section_dot}{fn.property_path}), {mask}) == @{length}"
+    return f"BIT_AND(IPV4_TO_NUMBER({cursor}.{fn.property_path}), {mask}) == @{length}"
 
 
 def has_key(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:
@@ -43,16 +42,15 @@ def has_key(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -
     args = [fn.args[0]] if isinstance(fn.args[0], str) else fn.args[0]
     for arg in args:
         assert isinstance(arg, str), f"has_key: argument must be string, but got: {arg}"
-    section_dot = f"{model.query_section}." if model.query_section else ""
     prop = f"fn{len(bind_vars)}"
     if len(args) == 0:
         return "true"
     elif len(args) == 1:
         bind_vars[prop] = fn.args[0]
-        return f"HAS({cursor}.{section_dot}{fn.property_path}, @{prop})"
+        return f"HAS({cursor}.{fn.property_path}, @{prop})"
     else:
         bind_vars[prop] = args
-        return f"@{prop} ALL IN ATTRIBUTES({cursor}.{section_dot}{fn.property_path}, true)"
+        return f"@{prop} ALL IN ATTRIBUTES({cursor}.{fn.property_path}, true)"
 
 
 def as_arangodb_function(cursor: str, bind_vars: Json, fn: FunctionTerm, model: QueryModel) -> str:

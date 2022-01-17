@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from functools import reduce
+from functools import reduce, partial
 from backports.cached_property import cached_property
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set
 
@@ -14,6 +14,26 @@ from core.model.resolve_in_graph import GraphResolver
 from core.model.typed_model import to_js_str
 from core.types import Json, JsonElement
 from core.util import combine_optional, group_by
+
+PathRoot = "/"
+
+
+def variable_to_absolute(section: Optional[str], name: str) -> str:
+    if name.startswith(PathRoot):
+        return name[1:]
+    elif section and section != PathRoot:
+        return section + "." + name
+    else:
+        return name
+
+
+def variable_to_relative(section: str, name: str) -> str:
+    if name.startswith(PathRoot):
+        return name
+    elif name.startswith(f"{section}."):
+        return name[len(section) + 1 :]  # noqa: E203a
+    else:
+        return PathRoot + name
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -164,14 +184,14 @@ class Term(abc.ABC):
         else:
             return CombinedTerm(self, "and", other)
 
-    def on_section(self, section: str) -> Term:
+    def change_variable(self, fn: Callable[[str], str]) -> Term:
         def walk(term: Term) -> Term:
             if isinstance(term, CombinedTerm):
                 return CombinedTerm(walk(term.left), term.op, walk(term.right))
             elif isinstance(term, Predicate):
-                return Predicate(f"{section}.{term.name}", term.op, term.value, term.args)
+                return Predicate(fn(term.name), term.op, term.value, term.args)
             elif isinstance(term, FunctionTerm):
-                return FunctionTerm(term.fn, f"{section}.{term.property_path}", term.args)
+                return FunctionTerm(term.fn, fn(term.property_path), term.args)
             else:
                 return term
 
@@ -340,11 +360,11 @@ class WithClause:
     term: Optional[Term] = None
     with_clause: Optional[WithClause] = None
 
-    def on_section(self, section: str) -> WithClause:
+    def change_variable(self, fn: Callable[[str], str]) -> WithClause:
         return replace(
             self,
-            term=self.term.on_section(section) if self.term else None,
-            with_clause=self.with_clause.on_section(section) if self.with_clause else None,
+            term=self.term.change_variable(fn) if self.term else None,
+            with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
         )
 
     def __str__(self) -> str:
@@ -370,12 +390,12 @@ class Part:
         nav = f" {self.navigation}" if self.navigation is not None else ""
         return f"{self.term}{with_clause}{tag}{sort}{limit}{nav}"
 
-    def on_section(self, section: str) -> Part:
+    def change_variable(self, fn: Callable[[str], str]) -> Part:
         return replace(
             self,
-            term=self.term.on_section(section),
-            with_clause=self.with_clause.on_section(section) if self.with_clause else None,
-            sort=[sort.on_section(section) for sort in self.sort],
+            term=self.term.change_variable(fn),
+            with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
+            sort=[sort.change_variable(fn) for sort in self.sort],
         )
 
     def rewrite_for_ancestors_descendants(self) -> Part:
@@ -503,8 +523,8 @@ class AggregateVariableName:
     def __str__(self) -> str:
         return self.name
 
-    def on_section(self, section: str) -> AggregateVariableName:
-        return AggregateVariableName(f"{section}.{self.name}")
+    def change_variable(self, fn: Callable[[str], str]) -> AggregateVariableName:
+        return AggregateVariableName(fn(self.name))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -515,9 +535,9 @@ class AggregateVariableCombined:
         combined = "".join(p if isinstance(p, str) else f"{{{p}}}" for p in self.parts)
         return f'"{combined}"'
 
-    def on_section(self, section: str) -> AggregateVariableCombined:
+    def change_variable(self, fn: Callable[[str], str]) -> AggregateVariableCombined:
         return AggregateVariableCombined(
-            [p.on_section(section) if isinstance(p, AggregateVariableName) else p for p in self.parts]
+            [p.change_variable(fn) if isinstance(p, AggregateVariableName) else p for p in self.parts]
         )
 
 
@@ -534,8 +554,8 @@ class AggregateVariable:
     def get_as_name(self) -> str:
         return self.as_name if self.as_name else str(self.name)
 
-    def on_section(self, section: str) -> AggregateVariable:
-        return replace(self, name=self.name.on_section(section))
+    def change_variable(self, fn: Callable[[str], str]) -> AggregateVariable:
+        return replace(self, name=self.name.change_variable(fn))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -556,8 +576,8 @@ class AggregateFunction:
     def get_as_name(self) -> str:
         return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
 
-    def on_section(self, section: str) -> AggregateFunction:
-        return replace(self, name=f"{section}.{self.name}") if isinstance(self.name, str) else self
+    def change_variable(self, fn: Callable[[str], str]) -> AggregateFunction:
+        return replace(self, name=fn(self.name)) if isinstance(self.name, str) else self
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -570,10 +590,10 @@ class Aggregate:
         funcs = ", ".join(str(a) for a in self.group_func)
         return f"aggregate({grouped}{funcs})"
 
-    def on_section(self, section: str) -> Aggregate:
+    def change_variable(self, fn: Callable[[str], str]) -> Aggregate:
         return Aggregate(
-            [a.on_section(section) for a in self.group_by],
-            [a.on_section(section) for a in self.group_func],
+            [a.change_variable(fn) for a in self.group_by],
+            [a.change_variable(fn) for a in self.group_func],
         )
 
 
@@ -599,8 +619,8 @@ class Sort:
     def __str__(self) -> str:
         return f"{self.name} {self.order}"
 
-    def on_section(self, section: str) -> Sort:
-        return replace(self, name=f"{section}.{self.name}")
+    def change_variable(self, fn: Callable[[str], str]) -> Sort:
+        return replace(self, name=fn(self.name))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -693,10 +713,17 @@ class Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
         return replace(self, preamble=updated)
 
-    def on_section(self, section: str) -> Query:
-        aggregate = self.aggregate.on_section(section) if self.aggregate else None
-        parts = [p.on_section(section) for p in self.parts]
+    def change_variable(self, fn: Callable[[str], str]) -> Query:
+        aggregate = self.aggregate.change_variable(fn) if self.aggregate else None
+        parts = [p.change_variable(fn) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
+
+    def on_section(self, section: Optional[str]) -> Query:
+        root_or_section = None if section is None or section == PathRoot else section
+        return self.change_variable(partial(variable_to_absolute, root_or_section))
+
+    def relative_to_section(self, section: str) -> Query:
+        return self.change_variable(partial(variable_to_relative, section)) if section != PathRoot else self
 
     def tag(self, name: str) -> Query:
         return self.__change_current_part(lambda p: replace(p, tag=name))

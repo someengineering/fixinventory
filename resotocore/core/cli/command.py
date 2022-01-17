@@ -38,7 +38,7 @@ from aiohttp import ClientTimeout, JsonPayload
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
-from parsy import Parser, string
+from parsy import Parser, string, test_char
 
 from core.async_extensions import run_async
 from core.cli import (
@@ -79,6 +79,8 @@ from core.parse_util import (
     variable_dp,
     literal_dp,
     comma_p,
+    l_curly_dp,
+    r_curly_dp,
 )
 from core.query.model import Query, P, Template
 from core.query.query_parser import parse_query
@@ -122,15 +124,59 @@ class QueryPart(CLICommand, ABC):
 
 class QueryAllPart(QueryPart):
     """
-    Usage: query [--include-edges] [--explain] <property.path> <op> <value"
+    Usage: query [--include-edges] [--explain] <query>
 
-    Part of a query.
-    With this command you can query all sections directly.
-    In order to define the section, all parameters have to be prefixed by the section name.
+    This command allows to query the graph using filters, traversals and functions.
 
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
+    Filters have the form <path.to.property> <op> <value>.
+    - path is the complete path of names in the json structure combined with a dot (e.g. reported.cpu_count).
+      In case the path contains elements, that are not json conform,
+      they can be put into backticks (e.g. foo.bla.`:-)`.baz).
+    - operator is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in (e.g. !=)
+    - value is a json literal (e.g. "test", 23, [1, 2, 3], true, {"a": 12}).
+      Note: the query parser allows to omit the parentheses for strings most of the time.
+      In case the string contains whitespace or a special character, you should
+      put the string into parentheses.
+    Example: reported.cpu_count >= 4, name!="test", title in ["first", "second"]
+
+    Filters can be combined with `and` and `or` and use parentheses.
+    Example: (cpu_count>=4 and name!="test") or title in ["first", "second"]
+
+    Outbound traversals are traversals from a node in direction of the edge to another node, while
+    inbound traversals walk the graph in opposite direction.
+    Example:
+        Assuming 2 nodes with one connecting directed edge: NodeA ---> NodeB
+        - traversing outbound from NodeA will yield NodeB
+        - traversing inbound from NodeB will yield NodeA
+    The syntax for outbound traversals is --> and for inbound traversals is <--.
+    The traversal also allows to define the number of levels to walk in the graph:
+    -[1:1]-> (shorthand for -->) starts from the current node and selects all nodes that can be reached by walking
+        exactly one step outbound.
+    -[0:1]-> starts (and includes) the current node and selects all nodes that can be reached by walking exactly
+        one step outbound.
+    -[<x>:<y>]-> walks from the current node to all nodes that can be reached with x steps outbound.
+        From here all nodes are selected including all nodes that can be reached in y steps outbound
+        relative to the starting node.
+    -[<x>]-> shorthand -[<x>:<x>]->
+    -[<x>:]->  walks from the current node to all nodes that can be reached with x steps outbound.
+        From here all nodes to the graph leafs are selected.
+    The same logic is used for inbound traversals (<--, <-[0:1]-, <-[2]-, <-[2:]-).
+
+    There are predefined functions that can be used in combination with any filter.
+    - is(<kind>): selects all nodes that are of type <kind> or any subtype of <kind>.
+      Example: is(volume) will select all GCP disks and all AWS EC2 volumes, since both types inherit from
+      base type volume.
+    - id(<identifier>): selects the node with the given node identifier <identifier>.
+      Example: id(foo) will select the node with id foo. The id is a synthetic id created by the collector
+      and usually does not have a meaning, other than identifying a node uniquely.
+    - has_key(<path>): tests if the specified name is defined in the json object.
+      Example: is(volume) and has_key(tags, owner)
+
+    Limit and sort.
+    The number of query results can be limited to a defined number by using limit <limit>
+    and sorted by using sort <sort_column> [asc, desc].
+    Limit and sort is allowed before a traversal and as last statement to the query result.
+    Example: query is(volume) sort volume_size desc limit 3 <-[2]- sort name limit 1
 
     Use --explain to understand the cost of a query. A query explanation has this form (example):
     {
@@ -141,31 +187,52 @@ class QueryAllPart(QueryPart):
         "rating": "Simple"
     }
 
-    - `available_nr_items` describe the number of all available nodes in the graph.
-    - `estimated_cost` shows the absolute cost of this query. See rating for an interpreted number.
-    - `estimated_nr_items` estimated number of items returned for this query.
-                           It is computed based on query statistics and heuristics and does not reflect the real number.
-    - `full_collection_scan` indicates, if a full collection scan is required.
-                             In case this is true, the query does not take advantage of any indexes.
-    - `rating` The more general rating of this query.
-               Simple: The estimated cost is fine - the query will most probably run smoothly.
-               Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
-               Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
+    - available_nr_items describe the number of all available nodes in the graph.
+    - estimated_cost shows the absolute cost of this query. See rating for an interpreted number.
+    - estimated_nr_items estimated number of items returned for this query.
+        It is computed based on query statistics and heuristics and does not reflect the real number.
+    - full_collection_scan indicates, if a full collection scan is required.
+        In case this is true, the query does not take advantage of any indexes.
+    - rating The more general rating of this query.
+        Simple: The estimated cost is fine - the query will most probably run smoothly.
+        Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
+        Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
+
 
     Parameter:
         --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
         --explain: Instead of executing this query, explain the query cost
 
+
     Example:
-        query reported.prop1 == "a"          # matches documents with reported section like { "prop1": "a" ....}
-        query desired.some.nested in [1,2,3] # matches documents with desired section like { "some": { "nested" : 1 ..}
-        query reported.array[*] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
-        query reported.array[1] == 2         # matches documents with reported section like { "array": [1, 2, 3] ... }
-        query --include-edges is(graph_root) -[0:2]-> # returns the descendants from the graph root 2 levels deep
-        query --explain is(graph_root) -[0:2]->       # Shows the query cost of provided query
+        # matches documents with reported section like { "reported": { "prop1": "a" ....} }
+        query /reported.prop1 == "a"
+        # resotoshell set's the command section to reported by default. So the query above can simply be written as:
+        query prop1 == "a"
+        # matches documents with desired section like { "desired": { "some": { "nested" : 1 ..}}
+        query /desired.some.nested in [1,2,3]
+        # matches documents with reported section like { "reported": { "array": [1, 2, 3] ... }}
+        # reported.array[*] means any index would suffice, if one element would be 2
+        query reported.array[*] == 2
+        # in this example the index is defined explicitly, meaning the second element of the array should be 2
+        query reported.array[1] == 2
+        # this will not only select nodes, but also edges. Downstream commands need to handle the different types.
+        query --include-edges is(graph_root) -[0:2]->
+        # does not execute the query, but will show an explanation of the query cost.
+        query --explain is(graph_root) -[0:2]->
+
 
     Environment Variables:
         graph [mandatory]: the name of the graph to operate on
+        section [optional]: interpret all property paths with respect to this section.
+            With section "reported" set, the query `name=~"test"` would be interpreted as `reported.name=~"test"`.
+            Note: the resotoshell sets the section to reported by default.
+            If you want to quickly override the section on one command line, you can define env vars in from of the
+            command line (e.g.: `section=desired query clean==true`). It is possible to use absolute path using `/`,
+            so the section will not have any effect (e.g.: `query /desired.clean==true`)
+
+
+    See https://docs.some.engineering/manual/discovery.html for a more detailed explanation of query.
     """
 
     @property
@@ -173,96 +240,7 @@ class QueryAllPart(QueryPart):
         return "query"
 
     def info(self) -> str:
-        return "Matches a property in all sections."
-
-
-class ReportedPart(QueryPart):
-    """
-    Usage: reported <property.path> <op> <value"
-
-    Part of a query.
-    The reported section contains the values directly from the collector.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        reported prop1 == "a"             # matches documents with reported section like { "prop1": "a" ....}
-        reported some.nested in [1,2,3]   # matches documents with reported section like { "some": { "nested" : 1 ..}..}
-        reported array[*] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
-        reported array[1] == 2            # matches documents with reported section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.reported
-
-    def info(self) -> str:
-        return "Matches a property in the reported section."
-
-
-class DesiredPart(QueryPart):
-    """
-    Usage: desired <property.path> <op> <value"
-
-    Part of a query.
-    The desired section contains values set by tools to change the state of this node.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        desired prop1 == "a"             # matches documents with desired section like { "prop1": "a" ....}
-        desired prop1 =~ "a.*"           # matches documents with desired section like { "prop1": "a" ....}
-        desired some.nested in [1,2,3]   # matches documents with desired section like { "some": { "nested" : 1 ..}..}
-        desired array[*] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
-        desired array[1] == 2            # matches documents with desired section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.desired
-
-    def info(self) -> str:
-        return "Matches a property in the desired section."
-
-
-class MetadataPart(QueryPart):
-    """
-    Usage: metadata <property.path> <op> <value"
-
-    Part of a query.
-    The metadata section is set by the collector and holds additional meta information about this node.
-    With this command you can query this section for a matching property.
-    The property is the complete path in the json structure.
-    Operation is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in
-    value is a json encoded value to match.
-
-    Example:
-        metadata prop1 == "a"             # matches documents with metadata section like { "prop1": "a" ....}
-        metadata prop1 =~ "a.*"           # matches documents with metadata section like { "prop1": "a" ....}
-        metadata some.nested in [1,2,3]   # matches documents with metadata section like { "some": { "nested" : 1 ..}..}
-        metadata array[*] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
-        metadata array[1] == 2            # matches documents with metadata section like { "array": [1, 2, 3] ... }
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return Section.metadata
-
-    def info(self) -> str:
-        return "Matches a property in the metadata section."
+        return "Query the graph."
 
 
 class PredecessorPart(QueryPart):
@@ -465,42 +443,6 @@ class AggregatePart(QueryPart):
         return "Aggregate this query by the provided specification"
 
 
-class MergeAncestorsPart(QueryPart):
-    """
-    Usage: merge_ancestors [kind, kind as name, ..., kind]
-
-    For all query results, merge the nodes with ancestor nodes of given kind.
-    Multiple ancestors can be provided.
-    Note: the first defined ancestor kind is used to stop the search of all other kinds.
-          This should be taken into consideration when the list of ancestor kinds is defined!
-    The resulting reported content of the ancestor node is merged into the current reported node
-    with the kind name or the alias.
-
-    Parameter:
-        kind [Mandatory] [as name]: search the ancestors of this node for a node of define kind.
-                                    Merge the result into the current node either under the kind name or the alias name.
-
-    Example:
-        compute_instance: the graph os traversed starting with the current node in direction to the root.
-                          When a node is found, which is of type compute_instance, the reported content of this node
-                          is merged with the reported content of the compute_instance node:
-                          { "id": "xyz", "reported": { "kind": "ebs", "compute_instance": { props from compute_instance}
-        compute_instance as ci:
-                          { "id": "xyz", "reported": { "kind": "ebs", "ci": { props from compute_instance}
-
-
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-    """
-
-    @property
-    def name(self) -> str:
-        return "merge_ancestors"
-
-    def info(self) -> str:
-        return "Merge the results of this query with the content of ancestor nodes of given type"
-
-
 class HeadCommand(QueryPart):
     """
     Usage: head [num]
@@ -583,7 +525,7 @@ class CountCommand(QueryPart):
         return "Count incoming elements or sum defined property."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        get_path = arg.split(".") if arg else None
+        get_path = ctx.variable_in_section(arg).split(".") if arg else None
         counter: Dict[str, int] = defaultdict(int)
         matched = 0
         unmatched = 0
@@ -1004,11 +946,32 @@ class JqCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Filter and process json."
 
+    path_re = re.compile("[.](?:([A-Za-z])+|(\\[]))[A-Za-z0-9\\[\\].]*")
+
+    @staticmethod
+    def rewrite_props(arg: str, ctx: CLIContext) -> str:
+        """
+        Rewrite property path according to their section.
+        .foo -> .reported.foo
+        {a: .a, b:.path.to.b} -> {a: .reported.a, b:.reported.path.to.b }
+        """
+        split = arg.split("|", maxsplit=1)  # ignore everything after the pipe
+        selector, rest = (split[0], "|" + split[1]) if len(split) == 2 else (split[0], "")
+        last_pos = 0
+        result = ""
+        for match in JqCommand.path_re.finditer(selector):
+            result += selector[last_pos : match.start()]  # noqa: E203
+            result += "."
+            result += ctx.variable_in_section(match[0][1:])
+            last_pos = match.end()
+        result += selector[last_pos : len(selector)]  # noqa: E203
+        return result + rest
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         if not arg:
             raise AttributeError("jq requires an argument to be parsed")
 
-        compiled = jq.compile(strip_quotes(arg))
+        compiled = jq.compile(self.rewrite_props(strip_quotes(arg), ctx))
 
         def process(in_json: Json) -> Json:
             out = compiled.input(in_json).all()
@@ -1098,13 +1061,13 @@ class KindCommand(CLICommand, PreserveOutputFormat):
 
 class SetDesiredStateBase(CLICommand, ABC):
     @abstractmethod
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
         pass
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, **ctx.env))
+        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -1170,7 +1133,7 @@ class SetDesiredCommand(SetDesiredStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as desired for all incoming database objects."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
         else:
@@ -1200,20 +1163,20 @@ class CleanCommand(SetDesiredStateBase):
     Example:
         query isinstance("ec2") and atime<"-2d" | clean
             [
-                { "id": "abc" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "abc" "desired": { "clean": true }, "reported": { .. } },
                 .
                 .
-                { "id": "xyz" "desired": { "delete": true }, "reported": { .. } },
+                { "id": "xyz" "desired": { "clean": true }, "reported": { .. } },
             ]
         json [{"id": "id1"}, {"id": "id2"}] | clean
             [
-                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
             ]
         json ["id1", "id2"] | clean
             [
-                { "id": "id1", "desired": { "delete": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "delete": true }, "reported": { .. } },
+                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
+                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
             ]
     """
 
@@ -1224,7 +1187,7 @@ class CleanCommand(SetDesiredStateBase):
     def info(self) -> str:
         return "Mark all incoming database objects for cleaning."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"clean": True}
 
     async def set_desired(
@@ -1242,13 +1205,13 @@ class CleanCommand(SetDesiredStateBase):
 
 class SetMetadataStateBase(CLICommand, ABC):
     @abstractmethod
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
         pass
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, **ctx.env))
+        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -1309,7 +1272,7 @@ class SetMetadataCommand(SetMetadataStateBase):
     def info(self) -> str:
         return "Allows to set arbitrary properties as metadata for all incoming database objects."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         if arg and arg.strip():
             return key_values_parser.parse(arg)  # type: ignore
         else:
@@ -1353,7 +1316,7 @@ class ProtectCommand(SetMetadataStateBase):
     def info(self) -> str:
         return "Mark all incoming database objects as protected."
 
-    def patch(self, arg: Optional[str] = None, **env: str) -> Json:
+    def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         return {"protected": True}
 
 
@@ -1418,11 +1381,25 @@ class FormatCommand(CLICommand, OutputTransformer):
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
 
-        def format_object_to_string(elem: Any) -> str:
+        def format_variable(name: str) -> str:
+            assert "__" not in name, "No dunder attributes allowed"
+            return "{" + ctx.variable_in_section(name) + "}"
+
+        def format_string() -> str:
+            no_closing = test_char(lambda x: x != "}", "No closing bracket").at_least(1).concat()
+            no_bracket = test_char(lambda x: x not in ("{", "}"), "No opening bracket").at_least(1).concat()
+            escaped_open = string("{{")
+            escaped_close = string("}}")
+            variable = (l_curly_dp >> no_closing << r_curly_dp).map(format_variable)
+            bracket = string("{") | string("}")
+            format_string_parser = (escaped_open | escaped_close | no_bracket | variable | bracket).many().concat()
+            return format_string_parser.parse(arg)  # type: ignore
+
+        def format_object_to_string(frmt: str, elem: Any) -> str:
             # wrap the object to account for non existent values.
             # if a format value is not existent, render is as null (json conform).
             wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
-            return arg.format_map(wrapped)  # type: ignore
+            return frmt.format_map(wrapped)
 
         async def render_format(format_name: str, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
@@ -1437,7 +1414,7 @@ class FormatCommand(CLICommand, OutputTransformer):
                     raise AttributeError("A format renderer can not be combined together with a format string!")
                 return render_format(next(iter(format_to_use)), in_stream)
             elif formatting_string:
-                return stream.map(in_stream, format_object_to_string)
+                return stream.map(in_stream, partial(format_object_to_string, format_string()))
             else:
                 return in_stream
 
@@ -1543,17 +1520,17 @@ class ListCommand(CLICommand, OutputTransformer):
 
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
-        ("reported.kind", "kind"),
-        ("reported.id", "id"),
-        ("reported.name", "name"),
+        (["reported", "kind"], "kind"),
+        (["reported", "id"], "id"),
+        (["reported", "name"], "name"),
     ]
     default_context_properties_to_show = [
-        ("reported.age", "age"),
-        ("reported.last_update", "last_update"),
-        ("ancestors.cloud.reported.name", "cloud"),
-        ("ancestors.account.reported.name", "account"),
-        ("ancestors.region.reported.name", "region"),
-        ("ancestors.zone.reported.name", "zone"),
+        (["reported", "age"], "age"),
+        (["reported", "last_update"], "last_update"),
+        (["ancestors", "cloud", "reported", "name"], "cloud"),
+        (["ancestors", "account", "reported", "name"], "account"),
+        (["ancestors", "region", "reported", "name"], "region"),
+        (["ancestors", "zone", "reported", "name"], "zone"),
     ]
     dot_re = re.compile("[.]")
 
@@ -1565,27 +1542,23 @@ class ListCommand(CLICommand, OutputTransformer):
         return "Transform incoming objects as string with defined properties."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        def default_props_to_show() -> List[Tuple[str, str]]:
+        def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
             # include the object id, if edges are requested
             if ctx.query_options.get("include-edges") is True:
-                result.append(("id", "node_id"))
+                result.append((["id"], "node_id"))
             # add all default props
             result.extend(self.default_properties_to_show)
             # add all predicates the user has queried
             if ctx.query:
                 for predicate in ctx.query.predicates:
-                    result.append((predicate.name, predicate.name.rsplit(".", 1)[-1]))
+                    result.append((self.dot_re.split(predicate.name), predicate.name.rsplit(".", 1)[-1]))
             # add all context properties
             result.extend(self.default_context_properties_to_show)
             return result
 
-        def adjust_path(p: List[str]) -> List[str]:
-            root = p[0]
-            if root in Section.all or root == "id" or root == "kinds":
-                return p
-            else:
-                return [Section.reported, *p]
+        def adjust_path(prop_path: str) -> List[str]:
+            return self.dot_re.split(ctx.variable_in_section(prop_path))
 
         def to_str(name: str, elem: JsonElement) -> str:
             if isinstance(elem, dict):
@@ -1595,17 +1568,21 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return f"{name}={elem}"
 
-        props: List[Tuple[List[str], str]] = []
-        for prop, as_name in list_arg_parse.parse(arg) if arg else default_props_to_show():
-            path = adjust_path(self.dot_re.split(prop))
-            as_name = path[-1] if prop == as_name or as_name is None else as_name
-            props.append((path, as_name))
+        def parse_props_to_show(props_arg: str) -> List[Tuple[List[str], str]]:
+            props: List[Tuple[List[str], str]] = []
+            for prop, as_name in list_arg_parse.parse(props_arg):
+                path = adjust_path(prop)
+                as_name = path[-1] if prop == as_name or as_name is None else as_name
+                props.append((path, as_name))
+            return props
+
+        props_to_show = parse_props_to_show(arg) if arg is not None else default_props_to_show()
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):
                 result = ""
                 first = True
-                for prop_path, name in props:
+                for prop_path, name in props_to_show:
                     value = value_in_path(elem, prop_path)
                     if value is not None:
                         delim = "" if first else ", "
@@ -2643,7 +2620,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CleanCommand(d),
         CountCommand(d),
         DescendantPart(d),
-        DesiredPart(d),
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
@@ -2658,12 +2634,9 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         KindCommand(d),
         ListCommand(d),
         TemplatesCommand(d),
-        MergeAncestorsPart(d),
-        MetadataPart(d),
         PredecessorPart(d),
         ProtectCommand(d),
         QueryAllPart(d),
-        ReportedPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
@@ -2684,4 +2657,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "reported", "start_workflow": "start_task", "https": "http"}
+    return {"match": "query", "start_workflow": "start_task", "https": "http"}

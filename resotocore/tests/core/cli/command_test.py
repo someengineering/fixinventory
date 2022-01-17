@@ -19,12 +19,12 @@ from pytest import fixture
 
 from core.cli import is_node
 from core.cli.cli import CLI
+from core.cli.command import HttpCommand, JqCommand
 from core.cli.model import CLIDependencies, CLIContext
-from core.cli.command import HttpCommand
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
-from core.query.model import Template
+from core.query.model import Template, Query
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
 from core.types import JsonElement, Json
@@ -170,15 +170,10 @@ async def test_descendants(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_source(cli: CLI) -> None:
-    result = await cli.execute_cli_command(
-        'query is("foo") and reported.some_int==0 --> reported.identifier=~"9_"', stream.list
-    )
+    result = await cli.execute_cli_command('query is("foo") and some_int==0 --> identifier=~"9_"', stream.list)
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
-        Template(
-            "test",
-            'is(foo) and reported.some_int==0 --> reported.identifier=~"{{fid}}"',
-        )
+        Template("test", 'is(foo) and some_int==0 --> identifier=~"{{fid}}"')
     )
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
@@ -324,6 +319,13 @@ async def test_format(cli: CLI) -> None:
     result = await cli.execute_cli_command("json {} | format {a}:{b.c.d}:{foo.bla[23].test}", stream.list)
     assert result[0] == ["null:null:null"]
 
+    # Queries that use the reported section, also interpret the format in the reported section
+    result = await cli.execute_cli_command(
+        "query id(sub_root) limit 1 | format {{aa}} {some_string} test}} {some_int} {/metadata.node_id} {{",
+        stream.list,
+    )
+    assert result[0] == ["{aa} hello test} 0 sub_root {"]
+
 
 @pytest.mark.asyncio
 async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
@@ -340,7 +342,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert job.trigger == TimeTrigger("23 1 * * *")
     assert job.wait is None
     assert job in task_handler.task_descriptions
-    assert job.environment == {"graph": "ns"}
+    assert job.environment == {"graph": "ns", "section": "reported"}
 
     # add job with schedule and event
     with_event = await execute('jobs add --id timed_hi --schedule "23 1 * * *" --wait-for-event foo echo Hello World')
@@ -350,7 +352,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     event_trigger, timeout = job_with_event.wait
     assert event_trigger.message_type == "foo"
     assert timeout == timedelta(hours=1)
-    assert job_with_event.environment == {"graph": "ns"}
+    assert job_with_event.environment == {"graph": "ns", "section": "reported"}
     assert job_with_event in task_handler.task_descriptions
 
     # add job with event
@@ -359,7 +361,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     job_only_event: Job = await job_db.get("only_event")  # type: ignore
     assert job_only_event.trigger == EventTrigger("foo")
     assert job_only_event.wait is None
-    assert job_only_event.environment == {"graph": "ns"}
+    assert job_only_event.environment == {"graph": "ns", "section": "reported"}
     assert job_only_event in task_handler.task_descriptions
 
     # add job without any trigger
@@ -367,7 +369,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
     assert no_trigger == [["Job no_trigger added."]]
     job_no_trigger: Job = await job_db.get("no_trigger")  # type: ignore
     assert job_no_trigger.wait is None
-    assert job_no_trigger.environment == {"graph": "ns"}
+    assert job_no_trigger.environment == {"graph": "ns", "section": "reported"}
     assert job_no_trigger in task_handler.task_descriptions
 
     # deactivate timed_hi
@@ -466,24 +468,42 @@ async def test_kind_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('reported is (foo) and identifier=="4" | list', stream.list)
+    result = await cli.execute_cli_command('query is (foo) and identifier=="4" | list', stream.list)
     assert len(result[0]) == 1
     assert result[0][0].startswith("kind=foo, identifier=4, age=")
-    list_cmd = "list some_int as si, reported.some_string"
-    result = await cli.execute_cli_command(f'reported is (foo) and identifier=="4" | {list_cmd}', stream.list)
+    list_cmd = "list some_int as si, some_string"
+    result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
+
+    # Queries that use the reported section, also interpret the list format in the reported section
+    result = await cli.execute_cli_command(
+        "query id(sub_root) limit 1 | list some_string, some_int, /metadata.node_id", stream.list
+    )
+    assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
 
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
+    ctx = CLIContext(env={"section": "reported"}, query=Query.by("test"))
+    # .test -> .reported.test
+    assert JqCommand.rewrite_props(".a,.b", ctx) == ".reported.a,.reported.b"
+    # object construction is supported
+    assert JqCommand.rewrite_props("{a:.a, b:.b}", ctx) == "{a:.reported.a, b:.reported.b}"
+    # no replacement after pipe
+    assert JqCommand.rewrite_props("map(.color) | {a:.a, b:.b}", ctx) == "map(.reported.color) | {a:.a, b:.b}"
+
     result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == 1
 
+    # jq .kind is rewritten as .reported.kind
+    result = await cli.execute_cli_command("query is(foo) limit 2 | jq .kind", stream.list)
+    assert result[0] == ["foo", "foo"]
+
 
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
-    r = await cli.execute_cli_command("query all | count reported.kind", stream.list)
+    r = await cli.execute_cli_command("query all | count kind", stream.list)
     assert set(r[0]) == {
         "graph_root: 1",
         "cloud: 1",

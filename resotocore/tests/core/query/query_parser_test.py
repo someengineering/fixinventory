@@ -45,7 +45,6 @@ from core.query.query_parser import (
     sort_parser,
     limit_parser,
     with_clause_parser,
-    section_abbreviation_names,
     not_term,
     term_parser,
     parse_query,
@@ -189,12 +188,6 @@ def test_query_with_preamble() -> None:
     query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
     assert query.aggregate.group_by[0].name == AggregateVariableName("region")
     assert query.aggregate.group_func[0].name == "cpu"
-
-
-def test_query_with_section_name_preamble() -> None:
-    for abbrev, sect in section_abbreviation_names.items():
-        query = query_parser.parse(f"{abbrev}: a==1 or (b==2 and c==3) -[0:1]-> d==4")
-        assert str(query) == f"({sect}.a == 1 or ({sect}.b == 2 and {sect}.c == 3)) -[0:1]-> {sect}.d == 4"
 
 
 def test_preamble_tags() -> None:

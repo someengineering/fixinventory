@@ -1,6 +1,6 @@
 import pytest
 
-from core.query.model import P, Query, AllTerm, IsTerm
+from core.query.model import P, Query, AllTerm, IsTerm, PathRoot
 from core.query.query_parser import parse_query
 
 
@@ -96,12 +96,25 @@ def test_combine() -> None:
 
 
 def test_on_section() -> None:
-    query = 'cpu > 4 and (mem < 23 or mem < 59) with(any, <-- name == "test") sort mem --> a<1 and b==23 sort foo'
-    on_section = (
-        '(r.cpu > 4 and (r.mem < 23 or r.mem < 59)) with(any, <-- r.name == "test") sort r.mem asc --> '
-        "(r.a < 1 and r.b == 23) sort r.foo asc"
+    query = parse_query(
+        "aggregate(foo, bla, bar: sum(a) as a, sum(b) as b, sum(1) as c):"
+        '(cpu > 4 and (mem < 23 or mem < 59)) with(any, <-- name == "test") sort mem asc --> '
+        "(a < 1 and /metadata.b == 23) sort foo asc"
     )
-    assert str(parse_query(query).on_section("r")) == on_section
+    on_section = (
+        "aggregate(r.foo, r.bla, r.bar: sum(r.a) as a, sum(r.b) as b, sum(1) as c):"
+        '(r.cpu > 4 and (r.mem < 23 or r.mem < 59)) with(any, <-- r.name == "test") sort r.mem asc --> '
+        "(r.a < 1 and metadata.b == 23) sort r.foo asc"
+    )
+    with_section_r = query.on_section("r")
+    # all variables are now prefixed with the section name
+    assert str(with_section_r) == on_section
+    # all variables that are prefixed with the section name have the section name removed -> reverse operation
+    assert str(with_section_r.relative_to_section("r")) == str(query)
+    # a query on section root does not change the query
+    assert str(with_section_r.on_section(PathRoot)) == on_section
+    # a query relative to section root does not change the query
+    assert str(with_section_r.relative_to_section(PathRoot)) == on_section
 
 
 def test_rewrite_ancestors_descendants() -> None:

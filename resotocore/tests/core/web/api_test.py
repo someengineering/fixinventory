@@ -247,7 +247,7 @@ async def test_cli(core_client: ApiClient) -> None:
     await core_client.merge_graph(g, create_graph("test"))
 
     # evaluate query with count
-    result = await core_client.cli_evaluate(g, "query all | count reported.kind")
+    result = await core_client.cli_evaluate(g, "query all | count kind")
     assert len(result) == 1
     parsed, to_execute = result[0]
     assert len(parsed.commands) == 2
@@ -256,7 +256,7 @@ async def test_cli(core_client: ApiClient) -> None:
     assert (to_execute[0].cmd, to_execute[1].cmd) == ("execute_query", "aggregate_to_count")
 
     # execute query with count
-    executed = await core_client.cli_execute(g, "query is(foo) or is(bla) | count reported.kind")
+    executed = await core_client.cli_execute(g, "query is(foo) or is(bla) | count kind")
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
 
 

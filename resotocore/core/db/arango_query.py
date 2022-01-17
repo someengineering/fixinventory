@@ -62,7 +62,6 @@ def query_string(
 ) -> Tuple[str, str]:
     model = query_model.model
     merge_names: Set[str] = query_model.query.merge_names
-    section_dot = f"{query_model.query_section}." if query_model.query_section else ""
     mw = query.preamble.get("merge_with_ancestors")
     merge_with: List[str] = re.split("\\s*,\\s*", str(mw)) if mw else []
 
@@ -96,16 +95,16 @@ def query_string(
 
         def var_name(n: Union[AggregateVariableName, AggregateVariableCombined]) -> str:
             def comb_name(cb: Union[str, AggregateVariableName]) -> str:
-                return f'"{cb}"' if isinstance(cb, str) else f"{cursor}.{section_dot}{cb.name}"
+                return f'"{cb}"' if isinstance(cb, str) else f"{cursor}.{cb.name}"
 
             return (
-                f"{cursor}.{section_dot}{n.name}"
+                f"{cursor}.{n.name}"
                 if isinstance(n, AggregateVariableName)
                 else f'CONCAT({",".join(comb_name(cp) for cp in n.parts)})'
             )
 
         def func_term(fn: AggregateFunction) -> str:
-            name = f"{cursor}.{section_dot}{fn.name}" if isinstance(fn.name, str) else str(fn.name)
+            name = f"{cursor}.{fn.name}" if isinstance(fn.name, str) else str(fn.name)
             return f"{name} {fn.combined_ops()}" if fn.ops else name
 
         vs = {str(v.name): f"var_{num}" for num, v in enumerate(a.group_by)}
@@ -143,7 +142,7 @@ def query_string(
         else:
             bind_vars[bvn] = prop.kind.coerce(p.value)
         # in case of section: add the section if the predicate does not belong to a merge attribute
-        var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{section_dot}{prop_name}"
+        var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{prop_name}"
         p_term = f"{var_name}{extra} {op} @{bvn}"
         # null check is required, since x<anything evaluates to true if x is null!
         return f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
@@ -264,7 +263,7 @@ def query_string(
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             limited = f" LIMIT {p.limit} " if p.limit else " "
-            sort_by = sort(crsr, p.sort, section_dot) if p.sort else " "
+            sort_by = sort(crsr, p.sort) if p.sort else " "
             for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}RETURN {f_res}"
             query_part += f"LET {filtered_out} = ({for_stmt})"
             return filtered_out
@@ -427,11 +426,11 @@ def query_string(
         m_parts.append("RETURN MERGE(node, {" + ", ".join(result_parts) + "})")
         return "merge_with_ancestor", part_str + f' LET merge_with_ancestor = ({" ".join(m_parts)})'
 
-    def sort(cursor: str, so: List[Sort], sect_dot: str) -> str:
+    def sort(cursor: str, so: List[Sort]) -> str:
         def single_sort(single: Sort) -> str:
             prop_name, resolved, merge_name = prop_name_kind(single.name)
             # in case of section: add the section if the predicate does not belong to a merge attribute
-            var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{section_dot}{prop_name}"
+            var_name = f"{cursor}.{prop_name}" if merge_name else f"{cursor}.{prop_name}"
             order = SortOrder.reverse(single.order) if resolved.kind.reverse_order else single.order
             return f"{var_name} {order}"
 
@@ -453,7 +452,7 @@ def query_string(
         query_str += aggregation
         # if the last part has a sort order, we use it here again
         if query.current_part.sort:
-            sort_by = sort("res", query.current_part.sort, "")
+            sort_by = sort("res", query.current_part.sort)
             query_str += f" LET {nxt} = (FOR res in {resulting_cursor}{sort_by} RETURN res)"
             resulting_cursor = nxt
     else:  # return results
