@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "resoto.fullname" . }}-resotocore
+  labels:
+    resoto: core
+    {{- include "resoto.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.resotocore.service.type }}
+  ports:
+    - port: {{ .Values.resotocore.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    resoto: core
+    {{- include "resoto.selectorLabels" . | nindent 4 }}

@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cloudkeeper.fullname" . }}-ckcore
+  name: {{ include "resoto.fullname" . }}-resotocore
   labels:
-    cloudkeeper: core
-    {{- include "cloudkeeper.labels" . | nindent 4 }}
+    resoto: core
+    {{- include "resoto.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      cloudkeeper: core
-      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+      resoto: core
+      {{- include "resoto.selectorLabels" . | nindent 6 }}
   # We can remove/change the strategy when the core no longer assumes it is a singleton.
   strategy:
     type: Recreate
@@ -21,15 +21,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        cloudkeeper: core
-        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+        resoto: core
+        {{- include "resoto.selectorLabels" . | nindent 8 }}
     spec:
       enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      serviceAccountName: {{ include "resoto.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -40,34 +40,34 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --host
-            - {{ .Values.ckcore.host | default "0.0.0.0" | quote }}
+            - {{ .Values.resotocore.host | default "0.0.0.0" | quote }}
             - --start-collect-on-subscriber-connect
             - --graphdb-server
-            - {{ .Values.ckcore.graphdb.server | quote }}
+            - {{ .Values.resotocore.graphdb.server | quote }}
             - --graphdb-database
-            - {{ .Values.ckcore.graphdb.database | quote }}
+            - {{ .Values.resotocore.graphdb.database | quote }}
             - --graphdb-username
-            - {{ .Values.ckcore.graphdb.login | quote }}
-            {{- if .Values.ckcore.tsdbProxyUrl }}
+            - {{ .Values.resotocore.graphdb.login | quote }}
+            {{- if .Values.resotocore.tsdbProxyUrl }}
             - --tsdb-proxy-url
-            - {{ .Values.ckcore.tsdbProxyUrl | quote }}
+            - {{ .Values.resotocore.tsdbProxyUrl | quote }}
             {{- end }}
           env:
           - name: START_STACK
             value: "false"
-          - name: START_CKCORE
+          - name: START_RESOTOCORE
             value: "true"
-          {{- if .Values.ckcore.graphdb.passwordSecret }}
-          - name: CKCORE_GRAPHDB_PASSWORD
+          {{- if .Values.resotocore.graphdb.passwordSecret }}
+          - name: RESOTOCORE_GRAPHDB_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.ckcore.graphdb.passwordSecret.name }}
-                key: {{ .Values.ckcore.graphdb.passwordSecret.key }}
+                name: {{ .Values.resotocore.graphdb.passwordSecret.name }}
+                key: {{ .Values.resotocore.graphdb.passwordSecret.key }}
           {{- end }}
           - name: PSK
             valueFrom:
               secretKeyRef:
-                name: {{ include "cloudkeeper.fullname" . }}-psk
+                name: {{ include "resoto.fullname" . }}-psk
                 key: "psk"
 
           ports:

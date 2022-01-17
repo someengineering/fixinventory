@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cloudkeeper.fullname" . }}-ckworker
+  name: {{ include "resoto.fullname" . }}-resotoworker
   labels:
-    cloudkeeper: worker
-    {{- include "cloudkeeper.labels" . | nindent 4 }}
+    resoto: worker
+    {{- include "resoto.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      cloudkeeper: worker
-      {{- include "cloudkeeper.selectorLabels" . | nindent 6 }}
+      resoto: worker
+      {{- include "resoto.selectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
   template:
@@ -20,15 +20,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        cloudkeeper: worker
-        {{- include "cloudkeeper.selectorLabels" . | nindent 8 }}
+        resoto: worker
+        {{- include "resoto.selectorLabels" . | nindent 8 }}
     spec:
       enableServiceLinks: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "cloudkeeper.serviceAccountName" . }}
+      serviceAccountName: {{ include "resoto.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -39,27 +39,27 @@ spec:
 
           args:
           - --collector
-          - {{ .Values.ckworker.collector }}
-          - --ckcore-uri
-          - http://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
-          - --ckcore-ws-uri
-          - ws://{{ include "cloudkeeper.fullname" . }}-ckcore:{{ .Values.ckcore.service.port }}
-          {{- if .Values.ckworker.extraArgs }}
-          {{- toYaml .Values.ckworker.extraArgs | nindent 10 }}
+          - {{ .Values.resotoworker.collector }}
+          - --resotocore-uri
+          - http://{{ include "resoto.fullname" . }}-resotocore:{{ .Values.resotocore.service.port }}
+          - --resotocore-ws-uri
+          - ws://{{ include "resoto.fullname" . }}-resotocore:{{ .Values.resotocore.service.port }}
+          {{- if .Values.resotoworker.extraArgs }}
+          {{- toYaml .Values.resotoworker.extraArgs | nindent 10 }}
           {{- end }}
           env:
             - name: START_STACK
               value: "false"
-            - name: START_CKWORKER
+            - name: START_RESOTOWORKER
               value: "true"
             - name: PSK
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "cloudkeeper.fullname" . }}-psk
+                  name: {{ include "resoto.fullname" . }}-psk
                   key: "psk"
 
-          {{- if .Values.ckworker.extraEnv }}
-          {{- toYaml .Values.ckworker.extraEnv | nindent 12 }}
+          {{- if .Values.resotoworker.extraEnv }}
+          {{- toYaml .Values.resotoworker.extraEnv | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           readinessProbe:
@@ -68,9 +68,9 @@ spec:
               port: 9956
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-    {{- if .Values.ckworker.volumeMounts }}
+    {{- if .Values.resotoworker.volumeMounts }}
           volumeMounts:
-    {{- toYaml .Values.ckworker.volumeMounts | nindent 12 }}
+    {{- toYaml .Values.resotoworker.volumeMounts | nindent 12 }}
     {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -84,7 +84,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{- if .Values.ckworker.volumes }}
+{{- if .Values.resotoworker.volumes }}
       volumes:
-{{ toYaml .Values.ckworker.volumes | nindent 8 }}
+{{ toYaml .Values.resotoworker.volumes | nindent 8 }}
 {{- end }}
