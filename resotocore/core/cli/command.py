@@ -882,11 +882,32 @@ class JqCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Filter and process json."
 
+    path_re = re.compile("[.](?:([A-Za-z])+|(\\[]))[A-Za-z0-9\\[\\].]*")
+
+    @staticmethod
+    def rewrite_props(arg: str, ctx: CLIContext) -> str:
+        """
+        Rewrite property path according to their section.
+        .foo -> .reported.foo
+        {a: .a, b:.path.to.b} -> {a: .reported.a, b:.reported.path.to.b }
+        """
+        split = arg.split("|", maxsplit=1)  # ignore everything after the pipe
+        selector, rest = (split[0], "|" + split[1]) if len(split) == 2 else (split[0], "")
+        last_pos = 0
+        result = ""
+        for match in JqCommand.path_re.finditer(selector):
+            result += selector[last_pos : match.start()]  # noqa: E203
+            result += "."
+            result += ctx.variable_in_section(match[0][1:])
+            last_pos = match.end()
+        result += selector[last_pos : len(selector)]  # noqa: E203
+        return result + rest
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         if not arg:
             raise AttributeError("jq requires an argument to be parsed")
 
-        compiled = jq.compile(strip_quotes(arg))
+        compiled = jq.compile(self.rewrite_props(strip_quotes(arg), ctx))
 
         def process(in_json: Json) -> Json:
             out = compiled.input(in_json).all()

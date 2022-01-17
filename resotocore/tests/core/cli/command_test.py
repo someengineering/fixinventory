@@ -19,7 +19,7 @@ from pytest import fixture
 
 from core.cli import is_node
 from core.cli.cli import CLI
-from core.cli.command import HttpCommand
+from core.cli.command import HttpCommand, JqCommand
 from core.cli.model import CLIDependencies, CLIContext
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
@@ -485,9 +485,21 @@ async def test_list_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
+    ctx = CLIContext(query_options={"section": "reported"})
+    # .test -> .reported.test
+    assert JqCommand.rewrite_props(".a,.b", ctx) == ".reported.a,.reported.b"
+    # object construction is supported
+    assert JqCommand.rewrite_props("{a:.a, b:.b}", ctx) == "{a:.reported.a, b:.reported.b}"
+    # no replacement after pipe
+    assert JqCommand.rewrite_props("map(.color) | {a:.a, b:.b}", ctx) == "map(.reported.color) | {a:.a, b:.b}"
+
     result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == 1
+
+    # jq .kind is rewritten as .reported.kind
+    result = await cli.execute_cli_command("query is(foo) limit 2 | jq .kind", stream.list)
+    assert result[0] == ["foo", "foo"]
 
 
 @pytest.mark.asyncio
