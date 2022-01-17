@@ -25,11 +25,7 @@ body:
     attributes:
       label: Additional Context
       description: Provide any additional information or screenshots that may be relevant or helpful.
-  - type: checkboxes
-    id: terms
+  - type: markdown
     attributes:
-      label: Code of Conduct
-      description: By submitting this feature request, you agree to follow our [Code of Conduct](https://github.com/someengineering/resoto/blob/main/CODE_OF_CONDUCT.md)
-      options:
-        - label: I agree to follow the Code of Conduct
-          required: true
+      value: |
+        By submitting this bug report, you agree to follow our [Code of Conduct](https://github.com/someengineering/resoto/blob/main/CODE_OF_CONDUCT.md).
