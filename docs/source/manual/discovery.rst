@@ -43,6 +43,9 @@ specific resource. Cleaning up a resource, for example, is done by setting ``cle
 The ``metadata`` section contains additional data about the resource. This data is not from the cloud provider,
 but added by the Resoto toolchain.
 
+The ``ancestors`` section contains information about specific ancestors of a node. It makes it very easy to
+see something like provider, account, region and zone of a resource.
+
 You can see an example and learn more about the structure in :ref:`graph_node_spotlight`.
 
 .. toctree::
@@ -78,24 +81,24 @@ Using the ``query`` command, you can define a search query to filter available n
   It is also possible to filter results by their available properties.
   For example, let us find all AWS accounts that are more than 2 weeks old:
 
-  ``query is(aws_account) and reported.age>2w``
+  ``query is(aws_account) and age>2w``
 
   As you can see multiple criteria can be combined with ``and`` but also with ``or``.
   In order to define precedence, it is also possible to use parentheses.
   To filter aws accounts, that are either older than 2 weeks or have more than 10 users, we would do the following:
 
-  ``query is(aws_account) and (reported.age>2w or reported.users>1)``
+  ``query is(aws_account) and (age>2w or users>1)``
 
   By default, all resources that satisfy the defined criteria will be returned.
   However, it is possible to limit the number of results by specifying ``limit``:
 
-  ``query is(aws_account) and (reported.age>2w or reported.users>1) limit 3``
+  ``query is(aws_account) and (age>2w or users>1) limit 3``
 
   In addition to ``limit``, it is also possible to define the sort order.
   The following query will return the 3 AWS accounts that are more than 2 weeks old
   with the most of users.
 
-  ``query is(aws_account) and reported.age>2w sort reported.users desc limit 3``
+  ``query is(aws_account) and age>2w sort users desc limit 3``
 
 
 
@@ -131,8 +134,37 @@ property_path
 ^^^^^^^^^^^^^
 
 The ``property_path`` is the path to the property in the json structure.
-A nested attribute is accessed via the dot (``.``). To access the name in the reported section,
-one would write ``reported.name``. A nested property would be accessed via ``reported.deeply.nested.property``.
+A nested attribute is accessed via the dot (``.``).
+A nested property could be accessed via ``some.deeply.nested.property``.
+
+Since most of the properties in question are defined in the reported section,
+the CLI interprets all defined property paths relative to the reported section
+by default (behaviour can be configured and adjusted).
+Thus the path to property ``reported.name`` can simply be written as ``name``.
+If all relative paths are interpreted relative to ``reported``, we need a way to target properties not in
+the reported section. This is possible by using the root syntax via the ``/`` (slash).
+A property path that starts with a slash is always interpreted absolute.
+In order to access properties outside of the reported section, use the ``/`` syntax.
+Example: ``cpu_count>3 and /desired.clean==true``.
+This filter will match nodes, where ``reported.cpu_count`` is bigger than 3 and ``desired.clean`` is true.
+
+The section that is used to interpret the property paths is defined by the environment parameter ``section``.
+As stated earlier, this variable defaults to ``reported``.
+Since the CLI allows to define environment variables as part of the CLI command, this behaviour can be adjusted easily:
+
+``$> section=reported query cpu_count>3 and /desired.clean==true``
+
+is semantically the same as this query, which interprets all paths from the root
+
+``$> section=/ query reported.cpu_count>3 and desired.clean==true``
+
+is semantically the same as this query, which interprets all paths relative to the desired section
+
+``$> section=desired query /reported.cpu_count>3 and clean==true``
+
+The examples should only illustrate the mechanics of property paths.
+We suggest to keep the default.
+All examples below assume the default setting.
 
 A property inside an array is accessed via ``[position]``.
 So to access the first element of an array we can write ``[0]``.
@@ -181,7 +213,7 @@ If the filtered property is an array, it is also possible to define a criteria b
 one of the operator modifier: ``all``, ``any`` or ``none`` in front of the operation.
 
 Let us assume following document: ``{"reported": { "test": [1, 2, 3, 4]}}``, we could define a query like:
-``reported.test all >= 1`` or ``reported.test any > 2`` or ``reported.test none > 100``, which would match the document.
+``test all >= 1`` or ``test any > 2`` or ``test none > 100``, which would match the document.
 
 
 Example predicates
@@ -189,20 +221,20 @@ Example predicates
 
 .. admonition:: Examples of combined terms
 
-  | ``reported.name == "sunset"``
-  | Select all nodes where reported.name is *exactly* the string "sunset".
+  | ``name == "sunset"``
+  | Select all nodes where name is *exactly* the string "sunset".
 
-  | ``reported.name == sunset``
+  | ``name == sunset``
   | Same as above. *parentheses are optional as long as the string is not a number and does not have special characters*.
 
-  | ``reported.instance_cores > 2``
-  | Select nodes with more than 2 reported.instance_cores.
+  | ``instance_cores > 2``
+  | Select nodes with more than 2 instance_cores.
 
-  | ``reported.name =~ "sun.*"``
-  | Selects all nodes where reported.name adheres to the regular expression ``sun.*``.
+  | ``name =~ "sun.*"``
+  | Selects all nodes where name adheres to the regular expression ``sun.*``.
 
-  | ``reported.name in ["sunset", "sunrise"]``
-  | Selects all nodes where reported.name is either sunset or sunrise.
+  | ``name in ["sunset", "sunrise"]``
+  | Selects all nodes where name is either sunset or sunrise.
 
 
 Select nodes by id
@@ -219,24 +251,9 @@ In order to define precedence, it is possible to put brackets around terms.
 
 .. admonition:: Examples of combined terms
 
-  | ``query reported.name == sunset or reported.name == sunrise`` : Select nodes where reported.name is either sunrise or sunset.
-  | ``query is(aws_ec2_instance) and reported.name==sunrise`` : Select aws_ec2_instance nodes where reported.name is sunrise.
-  | ``query is(aws_ec2_instance) and (reported.instance_type=="m5a.large" or reported.instance_cores>2)`` : Select aws_ec2_instance nodes of specific type or more than 2 cores.
-
-
-Query a specific section
-------------------------
-
-All examples here only used the reported section in order to filter the data.
-If your query also only filter data in one section, the section can be defined in front of the query once
-and then omitted in the following filter part.
-
-
-``query reported.instance_type=="m5a.large" or reported.instance_cores>2``
-
-This query can also be written with an explicit section ``reported``:
-
-``query reported instance_type=="m5a.large" or instance_cores>2``
+  | ``query name == sunset or name == sunrise`` : Select nodes where reported.name is either sunrise or sunset.
+  | ``query is(aws_ec2_instance) and name==sunrise`` : Select aws_ec2_instance nodes where reported.name is sunrise.
+  | ``query is(aws_ec2_instance) and (instance_type=="m5a.large" or instance_cores>2)`` : Select aws_ec2_instance nodes of specific type or more than 2 cores.
 
 
 Graph Edges
@@ -331,7 +348,7 @@ The same applies for inbound  with this statement ``<-[0:1]-``.
 
 .. admonition:: Example
 
-  ``query is(aws_region) and reported.name==global <-[0:1]-``
+  ``query is(aws_region) and name==global <-[0:1]-``
 
   This will return a list of all aws_regions with name ``global`` together with all accounts.
 
@@ -361,7 +378,7 @@ The same applies for inbound traversals with ``<-[start:]-``.
 
 .. admonition:: Example
 
-  ``query is(aws_account) and reported.name==sunshine -[0:]->``
+  ``query is(aws_account) and name==sunshine -[0:]->``
 
   This query will select the aws account with name ``sunshine`` and then select all nodes outbound to this node.
   This will select everything Resoto knows about nodes in this account.
@@ -374,7 +391,7 @@ The graph will be traversed from the current node according to this specificatio
 
 .. admonition:: Example
 
-  ``query reported.name="sunset" and is(aws_account) <-[0:]->``
+  ``query name="sunset" and is(aws_account) <-[0:]->``
 
   This will select all nodes that are connected on any depth in any way to the AWS account with the name sunset.
 
@@ -589,7 +606,7 @@ For the sake of this example, consider this query:
 
 ::
 
-   > query is(instance) and reported.age > 3y
+   > query is(instance) and age > 3y
 
 This will select all compute instances in my cloud, that are older than 3 years.
 
@@ -597,7 +614,7 @@ If I only want to know the number of instances, that matches that criteria, I co
 
 ::
 
-   > query aggregate(sum(1) as count): is(instance) and reported.age > 3y
+   > query aggregate(sum(1) as count): is(instance) and age > 3y
    count: 20
 
 which would return the total number of all compute instances that are older than 3 years.
@@ -622,8 +639,9 @@ If we would like to know the number of CPU cores, we could rewrite the aggregati
 
     > query aggregate(
         sum(1) as count,
-        sum(reported.instance_cores) as cores):
-      is(instance) and reported.age > 3y
+        sum(instance_cores) as cores):
+      is(instance) and age > 3y
+
     count: 20
     cores: 62
 
@@ -637,9 +655,10 @@ Let's assume we want to know the number of instances and cores for compute insta
 ::
 
     > query aggregate(
-        reported.instance_status as status:
-        sum(1) as count, sum(reported.instance_cores) as cores):
-      is(instance) and reported.age > 3y
+        instance_status as status:
+        sum(1) as count, sum(instance_cores) as cores):
+      is(instance) and age > 3y
+
     group:
       status: stopped
     count: 15
@@ -652,7 +671,7 @@ Let's assume we want to know the number of instances and cores for compute insta
 
 The query is the same and the aggregation functions are the same.
 
-The only addition here is the aggregation group: ``reported.instance_status``, which is defined by every compute instance.
+The only addition here is the aggregation group: ``instance_status``, which is defined by every compute instance.
 The result of this addition: the computation is performed on every matching subgroup.
 
 Each group is identified by the value of the grouping variable.
@@ -666,11 +685,12 @@ Let's also use the instance_type as an additional group variable:
 ::
 
     > query aggregate(
-        reported.instance_status as status,
-        reported.instance_type as type:
+        instance_status as status,
+        instance_type as type:
         sum(1) as count,
-        sum(reported.instance_cores) as cores):
-      is(instance) and reported.age > 3y
+        sum(instance_cores) as cores):
+      is(instance) and age > 3y
+
     group:
       status: stopped
       type: m5.xlarge

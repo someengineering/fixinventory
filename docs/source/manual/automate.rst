@@ -60,14 +60,14 @@ been labeled with an owner tag. The following query should do the trick:
 
 .. code-block:: bash
 
-    $> query is(resource) and reported.tags.owner==null
+    $> query is(resource) and tags.owner==null
 
 Let's further assume you want to automatically set the owner tag for such resources. This can be achieved by using
 the ``tag`` command, which will update the tags of the elements to the defined value.
 
 .. code-block:: bash
 
-    $> query is(resource) and reported.tags.owner==null | tag update owner "John Doe"
+    $> query is(resource) and tags.owner==null | tag update owner "John Doe"
 
 While this is already an improvement, it will only update resources without tags at the moment.
 Resources that are created in the future and do not have an owner tag have to be handled the same way again.
@@ -79,7 +79,7 @@ We can use the command line we have written above and turn it into a job:
 
 .. code-block:: bash
 
-    $> jobs add ensure-owner-tag --wait-for-event post_collect 'query is(resource) and reported.tags.owner==null | tag update owner "John Doe"'
+    $> jobs add ensure-owner-tag --wait-for-event post_collect 'query is(resource) and tags.owner==null | tag update owner "John Doe"'
     Job ensure-owner-tag added.
 
 Let's revisit this line to understand what it does:
@@ -150,7 +150,7 @@ could be natural candidates for automation:
   hook a job into ``cleanup_plan``.
   Imagine you want to cleanup all compute instances in the load-testing account every Friday night, so they
   will not run over the weekend.
-  ``$> jobs add mark-resources-for-cleanup --schedule '0 22 * * 5' --wait-for-event cleanup_plan 'query is(instance) and ancestors.account.reported.name==load-testing | clean'``
+  ``$> jobs add mark-resources-for-cleanup --schedule '0 22 * * 5' --wait-for-event cleanup_plan 'query is(instance) and /ancestors.account.reported.name==load-testing | clean'``
 
 - Enforce tags structure
 
