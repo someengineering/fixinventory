@@ -1,0 +1,5 @@
+#!/bin/bash
+. /usr/local/etc/resoto/defaults
+. /usr/local/resoto-venv-pypy3/bin/activate
+export RESOTOCORE_PSK
+exec resotocore "$@"

@@ -1,0 +1,29 @@
+# The following are default values.
+# They can be overridden by supplying the -e VAR=value option to the containerizer.
+
+# The timezone this container is running in
+TZ=${TZ:-Etc/UTC}
+
+# User and group id for the user running valheim-server
+PUID=${PUID:-0}
+PGID=${PGID:-0}
+
+# Pre-shared key to use between components
+PSK=${PSK-changeme}
+
+RESOTOCORE_URI=${RESOTOCORE_URI:-http://127.0.0.1:8900}
+RESOTOCORE_WS_URI=${RESOTOCORE_WS_URI:-ws://127.0.0.1:8900}
+RESOTOCORE_PSK=${RESOTOCORE_PSK-$PSK}
+
+# resotoworker settings
+RESOTOWORKER_RESOTOCORE_URI=${RESOTOWORKER_RESOTOCORE_URI:-$RESOTOCORE_URI}
+RESOTOWORKER_RESOTOCORE_WS_URI=${RESOTOWORKER_RESOTOCORE_WS_URI:-$RESOTOCORE_WS_URI}
+RESOTOWORKER_PSK=${RESOTOWORKER_PSK-$PSK}
+
+# resotometrics settings
+RESOTOMETRICS_RESOTOCORE_URI=${RESOTOMETRICS_RESOTOCORE_URI:-$RESOTOCORE_URI}
+RESOTOMETRICS_RESOTOCORE_WS_URI=${RESOTOMETRICS_RESOTOCORE_WS_URI:-$RESOTOCORE_WS_URI}
+RESOTOMETRICS_PSK=${RESOTOMETRICS_PSK-$PSK}
+
+# resotosh settings
+RESOTOSHELL_PSK=${RESOTOSHELL_PSK-$PSK}
