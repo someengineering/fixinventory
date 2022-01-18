@@ -28,21 +28,21 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
 
         self.config.read()  # runtime read in case config file was updated since last run
         tags_part = (
-            'not(has_key(reported.tags, ["' + '", "'.join(self.config["tags"]) + '"]))'
+            'not(has_key(tags, ["' + '", "'.join(self.config["tags"]) + '"]))'
         )
-        kinds_part = 'reported.kind in ["' + '", "'.join(self.config["kinds"]) + '"]'
+        kinds_part = 'kind in ["' + '", "'.join(self.config["kinds"]) + '"]'
         account_parts = []
         for cloud_id, account in self.config["accounts"].items():
             for account_id, account_data in account.items():
                 age = delta_to_str(account_data.get("age"))
                 account_part = (
-                    f'(metadata.ancestors.cloud.id == "{cloud_id}" and '
-                    f'metadata.ancestors.account.id == "{account_id}" and '
-                    f"reported.age > {age})"
+                    f'(/ancestors.cloud.id == "{cloud_id}" and '
+                    f'/ancestors.account.id == "{account_id}" and '
+                    f"age > {age})"
                 )
                 account_parts.append(account_part)
         accounts_part = "(" + " or ".join(account_parts) + ")"
-        exclusion_part = "metadata.protected == false and metadata.phantom == false and metadata.cleaned == false"
+        exclusion_part = "/metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false"
         required_tags = ", ".join(self.config["tags"])
         reason = (
             f"Missing one or more of required tags {required_tags}"

@@ -14,7 +14,7 @@ class CleanupExpiredPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         log.debug("Cleanup Expired called")
         cg = CoreGraph()
-        command = 'query metadata.expires < "@NOW@" | clean "Resource is expired"'
+        command = 'query /metadata.expires < "@NOW@" | clean "Resource is expired"'
         for response in cg.execute(command):
             if (
                 isinstance(response, Dict)
@@ -26,7 +26,7 @@ class CleanupExpiredPlugin(BaseActionPlugin):
                 node_id = reported.get("id")
                 node_name = reported.get("name")
                 age = reported.get("age")
-                ancestors = response.get("metadata", {}).get("ancestors", {})
+                ancestors = response.get("ancestors", {})
                 cloud = ancestors.get("cloud", {}).get("id")
                 account = ancestors.get("account", {}).get("id")
                 region = ancestors.get("region", {}).get("id")
