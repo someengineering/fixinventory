@@ -12,10 +12,9 @@ bump_to=$2
 find resotolib \
         resotocore \
         resotoworker \
-        resotosh \
+        resotoshell \
         resotometrics \
         plugins \
-        resotoV1 \
     -name setup.py -o \
     -name __init__.py -o \
     -name requirements.txt \
