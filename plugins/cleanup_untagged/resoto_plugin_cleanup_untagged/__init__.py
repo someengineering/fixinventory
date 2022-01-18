@@ -27,9 +27,7 @@ class CleanupUntaggedPlugin(BaseActionPlugin):
         cg = CoreGraph()
 
         self.config.read()  # runtime read in case config file was updated since last run
-        tags_part = (
-            'not(has_key(tags, ["' + '", "'.join(self.config["tags"]) + '"]))'
-        )
+        tags_part = 'not(has_key(tags, ["' + '", "'.join(self.config["tags"]) + '"]))'
         kinds_part = 'kind in ["' + '", "'.join(self.config["kinds"]) + '"]'
         account_parts = []
         for cloud_id, account in self.config["accounts"].items():
