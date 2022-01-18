@@ -159,6 +159,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
     && apt-get -y --no-install-recommends install \
+        dumb-init \
         iproute2 \
         dnsmasq \
         libffi7 \
