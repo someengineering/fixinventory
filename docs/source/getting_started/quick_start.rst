@@ -94,7 +94,7 @@ Count the resources available in Resoto
 
 .. code-block:: bash
 
-    > match is(resource) | count
+    > query is(resource) | count
     total matched: 280
     total unmatched: 0
 
@@ -118,10 +118,7 @@ How to access help
     @UTC@ -> 2021-09-25T19:11:19Z
     [...]
     Available Commands:
-    jobs - Manage all jobs.
-    [...]
-    Available Aliases:
-    match (reported) - Matches a property in the reported section.
+    query - Query the graph.
     [...]
     Note that you can pipe commands using the pipe character (|)
     and chain multiple commands using the semicolon (;).
@@ -172,18 +169,18 @@ List your resource types
     [...]
 
 
-See full list of currently `supported AWS ressources <https://github.com/someengineering/resoto/blob/main/plugins/aws/resoto_plugin_aws/resources.py>`_.
+See full list of currently `supported AWS resources <https://github.com/someengineering/resoto/blob/main/plugins/aws/resoto_plugin_aws/resources.py>`_.
 
 We add new resources every week. Please star this `repo <http://github.com/someengineering/resoto>`_ to support us and stay up to date. If you’d like to request a specific resource, join our `Discord <https://discord.gg/someengineering>`_ channel and let us know!.
 
 Query your resource types
 -------------------------
-``match`` matches the collected values from your AWS Infrastructure
+``query`` queries the collected values from your AWS Infrastructure
 
 .. code-block:: bash
 
-    > help match
-    > match is(aws_ec2_instance) limit 1 | dump
+    > help query
+    > query is(aws_ec2_instance) limit 1 | dump
     reported:
     kind: aws_ec2_instance
     id: i-03df836cdd46e2f94
@@ -226,7 +223,7 @@ This provides information on the number of items you are interacting with.
 .. code-block:: bash
 
     > help count
-    > match is(aws_ec2_instance) | count
+    > query is(aws_ec2_instance) | count
     total matched: 1
     total unmatched: 0
 
@@ -235,34 +232,34 @@ Both commands are identical, the 2nd one makes use of predefined placeholder str
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance) and age > 1d | count
-    > match is(aws_ec2_instance) and ctime < @YESTERDAY@ | count
+    > query is(aws_ec2_instance) and age > 1d | count
+    > query is(aws_ec2_instance) and ctime < @YESTERDAY@ | count
 
 | ``help`` provides all available placeholder strings in section ``Valid placeholder string``
-| ``match`` automatically filters for the ``reported`` section of the response. With commands like ``query`` you need to explicitly select the reported section.  ``ctime`` is then selected via ``reported.ctime``.
+| ``query`` is used to query our graph data.
 
 | ``count`` has another handy feature: building a sum over a provided parameter results.
-| In this case: ``reported.instance_cores``.
-| This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday, groups them by reported.instance_cores results and counts the occurences of them.
+| In this case: ``instance_cores``.
+| This will sum the number of instance_cores for all ``aws_ec2_instances`` that were created before yesterday, groups them by instance_cores results and counts the occurrences of them.
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance) and ctime < @YESTERDAY@ | count reported.instance_cores
-    2: 1                         ← Number of occurences of reported.instance_cores = 2
-    1: 1                         ← Number of occurences of reported.instance_cores = 1
+    > query is(aws_ec2_instance) and ctime < @YESTERDAY@ | count instance_cores
+    2: 1                         ← Number of occurrences of instance_cores = 2
+    1: 1                         ← Number of occurrences of instance_cores = 1
     total matched: 2
     total unmatched: 0
 
-As a small reminder: ``reported.instance_cores`` references to data from matched ``aws_ec2_instances``
+As a small reminder: ``instance_cores`` references to data from matched ``aws_ec2_instances``
 
 .. code-block:: bash
 
-    > match is(aws_ec2_instance) | dump
+    > query is(aws_ec2_instance) | dump
     reported:
     kind: aws_ec2_instance
     [...]
-    ctime: '2021-09-24T15:37:30Z'    ← reported.ctime < "@YESTERDAY@"
-    instance_cores: 2                ← reported.instance_cores
+    ctime: '2021-09-24T15:37:30Z'
+    instance_cores: 2
     [...]
     kinds:
     - resource
@@ -273,8 +270,8 @@ As a small reminder: ``reported.instance_cores`` references to data from matched
     reported:
     kind: aws_ec2_instance
     [...]
-    ctime: '2021-09-11T15:37:30Z'    ← reported.ctime < "@YESTERDAY@"
-    instance_cores: 1                ← reported.instance_cores
+    ctime: '2021-09-11T15:37:30Z'
+    instance_cores: 1
     [...]
     kinds:
     - resource

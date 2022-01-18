@@ -10,7 +10,7 @@ You can access it via http://<resoto-address>:8900/api-doc
 | :ref:`component-resotocore` has two API endpoints to connect to for CLI purposes:
 | ``http://<resoto-address>:8900/cli/evaluate``
 | ``http://<resoto-address>:8900/cli/execute``
-  
+
 ``cli/evaluate`` functinality is used internally on every ``cli/execute`` before the command execution.
 
 Here is a simulation of sending a :ref:`component-resotoshell` query to the CLI API.
@@ -20,9 +20,9 @@ Evaluate
 --------
 
 .. code-block:: bash
-    :caption: Evaluate, correct: ``match is("resource") limit 1``
+    :caption: Evaluate, correct: ``query is("resource") limit 1``
 
-    $ echo 'graph=resoto match is("resource") limit 1' | http :8900/cli/evaluate
+    $ echo 'query is("resource") limit 1' | http :8900/cli/evaluate
     HTTP/1.1 200 OK
     Content-Length: 47
     Content-Type: application/json; charset=utf-8
@@ -36,9 +36,9 @@ Evaluate
     ]
 
 .. code-block:: bash
-    :caption: Evaluate, typo: ``match is("resource") limit1``
+    :caption: Evaluate, typo: ``query is("resource") limit1``
 
-    $ echo 'graph=resoto match is("resource") limit1' | http :8900/cli/evaluate
+    $ echo 'graph=resoto query is("resource") limit1' | http :8900/cli/evaluate
     HTTP/1.1 400 Bad Request
     Content-Length: 151
     Content-Type: text/plain; charset=utf-8
@@ -52,9 +52,9 @@ Execute
 -------
 
 .. code-block:: bash
-    :caption: Execute, correct: ``match is("resource") limit 1``
+    :caption: Execute, correct: ``query is("resource") limit 1``
 
-    $ echo 'graph=resoto match is("resource") limit 1' | http :8900/cli/execute
+    $ echo 'graph=resoto query is("resource") limit 1' | http :8900/cli/execute
     HTTP/1.1 200 OK
     Content-Type: application/json
     Date: Wed, 06 Oct 2021 15:08:10 GMT
@@ -85,9 +85,9 @@ Execute
     ]
 
 .. code-block:: bash
-    :caption: Execute, typo: ``match is("resource") limit1``
+    :caption: Execute, typo: ``query is("resource") limit1``
 
-    $ echo 'graph=resoto match is("resource") limit1' | http :8900/cli/execute
+    $ echo 'graph=resoto query is("resource") limit1' | http :8900/cli/execute
     HTTP/1.1 400 Bad Request
     Content-Length: 151
     Content-Type: text/plain; charset=utf-8

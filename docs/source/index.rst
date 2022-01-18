@@ -11,8 +11,8 @@ Introduction
 
 .. code-block:: none
     :caption: Hello World in Resoto 🌍
-    
-    match is(resource) | count
+
+    query is(resource) | count
     total matched: 459241
     total unmatched: 0
 
@@ -84,4 +84,4 @@ If you need support, have feedback, questions, plugins and everything else you c
 You found a bug, have ideas or a proposal? Head over to our GitHub issues:
 
 | GitHub Issues:
-| https://github.com/someengineering/resoto/issues/new 
+| https://github.com/someengineering/resoto/issues/new

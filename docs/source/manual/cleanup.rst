@@ -24,12 +24,12 @@ Resoto provides a powerful command to mass create, update or delete tags to keep
 .. code-block:: bash
     :caption: update tag ``owner`` of instance ``i-039e06bb2539e5484`` if present, create if new.
 
-    match id = i-039e06bb2539e5484 | tag update owner lukas
+    query id = i-039e06bb2539e5484 | tag update owner lukas
 
 .. code-block:: bash
     :caption: delete tag ``owner`` from instance ``i-039e06bb2539e5484``
 
-    match id = i-039e06bb2539e5484 | tag delete owner
+    query id = i-039e06bb2539e5484 | tag delete owner
 
 :ref:`component-resotocore` will put this tagging task onto a task queue. This task is then consumed by a :ref:`component-resotoworker` that knows how to perform tagging for that particular resource and its particular cloud and account.
 
@@ -46,7 +46,7 @@ Deleting resources
     | **Resoto is designed to clean up resources**.
     | Act with caution when selecting and filtering resources for cleanup.
 
-    If you run ``match is(aws_ec2_volume) | clean``, it marks **all** ``aws_ec2_volume`` resources in your cloud for deletion.
+    If you run ``query is(aws_ec2_volume) | clean``, it marks **all** ``aws_ec2_volume`` resources in your cloud for deletion.
 
     | By default, :ref:`component-resotoworker` will **NOT delete resources marked for deletion.**
     | Resources marked with ``| clean`` will stay this way without deleting them.
@@ -58,7 +58,7 @@ Deleting resources
 
     When doing a resource cleanup selection for the first time it is good practice to confirm the list of selected resources for plausibility using something like ``desired clean = true | count``.
 
-    To quickly undo marking all ``aws_ec2_volumes`` for clean use ``match is(aws_ec2_volume) | set_desired clean=false``.
+    To quickly undo marking all ``aws_ec2_volumes`` for clean use ``query is(aws_ec2_volume) | set_desired clean=false``.
 
     To remove all clean marker on all ressources you can use ``desired clean=true  | set_desired clean=false``.
 
@@ -81,7 +81,7 @@ Optionally you can provide a reason for marking the matched ressources for the n
 .. code-block:: bash
     :caption: Mark all unused EBS volume older than 30 days that had no IO in the past 7d
 
-    match is(volume) and ctime < -30d and atime < -7d and mtime < -7d and volume_status = available | clean "older than 30d with more then 7d of not beeing used"
+    query is(volume) and ctime < -30d and atime < -7d and mtime < -7d and volume_status = available | clean "older than 30d with more then 7d of not beeing used"
 
 .. _delete_the_actual_ressources:
 

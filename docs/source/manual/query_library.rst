@@ -21,8 +21,8 @@ Orphaned Load Balancers that have no active backend
 ---------------------------------------------------
 
 .. code-block:: bash
-    
-    match is(aws_alb) and age > 7d and backends==[] with(empty, <-- is(aws_alb_target_group) and target_type = instance and age > 7d with(empty, <-- is(aws_ec2_instance) and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
+
+    query is(aws_alb) and age > 7d and backends==[] with(empty, <-- is(aws_alb_target_group) and target_type = instance and age > 7d with(empty, <-- is(aws_ec2_instance) and instance_status != terminated)) <-[0:1]- is(aws_alb_target_group) or is(aws_alb)
 
 aws_iam_access_key
 ==================
@@ -33,7 +33,7 @@ Number of active access keys per user
 .. code-block:: bash
     :caption: Ensure there is only one active access key available for any single IAM user
 
-    match is(access_key) access_key_status = "Active" | aggregate reported.user_name as user : sum(1) as number_of_keys
+    query is(access_key) access_key_status = "Active" | aggregate user_name as user : sum(1) as number_of_keys
 
 .. _ql-kind-certificate:
 
@@ -44,8 +44,8 @@ Find expired ssl certificates currently in use
 ----------------------------------------------
 
 .. code-block:: bash
-    
-    match is(certificate) and expires < @NOW@ <--
+
+    query is(certificate) and expires < @NOW@ <--
 
 .. _ql-kind-quota:
 
@@ -56,8 +56,8 @@ Find current quota consumption to prevent service interruptions
 ---------------------------------------------------------------
 
 .. code-block:: bash
-    
-    match is(quota) and usage > 0
+
+    query is(quota) and usage > 0
 
 .. _ql-kind-volume:
 
@@ -69,8 +69,8 @@ Discover unused AWS volumes
 
 .. code-block:: bash
     :caption: Find unused AWS volumes older than 30 days with no IO in the past 7 days
-    
-    match is(aws_ec2_volume) and age > 30d and last_access > 7d and last_update > 7d and volume_status = available
+
+    query is(aws_ec2_volume) and age > 30d and last_access > 7d and last_update > 7d and volume_status = available
 
 .. _query_missing:
 
@@ -85,4 +85,4 @@ If you need support, have feedback, questions, queries and everything else you c
 You found a bug, have ideas or a proposal? Head over to our GitHub issues:
 
 | GitHub Issues:
-| https://github.com/someengineering/resoto/issues/new 
+| https://github.com/someengineering/resoto/issues/new

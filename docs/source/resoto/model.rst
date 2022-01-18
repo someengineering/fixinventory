@@ -249,7 +249,7 @@ do its best to interpret the value given by the user.
 
 ::
 
-   match ctime < "2018-09-28"
+   query ctime < "2018-09-28"
 
 ``ctime`` is of type datetime. datetime is stored in Resoto always as ISO formatted datetime string.
 To make this query effective, the term ``"2018-09-28"`` is coerced into a valid datetime.
@@ -257,7 +257,7 @@ Depending on the server time the value would be evaluated to something like:
 
 ::
 
-  match ctime < "2021-09-28T22:00:00Z"
+  query ctime < "2021-09-28T22:00:00Z"
 
 
 This also allows the usage of relative times, when the type of the property is known as datetime.
@@ -265,7 +265,7 @@ If we want to query resources, that have been created in the last 3 days, we cou
 
 ::
 
-  match ctime > "-3d"
+  query ctime > "-3d"
 
 
 This translates the term ``"-3d"`` using the current server time into a valid datetime.
@@ -273,7 +273,7 @@ On my machine this translates into:
 
 ::
 
-  match ctime > "2021-09-26T08:13:56Z"
+  query ctime > "2021-09-26T08:13:56Z"
 
 
 
