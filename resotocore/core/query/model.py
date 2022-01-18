@@ -192,6 +192,11 @@ class Term(abc.ABC):
                 return Predicate(fn(term.name), term.op, term.value, term.args)
             elif isinstance(term, FunctionTerm):
                 return FunctionTerm(term.fn, fn(term.property_path), term.args)
+            elif isinstance(term, MergeTerm):
+                post = walk(term.post_filter) if term.post_filter else None
+                return MergeTerm(walk(term.pre_filter), [mq.change_variable(fn) for mq in term.merge], post)
+            elif isinstance(term, NotTerm):
+                return NotTerm(walk(term.term))
             else:
                 return term
 
@@ -301,6 +306,9 @@ class MergeQuery:
     def __str__(self) -> str:
         arr = "" if self.only_first else "[]"
         return f"{self.name}{arr}: {self.query}"
+
+    def change_variable(self, fn: Callable[[str], str]) -> MergeQuery:
+        return replace(self, query=self.query.change_variable(fn))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)

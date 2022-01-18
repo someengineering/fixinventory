@@ -189,6 +189,16 @@ async def test_query_source(cli: CLI) -> None:
     result4 = await cli.execute_cli_command("query --explain --include-edges is(graph_root) -[0:1]->", stream.list)
     assert result4[0][0]["rating"] == "simple"
 
+    # use absolute path syntax
+    result5 = await cli.execute_cli_command(
+        "query aggregate(/reported.kind: sum(/reported.some_int) as si): "
+        "is(foo) and not(/reported.some_int!=0) "
+        "{child: --> /metadata!=null} some_int==0 "
+        "with(any, --> /metadata!=null) sort /reported.name asc limit 1",
+        stream.list,
+    )
+    assert result5 == [[{"group": {"reported.kind": "foo"}, "si": 0}]]
+
 
 @pytest.mark.asyncio
 async def test_sleep_source(cli: CLI) -> None:
