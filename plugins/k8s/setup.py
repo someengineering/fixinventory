@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-k8s",
-    version="2.0.0a10",
+    version="2.0.0a11",
     description="Resoto Kubernetes Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
