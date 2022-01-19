@@ -1,5 +1,5 @@
 ARG UI_VERSION=latest
-FROM ghcr.io/someengineering/resoto-ui:${UI_VERSION} as ui-env
+FROM ghcr.io/someengineering/resoto-ui:${UI_VERSION} as resoto-ui-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
@@ -154,7 +154,7 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG="en_US.UTF-8"
 COPY --from=build-env /usr/local /usr/local
-COPY --from=resoto-ui /usr/local/resoto/ui /usr/local/resoto/ui
+COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
 ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o resoto \
