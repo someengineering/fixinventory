@@ -1395,11 +1395,11 @@ class FormatCommand(CLICommand, OutputTransformer):
             format_string_parser = (escaped_open | escaped_close | no_bracket | variable | bracket).many().concat()
             return format_string_parser.parse(arg)  # type: ignore
 
+        def render_simple_property(prop: Any) -> str:
+            return json.dumps(prop) if isinstance(prop, bool) else str(prop)
+
         def format_object_to_string(frmt: str, elem: Any) -> str:
-            # wrap the object to account for non existent values.
-            # if a format value is not existent, render is as null (json conform).
-            wrapped = AccessJson(elem, "null") if isinstance(elem, dict) else elem
-            return frmt.format_map(wrapped)
+            return frmt.format_map(AccessJson.wrap(elem, "null", render_simple_property))
 
         async def render_format(format_name: str, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
@@ -1567,6 +1567,12 @@ class ListCommand(CLICommand, OutputTransformer):
                 return ", ".join(f"{to_str(k, v)}" for k, v in sorted(elem.items()))
             elif isinstance(elem, list):
                 return f"{name}=[" + ", ".join(str(e) for e in elem) + "]"
+            elif elem is None:
+                return f"{name}=null"
+            elif elem is True:
+                return f"{name}=true"
+            elif elem is False:
+                return f"{name}=false"
             else:
                 return f"{name}={elem}"
 
