@@ -12,7 +12,7 @@ main() {
     apply_permissions
     configure_timezone
     setup_etc_hosts || true
-    exec /usr/local/bin/startup "$@"
+    exec /usr/local/sbin/startup "$@"
 }
 
 
