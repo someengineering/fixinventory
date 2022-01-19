@@ -1,4 +1,3 @@
 ARG IMAGE_TAG=latest
 FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
-EXPOSE 8900
-ENTRYPOINT [ "/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/resh"]
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/resh"]

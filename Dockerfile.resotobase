@@ -1,5 +1,5 @@
-ARG UI_VERSION=latest
-FROM ghcr.io/someengineering/resoto-ui:${UI_VERSION} as resoto-ui-env
+ARG UI_IMAGE_TAG=latest
+FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
@@ -190,5 +190,5 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 8900 9955 9956
-ENTRYPOINT [ "/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
 CMD ["/bin/bash"]
