@@ -3,9 +3,9 @@ servers:
     -   url: ../
         description: current system
 info:
-    description: API provided by keeper-core
+    description: API provided by resotocore
     version: V1
-    title: keeper-core REST API
+    title: resotocore REST API
 tags:
     -   name: graph_query
         description: Endpoints to query all sections of the graph.
