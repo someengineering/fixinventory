@@ -34,7 +34,7 @@ jobs:
                         someengineering/resoto
                         ghcr.io/someengineering/resoto
                     flavor: |
-                      latest=auto
+                        latest=auto
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}

@@ -30,14 +30,20 @@ jobs:
                 run: |
                     if [ "${{ github.ref_type }}" = tag ]; then
                         echo "::set-output name=targets::linux/amd64,linux/arm64"
+                        echo "::set-output name=uitag::latest"
+                        echo "::set-output name=latest::true"
                     else
                         echo "::set-output name=targets::linux/amd64"
+                        echo "::set-output name=uitag::edge"
+                        echo "::set-output name=latest::false"
                     fi
 
             -   name: Check short commit SHA and build targets
                 run: |
                     echo ${{ steps.sha.outputs.short }}
                     echo ${{ steps.platform.outputs.targets }}
+                    echo ${{ steps.platform.outputs.uitag }}
+                    echo ${{ steps.platform.outputs.latest }}
 
             -   name: Docker resotobase meta
                 id: basemeta
@@ -47,7 +53,7 @@ jobs:
                         someengineering/resotobase
                         ghcr.io/someengineering/resotobase
                     flavor: |
-                      latest=auto
+                      latest=${{ steps.platform.outputs.latest }}
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -67,7 +73,7 @@ jobs:
                         someengineering/resotocore
                         ghcr.io/someengineering/resotocore
                     flavor: |
-                      latest=auto
+                      latest=${{ steps.platform.outputs.latest }}
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -87,7 +93,7 @@ jobs:
                         someengineering/resotoworker
                         ghcr.io/someengineering/resotoworker
                     flavor: |
-                      latest=auto
+                      latest=${{ steps.platform.outputs.latest }}
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -107,7 +113,7 @@ jobs:
                         someengineering/resotometrics
                         ghcr.io/someengineering/resotometrics
                     flavor: |
-                      latest=auto
+                      latest=${{ steps.platform.outputs.latest }}
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -127,7 +133,7 @@ jobs:
                         someengineering/resotoshell
                         ghcr.io/someengineering/resotoshell
                     flavor: |
-                      latest=auto
+                      latest=${{ steps.platform.outputs.latest }}
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -181,6 +187,7 @@ jobs:
                     platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
+                        UI_IMAGE_TAG=${{ steps.platform.outputs.uitag }}
                         SOURCE_COMMIT=${{ github.sha }}
                         TESTS=false
                     tags: ${{ steps.basemeta.outputs.tags }}
