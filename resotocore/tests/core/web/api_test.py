@@ -58,9 +58,13 @@ async def core_client(
                 if count == 0:
                     raise AssertionError("Process does not came up as expected")
     yield ApiClient("http://localhost:8900", client_session)
-    # kill the process
+    # terminate the process
     process.terminate()
     process.join(5)
+    # if it is still running, kill it
+    if process.is_alive():
+        process.kill()
+        process.join()
     process.close()
 
 
