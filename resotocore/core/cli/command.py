@@ -67,6 +67,7 @@ from core.cli.model import (
     ParsedCommand,
 )
 from core.db.model import QueryModel
+from core.dependencies import system_info
 from core.error import CLIParseError, ClientError, CLIExecutionError
 from core.model.graph_access import Section, EdgeType
 from core.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
@@ -2108,6 +2109,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     """
     Usage: system backup create [name]
            system backup restore <path>
+           system info
 
     system backup create [name]:
 
@@ -2154,6 +2156,19 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     Example:
         system backup restore /path/to/backup    # this will restore the backup from the given local path.
 
+    system info:
+
+    Prints information about the currently running system.
+
+    Example:
+        system info
+            name: resotocore
+            version: 2.0.0a11
+            cpus: 8
+            mem_available: 2.75 GiB
+            mem_total: 16.00 GiB
+            inside_docker: false
+            started_at: '2022-01-20T14:00:17Z'
     """
 
     @property
@@ -2265,6 +2280,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 # create a background task, so that the current request can be executed completely
                 asyncio.create_task(wait_and_exit())
 
+    @staticmethod
+    async def show_system_info() -> AsyncIterator[Json]:
+        info = to_js(system_info())
+        yield {**{"name": "resotocore"}, **info}
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")
         if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
@@ -2282,6 +2302,8 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
             return CLISource.single(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
+        elif len(parts) == 1 and parts[0] == "info":
+            return CLISource.single(self.show_system_info)
         else:
             raise CLIParseError(f"system: Can not parse {arg}")
 

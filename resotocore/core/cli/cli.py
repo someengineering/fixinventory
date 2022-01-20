@@ -16,6 +16,7 @@ from itertools import takewhile
 from parsy import Parser
 from tzlocal import get_localzone
 
+from core import version
 from core.analytics import CoreEvent
 from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
@@ -124,7 +125,7 @@ class HelpCommand(CLICommand):
                 )
                 replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
                 result = (
-                    f"\nresotocore CLI\n\n\n"
+                    f"\nresotocore CLI ({version()})\n\n\n"
                     f"Valid placeholder string:\n{replacements}\n\n"
                     f"Available Commands:\n{available}\n\n"
                     f"Available Aliases:\n{aliases}\n\n"

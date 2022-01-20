@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import pytest
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from pytest import fixture
 from typing import AsyncGenerator, List
 
@@ -9,6 +9,7 @@ from core.analytics import AnalyticsEventSender
 from core.cli.cli import CLI
 from core.db.jobdb import JobDb
 from core.db.runningtaskdb import RunningTaskDb
+from core.dependencies import parse_args
 from core.error import ParseError
 from core.message_bus import MessageBus, Event, Message, ActionDone, Action
 from core.task.model import Subscriber
@@ -63,9 +64,7 @@ def job_db() -> JobDb:
 
 @fixture
 def task_handler_args() -> Namespace:
-    args = ArgumentParser()
-    TaskHandler.add_args(args)
-    return args.parse_args("")
+    return parse_args([])
 
 
 @fixture
