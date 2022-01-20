@@ -30,8 +30,8 @@ from typing import (
 
 import sys
 from dateutil.parser import isoparse
-from durations_nlp import Duration
 
+from core.durations import parse_duration
 from core.types import JsonElement, Json
 
 log = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ def from_utc(date_string: str) -> datetime:
 
 
 def duration(d: str) -> timedelta:
-    return timedelta(seconds=int(Duration(d).seconds))
+    return parse_duration(d)
 
 
 def uuid_str(from_object: Optional[Any] = None) -> str:

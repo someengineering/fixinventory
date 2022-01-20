@@ -3,22 +3,22 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
 
 from dateutil.parser import parse
-from durations_nlp import Duration
 from jsons import set_deserializer, set_serializer
 from networkx import DiGraph
 from parsy import regex, string, Parser
 
+from core.durations import duration_parser, DurationRe
 from core.model.transform_kind_convert import converters
 from core.model.typed_model import from_js
 from core.parse_util import make_parser
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
-from core.util import if_set, utc
+from core.util import if_set, utc, duration
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -409,22 +409,20 @@ class BooleanKind(SimpleKind):
 
 
 class DurationKind(SimpleKind):
-    DurationRe = re.compile("^[+-]?([\\d.]+([smhdwMy]|second|minute|hour|day|week|month|year)s?)+$")
-
     def __init__(self, fqn: str):
         super().__init__(fqn, "duration")
         self.valid_fn = validate_fn(check_type_fn(str, "duration"), self.check_duration)
 
     def check_duration(self, v: Any) -> None:
-        if not self.DurationRe.fullmatch(v):
-            raise AttributeError(f"Wrong format for duration: {v}. Examples: 2w, 4h3m, 2weeks, 1second")
+        if not DurationRe.fullmatch(v):
+            raise AttributeError(f"Wrong format for duration: {v}. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return self.valid_fn(obj)
 
     def coerce(self, value: Any) -> Optional[str]:
         try:
-            return f"{int(Duration(value).seconds)}s"
+            return f"{int(duration_parser.parse(value))}s"
         except Exception as ex:
             raise AttributeError(f"Expected duration but got: >{value}<") from ex
 
@@ -462,7 +460,7 @@ class DateTimeKind(SimpleKind):
                 return value
             elif self.DateTimeRe.fullmatch(value):
                 return value  # type: ignore
-            elif DurationKind.DurationRe.fullmatch(value):
+            elif DurationRe.fullmatch(value):
                 return self.from_duration(value)
             else:
                 return self.from_datetime(value)
@@ -486,7 +484,7 @@ class DateTimeKind(SimpleKind):
     @staticmethod
     def from_duration(value: str, now: datetime = utc()) -> str:
         # in case of duration, compute the timestamp as: now + duration
-        delta = timedelta(seconds=Duration(value).seconds)
+        delta = duration(value)
         instant = now + delta
         return instant.strftime(DateTimeKind.Format)
 
@@ -510,9 +508,9 @@ class DateKind(SimpleKind):
         try:
             if value is None:
                 return value
-            elif DurationKind.DurationRe.fullmatch(value):
+            elif DurationRe.fullmatch(value):
                 # in case of duration, compute the timestamp as: today + duration
-                delta = timedelta(seconds=Duration(value).seconds)
+                delta = duration(value)
                 at = date.today() + delta
                 return at.isoformat()
             else:

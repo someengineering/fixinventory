@@ -2,7 +2,6 @@
 
 aiohttp-swagger3==0.7.0
 aiohttp[speedups]==3.8.1
-durations_nlp==1.0.1
 jsons==1.6.1
 parsy==1.4.0
 plantuml==0.3.0

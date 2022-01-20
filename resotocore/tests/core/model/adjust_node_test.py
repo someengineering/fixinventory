@@ -35,9 +35,9 @@ def test_adjust_expired() -> None:
     expect_expires({**reported, "tags": {"expiration": "never"}}, None)  # never can not be parsed
     expect_expires({**reported, "tags": {"resoto:expiration": "never"}}, None)  # never can not be parsed
     expect_expires({"tags": {"resoto:expiration": "12h"}}, None)  # no ctime given
-    expect_expires({"tags": {"expiration": "2w3d4h5m"}}, None)  # no ctime given
-    expect_expires({**reported, "tags": {"resoto:expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
-    expect_expires({**reported, "tags": {"expiration": "2w3d4h5m"}}, "2021-01-18T04:05:00Z")
+    expect_expires({"tags": {"expiration": "2mo3d4h5min"}}, None)  # no ctime given
+    expect_expires({**reported, "tags": {"resoto:expiration": "2mo3d4h5min"}}, "2021-03-07T04:05:00Z")
+    expect_expires({**reported, "tags": {"expiration": "2mo3d4h5min"}}, "2021-03-07T04:05:00Z")
 
     # multiple values given: use order: ck:expiration -> ck:expires -> expiration -> expires
     expect_expires(

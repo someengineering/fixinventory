@@ -1,25 +1,11 @@
-from datetime import timedelta
-
-from durations_nlp import Duration
-
+from core.durations import parse_duration, time_units
 from core.util import utc, utc_str, from_utc
 
 
 def datetime_before_now(duration_string: str) -> str:
-    duration = timedelta(seconds=Duration(duration_string).seconds)
+    duration = parse_duration(duration_string)
     timestamp = utc() - duration
     return utc_str(timestamp)
-
-
-unit_in_secs = {
-    "y": 365 * 24 * 3600,
-    "M": 31 * 24 * 3600,
-    "w": 7 * 24 * 3600,
-    "d": 24 * 3600,
-    "h": 3600,
-    "m": 60,
-    "s": 1,
-}
 
 
 def duration_until_now(at: str) -> str:
@@ -29,7 +15,7 @@ def duration_until_now(at: str) -> str:
     found = False
     count = 0
     result = ""
-    for unit, factor in unit_in_secs.items():
+    for unit, _, factor in time_units:
         if seconds > factor:
             found = True
             num = int(seconds / factor)
