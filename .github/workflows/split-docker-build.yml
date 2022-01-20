@@ -43,6 +43,10 @@ jobs:
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
                         type=edge
+                    labels: |
+                        org.opencontainers.image.title=resotobase
+                        org.opencontainers.image.description=Resoto base image
+                        org.opencontainers.image.vendor=Some Engineering Inc.
 
             -   name: Docker resotocore meta
                 id: coremeta
@@ -59,6 +63,10 @@ jobs:
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
                         type=edge
+                    labels: |
+                        org.opencontainers.image.title=resotocore
+                        org.opencontainers.image.description=Resoto Core
+                        org.opencontainers.image.vendor=Some Engineering Inc.
 
             -   name: Docker resotoworker meta
                 id: workermeta
@@ -75,6 +83,10 @@ jobs:
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
                         type=edge
+                    labels: |
+                        org.opencontainers.image.title=resotoworker
+                        org.opencontainers.image.description=Resoto Worker
+                        org.opencontainers.image.vendor=Some Engineering Inc.
 
             -   name: Docker resotometrics meta
                 id: metricsmeta
@@ -91,6 +103,10 @@ jobs:
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
                         type=edge
+                    labels: |
+                        org.opencontainers.image.title=resotometrics
+                        org.opencontainers.image.description=Resoto Metrics
+                        org.opencontainers.image.vendor=Some Engineering Inc.
 
             -   name: Docker resotoshell meta
                 id: shellmeta
@@ -107,6 +123,10 @@ jobs:
                         type=pep440,pattern={{major}}
                         type=sha,prefix=
                         type=edge
+                    labels: |
+                        org.opencontainers.image.title=resotoshell
+                        org.opencontainers.image.description=Resoto Shell (resh)
+                        org.opencontainers.image.vendor=Some Engineering Inc.
 
             -   name: Set up QEMU
                 id: qemu
