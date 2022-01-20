@@ -12,8 +12,9 @@ ARG PYPY_VERSION=7.3.7
 ARG PYPY_ARCH=linux64
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-# Install Build dependencies
 RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
+COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
+# Install Build dependencies
 RUN apt-get update
 RUN apt-get -y dist-upgrade
 RUN apt-get -y install apt-utils
@@ -154,7 +155,6 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG="en_US.UTF-8"
 COPY --from=build-env /usr/local /usr/local
-COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
 ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o resoto \
