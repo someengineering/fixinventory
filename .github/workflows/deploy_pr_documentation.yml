@@ -17,6 +17,12 @@ jobs:
       with:
         docs-folder: "docs/"
 
+    - name: Generate Swagger UI
+      uses: Legion2/swagger-ui-action@v1
+      with:
+        output: docs/_build/html/swagger-ui
+        spec-file: resotocore/core/static/api-doc.yaml
+
     # Publish built docs to gh-pages branch.
     # ===============================
     - name: Commit documentation
