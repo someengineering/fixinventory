@@ -2,21 +2,40 @@ import argparse
 import logging
 import multiprocessing as mp
 import os.path
+import sys
 from argparse import Namespace
+from collections import namedtuple
 from typing import Optional, List, Callable
 from urllib.parse import urlparse
 
+import psutil
 from arango.database import StandardDatabase
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
+from resotolib.utils import iec_size_format
 
-from core import async_extensions
+from core import async_extensions, version
 from core.analytics import AnalyticsEventSender
 from core.db.db_access import DbAccess
 from core.model.adjust_node import DirectAdjuster
-from core.task.task_handler import TaskHandler
+from core.util import utc
 
 log = logging.getLogger(__name__)
+
+SystemInfo = namedtuple("SystemInfo", ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"])
+started_at = utc()
+
+
+def system_info() -> SystemInfo:
+    mem = psutil.virtual_memory()
+    return SystemInfo(
+        version=version(),
+        cpus=mp.cpu_count(),
+        mem_available=iec_size_format(mem.available),
+        mem_total=iec_size_format(mem.total),
+        inside_docker=os.path.exists("/.dockerenv"),  # this file is created by the docker runtime
+        started_at=started_at,
+    )
 
 
 def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None) -> Namespace:
@@ -175,9 +194,27 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Use this graph section by default, if no section is specified."
         "Relative paths will be interpreted with respect to this section.",
     )
+    parser.add_argument("--version", action="store_true", help="Print the version of resotocore and exit.")
+    parser.add_argument(
+        "--jobs",
+        nargs="*",
+        type=argparse.FileType("r"),
+        help="Read job definitions from given file.",
+    )
+    parser.add_argument(
+        "--start-collect-on-subscriber-connect",
+        default=False,
+        action="store_true",
+        help="Start the collect workflow, when the first handling actor connects to the system.",
+    )
+    parsed: Namespace = parser.parse_args(args, namespace)
 
-    TaskHandler.add_args(parser)
-    return parser.parse_args(args, namespace)  # type: ignore
+    if parsed.version:
+        # print here on purpose, since logging is not set up yet.
+        print(f"resotocore {version()}")
+        sys.exit(0)
+
+    return parsed
 
 
 # Note: this method should be called from every started process as early as possible

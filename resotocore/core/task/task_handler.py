@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import argparse
 import asyncio
 import logging
 import re
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from asyncio import Task, CancelledError
 from contextlib import suppress
 from copy import copy
@@ -54,21 +53,6 @@ log = logging.getLogger(__name__)
 class TaskHandler(JobHandler):
 
     # region init
-
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--jobs",
-            nargs="*",
-            type=argparse.FileType("r"),
-            help="Read job definitions from given file.",
-        )
-        arg_parser.add_argument(
-            "--start-collect-on-subscriber-connect",
-            default=False,
-            action="store_true",
-            help="Start the collect workflow, when the first handling actor connects to the system.",
-        )
 
     def __init__(
         self,

@@ -18,6 +18,7 @@ from aiostream import stream
 from aiostream.core import Stream
 from pytest import fixture
 
+from core import version
 from core.cli import is_node
 from core.cli.cli import CLI
 from core.cli.command import HttpCommand, JqCommand
@@ -563,6 +564,14 @@ async def test_system_backup_command(cli: CLI) -> None:
                 only_one = False
 
     await cli.execute_cli_command("system backup create", check_backup)
+
+
+@pytest.mark.asyncio
+async def test_system_info_command(cli: CLI) -> None:
+    info = AccessJson.wrap_object((await cli.execute_cli_command("system info", stream.list))[0][0])
+    assert info.version == version()
+    assert info.name == "resotocore"
+    assert info.cpus > 0
 
 
 @pytest.mark.skipif(

@@ -1,6 +1,4 @@
 import logging
-import multiprocessing
-import os
 import platform
 import ssl
 from asyncio import Queue
@@ -8,7 +6,6 @@ from datetime import timedelta
 from ssl import SSLContext
 from typing import AsyncIterator, Optional, List
 
-import psutil
 import sys
 from aiohttp.web_app import Application
 
@@ -20,7 +17,7 @@ from core.cli.cli import CLI
 from core.cli.model import CLIDependencies
 from core.cli.command import aliases, all_commands
 from core.db.db_access import DbAccess
-from core.dependencies import db_access, setup_process, parse_args
+from core.dependencies import db_access, setup_process, parse_args, system_info
 from core.message_bus import MessageBus
 from core.model.model_handler import ModelHandlerDB
 from core.model.typed_model import to_json, class_fqn
@@ -41,7 +38,15 @@ def main() -> None:
     """
     Application entrypoint - no arguments are allowed.
     """
-    run(sys.argv[1:])
+    try:
+        run(sys.argv[1:])
+        log.info("Process finished.")
+    except (KeyboardInterrupt, SystemExit):
+        log.info("Stopping resoto graph core.")
+        shutdown_process(0)
+    except Exception as ex:
+        print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
+        shutdown_process(1)
 
 
 def run(arguments: List[str]) -> None:
@@ -51,18 +56,14 @@ def run(arguments: List[str]) -> None:
                  Note: this method is used in tests to specify arbitrary arguments.
     """
 
-    # os information
-    cpus = multiprocessing.cpu_count()
-    mem = psutil.virtual_memory()
-    inside_docker = os.path.exists("/.dockerenv")  # this file is created by the docker runtime
-    started_at = utc()
     args = parse_args(arguments)
     setup_process(args)
 
     # after setup, logging is possible
+    info = system_info()
     log.info(
-        f"Starting up version={version()} on system with cpus={cpus}, "
-        f"available_mem={mem.available}, total_mem={mem.total}"
+        f"Starting up version={info.version} on system with cpus={info.cpus}, "
+        f"available_mem={info.mem_available}, total_mem={info.mem_total}"
     )
 
     # wait here for an initial connection to the database before we continue. blocking!
@@ -129,15 +130,15 @@ def run(arguments: List[str]) -> None:
                 "created_at": to_json(system_data.created_at),
                 "system": platform.system(),
                 "platform": platform.platform(),
-                "inside_docker": inside_docker,
+                "inside_docker": info.inside_docker,
             },
-            cpu_count=cpus,
-            mem_total=mem.total,
-            mem_available=mem.available,
+            cpu_count=info.cpus,
+            mem_total=info.mem_total,
+            mem_available=info.mem_available,
         )
 
     async def on_stop() -> None:
-        duration = utc() - started_at
+        duration = utc() - info.started_at
         await api.stop()
         await task_handler.stop()
         await cli.stop()
@@ -169,12 +170,4 @@ def run(arguments: List[str]) -> None:
 
 
 if __name__ == "__main__":
-    try:
-        main()
-        log.info("Process finished.")
-    except (KeyboardInterrupt, SystemExit):
-        log.info("Stopping resoto graph core.")
-        shutdown_process(0)
-    except Exception as ex:
-        print(f"resotocore stopped. Reason {class_fqn(ex)}: {ex}", file=sys.stderr)
-        shutdown_process(1)
+    main()
