@@ -2,9 +2,11 @@ name: Compile Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'docs/**'
+      - '.github/**'
 
 jobs:
   deploy_documentation:
