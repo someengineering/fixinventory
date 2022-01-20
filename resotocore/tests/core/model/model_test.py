@@ -89,10 +89,12 @@ def test_boolean() -> None:
 
 def test_duration() -> None:
     a = DurationKind("dt")
-    assert a.check_valid("2w3d5h6m3s") is None
+    assert a.check_valid("3d5h6min3s") is None
     assert expect_error(a, True) == "Expected type duration but got bool"
-    assert expect_error(a, "23df") == "Wrong format for duration: 23df. Examples: 2w, 4h3m, 2weeks, 1second"
-    assert a.coerce("12w") == "7257600s"
+    assert (
+        expect_error(a, "23df") == "Wrong format for duration: 23df. Examples: 1yr, 3mo, 3d4h3min1s, 3days and 2hours"
+    )
+    assert a.coerce("12d") == "1036800s"
     with pytest.raises(AttributeError) as no_date:
         a.coerce("simply no duration")
     assert str(no_date.value) == f"Expected duration but got: >simply no duration<"
@@ -109,10 +111,10 @@ def test_transform() -> None:
     assert (one_day_old - (utc() - timedelta(hours=24))).total_seconds() <= 2
 
     # transform back from underlying timestamp to timedelta
-    assert age.transform(utc_str(utc() - timedelta(seconds=123))) == "2m3s"
+    assert age.transform(utc_str(utc() - timedelta(seconds=123))) == "2min3s"
     assert age.transform(utc_str(utc() - timedelta(seconds=123456))) == "1d10h"
-    assert age.transform(utc_str(utc() - timedelta(seconds=1234567))) == "2w"
-    assert age.transform(utc_str(utc() - timedelta(seconds=123456789))) == "3y10M"
+    assert age.transform(utc_str(utc() - timedelta(seconds=1234567))) == "14d6h"
+    assert age.transform(utc_str(utc() - timedelta(seconds=123456789))) == "3yr10mo"
 
 
 def test_datetime() -> None:
@@ -131,7 +133,7 @@ def test_datetime() -> None:
     assert a.coerce("08:56:15").startswith(today[0:11])  # type: ignore
     assert a.coerce("08:56:15").endswith(":56:15Z")  # type: ignore# ignore the hours, time zone dependant
     assert a.coerce("-12d").startswith("20")  # type: ignore
-    assert a.coerce("12w").startswith("20")  # type: ignore
+    assert a.coerce("12mo").startswith("20")  # type: ignore
     with pytest.raises(AttributeError) as no_date:
         a.coerce("simply no date")
     assert str(no_date.value) == f"Expected datetime but got: >simply no date<"
@@ -144,7 +146,7 @@ def test_date() -> None:
     assert a.coerce("2021-06-08") == "2021-06-08"
     assert a.coerce("2021 06 08") == "2021-06-08"
     assert a.coerce("-12d").startswith("20")  # type: ignore
-    assert a.coerce("12w").startswith("20")  # type: ignore
+    assert a.coerce("12mo").startswith("20")  # type: ignore
     with pytest.raises(AttributeError) as no_date:
         a.coerce("simply no date")
     assert str(no_date.value) == f"Expected date but got: >simply no date<"
