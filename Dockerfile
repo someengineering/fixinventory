@@ -2,10 +2,10 @@ FROM phusion/baseimage:focal-1.0.0 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
 ARG SOURCE_COMMIT
-ARG PYTHON_VERSION=3.10.1
+ARG PYTHON_VERSION=3.10.2
 ARG PYPY_VERSION=7.3.7
-ARG ARANGODB_VERSION=3.8.3
-ARG PROMETHEUS_VERSION=2.31.1
+ARG ARANGODB_VERSION=3.8.4
+ARG PROMETHEUS_VERSION=2.32.1
 ARG GODOT_VERSION=3.4
 ARG CRYPTO_EXPORT_TEMPLATES_DEBUG_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_debug.zip
 ARG CRYPTO_EXPORT_TEMPLATES_RELEASE_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_release.zip
