@@ -1,4 +1,4 @@
-ARG IMAGE_TAG=latest
+ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
 EXPOSE 8900
 ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/resotocore"]
