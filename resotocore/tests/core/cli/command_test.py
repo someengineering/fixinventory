@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -319,6 +320,11 @@ async def test_format(cli: CLI) -> None:
         'json {"a":"b", "b": {"c":"d"}} | format a:{a} b:{b.c} na:{fuerty}', stream.list
     )
     assert result[0] == ["a:b b:d na:null"]
+
+    # use correct type
+    props = dict(a="a", b=True, c=False, d=None, e=12, f=1.234)
+    result = await cli.execute_cli_command(f"json {json.dumps(props)}" " | format {a}:{b}:{c}:{d}:{e}:{f}", stream.list)
+    assert result[0] == ["a:true:false:null:12:1.234"]
     # access deeply nested properties with dict and array
     result = await cli.execute_cli_command(
         'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<',
@@ -484,6 +490,11 @@ async def test_list_command(cli: CLI) -> None:
     list_cmd = "list some_int as si, some_string"
     result = await cli.execute_cli_command(f'query is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
+
+    # List is using the correct type
+    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
+    result = await cli.execute_cli_command(f"json {json.dumps(props)}" " | list a,b,c,d,e,f", stream.list)
+    assert result[0] == ["a=a, b=true, c=false, e=12, f=1.234"]
 
     # Queries that use the reported section, also interpret the list format in the reported section
     result = await cli.execute_cli_command(

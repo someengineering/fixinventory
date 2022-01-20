@@ -328,14 +328,21 @@ class AccessJson(Dict[Any, Any]):
     as well as exception safe access for non existent properties.
     """
 
-    def __init__(self, mapping: Mapping[Any, Any], not_existent: Any = None) -> None:
+    def __init__(
+        self, mapping: Mapping[Any, Any], not_existent: Any = None, simple_formatter: Callable[[Any], Any] = identity
+    ) -> None:
         super().__init__(mapping)
         self.__not_existent = AccessNone(not_existent)
+        self.__simple_formatter = simple_formatter
 
     def __getitem__(self, item: Any) -> Any:
         if item in self:
             iv = super().__getitem__(item)
-            return AccessJson.wrap(iv, self.__not_existent) if iv is not None else self.__not_existent
+            return (
+                AccessJson.wrap(iv, self.__not_existent, self.__simple_formatter)
+                if iv is not None
+                else self.__not_existent
+            )
         else:
             return self.__not_existent
 
@@ -346,25 +353,29 @@ class AccessJson(Dict[Any, Any]):
         return json.dumps(self)
 
     @staticmethod
-    def wrap(obj: Any, not_existent: Any = AccessNone(None)) -> Any:
+    def wrap(obj: Any, not_existent: Any = AccessNone(None), simple_formatter: Callable[[Any], Any] = identity) -> Any:
+        if isinstance(obj, (str, int, float, AccessJson)):
+            return simple_formatter(obj)
         # dict like data structure -> wrap whole element
-        if isinstance(obj, (str, int, bool, float, AccessJson)):
-            return obj
         elif isinstance(obj, Mapping):
-            return AccessJson(obj, not_existent)
+            return AccessJson(obj, not_existent, simple_formatter)
         # list like data structure -> wrap all elements
         elif isinstance(obj, Sequence):
-            return [AccessJson.wrap(item, not_existent) for item in obj]
+            return [AccessJson.wrap(item, not_existent, simple_formatter) for item in obj]
         # simply return the object
         else:
             return obj
 
     @staticmethod
-    def wrap_list(obj: Any, not_existent: Any = AccessNone(None)) -> List[AccessJson]:
+    def wrap_list(
+        obj: Any, not_existent: Any = AccessNone(None), simple_formatter: Callable[[Any], Any] = identity
+    ) -> List[AccessJson]:
         # only here for a typed result
-        return AccessJson.wrap(obj, not_existent)  # type: ignore
+        return AccessJson.wrap(obj, not_existent, simple_formatter)  # type: ignore
 
     @staticmethod
-    def wrap_object(obj: Any, not_existent: Any = AccessNone(None)) -> AccessJson:
+    def wrap_object(
+        obj: Any, not_existent: Any = AccessNone(None), simple_formatter: Callable[[Any], Any] = identity
+    ) -> AccessJson:
         # only here for a typed result
-        return AccessJson.wrap(obj, not_existent)  # type: ignore
+        return AccessJson.wrap(obj, not_existent, simple_formatter)  # type: ignore
