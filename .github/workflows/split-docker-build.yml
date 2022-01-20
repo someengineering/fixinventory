@@ -25,8 +25,19 @@ jobs:
                 id: sha
                 run: echo "::set-output name=short::${GITHUB_SHA::7}"
 
-            -   name: Check short commit SHA
-                run: echo ${{ steps.sha.outputs.short }}
+            -   name: Set build platforms
+                id: platform
+                run: |
+                    if [ "${{ github.ref_type }}" = tag ]; then
+                        echo "::set-output name=targets::linux/amd64,linux/arm64"
+                    else
+                        echo "::set-output name=targets::linux/amd64"
+                    fi
+
+            -   name: Check short commit SHA and build targets
+                run: |
+                    echo ${{ steps.sha.outputs.short }}
+                    echo ${{ steps.platform.outputs.targets }}
 
             -   name: Docker resotobase meta
                 id: basemeta
@@ -167,7 +178,7 @@ jobs:
                 with:
                     context: .
                     file: ./Dockerfile.resotobase
-                    platforms: linux/amd64
+                    platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
                         SOURCE_COMMIT=${{ github.sha }}
@@ -183,7 +194,7 @@ jobs:
                 with:
                     context: .
                     file: ./Dockerfile.resotocore
-                    platforms: linux/amd64
+                    platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
@@ -198,7 +209,7 @@ jobs:
                 with:
                     context: .
                     file: ./Dockerfile.resotoworker
-                    platforms: linux/amd64
+                    platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
@@ -213,7 +224,7 @@ jobs:
                 with:
                     context: .
                     file: ./Dockerfile.resotometrics
-                    platforms: linux/amd64
+                    platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
@@ -228,7 +239,7 @@ jobs:
                 with:
                     context: .
                     file: ./Dockerfile.resotoshell
-                    platforms: linux/amd64
+                    platforms: ${{ steps.platform.outputs.targets }}
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
