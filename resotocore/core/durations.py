@@ -12,15 +12,16 @@ from core.parse_util import lexeme, float_p, integer_p
 
 
 # See https://en.wikipedia.org/wiki/Unit_of_time for reference
-# unit, long name, number of seconds
-# The order is relevant: from highest to lowest
+# The order is relevant: from highest to lowest and longest to shortest
+# | output | all names | number of seconds |
 time_units = [
-    ("yr", "year", 365 * 24 * 3600),
-    ("mo", "month", 31 * 24 * 3600),
-    ("d", "day", 24 * 3600),
-    ("h", "hour", 3600),
-    ("min", "minute", 60),
-    ("s", "second", 1),
+    ("yr", ["years", "year", "yr", "y"], 365 * 24 * 3600),
+    ("mo", ["month", "mo", "M"], 31 * 24 * 3600),
+    ("d", ["days", "day", "d"], 24 * 3600),
+    (None, ["weeks", "week", "w"], 7 * 24 * 3600),  # output is none, so it will not be used to print
+    ("h", ["hours", "hour", "h"], 3600),
+    ("min", ["minutes", "minute", "min", "m"], 60),
+    ("s", ["seconds", "second", "s"], 1),
 ]
 
 time_unit_combines = [",", "and"]
@@ -28,7 +29,7 @@ time_unit_combines = [",", "and"]
 # Check if a string is a valid
 DurationRe = re.compile(
     "^[+-]?([\\d.]+("
-    + "|".join(chain.from_iterable([short, long, long + "s"] for short, long, _ in time_units))
+    + "|".join(chain.from_iterable(names for unit, names, _ in time_units))
     + ")\\s*("
     + "|".join(time_unit_combines)
     + ")?\\s*)+$"
@@ -42,15 +43,12 @@ def combine_durations(elems: List[Union[int, float]]) -> Union[int, float]:
     return result if elems[0] >= 0 else -result
 
 
-time_units_parser: Parser = reduce(
-    lambda result, tpl: result
-    | lexeme(string(tpl[1]) << string("s").optional()).result(tpl[2])
-    | lexeme(string(tpl[0])).result(tpl[2]),
-    time_units,
-    parsy.fail(None),
+time_unit_parser = reduce(
+    lambda x, y: x | y, [lexeme(string(name)).result(seconds) for _, names, seconds in time_units for name in names]
 )
+
 time_unit_combination: Parser = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in [",", "and"]])
-single_duration_parser = parsy.seq((float_p | integer_p), time_units_parser).combine(operator.mul)
+single_duration_parser = parsy.seq((float_p | integer_p), time_unit_parser).combine(operator.mul)
 duration_parser = single_duration_parser.sep_by(time_unit_combination.optional(), min=1).map(combine_durations)
 
 

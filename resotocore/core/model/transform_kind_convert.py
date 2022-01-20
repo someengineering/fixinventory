@@ -16,16 +16,17 @@ def duration_until_now(at: str) -> str:
     count = 0
     result = ""
     for unit, _, factor in time_units:
-        if seconds > factor:
-            found = True
-            num = int(seconds / factor)
-            seconds = seconds - (num * factor)
-            result += f"{num}{unit}"
-        if found:
-            count += 1
-        # precision: we only use 2 units to describe the age.
-        if count >= 2:
-            break
+        if unit:
+            if seconds > factor:
+                found = True
+                num = int(seconds / factor)
+                seconds = seconds - (num * factor)
+                result += f"{num}{unit}"
+            if found:
+                count += 1
+            # precision: we only use 2 units to describe the age.
+            if count >= 2:
+                break
 
     # in case the duration is less than one second
     return result if result else "0s"

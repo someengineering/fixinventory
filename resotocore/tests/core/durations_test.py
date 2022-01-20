@@ -4,10 +4,10 @@ from itertools import chain
 from hypothesis import given
 from hypothesis.strategies import sampled_from, tuples, integers, composite, lists
 
-from core.durations import time_units_parser, time_units, parse_duration, DurationRe
+from core.durations import time_unit_parser, time_units, parse_duration, DurationRe
 from tests.core.hypothesis_extension import UD, Drawer
 
-units_gen = sampled_from(list(chain.from_iterable([short, long, long + "s"] for short, long, _ in time_units)))
+units_gen = sampled_from(list(chain.from_iterable(names for _, names, _ in time_units)))
 combines_gen = sampled_from(["", ", ", " and "])
 duration_gen = tuples(integers(1000, 1000), units_gen).map(lambda x: f"{x[0]}{x[1]}")
 
@@ -33,12 +33,12 @@ def test_arbitrary_durations(duration_str: str) -> None:
 
 
 def test_parse_duration() -> None:
-    for short, long, seconds in time_units:
-        assert time_units_parser.parse(short) == seconds
-        assert time_units_parser.parse(long) == seconds
-        assert time_units_parser.parse(f"{long}s") == seconds
+    for short, names, seconds in time_units:
+        for name in names:
+            assert time_unit_parser.parse(name) == seconds
 
     assert parse_duration("4d") == timedelta(days=4)
     assert parse_duration("1h") == timedelta(hours=1)
     assert parse_duration("32days, 4hours and 3min and 3s") == timedelta(days=32, hours=4, minutes=3, seconds=3)
     assert parse_duration("-32days, 4hours and 3min and 3s") == timedelta(days=-32, hours=-4, minutes=-3, seconds=-3)
+    assert parse_duration("3d4h6m5s") == timedelta(days=3, hours=4, minutes=6, seconds=5)
