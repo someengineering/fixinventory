@@ -154,9 +154,9 @@ jobs:
                 uses: actions/cache@v2
                 with:
                     path: /tmp/.buildx-cache
-                    key: ${{ runner.os }}-buildx-${{ github.sha }}
+                    key: base-${{ runner.os }}-buildx-${{ github.sha }}
                     restore-keys: |
-                        ${{ runner.os }}-buildx-
+                        base-${{ runner.os }}-buildx-
 
             -   name: Log in to Docker Hub
                 if: github.event_name != 'pull_request'
@@ -200,8 +200,6 @@ jobs:
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.coremeta.outputs.tags }}
                     labels: ${{ steps.coremeta.outputs.labels }}
-                    cache-from: type=local,src=/tmp/.buildx-cache
-                    cache-to: type=local,dest=/tmp/.buildx-cache-new
 
             -   name: Build and push resotoworker Docker image
                 if: github.event_name != 'pull_request'
@@ -215,8 +213,6 @@ jobs:
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.workermeta.outputs.tags }}
                     labels: ${{ steps.workermeta.outputs.labels }}
-                    cache-from: type=local,src=/tmp/.buildx-cache
-                    cache-to: type=local,dest=/tmp/.buildx-cache-new
 
             -   name: Build and push resotometrics Docker image
                 if: github.event_name != 'pull_request'
@@ -230,8 +226,6 @@ jobs:
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.metricsmeta.outputs.tags }}
                     labels: ${{ steps.metricsmeta.outputs.labels }}
-                    cache-from: type=local,src=/tmp/.buildx-cache
-                    cache-to: type=local,dest=/tmp/.buildx-cache-new
 
             -   name: Build and push resotoshell Docker image
                 if: github.event_name != 'pull_request'
@@ -245,8 +239,6 @@ jobs:
                         IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.shellmeta.outputs.tags }}
                     labels: ${{ steps.shellmeta.outputs.labels }}
-                    cache-from: type=local,src=/tmp/.buildx-cache
-                    cache-to: type=local,dest=/tmp/.buildx-cache-new
 
             -   name: Move cache
                 run: |
