@@ -21,6 +21,13 @@ jobs:
             -   name: Check out repository
                 uses: actions/checkout@v2
 
+            -   name: Get short commit SHA
+                id: sha
+                run: echo "::set-output name=short::${GITHUB_SHA::7}"
+
+            -   name: Check short commit SHA
+                run: echo ${{ steps.sha.outputs.short }}
+
             -   name: Docker resotobase meta
                 id: basemeta
                 uses: docker/metadata-action@v3
@@ -34,7 +41,7 @@ jobs:
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
                         type=pep440,pattern={{major}}
-                        type=sha,format=long,prefix=
+                        type=sha,prefix=
                         type=edge
 
             -   name: Docker resotocore meta
@@ -151,7 +158,7 @@ jobs:
                     platforms: linux/amd64
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
-                        IMAGE_TAG=${{ github.sha }}
+                        IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.coremeta.outputs.tags }}
                     labels: ${{ steps.coremeta.outputs.labels }}
                     cache-from: type=gha
@@ -166,7 +173,7 @@ jobs:
                     platforms: linux/amd64
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
-                        IMAGE_TAG=${{ github.sha }}
+                        IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.workermeta.outputs.tags }}
                     labels: ${{ steps.workermeta.outputs.labels }}
                     cache-from: type=gha
@@ -181,7 +188,7 @@ jobs:
                     platforms: linux/amd64
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
-                        IMAGE_TAG=${{ github.sha }}
+                        IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.metricsmeta.outputs.tags }}
                     labels: ${{ steps.metricsmeta.outputs.labels }}
                     cache-from: type=gha
@@ -196,7 +203,7 @@ jobs:
                     platforms: linux/amd64
                     push: ${{ github.event_name != 'pull_request' }}
                     build-args: |
-                        IMAGE_TAG=${{ github.sha }}
+                        IMAGE_TAG=${{ steps.sha.outputs.short }}
                     tags: ${{ steps.shellmeta.outputs.tags }}
                     labels: ${{ steps.shellmeta.outputs.labels }}
                     cache-from: type=gha
