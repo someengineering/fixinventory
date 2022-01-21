@@ -9,7 +9,6 @@ ARG TESTS
 ARG SOURCE_COMMIT
 ARG PYTHON_VERSION=3.10.2
 ARG PYPY_VERSION=7.3.7
-ARG PYPY_ARCH=linux64
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
@@ -59,11 +58,11 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 WORKDIR /build
 RUN mkdir -p /build/pypy
 RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
-        PYPY_ARCH=linux64; \
+        export PYPY_ARCH=linux64; \
     elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
-        PYPY_ARCH=aarch64; \
+        export PYPY_ARCH=aarch64; \
     else \
-        PYPY_ARCH=linux64; \
+        export PYPY_ARCH=linux64; \
     fi; \
     curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-${PYPY_ARCH}.tar.bz2
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
