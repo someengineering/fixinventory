@@ -3,8 +3,8 @@ FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
-ARG TARGETPLATFORM=linux/amd64
-ARG BUILDPLATFORM=linux/amd64
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 ARG TESTS=false
 ARG SOURCE_COMMIT=unknown
 ARG PYTHON_VERSION=3.10.2
@@ -62,6 +62,8 @@ RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
         PYPY_ARCH=linux64; \
     elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
         PYPY_ARCH=aarch64; \
+    else \
+        PYPY_ARCH=linux64; \
     fi; \
     curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-${PYPY_ARCH}.tar.bz2
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
