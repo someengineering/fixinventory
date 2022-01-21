@@ -3,13 +3,12 @@ FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
 
 FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
-ARG TARGETPLATFORM=linux/amd64
-ARG BUILDPLATFORM=linux/amd64
-ARG TESTS=false
-ARG SOURCE_COMMIT=unknown
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TESTS
+ARG SOURCE_COMMIT
 ARG PYTHON_VERSION=3.10.2
 ARG PYPY_VERSION=7.3.7
-ARG PYPY_ARCH=linux64
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
@@ -46,6 +45,23 @@ RUN apt-get -y install \
         cargo \
         linux-headers-generic
 
+
+# Download and install PyPy
+WORKDIR /build
+RUN mkdir -p /build/pypy
+RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+        export PYPY_ARCH=linux64; \
+    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+        export PYPY_ARCH=aarch64; \
+    else \
+        export PYPY_ARCH=linux64; \
+    fi; \
+    curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-${PYPY_ARCH}.tar.bz2
+RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
+RUN mv /build/pypy /usr/local/pypy
+RUN /usr/local/pypy/bin/pypy3 -m ensurepip
+
+
 # Download and install CPython
 WORKDIR /build/python
 RUN curl -L -o /tmp/python.tar.gz  https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
@@ -54,20 +70,6 @@ RUN ./configure --enable-optimizations --prefix /usr/local/python
 RUN make -j 12
 RUN make install
 RUN /usr/local/python/bin/python3 -m ensurepip
-
-# Download and install PyPy
-WORKDIR /build
-RUN mkdir -p /build/pypy
-RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
-        PYPY_ARCH=linux64; \
-    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
-        PYPY_ARCH=aarch64; \
-    fi; \
-    curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-${PYPY_ARCH}.tar.bz2
-RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
-RUN mv /build/pypy /usr/local/pypy
-RUN /usr/local/pypy/bin/pypy3 -m ensurepip
-
 
 WORKDIR /usr/local
 RUN /usr/local/python/bin/python3 -m venv resoto-venv-python3
