@@ -1,4 +1,123 @@
 
+# Release Notes 2.0.0a10 (Jan 18th, 2022)
+
+This release is exciting since it is the first one with a new name: Resoto.
+Cloudkeeper is gone, and all `ck` names as well.
+The components that make up Resoto are now called resotocore, resotoshell (resh), resotoworker, resotometrics.
+Please note: also the docker image name has changed to [someengineering/resoto](https://github.com/someengineering/resoto/pkgs/container/resoto).
+
+Besides the naming change, a lot of features have been implemented.
+Here is a summary of the most important ones:
+
+**Query and CLI are interpreted relative to the reported section**
+
+Resoto has the concept of a property path.
+A deeply nested json object can be navigated by defining a path to it.
+Example: `reported.name` means the `name` property inside the `reported` object.
+
+Until now, we interpreted all paths from the object root.
+While this might be the natural approach, we realized that most of the properties to deal with are in the reported section.
+To make query and commands most effective, Resoto will now interpret any path relative to the reported section.
+A property path can be prefixed with a `/` to mark it as an absolute path.
+This allows accessing properties not in the reported section.
+The described behaviour is used in queries and all other commands you use on the command line.
+
+Example:
+A volume (e.g. an [aws_ec2_volume](https://resoto.com/docs/reference/resources/aws#aws_ec2_volume)) has a `name` and
+`volume_size` property in the reported section, that can be accessed directly.
+```shell
+$> query is(volume) and name=~pvc | list name, volume_size
+```
+An absolute path is now required to access properties, not in the reported section.
+Assuming we want to query data in the metadata section, the path has to be prefixed with a `/`.
+```shell
+$> query is(volume) and /metadata.cleaned==false | list /metadata.protected
+```
+This new way of path resolution allowed us to remove several CLI commands like `reported`, `desired` and `metadata`.
+
+**Ancestor merges are now happening automagically**
+
+References to ancestors are available in their section `/ancestors`.
+As with previous versions, id and name of cloud, account, region and zone are added and displayed automatically for every resource.
+It is now possible to use any other property besides id and name.
+
+```shell
+$> query is(volume) and /ancestors.region.metadata.intent=test
+```
+
+**More powerful formats**
+
+The format CLI command now understands some predefined formats, that can be enabled via command line flags.
+Following formats are available out of the box:
+
+- `--graphml` [graphml](http://graphml.graphdrawing.org) is a widely used format to export graph data.
+- `--cytoscape` [cytoscape](https://js.cytoscape.org) vendor specific format.
+- `--dot` export the data in [graphviz](https://graphviz.org) dot format.
+- `--json` creates a JSON string for any node in the system put into a json array.
+- `--ndjson` new line delimited JSON, so every node is a one line JSON document.
+- `--text` creates a text representation of every node.
+
+Example that will export the whole graph including all edges to a file named `graph.json`.
+```shell
+$> query --include-edges is(graph_root) -[0:]->  | format --json | write graph.json
+```
+
+Example to export a query result in dot format.
+```shell
+$> query --include-edges is(aws_ec2_instance) <-[0:1]- | format --dot | write edges.dot
+```
+If you have [graphviz](https://graphviz.org) installed, you can turn this file into a diagram using this command: `shell> sfdp -Tpng -o edges.png edges.dot`.
+
+**Improved jobs command**
+
+There is now a single command to create, manipulate and test jobs using the `jobs` command.
+Please see the help page of jobs `$> help jobs` to get more details.
+We removed `add_job`, `delete_job` and `tasks` command.
+
+**http command**
+
+We introduced an `http` and `https` command in the CLI that allows to do a REST call to
+other systems in case of predefined scenarios in Resoto.
+
+Example:
+Assume we want to call an internal gatekeeper in case we find compute instances,
+that are tagged with `load-test` and are older than 24 hours.
+
+```shell
+$> query is(instance) and tags.intent="load-test" and age>24h | chunk 100 | format --json |  http gatekeeper/handle_expired
+```
+
+The results of this query are chunked, every chunk of 100 elements is json formatted and sent to the gatekeeper.
+It would be possible to make this a recurrent task by creating a job.
+
+**Query cost explanation**
+
+Writing queries can be a complex task.
+To give some guidance related to query runtime performance, we introduced the option to analyze a query.
+The query command now has an `--explain` flag, that gives insights into the query performance.
+
+Example:
+We use the previous query as example to show a possible result.
+Please note: the runtime characteristics are highly dependent on the underlying graph data.
+
+```shell
+$> query --explain is(instance) and tags.intent="load-test" and age>24h
+available_nr_items: 142670
+estimated_cost: 4891
+estimated_nr_items: 4641
+full_collection_scan: false
+rating: simple
+```
+
+The final rating is the most interesting one, where Resoto defines a query as simple, complex or bad.
+A query that is considered simple should be fast and resource friendly.
+
+**Other improvements**
+- Resoto is now using [Codecov](https://app.codecov.io/gh/someengineering/resoto) for coverage reports.
+- This release ships with APIs and functionality to get a complete TLS secured setup.
+  This is still work in progress so all communication is plain http.
+  We will have a complete secure setup when the final 2.0 release is shipped.
+
 # Release Notes 2.0.0a9 (Dec 9th, 2021)
 
 We are very happy to announce that we are now another small step closer to a stable 2.0 release!
