@@ -1,10 +1,11 @@
 
 # Release Notes 2.0.0a10 (Jan 18th, 2022)
 
-This release is exciting since it is the first one with a new name: Resoto.
-Cloudkeeper is gone, and all `ck` names as well.
-The components that make up Resoto are now called resotocore, resotoshell (resh), resotoworker, resotometrics.
-Please note: also the docker image name has changed to [someengineering/resoto](https://github.com/someengineering/resoto/pkgs/container/resoto).
+This release is exciting since it is the first one featuring our new product name, *Resoto*.
+Cloudkeeper is gone, along with all `ck` naming.
+The components that make up Resoto are now called Resoto Core (`resotocore`), Resoto Shell (`resh`), Resoto Worker (`resotoworker`), and Resoto Metrics (`resotometrics`).
+
+*Note:* The Docker image name has also changed to `somecr.io/someengineering/resoto`.
 
 Besides the naming change, a lot of features have been implemented.
 Here is a summary of the most important ones:
