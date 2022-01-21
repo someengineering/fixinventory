@@ -222,7 +222,7 @@ def test_db() -> StandardDatabase:
     client = ArangoClient(hosts="http://localhost:8529")
 
     # create test database: assumption is the root user with empty password
-    system = client.db("_system", username="root", password="root")
+    system = client.db()
     if not system.has_user("test"):
         system.create_user("test", "test", True)
 

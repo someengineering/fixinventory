@@ -125,6 +125,31 @@ class DbAccess(ABC):
         deadline = utc() + timeout
         db = cls.client(args)
 
+        def create_database() -> None:
+            try:
+                # try to access the system database with default credentials.
+                # this only works if arango has been started with default settings.
+                http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
+                root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db()
+                root_db.echo()  # this call will fail, if we are not allowed to access the system db
+                user = args.graphdb_username
+                passwd = args.graphdb_password
+                database = args.graphdb_database
+                if not root_db.has_user(user):
+                    log.info(f"Graph db user {user} does not exist. Create it.")
+                    root_db.create_user(user, passwd, active=True)
+                if not root_db.has_database(database):
+                    log.info(f"Graph db database {database} does not exist. Create it.")
+                    root_db.create_database(
+                        database,
+                        [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],
+                    )
+            except Exception as ex:
+                log.error(
+                    "Database or user does not exist or does not have enough permissions."
+                    f"Attempt to create user/database via default system account is not possible. Reason: {ex}"
+                )
+
         def system_data() -> Tuple[bool, SystemData]:
             def insert_system_data() -> SystemData:
                 system = SystemData(uuid_str(), utc(), 1)
@@ -155,7 +180,12 @@ class DbAccess(ABC):
                 if utc() > deadline:
                     log.error("Can not connect to database. Giving up.")
                     shutdown_process(1)
-                log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
+                elif ex.error_code == 11:  # https://www.arangodb.com/docs/stable/appendix-error-codes.html#11
+                    # This means we can reach the database, but are not allowed to access it
+                    # We assume the database does not exist and try to create it.
+                    create_database()
+                else:
+                    log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 sleep(5)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
