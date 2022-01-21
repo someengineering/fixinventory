@@ -166,8 +166,8 @@ First you need to install :ref:`component-resotolib` as a dependency to :ref:`se
 .. code-block:: bash
     :caption: Install resotolib und resotocore
 
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resotolib&subdirectory=resotolib"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resotocore&subdirectory=resotocore"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resotolib&subdirectory=resotolib"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resotocore&subdirectory=resotocore"
 
 Usage
 -----
@@ -227,7 +227,7 @@ We install :ref:`component-resotoshell` (``resh``) via python pip directly from 
 .. code-block:: bash
     :caption: Install resotoshell
 
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resotoshell&subdirectory=resotoshell"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resotoshell&subdirectory=resotoshell"
 
 Usage
 -----
@@ -280,7 +280,7 @@ First you need to install :ref:`component-resotolib` as a dependency to :ref:`se
 .. code-block:: bash
     :caption: Install resotoworker
 
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resotoworker&subdirectory=resotoworker"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resotoworker&subdirectory=resotoworker"
 
 
 .. _plugins:
@@ -294,15 +294,15 @@ A full list of available plugins can be found in the Resoto `repository <https:/
 .. code-block:: bash
     :caption: Install plugins
 
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-aws&subdirectory=plugins/aws"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-example_collector&subdirectory=plugins/example_collector"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-gcp&subdirectory=plugins/gcp"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-github&subdirectory=plugins/github"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-k8s&subdirectory=plugins/k8s"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-onelogin&subdirectory=plugins/onelogin"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-onprem&subdirectory=plugins/onprem"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-slack&subdirectory=plugins/slack"
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resoto-plugin-vsphere&subdirectory=plugins/vsphere"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-aws&subdirectory=plugins/aws"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-example_collector&subdirectory=plugins/example_collector"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-gcp&subdirectory=plugins/gcp"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-github&subdirectory=plugins/github"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-k8s&subdirectory=plugins/k8s"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-onelogin&subdirectory=plugins/onelogin"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-onprem&subdirectory=plugins/onprem"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-slack&subdirectory=plugins/slack"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resoto-plugin-vsphere&subdirectory=plugins/vsphere"
 
 Usage
 -----
@@ -372,7 +372,7 @@ If not already done in the :ref:`setup-resotocore` section, you need to install 
 .. code-block:: bash
     :caption: Install resotometrics
 
-    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a11#egg=resotometrics&subdirectory=resotometrics"
+    pip install "git+https://github.com/someengineering/resoto.git@2.0.0a12#egg=resotometrics&subdirectory=resotometrics"
 
 Usage
 -----

@@ -181,7 +181,7 @@ Install Resoto:
 .. code-block:: bash
     :caption: Install resoto
 
-    helm install resoto ./resoto/kubernetes/chart --set image.tag=2.0.0a11 -f resoto-values.yaml
+    helm install resoto ./resoto/kubernetes/chart --set image.tag=2.0.0a12 -f resoto-values.yaml
 
 
 
