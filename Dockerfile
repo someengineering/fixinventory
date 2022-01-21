@@ -1,3 +1,6 @@
+ARG UI_IMAGE_TAG=latest
+FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
+
 FROM phusion/baseimage:focal-1.0.0 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TESTS
@@ -6,11 +9,9 @@ ARG PYTHON_VERSION=3.10.2
 ARG PYPY_VERSION=7.3.7
 ARG ARANGODB_VERSION=3.8.4
 ARG PROMETHEUS_VERSION=2.32.1
-ARG GODOT_VERSION=3.4
-ARG CRYPTO_EXPORT_TEMPLATES_DEBUG_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_debug.zip
-ARG CRYPTO_EXPORT_TEMPLATES_RELEASE_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_release.zip
 
 ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
 # Install Build dependencies
 RUN apt-get update
 RUN apt-get -y dist-upgrade
@@ -54,19 +55,6 @@ RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/
 RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
 COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
 
-# Download and install Godot
-WORKDIR /build/godot
-RUN mkdir -p /root/.local/share/godot/templates
-RUN curl -L -o /tmp/godot.zip https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux_headless.64.zip
-RUN curl -L -o /tmp/godot.tpz https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
-RUN curl -L -o /tmp/webassembly_threads_debug.zip ${CRYPTO_EXPORT_TEMPLATES_DEBUG_URI}
-RUN curl -L -o /tmp/webassembly_threads_release.zip ${CRYPTO_EXPORT_TEMPLATES_RELEASE_URI}
-RUN unzip /tmp/godot.zip -d /build/godot
-RUN unzip /tmp/godot.tpz -d /root/.local/share/godot/templates
-RUN mv /root/.local/share/godot/templates/templates /root/.local/share/godot/templates/${GODOT_VERSION}.stable
-RUN mv -f /tmp/webassembly_threads_debug.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_debug.zip
-RUN mv -f /tmp/webassembly_threads_release.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_release.zip
-
 # Download and install CPython
 WORKDIR /build/python
 RUN curl -L -o /tmp/python.tar.gz  https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
@@ -91,11 +79,6 @@ RUN /usr/local/pypy/bin/pypy3 -m venv resoto-venv-pypy3
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
-
-# Build resotoui
-WORKDIR /usr/local/resoto/ui
-COPY ui /usr/src/ui
-RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/ui/src --export HTML5 /usr/local/resoto/ui/index.html
 
 # Download and install Python test tools
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
