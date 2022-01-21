@@ -1,16 +1,19 @@
-FROM phusion/baseimage:focal-1.0.0 as build-env
+ARG UI_IMAGE_TAG=latest
+FROM ghcr.io/someengineering/resoto-ui:${UI_IMAGE_TAG} as resoto-ui-env
+
+FROM ubuntu:20.04 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
-ARG TESTS
-ARG SOURCE_COMMIT
+ARG TARGETPLATFORM=linux/amd64
+ARG BUILDPLATFORM=linux/amd64
+ARG TESTS=false
+ARG SOURCE_COMMIT=unknown
 ARG PYTHON_VERSION=3.10.2
 ARG PYPY_VERSION=7.3.7
-ARG ARANGODB_VERSION=3.8.4
-ARG PROMETHEUS_VERSION=2.32.1
-ARG GODOT_VERSION=3.4
-ARG CRYPTO_EXPORT_TEMPLATES_DEBUG_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_debug.zip
-ARG CRYPTO_EXPORT_TEMPLATES_RELEASE_URI=https://github.com/someengineering/godot-webassembly-export-templates/releases/download/v0.1alpha1/webassembly_threads_release.zip
+ARG PYPY_ARCH=linux64
 
-ENV PATH=/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
+COPY --from=resoto-ui-env /usr/local/resoto/ui /usr/local/resoto/ui
 # Install Build dependencies
 RUN apt-get update
 RUN apt-get -y dist-upgrade
@@ -43,30 +46,6 @@ RUN apt-get -y install \
         cargo \
         linux-headers-generic
 
-# Download and install ArangoDB (graphdb)
-WORKDIR /usr/local/db
-RUN curl -L -o /tmp/arangodb.tar.gz https://download.arangodb.com/arangodb38/Community/Linux/arangodb3-linux-${ARANGODB_VERSION}.tar.gz
-RUN tar xzvf /tmp/arangodb.tar.gz --strip-components=1 -C /usr/local/db
-
-# Download and install Prometheus (tsdb)
-WORKDIR /usr/local/tsdb
-RUN curl -L -o /tmp/prometheus.tar.gz  https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
-RUN tar xzvf /tmp/prometheus.tar.gz --strip-components=1 -C /usr/local/tsdb
-COPY docker/prometheus.yml /usr/local/tsdb/prometheus.yml
-
-# Download and install Godot
-WORKDIR /build/godot
-RUN mkdir -p /root/.local/share/godot/templates
-RUN curl -L -o /tmp/godot.zip https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux_headless.64.zip
-RUN curl -L -o /tmp/godot.tpz https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
-RUN curl -L -o /tmp/webassembly_threads_debug.zip ${CRYPTO_EXPORT_TEMPLATES_DEBUG_URI}
-RUN curl -L -o /tmp/webassembly_threads_release.zip ${CRYPTO_EXPORT_TEMPLATES_RELEASE_URI}
-RUN unzip /tmp/godot.zip -d /build/godot
-RUN unzip /tmp/godot.tpz -d /root/.local/share/godot/templates
-RUN mv /root/.local/share/godot/templates/templates /root/.local/share/godot/templates/${GODOT_VERSION}.stable
-RUN mv -f /tmp/webassembly_threads_debug.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_debug.zip
-RUN mv -f /tmp/webassembly_threads_release.zip /root/.local/share/godot/templates/${GODOT_VERSION}.stable/webassembly_threads_release.zip
-
 # Download and install CPython
 WORKDIR /build/python
 RUN curl -L -o /tmp/python.tar.gz  https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
@@ -79,10 +58,16 @@ RUN /usr/local/python/bin/python3 -m ensurepip
 # Download and install PyPy
 WORKDIR /build
 RUN mkdir -p /build/pypy
-RUN curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-linux64.tar.bz2
+RUN if [ ${TARGETPLATFORM} = "linux/amd64" ]; then \
+        PYPY_ARCH=linux64; \
+    elif [ ${TARGETPLATFORM} = "linux/arm64" ]; then \
+        PYPY_ARCH=aarch64; \
+    fi; \
+    curl -L -o /tmp/pypy.tar.bz2 https://downloads.python.org/pypy/pypy3.8-v${PYPY_VERSION}-${PYPY_ARCH}.tar.bz2
 RUN tar xjvf /tmp/pypy.tar.bz2 --strip-components=1 -C /build/pypy
 RUN mv /build/pypy /usr/local/pypy
 RUN /usr/local/pypy/bin/pypy3 -m ensurepip
+
 
 WORKDIR /usr/local
 RUN /usr/local/python/bin/python3 -m venv resoto-venv-python3
@@ -91,11 +76,6 @@ RUN /usr/local/pypy/bin/pypy3 -m venv resoto-venv-pypy3
 # Prepare PyPy whl build env
 RUN mkdir -p /build-python
 RUN mkdir -p /build-pypy
-
-# Build resotoui
-WORKDIR /usr/local/resoto/ui
-COPY ui /usr/src/ui
-RUN /build/godot/Godot_v${GODOT_VERSION}-stable_linux_headless.64 --path /usr/src/ui/src --export HTML5 /usr/local/resoto/ui/index.html
 
 # Download and install Python test tools
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip wheel tox flake8
@@ -145,35 +125,37 @@ RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip install -f /buil
 
 # Copy image config and startup files
 WORKDIR /usr/src/resoto
-COPY docker/service.in /usr/local/etc/service.in
-COPY docker/defaults /usr/local/etc/resoto/defaults
-COPY docker/common /usr/local/etc/resoto/common
-COPY docker/argsdispatcher /usr/local/bin/argsdispatcher
-COPY docker/bootstrap /usr/local/sbin/bootstrap
-COPY docker/bootstrap-graphdb /usr/local/sbin/bootstrap-graphdb
-COPY docker/startup /usr/local/bin/startup
-COPY docker/resh-shim /usr/local/bin/resh-shim
-RUN chmod 755 /usr/local/bin/startup \
-    /usr/local/bin/resh-shim \
+COPY dockerV2/defaults /usr/local/etc/resoto/defaults
+COPY dockerV2/common /usr/local/etc/resoto/common
+COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
+COPY dockerV2/startup /usr/local/sbin/startup
+COPY dockerV2/resh-shim /usr/local/bin/resh-shim
+COPY dockerV2/resotocore-shim /usr/local/bin/resotocore-shim
+COPY dockerV2/resotoworker-shim /usr/local/bin/resotoworker-shim
+COPY dockerV2/resotometrics-shim /usr/local/bin/resotometrics-shim
+RUN chmod 755 \
     /usr/local/sbin/bootstrap \
-    /usr/local/sbin/bootstrap-graphdb
+    /usr/local/sbin/startup \
+    /usr/local/bin/resh-shim \
+    /usr/local/bin/resotocore-shim \
+    /usr/local/bin/resotoworker-shim \
+    /usr/local/bin/resotometrics-shim
 RUN if [ "${TESTS:-false}" = true ]; then \
         shellcheck -a -x -s bash -e SC2034 \
             /usr/local/sbin/bootstrap \
-            /usr/local/bin/startup \
+            /usr/local/sbin/startup \
         ; \
     fi
-COPY docker/dnsmasq.conf /usr/local/etc/dnsmasq.conf
-COPY docker/syslog-ng.conf /usr/local/etc/syslog-ng.conf
+COPY dockerV2/dnsmasq.conf /usr/local/etc/dnsmasq.conf
 RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
 # Setup main image
-FROM phusion/baseimage:focal-1.0.0
+FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG="en_US.UTF-8"
 COPY --from=build-env /usr/local /usr/local
-ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/db/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/usr/local/python/bin:/usr/local/pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o resoto \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home resoto \
@@ -181,6 +163,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
     && apt-get -y --no-install-recommends install \
+        dumb-init \
         iproute2 \
         dnsmasq \
         libffi7 \
@@ -200,10 +183,12 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
     && ln -s /usr/local/bin/resh-shim /usr/bin/resh \
-    && mv -f /usr/local/etc/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf \
+    && ln -s /usr/local/bin/resotocore-shim /usr/bin/resotocore \
+    && ln -s /usr/local/bin/resotoworker-shim /usr/bin/resotoworker \
+    && ln -s /usr/local/bin/resotometrics-shim /usr/bin/resotometrics \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-EXPOSE 8900 8529 9955 9956
-VOLUME ["/data"]
-ENTRYPOINT ["/usr/local/sbin/bootstrap"]
+EXPOSE 8900 9955 9956
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
+CMD ["/bin/bash"]

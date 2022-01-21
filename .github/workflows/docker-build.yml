@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: Build standalone Docker image
 
 on:
     push:
@@ -34,7 +34,7 @@ jobs:
                         someengineering/resoto
                         ghcr.io/someengineering/resoto
                     flavor: |
-                      latest=auto
+                        latest=auto
                     tags: |
                         type=pep440,pattern={{version}}
                         type=pep440,pattern={{major}}.{{minor}}
@@ -45,6 +45,14 @@ jobs:
             -   name: Set up Docker Buildx
                 id: buildx
                 uses: docker/setup-buildx-action@v1
+
+            -   name: Cache Docker layers
+                uses: actions/cache@v2
+                with:
+                    path: /tmp/.buildx-cache
+                    key: ${{ runner.os }}-buildx-${{ github.sha }}
+                    restore-keys: |
+                        ${{ runner.os }}-buildx-
 
             -   name: Log in to Docker Hub
                 if: github.event_name != 'pull_request'
@@ -73,5 +81,10 @@ jobs:
                         TESTS=false
                     tags: ${{ steps.meta.outputs.tags }}
                     labels: ${{ steps.meta.outputs.labels }}
-                    cache-from: type=gha
-                    cache-to: type=gha,mode=max
+                    cache-from: type=local,src=/tmp/.buildx-cache
+                    cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+            -   name: Move cache
+                run: |
+                    rm -rf /tmp/.buildx-cache
+                    mv /tmp/.buildx-cache-new /tmp/.buildx-cache

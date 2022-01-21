@@ -1,0 +1,3 @@
+ARG IMAGE_TAG=edge
+FROM ghcr.io/someengineering/resotobase:${IMAGE_TAG}
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/resh"]
