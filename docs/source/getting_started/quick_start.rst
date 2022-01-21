@@ -37,7 +37,7 @@ Replace ``YOURKEYID`` and ``YOURACCESSKEY`` to collect your AWS inventory.
     $ docker run -d -v "${HOME}/data/test":/data:rw \
     -e AWS_ACCESS_KEY_ID=YOURKEYID -e AWS_SECRET_ACCESS_KEY='YOURACCESSKEY' \
     -e RESOTOWORKER_COLLECTOR='aws example' \
-    --name resoto ghcr.io/someengineering/resoto:2.0.0a10
+    --name resoto ghcr.io/someengineering/resoto:2.0.0a11
 
 Start the Resoto CLI
 ====================
