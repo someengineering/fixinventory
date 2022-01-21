@@ -61,31 +61,13 @@ We assume you are familiar with basic Docker operations and how to operate a Lin
 --> [https://docs.some.engineering/getting_started/quick_start.html](https://docs.some.engineering/getting_started/quick_start.html)
 
 
-# Cloning this repository
-This Git repo uses [Git Large File Storage (LFS)](https://git-lfs.github.com/).
-
-If you would like to work on the UI [`ui`](ui/), before cloning the repo make sure to have [`git-lfs`](https://git-lfs.github.com/) installed!
-
-One time setup:
-```
-$ git clone https://github.com/someengineering/resoto.git
-$ cd resoto/
-$ git lfs install  # installs git-lfs hooks
-```
-
-Once set up you can interact with the repo like any other Git project. All large UI assets will be retrived from [Github's LFS servers](https://docs.github.com/en/repositories/working-with-files/managing-large-files).
-
-
-If you have no need for the UI assets git-lfs is optional.
-
-
 # Component list
 - [`resotocore`](resotocore/) the platform maintaining the [MultiDiGraph](https://en.wikipedia.org/wiki/Multigraph#Directed_multigraph_(edges_with_own_identity)).
 - [`resotosh`](resotosh/) the Resoto shell to interact with the core.
-- [`ui`](ui/) a UI prototype that can load resotocore exported data but has no backend connection yet.
 - [`resotoworker`](resotoworker/) provides workers that load [plugins](plugins/) to perform collect and cleanup operations.
 - [`resotometrics`](resotometrics/) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins/) are a collection of worker plugins like [AWS](plugins/aws/)
+- [`resoto-ui`](https://github.com/someengineering/resoto-ui/) a UI prototype.
 
 
 ## Contact

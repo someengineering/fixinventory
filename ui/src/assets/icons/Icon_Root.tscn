@@ -1,5 +1,0 @@
-[gd_scene format=2]
-
-[node name="Root" type="Polygon2D"]
-antialiased = true
-polygon = PoolVector2Array( -48, 32, 0, 16, 48, 32, 24, 0, 24, -32, 0, -24, -24, -32, -24, 0 )
