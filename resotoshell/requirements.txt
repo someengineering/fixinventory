@@ -1,3 +1,3 @@
-resotolib==2.0.0a11
+resotolib==2.0.0a12
 prompt-toolkit==3.0.24
 requests-toolbelt==0.9.1

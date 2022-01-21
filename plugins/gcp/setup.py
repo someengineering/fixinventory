@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-gcp",
-    version="2.0.0a11",
+    version="2.0.0a12",
     description="Resoto GCP Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
