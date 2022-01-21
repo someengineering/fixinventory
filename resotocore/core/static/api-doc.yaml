@@ -346,7 +346,6 @@ paths:
     # endregion
 
     # region node management
-
     /graph/{graph_id}/nodes:
         patch:
             summary: "Patch a list of nodes."
@@ -411,7 +410,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/Node"
-
     /graph/{graph_id}/node/{node_id}/under/{parent_node_id}:
         post:
             summary: "Create a new node under the given parent node"
@@ -525,7 +523,6 @@ paths:
             responses:
                 "204":
                     description: "Node is deleted"
-
     /graph/{graph_id}/node/{node_id}/section/{section}:
         patch:
             summary: "Patch a node with the given node id in given section"
@@ -568,10 +565,9 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/Node"
-
     # endregion
 
-    # region graph no section
+    # region query graph
     /graph/{graph_id}/query/raw:
         post:
             summary: "Transform the query into the raw database query"
@@ -587,6 +583,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -616,6 +622,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
                 -   name: count
                     in: query
                     description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -805,6 +821,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
                 -   name: count
                     in: query
                     description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -1001,6 +1027,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The aggregation query to perform"
                 content:
@@ -1035,6 +1071,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
             requestBody:
                 description: "The query to perform"
                 content:
@@ -1061,6 +1107,16 @@ paths:
                     required: true
                     schema:
                         type: string
+                -   name: section
+                    in: query
+                    description: "The name of the section used for all property paths. If not defined root is assumed."
+                    required: false
+                    schema:
+                        type: string
+                        enum:
+                            - reported
+                            - desired
+                            - metadata
                 -   name: term
                     in: query
                     description: "The term to search for"
@@ -1079,522 +1135,6 @@ paths:
                         application/x-ndjson:
                             schema:
                                 $ref: "#/components/schemas/Node"
-
-    # endregion
-
-    # region graph section
-    /graph/{graph_id}/{section}/query/raw:
-        post:
-            summary: "Transform the query into the raw database query"
-            tags:
-                - debug
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-            requestBody:
-                description: "The query to perform"
-                content:
-                    text/plain:
-                        schema:
-                            type: string
-                            example: is(graph_root) and name=="root" -->
-            responses:
-                "200":
-                    description: "Returns the query as performed by the database."
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/RawQuery"
-    /graph/{graph_id}/{section}/query/list:
-        post:
-            summary: "Query the graph and return all nodes as list (this will not contain any edges)"
-            tags:
-                - graph_query
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-                -   name: count
-                    in: query
-                    description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
-                    required: false
-                    schema:
-                        type: boolean
-                        default: true
-            requestBody:
-                description: "The query to perform"
-                content:
-                    text/plain:
-                        schema:
-                            type: string
-                            example: is(graph_root) and name=="root" -->
-            responses:
-                "200":
-                    description: "The result of this query in the defined format"
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Node"
-                        application/x-ndjson:
-                            schema:
-                                $ref: "#/components/schemas/Node"
-                            example: |
-                                {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
-                                {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
-                                {"type": "edge", "from": "root", "to": "cloud_id"}
-                        text/plain:
-                            example: |
-                                reported:
-                                  kind: graph_root
-                                  id: root
-                                  tags: {}
-                                  name: root
-                                metadata:
-                                  cleaned: false
-                                  phantom: true
-                                  protected: false
-                        application/yaml:
-                            example: |
-                                id: root
-                                type: node
-                                revision: _daGy-Bu---
-                                reported:
-                                    kind: graph_root
-                                    id: root
-                                    tags: { }
-                                    name: root
-                                metadata:
-                                    python_type: resotolib.baseresources.GraphRoot
-                                    cleaned: false
-                                    phantom: true
-                                    protected: false
-                                kinds:
-                                    - graph_root
-                                ---
-                                id: 2RZlTX9yzeBwTNT_H1KZVA
-                                type: node
-                                revision: _daGy-Bi---
-                                reported:
-                                    kind: cloud
-                                    id: onelogin
-                                    tags: { }
-                                    name: onelogin
-                                    ctime: '2021-12-14T08:49:52Z'
-                                    age: 6d7h
-                                metadata:
-                                    python_type: resotolib.baseresources.Cloud
-                                    cleaned: false
-                                    phantom: false
-                                    protected: false
-                                    descendant_summary:
-                                        onelogin_account: 1
-                                        onelogin_region: 1
-                                        onelogin_user: 1034
-                                    descendant_count: 1036
-                                ancestors:
-                                    cloud:
-                                        reported:
-                                            name: onelogin
-                                            id: onelogin
-                                kinds:
-                                    - cloud
-                                    - base_cloud
-                                    - resource
-                                ---
-                                type: edge
-                                from: root
-                                to: 2RZlTX9yzeBwTNT_H1KZVA
-
-                        application/vnd.graphml+xml:
-                            example: |
-                                <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
-                                    <key id="d4" for="node" attr.name="age" attr.type="string"/>
-                                    <key id="d3" for="node" attr.name="ctime" attr.type="string"/>
-                                    <key id="d2" for="node" attr.name="name" attr.type="string"/>
-                                    <key id="d1" for="node" attr.name="id" attr.type="string"/>
-                                    <key id="d0" for="node" attr.name="kind" attr.type="string"/>
-                                    <graph edgedefault="directed">
-                                        <node id="root">
-                                            <data key="d0">graph_root</data>
-                                            <data key="d1">root</data>
-                                            <data key="d2">root</data>
-                                        </node>
-                                        <node id="cloud_id">
-                                            <data key="d0">cloud</data>
-                                            <data key="d1">onelogin</data>
-                                            <data key="d2">onelogin</data>
-                                            <data key="d3">2021-12-14T08:49:52Z</data>
-                                            <data key="d4">6d7h</data>
-                                        </node>
-                                        <edge source="root" target="cloud_id"/>
-                                    </graph>
-                                </graphml>
-
-                        application/vnd.cytoscape+json:
-                            example: |
-                                {
-                                    "data": [ ],
-                                    "directed": true,
-                                    "elements": {
-                                        "edges": [
-                                            {
-                                                "data": {
-                                                    "source": "root",
-                                                    "target": "cloud_id"
-                                                }
-                                            }
-                                        ],
-                                        "nodes": [
-                                            {
-                                                "data": {
-                                                    "id": "root",
-                                                    "kind": "graph_root",
-                                                    "name": "root",
-                                                    "tags": { },
-                                                    "value": "root"
-                                                }
-                                            },
-                                            {
-                                                "data": {
-                                                    "age": "6d7h",
-                                                    "ctime": "2021-12-14T08:49:52Z",
-                                                    "id": "onelogin",
-                                                    "kind": "cloud",
-                                                    "name": "onelogin",
-                                                    "tags": { },
-                                                    "value": "cloud_id"
-                                                }
-                                            }
-                                        ]
-                                    },
-                                    "multigraph": false
-                                }
-                        text/vnd.graphviz:
-                            example: |
-                                digraph {
-                                rankdir=LR
-                                overlap=false
-                                splines=true
-                                node [shape=Mrecord colorscheme=paired12]
-                                edge [arrowsize=0.5]
-                                  "root" [label="root|graph_root", style=filled fillcolor=1];
-                                  "2RZlTX9yzeBwTNT_H1KZVA" [label="onelogin|cloud", style=filled fillcolor=2];
-                                  "root" -> "2RZlTX9yzeBwTNT_H1KZVA"
-                                  subgraph "graph_root" {
-                                    "root"
-                                    "2RZlTX9yzeBwTNT_H1KZVA"
-                                  }
-                                }
-
-    /graph/{graph_id}/{section}/query/graph:
-        post:
-            summary: "Query the graph and return the resulting graph."
-            tags:
-                - graph_query
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-                -   name: count
-                    in: query
-                    description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
-                    required: false
-                    schema:
-                        type: boolean
-                        default: true
-                -   name: query_timeout
-                    in: query
-                    description: "Optional duration the query is allowed to run."
-                    required: false
-                    schema:
-                        type: string
-                        example: "30s"
-            requestBody:
-                description: "The query to perform"
-                content:
-                    text/plain:
-                        schema:
-                            type: string
-                            example: is(graph_root) and name=="root" -->
-            responses:
-                "200":
-                    description: "The result of this query in the defined format"
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Node"
-                        application/x-ndjson:
-                            schema:
-                                $ref: "#/components/schemas/Node"
-                            example: |
-                                {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
-                                {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
-                                {"type": "edge", "from": "root", "to": "cloud_id"}
-                        text/plain:
-                            example: |
-                                reported:
-                                  kind: graph_root
-                                  id: root
-                                  tags: {}
-                                  name: root
-                                metadata:
-                                  cleaned: false
-                                  phantom: true
-                                  protected: false
-                        application/yaml:
-                            example: |
-                                id: root
-                                type: node
-                                revision: _daGy-Bu---
-                                reported:
-                                    kind: graph_root
-                                    id: root
-                                    tags: { }
-                                    name: root
-                                metadata:
-                                    python_type: resotolib.baseresources.GraphRoot
-                                    cleaned: false
-                                    phantom: true
-                                    protected: false
-                                kinds:
-                                    - graph_root
-                                ---
-                                id: 2RZlTX9yzeBwTNT_H1KZVA
-                                type: node
-                                revision: _daGy-Bi---
-                                reported:
-                                    kind: cloud
-                                    id: onelogin
-                                    tags: { }
-                                    name: onelogin
-                                    ctime: '2021-12-14T08:49:52Z'
-                                    age: 6d7h
-                                metadata:
-                                    python_type: resotolib.baseresources.Cloud
-                                    cleaned: false
-                                    phantom: false
-                                    protected: false
-                                    descendant_summary:
-                                        onelogin_account: 1
-                                        onelogin_region: 1
-                                        onelogin_user: 1034
-                                    descendant_count: 1036
-                                ancestors:
-                                    cloud:
-                                        reported:
-                                            name: onelogin
-                                            id: onelogin
-                                kinds:
-                                    - cloud
-                                    - base_cloud
-                                    - resource
-                                ---
-                                type: edge
-                                from: root
-                                to: 2RZlTX9yzeBwTNT_H1KZVA
-
-                        application/vnd.graphml+xml:
-                            example:
-                                        <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
-                                            <key id="d4" for="node" attr.name="age" attr.type="string"/>
-                                            <key id="d3" for="node" attr.name="ctime" attr.type="string"/>
-                                            <key id="d2" for="node" attr.name="name" attr.type="string"/>
-                                            <key id="d1" for="node" attr.name="id" attr.type="string"/>
-                                            <key id="d0" for="node" attr.name="kind" attr.type="string"/>
-                                            <graph edgedefault="directed">
-                                                <node id="root">
-                                                    <data key="d0">graph_root</data>
-                                                    <data key="d1">root</data>
-                                                    <data key="d2">root</data>
-                                                </node>
-                                                <node id="cloud_id">
-                                                    <data key="d0">cloud</data>
-                                                    <data key="d1">onelogin</data>
-                                                    <data key="d2">onelogin</data>
-                                                    <data key="d3">2021-12-14T08:49:52Z</data>
-                                                    <data key="d4">6d7h</data>
-                                                </node>
-                                                <edge source="root" target="cloud_id"/>
-                                            </graph>
-                                        </graphml>
-
-                        application/vnd.cytoscape+json:
-                            example: |
-                                {
-                                    "data": [ ],
-                                    "directed": true,
-                                    "elements": {
-                                        "edges": [
-                                            {
-                                                "data": {
-                                                    "source": "root",
-                                                    "target": "cloud_id"
-                                                }
-                                            }
-                                        ],
-                                        "nodes": [
-                                            {
-                                                "data": {
-                                                    "id": "root",
-                                                    "kind": "graph_root",
-                                                    "name": "root",
-                                                    "tags": { },
-                                                    "value": "root"
-                                                }
-                                            },
-                                            {
-                                                "data": {
-                                                    "age": "6d7h",
-                                                    "ctime": "2021-12-14T08:49:52Z",
-                                                    "id": "onelogin",
-                                                    "kind": "cloud",
-                                                    "name": "onelogin",
-                                                    "tags": { },
-                                                    "value": "cloud_id"
-                                                }
-                                            }
-                                        ]
-                                    },
-                                    "multigraph": false
-                                }
-                        text/vnd.graphviz:
-                            example: |
-                                digraph {
-                                rankdir=LR
-                                overlap=false
-                                splines=true
-                                node [shape=Mrecord colorscheme=paired12]
-                                edge [arrowsize=0.5]
-                                  "root" [label="root|graph_root", style=filled fillcolor=1];
-                                  "2RZlTX9yzeBwTNT_H1KZVA" [label="onelogin|cloud", style=filled fillcolor=2];
-                                  "root" -> "2RZlTX9yzeBwTNT_H1KZVA"
-                                  subgraph "graph_root" {
-                                    "root"
-                                    "2RZlTX9yzeBwTNT_H1KZVA"
-                                  }
-                                }
-
-    /graph/{graph_id}/{section}/query/aggregate:
-        post:
-            summary: "Query the aggregate function on the specified graph and return the aggregation result."
-            tags:
-                - graph_query
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-            requestBody:
-                description: "The aggregation query to perform"
-                content:
-                    text/plain:
-                        schema:
-                            type: string
-                            example: |
-                                aggregate(kind: sum(1) as nodes): is(node)
-            responses:
-                "200":
-                    description: "The result of this query in the defined format"
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/Aggregated"
-                        application/x-ndjson:
-                            schema:
-                                $ref: "#/components/schemas/Aggregated"
-    /graph/{graph_id}/{section}/query/explain:
-        post:
-            summary: "Explain the query execution plan"
-
-            tags:
-                - graph_query
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: path
-                    description: "The identifier of the section"
-                    required: true
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-            requestBody:
-                description: "The query to perform"
-                content:
-                    text/plain:
-                        schema:
-                            type: string
-                            example: is(graph_root) and name=="root" -->
-            responses:
-                "200":
-                    description: "The execution plan of the database"
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/EstimatedQueryCost"
     # endregion
 
     # region events

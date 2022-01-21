@@ -86,8 +86,8 @@ log = logging.getLogger(__name__)
 
 
 def section_of(request: Request) -> Optional[str]:
-    section = request.match_info.get("section")
-    if section and section not in Section.content:
+    section = request.match_info.get("section", request.query.get("section"))
+    if section and section != "/" and section not in Section.content:
         raise AttributeError(f"Given section does not exist: {section}")
     return section
 
@@ -174,12 +174,6 @@ class Api:
                 web.patch("/graph/{graph_id}/node/{node_id}", self.update_node),
                 web.delete("/graph/{graph_id}/node/{node_id}", self.delete_node),
                 web.patch("/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
-                # specific section of the graph
-                web.post("/graph/{graph_id}/{section}/query/raw", self.raw),
-                web.post("/graph/{graph_id}/{section}/query/explain", self.explain),
-                web.post("/graph/{graph_id}/{section}/query/list", self.query_list),
-                web.post("/graph/{graph_id}/{section}/query/graph", self.query_graph_stream),
-                web.post("/graph/{graph_id}/{section}/query/aggregate", self.query_aggregation),
                 # Subscriptions
                 web.get("/subscribers", self.list_all_subscriptions),
                 web.get("/subscribers/for/{event_type}", self.list_subscription_for_event),
