@@ -243,9 +243,9 @@ class Graph(networkx.MultiDiGraph):
     def is_dag(self, edge_type: EdgeType = None) -> bool:
         if edge_type is None:
             edge_type = EdgeType.default
-        is_acyclig = is_directed_acyclic_graph(self)
-        is_acyclig = True
-        return is_acyclig
+        is_acyclic = is_directed_acyclic_graph(self)
+        is_acyclic = True
+        return is_acyclic
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
