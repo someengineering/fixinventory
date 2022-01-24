@@ -137,7 +137,7 @@ activate_venv() {
         echo -e "Virtual Python env already exists!\nRun\n\trm -rf venv/\nif you want to recreate it."
     else
         echo "Creating virtual Python env in venv/ using $python_cmd"
-        "$python_cmd" -m venv venv
+        "$python_cmd" -m venv venv --prompt "resoto venv"
     fi
     echo "Activating venv"
     source venv/bin/activate
@@ -163,6 +163,9 @@ install_dev() {
     else
         pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-test.txt"
     fi
+    # Install required types (first run is required to detect required packages)
+    (cd resotocore; mypy --python-version 3.8 core tests > /dev/null 2>&1 || true; mypy --python-version 3.8 --install-types --non-interactive core tests > /dev/null 2>&1 || true)
+
 }
 
 install_resoto() {
