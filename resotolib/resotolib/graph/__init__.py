@@ -26,6 +26,7 @@ from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict
+from enum import Enum
 
 
 metrics_graph2metrics = Summary(
@@ -80,7 +81,14 @@ metrics_graph2pajek = Summary(
 )
 
 
-class Graph(networkx.DiGraph):
+class EdgeType(Enum):
+    default = "default"
+    delete = "delete"
+    start = "start"
+    stop = "stop"
+
+
+class Graph(networkx.MultiDiGraph):
     """A directed Graph"""
 
     def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
@@ -92,13 +100,13 @@ class Graph(networkx.DiGraph):
                 self.root, label=self.root.name, **get_resource_attributes(self.root)
             )
 
-    def merge(self, graph: networkx.DiGraph):
+    def merge(self, graph: networkx.MultiDiGraph):
         """Merge another graph into ourselves
 
         If the other graph has a graph.root an edge will be created between
         it and our own graph root.
         """
-        self.update(graph)
+        self.update(edges=graph.edges, nodes=graph.nodes)
         if isinstance(self.root, BaseResource) and isinstance(
             getattr(graph, "root", None), BaseResource
         ):
@@ -110,7 +118,13 @@ class Graph(networkx.DiGraph):
             log.warning("Merging graphs with no valid roots")
         self.resolve_deferred_connections()
 
-    def add_resource(self, parent, node_for_adding, **attr):
+    def add_resource(
+        self,
+        parent: BaseResource,
+        node_for_adding: BaseResource,
+        edge_type: EdgeType = None,
+        **attr,
+    ):
         """Add a resource node to the graph
 
         When adding resource nodes to the graph there's always a label and a
@@ -133,31 +147,46 @@ class Graph(networkx.DiGraph):
         self.add_node(
             node_for_adding, label=node_for_adding.name, **resource_attr, **attr
         )
-        self.add_edge(parent, node_for_adding)
+        self.add_edge(src=parent, dst=node_for_adding, edge_type=edge_type)
 
-    def add_node(self, node_for_adding, **attr):
+    def add_node(self, node_for_adding: BaseResource, **attr):
         super().add_node(node_for_adding, **attr)
         if isinstance(node_for_adding, BaseResource):
-            # We hand a reference to ourselve to the added BaseResource
+            # We hand a reference to ourselves to the added BaseResource
             # which stores it as a weakref.
             node_for_adding._graph = self
 
-    def add_edge(self, src, dst, **attr):
+    def add_edge(
+        self,
+        src: BaseResource,
+        dst: BaseResource,
+        key=None,
+        edge_type: EdgeType = None,
+        **attr,
+    ):
         if src is None or dst is None:
             log.error(f"Not creating edge from or to NoneType: {src} to {dst}")
             return
-        if self.has_edge(src, dst):
+
+        if edge_type is None:
+            edge_type = EdgeType.default
+        if key is None:
+            key = (src, dst, edge_type)
+
+        if self.has_edge(src, dst, key=key):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
-        super().add_edge(src, dst, **attr)
+        return_key = super().add_edge(src, dst, key=key, **attr)
         if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
-            log.debug(f"Added edge from {src.rtdname} to {dst.rtdname}")
+            log.debug(
+                f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})"
+            )
             try:
                 src.successor_added(dst, self)
             except Exception:
                 log.exception(
                     (
-                        f"Unhandeled exception while telling {src.rtdname}"
+                        f"Unhandled exception while telling {src.rtdname}"
                         f" that {dst.rtdname} was added as a successor"
                     )
                 )
@@ -166,16 +195,23 @@ class Graph(networkx.DiGraph):
             except Exception:
                 log.exception(
                     (
-                        f"Unhandeled exception while telling {dst.rtdname}"
+                        f"Unhandled exception while telling {dst.rtdname}"
                         f" that {src.rtdname} was added as a predecessor"
                     )
                 )
+        return return_key
 
-    def remove_node(self, *args, **kwargs):
-        super().remove_node(*args, **kwargs)
+    def remove_node(self, node: BaseResource):
+        super().remove_node(node)
 
-    def remove_edge(self, *args, **kwargs):
-        super().remove_edge(*args, **kwargs)
+    def remove_edge(
+        self, src: BaseResource, dst: BaseResource, key=None, edge_type: EdgeType = None
+    ):
+        if edge_type is None:
+            edge_type = EdgeType.default
+        if key is None:
+            key = (src, dst, edge_type)
+        super().remove_edge(src, dst, key=key)
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
@@ -765,6 +801,12 @@ class GraphExportIterator:
                 log.error(f"One of {from_node} and {to_node} is no base resource")
                 continue
             edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
+            if len(edge) == 3:
+                key = edge[2]
+                if len(key) == 3 and isinstance(key[2], EdgeType):
+                    edge_type = key[2]
+                    if edge_type != EdgeType.default:
+                        edge_dict["edge_type"] = edge_type
             edge_json = json.dumps(edge_dict) + "\n"
             self.edges_sent += 1
             if (

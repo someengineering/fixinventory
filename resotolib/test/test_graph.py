@@ -1,4 +1,4 @@
-from resotolib.graph import Graph, GraphContainer
+from resotolib.graph import Graph, GraphContainer, EdgeType
 from resotolib.baseresources import BaseResource
 import resotolib.logging as logging
 from dataclasses import dataclass
@@ -39,3 +39,27 @@ def test_graph_container():
     assert len(gc.graph.edges) == 2
     assert gc.graph.search_first("id", "bar") == n2
     assert gc.graph.search_first_parent_class(n2, SomeTestResource) == n1
+
+
+def test_graph_merge():
+    rg1 = Graph()
+    rg2 = Graph()
+    a = SomeTestResource("a", {})
+    b = SomeTestResource("b", {})
+    c = SomeTestResource("c", {})
+    d = SomeTestResource("d", {})
+    rg1.add_node(a)
+    rg1.add_node(b)
+    rg2.add_node(c)
+    rg2.add_node(d)
+    rg1.add_edge(a, b, edge_type=EdgeType.delete)
+    rg2.add_edge(c, d, edge_type=EdgeType.delete)
+    rg1.merge(rg2)
+    assert len(rg1.nodes) == 4
+    assert len(rg1.edges) == 2
+    for edge in rg1.edges:
+        assert len(edge) == 3
+        key = edge[2]
+        assert len(key) == 3
+        edge_type = key[2]
+        assert edge_type == EdgeType.delete
