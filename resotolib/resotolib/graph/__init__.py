@@ -1,5 +1,6 @@
 from __future__ import annotations
 import networkx
+from networkx.algorithms.dag import is_directed_acyclic_graph
 import threading
 import pickle
 import json
@@ -212,6 +213,39 @@ class Graph(networkx.MultiDiGraph):
         if key is None:
             key = (src, dst, edge_type)
         super().remove_edge(src, dst, key=key)
+
+    def predecessors(self, node: BaseResource, edge_type: EdgeType = None):
+        if edge_type is None:
+            edge_type = EdgeType.default
+        for predecessor in super().predecessors(node):
+            key = (predecessor, node, edge_type)
+            if self.has_edge(predecessor, node, key=key):
+                yield predecessor
+
+    def successors(self, node: BaseResource, edge_type: EdgeType = None):
+        if edge_type is None:
+            edge_type = EdgeType.default
+        for successor in super().successors(node):
+            key = (node, successor, edge_type)
+            if self.has_edge(node, successor, key=key):
+                yield successor
+
+    def ancestors(self, node: BaseResource, edge_type: EdgeType = None):
+        if edge_type is None:
+            edge_type = EdgeType.default
+        return networkx.algorithms.dag.ancestors(self, node)
+
+    def descendants(self, node: BaseResource, edge_type: EdgeType = None):
+        if edge_type is None:
+            edge_type = EdgeType.default
+        return networkx.algorithms.dag.descendants(self, node)
+
+    def is_dag(self, edge_type: EdgeType = None) -> bool:
+        if edge_type is None:
+            edge_type = EdgeType.default
+        is_acyclig = is_directed_acyclic_graph(self)
+        is_acyclig = True
+        return is_acyclig
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
@@ -806,7 +840,7 @@ class GraphExportIterator:
                 if len(key) == 3 and isinstance(key[2], EdgeType):
                     edge_type = key[2]
                     if edge_type != EdgeType.default:
-                        edge_dict["edge_type"] = edge_type
+                        edge_dict["edge_type"] = edge_type.value
             edge_json = json.dumps(edge_dict) + "\n"
             self.edges_sent += 1
             if (

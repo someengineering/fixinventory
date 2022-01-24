@@ -63,3 +63,21 @@ def test_graph_merge():
         assert len(key) == 3
         edge_type = key[2]
         assert edge_type == EdgeType.delete
+
+
+def test_multidigraph():
+    g = Graph()
+    a = SomeTestResource("a", {})
+    b = SomeTestResource("b", {})
+    g.add_resource(a, b)
+    g.add_edge(b, a, edge_type=EdgeType.delete)
+    assert len(g.nodes) == 2
+    assert len(g.edges) == 2
+    assert len(list(g.successors(a))) == 1
+    assert len(list(g.predecessors(b))) == 1
+    assert len(list(g.predecessors(a))) == 0
+    assert len(list(g.successors(b))) == 0
+    assert len(list(g.predecessors(a, edge_type=EdgeType.delete))) == 1
+    assert len(list(g.successors(b, edge_type=EdgeType.delete))) == 1
+    assert len(list(g.successors(a, edge_type=EdgeType.delete))) == 0
+    assert len(list(g.predecessors(b, edge_type=EdgeType.delete))) == 0
