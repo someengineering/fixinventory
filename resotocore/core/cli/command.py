@@ -83,7 +83,7 @@ from core.parse_util import (
     l_curly_dp,
     r_curly_dp,
 )
-from core.query.model import Query, P, Template
+from core.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from core.query.query_parser import parse_query
 from core.query.template_expander import tpl_props_p
 from core.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
@@ -1875,10 +1875,10 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         return 100
 
     cloud_account_region_zone = {
-        "cloud": ["reported", "cloud", "id"],
-        "account": ["reported", "account", "id"],
-        "region": ["reported", "region", "id"],
-        "zone": ["reported", "zone", "id"],
+        "cloud": ["ancestors", "cloud", "reported", "id"],
+        "account": ["ancestors", "account", "reported", "id"],
+        "region": ["ancestors", "region", "reported", "id"],
+        "zone": ["ancestors", "zone", "reported", "id"],
     }
 
     @classmethod
@@ -1954,7 +1954,13 @@ class TagCommand(SendWorkerTaskCommand):
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
             # one query to load all items that match given ids (max 1000 as defined in chunk size)
-            query = Query.by(P("_key").is_in(ids)).merge_preamble({"merge_with_ancestors": "cloud,account,region,zone"})
+            query = (
+                Query.by(P("_key").is_in(ids))
+                .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
+                .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
+                .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
+                .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
+            )
             query_model = QueryModel(query, model)
             async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
                 async for a in crs:

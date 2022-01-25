@@ -347,6 +347,10 @@ class Navigation:
             return f"<-{nav}->"
 
 
+NavigateUntilRoot = Navigation(start=1, until=Navigation.Max, edge_type=EdgeType.default, direction=Direction.inbound)
+NavigateUntilLeaf = Navigation(start=1, until=Navigation.Max, edge_type=EdgeType.default, direction=Direction.outbound)
+
+
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class WithClauseFilter:
     op: str
@@ -720,6 +724,18 @@ class Query:
     def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
         return replace(self, preamble=updated)
+
+    def merge_with(self, path: str, navigation: Navigation, term: Term) -> Query:
+        parts = self.parts.copy()
+        first = parts[0]
+        merge = MergeQuery(path, Query([Part(term), Part(AllTerm(), navigation=navigation)]))
+        term = (
+            replace(first.term, merge=[*first.term.merge, merge])
+            if isinstance(first.term, MergeTerm)
+            else MergeTerm(first.term, [merge])
+        )
+        parts[0] = replace(first, term=term)
+        return replace(self, parts=parts)
 
     def change_variable(self, fn: Callable[[str], str]) -> Query:
         aggregate = self.aggregate.change_variable(fn) if self.aggregate else None
