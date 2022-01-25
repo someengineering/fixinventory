@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./plugins/cleanup_aws_alarms
-        run: tox -p
+        run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2

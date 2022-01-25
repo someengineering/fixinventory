@@ -50,7 +50,7 @@ jobs:
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
-        run: tox -p
+        run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
