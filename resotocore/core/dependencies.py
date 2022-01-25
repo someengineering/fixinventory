@@ -109,6 +109,13 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Graph root database password used for creating user and database if not existent.",
     )
     parser.add_argument(
+        "--graphdb-bootstrap-do-not-secure",
+        default=False,
+        action="store_true",
+        dest="graphdb_bootstrap_do_not_secure",
+        help="Leave an empty root password during system setup process.",
+    )
+    parser.add_argument(
         "--graphdb-type",
         default="arangodb",
         dest="graphdb_type",

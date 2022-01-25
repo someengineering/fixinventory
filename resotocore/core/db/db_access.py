@@ -133,6 +133,7 @@ class DbAccess(ABC):
                 # this only works if arango has been started with default settings.
                 http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
                 root_pw = args.graphdb_root_password
+                secure_root = not args.graphdb_bootstrap_do_not_secure
                 root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db(password=root_pw)
                 root_db.echo()  # this call will fail, if we are not allowed to access the system db
                 user = args.graphdb_username
@@ -150,7 +151,7 @@ class DbAccess(ABC):
                         [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],
                     )
                     change = True
-                if change and root_pw == "" and passwd != "" and passwd not in {"test"}:
+                if change and secure_root and root_pw == "" and passwd != "" and passwd not in {"test"}:
                     root_db.replace_user("root", passwd, True)
                     log.info(
                         "Database is using an empty password. "
@@ -198,8 +199,10 @@ class DbAccess(ABC):
                 if utc() > deadline:
                     log.error("Can not connect to database. Giving up.")
                     shutdown_process(1)
-                elif ex.error_code == 11:  # https://www.arangodb.com/docs/stable/appendix-error-codes.html#11
-                    # This means we can reach the database, but are not allowed to access it
+                elif ex.error_code in (11, 1228, 1703):
+                    # https://www.arangodb.com/docs/stable/appendix-error-codes.html
+                    # This means we can reach the database, but are either not allowed to access it
+                    # or the related user and or database could not be found.
                     # We assume the database does not exist and try to create it.
                     create_database()
                 else:
