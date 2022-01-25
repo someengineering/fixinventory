@@ -7,7 +7,7 @@
 <!-- Before submitting this PR, please lint and build your changes locally. -->
 <!-- Add an 'x' between the brackets to mark each checkbox as checked. -->
 
-- [ ] Test coverage for new code
+- [ ] Test coverage for new or updated functionality
 - [ ] Lint and test with `tox`
 
 # Issues Fixed
