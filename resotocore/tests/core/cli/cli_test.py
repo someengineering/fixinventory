@@ -39,7 +39,7 @@ from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_k
 from tests.core.message_bus_test import message_bus
 
 # noinspection PyUnresolvedReferences
-from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+from tests.core.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender
