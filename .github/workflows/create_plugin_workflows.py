@@ -47,12 +47,6 @@ jobs:
           pip install tox wheel flake8
 """
 
-step_aws = """
-      - name: Build aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-"""
-
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
@@ -73,9 +67,6 @@ for plugin in os.listdir(plugins_path):
     if os.path.isdir(os.path.join(plugins_path, plugin)):
         with open(f"check_pr_plugin_{plugin}.yml", "w") as yml:
             yml.write(install.replace("@name@", plugin))
-            # aws is a dependency that needs to be installed for all aws related plugins.
-            if "aws" in plugin and plugin != "aws":
-                yml.write(step_aws)
             yml.write(
                 step_run_test.replace("@directory@", f"./plugins/{plugin}").replace(
                     "@name@", plugin

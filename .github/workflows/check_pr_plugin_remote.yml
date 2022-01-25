@@ -1,7 +1,7 @@
 # Note: this workflow is automatically generated via the `create_pr` script in the same folder.
 # Please do not change the file, but the script!
 
-name: Check PR (Plugin cleanup_aws_alarms)
+name: Check PR (Plugin remote)
 on:
   push:
     branches:
@@ -9,12 +9,12 @@ on:
   pull_request:
     paths:
       - 'resotolib/**'
-      - 'plugins/cleanup_aws_alarms/**'
+      - 'plugins/remote/**'
       - '.github/**'
 
 jobs:
-  cleanup_aws_alarms:
-    name: "cleanup_aws_alarms"
+  remote:
+    name: "remote"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,11 +41,11 @@ jobs:
           pip install tox wheel flake8
 
       - name: Run tests
-        working-directory: ./plugins/cleanup_aws_alarms
+        working-directory: ./plugins/remote
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: plugin-cleanup_aws_alarms-code-coverage-report
-          path: ./plugins/cleanup_aws_alarms/htmlcov/
+          name: plugin-remote-code-coverage-report
+          path: ./plugins/remote/htmlcov/

@@ -40,10 +40,6 @@ jobs:
           pip install --upgrade --editable resotolib/
           pip install tox wheel flake8
 
-      - name: Build aws
-        working-directory: ./plugins/aws
-        run: pip wheel -w /build -f /build .
-
       - name: Run tests
         working-directory: ./plugins/cleanup_aws_vpcs
         run: tox
