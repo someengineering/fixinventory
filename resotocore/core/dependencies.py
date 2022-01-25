@@ -103,6 +103,12 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help='Graph database password (default: "")',
     )
     parser.add_argument(
+        "--graphdb-root-password",
+        default="",
+        dest="graphdb_root_password",
+        help="Graph root database password used for creating user and database if not existent.",
+    )
+    parser.add_argument(
         "--graphdb-type",
         default="arangodb",
         dest="graphdb_type",

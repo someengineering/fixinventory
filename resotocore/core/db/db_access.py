@@ -121,7 +121,9 @@ class DbAccess(ABC):
     # Only used during startup.
     # Note: this call uses sleep and will block the current executing thread!
     @classmethod
-    def connect(cls, args: Namespace, timeout: timedelta) -> Tuple[bool, SystemData, StandardDatabase]:
+    def connect(
+        cls, args: Namespace, timeout: timedelta, sleep_time: float = 5
+    ) -> Tuple[bool, SystemData, StandardDatabase]:
         deadline = utc() + timeout
         db = cls.client(args)
 
@@ -130,24 +132,40 @@ class DbAccess(ABC):
                 # try to access the system database with default credentials.
                 # this only works if arango has been started with default settings.
                 http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
-                root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db()
+                root_pw = args.graphdb_root_password
+                root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db(password=root_pw)
                 root_db.echo()  # this call will fail, if we are not allowed to access the system db
                 user = args.graphdb_username
                 passwd = args.graphdb_password
                 database = args.graphdb_database
+                change = False
                 if not root_db.has_user(user):
                     log.info(f"Graph db user {user} does not exist. Create it.")
                     root_db.create_user(user, passwd, active=True)
+                    change = True
                 if not root_db.has_database(database):
                     log.info(f"Graph db database {database} does not exist. Create it.")
                     root_db.create_database(
                         database,
                         [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],
                     )
+                    change = True
+                if change and root_pw == "" and passwd != "" and passwd not in {"test"}:
+                    root_db.replace_user("root", passwd, True)
+                    log.info(
+                        "Database is using an empty password. "
+                        "Secure the root account with the provided user password. "
+                        "Login to the Resoto database via provided username and password. "
+                        "Login to the System database via `root` and provided password!"
+                    )
+                if not change:
+                    log.info("Not allowed to access database, while user and database exist. Wrong password?")
             except Exception as ex:
                 log.error(
-                    "Database or user does not exist or does not have enough permissions."
-                    f"Attempt to create user/database via default system account is not possible. Reason: {ex}"
+                    "Database or user does not exist or does not have enough permissions. "
+                    f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
+                    "You can provide the password of the root user via --graphdb-root-password to setup "
+                    "a Resoto user and database automatically."
                 )
 
         def system_data() -> Tuple[bool, SystemData]:
@@ -186,10 +204,11 @@ class DbAccess(ABC):
                     create_database()
                 else:
                     log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
-                sleep(5)
+                # Retry directly after the first attempt
+                sleep(sleep_time)
             except ArangoConnectionError:
                 log.warning("Can not access database. Trying again in 5 seconds.")
-                sleep(5)
+                sleep(sleep_time)
 
     @staticmethod
     def client(args: Namespace) -> StandardDatabase:
