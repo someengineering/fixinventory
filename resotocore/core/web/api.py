@@ -375,8 +375,8 @@ class Api:
         wsid = uuid_str()
 
         async def receive() -> None:
-            async for msg in ws:
-                try:
+            try:
+                async for msg in ws:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
                         log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                         js = json.loads(msg.data)
@@ -391,11 +391,11 @@ class Api:
                             await self.workflow_handler.handle_action_error(message)
                         else:
                             await self.message_bus.emit(message)
-                except Exception as ex:
-                    # do not allow any exception - it will destroy the async fiber and cleanup
-                    log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
-                finally:
-                    await self.clean_ws_handler(wsid)
+            except Exception as ex:
+                # do not allow any exception - it will destroy the async fiber and cleanup
+                log.info(f"Receive: message listener {listener_id}: {ex}. Hang up.")
+            finally:
+                await self.clean_ws_handler(wsid)
 
         async def send() -> None:
             try:
@@ -433,8 +433,8 @@ class Api:
         task_descriptions = [WorkerTaskDescription(name, attrs) for name in re.split("\\s*,\\s*", task_param)]
 
         async def receive() -> None:
-            async for msg in ws:
-                try:
+            try:
+                async for msg in ws:
                     if isinstance(msg, WSMessage) and msg.type == WSMsgType.TEXT and len(msg.data.strip()) > 0:
                         log.info(f"Incoming message: type={msg.type} data={msg.data} extra={msg.extra}")
                         tr = from_js(json.loads(msg.data), WorkerTaskResult)
@@ -445,12 +445,11 @@ class Api:
                             await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
                         else:
                             log.info(f"Do not understand this message: {msg.data}")
-
-                except Exception as ex:
-                    # do not allow any exception - it will destroy the async fiber and cleanup
-                    log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
-                finally:
-                    await self.clean_ws_handler(worker_id)
+            except Exception as ex:
+                # do not allow any exception - it will destroy the async fiber and cleanup
+                log.info(f"Receive: worker:{worker_id}: {ex}. Hang up.")
+            finally:
+                await self.clean_ws_handler(worker_id)
 
         async def send() -> None:
             try:
