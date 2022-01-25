@@ -32,11 +32,6 @@ def test_not_existing(system_db: StandardDatabase, test_db: StandardDatabase) ->
     assert system_db.has_user("foo")
     assert system_db.has_database("foo")
 
-    # accessing the foodb with wrong password fails
-    foodb_wrong = ["--graphdb-username", "foo", "--graphdb-password", "bla", "--graphdb-database", "foo"]
-    with pytest.raises(SystemExit):
-        access.connect(parse_args(foodb_wrong), timedelta(seconds=0.1), sleep_time=0.1)
-
 
 def test_not_existing_and_default_root_account(
     local_client: ArangoClient, system_db: StandardDatabase, test_db: StandardDatabase
