@@ -7,7 +7,7 @@ from arango.database import StandardDatabase
 from core.db.async_arangodb import AsyncArangoDB
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, system_db, local_client
 
 
 @pytest.fixture

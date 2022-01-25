@@ -11,7 +11,7 @@ from core.db.templatedb import TemplateEntityDb, EventTemplateEntityDb
 from core.query.model import Template
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, local_client, system_db
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender

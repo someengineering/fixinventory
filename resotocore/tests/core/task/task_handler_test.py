@@ -29,7 +29,7 @@ from core.task.task_handler import TaskHandler
 from tests.core.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model, foo_kinds
+from tests.core.db.graphdb_test import filled_graph_db, graph_db, test_db, foo_model, foo_kinds, system_db, local_client
 
 # noinspection PyUnresolvedReferences
 from tests.core.cli.cli_test import cli, cli_deps

@@ -15,7 +15,7 @@ from core.model.model import ComplexKind, Property, StringKind, NumberKind, Bool
 from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, local_client, system_db
 
 
 @pytest.fixture

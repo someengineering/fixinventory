@@ -18,7 +18,7 @@ from core.task.model import Subscription
 from core.util import rnd_str, AccessJson
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import foo_kinds, test_db, create_graph
+from tests.core.db.graphdb_test import foo_kinds, test_db, create_graph, system_db, local_client
 from tests.core.web.api_client import ApiClient
 
 
