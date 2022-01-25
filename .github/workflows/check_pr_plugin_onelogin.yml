@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./plugins/onelogin
-        run: tox
+        run: tox -p
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
