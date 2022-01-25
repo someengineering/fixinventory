@@ -15,7 +15,7 @@ from core.model.typed_model import to_js
 from tests.core.db.graphdb_test import create_graph
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import graph_db, foo_kinds, test_db
+from tests.core.db.graphdb_test import graph_db, foo_kinds, test_db, local_client, system_db
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender

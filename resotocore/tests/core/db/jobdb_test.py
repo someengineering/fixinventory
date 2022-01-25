@@ -15,7 +15,7 @@ from core.task.task_description import Job, ExecuteCommand, EventTrigger
 from tests.core.analytics import event_sender
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, local_client, system_db
 
 
 @pytest.fixture

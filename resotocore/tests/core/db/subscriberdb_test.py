@@ -11,7 +11,7 @@ from core.db.subscriberdb import SubscriberDb, EventSubscriberDb
 from core.task.model import Subscriber, Subscription
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, system_db, local_client
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender

@@ -217,24 +217,25 @@ def foo_model(foo_kinds: List[Kind]) -> Model:
 
 
 @pytest.fixture
-def system_db() -> StandardDatabase:
-    # Initialize the client for ArangoDB.
-    client = ArangoClient(hosts="http://localhost:8529")
-    return client.db()
+def local_client() -> ArangoClient:
+    return ArangoClient(hosts="http://localhost:8529")
 
 
 @pytest.fixture
-def test_db() -> StandardDatabase:
-    client = ArangoClient(hosts="http://localhost:8529")
-    system = client.db()
-    if not system.has_user("test"):
-        system.create_user("test", "test", True)
+def system_db(local_client: ArangoClient) -> StandardDatabase:
+    return local_client.db()
 
-    if not system.has_database("test"):
-        system.create_database("test", [{"username": "test", "password": "test", "active": True}])
+
+@pytest.fixture
+def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> StandardDatabase:
+    if not system_db.has_user("test"):
+        system_db.create_user("test", "test", True)
+
+    if not system_db.has_database("test"):
+        system_db.create_database("test", [{"username": "test", "password": "test", "active": True}])
 
     # Connect to "test" database as "test" user.
-    return client.db("test", username="test", password="test")
+    return local_client.db("test", username="test", password="test")
 
 
 @pytest.fixture

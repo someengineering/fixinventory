@@ -10,7 +10,7 @@ from core.query.model import Query
 from core.query.query_parser import parse_query
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import foo_kinds, foo_model, test_db, graph_db
+from tests.core.db.graphdb_test import foo_kinds, foo_model, test_db, graph_db, system_db, local_client
 
 
 def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> None:

@@ -15,7 +15,7 @@ from core.task.task_description import RunningTask
 from tests.core.task.task_description_test import workflow_instance, test_workflow
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, local_client, system_db
 
 # noinspection PyUnresolvedReferences
 from tests.core.message_bus_test import message_bus, all_events

@@ -141,11 +141,11 @@ class DbAccess(ABC):
                 database = args.graphdb_database
                 change = False
                 if not root_db.has_user(user):
-                    log.info(f"Configured graph db user does not exist. Create it.")
+                    log.info("Configured graph db user does not exist. Create it.")
                     root_db.create_user(user, passwd, active=True)
                     change = True
                 if not root_db.has_database(database):
-                    log.info(f"Configured graph db database does not exist. Create it.")
+                    log.info("Configured graph db database does not exist. Create it.")
                     root_db.create_database(
                         database,
                         [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],

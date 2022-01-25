@@ -10,7 +10,7 @@ from core.dependencies import parse_args
 from core.model.adjust_node import NoAdjust
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db, system_db
+from tests.core.db.graphdb_test import test_db, system_db, local_client
 
 
 def test_already_existing(test_db: StandardDatabase) -> None:
@@ -38,7 +38,9 @@ def test_not_existing(system_db: StandardDatabase, test_db: StandardDatabase) ->
         access.connect(parse_args(foodb_wrong), timedelta(seconds=0.1), sleep_time=0.1)
 
 
-def test_not_existing_and_default_root_account(system_db: StandardDatabase, test_db: StandardDatabase) -> None:
+def test_not_existing_and_default_root_account(
+    local_client: ArangoClient, system_db: StandardDatabase, test_db: StandardDatabase
+) -> None:
     access = DbAccess(test_db, NoEventSender(), NoAdjust())
     # foo db and pass does not exist
     foodb = ["--graphdb-username", "foo", "--graphdb-password", "bombproof", "--graphdb-database", "foo"]
@@ -47,6 +49,6 @@ def test_not_existing_and_default_root_account(system_db: StandardDatabase, test
     access.connect(parse_args(foodb), timedelta(seconds=5), sleep_time=0.1)
 
     # The default root account is used and a valid password is given -> also the root account uses this password
-    changed_root = ArangoClient(hosts="http://localhost:8529").db(username="root", password="bombproof")
+    changed_root = local_client.db(username="root", password="bombproof")
     # Rest the password to the default one, to reset the state before the test
     changed_root.replace_user("root", "", True)

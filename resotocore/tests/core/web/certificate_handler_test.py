@@ -6,7 +6,7 @@ from core.dependencies import parse_args
 from core.web.certificate_handler import CertificateHandler
 
 # noinspection PyUnresolvedReferences
-from tests.core.db.graphdb_test import test_db
+from tests.core.db.graphdb_test import test_db, system_db, local_client
 
 
 @fixture
