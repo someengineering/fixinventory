@@ -2198,6 +2198,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.database", args.graphdb_database,
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
+                "--configuration", "none",
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
@@ -2251,6 +2252,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.database", args.graphdb_database,
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
+                "--configuration", "none",
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
