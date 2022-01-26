@@ -753,7 +753,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         explain: bool = parsed.get("explain", False)
 
         # all templates are expanded at this point, so we can call the parser directly.
-        query = parse_query(rest)
+        query = parse_query(rest, **ctx.env)
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
         async def load_query_model() -> QueryModel:
@@ -2420,7 +2420,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             # try to render the template with dummy values and see if the query can be parsed
             try:
                 rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
-                parse_query(rendered_query)
+                parse_query(rendered_query, **ctx.env)
             except Exception as ex:
                 raise CLIParseError(f"Given template does not define a valid query: {template_query}") from ex
             await self.dependencies.template_expander.put_template(Template(name, template_query))

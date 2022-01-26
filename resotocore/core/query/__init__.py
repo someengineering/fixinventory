@@ -11,11 +11,7 @@ class QueryParser(ABC):
 
     @abstractmethod
     async def parse_query(
-        self,
-        to_parse: str,
-        on_section: Optional[str],
-        *,
-        omit_section_expansion: bool = False,
+        self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False, **env: str
     ) -> Query:
         """
         Parse given string into a query.

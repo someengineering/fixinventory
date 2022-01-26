@@ -43,6 +43,7 @@ from core.cli.model import ParsedCommandLine, CLIContext, OutputTransformer, Pre
 from core.cli.command import ListCommand
 from core.config import ConfigEntity
 from core.db.db_access import DbAccess
+from core.db.graphdb import GraphDB
 from core.db.model import QueryModel
 from core.message_bus import MessageBus, Message, ActionDone, Action, ActionError
 from core.model.db_updater import merge_graph_process
@@ -616,23 +617,23 @@ class Api:
         await graph_db.abort_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
-    async def raw(self, request: Request) -> StreamResponse:
-        query_string = await request.text()
+    async def graph_query_model_from_request(self, request: Request) -> Tuple[GraphDB, QueryModel]:
         section = section_of(request)
+        query_string = await request.text()
         graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        with_edges = request.query.get("edges") is not None
+        q = await self.query_parser.parse_query(query_string, section, **request.query)
         m = await self.model_handler.load_model()
-        q = await self.query_parser.parse_query(query_string, section)
-        query, bind_vars = await graph_db.to_query(QueryModel(q, m), with_edges)
+        return graph_db, QueryModel(q, m)
+
+    async def raw(self, request: Request) -> StreamResponse:
+        graph_db, query_model = await self.graph_query_model_from_request(request)
+        with_edges = request.query.get("edges") is not None
+        query, bind_vars = await graph_db.to_query(query_model, with_edges)
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request) -> StreamResponse:
-        section = section_of(request)
-        query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string, section)
-        m = await self.model_handler.load_model()
-        result = await graph_db.explain(QueryModel(q, m))
+        graph_db, query_model = await self.graph_query_model_from_request(request)
+        result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
 
     async def search_graph(self, request: Request) -> StreamResponse:
@@ -649,44 +650,28 @@ class Api:
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
 
     async def query_list(self, request: Request) -> StreamResponse:
-        section = section_of(request)
-        query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string, section)
-        m = await self.model_handler.load_model()
+        graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_list(QueryModel(q, m), count, timeout) as cursor:
+        async with await graph_db.query_list(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
-        section = section_of(request)
-        query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        q = await self.query_parser.parse_query(query_string, section)
-        m = await self.model_handler.load_model()
-        result = await graph_db.query_graph(QueryModel(q, m))
+        graph_db, query_model = await self.graph_query_model_from_request(request)
+        result = await graph_db.query_graph(query_model)
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
     async def query_graph_stream(self, request: Request) -> StreamResponse:
-        section = section_of(request)
-        query_string = await request.text()
-        q = await self.query_parser.parse_query(query_string, section)
-        m = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_graph_gen(QueryModel(q, m), count, timeout) as cursor:
+        async with await graph_db.query_graph_gen(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
-        section = section_of(request)
-        query_string = await request.text()
-        q = await self.query_parser.parse_query(query_string, section)
-        m = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
-        async with await graph_db.query_aggregation(QueryModel(q, m)) as gen:
+        graph_db, query_model = await self.graph_query_model_from_request(request)
+        async with await graph_db.query_aggregation(query_model) as gen:
             return await self.stream_response_from_gen(request, gen)
 
     async def wipe(self, request: Request) -> StreamResponse:

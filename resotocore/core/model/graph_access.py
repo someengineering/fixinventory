@@ -322,7 +322,7 @@ class GraphAccess:
 
         for resolver in GraphResolver.to_resolve:
             # search for ancestor that matches filter criteria
-            anc = self.ancestor_of(node_id, EdgeType.dependency, resolver.kind)
+            anc = self.ancestor_of(node_id, EdgeType.default, resolver.kind)
             if anc:
                 for res in resolver.resolve:
                     with_ancestor(anc, res)
