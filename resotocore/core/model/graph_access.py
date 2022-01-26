@@ -120,7 +120,7 @@ class GraphBuilder:
                 js.get(Section.desired, None),
                 js.get(Section.metadata, None),
                 js.get("search", None),
-                js.get("replace", None) is True,
+                js.get("replace", False) is True,
             )
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
@@ -156,7 +156,7 @@ class GraphBuilder:
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
-            replace=replace,
+            replace=replace | metadata.get("replace", False) is True if metadata else False,
         )
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
@@ -434,7 +434,13 @@ class GraphAccess:
                 # compute the shortest path from root to here
                 pres: Set[str] = reduce(lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set())
                 result[node] = pres
-
+            # make sure there is no replace node beyond another replace node
+            rs = result.copy()
+            for node in rs:
+                for nid, parent_nodes in rs.items():
+                    if nid != node and node in parent_nodes:
+                        log.info(f"Node {nid} marked as replace, but is child of another replace node {node}. Ignore.")
+                        result.pop(nid, None)
             return result
 
         # Walk the graph from given starting node and return all successors.

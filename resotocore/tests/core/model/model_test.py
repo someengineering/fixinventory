@@ -324,8 +324,8 @@ def test_load(model_json: str) -> None:
 
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
-    assert len(graph.nodes()) == 6
-    assert len(graph.edges()) == 3
+    assert len(graph.nodes()) == 11
+    assert len(graph.edges()) == 8
 
 
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
@@ -383,7 +383,13 @@ def person_model() -> Model:
             Property("test", "string"),
         ],
     )
-    return Model.from_kinds([zip, person, address, base, any_foo])
+    cloud = ComplexKind("cloud", ["Base"], [])
+    account = ComplexKind("account", ["Base"], [])
+    region = ComplexKind("region", ["Base"], [])
+    parent = ComplexKind("parent", ["Base"], [])
+    child = ComplexKind("child", ["Base"], [])
+
+    return Model.from_kinds([zip, person, address, base, any_foo, cloud, account, region, parent, child])
 
 
 @pytest.fixture

@@ -13,7 +13,7 @@ ns = parser.parse_args()
 collector, depth, width, wild = ns.collector, ns.depth, ns.width, ns.wild
 
 by_idx = {
-    0: {"kind": "cloud", "id": "aws", "name": "aws"},
+    0: {"kind": "aws_ec2_keypair", "id": "aws", "name": "aws"},
     1: {
         "account_alias": "",
         "id": "111111111111",
@@ -45,9 +45,11 @@ def node(level, identity, replace: bool = False, kind: Optional[str] = None):
     if kind:
         reported["kind"] = kind
     metadata = {"level": level}
+    metadata = metadata | {"replace": True} if replace else metadata
     desired = {"name": f"some cool name", "age": 29}
-    js = {"id": identity, "reported": reported, "metadata": metadata}
-    js = js | {"replace": True} if replace else js
+    js = {"id": identity, "reported": reported, "metadata": metadata, "desired": desired}
+    # replace flag is now on metadata level
+    # js = js | {"replace": True} if replace else js
     print(json.dumps(js))
 
 
@@ -58,7 +60,7 @@ def edge(from_node, to_node, edge_type):
 root = f"root"
 collector_root = f"{collector}_root"
 node(0, root, kind="graph_root")
-node(0, collector_root, replace=True)
+node(0, collector_root, replace=True, kind="cloud")
 edge(root, collector_root, "dependency")
 
 for o in range(0, depth):
