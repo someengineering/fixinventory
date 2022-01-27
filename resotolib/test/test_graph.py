@@ -98,4 +98,3 @@ def test_multidigraph():
     assert g.is_dag()
     g.add_edge(b, a)
     assert g.is_dag() is False
-    g.add_edge(a, b)
