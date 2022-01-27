@@ -147,7 +147,7 @@ def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
     assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, EdgeType.delete)))
     assert_round_trip(part_parser, Part(P.of_kind("test"), "red", navigation=Navigation(1, 10, EdgeType.delete)))
-    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(edge_type=EdgeType.delete))
+    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(maybe_edge_type=EdgeType.delete))
     assert_round_trip(
         part_parser, Part(P.of_kind("test"), "green", with_clause, navigation=Navigation(1, 10, EdgeType.delete))
     )
@@ -182,12 +182,17 @@ def test_special_queries() -> None:
 
 
 def test_query_with_preamble() -> None:
-    query_parser.parse('id("root")')  # no preamble
-    query = query_parser.parse('(edge_type=delete): id("root") -[0:1]->')
-    assert query.parts[0].navigation.edge_type == "delete"
-    query = query_parser.parse('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
-    assert query.aggregate.group_by[0].name == AggregateVariableName("region")
-    assert query.aggregate.group_func[0].name == "cpu"
+    parse_query('id("root")')  # no preamble
+    # edge type can be defined in preamble
+    q1 = parse_query('(edge_type=delete): id("root") -[0:1]->')
+    assert q1.parts[0].navigation.edge_type == "delete"  # type: ignore
+    # edge type can be defined via kwargs
+    q2 = parse_query('id("root") -[0:1]->', edge_type="delete")
+    assert q2.parts[0].navigation.edge_type == "delete"  # type: ignore
+    # aggregation and preamble
+    q3 = parse_query('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
+    assert q3.aggregate.group_by[0].name == AggregateVariableName("region")  # type: ignore
+    assert q3.aggregate.group_func[0].name == "cpu"  # type: ignore
 
 
 def test_preamble_tags() -> None:
@@ -265,7 +270,7 @@ def test_with_clause() -> None:
     predicate_term.parse("foo == bla")
     wc: WithClause = with_clause_parser.parse("with(empty, -delete-> foo == bla and test > 23 with(any, -delete->))")
     assert wc.with_filter == WithClauseFilter("==", 0)
-    assert wc.navigation == Navigation(edge_type="delete")
+    assert wc.navigation == Navigation(maybe_edge_type="delete")
     assert str(wc.term) == '(foo == "bla" and test > 23)'
     assert str(wc.with_clause) == "with(any, -delete->)"
     term = Query.mk_term("foo", P("test") == 23)
@@ -274,7 +279,7 @@ def test_with_clause() -> None:
 
     def edge(wc: WithClause) -> WithClause:
         wcr = replace(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
-        return replace(wcr, navigation=replace(wcr.navigation, edge_type=EdgeType.default))
+        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_type=EdgeType.default))
 
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)
@@ -283,7 +288,7 @@ def test_with_clause() -> None:
 @given(query)
 @settings(max_examples=50, suppress_health_check=HealthCheck.all())
 def test_generated_query(q: Query) -> None:
-    assert q == query_parser.parse(str(q))
+    assert str(q) == str(parse_query(str(q)))
 
 
 def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callable[[Any], Any]] = None) -> None:

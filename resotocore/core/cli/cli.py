@@ -236,7 +236,7 @@ class CLI:
             parsed_options = {**parsed_options, **parsed}
             # section expansion is disabled here: it will happen on the final query after all parts have been combined
             return await self.dependencies.template_expander.parse_query(
-                "".join(query_part), None, omit_section_expansion=True
+                "".join(query_part), None, omit_section_expansion=True, **ctx.env
             )
 
         query: Query = Query.by(AllTerm())
