@@ -220,7 +220,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         action="store_true",
         help="Start the collect workflow, when the first handling actor connects to the system.",
     )
-    parsed: Namespace = parser.parse_args(args, namespace)
+    parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
     if parsed.version:
         # print here on purpose, since logging is not set up yet.

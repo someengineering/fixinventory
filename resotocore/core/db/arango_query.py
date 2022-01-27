@@ -273,13 +273,13 @@ def query_string(
             # this is the general structure of the with_clause that is created
             #
             # FOR cloud in foo FILTER @0 in cloud.kinds
-            #    FOR account IN 0..1 OUTBOUND cloud foo_dependency
+            #    FOR account IN 0..1 OUTBOUND cloud foo_default
             #    OPTIONS { bfs: true, uniqueVertices: 'global' }
             #    FILTER (cloud._key==account._key) or (@1 in account.kinds)
-            #        FOR region in 0..1 OUTBOUND account foo_dependency
+            #        FOR region in 0..1 OUTBOUND account foo_default
             #        OPTIONS { bfs: true, uniqueVertices: 'global' }
             #         FILTER (cloud._key==region._key) or (@2 in region.kinds)
-            #             FOR zone in 0..1 OUTBOUND region foo_dependency
+            #             FOR zone in 0..1 OUTBOUND region foo_default
             #             OPTIONS { bfs: true, uniqueVertices: 'global' }
             #             FILTER (cloud._key==zone._key) or (@3 in zone.kinds)
             #         COLLECT l4_cloud = cloud, l4_account=account, l4_region=region WITH COUNT INTO counter3

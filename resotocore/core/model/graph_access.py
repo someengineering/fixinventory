@@ -72,21 +72,18 @@ class Section:
 
 
 class EdgeType:
-    # This edge type defines logical dependencies between resources.
+    # This edge type defines the default relationship between resources.
     # It is the main edge type and is assumed, if no edge type is given.
-    dependency: str = "dependency"
+    # The related graph is also used as source of truth for graph updates.
+    default: str = "default"
 
     # This edge type defines the order of delete operations.
     # A resource can be deleted, if all outgoing resources are deleted.
     delete: str = "delete"
 
-    # The default edge type, that is used as fallback if no edge type is given.
-    # The related graph is also used as source of truth for graph updates.
-    default: str = dependency
-
-    # The list of all allowed edge types.
+    # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    all: Set[str] = {dependency, delete}
+    all: Set[str] = {default, delete}
 
 
 class Direction:
@@ -97,8 +94,8 @@ class Direction:
     # Ignore the direction of the edge and traverse in any direction.
     any = "inout"
 
-    # The list of all allowed directions.
-    all: List[str] = [inbound, outbound, any]
+    # The set of all allowed directions.
+    all: Set[str] = {inbound, outbound, any}
 
 
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
@@ -309,7 +306,7 @@ class GraphAccess:
             for node_id, node in self.g.nodes(data=True):
                 kinds = node.get("kinds_set")
                 if kinds and on_kind in kinds:
-                    summary = count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
+                    summary = count_successors_by(node_id, EdgeType.default, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
                     total = reduce(lambda l, r: l + r, summary.values(), 0)
                     set_value_in_path(total, NodePath.descendant_count, node)

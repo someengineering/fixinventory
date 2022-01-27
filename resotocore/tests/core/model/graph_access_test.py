@@ -40,11 +40,11 @@ def graph_access() -> GraphAccess:
     g.add_node("2", reported=to_json(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
     g.add_node("3", reported=to_json(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
     g.add_node("4", reported=to_json(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
-    add_edge("1", "2", edge_type=EdgeType.dependency)
-    add_edge("1", "3", edge_type=EdgeType.dependency)
-    add_edge("2", "3", edge_type=EdgeType.dependency)
-    add_edge("2", "4", edge_type=EdgeType.dependency)
-    add_edge("3", "4", edge_type=EdgeType.dependency)
+    add_edge("1", "2", edge_type=EdgeType.default)
+    add_edge("1", "3", edge_type=EdgeType.default)
+    add_edge("2", "3", edge_type=EdgeType.default)
+    add_edge("2", "4", edge_type=EdgeType.default)
+    add_edge("3", "4", edge_type=EdgeType.default)
     add_edge("1", "2", edge_type=EdgeType.delete)
     add_edge("1", "3", edge_type=EdgeType.delete)
     add_edge("1", "4", edge_type=EdgeType.delete)
@@ -107,10 +107,10 @@ def test_not_visited(graph_access: GraphAccess) -> None:
 
 
 def test_edges(graph_access: GraphAccess) -> None:
-    assert graph_access.has_edge("1", "2", EdgeType.dependency)
-    assert not graph_access.has_edge("1", "9", EdgeType.dependency)
-    assert graph_access.has_edge("2", "3", EdgeType.dependency)
-    assert list(graph_access.not_visited_edges(EdgeType.dependency)) == [("1", "3"), ("2", "4"), ("3", "4")]
+    assert graph_access.has_edge("1", "2", EdgeType.default)
+    assert not graph_access.has_edge("1", "9", EdgeType.default)
+    assert graph_access.has_edge("2", "3", EdgeType.default)
+    assert list(graph_access.not_visited_edges(EdgeType.default)) == [("1", "3"), ("2", "4"), ("3", "4")]
     assert list(graph_access.not_visited_edges(EdgeType.delete)) == [("1", "2"), ("1", "3"), ("1", "4")]
 
 
@@ -285,11 +285,11 @@ def test_predecessors() -> None:
     parent = "parent_region_account_cloud_gcp_2_europe_1"
     region = "region_account_cloud_gcp_2_europe"
 
-    # dependency: region -> parent -> child
-    assert list(graph.predecessors(child, EdgeType.dependency)) == [parent]
-    assert list(graph.predecessors(parent, EdgeType.dependency)) == [region]
-    assert child in list(graph.successors(parent, EdgeType.dependency))
-    assert parent in list(graph.successors(region, EdgeType.dependency))
+    # default: region -> parent -> child
+    assert list(graph.predecessors(child, EdgeType.default)) == [parent]
+    assert list(graph.predecessors(parent, EdgeType.default)) == [region]
+    assert child in list(graph.successors(parent, EdgeType.default))
+    assert parent in list(graph.successors(region, EdgeType.default))
 
     # delete: child -> parent -> region
     assert list(graph.successors(child, EdgeType.delete)) == [parent]
@@ -305,16 +305,16 @@ def test_ancestor_of() -> None:
     g = multi_cloud_graph("account")
 
     graph = GraphAccess(g)
-    assert graph.ancestor_of(nid1, EdgeType.dependency, "root") is not None
+    assert graph.ancestor_of(nid1, EdgeType.default, "root") is not None
     assert graph.ancestor_of(nid1, EdgeType.delete, "root") is None
-    assert graph.ancestor_of(nid1, EdgeType.dependency, "foo") is None
-    assert graph.ancestor_of(nid1, EdgeType.dependency, "foo") is None
-    assert graph.ancestor_of(nid1, EdgeType.dependency, "account")["id"] == acc1  # type: ignore
+    assert graph.ancestor_of(nid1, EdgeType.default, "foo") is None
+    assert graph.ancestor_of(nid1, EdgeType.default, "foo") is None
+    assert graph.ancestor_of(nid1, EdgeType.default, "account")["id"] == acc1  # type: ignore
 
     # add another "shorter" edge from acc2 -> nid1, so it is shorter that from acc1 -> nid1
-    key = GraphAccess.edge_key(acc2, nid1, EdgeType.dependency)
-    g.add_edge(acc2, nid1, key, edge_type=EdgeType.dependency)
-    assert graph.ancestor_of(nid1, EdgeType.dependency, "account")["id"] == acc2  # type: ignore
+    key = GraphAccess.edge_key(acc2, nid1, EdgeType.default)
+    g.add_edge(acc2, nid1, key, edge_type=EdgeType.default)
+    assert graph.ancestor_of(nid1, EdgeType.default, "account")["id"] == acc2  # type: ignore
 
 
 def test_resolve_graph_data() -> None:

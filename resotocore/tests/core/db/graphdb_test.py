@@ -85,7 +85,7 @@ class Bla(BaseResource):
 def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
     graph = MultiDiGraph()
 
-    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.dependency) -> None:
+    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
@@ -122,7 +122,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
 def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
     graph = MultiDiGraph()
 
-    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.dependency) -> None:
+    def add_edge(from_node: str, to_node: str, edge_type: str = EdgeType.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
@@ -323,7 +323,7 @@ async def test_merge_multi_graph(graph_db: ArangoGraphDB, foo_model: Model) -> N
     # 2 collectors + 4 accounts + 8 regions + 24 parents + 72 children => 110 nodes to insert
     # 1 root which changes => 1 node to update
     # edges:
-    # 110 dependency, 108 delete connections (missing: collector -> root) => 218 edge inserts
+    # 110 default, 108 delete connections (missing: collector -> root) => 218 edge inserts
     nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8

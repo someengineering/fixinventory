@@ -813,6 +813,25 @@ class ArangoGraphDB(GraphDB):
     async def create_update_schema(self) -> None:
         db = self.db
 
+        # Edge Definition dependency was renamed to default in 2.0.0a13
+        # This method can be removed before 2.0 is released
+        def rename_edge_dependency_to_default(graph_name: str, vertex_name: str, edge_name: str) -> None:
+            ddb = db.db
+            gdb = ddb.graph(graph_name)
+            dependency = self.edge_collection("dependency")
+            if (
+                ddb.has_graph(graph_name)
+                and gdb.has_edge_definition(dependency)
+                and not gdb.has_edge_definition(edge_name)
+            ):
+                log.info(f"Migration: rename edge collection {dependency} to {edge_name}")
+                # we need to delete the edge definition first, otherwise the graph is in limbo state
+                gdb.delete_edge_definition(dependency, purge=False)
+                # rename dependency -> default
+                db.db.collection(dependency).rename(edge_name)
+                # add edge definition to the graph
+                gdb.create_edge_definition(edge_name, [vertex_name], [vertex_name])
+
         async def create_update_graph(
             graph_name: str, vertex_name: str, edge_name: str
         ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
@@ -878,6 +897,8 @@ class ArangoGraphDB(GraphDB):
 
         for edge_type in EdgeType.all:
             edge_type_name = self.edge_collection(edge_type)
+            if edge_type == EdgeType.default:
+                rename_edge_dependency_to_default(self.name, self.vertex_name, edge_type_name)
             await create_update_graph(self.name, self.vertex_name, edge_type_name)
 
         vertex = db.graph(self.name).vertex_collection(self.vertex_name)

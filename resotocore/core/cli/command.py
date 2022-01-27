@@ -250,7 +250,7 @@ class PredecessorPart(QueryPart):
 
     Part of a query.
     Select all predecessors of this node in the graph.
-    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
@@ -262,7 +262,7 @@ class PredecessorPart(QueryPart):
 
     Parameter:
         --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | predecessors | match prop2 == "b"
@@ -299,7 +299,7 @@ class SuccessorPart(QueryPart):
 
     Part of a query.
     Select all successors of this node in the graph.
-    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
@@ -311,7 +311,7 @@ class SuccessorPart(QueryPart):
 
     Parameter:
         --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | successors | match prop2 == "b"
@@ -334,7 +334,7 @@ class AncestorPart(QueryPart):
 
     Part of a query.
     Select all ancestors of this node in the graph.
-    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
@@ -346,7 +346,7 @@ class AncestorPart(QueryPart):
 
     Parameter:
         --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+        edge_type [Optional, defaults to `delete`]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | ancestors | match prop2 == "b"
@@ -369,7 +369,7 @@ class DescendantPart(QueryPart):
 
     Part of a query.
     Select all descendants of this node in the graph.
-    The graph may contain different types of edges (e.g. the delete graph or the dependency graph).
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
@@ -381,7 +381,7 @@ class DescendantPart(QueryPart):
 
     Parameter:
         --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to dependency]: This argument defines which edge type to use.
+        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
 
     Example:
         metadata prop1 == "a" | descendants | match prop2 == "b"
