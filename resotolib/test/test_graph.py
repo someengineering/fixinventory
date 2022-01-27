@@ -95,6 +95,6 @@ def test_multidigraph():
     assert len(list(g.descendants(a, edge_type=EdgeType.delete))) == 0
     assert len(list(g.descendants(b))) == 2
     assert len(list(g.descendants(b, edge_type=EdgeType.delete))) == 2
-    assert g.is_dag()
+    assert g.is_dag_per_edge_type()
     g.add_edge(b, a)
-    assert g.is_dag() is False
+    assert g.is_dag_per_edge_type() is False

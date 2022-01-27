@@ -258,9 +258,9 @@ class Graph(networkx.MultiDiGraph):
                     edges.append(edge)
         return self.edge_subgraph(edges)
 
-    def is_dag(self) -> bool:
+    def is_dag_per_edge_type(self) -> bool:
         """
-        Checks if the graph is acyclic with respect to a specific edge type.
+        Checks if the graph is acyclic with respect to each edge type.
         This means it is valid if there are cycles in the graph but not for the same edge type.
         :return: True if the graph is acyclic for all edge types, otherwise False.
         """

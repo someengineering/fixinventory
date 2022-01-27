@@ -72,7 +72,7 @@ def collect_plugin_graph(
                 " - ignoring plugin results"
             )
             return None
-        if not collector.graph.is_dag():
+        if not collector.graph.is_dag_per_edge_type():
             log.error(
                 f"Graph of plugin {collector.cloud} is not acyclic"
                 " - ignoring plugin results"
