@@ -238,10 +238,14 @@ class Graph(networkx.MultiDiGraph):
                 yield successor
 
     def ancestors(self, node: BaseResource, edge_type: EdgeType = None):
-        return networkx.algorithms.dag.ancestors(self.edge_type_subgraph(edge_type), node)
+        return networkx.algorithms.dag.ancestors(
+            self.edge_type_subgraph(edge_type), node
+        )
 
     def descendants(self, node: BaseResource, edge_type: EdgeType = None):
-        return networkx.algorithms.dag.descendants(self.edge_type_subgraph(edge_type), node)
+        return networkx.algorithms.dag.descendants(
+            self.edge_type_subgraph(edge_type), node
+        )
 
     def edge_type_subgraph(self, edge_type: EdgeType = None):
         if edge_type is None:
