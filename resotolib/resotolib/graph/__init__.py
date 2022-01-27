@@ -26,7 +26,7 @@ from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from enum import Enum
 
 
@@ -87,6 +87,9 @@ class EdgeType(Enum):
     delete = "delete"
     start = "start"
     stop = "stop"
+
+
+EdgeKey = namedtuple("EdgeKey", ["src", "dst", "edge_type"])
 
 
 class Graph(networkx.MultiDiGraph):
@@ -161,7 +164,7 @@ class Graph(networkx.MultiDiGraph):
         self,
         src: BaseResource,
         dst: BaseResource,
-        key=None,
+        key: EdgeKey = None,
         edge_type: EdgeType = None,
         **attr,
     ):
@@ -172,7 +175,7 @@ class Graph(networkx.MultiDiGraph):
         if edge_type is None:
             edge_type = EdgeType.default
         if key is None:
-            key = (src, dst, edge_type)
+            key = EdgeKey(src=src, dst=dst, edge_type=edge_type)
 
         if self.has_edge(src, dst, key=key):
             log.error(f"Edge from {src} to {dst} already exists in graph")
@@ -206,12 +209,16 @@ class Graph(networkx.MultiDiGraph):
         super().remove_node(node)
 
     def remove_edge(
-        self, src: BaseResource, dst: BaseResource, key=None, edge_type: EdgeType = None
+        self,
+        src: BaseResource,
+        dst: BaseResource,
+        key: EdgeKey = None,
+        edge_type: EdgeType = None,
     ):
         if edge_type is None:
             edge_type = EdgeType.default
         if key is None:
-            key = (src, dst, edge_type)
+            key = EdgeKey(src=src, dst=dst, edge_type=edge_type)
         super().remove_edge(src, dst, key=key)
 
     def predecessors(self, node: BaseResource, edge_type: EdgeType = None):
@@ -240,12 +247,22 @@ class Graph(networkx.MultiDiGraph):
             edge_type = EdgeType.default
         return networkx.algorithms.dag.descendants(self, node)
 
-    def is_dag(self, edge_type: EdgeType = None) -> bool:
-        if edge_type is None:
-            edge_type = EdgeType.default
-        is_acyclic = is_directed_acyclic_graph(self)
-        is_acyclic = True
-        return is_acyclic
+    def is_dag(self) -> bool:
+        """
+        Checks if the graph is acyclic with respect to a specific edge type.
+        This means it is valid if there are cycles in the graph but not for the same edge type.
+        :return: True if the graph is acyclic for all edge types, otherwise False.
+        """
+        edges_per_type = defaultdict(list)
+        for edge in self.edges(keys=True):
+            if len(edge) == 3:
+                key: EdgeKey = edge[2]
+                edges_per_type[key.edge_type].append(edge)
+        for edges in edges_per_type.values():
+            typed_graph = self.edge_subgraph(edges)
+            if not is_directed_acyclic_graph(typed_graph):
+                return False
+        return True
 
     @metrics_graph_search.time()
     def search(self, attr, value, regex_search=False):
@@ -837,10 +854,8 @@ class GraphExportIterator:
             edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
             if len(edge) == 3:
                 key = edge[2]
-                if len(key) == 3 and isinstance(key[2], EdgeType):
-                    edge_type = key[2]
-                    if edge_type != EdgeType.default:
-                        edge_dict["edge_type"] = edge_type.value
+                if isinstance(key, EdgeKey) and key.edge_type != EdgeType.default:
+                    edge_dict["edge_type"] = key.edge_type.value
             edge_json = json.dumps(edge_dict) + "\n"
             self.edges_sent += 1
             if (
