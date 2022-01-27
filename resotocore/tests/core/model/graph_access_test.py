@@ -9,7 +9,7 @@ from networkx import MultiDiGraph
 from pytest import fixture
 from typing import Optional
 
-from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType
+from core.model.graph_access import GraphAccess, GraphBuilder, EdgeType, EdgeKey
 from core.model.model import Model
 from core.model.typed_model import to_json
 from core.types import Json
@@ -245,6 +245,21 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
     return g
 
 
+def cyclic_multi_graph(acyclic: bool) -> MultiDiGraph:
+    g = MultiDiGraph()
+    g.add_nodes_from([1, 2, 3])
+    g.add_edge(1, 2, EdgeKey(1, 2, "default"))
+    g.add_edge(1, 3, EdgeKey(1, 3, "default"))
+    g.add_edge(2, 3, EdgeKey(2, 3, "default"))
+    g.add_edge(2, 1, EdgeKey(2, 1, "delete"))
+    g.add_edge(3, 2, EdgeKey(3, 2, "delete"))
+    g.add_edge(3, 1, EdgeKey(3, 1, "delete"))
+    if not acyclic:
+        g.add_edge(3, 1, EdgeKey(3, 1, "default"))
+        g.add_edge(1, 3, EdgeKey(1, 3, "delete"))
+    return g
+
+
 def test_sub_graphs_from_graph_cloud() -> None:
     graph = multi_cloud_graph("cloud")
     merges, parent, graph_it = GraphAccess.merge_graphs(graph)
@@ -277,6 +292,11 @@ def test_sub_graphs_from_graph_account() -> None:
             assert succ.root() in node_id["id"]
         assert len(list(succ.not_visited_edges(EdgeType.default))) == 78
         assert len(list(succ.not_visited_edges(EdgeType.delete))) == 78
+
+
+def test_acyclic() -> None:
+    assert GraphAccess(cyclic_multi_graph(acyclic=False)).is_acyclic_per_edge_type() is False
+    assert GraphAccess(cyclic_multi_graph(acyclic=True)).is_acyclic_per_edge_type() is True
 
 
 def test_predecessors() -> None:
