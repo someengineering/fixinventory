@@ -61,15 +61,15 @@ root = f"root"
 collector_root = f"{collector}_root"
 node(0, root, kind="graph_root")
 node(0, collector_root, replace=True, kind="cloud")
-edge(root, collector_root, "dependency")
+edge(root, collector_root, "default")
 
 for o in range(0, depth):
     oid = f"{collector}_{o}"
     node(o, oid)
-    edge(collector_root, oid, "dependency")
+    edge(collector_root, oid, "default")
     edge(collector_root, oid, "delete")
     for i in range(0, width):
         iid = f"{collector}_{o}_{i}"
         node(o, iid)
-        edge(oid, iid, "dependency")
+        edge(oid, iid, "default")
         edge(oid, iid, "delete")
