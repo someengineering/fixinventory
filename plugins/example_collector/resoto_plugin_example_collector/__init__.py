@@ -3,7 +3,7 @@ from dataclasses import dataclass, field, InitVar
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import Graph
+from resotolib.graph import Graph, EdgeType
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import (
     BaseAccount,
@@ -11,7 +11,9 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
     BaseResource,
+    BaseVolume,
     InstanceStatus,
+    VolumeStatus,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -69,6 +71,18 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             instance_status="stopped",
         )
         self.graph.add_resource(region2, instance2)
+
+        volume1 = ExampleVolume(
+            "someVolume1", tags={"Name": "Example Volume 1"}, volume_status="in-use"
+        )
+        self.graph.add_resource(region1, volume1)
+        self.graph.add_edge(instance1, volume1)
+        self.graph.add_edge(volume1, instance1, edge_type=EdgeType.delete)
+
+        volume2 = ExampleVolume(
+            "someVolume2", tags={"Name": "Example Volume 2"}, volume_status="available"
+        )
+        self.graph.add_resource(region2, volume2)
 
         custom_resource = ExampleCustomResource(
             "someExampleResource",
@@ -175,6 +189,29 @@ class ExampleInstance(ExampleResource, BaseInstance):
 # Instead we assign the property once the class has been fully defined.
 ExampleInstance.instance_status = property(
     ExampleInstance._instance_status_getter, ExampleInstance._instance_status_setter
+)
+
+
+@dataclass(eq=False)
+class ExampleVolume(ExampleResource, BaseVolume):
+    kind: ClassVar[str] = "example_volume"
+
+    volume_status_map: ClassVar[Dict[str, VolumeStatus]] = {
+        "creating": VolumeStatus.BUSY,
+        "available": VolumeStatus.AVAILABLE,
+        "in-use": VolumeStatus.IN_USE,
+        "deleting": VolumeStatus.BUSY,
+        "deleted": VolumeStatus.DELETED,
+        "error": VolumeStatus.ERROR,
+        "busy": VolumeStatus.BUSY,
+    }
+
+    def _volume_status_setter(self, value: str) -> None:
+        self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
+
+
+ExampleVolume.volume_status = property(
+    ExampleVolume._volume_status_getter, ExampleVolume._volume_status_setter
 )
 
 
