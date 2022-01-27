@@ -4,11 +4,11 @@ import hashlib
 import json
 import logging
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
-from networkx import DiGraph, MultiDiGraph, all_shortest_paths
+from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
 from core import feature
 from core.model.model import Model
@@ -356,6 +356,24 @@ class GraphAccess:
                     parents.extend(self.predecessors(p_id, edge_type))
             next_level = parents
         return None
+
+    def is_acyclic_per_edge_type(self) -> bool:
+        """
+        Checks if the graph is acyclic with respect to a specific edge type.
+        This means it is valid if there are cycles in the graph but not for the same edge type.
+        :return: True if the graph is acyclic for all edge types, otherwise False.
+        """
+        edges_per_type = defaultdict(list)
+        # edge is a tuple: (from_node, to_node, edge_key)
+        for edge in self.g.edges(keys=True):
+            key: EdgeKey = edge[2]
+            edges_per_type[key.edge_type].append(edge)
+        for edges in edges_per_type.values():
+            typed_graph = self.g.edge_subgraph(edges)
+            acyclic = is_directed_acyclic_graph(typed_graph)
+            if not acyclic:
+                return False
+        return True
 
     @staticmethod
     def dump_direct(node_id: str, node: Json) -> Json:
