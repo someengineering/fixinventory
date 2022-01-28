@@ -122,51 +122,69 @@ def test_rewrite_ancestors_descendants() -> None:
     assert str(parse_query("(a<1 and b>1) or c==3")) == "((a < 1 and b > 1) or c == 3)"
     # a query with resolved ancestor is not changed
     assert (
-        str(parse_query('a<1 and ancestors.cloud.reported.name=="test"'))
+        str(parse_query('a<1 and ancestors.cloud.reported.name=="test"').on_section())
         == '(a < 1 and ancestors.cloud.reported.name == "test")'
     )
     # a query with unknown ancestor creates a merge query
     assert (
-        str(parse_query('a<1 and ancestors.cloud.reported.kind=="cloud"'))
+        str(parse_query('a<1 and ancestors.cloud.reported.kind=="cloud"').on_section())
         == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud")} ancestors.cloud.reported.kind == "cloud"'
     )
     # multiple ancestors are put into one merge query
     assert (
-        str(parse_query('a<1 and ancestors.cloud.reported.kind=="c" and ancestors.account.reported.kind=="a"'))
+        str(
+            parse_query(
+                'a<1 and ancestors.cloud.reported.kind=="c" and ancestors.account.reported.kind=="a"'
+            ).on_section()
+        )
         == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud"), ancestors.account: all <-[1:]- is("account")} '
         '(ancestors.cloud.reported.kind == "c" and ancestors.account.reported.kind == "a")'
     )
     # existing merge queries are preserved
     assert (
-        str(parse_query('a<1 {children[]: --> all} ancestors.cloud.reported.kind=="c"'))
+        str(parse_query('a<1 {children[]: --> all} ancestors.cloud.reported.kind=="c"').on_section())
         == 'a < 1 {ancestors.cloud: all <-[1:]- is("cloud"), children[]: all --> all} '
         'ancestors.cloud.reported.kind == "c"'
     )
     # predefined merge queries are preserved
     assert (
-        str(parse_query('a<1 {ancestors.cloud: --> is(region)} ancestors.cloud.reported.kind=="c"'))
+        str(parse_query('a<1 {ancestors.cloud: --> is(region)} ancestors.cloud.reported.kind=="c"').on_section())
         == 'a < 1 {ancestors.cloud: all --> is("region")} ancestors.cloud.reported.kind == "c"'
     )
     # This is an example of a horrible query: all entries have to be merged, before a filter can be applied
     assert (
-        str(parse_query("(a<1 and b>1) or ancestors.d.c<1"))
+        str(parse_query("(a<1 and b>1) or ancestors.d.c<1").on_section())
         == 'all {ancestors.d: all <-[1:]- is("d")} ((a < 1 and b > 1) or ancestors.d.c < 1)'
     )
     # Test some special examples
     assert (
-        str(parse_query("ancestors.d.c<1 and (a<1 or b>1) and ancestors.a.b>1"))
+        str(parse_query("ancestors.d.c<1 and (a<1 or b>1) and /ancestors.a.b>1").on_section())
         == '(a < 1 or b > 1) {ancestors.d: all <-[1:]- is("d"), ancestors.a: all <-[1:]- is("a")} '
         "(ancestors.d.c < 1 and ancestors.a.b > 1)"
     )
     # the independent query terms are always in the pre-filter before the merge is applied
     assert (
-        str(parse_query("(a<1 and b>1) and (c<d or ancestors.d.c<1)"))
-        == str(parse_query("(c<d or ancestors.d.c<1) and (a<1 and b>1)"))
+        str(parse_query("(a<1 and b>1) and (c<d or /ancestors.d.c<1)").on_section())
+        == str(parse_query("(c<d or /ancestors.d.c<1) and (a<1 and b>1)").on_section())
         == '(a < 1 and b > 1) {ancestors.d: all <-[1:]- is("d")} (c < "d" or ancestors.d.c < 1)'
     )
     # multiple filters to the same kind only create one merge query
     assert (
-        str(parse_query("ancestors.a.b<1 and ancestors.a.c>1 and ancestors.a.d=3 and ancestors.b.c>1 and a==1"))
+        str(
+            parse_query(
+                "/ancestors.a.b<1 and ancestors.a.c>1 and ancestors.a.d=3 and ancestors.b.c>1 and a==1"
+            ).on_section()
+        )
         == 'a == 1 {ancestors.a: all <-[1:]- is("a"), ancestors.b: all <-[1:]- is("b")} '
         "(((ancestors.a.b < 1 and ancestors.a.c > 1) and ancestors.a.d == 3) and ancestors.b.c > 1)"
     )
+    # aggregation queries with ancestors in the group variable trigger a merge
+    assert (
+        str(parse_query("aggregate(/ancestors.a.reported.name as a: sum(1)): is(volume)").on_section())
+        == 'aggregate(ancestors.a.reported.name as a: sum(1)):is("volume") {ancestors.a: all <-[1:]- is("a")}'
+    )
+
+
+def test_aggregation() -> None:
+    q = parse_query('aggregate("{a.a}_{a.b}" as a, a.c.d as v: sum(a.c.e) as c): all')
+    assert q.aggregate.property_paths() == {"a.a", "a.b", "a.c.d", "a.c.e"}  # type: ignore

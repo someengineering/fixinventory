@@ -4,16 +4,17 @@ import abc
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from functools import reduce, partial
-from backports.cached_property import cached_property
-from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set
+from itertools import chain
+from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set, Iterable
 
+from backports.cached_property import cached_property
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType, Direction
 from core.model.resolve_in_graph import GraphResolver
 from core.model.typed_model import to_js_str
 from core.types import Json, JsonElement
-from core.util import combine_optional, group_by
+from core.util import combine_optional
 
 PathRoot = "/"
 
@@ -34,6 +35,12 @@ def variable_to_relative(section: str, name: str) -> str:
         return name[len(section) + 1 :]  # noqa: E203a
     else:
         return PathRoot + name
+
+
+def is_ancestor_descendant(name: str) -> bool:
+    return name not in GraphResolver.resolved_property_names and (
+        name.startswith("ancestors.") or name.startswith("descendants.")
+    )
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -410,6 +417,28 @@ class Part:
             sort=[sort.change_variable(fn) for sort in self.sort],
         )
 
+    # ancestor.some_type.reported.prop -> MergeQuery
+    def merge_queries_for(self, property_paths: Iterable[str]) -> List[MergeQuery]:
+        def with_query_for(property_path: str) -> MergeQuery:
+            try:
+                anc_dec, kind, _ = property_path.split(".", 2)
+                direction = Direction.inbound if anc_dec == "ancestors" else Direction.outbound
+                navigation = Navigation(1, Navigation.Max, direction=direction)
+                subquery = Query([Part(IsTerm([kind])), Part(AllTerm(), navigation=navigation)])
+                return MergeQuery(f"{anc_dec}.{kind}", subquery)
+            except Exception as ex:
+                raise AttributeError(
+                    "The name of an ancestor variable has to follow the format: ancestor.<kind>.<path.to.variable>. "
+                    "The kind defines the type of the ancestor to look for.\n"
+                    "Example: ancestors.account.reported.name=test\n"
+                    "Example: descendant..reported.name=test\n"
+                ) from ex
+
+        existing = {a.name: a for a in (self.term.merge if isinstance(self.term, MergeTerm) else [])}
+        created = {a.name: a for a in [with_query_for(name) for name in property_paths]}
+        queries = list({**created, **existing}.values())
+        return queries
+
     def rewrite_for_ancestors_descendants(self) -> Part:
         """
         This function rewrites this part if predicates in the "magic" sections ancestors or descendants are used.
@@ -432,11 +461,6 @@ class Part:
         """
         before_merge: Term = AllTerm()
         after_merge: Term = AllTerm()
-
-        def is_ancestor_descendant(name: str) -> bool:
-            return name not in GraphResolver.resolved_property_names and (
-                name.startswith("ancestors.") or name.startswith("descendants.")
-            )
 
         def has_ancestor_descendant(t: Term) -> bool:
             if isinstance(t, Predicate) and is_ancestor_descendant(t.name):
@@ -499,30 +523,10 @@ class Part:
             else:
                 after_merge = after_merge & term
 
-        def name_predicate(predicate: Predicate) -> Tuple[str, str]:
-            anc_dec, kind, _ = predicate.name.split(".", 2)
-            return anc_dec, kind
-
-        def merge_query_for(anc_dec: str, kind: str) -> MergeQuery:
-            try:
-                direction = Direction.inbound if anc_dec == "ancestors" else Direction.outbound
-                navigation = Navigation(1, Navigation.Max, direction=direction)
-                subquery = Query([Part(IsTerm([kind])), Part(AllTerm(), navigation=navigation)])
-                return MergeQuery(f"{anc_dec}.{kind}", subquery)
-            except ValueError as ex:
-                raise AttributeError(
-                    "The name of an ancestor variable has to follow the format: ancestor.<kind>.<path.to.variable>. "
-                    "The kind defines the type of the ancestor to look for.\n"
-                    "Example: ancestors.account.reported.name=test\n"
-                    "Example: descendant..reported.name=test\n"
-                ) from ex
-
         if has_ancestor_descendant(self.term):
             walk_term(self.term)
-            predicates = group_by(name_predicate, ancestor_descendant_predicates(after_merge))
-            existing = {a.name: a for a in (self.term.merge if isinstance(self.term, MergeTerm) else [])}
-            created = {a.name: a for a in [merge_query_for(*predicate) for predicate in predicates]}
-            queries = list({**created, **existing}.values())
+            # Create a dict here instead of a set only to ensure ordering (dict remembers order, set is not)'b
+            queries = self.merge_queries_for({p.name: 1 for p in ancestor_descendant_predicates(after_merge)})
             return replace(self, term=MergeTerm(before_merge, queries, after_merge))
         else:
             return self
@@ -569,6 +573,12 @@ class AggregateVariable:
     def change_variable(self, fn: Callable[[str], str]) -> AggregateVariable:
         return replace(self, name=self.name.change_variable(fn))
 
+    def property_paths(self) -> Set[str]:
+        if isinstance(self.name, AggregateVariableName):
+            return {self.name.name}
+        else:
+            return {name.name for name in self.name.parts if isinstance(name, AggregateVariableName)}
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AggregateFunction:
@@ -591,6 +601,9 @@ class AggregateFunction:
     def change_variable(self, fn: Callable[[str], str]) -> AggregateFunction:
         return replace(self, name=fn(self.name)) if isinstance(self.name, str) else self
 
+    def property_paths(self) -> Set[str]:
+        return {self.name} if isinstance(self.name, str) else set()
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Aggregate:
@@ -607,6 +620,12 @@ class Aggregate:
             [a.change_variable(fn) for a in self.group_by],
             [a.change_variable(fn) for a in self.group_func],
         )
+
+    def property_paths(self) -> Set[str]:
+        result = set()
+        for agg in chain(self.group_by, self.group_func):
+            result.update(agg.property_paths())  # type: ignore
+        return result
 
 
 SimpleValue = Union[str, int, float, bool]
@@ -730,9 +749,28 @@ class Query:
         parts = [p.change_variable(fn) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
 
-    def on_section(self, section: Optional[str]) -> Query:
+    def rewrite_for_ancestors_descendants(self) -> Query:
+        def rewrite_for_aggregate(aggregate: Aggregate, parts: List[Part]) -> None:
+            anc_desc = {path: 1 for path in aggregate.property_paths() if is_ancestor_descendant(path)}
+            if anc_desc:
+                current = parts[0]
+                queries = current.merge_queries_for(anc_desc)
+                merge_term = (
+                    MergeTerm(current.term.pre_filter, queries, current.term.post_filter)
+                    if isinstance(current.term, MergeTerm)
+                    else MergeTerm(current.term, queries)
+                )
+                parts[0] = replace(current, term=merge_term)
+
+        adapted = [part.rewrite_for_ancestors_descendants() for part in self.parts]
+        if self.aggregate:
+            rewrite_for_aggregate(self.aggregate, adapted)
+        return replace(self, parts=adapted)
+
+    def on_section(self, section: Optional[str] = PathRoot) -> Query:
         root_or_section = None if section is None or section == PathRoot else section
-        return self.change_variable(partial(variable_to_absolute, root_or_section))
+        absolute_section = self.change_variable(partial(variable_to_absolute, root_or_section))
+        return absolute_section.rewrite_for_ancestors_descendants()
 
     def relative_to_section(self, section: str) -> Query:
         return self.change_variable(partial(variable_to_relative, section)) if section != PathRoot else self
