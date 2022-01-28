@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-vsphere",
-    version="2.0.0a13",
+    version="2.0.0a14",
     description="Resoto VSphere Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
