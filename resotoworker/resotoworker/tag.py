@@ -14,7 +14,7 @@ def core_tag_tasks_processor(message: dict) -> None:
     extra_data = {}
 
     try:
-        node = node_from_dict(node_data)
+        node = node_from_dict(node_data, include_select_ancestors=True)
         for delete_tag in delete_tags:
             del node.tags[delete_tag]
 

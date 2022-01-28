@@ -41,7 +41,7 @@ from tests.core.message_bus_test import message_bus, all_events, wait_for_messag
 from tests.core.db.runningtaskdb_test import running_task_db
 
 # noinspection PyUnresolvedReferences
-from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+from tests.core.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender

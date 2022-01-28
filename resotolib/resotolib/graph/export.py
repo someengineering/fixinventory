@@ -256,8 +256,17 @@ def locate_python_type(python_type: str) -> Any:
     return locate(python_type)
 
 
-def node_from_dict(node_data: Dict) -> BaseResource:
-    """Create a resource from resotocore graph node data"""
+def node_from_dict(
+    node_data: Dict, include_select_ancestors: bool = False
+) -> BaseResource:
+    """Create a resource from resotocore graph node data
+
+    If include_select_ancestors is True, the resource will be created with
+    ancestors cloud, account, region and zone passed directly to the constructor.
+    This is useful for when the node is being created for standalone use instead
+    of in the context of a graph. E.g. during tagging of an individual resource
+    where the tagger needs to know which cloud and account a resource came from.
+    """
     node_data_reported = node_data.get("reported", {})
     if node_data_reported is None:
         node_data_reported = {}
@@ -267,6 +276,9 @@ def node_from_dict(node_data: Dict) -> BaseResource:
     node_data_metadata = node_data.get("metadata", {})
     if node_data_metadata is None:
         node_data_metadata = {}
+    node_data_ancestors = node_data.get("ancestors", {})
+    if node_data_ancestors is None:
+        node_data_ancestors = {}
 
     new_node_data = dict(node_data_reported)
     if "kind" in new_node_data:
@@ -280,16 +292,17 @@ def node_from_dict(node_data: Dict) -> BaseResource:
     restore_node_field_types(node_type, new_node_data)
     cleanup_node_field_types(node_type, new_node_data)
 
-    ancestors = {}
-    for ancestor in ("cloud", "account", "region", "zone"):
-        if node_data_reported.get(ancestor) and node_data_metadata.get(ancestor):
-            ancestors[f"_{ancestor}"] = node_from_dict(
-                {
-                    "reported": node_data_reported[ancestor],
-                    "metadata": node_data_metadata[ancestor],
-                }
-            )
-    new_node_data.update(ancestors)
+    if include_select_ancestors:
+        ancestors = {}
+        for ancestor in ("cloud", "account", "region", "zone"):
+            if node_data_ancestors.get(ancestor):
+                ancestors[f"_{ancestor}"] = node_from_dict(
+                    {
+                        "reported": node_data_ancestors[ancestor].get("reported", {}),
+                        "metadata": node_data_ancestors[ancestor].get("metadata", {}),
+                    }
+                )
+        new_node_data.update(ancestors)
     new_node_data.update(
         {
             "_resotocore_id": node_data.get("id"),

@@ -22,8 +22,13 @@ def performed_by() -> Dict[str, List[str]]:
 
 
 @fixture
+def incoming_tasks() -> List[WorkerTask]:
+    return []
+
+
+@fixture
 async def worker(
-    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[str]]
+    task_queue: WorkerTaskQueue, performed_by: Dict[str, List[str]], incoming_tasks: List[WorkerTask]
 ) -> AsyncGenerator[Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription], None]:
     success = WorkerTaskDescription("success_task")
     fail = WorkerTaskDescription("fail_task")
@@ -34,6 +39,7 @@ async def worker(
         async with task_queue.attach(worker_id, task_descriptions) as tasks:
             while True:
                 task: WorkerTask = await tasks.get()
+                incoming_tasks.append(task)
                 performed_by[task.id].append(worker_id)
                 if task.name == success.name:
                     await task_queue.acknowledge_task(worker_id, task.id, {"result": "done!"})

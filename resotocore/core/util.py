@@ -352,6 +352,10 @@ class AccessJson(Dict[Any, Any]):
     def __str__(self) -> str:
         return json.dumps(self)
 
+    @property
+    def is_none(self) -> bool:
+        return False
+
     @staticmethod
     def wrap(obj: Any, not_existent: Any = AccessNone(None), simple_formatter: Callable[[Any], Any] = identity) -> Any:
         if isinstance(obj, (str, int, float, AccessJson)):

@@ -31,6 +31,7 @@ from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
 from core.types import JsonElement, Json
 from core.util import AccessJson
+from core.worker_task_queue import WorkerTask
 
 # noinspection PyUnresolvedReferences
 from tests.core.analytics import event_sender
@@ -69,7 +70,7 @@ from tests.core.task.task_handler_test import (
 from tests.core.util_test import not_in_path
 
 # noinspection PyUnresolvedReferences
-from tests.core.worker_task_queue_test import worker, task_queue, performed_by
+from tests.core.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
 
 @fixture
@@ -422,7 +423,9 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) 
 
 
 @pytest.mark.asyncio
-async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog: LogCaptureFixture) -> None:
+async def test_tag_command(
+    cli: CLI, performed_by: Dict[str, List[str]], incoming_tasks: List[WorkerTask], caplog: LogCaptureFixture
+) -> None:
     counter = 0
 
     def nr_of_performed() -> int:
@@ -439,6 +442,14 @@ async def test_tag_command(cli: CLI, performed_by: Dict[str, List[str]], caplog:
     res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
     assert nr_of_performed() == 2
     assert {a["id"] for a in res1[0]} == {"root", "collector"}
+    assert len(incoming_tasks) == 2
+    # check that the worker task data is correct
+    data = AccessJson(incoming_tasks[0].data)
+    assert data.update is not None  # tag update -> data.update is defined
+    assert not data.node.reported.is_none  # the node reported section is defined
+    assert not data.node.metadata.is_none  # the node metadata section is defined
+    assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defined
+
     res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 11
     assert len(res2[0]) == 11
