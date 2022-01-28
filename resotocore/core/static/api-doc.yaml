@@ -1697,6 +1697,18 @@ paths:
                                 items:
                                     type: object
                                     additionalProperties: true
+    /cli/commands:
+        get:
+            summary: Get information about CLI commands
+            tags:
+                - cli
+            responses:
+                "200":
+                    description: name, information and help of available commands.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/CLICommand"
 
     # endregion
 
@@ -2252,5 +2264,20 @@ components:
                         - simple
                         - complex
                         - bad
+
+        CLICommand:
+            type: object
+            description: Information about a CLI command
+            properties:
+                name:
+                    type: string
+                    description: The name of the CLI command.
+                info:
+                    type: string
+                    description: Short description.
+                help:
+                    type: string
+                    description: Help text of the CLI command.
+
 
 

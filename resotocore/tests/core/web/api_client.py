@@ -254,6 +254,13 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
+    async def cli_commands(self) -> List[Json]:
+        async with self.session.get(self.base_path + f"/cli/commands") as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())  # type: ignore
+            else:
+                raise AttributeError(await r.text())
+
     async def configs(self) -> List[ConfigEntity]:
         async with self.session.get(self.base_path + f"/configs") as r:
             if r.status == 200:

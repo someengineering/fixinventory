@@ -39,8 +39,15 @@ from networkx.readwrite import cytoscape_data
 from core import feature
 from core.analytics import AnalyticsEventSender
 from core.cli.cli import CLI
-from core.cli.model import ParsedCommandLine, CLIContext, OutputTransformer, PreserveOutputFormat
-from core.cli.command import ListCommand
+from core.cli.model import (
+    ParsedCommandLine,
+    CLIContext,
+    OutputTransformer,
+    PreserveOutputFormat,
+    InternalPart,
+    CLICommand,
+)
+from core.cli.command import ListCommand, all_commands
 from core.config import ConfigEntity
 from core.db.db_access import DbAccess
 from core.db.graphdb import GraphDB
@@ -188,6 +195,7 @@ class Api:
                 # CLI
                 web.post("/cli/evaluate", self.evaluate),
                 web.post("/cli/execute", self.execute),
+                web.get("/cli/commands", self.cli_commands),
                 # Event operations
                 web.get("/events", self.handle_events),
                 # Worker operations
@@ -682,6 +690,14 @@ class Api:
         else:
             await self.db.delete_graph(graph_id)
             return web.HTTPOk(body="Graph deleted.")
+
+    async def cli_commands(self, _: Request) -> StreamResponse:
+        def cmd_json(cmd: CLICommand) -> Json:
+            return {"name": cmd.name, "info": cmd.info(), "help": cmd.help()}
+
+        return web.json_response(
+            [cmd_json(cmd) for cmd in all_commands(self.cli.dependencies) if not isinstance(cmd, InternalPart)]
+        )
 
     async def evaluate(self, request: Request) -> StreamResponse:
         # all query parameter become the env of this command
