@@ -4,11 +4,11 @@ import hashlib
 import json
 import logging
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
-from networkx import DiGraph, MultiDiGraph, all_shortest_paths
+from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
 from core import feature
 from core.model.model import Model
@@ -72,21 +72,18 @@ class Section:
 
 
 class EdgeType:
-    # This edge type defines logical dependencies between resources.
+    # This edge type defines the default relationship between resources.
     # It is the main edge type and is assumed, if no edge type is given.
-    dependency: str = "dependency"
+    # The related graph is also used as source of truth for graph updates.
+    default: str = "default"
 
     # This edge type defines the order of delete operations.
     # A resource can be deleted, if all outgoing resources are deleted.
     delete: str = "delete"
 
-    # The default edge type, that is used as fallback if no edge type is given.
-    # The related graph is also used as source of truth for graph updates.
-    default: str = dependency
-
-    # The list of all allowed edge types.
+    # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    all: Set[str] = {dependency, delete}
+    all: Set[str] = {default, delete}
 
 
 class Direction:
@@ -97,8 +94,8 @@ class Direction:
     # Ignore the direction of the edge and traverse in any direction.
     any = "inout"
 
-    # The list of all allowed directions.
-    all: List[str] = [inbound, outbound, any]
+    # The set of all allowed directions.
+    all: Set[str] = {inbound, outbound, any}
 
 
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
@@ -120,7 +117,7 @@ class GraphBuilder:
                 js.get(Section.desired, None),
                 js.get(Section.metadata, None),
                 js.get("search", None),
-                js.get("replace", None) is True,
+                js.get("replace", False) is True,
             )
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeType.default))
@@ -156,7 +153,7 @@ class GraphBuilder:
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
-            replace=replace,
+            replace=replace | metadata.get("replace", False) is True if metadata else False,
         )
 
     def add_edge(self, from_node: str, to_node: str, edge_type: str) -> None:
@@ -309,7 +306,7 @@ class GraphAccess:
             for node_id, node in self.g.nodes(data=True):
                 kinds = node.get("kinds_set")
                 if kinds and on_kind in kinds:
-                    summary = count_successors_by(node_id, EdgeType.dependency, prop.extract_path)
+                    summary = count_successors_by(node_id, EdgeType.default, prop.extract_path)
                     set_value_in_path(summary, prop.to_path, node)
                     total = reduce(lambda l, r: l + r, summary.values(), 0)
                     set_value_in_path(total, NodePath.descendant_count, node)
@@ -322,7 +319,7 @@ class GraphAccess:
 
         for resolver in GraphResolver.to_resolve:
             # search for ancestor that matches filter criteria
-            anc = self.ancestor_of(node_id, EdgeType.dependency, resolver.kind)
+            anc = self.ancestor_of(node_id, EdgeType.default, resolver.kind)
             if anc:
                 for res in resolver.resolve:
                     with_ancestor(anc, res)
@@ -359,6 +356,24 @@ class GraphAccess:
                     parents.extend(self.predecessors(p_id, edge_type))
             next_level = parents
         return None
+
+    def is_acyclic_per_edge_type(self) -> bool:
+        """
+        Checks if the graph is acyclic with respect to a specific edge type.
+        This means it is valid if there are cycles in the graph but not for the same edge type.
+        :return: True if the graph is acyclic for all edge types, otherwise False.
+        """
+        edges_per_type = defaultdict(list)
+        # edge is a tuple: (from_node, to_node, edge_key)
+        for edge in self.g.edges(keys=True):
+            key: EdgeKey = edge[2]
+            edges_per_type[key.edge_type].append(edge)
+        for edges in edges_per_type.values():
+            typed_graph = self.g.edge_subgraph(edges)
+            acyclic = is_directed_acyclic_graph(typed_graph)
+            if not acyclic:
+                return False
+        return True
 
     @staticmethod
     def dump_direct(node_id: str, node: Json) -> Json:
@@ -434,7 +449,13 @@ class GraphAccess:
                 # compute the shortest path from root to here
                 pres: Set[str] = reduce(lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set())
                 result[node] = pres
-
+            # make sure there is no replace node beyond another replace node
+            rs = result.copy()
+            for node in rs:
+                for nid, parent_nodes in rs.items():
+                    if nid != node and node in parent_nodes:
+                        log.info(f"Node {nid} marked as replace, but is child of another replace node {node}. Ignore.")
+                        result.pop(nid, None)
             return result
 
         # Walk the graph from given starting node and return all successors.

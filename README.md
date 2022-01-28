@@ -1,21 +1,18 @@
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" />
-<h1 align="center">Resoto</h1></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" alt="Resoto"/>
+<h1 align="center">Housekeeping for Clouds!</h1></p>
 
-
-# Housekeeping for Clouds!
-
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.jpg" /></p>
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/resoto?label=latest)](https://github.com/someengineering/resoto/tags/)
 [![Build](https://img.shields.io/github/workflow/status/someengineering/resoto/Build%20Docker%20Images/main)](https://github.com/someengineering/resoto/commits/main)
-[![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://docs.some.engineering)
+[![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://resoto.com/docs)
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
 [![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/resoto?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/resoto/)
 
 ## Table of contents
 
 * [Overview](#overview)
-* [Docker based quick start](#docker-based-quick-start)
+* [Docker-based quick start](#docker-based-quick-start)
 * [Cloning this repository](#cloning-this-repository)
 * [Component list](#component-list)
 * [Contact](#contact)

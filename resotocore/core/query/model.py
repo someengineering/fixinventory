@@ -330,8 +330,12 @@ class Navigation:
 
     start: int = 1
     until: int = 1
-    edge_type: str = EdgeType.default
+    maybe_edge_type: Optional[str] = EdgeType.default
     direction: str = Direction.outbound
+
+    @property
+    def edge_type(self) -> str:
+        return EdgeType.default if self.maybe_edge_type is None else self.maybe_edge_type
 
     def __str__(self) -> str:
         start = self.start

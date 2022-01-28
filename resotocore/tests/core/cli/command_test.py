@@ -131,7 +131,7 @@ async def test_predecessors(cli: CLI) -> None:
     assert len(r1[0]) == 1
     r2 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin", stream.list)
     assert len(r2[0]) == 2
-    r3 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin dependency", stream.list)
+    r3 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin default", stream.list)
     assert len(r3[0]) == 2
     r4 = await cli.execute_cli_command("query id(4_0) | predecessors delete", stream.list)
     assert len(r4[0]) == 0
@@ -143,7 +143,7 @@ async def test_ancestors(cli: CLI) -> None:
     assert len(r1[0]) == 4
     r2 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin", stream.list)
     assert len(r2[0]) == 5
-    r3 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin dependency", stream.list)
+    r3 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin default", stream.list)
     assert len(r3[0]) == 5
     r4 = await cli.execute_cli_command("query id(4_0) | ancestors delete", stream.list)
     assert len(r4[0]) == 0
@@ -155,7 +155,7 @@ async def test_successors(cli: CLI) -> None:
     assert len(r1[0]) == 10
     r2 = await cli.execute_cli_command("query id(4) | successors --with-origin", stream.list)
     assert len(r2[0]) == 11
-    r3 = await cli.execute_cli_command("query id(4) | successors --with-origin dependency", stream.list)
+    r3 = await cli.execute_cli_command("query id(4) | successors --with-origin default", stream.list)
     assert len(r3[0]) == 11
     r4 = await cli.execute_cli_command("query id(4) | successors delete", stream.list)
     assert len(r4[0]) == 0
@@ -167,7 +167,7 @@ async def test_descendants(cli: CLI) -> None:
     assert len(r1[0]) == 10
     r2 = await cli.execute_cli_command("query id(4) | descendants --with-origin", stream.list)
     assert len(r2[0]) == 11
-    r3 = await cli.execute_cli_command("query id(4) | descendants --with-origin dependency", stream.list)
+    r3 = await cli.execute_cli_command("query id(4) | descendants --with-origin default", stream.list)
     assert len(r3[0]) == 11
     r4 = await cli.execute_cli_command("query id(4) | descendants delete", stream.list)
     assert len(r4[0]) == 0

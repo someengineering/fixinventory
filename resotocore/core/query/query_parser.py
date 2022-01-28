@@ -364,32 +364,35 @@ def preamble_parser() -> Parser:
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
     parts = yield part_parser.at_least(1)
-    edge_type = preamble.get("edge_type", EdgeType.default)
-    if edge_type not in EdgeType.all:
-        raise AttributeError(f"Given edge_type {edge_type} is not available. Use one of {EdgeType.all}")
+    return Query(parts[::-1], preamble, maybe_aggregate)
 
-    def set_edge_type_if_not_set(part: Part) -> Part:
+
+def parse_query(query: str, **env: str) -> Query:
+    def set_edge_type_if_not_set(part: Part, edge_type: str) -> Part:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
-            if wc.navigation and not wc.navigation.edge_type:
-                nav = replace(nav, edge_type=edge_type)
+            if wc.navigation and not wc.navigation.maybe_edge_type:
+                nav = replace(nav, maybe_edge_type=edge_type)
             inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
             return replace(wc, navigation=nav, with_clause=inner)
 
         nav = part.navigation
-        if part.navigation and not part.navigation.edge_type:
-            nav = replace(nav, edge_type=edge_type)
+        if part.navigation and not part.navigation.maybe_edge_type:
+            nav = replace(nav, maybe_edge_type=edge_type)
         adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
         return replace(part, navigation=nav, with_clause=adapted_wc)
 
-    adapted = [set_edge_type_if_not_set(part).rewrite_for_ancestors_descendants() for part in parts]
-    # remove values from preamble, that are only used at parsing time
-    resulting_preamble = preamble.copy()
-    return Query(adapted[::-1], resulting_preamble, maybe_aggregate)
-
-
-def parse_query(query: str) -> Query:
     try:
-        return query_parser.parse(query.strip())  # type: ignore
+        parsed: Query = query_parser.parse(query.strip())
+        et: str = parsed.preamble.get("edge_type", env.get("edge_type", EdgeType.default))  # type: ignore
+        if et not in EdgeType.all:
+            raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeType.all}")
+
+        adapted = [set_edge_type_if_not_set(part, et).rewrite_for_ancestors_descendants() for part in parsed.parts]
+        # remove values from preamble, that are only used at parsing time
+        preamble = parsed.preamble.copy()
+        preamble.pop("edge_type", None)
+        return Query(adapted, preamble, parsed.aggregate)
+
     except parsy.ParseError as ex:
         raise ParseError(f"Can not parse query: {query}\n" + str(ex)) from ex

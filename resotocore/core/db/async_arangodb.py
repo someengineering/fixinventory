@@ -478,6 +478,8 @@ class AsyncArangoDBBase:
         smart_field: Optional[str] = None,
         shard_count: Optional[int] = None,
     ) -> Graph:
+
+        log.info(f"Create graph {name}.")
         return await run_async(
             self.db.create_graph, name, edge_definitions, orphan_collections, smart, smart_field, shard_count
         )
@@ -489,6 +491,7 @@ class AsyncArangoDBBase:
         return await run_async(self.db.graph(graph).has_vertex_collection, name)  # type: ignore
 
     async def create_vertex_collection(self, graph: str, name: str) -> VertexCollection:
+        log.info(f"Create vertex collection {name} for graph {graph}")
         return await run_async(self.db.graph(graph).create_vertex_collection, name)
 
     async def has_edge_definition(self, graph: str, name: str) -> bool:
@@ -501,6 +504,7 @@ class AsyncArangoDBBase:
         from_vertex_collections: Sequence[str],
         to_vertex_collections: Sequence[str],
     ) -> EdgeCollection:
+        log.info(f"Create edge collection {edge_collection} for graph {graph}")
         return await run_async(
             self.db.graph(graph).create_edge_definition, edge_collection, from_vertex_collections, to_vertex_collections
         )
@@ -509,6 +513,7 @@ class AsyncArangoDBBase:
         return await run_async(self.db.views)
 
     async def create_view(self, name: str, view_type: str, properties: Optional[Json]) -> Json:
+        log.info(f"Create view {name}")
         return await run_async(self.db.create_view, name, view_type, properties)
 
 

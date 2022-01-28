@@ -3,3 +3,6 @@ contact_links:
   - name: 💬 Discord
     url: https://discord.gg/someengineering
     about: Chat with other users and the development team
+  - name: 📄 Documentation
+    url: https://resoto.com/docs
+    about: Read and search documentation

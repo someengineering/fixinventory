@@ -64,7 +64,7 @@ def job_db() -> JobDb:
 
 @fixture
 def task_handler_args() -> Namespace:
-    return parse_args([])
+    return parse_args()
 
 
 @fixture

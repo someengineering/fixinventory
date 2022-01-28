@@ -6,7 +6,6 @@ import base64
 import hashlib
 import uuid
 import weakref
-import networkx.algorithms.dag
 from resotolib.logging import log
 from enum import Enum
 from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
@@ -525,21 +524,21 @@ class BaseResource(ABC):
                     dst = node
                 graph.add_edge(src, dst)
 
-    def predecessors(self, graph) -> Iterator:
+    def predecessors(self, graph, edge_type=None) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
         if graph is None:
             graph = self._graph
         if graph is None:
             return ()
-        return graph.predecessors(self)
+        return graph.predecessors(self, edge_type=edge_type)
 
-    def successors(self, graph) -> Iterator:
+    def successors(self, graph, edge_type=None) -> Iterator:
         """Returns an iterator of the node's child nodes"""
         if graph is None:
             graph = self._graph
         if graph is None:
             return ()
-        return graph.successors(self)
+        return graph.successors(self, edge_type=edge_type)
 
     def predecessor_added(self, resource, graph) -> None:
         """Called when a predecessor is added to this node"""
@@ -549,21 +548,21 @@ class BaseResource(ABC):
         """Called when a successor is added to this node"""
         pass
 
-    def ancestors(self, graph) -> Iterator:
+    def ancestors(self, graph, edge_type=None) -> Iterator:
         """Returns an iterator of the node's ancestors"""
         if graph is None:
             graph = self._graph
         if graph is None:
             return ()
-        return networkx.algorithms.dag.ancestors(graph, self)
+        return graph.ancestors(self, edge_type=edge_type)
 
-    def descendants(self, graph) -> Iterator:
+    def descendants(self, graph, edge_type=None) -> Iterator:
         """Returns an iterator of the node's descendants"""
         if graph is None:
             graph = self._graph
         if graph is None:
             return ()
-        return networkx.algorithms.dag.descendants(graph, self)
+        return graph.descendants(self, edge_type=edge_type)
 
     @property
     def _graph(self):

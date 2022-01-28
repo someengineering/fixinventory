@@ -2,7 +2,6 @@ import multiprocessing
 import resotolib.signal
 from concurrent import futures
 from resotoworker.resotocore import send_to_resotocore
-from networkx.algorithms.dag import is_directed_acyclic_graph
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.graph import GraphContainer, Graph, sanitize
@@ -73,7 +72,7 @@ def collect_plugin_graph(
                 " - ignoring plugin results"
             )
             return None
-        if not is_directed_acyclic_graph(collector.graph):
+        if not collector.graph.is_dag_per_edge_type():
             log.error(
                 f"Graph of plugin {collector.cloud} is not acyclic"
                 " - ignoring plugin results"
