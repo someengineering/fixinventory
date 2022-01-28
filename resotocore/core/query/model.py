@@ -421,6 +421,7 @@ class Part:
     def merge_queries_for(self, property_paths: Iterable[str]) -> List[MergeQuery]:
         def with_query_for(property_path: str) -> MergeQuery:
             try:
+                assert is_ancestor_descendant(property_path)
                 anc_dec, kind, _ = property_path.split(".", 2)
                 direction = Direction.inbound if anc_dec == "ancestors" else Direction.outbound
                 navigation = Navigation(1, Navigation.Max, direction=direction)

@@ -1,6 +1,7 @@
 import pytest
 
-from core.query.model import P, Query, AllTerm, IsTerm, PathRoot
+from core.model.graph_access import Direction
+from core.query.model import P, Query, AllTerm, IsTerm, PathRoot, Part, MergeQuery, Navigation, MergeTerm
 from core.query.query_parser import parse_query
 
 
@@ -188,3 +189,18 @@ def test_rewrite_ancestors_descendants() -> None:
 def test_aggregation() -> None:
     q = parse_query('aggregate("{a.a}_{a.b}" as a, a.c.d as v: sum(a.c.e) as c): all')
     assert q.aggregate.property_paths() == {"a.a", "a.b", "a.c.d", "a.c.e"}  # type: ignore
+
+
+def test_merge_query_creation() -> None:
+    inbound = Navigation(1, Navigation.Max, direction=Direction.inbound)
+    for_foo = Query([Part(IsTerm(["foo"])), Part(AllTerm(), navigation=inbound)])
+    merge_foo = [MergeQuery("ancestors.foo", for_foo)]
+
+    # merge_foo is created automatically
+    assert Part(AllTerm()).merge_queries_for(["ancestors.foo.reported.bla"]) == merge_foo
+    # merge_foo is already included and not added
+    assert Part(MergeTerm(AllTerm(), merge_foo)).merge_queries_for(["ancestors.foo.reported.bla"]) == merge_foo
+    with pytest.raises(Exception):
+        Part(AllTerm()).merge_queries_for(["unknown.foo.reported.bla"])
+    with pytest.raises(Exception):
+        Part(AllTerm()).merge_queries_for(["ancestors.foo"])
