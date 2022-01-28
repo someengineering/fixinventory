@@ -13,7 +13,6 @@ from arango.graph import Graph
 from arango.typings import Json
 from networkx import MultiDiGraph, DiGraph
 
-from core import feature
 from core.analytics import CoreEvent, AnalyticsEventSender
 from core.db import arango_query, EstimatedQueryCost
 from core.db.async_arangodb import (
@@ -395,17 +394,17 @@ class ArangoGraphDB(GraphDB):
                         if source_value:
                             reported_out[synth.prop.name] = synth.kind.transform(source_value)
 
-        def render_prop(doc: Json) -> Json:
+        def render_prop(doc: Json, lookup_props: bool) -> Json:
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
                 result = {"id": doc["_key"], "type": "node"}
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
-                props(doc, result, Section.all_ordered)
+                props(doc, result, Section.content)
+                if lookup_props:
+                    props(doc, result, Section.lookup_sections_ordered)
                 synth_props(doc, result)
-                if "kinds" in doc:
-                    result["kinds"] = doc["kinds"]
                 return result
             else:
                 return doc
@@ -415,15 +414,15 @@ class ArangoGraphDB(GraphDB):
                 merged = value_in_path(doc, mq.name)
                 if merged:
                     if mq.only_first and isinstance(merged, dict):
-                        rendered = render_merge_results(merged, render_prop(merged), mq.query)
+                        rendered = render_merge_results(merged, render_prop(merged, False), mq.query)
                         set_value_in_path(rendered, mq.name, result)
                     elif isinstance(merged, list):
-                        rendered = [render_merge_results(elem, render_prop(elem), mq.query) for elem in merged]
+                        rendered = [render_merge_results(elem, render_prop(elem, False), mq.query) for elem in merged]
                         set_value_in_path(rendered, mq.name, result)
             return result
 
         def merge_results(doc: Json) -> Optional[Json]:
-            rendered = render_prop(doc)
+            rendered = render_prop(doc, True)
             if query:
                 render_merge_results(doc, rendered, query)
             return rendered
@@ -864,6 +863,7 @@ class ArangoGraphDB(GraphDB):
 
         async def create_update_views(nodes: VertexCollection) -> None:
             name = f"search_{nodes.name}"
+            prop = "flat"  # only the flat property is indexes
             views = {view["name"]: view for view in await db.views()}
             if name not in views:
                 await db.create_view(
@@ -871,8 +871,10 @@ class ArangoGraphDB(GraphDB):
                     "arangosearch",
                     {
                         "links": {
-                            nodes.name: {"analyzers": ["identity"], "fields": {"flat": {"analyzers": ["text_en"]}}}
+                            nodes.name: {"analyzers": ["identity"], "fields": {prop: {"analyzers": ["text_en"]}}}
                         },
+                        "primarySort": [{"field": prop, "direction": "desc"}],
+                        "inBackground": True,  # note: this setting only applies when the view is created
                     },
                 )
 
@@ -887,8 +889,7 @@ class ArangoGraphDB(GraphDB):
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
             create_update_edge_indexes(edge_collection)
 
-        if feature.DB_SEARCH:
-            await create_update_views(vertex)
+        await create_update_views(vertex)
         await self.insert_genesis_data()
 
     @staticmethod

@@ -57,7 +57,7 @@ def test_access_node() -> None:
     g.add_node("1", reported=to_json(FooTuple(a="1")))
     access: GraphAccess = GraphAccess(g)
     elem: Json = node(access, "1")  # type: ignore
-    assert elem["hash"] == "b49ddf056778567a83998f91ce83ab0603339c4d6a73e98159f3a5dbfa02ba8a"
+    assert elem["hash"] == "633781544ff25ffc337030eb710e8c4c600df76f50106d869becc977e43239b7"
     assert elem["reported"] == {
         "a": "1",
         "b": 0,
@@ -102,8 +102,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("3")
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0]["hash"] == "efe2ed11395ae3ab84c54ce06a6bb5bb0e9e68b2bc4a5fcfa91a1970ab03dfef"
-    assert not_visited[1]["hash"] == "832bc2adc16b7dcb8ed284e819784d77ca43cf44a56546fbe848a2560061a890"
+    assert not_visited[0]["hash"] == "9fdf6b3b3eafb912e3b4346bcf7554d221afe2e5089da7d11290bbd9684f7e19"
+    assert not_visited[1]["hash"] == "c97ac546c7ec22c2fea26ffd5c373181b42a3cc449382cae55bb175e3f5c15c1"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
@@ -125,7 +125,7 @@ def test_metadata(graph_access: GraphAccess) -> None:
 
 
 def test_flatten() -> None:
-    js = {"id": "blub", "d": "2021-06-18T10:31:34Z", "i": 0, "s": "hello", "a": [{"a": "one"}, {"b": "two"}]}
+    js = {"id": "blub", "d": "2021-06-18T10:31:34Z", "i": 0, "s": "hello", "a": [{"a": "one"}, {"b": "two"}], "c": True}
     flat = GraphBuilder.flatten(js)
     assert flat == "blub 2021-06-18T10:31:34Z 0 hello one two"
 

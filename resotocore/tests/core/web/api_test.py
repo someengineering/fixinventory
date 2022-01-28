@@ -108,7 +108,6 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # create a new graph
     graph = await core_client.create_graph(g)
     assert graph.id == "root"
-    assert graph.kinds == ["graph_root"]
     assert graph.reported.kind == "graph_root"
 
     # list all graphs
@@ -118,7 +117,6 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # get one specific graph
     graph: AccessJson = await core_client.get_graph(g)  # type: ignore
     assert graph.id == "root"
-    assert graph.kinds == ["graph_root"]
     assert graph.reported.kind == "graph_root"
 
     # wipe the data in the graph
@@ -178,7 +176,8 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # create the raw query
     raw = await core_client.query_graph_raw(g, 'id("3")')
     assert raw == {
-        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  "
+        'RETURN UNSET(m0, ["flat"])) '
         "FOR result in filter0 RETURN result",
         "bind_vars": {"b0": "3"},
     }
