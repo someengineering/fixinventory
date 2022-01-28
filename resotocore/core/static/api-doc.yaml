@@ -1697,9 +1697,9 @@ paths:
                                 items:
                                     type: object
                                     additionalProperties: true
-    /cli/commands:
+    /cli/info:
         get:
-            summary: Get information about CLI commands
+            summary: Get information about CLI
             tags:
                 - cli
             responses:
@@ -1708,7 +1708,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/CLICommand"
+                                $ref: "#/components/schemas/CLIInfo"
 
     # endregion
 
@@ -2265,6 +2265,25 @@ components:
                         - complex
                         - bad
 
+        CLIInfo:
+            type: object
+            description: Information about the CLI
+            properties:
+                commands:
+                    description: All available commands
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CLICommand'
+                replacements:
+                    description: All available replacements with current value
+                    type: object
+                    additionalProperties:
+                        type: string
+                aliases:
+                    description: All available aliases
+                    type: object
+                    additionalProperties:
+                        type: string
         CLICommand:
             type: object
             description: Information about a CLI command
