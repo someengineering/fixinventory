@@ -38,7 +38,7 @@ Those are the kinds of situations Resoto was built for.
 
 Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMWare Vsphere](plugins/vsphere/), [OneLogin](plugins/onelogin/) and [Slack](plugins/slack/). The later can also be used for notification of resource cleanups. If the cloud you are using is not listed it is easy to write your own collectors. An example can be found [here](plugins/example_collector/).
 
-## Docker based quick start
+## Docker-based quick start
 
 Docker images are hosted via GitHub container repository: `ghcr.io/someengineering/resoto:2.0.0a13`
 
