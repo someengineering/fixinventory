@@ -8,7 +8,7 @@ import uuid
 import weakref
 from resotolib.logging import log
 from enum import Enum
-from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
+from typing import Dict, Iterator, List, ClassVar, Optional
 from resotolib.utils import make_valid_timestamp, ResourceChanges
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field

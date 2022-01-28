@@ -20,7 +20,6 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from prometheus_client.core import GaugeMetricFamily
 from typing import Dict, List, IO, Optional, Tuple
 from io import BytesIO
 from dataclasses import fields
