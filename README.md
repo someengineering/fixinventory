@@ -44,9 +44,9 @@ Docker images are hosted via GitHub container repository: `ghcr.io/someengineeri
 
 In this quick start guide, we’re showing you three things, how to:
 
-    1. install Resoto for AWS with docker
-    2. use the Resoto CLI to run your first collect process
-    3. query the results of the collect process
+    1. install Resoto for AWS with Docker
+    2. use the Resoto CLI to run your first collect workflow
+    3. query the results of the collect run
 
 The docker set-up takes 2-5 minutes. The duration of the first collect process depends on the size of your environment - usually 5-10 minutes.
 
@@ -55,7 +55,7 @@ To start exploring you need AWS credentials and a working Docker environment wit
 We assume you are familiar with basic Docker operations and how to operate a Linux shell.
 
 **Continue reading the Quick Start Guide**
---> [https://docs.some.engineering/getting_started/quick_start.html](https://docs.some.engineering/getting_started/quick_start.html)
+--> [https://resoto.com/docs/getting-started/](https://resoto.com/docs/getting-started/)
 
 
 # Component list
