@@ -429,7 +429,7 @@ class Part:
                 return MergeQuery(f"{anc_dec}.{kind}", subquery)
             except Exception as ex:
                 raise AttributeError(
-                    "The name of an ancestor variable has to follow the format: ancestor.<kind>.<path.to.variable>. "
+                    "The name of an ancestor variable has to follow the format: ancestors.<kind>.<path.to.variable>. "
                     "The kind defines the type of the ancestor to look for.\n"
                     "Example: ancestors.account.reported.name=test\n"
                     "Example: descendant..reported.name=test\n"
