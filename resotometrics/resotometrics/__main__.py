@@ -57,7 +57,7 @@ def main() -> None:
     base_uri = ArgumentParser.args.resotocore_uri.strip("/")
     resotocore_graph = ArgumentParser.args.resotocore_graph
     graph_uri = f"{base_uri}/graph/{resotocore_graph}"
-    query_uri = f"{graph_uri}/reported/query/aggregate"
+    query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
     message_processor = partial(core_actions_processor, metrics, query_uri)
     core_actions = CoreActions(
