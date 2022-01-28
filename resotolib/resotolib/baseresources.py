@@ -8,7 +8,7 @@ import uuid
 import weakref
 from resotolib.logging import log
 from enum import Enum
-from typing import Dict, Iterator, List, Tuple, ClassVar, Optional
+from typing import Dict, Iterator, List, ClassVar, Optional
 from resotolib.utils import make_valid_timestamp, ResourceChanges
 from prometheus_client import Counter, Summary
 from dataclasses import dataclass, field
@@ -65,25 +65,6 @@ class BaseResource(ABC):
     the cloud or if it's just a phantom resource like pricing information or usage
     quota. I.e. some information relevant to the cloud account but not actually existing
     in the form of a usable resource.
-
-    metrics_description is a dict of metrics the resource exports. They are turned into
-    Prometheus GaugeMetricFamily() metrics by the metrics module. The key defines the
-    name of the metric. Its value is another Dict with the keys 'help' containing the
-    Help Text and nother key 'labels' containing a List of metrics labels.
-
-    An example for an instance metric could be
-    {
-      'cores_total':
-        {
-          'help': 'Number of CPU cores',
-          'labels': ['cloud', 'account', 'region', 'type']
-        }
-    }
-    which would get exported as 'resoto_cores_total' with labels cloud=aws,
-    account=1234567, region=us-west-2, type=m5.xlarge and value 8 if the instance has
-    8 CPU cores. The actual /metrics endpoint would then SUM all the values from metrics
-    with the same name and labels and export a total of e.g. 1105 cores accross all
-    instances of this type and in this cloud, account and region.
     """
 
     kind: ClassVar[str] = "resource"
@@ -121,15 +102,11 @@ class BaseResource(ABC):
         self._cleaned: bool = False
         self._protected: bool = False
         self._changes: ResourceChanges = ResourceChanges(self)
-        self._metrics: Dict = {}
         self._deferred_connections: List = []
         self.__graph = None
         self.__log: List = []
-        self.__custom_metrics: bool = False
         self._raise_tags_exceptions: bool = False
         self.max_graph_depth: int = 0
-        for metric in self.metrics_description.keys():
-            self._metrics[metric] = {}
         if not hasattr(self, "_tags"):
             self._tags = None
         if not hasattr(self, "_ctime"):
@@ -490,20 +467,6 @@ class BaseResource(ABC):
     def to_json(self):
         return self.__repr__()
 
-    def metrics(self, graph) -> Dict:
-        return self._metrics
-
-    def add_metric(
-        self, metric: str, value: int, help: str, labels: List, label_values: Tuple
-    ) -> bool:
-        self.__custom_metrics = True
-        # todo: sync test and assignment
-        if metric not in self.metrics_description:
-            log.debug(f"Metric {metric} not in class metrics description - adding")
-            self.metrics_description[metric] = {"help": help, "labels": labels}
-        self._metrics[metric] = {}
-        self._metrics[metric][label_values] = value
-
     def add_deferred_connection(self, attr, value, parent=True) -> None:
         self._deferred_connections.append(
             {"attr": attr, "value": value, "parent": parent}
@@ -575,14 +538,10 @@ class BaseResource(ABC):
 
     def __getstate__(self):
         ret = self.__dict__.copy()
-        if self.__custom_metrics:
-            ret["__instance_metrics_description"] = self.metrics_description
         ret["_BaseResource__graph"] = None
         return ret
 
     def __setstate__(self, state):
-        if "__instance_metrics_description" in state:
-            self.metrics_description = state.pop("__instance_metrics_description")
         self.__dict__.update(state)
 
 
@@ -732,9 +691,10 @@ class BaseInstanceQuota(BaseQuota):
             "labels": ["cloud", "account", "region", "type", "quota_type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, quota_type : sum(quota) as instances_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("instance_quota") and quota >= 0'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type, quota_type as quota_type:"
+                " sum(quota) as instances_quotas_total):"
+                " is(instance_quota) and quota >= 0"
             ),
         },
     }
@@ -744,18 +704,6 @@ class BaseInstanceQuota(BaseQuota):
         super().__post_init__(*args, **kwargs)
         self.instance_type = self.id
         self.quota_type = "standard"
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.instance_type,
-            self.quota_type,
-        )
-        if self.quota is not None:
-            self._metrics["instances_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -767,9 +715,9 @@ class BaseInstanceType(BaseType):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, quota_type : sum(reservations) as reserved_instances_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("instance_type") and reservations >= 0'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type, quota_type as quota_type:"
+                " sum(reservations) as reserved_instances_total): is(instance_type) and reservations >= 0"
             ),
         },
     }
@@ -792,17 +740,6 @@ class BaseInstanceType(BaseType):
         if self.ondemand_cost is not None:
             self.ondemand_cost = float(self.ondemand_cost)
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.instance_type,
-        )
-        if self.reservations and self.reservations > 0:
-            self._metrics["reserved_instances_total"][metrics_keys] = self.reservations
-        return self._metrics
-
 
 @dataclass(eq=False)
 class BaseCloud(BaseResource):
@@ -823,9 +760,9 @@ class BaseAccount(BaseResource):
             "labels": ["cloud"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud,"
-                " instance_type as type, quota_type : sum(1) as accounts_total)"
-                ' (merge_with_ancestors="cloud"): is("account")'
+                "aggregate(/ancestors.cloud.reported.name as cloud:"
+                " sum(1) as accounts_total):"
+                " is(account)"
             ),
         },
     }
@@ -834,10 +771,6 @@ class BaseAccount(BaseResource):
 
     def account(self, graph=None):
         return self
-
-    def metrics(self, graph) -> Dict:
-        self._metrics["accounts_total"][(self.cloud(graph).name)] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -875,9 +808,10 @@ class BaseInstance(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type, instance_status as status : sum(1) as instances_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("instance")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type, instance_status as status:"
+                " sum(1) as instances_total):"
+                " is(instance)"
             ),
         },
         "cores_total": {
@@ -885,10 +819,10 @@ class BaseInstance(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(instance_cores) as cores_total)"
-                ' (merge_with_ancestors="cloud,account,region"):'
-                ' is("instance") and instance_status == "running"'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type:"
+                " sum(instance_cores) as cores_total):"
+                " is(instance) and instance_status == running"
             ),
         },
         "memory_bytes": {
@@ -896,10 +830,10 @@ class BaseInstance(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"):'
-                ' is("instance") and instance_status == "running"'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type:"
+                " sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes):"
+                " is(instance) and instance_status == running"
             ),
         },
         "instances_hourly_cost_estimate": {
@@ -907,10 +841,10 @@ class BaseInstance(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " instance_type as type : sum(parent_instance_type.ondemand_cost) as instances_hourly_cost_estimate)"
-                ' (merge_with_ancestors="cloud,account,region,instance_type as parent_instance_type"):'
-                ' is("instance") and instance_status == "running"'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, instance_type as type:"
+                " sum(/ancestors.instance_type.reported.ondemand_cost) as instances_hourly_cost_estimate):"
+                " is(instance) and instance_status == running"
             ),
         },
         "cleaned_instances_total": {
@@ -945,41 +879,6 @@ class BaseInstance(BaseResource):
     def _instance_status_setter(self, value: str) -> None:
         raise NotImplementedError
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.instance_type,
-        )
-        instance_type_info = self.instance_type_info(graph)
-        self._metrics["instances_total"][metrics_keys + (self.instance_status,)] = 1
-        if self._cleaned:
-            self._metrics["cleaned_instances_total"][
-                metrics_keys + (self.instance_status,)
-            ] = 1
-
-        if self.instance_status == "running":
-            self._metrics["cores_total"][metrics_keys] = self.instance_cores
-            if self._cleaned:
-                self._metrics["cleaned_cores_total"][metrics_keys] = self.instance_cores
-            if instance_type_info:
-                self._metrics["memory_bytes"][metrics_keys] = (
-                    instance_type_info.instance_memory * 1024 ** 3
-                )
-                if self._cleaned:
-                    self._metrics["cleaned_memory_bytes"][metrics_keys] = (
-                        instance_type_info.instance_memory * 1024 ** 3
-                    )
-                self._metrics["instances_hourly_cost_estimate"][
-                    metrics_keys
-                ] = instance_type_info.ondemand_cost
-                if self._cleaned:
-                    self._metrics["cleaned_instances_hourly_cost_estimate"][
-                        metrics_keys
-                    ] = instance_type_info.ondemand_cost
-        return self._metrics
-
 
 BaseInstance.instance_status = property(
     BaseInstance._instance_status_getter, BaseInstance._instance_status_setter
@@ -995,9 +894,10 @@ class BaseVolumeType(BaseType):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " volume_type as type : sum(quota * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): is("volume_type") and quota >= 0'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, volume_type as type:"
+                " sum(quota * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes):"
+                " is(volume_type) and quota >= 0"
             ),
         },
     }
@@ -1007,17 +907,6 @@ class BaseVolumeType(BaseType):
     def __post_init__(self, *args, **kwargs) -> None:
         super().__post_init__(*args, **kwargs)
         self.volume_type = self.id
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.volume_type,
-        )
-        if self.quota is not None and self.quota > -1:
-            self._metrics["volumes_quotas_bytes"][metrics_keys] = self.quota * 1024 ** 4
-        return self._metrics
 
 
 class VolumeStatus(Enum):
@@ -1038,9 +927,10 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " volume_type as type, volume_status as status : sum(1) as volumes_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("volume")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
+                " sum(1) as volumes_total):"
+                " is(volume)"
             ),
         },
         "volume_bytes": {
@@ -1048,10 +938,10 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " volume_type as type, volume_status as status :"
-                " sum(volume_size * 1024 * 1024 * 1024) as volume_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): is("volume")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
+                " sum(volume_size * 1024 * 1024 * 1024) as volume_bytes):"
+                " is(volume)"
             ),
         },
         "volumes_monthly_cost_estimate": {
@@ -1059,11 +949,10 @@ class BaseVolume(BaseResource):
             "labels": ["cloud", "account", "region", "type", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " volume_type as type, volume_status as status :"
-                " sum(parent_volume_type.ondemand_cost) as volumes_monthly_cost_estimate)"
-                ' (merge_with_ancestors="cloud,account,region,volume_type as parent_volume_type"):'
-                ' is("volume")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
+                " sum(/ancestors.volume_type.reported.ondemand_cost) as volumes_monthly_cost_estimate):"
+                " is(volume)"
             ),
         },
         "cleaned_volumes_total": {
@@ -1097,32 +986,6 @@ class BaseVolume(BaseResource):
     def volume_type_info(self, graph) -> BaseVolumeType:
         return graph.search_first_parent_class(self, BaseVolumeType)
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.volume_type,
-            self.volume_status,
-        )
-        volume_type_info = self.volume_type_info(graph)
-        self._metrics["volumes_total"][metrics_keys] = 1
-        self._metrics["volume_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
-        if self._cleaned:
-            self._metrics["cleaned_volumes_total"][metrics_keys] = 1
-            self._metrics["cleaned_volume_bytes"][metrics_keys] = (
-                self.volume_size * 1024 ** 3
-            )
-        if volume_type_info:
-            self._metrics["volumes_monthly_cost_estimate"][metrics_keys] = (
-                self.volume_size * volume_type_info.ondemand_cost
-            )
-            if self._cleaned:
-                self._metrics["cleaned_volumes_monthly_cost_estimate"][metrics_keys] = (
-                    self.volume_size * volume_type_info.ondemand_cost
-                )
-        return self._metrics
-
 
 BaseVolume.volume_status = property(
     BaseVolume._volume_status_getter, BaseVolume._volume_status_setter
@@ -1138,9 +1001,10 @@ class BaseSnapshot(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " snapshot_status as status : sum(1) as snapshots_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("snapshot")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, snapshot_status as status:"
+                " sum(1) as snapshots_total):"
+                " is(snapshot)"
             ),
         },
         "snapshots_volumes_bytes": {
@@ -1148,9 +1012,10 @@ class BaseSnapshot(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " snapshot_status as status : sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): is("snapshot")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, snapshot_status as status:"
+                " sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes):"
+                " is(snapshot)"
             ),
         },
         "cleaned_snapshots_total": {
@@ -1170,24 +1035,6 @@ class BaseSnapshot(BaseResource):
     encrypted: bool = False
     owner_id: Optional[str] = None
     owner_alias: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.snapshot_status,
-        )
-        self._metrics["snapshots_total"][metrics_keys] = 1
-        self._metrics["snapshots_volumes_bytes"][metrics_keys] = (
-            self.volume_size * 1024 ** 3
-        )
-        if self._cleaned:
-            self._metrics["cleaned_snapshots_total"][metrics_keys] = 1
-            self._metrics["cleaned_snapshots_volumes_bytes"][metrics_keys] = (
-                self.volume_size * 1024 ** 3
-            )
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1215,9 +1062,10 @@ class BaseBucket(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
-                " sum(1) as buckets_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("bucket")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as buckets_total):"
+                " is(bucket)"
             ),
         },
         "cleaned_buckets_total": {
@@ -1225,17 +1073,6 @@ class BaseBucket(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["buckets_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_buckets_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1247,9 +1084,10 @@ class BaseKeyPair(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
-                " sum(1) as keypairs_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("keypair")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as keypairs_total):"
+                " is(keypair)"
             ),
         },
         "cleaned_keypairs_total": {
@@ -1258,17 +1096,6 @@ class BaseKeyPair(BaseResource):
         },
     }
     fingerprint: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["keypairs_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_keypairs_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1280,22 +1107,13 @@ class BaseBucketQuota(BaseQuota):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
-                " sum(1) as buckets_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("bucket_quota")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as buckets_quotas_total):"
+                " is(bucket_quota)"
             ),
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        if self.quota > -1:
-            self._metrics["buckets_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1307,9 +1125,10 @@ class BaseNetwork(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
-                " sum(1) as networks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("network")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as networks_total):"
+                " is(network)"
             ),
         },
         "cleaned_networks_total": {
@@ -1317,17 +1136,6 @@ class BaseNetwork(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["networks_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_networks_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1339,22 +1147,13 @@ class BaseNetworkQuota(BaseQuota):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region:"
-                " sum(1) as networks_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("network_quota")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as networks_quotas_total):"
+                " is(network_quota)"
             ),
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        if self.quota > -1:
-            self._metrics["networks_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1366,9 +1165,10 @@ class BaseDatabase(BaseResource):
             "labels": ["cloud", "account", "region", "type", "instance_type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " db_type as type, instance_type : sum(1) as databases_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("database")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, db_type as type, instance_type as instance_type:"
+                " sum(1) as databases_total):"
+                " is(database)"
             ),
         },
         "databases_bytes": {
@@ -1376,9 +1176,10 @@ class BaseDatabase(BaseResource):
             "labels": ["cloud", "account", "region", "type", "instance_type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " db_type as type, instance_type : sum(volume_size * 1024 * 1024 * 1024) as databases_bytes)"
-                ' (merge_with_ancestors="cloud,account,region"): is("database")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, db_type as type, instance_type as instance_type:"
+                " sum(volume_size * 1024 * 1024 * 1024) as databases_bytes):"
+                " is(database)"
             ),
         },
         "cleaned_databases_total": {
@@ -1400,23 +1201,6 @@ class BaseDatabase(BaseResource):
     volume_iops: Optional[int] = None
     volume_encrypted: Optional[bool] = None
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.db_type,
-            self.instance_type,
-        )
-        self._metrics["databases_total"][metrics_keys] = 1
-        self._metrics["databases_bytes"][metrics_keys] = self.volume_size * 1024 ** 3
-        if self._cleaned:
-            self._metrics["cleaned_databases_total"][metrics_keys] = 1
-            self._metrics["cleaned_databases_bytes"][metrics_keys] = (
-                self.volume_size * 1024 ** 3
-            )
-        return self._metrics
-
 
 @dataclass(eq=False)
 class BaseLoadBalancer(BaseResource):
@@ -1427,9 +1211,10 @@ class BaseLoadBalancer(BaseResource):
             "labels": ["cloud", "account", "region", "type"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " lb_type as type : sum(1) as load_balancers_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("load_balancer")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, lb_type as type:"
+                " sum(1) as load_balancers_total):"
+                " is(load_balancer)"
             ),
         },
         "cleaned_load_balancers_total": {
@@ -1439,18 +1224,6 @@ class BaseLoadBalancer(BaseResource):
     }
     lb_type: str = ""
     backends: List[str] = field(default_factory=list)
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.lb_type,
-        )
-        self._metrics["load_balancers_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_load_balancers_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1462,22 +1235,13 @@ class BaseLoadBalancerQuota(BaseQuota):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as load_balancers_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("load_balancer_quota")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as load_balancers_quotas_total):"
+                " is(load_balancer_quota)"
             ),
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        if self.quota > -1:
-            self._metrics["load_balancers_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1489,9 +1253,10 @@ class BaseSubnet(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as subnets_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("subnet")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as subnets_total):"
+                " is(subnet)"
             ),
         },
         "cleaned_subnets_total": {
@@ -1499,17 +1264,6 @@ class BaseSubnet(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["subnets_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_subnets_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1521,9 +1275,10 @@ class BaseGateway(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as gateways_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("gateway")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as gateways_total):"
+                " is(gateway)"
             ),
         },
         "cleaned_gateways_total": {
@@ -1531,17 +1286,6 @@ class BaseGateway(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["gateways_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_gateways_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1553,9 +1297,10 @@ class BaseTunnel(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as tunnels_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("tunnel")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as tunnels_total):"
+                " is(tunnel)"
             ),
         },
         "cleaned_tunnels_total": {
@@ -1563,17 +1308,6 @@ class BaseTunnel(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["tunnels_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_tunnels_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1585,22 +1319,13 @@ class BaseGatewayQuota(BaseQuota):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as gateways_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("gateway_quota")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as gateways_quotas_total):"
+                " is(gateway_quota)"
             ),
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        if self.quota > -1:
-            self._metrics["gateways_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1612,9 +1337,10 @@ class BaseSecurityGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as security_groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("security_group")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as security_groups_total):"
+                " is(security_group)"
             ),
         },
         "cleaned_security_groups_total": {
@@ -1622,17 +1348,6 @@ class BaseSecurityGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["security_groups_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_security_groups_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1644,9 +1359,10 @@ class BaseRoutingTable(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as routing_tables_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("routing_table")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as routing_tables_total):"
+                " is(routing_table)"
             ),
         },
         "cleaned_routing_tables_total": {
@@ -1654,17 +1370,6 @@ class BaseRoutingTable(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["routing_tables_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_routing_tables_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1676,9 +1381,10 @@ class BaseNetworkAcl(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as network_acls_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("network_acl")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as network_acls_total):"
+                " is(network_acl)"
             ),
         },
         "cleaned_network_acls_total": {
@@ -1686,17 +1392,6 @@ class BaseNetworkAcl(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["network_acls_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_network_acls_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1708,9 +1403,10 @@ class BasePeeringConnection(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as peering_connections_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("peering_connection")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as peering_connections_total):"
+                " is(peering_connection)"
             ),
         },
         "cleaned_peering_connections_total": {
@@ -1718,17 +1414,6 @@ class BasePeeringConnection(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["peering_connections_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_peering_connections_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1740,9 +1425,10 @@ class BaseEndpoint(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as endpoints_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("endpoint")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as endpoints_total):"
+                " is(endpoint)"
             ),
         },
         "cleaned_endpoints_total": {
@@ -1750,17 +1436,6 @@ class BaseEndpoint(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["endpoints_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_endpoints_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1772,9 +1447,10 @@ class BaseNetworkInterface(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " network_interface_status as status : sum(1) as network_interfaces_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("network_interface")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, network_interface_status as status:"
+                " sum(1) as network_interfaces_total):"
+                " is(network_interface)"
             ),
         },
         "cleaned_network_interfaces_total": {
@@ -1790,18 +1466,6 @@ class BaseNetworkInterface(BaseResource):
     v6_ips: List[str] = field(default_factory=list)
     description: str = ""
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-            self.network_interface_status,
-        )
-        self._metrics["network_interfaces_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_network_interfaces_total"][metrics_keys] = 1
-        return self._metrics
-
 
 @dataclass(eq=False)
 class BaseUser(BaseResource):
@@ -1812,9 +1476,10 @@ class BaseUser(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as users_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("user")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as users_total):"
+                " is(user)"
             ),
         },
         "cleaned_users_total": {
@@ -1822,17 +1487,6 @@ class BaseUser(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["users_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_users_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1844,9 +1498,10 @@ class BaseGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("group")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as groups_total):"
+                " is(group)"
             ),
         },
         "cleaned_groups_total": {
@@ -1854,17 +1509,6 @@ class BaseGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["groups_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_groups_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1876,9 +1520,10 @@ class BasePolicy(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as policies_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("policy")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as policies_total):"
+                " is(policy)"
             ),
         },
         "cleaned_policies_total": {
@@ -1886,17 +1531,6 @@ class BasePolicy(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["policies_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_policies_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1908,9 +1542,10 @@ class BaseRole(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as roles_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("role")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as roles_total):"
+                " is(role)"
             ),
         },
         "cleaned_roles_total": {
@@ -1918,17 +1553,6 @@ class BaseRole(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["roles_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_roles_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1940,9 +1564,10 @@ class BaseInstanceProfile(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as instance_profiles_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("instance_profile")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as instance_profiles_total):"
+                " is(instance_profile)"
             ),
         },
         "cleaned_instance_profiles_total": {
@@ -1950,17 +1575,6 @@ class BaseInstanceProfile(BaseResource):
             "labels": ["cloud", "account", "region"],
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["instance_profiles_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_instance_profiles_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -1972,9 +1586,10 @@ class BaseAccessKey(BaseResource):
             "labels": ["cloud", "account", "region", "status"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region,"
-                " access_key_status as status : sum(1) as access_keys_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("access_key")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region, access_key_status as status:"
+                " sum(1) as access_keys_total):"
+                " is(access_key)"
             ),
         },
         "cleaned_access_keys_total": {
@@ -1983,26 +1598,6 @@ class BaseAccessKey(BaseResource):
         },
     }
     access_key_status: str = ""
-
-    def metrics(self, graph) -> Dict:
-        self._metrics["access_keys_total"][
-            (
-                self.cloud(graph).name,
-                self.account(graph).dname,
-                self.region(graph).name,
-                str(self.access_key_status).lower(),
-            )
-        ] = 1
-        if self._cleaned:
-            self._metrics["cleaned_access_keys_total"][
-                (
-                    self.cloud(graph).name,
-                    self.account(graph).dname,
-                    self.region(graph).name,
-                    str(self.access_key_status).lower(),
-                )
-            ] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -2014,9 +1609,10 @@ class BaseCertificate(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as certificates_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("certificate")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as certificates_total):"
+                " is(certificate)"
             ),
         },
         "cleaned_certificates_total": {
@@ -2025,17 +1621,6 @@ class BaseCertificate(BaseResource):
         },
     }
     expires: Optional[datetime] = None
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["certificates_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_certificates_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -2047,22 +1632,13 @@ class BaseCertificateQuota(BaseQuota):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as certificates_quotas_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("certificate_quota")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as certificates_quotas_total):"
+                " is(certificate_quota)"
             ),
         },
     }
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        if self.quota > -1:
-            self._metrics["certificates_quotas_total"][metrics_keys] = self.quota
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -2074,9 +1650,10 @@ class BaseStack(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as stacks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("stack")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as stacks_total):"
+                " is(stack)"
             ),
         },
         "cleaned_stacks_total": {
@@ -2088,17 +1665,6 @@ class BaseStack(BaseResource):
     stack_status_reason: str = ""
     stack_parameters: Dict = field(default_factory=dict)
 
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["stacks_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_stacks_total"][metrics_keys] = 1
-        return self._metrics
-
 
 @dataclass(eq=False)
 class BaseAutoScalingGroup(BaseResource):
@@ -2109,9 +1675,10 @@ class BaseAutoScalingGroup(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as autoscaling_groups_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("autoscaling_group")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as autoscaling_groups_total):"
+                " is(autoscaling_group)"
             ),
         },
         "cleaned_autoscaling_groups_total": {
@@ -2121,17 +1688,6 @@ class BaseAutoScalingGroup(BaseResource):
     }
     min_size: int = -1
     max_size: int = -1
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["autoscaling_groups_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_autoscaling_groups_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -2143,9 +1699,10 @@ class BaseIPAddress(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as ip_addresses_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("ip_address")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as ip_addresses_total):"
+                " is(ip_address)"
             ),
         },
         "cleaned_ip_addresses_total": {
@@ -2155,17 +1712,6 @@ class BaseIPAddress(BaseResource):
     }
     ip_address: str = ""
     ip_address_family: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["ip_addresses_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_ip_addresses_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
@@ -2177,9 +1723,10 @@ class BaseHealthCheck(BaseResource):
             "labels": ["cloud", "account", "region"],
             "type": "gauge",
             "query": (
-                "aggregate(cloud.name as cloud, account.name as account, region.name as region :"
-                " sum(1) as health_checks_total)"
-                ' (merge_with_ancestors="cloud,account,region"): is("health_check")'
+                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
+                " /ancestors.region.reported.name as region:"
+                " sum(1) as health_checks_total):"
+                " is(health_check)"
             ),
         },
         "cleaned_health_checks_total": {
@@ -2192,17 +1739,6 @@ class BaseHealthCheck(BaseResource):
     unhealthy_threshold: int = -1
     timeout: int = -1
     health_check_type: str = ""
-
-    def metrics(self, graph) -> Dict:
-        metrics_keys = (
-            self.cloud(graph).name,
-            self.account(graph).dname,
-            self.region(graph).name,
-        )
-        self._metrics["health_checks_total"][metrics_keys] = 1
-        if self._cleaned:
-            self._metrics["cleaned_health_checks_total"][metrics_keys] = 1
-        return self._metrics
 
 
 @dataclass(eq=False)
