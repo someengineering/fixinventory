@@ -36,7 +36,6 @@ from aiostream.core import Stream
 from resotolib.jwt import encode_jwt
 from networkx.readwrite import cytoscape_data
 
-from core import feature
 from core.analytics import AnalyticsEventSender
 from core.cli.cli import CLI
 from core.cli.model import ParsedCommandLine, CLIContext, OutputTransformer, PreserveOutputFormat
@@ -637,8 +636,6 @@ class Api:
         return web.json_response(to_js(result))
 
     async def search_graph(self, request: Request) -> StreamResponse:
-        if not feature.DB_SEARCH:
-            raise AttributeError("This feature is not enabled!")
         if "term" not in request.query:
             raise AttributeError("Expect query parameter term to be defined!")
         query_string = request.query.get("term", "")

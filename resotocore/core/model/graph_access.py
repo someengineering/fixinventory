@@ -10,7 +10,6 @@ from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
-from core import feature
 from core.model.model import Model
 from core.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from core.types import Json
@@ -21,7 +20,7 @@ log = logging.getLogger(__name__)
 # This version is used when the content hash of a node is computed.
 # All computed hashes will be invalidated, by incrementing the version.
 # This can be used, if computed values should be recomputed for all imported data.
-ContentHashVersion = 1
+ContentHashVersion = 2
 
 
 class Section:
@@ -102,10 +101,9 @@ EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 
 class GraphBuilder:
-    def __init__(self, model: Model, with_flatten: bool = feature.DB_SEARCH):
+    def __init__(self, model: Model):
         self.model = model
         self.graph = MultiDiGraph()
-        self.with_flatten = with_flatten
         self.nodes = 0
         self.edges = 0
 
@@ -141,7 +139,7 @@ class GraphBuilder:
         # create content hash
         sha = GraphBuilder.content_hash(reported, desired, metadata)
         # flat all properties into a single string for search
-        flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported) if self.with_flatten else None)
+        flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported))
         self.graph.add_node(
             node_id,
             id=node_id,
@@ -180,24 +178,20 @@ class GraphBuilder:
         def dispatch(value: object) -> None:
             nonlocal result
             if isinstance(value, dict):
-                flatten_object(value)
+                for elem in value.values():
+                    dispatch(elem)
             elif isinstance(value, list):
-                flatten_array(value)
+                for elem in value:
+                    dispatch(elem)
             elif isinstance(value, bool):
                 pass
             else:
-                result += f" {value}"
-
-        def flatten_object(js_doc: Json) -> None:
-            for value in js_doc.values():
-                dispatch(value)
-
-        def flatten_array(arr: List[Any]) -> None:
-            for value in arr:
-                dispatch(value)
+                if result:
+                    result += " "
+                result += str(value).strip()
 
         dispatch(js)
-        return result[1::]
+        return result
 
     def check_complete(self) -> None:
         # check that all vertices are given, that were defined in any edge definition
