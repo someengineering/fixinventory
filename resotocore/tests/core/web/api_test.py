@@ -201,6 +201,10 @@ async def test_graph_api(core_client: ApiClient) -> None:
     result_aggregate = await core_client.query_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
     assert {r.group.kind: r.count for r in result_aggregate} == {"bla": 100, "cloud": 1, "foo": 11, "graph_root": 1}
 
+    # fulltext search
+    result_search = await core_client.search(g, "foo")
+    assert len(result_search) == 10
+
     # delete the graph
     assert await core_client.delete_graph(g) == "Graph deleted."
     assert g not in await core_client.list_graphs()
