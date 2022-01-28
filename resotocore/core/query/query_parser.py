@@ -388,11 +388,10 @@ def parse_query(query: str, **env: str) -> Query:
         if et not in EdgeType.all:
             raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeType.all}")
 
-        adapted = [set_edge_type_if_not_set(part, et).rewrite_for_ancestors_descendants() for part in parsed.parts]
+        adapted = [set_edge_type_if_not_set(part, et) for part in parsed.parts]
         # remove values from preamble, that are only used at parsing time
         preamble = parsed.preamble.copy()
         preamble.pop("edge_type", None)
         return Query(adapted, preamble, parsed.aggregate)
-
     except parsy.ParseError as ex:
         raise ParseError(f"Can not parse query: {query}\n" + str(ex)) from ex
