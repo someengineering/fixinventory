@@ -351,8 +351,12 @@ class Navigation:
             return f"<-{nav}->"
 
 
-NavigateUntilRoot = Navigation(start=1, until=Navigation.Max, edge_type=EdgeType.default, direction=Direction.inbound)
-NavigateUntilLeaf = Navigation(start=1, until=Navigation.Max, edge_type=EdgeType.default, direction=Direction.outbound)
+NavigateUntilRoot = Navigation(
+    start=1, until=Navigation.Max, maybe_edge_type=EdgeType.default, direction=Direction.inbound
+)
+NavigateUntilLeaf = Navigation(
+    start=1, until=Navigation.Max, maybe_edge_type=EdgeType.default, direction=Direction.outbound
+)
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
