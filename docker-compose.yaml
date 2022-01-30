@@ -1,0 +1,61 @@
+version: "3"
+
+services:
+  graphdb:
+    image: arangodb:3.8.5
+    platform: linux/amd64
+    environment:
+      - ARANGO_ROOT_PASSWORD=
+    ports:
+      - 8529:8529
+    volumes:
+      - resoto_graphdb_data:/var/lib/arangodb3
+  resotocore:
+    image: ghcr.io/someengineering/resotocore
+    depends_on:
+      - graphdb
+    ports:
+      - "8900:8900/tcp"
+    environment:
+      - PSK
+      - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
+      - RESOTOCORE_GRAPHDB_DATABASE=resoto
+      - RESOTOCORE_GRAPHDB_USERNAME=resoto
+      - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      - RESOTOCORE_GRAPHDB_ROOT_PASSWORD=changeme
+    restart: always
+    stop_grace_period: 2m
+  resotoworker: 
+    image: ghcr.io/someengineering/resotoworker
+    depends_on:
+      - resotocore
+    ports:
+      - "9956:9956/tcp"
+    environment:
+      - PSK changeme
+      - RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOCORE_WS_URI=ws://resotocore:8900
+    restart: always
+    stop_grace_period: 2m
+  resotometrics: 
+    image: ghcr.io/someengineering/resotometrics
+    depends_on:
+      - resotocore
+    ports:
+      - "9955:9955/tcp"
+    environment:
+      - PSK
+      - RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOCORE_WS_URI=ws://resotocore:8900
+    restart: always
+    stop_grace_period: 2m
+  resotoshell: 
+    image: ghcr.io/someengineering/resotoshell
+    environment:
+      - PSK
+      - RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOCORE_WS_URI=ws://resotocore:8900
+    restart: always
+    stop_grace_period: 2m
+volumes:
+  resoto_graphdb_data:

@@ -12,7 +12,8 @@ main() {
     apply_permissions
     configure_timezone
     setup_etc_hosts || true
-    exec /usr/local/sbin/startup "$@"
+    setup_dnsmasq
+    exec runuser -l resoto -g resoto -- "$@"
 }
 
 
@@ -66,5 +67,19 @@ setup_etc_hosts() {
     cat "$temp_hosts" > /etc/hosts
     rm -f "$temp_hosts"
 }
+
+
+# Setup dnsmasq DNS caching daemon
+setup_dnsmasq() {
+    if [ "${USE_DNS_CACHE-}" = true ]; then
+        cp /etc/resolv.conf /etc/resolv.dnsmasq
+        if [ "${LOG_DNS_QUERIES-}" = true ]; then
+            echo "log-queries=extra" >> /etc/dnsmasq.d/resoto.conf
+        fi
+        dnsmasq
+        echo "nameserver 127.0.0.1" > /etc/resolv.conf
+    fi
+}
+
 
 main "$@"
