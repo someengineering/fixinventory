@@ -761,7 +761,7 @@ class ArangoGraphDB(GraphDB):
 
         async def update_via_temp_collection() -> None:
             temp = await self.get_tmp_collection(change_id)
-            log.info(f"Update is too big for tx size ({info.all_changes()} changes): use temp collection {temp.name}")
+            log.debug(f"Update is too big for tx size ({info.all_changes()} changes): use temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
                 await self.move_temp_to_proper(change_id, temp.name)
