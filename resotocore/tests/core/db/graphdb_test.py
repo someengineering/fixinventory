@@ -535,20 +535,32 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "id1", to_json(Foo("id1", "foo")), "root")
     await graph_db.create_node(foo_model, "id2", to_json(Foo("id2", "foo")), "root")
+    # only change the desired section
     change1 = {"desired": {"test": True}}
     result1 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change1, "id2": change1})]
     assert len(result1) == 2
     expect(result1, ["desired", "test"], True)
+    # only change the metadata section
     change2 = {"metadata": {"test": True}}
     result2 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change2, "id2": change2})]
     assert len(result2) == 2
     expect(result2, ["metadata", "test"], True)
-    change3 = {"desired": {"test": True}, "metadata": {"test": True}, "reported": {"name": "test"}}
+    # change all sections including the reported section
+    change3 = {"desired": {"test": False}, "metadata": {"test": False}, "reported": {"name": "test"}}
+    node_raw_id1 = AccessJson.wrap_object(graph_db.db.db.collection(graph_db.name).get("id1"))
     result3 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change3, "id2": change3})]
     assert len(result3) == 2
-    expect(result3, ["desired", "test"], True)
-    expect(result3, ["metadata", "test"], True)
+    expect(result3, ["desired", "test"], False)
+    expect(result3, ["metadata", "test"], False)
     expect(result3, ["reported", "name"], "test")
+    # make sure the db is updated
+    node_raw_id1_updated = AccessJson.wrap_object(graph_db.db.db.collection(graph_db.name).get("id1"))
+    assert node_raw_id1.reported.name != node_raw_id1_updated.reported.name
+    assert node_raw_id1.desired.test != node_raw_id1_updated.desired.test
+    assert node_raw_id1.metadata.test != node_raw_id1_updated.metadata.test
+    assert node_raw_id1.flat != node_raw_id1_updated.flat
+    assert node_raw_id1.hash != node_raw_id1_updated.hash
+    assert "test" in node_raw_id1_updated.flat
     change4 = {"desired": None, "metadata": None}
     result4 = [a async for a in graph_db.update_nodes(foo_model, {"id1": change4, "id2": change4})]
     assert len(result4) == 2

@@ -206,7 +206,7 @@ class ArangoGraphDB(GraphDB):
 
         # call adjuster on resulting node
         ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
-        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated), ctime)
+        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, recompute=True), ctime)
         update = {
             "_key": node["_key"],
             "hash": adjusted["hash"],
