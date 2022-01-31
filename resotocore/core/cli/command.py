@@ -1989,17 +1989,18 @@ class TagCommand(SendWorkerTaskCommand):
         return to_result
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        parts = re.split(r"\s+", arg if arg else "")
-        pl = len(parts)
-        if pl >= 2 and parts[0] == "delete":
-            nowait, tag = (parts[1] == "--nowait", parts[2]) if pl == 3 else (False, parts[1])
+        arg_tokens = args_parts_unquoted_parser.parse(arg if arg else "")
+        p = NoExitArgumentParser()
+        p.add_argument("--nowait", dest="nowait", default=False, action="store_true")
+        ns, rest = p.parse_known_args(arg_tokens)
+        if arg_tokens[0] == "delete" and len(rest) == 2:
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
                 "tag",
                 self.carz_from_node(item),
-                {"delete": [tag], "node": item},
+                {"delete": [rest[1]], "node": item},
             )  # noqa: E731
-        elif pl >= 3 and parts[0] == "update":
-            nowait, tag, vin = (parts[1] == "--nowait", parts[2], parts[3]) if pl == 4 else (False, parts[1], parts[2])
+        elif arg_tokens[0] == "update" and len(rest) == 3:
+            _, tag, vin = rest
             formatter = ctx.formatter(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
                 "tag",
@@ -2013,7 +2014,7 @@ class TagCommand(SendWorkerTaskCommand):
             def with_dependencies(model: Model) -> Stream:
                 load = self.load_by_id_merged(model, in_stream, **ctx.env)
                 result_handler = self.handle_result(model, **ctx.env)
-                return self.send_to_queue_stream(stream.map(load, fn), result_handler, not nowait)
+                return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(self.dependencies.model_handler.load_model)
