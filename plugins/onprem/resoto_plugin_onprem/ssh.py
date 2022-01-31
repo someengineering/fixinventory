@@ -42,7 +42,7 @@ def instance_from_ssh(
     s = OnpremInstance(
         id=hostname,
         instance_cores=len(cpuinfo),
-        instance_memory=round(meminfo.get("MemTotal", 0) / 1024 ** 2),
+        instance_memory=round(meminfo.get("MemTotal", 0) / 1024**2),
         instance_status="running",
         instance_type=cpuinfo.get("0", {}).get("model name"),
         network_device=netdev,

@@ -125,12 +125,15 @@ class BucketObject(Base):
     mtime = Column(DateTime, index=True)
 
     def __repr__(self):
-        return "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>" % (
-            self.account,
-            self.bucket_name,
-            self.name,
-            self.size,
-            self.mtime,
+        return (
+            "<BucketObject(account= '%s', bucket_name='%s', name='%s', size='%s', mtime='%s')>"
+            % (
+                self.account,
+                self.bucket_name,
+                self.name,
+                self.size,
+                self.mtime,
+            )
         )
 
 
