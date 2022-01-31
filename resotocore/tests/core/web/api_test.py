@@ -266,6 +266,10 @@ async def test_cli(core_client: ApiClient) -> None:
     executed = await core_client.cli_execute(g, "query is(foo) or is(bla) | count kind")
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
 
+    # list all cli commands
+    info = await core_client.cli_info()
+    assert len(info.commands) == 32
+
 
 @pytest.mark.asyncio
 async def test_config(core_client: ApiClient) -> None:
