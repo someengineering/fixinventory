@@ -19,10 +19,7 @@ services:
     environment:
       - PSK
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
-      - RESOTOCORE_GRAPHDB_DATABASE=resoto
-      - RESOTOCORE_GRAPHDB_USERNAME=resoto
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
-      - RESOTOCORE_GRAPHDB_ROOT_PASSWORD=changeme
     restart: always
     stop_grace_period: 2m
   resotoworker: 
