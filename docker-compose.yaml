@@ -48,6 +48,8 @@ services:
     stop_grace_period: 2m
   resotoshell: 
     image: ghcr.io/someengineering/resotoshell
+    depends_on:
+      - resotocore
     environment:
       - PSK
       - RESOTOCORE_URI=http://resotocore:8900
