@@ -512,7 +512,7 @@ class Api:
         return web.json_response(to_js(model))
 
     async def get_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "root")
         graph = self.db.get_graph_db(graph_id)
         model = await self.model_handler.load_model()
@@ -523,7 +523,7 @@ class Api:
             return web.json_response(node)
 
     async def create_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "some_existing")
         parent_node_id = request.match_info.get("parent_node_id", "root")
         graph = self.db.get_graph_db(graph_id)
@@ -533,7 +533,7 @@ class Api:
         return web.json_response(node)
 
     async def update_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "some_existing")
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
@@ -543,7 +543,7 @@ class Api:
         return web.json_response(node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "some_existing")
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
@@ -552,7 +552,7 @@ class Api:
         return web.HTTPNoContent()
 
     async def update_nodes(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         allowed = {*Section.content, "id", "revision"}
         updates: Dict[str, Json] = {}
         async for elem in self.to_json_generator(request):
@@ -573,7 +573,7 @@ class Api:
         return web.json_response(await self.db.list_graphs())
 
     async def create_graph(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         if "_" in graph_id:
             raise AttributeError("Graph name should not have underscores!")
         graph = await self.db.create_graph(graph_id)
@@ -583,7 +583,7 @@ class Api:
 
     async def merge_graph(self, request: Request) -> StreamResponse:
         log.info("Received merge_graph request")
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
         info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, None)
@@ -591,7 +591,7 @@ class Api:
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
         log.info("Received put_sub_graph_batch request")
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
@@ -600,18 +600,18 @@ class Api:
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
         batch_updates = await graph_db.list_in_progress_updates()
         return web.json_response([b for b in batch_updates if b.get("is_batch")])
 
     async def commit_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
         batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.commit_batch_update(batch_id)
         return web.HTTPOk(body="Batch committed.")
 
     async def abort_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
         batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.abort_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
@@ -619,7 +619,7 @@ class Api:
     async def graph_query_model_from_request(self, request: Request) -> Tuple[GraphDB, QueryModel]:
         section = section_of(request)
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
         q = await self.query_parser.parse_query(query_string, section, **request.query)
         m = await self.model_handler.load_model()
         return graph_db, QueryModel(q, m)
@@ -641,7 +641,7 @@ class Api:
         query_string = request.query.get("term", "")
         limit = int(request.query.get("limit", "10"))
         model = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "ns"))
+        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
         result = graph_db.search(model, query_string, limit)
         # noinspection PyTypeChecker
         return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
@@ -672,7 +672,7 @@ class Api:
             return await self.stream_response_from_gen(request, gen)
 
     async def wipe(self, request: Request) -> StreamResponse:
-        graph_id = request.match_info.get("graph_id", "ns")
+        graph_id = request.match_info.get("graph_id", "resoto")
         if "truncate" in request.query:
             await self.db.get_graph_db(graph_id).wipe()
             return web.HTTPOk(body="Graph truncated.")
