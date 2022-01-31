@@ -183,7 +183,7 @@ class GraphBuilder:
             elif isinstance(value, list):
                 for elem in value:
                     dispatch(elem)
-            elif isinstance(value, bool):
+            elif value is None or isinstance(value, bool):
                 pass
             else:
                 if result:
@@ -370,15 +370,15 @@ class GraphAccess:
         return True
 
     @staticmethod
-    def dump_direct(node_id: str, node: Json) -> Json:
+    def dump_direct(node_id: str, node: Json, recompute: bool = False) -> Json:
         reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
         if "id" not in node:
             node["id"] = node_id
-        if "hash" not in node:
+        if recompute or "hash" not in node:
             node["hash"] = GraphBuilder.content_hash(reported, desired, metadata)
-        if "flat" not in node:
+        if recompute or "flat" not in node:
             node["flat"] = GraphBuilder.flatten(reported)
         if "kinds" not in node:
             node["kinds"] = [reported["kind"]]
