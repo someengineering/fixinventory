@@ -134,6 +134,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -154,6 +155,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -172,6 +174,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -196,6 +199,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -228,12 +232,16 @@ paths:
     /graph/{graph_id}/batch/merge:
         post:
             summary: "Merge a given graph with the existing graph under marked merge nodes as batch update."
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Merge a given graph with the existing graph under marked merge nodes as batch update.
             tags:
                 - graph_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -276,12 +284,16 @@ paths:
     /graph/{graph_id}/batch:
         get:
             summary: "Get a list of all running batch updates"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Get a list of all running batch updates.
             tags:
                 - graph_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -295,12 +307,16 @@ paths:
     /graph/{graph_id}/batch/{batch_id}:
         post:
             summary: "Commit a batch update"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Commit a batch update.
             tags:
                 - graph_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -320,12 +336,16 @@ paths:
                                 example: "Batch committed."
         delete:
             summary: "Abort a batch update"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Abort a batch update.
             tags:
                 - graph_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -358,6 +378,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -413,12 +434,16 @@ paths:
     /graph/{graph_id}/node/{node_id}/under/{parent_node_id}:
         post:
             summary: "Create a new node under the given parent node"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Create a new node under the given parent node.
             tags:
                 - node_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -450,12 +475,16 @@ paths:
     /graph/{graph_id}/node/{node_id}:
         get:
             summary: "Get a node with the given node id"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Get a node with the given node id
             tags:
                 - node_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -474,12 +503,16 @@ paths:
                                 $ref: "#/components/schemas/Node"
         patch:
             summary: "Update a node with the given node id"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Update a node with the given node id
             tags:
                 - node_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -505,12 +538,16 @@ paths:
                                 $ref: "#/components/schemas/Node"
         delete:
             summary: "Delete a node with the given node id."
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Delete a node with the given node id.
             tags:
                 - node_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -526,12 +563,16 @@ paths:
     /graph/{graph_id}/node/{node_id}/section/{section}:
         patch:
             summary: "Patch a node with the given node id in given section"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Patch a node with the given node id in given section
             tags:
                 - node_management
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -572,14 +613,15 @@ paths:
         post:
             summary: "Transform the query into the raw database query"
             description: |
-                Query the graph by all sections. This means that properties have to be prefixed by the section name.
-                Example: reported.age>23 and desired.clean==true and metadata.version==2
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Show the underlying raw query.
             tags:
                 - debug
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -611,13 +653,15 @@ paths:
         post:
             summary: "Query the graph and return all nodes as list (this will not contain any edges)"
             description: |
-                Query the graph by all sections. This means that properties have to be prefixed by the section name.
-                Example: reported.age>23 and desired.clean==true and metadata.version==2
+                Query the graph and return the matching nodes as list.
+                A section can be defined (defaults to `/` == root) to interpret relative property paths.
+                Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
                 - graph_query
             parameters:
                 -   name: graph_id
                     in: path
+                    example: resoto
                     description: "The identifier of the graph"
                     required: true
                     schema:
@@ -810,14 +854,17 @@ paths:
         post:
             summary: "Query the graph and return the resulting graph."
             description: |
-                Query the graph by all sections. This means that properties have to be prefixed by the section name.
-                Example: reported.age>23 and desired.clean==true and metadata.version==2
+                Query the graph and return the matching nodes including the traversed edges.
+                The resulting data can be interpreted as a graph.
+                A section can be defined (defaults to `/` == root) to interpret relative property paths.
+                Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
                 - graph_query
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -1016,14 +1063,16 @@ paths:
         post:
             summary: "Query the aggregate function on the specified graph and return the aggregation result."
             description: |
-                Query the graph by all sections. This means that properties have to be prefixed by the section name.
-                Example: reported.age>23 and desired.clean==true and metadata.version==2
+                Query and aggregate the graph and return the resulting aggregated data.
+                A section can be defined (defaults to `/` == root) to interpret relative property paths.
+                Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
                 - graph_query
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -1059,8 +1108,9 @@ paths:
         post:
             summary: "Explain the query execution plan"
             description: |
-                Query the graph by all sections. This means that properties have to be prefixed by the section name.
-                Example: reported.age>23 and desired.clean==true and metadata.version==2
+                Explain the runtime characteristics of a query without performing the query.
+                A section can be defined (defaults to `/` == root) to interpret relative property paths.
+                Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
 
             tags:
                 - graph_query
@@ -1068,6 +1118,7 @@ paths:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -1098,12 +1149,16 @@ paths:
     /graph/{graph_id}/search:
         get:
             summary: "Search the graph"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Search the graph.
             tags:
                 - graph_query
             parameters:
                 -   name: graph_id
                     in: path
                     description: "The identifier of the graph"
+                    example: resoto
                     required: true
                     schema:
                         type: string
@@ -1507,7 +1562,9 @@ paths:
 
         get:
             summary: "Get all configuration data"
-            description: Get all configuration data in the system.
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Get all configuration data in the system.
             tags:
                 - config
             responses:
@@ -1521,7 +1578,9 @@ paths:
     /config/{config_id}:
         get:
             summary: "Get a configuration by its id"
-            description: Fetch a configuration by id.
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Fetch a configuration by id.
             tags:
                 - config
             parameters:
@@ -1544,7 +1603,9 @@ paths:
 
         put:
             summary: "Replace a configuration with given id"
-            description: Replace a configuration identified by id with provided value.
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Replace a configuration identified by id with provided value.
             tags:
                 - config
             parameters:
@@ -1570,7 +1631,9 @@ paths:
                                 additionalProperties: true
         patch:
             summary: "Patch a configuration by its id"
-            description: Patch a configuration identified by id with provided value.
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Patch a configuration identified by id with provided value.
             tags:
                 - config
             parameters:
@@ -1596,7 +1659,9 @@ paths:
                                 additionalProperties: true
         delete:
             summary: "Delete a configuration by its id"
-            description: Delete a configuration identified by id with provided value.
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Delete a configuration identified by id with provided value.
             tags:
                 - config
             parameters:
