@@ -108,7 +108,6 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # create a new graph
     graph = await core_client.create_graph(g)
     assert graph.id == "root"
-    assert graph.kinds == ["graph_root"]
     assert graph.reported.kind == "graph_root"
 
     # list all graphs
@@ -118,7 +117,6 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # get one specific graph
     graph: AccessJson = await core_client.get_graph(g)  # type: ignore
     assert graph.id == "root"
-    assert graph.kinds == ["graph_root"]
     assert graph.reported.kind == "graph_root"
 
     # wipe the data in the graph
@@ -178,7 +176,8 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # create the raw query
     raw = await core_client.query_graph_raw(g, 'id("3")')
     assert raw == {
-        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  "
+        'RETURN UNSET(m0, ["flat"])) '
         "FOR result in filter0 RETURN result",
         "bind_vars": {"b0": "3"},
     }
@@ -201,6 +200,10 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # aggregate
     result_aggregate = await core_client.query_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
     assert {r.group.kind: r.count for r in result_aggregate} == {"bla": 100, "cloud": 1, "foo": 11, "graph_root": 1}
+
+    # fulltext search
+    # note the fulltext index is only eventually consistent: we do not assume any result other than a successful return
+    await core_client.search(g, "foo")
 
     # delete the graph
     assert await core_client.delete_graph(g) == "Graph deleted."

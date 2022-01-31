@@ -177,6 +177,13 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
+    async def search(self, graph: str, term: str) -> List[AccessJson]:
+        async with self.session.get(self.base_path + f"/graph/{graph}/search", params={"term": term}) as r:
+            if r.status == 200:
+                return AccessJson.wrap_list(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
     async def subscribers(self) -> List[Subscriber]:
         async with self.session.get(self.base_path + f"/subscribers") as r:
             if r.status == 200:

@@ -700,7 +700,6 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
     assert len(requests) == 3
     for ar in (AccessJson(content) for _, content in requests):
         assert is_node(ar)
-        assert ar.kinds == ["bla"]
         assert ar.reported.kind == "bla"
 
     # failing requests are retried

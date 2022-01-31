@@ -20,7 +20,6 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from prometheus_client.core import GaugeMetricFamily
 from typing import Dict, List, IO, Optional, Tuple
 from io import BytesIO
 from dataclasses import fields
@@ -30,9 +29,6 @@ from collections import defaultdict, namedtuple
 from enum import Enum
 
 
-metrics_graph2metrics = Summary(
-    "resoto_graph2metrics_seconds", "Time it took the graph2metrics() method"
-)
 metrics_graph_search = Summary(
     "resoto_graph_search_seconds", "Time it took the Graph search() method"
 )
@@ -491,13 +487,6 @@ class GraphContainer:
         else:
             return graph2pajek(self.graph)
 
-    @property
-    def metrics(self):
-        if self.cache and self.cache.metrics:
-            return self.cache.metrics
-        else:
-            return graph2metrics(self.graph)
-
 
 # The mlabels() and mtags() functions are being used to dynamically add more labels
 # to each metric. The idea here is that via a cli arg we can specify resource tags
@@ -542,44 +531,6 @@ def make_valid_label(label: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_]", "_", label)
 
 
-@metrics_graph2metrics.time()
-def graph2metrics(graph):
-    metrics = {}
-    num = {}
-
-    for node in graph.nodes:
-        if not isinstance(node, BaseResource):
-            continue
-        try:
-            for metric, data in node.metrics_description.items():
-                if metric not in metrics:
-                    metrics[metric] = GaugeMetricFamily(
-                        f"resoto_{metric}",
-                        data["help"],
-                        labels=mlabels(data["labels"]),
-                    )
-                    num[metric] = defaultdict(lambda: 0)
-            for metric, data in node.metrics(graph).items():
-                for labels, value in data.items():
-                    if metric not in num:
-                        log.error(
-                            (
-                                f"Couldn't find metric {metric} in num when"
-                                f" processing node {node}"
-                            )
-                        )
-                        continue
-                    num[metric][mtags(labels, node)] += value
-        except AttributeError:
-            log.exception(f"Encountered invalid node in graph {node}")
-
-    for metric in metrics:
-        for labels, value in num[metric].items():
-            metrics[metric].add_metric(labels, value)
-
-    return metrics
-
-
 class GraphCache:
     """A Cache of multiple Graph formats
 
@@ -602,14 +553,11 @@ class GraphCache:
         self._gexf_cache = None
         self._pickle_cache = None
         self._pajek_cache = None
-        self._metrics_cache = None
 
     @metrics_graphcache_update_cache.time()
     def update_cache(self, event: Event) -> None:
         log.debug("Updating the Graph Cache")
         graph = event.data
-        log.debug("Generating metrics cache")
-        self._metrics_cache = graph2metrics(graph)
         log.debug("Generating pickle cache")
         self._pickle_cache = graph2pickle(graph)
         # log.debug('Generating JSON cache')

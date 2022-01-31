@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from collections import defaultdict
@@ -40,6 +41,8 @@ from core.util import first, set_value_in_path, exist
 log = logging.getLogger(__name__)
 
 allowed_first_merge_part = Part(AllTerm())
+
+unset_props = json.dumps(["flat"])
 
 
 def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
@@ -205,9 +208,13 @@ def query_string(
                 db, mq.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
             )
             if mq.only_first:
-                merge_result += f"LET {part_result}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN r)"
+                merge_result += (
+                    f"LET {part_result}=FIRST({mg_query} FOR r in {mg_crs} LIMIT 1 RETURN UNSET(r, {unset_props}))"
+                )
             else:
-                merge_result += f"LET {part_result}=({mg_query} FOR r in {mg_crs} RETURN DISTINCT r)"
+                merge_result += (
+                    f"LET {part_result}=({mg_query} FOR r in {mg_crs} RETURN DISTINCT UNSET(r, {unset_props}))"
+                )
 
         # check if this query points to an already resolved value
         # Currently only resolved ancestors are taken into account:
@@ -264,8 +271,9 @@ def query_string(
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             limited = f" LIMIT {p.limit} " if p.limit else " "
             sort_by = sort(crsr, p.sort) if p.sort else " "
-            for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}RETURN {f_res}"
-            query_part += f"LET {filtered_out} = ({for_stmt})"
+            for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}"
+            return_stmt = f"RETURN UNSET({f_res}, {unset_props})"
+            query_part += f"LET {filtered_out} = ({for_stmt}{return_stmt})"
             return filtered_out
 
         def with_clause(in_crsr: str, clause: WithClause) -> str:
