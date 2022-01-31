@@ -261,10 +261,10 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
-    async def cli_commands(self) -> List[Json]:
-        async with self.session.get(self.base_path + f"/cli/commands") as r:
+    async def cli_info(self) -> AccessJson:
+        async with self.session.get(self.base_path + f"/cli/info") as r:
             if r.status == 200:
-                return AccessJson.wrap_list(await r.json())  # type: ignore
+                return AccessJson.wrap_object(await r.json())
             else:
                 raise AttributeError(await r.text())
 

@@ -267,8 +267,8 @@ async def test_cli(core_client: ApiClient) -> None:
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
 
     # list all cli commands
-    commands = await core_client.cli_commands()
-    assert len(commands) == 32
+    info = await core_client.cli_info()
+    assert len(info.commands) == 32
 
 
 @pytest.mark.asyncio

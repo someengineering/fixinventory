@@ -1700,6 +1700,9 @@ paths:
     /cli/info:
         get:
             summary: Get information about CLI
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Get information about CLI
             tags:
                 - cli
             responses:
