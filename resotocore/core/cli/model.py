@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from asyncio import Queue, Task, iscoroutine
@@ -11,17 +12,20 @@ from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable,
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
+from parsy import test_char, string
 
 from core.analytics import AnalyticsEventSender
 from core.cli import JsGen, T, Sink
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
 from core.message_bus import MessageBus
+from core.parse_util import l_curly_dp, r_curly_dp
 from core.model.model_handler import ModelHandler
 from core.query.model import Query, variable_to_absolute
 from core.query.template_expander import TemplateExpander
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
+from core.util import AccessJson
 from core.worker_task_queue import WorkerTaskQueue
 
 
@@ -41,6 +45,13 @@ class MediaType(Enum):
         return "application/json" if self == MediaType.Json else "application/octet-stream"
 
 
+no_closing_p = test_char(lambda x: x != "}", "No closing bracket").at_least(1).concat()
+no_bracket_p = test_char(lambda x: x not in ("{", "}"), "No opening bracket").at_least(1).concat()
+double_curly_open_dp = string("{{")
+double_curly_close_dp = string("}}")
+l_or_r_curly_dp = string("{") | string("}")
+
+
 @dataclass(frozen=True)
 class CLIContext:
     env: Dict[str, str] = field(default_factory=dict)
@@ -51,6 +62,28 @@ class CLIContext:
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, no section should be adjusted
         return variable_to_absolute(self.env.get("section"), variable) if self.query else variable
+
+    def formatter(self, format_string: str) -> Callable[[Any], str]:
+        """
+        A formatter can be used to string format objects based on a provided format string.
+        """
+
+        def format_variable(name: str) -> str:
+            assert "__" not in name, "No dunder attributes allowed"
+            return "{" + self.variable_in_section(name) + "}"
+
+        def render_simple_property(prop: Any) -> str:
+            return json.dumps(prop) if isinstance(prop, bool) else str(prop)
+
+        variable = (l_curly_dp >> no_closing_p << r_curly_dp).map(format_variable)
+        token = double_curly_open_dp | double_curly_close_dp | no_bracket_p | variable | l_or_r_curly_dp
+        format_string_parser = token.many().concat()
+        formatter: str = format_string_parser.parse(format_string)
+
+        def format_object(obj: Any) -> str:
+            return formatter.format_map(AccessJson.wrap(obj, "null", render_simple_property))
+
+        return format_object
 
 
 EmptyContext = CLIContext()

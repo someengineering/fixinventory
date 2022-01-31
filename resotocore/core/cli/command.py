@@ -38,7 +38,7 @@ from aiohttp import ClientTimeout, JsonPayload
 from aiostream import stream
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
-from parsy import Parser, string, test_char
+from parsy import Parser, string
 
 from core.async_extensions import run_async
 from core.cli import (
@@ -80,8 +80,6 @@ from core.parse_util import (
     variable_dp,
     literal_dp,
     comma_p,
-    l_curly_dp,
-    r_curly_dp,
 )
 from core.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from core.query.query_parser import parse_query
@@ -89,7 +87,6 @@ from core.query.template_expander import tpl_props_p
 from core.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
 from core.types import Json, JsonElement
 from core.util import (
-    AccessJson,
     uuid_str,
     value_in_path_get,
     value_in_path,
@@ -1382,26 +1379,6 @@ class FormatCommand(CLICommand, OutputTransformer):
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
 
-        def format_variable(name: str) -> str:
-            assert "__" not in name, "No dunder attributes allowed"
-            return "{" + ctx.variable_in_section(name) + "}"
-
-        def format_string() -> str:
-            no_closing = test_char(lambda x: x != "}", "No closing bracket").at_least(1).concat()
-            no_bracket = test_char(lambda x: x not in ("{", "}"), "No opening bracket").at_least(1).concat()
-            escaped_open = string("{{")
-            escaped_close = string("}}")
-            variable = (l_curly_dp >> no_closing << r_curly_dp).map(format_variable)
-            bracket = string("{") | string("}")
-            format_string_parser = (escaped_open | escaped_close | no_bracket | variable | bracket).many().concat()
-            return format_string_parser.parse(arg)  # type: ignore
-
-        def render_simple_property(prop: Any) -> str:
-            return json.dumps(prop) if isinstance(prop, bool) else str(prop)
-
-        def format_object_to_string(frmt: str, elem: Any) -> str:
-            return frmt.format_map(AccessJson.wrap(elem, "null", render_simple_property))
-
         async def render_format(format_name: str, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
                 async for elem in self.formats[format_name](streamer):
@@ -1415,7 +1392,7 @@ class FormatCommand(CLICommand, OutputTransformer):
                     raise AttributeError("A format renderer can not be combined together with a format string!")
                 return render_format(next(iter(format_to_use)), in_stream)
             elif formatting_string:
-                return stream.map(in_stream, partial(format_object_to_string, format_string()))
+                return stream.map(in_stream, ctx.formatter(arg)) if arg else in_stream
             else:
                 return in_stream
 
@@ -1904,10 +1881,16 @@ class TagCommand(SendWorkerTaskCommand):
     Tags have a name and value - both name and value are strings.
 
     When this command is issued, the change is done on the cloud resource via the cloud specific provider.
-    In case of success, the resulting change is performed in the related cloud.
-    The change in the graph data itself might take up to the next collect run.
+    The change in the graph data itself is reflected with this operation.
+    In rare case it might take up to the next collect run.
 
-    The command would wait for th worker to report the result back synchronously.
+    When a tag is updated, the new value can be defined as static string or as format string using curly braces.
+    All placeholders in a format string are replaced with values from the related resource (see `format` for details).
+
+    After the tag of a resource is updated or deleted the resulting data is provided as output of this command
+    and can be used for further chained operations.
+
+    The command would wait for the worker to report the result back synchronously.
     Once the cli command returns, also the tag update/delete is finished.
     If the command should not wait for the result, the action can be performed in background via the --nowait flag.
 
@@ -1924,16 +1907,25 @@ class TagCommand(SendWorkerTaskCommand):
     Parameter:
         command_name [mandatory]: is either update or delete
         tag_name [mandatory]: the name of the tag to change
-        tag_value: in case of update: the new value of the tag_name
+        tag_value: in case of update: the format string to create the new value of the tag_name.
+                   All format templates are rendered using the related entity.
+                   Example: test_{name}_{kind} -> test_pvc-123_disk
         --nowait if this flag is defined, the cli will send the tag command to the worker
                  and will not wait for the task to finish.
 
 
     Example:
-        match x>2 | tag delete foo  # will result in [ { "id1": "success" }, { "id2": "success" } .. {} ]
-        echo "id1" | tag delete foo  # will result in [ { "id1": "success" } ]
-        json ["id1", "id2"] | tag delete foo  # will result in [ { "id1": "success" }, { "id2": "success" } ]
+        # Make sure no resource is tagged as `foo`
+        $> query is(resource) and tags.foo != null | tag delete foo
+        kind=aws_ec2_keypair, id=key-abc, name=default, age=1yr8mo, cloud=aws, account=dev, region=us-west-2
+        kind=gcp_disk, id=1234, name=default, age=5mo25d, cloud=gcp, account=eng, region=us-central1-c
 
+        # Create a name tag for volumes that do not define such a tag
+        # The name is created using the name of the resource and the account (e.g. "Gen: gke-clu-1 eng")
+        $> query is(volume) and tags.name==null | tag update name "Gen: {name} {/ancestors.account.reported.name}"
+        kind=gcp_instance, id=123, name=agent, age=3yr9mo, cloud=gcp, account=se, region=us-central1, zone=us-central1-c
+        kind=gcp_instance, id=234, name=bkom, age=2mo25d, cloud=gcp, account=se, region=us-west1, zone=us-west1-b
+        kind=gcp_instance, id=345, name=worker0, age=8mo16d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
 
     Environment Variables:
         graph: the name of the graph to operate on.
@@ -2008,11 +2000,11 @@ class TagCommand(SendWorkerTaskCommand):
             )  # noqa: E731
         elif pl >= 3 and parts[0] == "update":
             nowait, tag, vin = (parts[1] == "--nowait", parts[2], parts[3]) if pl == 4 else (False, parts[1], parts[2])
-            value = double_quoted_or_simple_string_dp.parse(vin)
+            formatter = ctx.formatter(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
                 "tag",
                 self.carz_from_node(item),
-                {"update": {tag: value}, "node": item},
+                {"update": {tag: formatter(item)}, "node": item},
             )
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
