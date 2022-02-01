@@ -9,7 +9,6 @@ from resotolib.logging import log
 from resotolib.baseresources import (
     BaseCloud,
     BaseAccount,
-    BaseRegion,
     GraphRoot,
     Cloud,
     BaseResource,
@@ -715,7 +714,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Resource kind to merge graph at (default: cloud)",
         dest="graph_merge_kind",
         type=str,
-        choices=["cloud", "account", "region"],
+        choices=["cloud", "account"],
         default="cloud",
     )
 
@@ -801,8 +800,6 @@ class GraphExportIterator:
         gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
         if gmk == "account":
             self.graph_merge_kind = BaseAccount
-        elif gmk == "region":
-            self.graph_merge_kind = BaseRegion
 
     def __iter__(self):
         for node in self.graph.nodes:
