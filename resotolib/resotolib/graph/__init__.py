@@ -806,7 +806,11 @@ class GraphExportIterator:
             node_dict = node_to_dict(node)
             if isinstance(node, self.graph_merge_kind):
                 log.debug(f"Replace graph on node {node.rtdname}")
-                node_dict.update({"replace": True})
+                if "metadata" not in node_dict or not isinstance(
+                    node_dict["metadata"], dict
+                ):
+                    node_dict["metadata"] = {}
+                node_dict["metadata"]["replace"] = True
             node_json = json.dumps(node_dict) + "\n"
             self.nodes_sent += 1
             if (
