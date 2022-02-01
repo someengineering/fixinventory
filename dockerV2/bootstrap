@@ -13,7 +13,7 @@ main() {
     configure_timezone
     setup_etc_hosts || true
     setup_dnsmasq
-    exec runuser -l resoto -g resoto -- "$@"
+    exec runuser -u resoto -g resoto -- "$@"
 }
 
 
