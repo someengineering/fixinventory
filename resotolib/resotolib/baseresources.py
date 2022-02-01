@@ -745,8 +745,6 @@ class BaseInstanceType(BaseType):
 class BaseCloud(BaseResource):
     kind: ClassVar[str] = "base_cloud"
 
-    _replace: bool = field(default=False, repr=False)
-
     def cloud(self, graph=None):
         return self
 
@@ -767,8 +765,6 @@ class BaseAccount(BaseResource):
         },
     }
 
-    _replace: bool = field(default=False, repr=False)
-
     def account(self, graph=None):
         return self
 
@@ -776,8 +772,6 @@ class BaseAccount(BaseResource):
 @dataclass(eq=False)
 class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
-
-    _replace: bool = field(default=False, repr=False)
 
     def region(self, graph=None):
         return self

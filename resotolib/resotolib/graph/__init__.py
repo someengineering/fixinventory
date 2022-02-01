@@ -6,7 +6,13 @@ import pickle
 import json
 import re
 from resotolib.logging import log
-from resotolib.baseresources import GraphRoot, Cloud, BaseResource
+from resotolib.baseresources import (
+    BaseCloud,
+    BaseAccount,
+    GraphRoot,
+    Cloud,
+    BaseResource,
+)
 from resotolib.utils import json_default, get_resource_attributes
 from resotolib.args import ArgumentParser
 from resotolib.graph.export import (
@@ -703,6 +709,14 @@ def add_args(arg_parser: ArgumentParser) -> None:
         action="store_true",
         default=False,
     )
+    arg_parser.add_argument(
+        "--graph-merge-kind",
+        help="Resource kind to merge graph at (default: cloud)",
+        dest="graph_merge_kind",
+        type=str,
+        choices=["cloud", "account"],
+        default="cloud",
+    )
 
 
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
@@ -782,13 +796,21 @@ class GraphExportIterator:
         self.output = output
         if self.output is not None:
             log.debug(f"Writing graph json to file {self.output}")
+        self.graph_merge_kind = BaseCloud
+        gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
+        if gmk == "account":
+            self.graph_merge_kind = BaseAccount
 
     def __iter__(self):
         for node in self.graph.nodes:
             node_dict = node_to_dict(node)
-            if getattr(node, "_replace", None):
+            if isinstance(node, self.graph_merge_kind):
                 log.debug(f"Replace graph on node {node.rtdname}")
-                node_dict.update({"replace": True})
+                if "metadata" not in node_dict or not isinstance(
+                    node_dict["metadata"], dict
+                ):
+                    node_dict["metadata"] = {}
+                node_dict["metadata"]["replace"] = True
             node_json = json.dumps(node_dict) + "\n"
             self.nodes_sent += 1
             if (
