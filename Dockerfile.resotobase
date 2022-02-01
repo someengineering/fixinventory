@@ -130,14 +130,13 @@ WORKDIR /usr/src/resoto
 COPY dockerV2/defaults /usr/local/etc/resoto/defaults
 COPY dockerV2/common /usr/local/etc/resoto/common
 COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
-COPY dockerV2/startup /usr/local/sbin/startup
 COPY dockerV2/resh-shim /usr/local/bin/resh-shim
+COPY dockerV2/resh-wait /usr/local/bin/resh-wait
 COPY dockerV2/resotocore-shim /usr/local/bin/resotocore-shim
 COPY dockerV2/resotoworker-shim /usr/local/bin/resotoworker-shim
 COPY dockerV2/resotometrics-shim /usr/local/bin/resotometrics-shim
 RUN chmod 755 \
     /usr/local/sbin/bootstrap \
-    /usr/local/sbin/startup \
     /usr/local/bin/resh-shim \
     /usr/local/bin/resotocore-shim \
     /usr/local/bin/resotoworker-shim \
@@ -145,7 +144,6 @@ RUN chmod 755 \
 RUN if [ "${TESTS:-false}" = true ]; then \
         shellcheck -a -x -s bash -e SC2034 \
             /usr/local/sbin/bootstrap \
-            /usr/local/sbin/startup \
         ; \
     fi
 COPY dockerV2/dnsmasq.conf /usr/local/etc/dnsmasq.conf
@@ -181,6 +179,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
         unzip \
     && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+    && mkdir -p /var/run/resoto \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
@@ -191,6 +190,5 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-EXPOSE 8900 9955 9956
 ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
 CMD ["/bin/bash"]
