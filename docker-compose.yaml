@@ -30,8 +30,8 @@ services:
       - 9956:9956
     environment:
       - PSK
-      - RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOWORKER_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOWORKER_RESOTOCORE_WS_URI=ws://resotocore:8900
     restart: always
     stop_grace_period: 2m
   resotometrics: 
@@ -42,8 +42,8 @@ services:
       - 9955:9955
     environment:
       - PSK
-      - RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOMETRICS_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOMETRICS_RESOTOCORE_WS_URI=ws://resotocore:8900
     restart: always
     stop_grace_period: 2m
   resotoshell: 
@@ -52,8 +52,8 @@ services:
       - resotocore
     environment:
       - PSK
-      - RESOTOCORE_URI=http://resotocore:8900
-      - RESOTOCORE_WS_URI=ws://resotocore:8900
+      - RESOTOSHELL_RESOTOCORE_URI=http://resotocore:8900
+      - RESOTOSHELL_RESOTOCORE_WS_URI=ws://resotocore:8900
     restart: always
     stop_grace_period: 2m
 volumes:
