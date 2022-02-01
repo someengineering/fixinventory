@@ -131,6 +131,7 @@ COPY dockerV2/defaults /usr/local/etc/resoto/defaults
 COPY dockerV2/common /usr/local/etc/resoto/common
 COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
 COPY dockerV2/resh-shim /usr/local/bin/resh-shim
+COPY dockerV2/resh-wait /usr/local/bin/resh-wait
 COPY dockerV2/resotocore-shim /usr/local/bin/resotocore-shim
 COPY dockerV2/resotoworker-shim /usr/local/bin/resotoworker-shim
 COPY dockerV2/resotometrics-shim /usr/local/bin/resotometrics-shim
@@ -178,6 +179,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
         unzip \
     && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+    && mkdir -p /var/run/resoto \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
