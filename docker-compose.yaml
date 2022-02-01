@@ -11,19 +11,21 @@ services:
     volumes:
       - resoto_graphdb_data:/var/lib/arangodb3
   resotocore:
-    image: ghcr.io/someengineering/resotocore:edge
+    image: ghcr.io/someengineering/resotocore:2.0.0a14
     depends_on:
       - graphdb
     ports:
       - 8900:8900
     environment:
       - PSK
+      - RESOTOCORE_HOST=resotocore
+      - RESOTOCORE_START_COLLECT_ON_SUBSCRIBER_CONNECT=true
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
     restart: always
     stop_grace_period: 2m
   resotoworker: 
-    image: ghcr.io/someengineering/resotoworker:edge
+    image: ghcr.io/someengineering/resotoworker:2.0.0a14
     depends_on:
       - resotocore
     ports:
@@ -35,7 +37,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotometrics: 
-    image: ghcr.io/someengineering/resotometrics:edge
+    image: ghcr.io/someengineering/resotometrics::2.0.0a14
     depends_on:
       - resotocore
     ports:
@@ -47,7 +49,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoshell: 
-    image: ghcr.io/someengineering/resotoshell:edge
+    image: ghcr.io/someengineering/resotoshell:2.0.0a14
     depends_on:
       - resotocore
     environment:
