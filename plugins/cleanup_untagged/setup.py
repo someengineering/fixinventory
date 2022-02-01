@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="resoto-plugin-cleanup_untagged",
-    version="2.0.0a14",
+    version="2.0.0a15",
     description="Resoto Cleanup Untagged Plugin",
     license="Apache 2.0",
     packages=find_packages(),
