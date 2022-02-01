@@ -1,6 +1,4 @@
 from __future__ import annotations
-from concurrent.futures import thread
-from tracemalloc import start
 import networkx
 from networkx.algorithms.dag import is_directed_acyclic_graph
 import threading
@@ -29,7 +27,7 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List, IO, Optional, Tuple
+from typing import Dict, List, Tuple
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
