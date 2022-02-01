@@ -1,2 +1,2 @@
-resotolib==2.0.0a14
-resoto-plugin-aws==2.0.0a14
+resotolib==2.0.0a15
+resoto-plugin-aws==2.0.0a15
