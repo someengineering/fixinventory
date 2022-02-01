@@ -439,16 +439,19 @@ async def test_tag_command(
 
     assert await cli.execute_cli_command("echo id_does_not_exist | tag update foo bla", stream.list) == [[]]
     assert nr_of_performed() == 0
-    res1 = await cli.execute_cli_command('json ["root", "collector"] | tag update foo bla', stream.list)
+    res1 = await cli.execute_cli_command(
+        'json ["root", "collector"] | tag update foo "bla_{reported.some_int}"', stream.list
+    )
     assert nr_of_performed() == 2
     assert {a["id"] for a in res1[0]} == {"root", "collector"}
     assert len(incoming_tasks) == 2
     # check that the worker task data is correct
     data = AccessJson(incoming_tasks[0].data)
-    assert data.update is not None  # tag update -> data.update is defined
+    assert data["update"] is not None  # tag update -> data.update is defined
     assert not data.node.reported.is_none  # the node reported section is defined
     assert not data.node.metadata.is_none  # the node metadata section is defined
-    assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defined
+    assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defineda
+    assert data["update"].foo == "bla_0"  # using the formatter bla_{reported.some_int}
 
     res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 11
