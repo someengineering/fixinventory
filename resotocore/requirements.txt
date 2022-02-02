@@ -22,3 +22,4 @@ backports.cached-property==1.0.1
 ustache==0.1.5
 aiofiles==0.8.0
 cryptography~=36.0.1
+rich~=11.1.0

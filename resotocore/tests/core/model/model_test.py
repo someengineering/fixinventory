@@ -1,13 +1,14 @@
 import json
+from datetime import datetime, timedelta
+from textwrap import dedent
 from typing import Type, Any, Union, cast
 
 import pytest
 from deepdiff import DeepDiff
-
-from datetime import datetime, timedelta
-from core.model.typed_model import to_json, from_js
 from networkx import DiGraph
 
+from core.cli.model import CLIContext
+from core.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from core.model.model import (
     StringKind,
     Kind,
@@ -26,6 +27,7 @@ from core.model.model import (
     DurationKind,
     SyntheticProperty,
 )
+from core.model.typed_model import to_json, from_js
 from core.util import from_utc, utc, utc_str
 
 
@@ -425,3 +427,17 @@ def model_json() -> str:
       }
     ]
     """
+
+
+def test_markup() -> None:
+    ctx = CLIContext(console_formatter=ConsoleRenderer.renderer(color_system=ConsoleColorSystem.monochrome))
+    md = dedent(
+        """
+        - b1 test
+        - b2 fox
+        - test
+        """
+    )
+    result = ctx.render_console(md)
+    assert len(result) > len(md)
+    assert "• b1 test" in result

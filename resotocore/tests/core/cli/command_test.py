@@ -451,7 +451,7 @@ async def test_tag_command(
     assert not data.node.reported.is_none  # the node reported section is defined
     assert not data.node.metadata.is_none  # the node metadata section is defined
     assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defineda
-    assert data["update"].foo == "bla_0"  # using the formatter bla_{reported.some_int}
+    assert data["update"].foo == "bla_0"  # using the renderer bla_{reported.some_int}
 
     res2 = await cli.execute_cli_command('query is("foo") | tag update foo bla', stream.list)
     assert nr_of_performed() == 11
