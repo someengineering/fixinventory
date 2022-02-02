@@ -28,4 +28,4 @@ docs/_build/
 .coverage
 resotoshell/backup_*
 .nox
-
+dist/
