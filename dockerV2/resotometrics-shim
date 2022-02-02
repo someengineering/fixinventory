@@ -2,4 +2,6 @@
 . /usr/local/etc/resoto/defaults
 . /usr/local/resoto-venv-python3/bin/activate
 export RESOTOMETRICS_PSK
+export RESOTOMETRICS_RESOTOCORE_URI
+export RESOTOMETRICS_RESOTOCORE_WS_URI
 exec resotometrics "$@"

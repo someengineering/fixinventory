@@ -1,5 +1,6 @@
 import json
 import requests
+import tempfile
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
 from resotolib.jwt import encode_jwt_to_headers
@@ -42,9 +43,13 @@ def update_model(graph: Graph, resotocore_base_uri: str, dump_json: bool = False
     log.debug(f"Updating model via {model_uri}")
 
     model_json = json.dumps(graph.export_model(), indent=4)
+
     if dump_json:
-        with open("model.dump.json", "w") as model_outfile:
-            model_outfile.write(model_json)
+        with tempfile.NamedTemporaryFile(
+            prefix="resoto-model-", suffix=".json", delete=not dump_json
+        ) as model_outfile:
+            log.info(f"Writing model json to file {model_outfile.name}")
+            model_outfile.write(model_json.encode())
 
     headers = {}
     if getattr(ArgumentParser.args, "psk", None):
@@ -66,37 +71,27 @@ def send_graph(
 
     log.debug(f"Sending graph via {merge_uri}")
 
-    graph_outfile = None
-    if dump_json:
-        graph_outfile = open("graph.dump.json", "w")
+    graph_export_iterator = GraphExportIterator(graph, delete_tempfile=not dump_json)
 
-    try:
-        graph_export_iterator = GraphExportIterator(graph, graph_outfile)
+    headers = {
+        "Content-Type": "application/x-ndjson",
+        "Resoto-Worker-Nodes": str(graph.number_of_nodes()),
+        "Resoto-Worker-Edges": str(graph.number_of_edges()),
+    }
+    del graph
+    if getattr(ArgumentParser.args, "psk", None):
+        encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
-        headers = {
-            "Content-Type": "application/x-ndjson",
-            "Resoto-Worker-Nodes": str(graph.number_of_nodes()),
-            "Resoto-Worker-Edges": str(graph.number_of_edges()),
-        }
-        if getattr(ArgumentParser.args, "psk", None):
-            encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-
-        r = requests.post(
-            merge_uri,
-            data=graph_export_iterator,
-            headers=headers,
-        )
-        if r.status_code != 200:
-            log.error(r.content)
-            raise RuntimeError(f"Failed to send graph: {r.content}")
-        log.debug(f"resotocore reply: {r.content.decode()}")
-        log.debug(
-            f"Sent {graph_export_iterator.nodes_sent} nodes and"
-            f" {graph_export_iterator.edges_sent} edges to resotocore"
-        )
-    finally:
-        if graph_outfile is not None:
-            graph_outfile.close()
+    r = requests.post(
+        merge_uri,
+        data=graph_export_iterator,
+        headers=headers,
+    )
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to send graph: {r.content}")
+    log.debug(f"resotocore reply: {r.content.decode()}")
+    log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")
 
 
 def add_args(arg_parser: ArgumentParser) -> None:

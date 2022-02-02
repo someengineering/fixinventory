@@ -5,6 +5,7 @@ import threading
 import pickle
 import json
 import re
+import tempfile
 from resotolib.logging import log
 from resotolib.baseresources import (
     BaseCloud,
@@ -26,7 +27,7 @@ from resotolib.event import (
     remove_event_listener,
 )
 from prometheus_client import Summary
-from typing import Dict, List, IO, Optional, Tuple
+from typing import Dict, List, Tuple
 from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
@@ -783,70 +784,87 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphExportIterator:
-    def __init__(self, graph: Graph, output: Optional[IO] = None):
+    def __init__(self, graph: Graph, delete_tempfile: bool = True):
         self.graph = graph
-        self.nodes_sent = 0
-        self.edges_sent = 0
-        report_every_percent = 10
-        self.nodes_total = self.graph.number_of_nodes()
-        self.edges_total = self.graph.number_of_edges()
-        self.report_every_n_nodes = round(self.nodes_total / report_every_percent)
-        self.report_every_n_edges = round(self.edges_total / report_every_percent)
-        self.last_sent = time()
-        self.output = output
-        if self.output is not None:
-            log.debug(f"Writing graph json to file {self.output}")
+        self.tempfile = tempfile.NamedTemporaryFile(
+            prefix="resoto-graph-", suffix=".ndjson", delete=delete_tempfile
+        )
+        if not delete_tempfile:
+            log.info(f"Writing graph json to file {self.tempfile.name}")
         self.graph_merge_kind = BaseCloud
         gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
         if gmk == "account":
             self.graph_merge_kind = BaseAccount
+        self.graph_dumped = False
+        self.total_lines = 0
+        self.dump_lock = threading.Lock()
+
+    def __del__(self):
+        try:
+            self.tempfile.close()
+        except Exception:
+            pass
 
     def __iter__(self):
-        for node in self.graph.nodes:
-            node_dict = node_to_dict(node)
-            if isinstance(node, self.graph_merge_kind):
-                log.debug(f"Replace graph on node {node.rtdname}")
-                if "metadata" not in node_dict or not isinstance(
-                    node_dict["metadata"], dict
+        if not self.graph_dumped:
+            self.dump_graph()
+        start_time = time()
+        last_sent = time()
+        lines_sent = 0
+        percent = 0
+        report_every = round(self.total_lines / 10)
+
+        while line := self.tempfile.readline():
+            if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
+                percent = round(lines_sent / self.total_lines * 100)
+                elapsed = time() - last_sent
+                log.debug(
+                    f"Sent {lines_sent} nodes and edges ({percent}%) - {elapsed:.4f}s"
+                )
+                last_sent = time()
+            lines_sent += 1
+            yield line
+
+        elapsed = time() - start_time
+        log.debug(f"Sent {lines_sent} nodes and edges in {elapsed:.4f}s")
+        self.tempfile.seek(0)
+
+    def dump_graph(self):
+        with self.dump_lock:
+            start_time = time()
+            for node in self.graph.nodes:
+                node_dict = node_to_dict(node)
+                if isinstance(node, self.graph_merge_kind):
+                    log.debug(f"Replacing sub graph below {node.rtdname}")
+                    if "metadata" not in node_dict or not isinstance(
+                        node_dict["metadata"], dict
+                    ):
+                        node_dict["metadata"] = {}
+                    node_dict["metadata"]["replace"] = True
+                node_json = json.dumps(node_dict) + "\n"
+                self.tempfile.write(node_json.encode())
+                self.total_lines += 1
+            for edge in self.graph.edges:
+                from_node = edge[0]
+                to_node = edge[1]
+                if not isinstance(from_node, BaseResource) or not isinstance(
+                    to_node, BaseResource
                 ):
-                    node_dict["metadata"] = {}
-                node_dict["metadata"]["replace"] = True
-            node_json = json.dumps(node_dict) + "\n"
-            self.nodes_sent += 1
-            if (
-                self.report_every_n_nodes > 0
-                and self.nodes_sent % self.report_every_n_nodes == 0
-            ):
-                percent = round(self.nodes_sent / self.nodes_total * 100)
-                elapsed = time() - self.last_sent
-                log.debug(f"Sent {self.nodes_sent} nodes ({percent}%) - {elapsed:.4f}s")
-                self.last_sent = time()
-            if self.output is not None:
-                self.output.write(node_json)
-            yield node_json.encode()
-        for edge in self.graph.edges:
-            from_node = edge[0]
-            to_node = edge[1]
-            if not isinstance(from_node, BaseResource) or not isinstance(
-                to_node, BaseResource
-            ):
-                log.error(f"One of {from_node} and {to_node} is no base resource")
-                continue
-            edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
-            if len(edge) == 3:
-                key = edge[2]
-                if isinstance(key, EdgeKey) and key.edge_type != EdgeType.default:
-                    edge_dict["edge_type"] = key.edge_type.value
-            edge_json = json.dumps(edge_dict) + "\n"
-            self.edges_sent += 1
-            if (
-                self.report_every_n_edges > 0
-                and self.edges_sent % self.report_every_n_edges == 0
-            ):
-                percent = round(self.edges_sent / self.edges_total * 100)
-                elapsed = time() - self.last_sent
-                log.debug(f"Sent {self.edges_sent} edges ({percent}%) - {elapsed:.4f}s")
-                self.last_sent = time()
-            if self.output is not None:
-                self.output.write(edge_json)
-            yield edge_json.encode()
+                    log.error(f"One of {from_node} and {to_node} is no base resource")
+                    continue
+                edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
+                if len(edge) == 3:
+                    key = edge[2]
+                    if isinstance(key, EdgeKey) and key.edge_type != EdgeType.default:
+                        edge_dict["edge_type"] = key.edge_type.value
+                edge_json = json.dumps(edge_dict) + "\n"
+                self.tempfile.write(edge_json.encode())
+                self.total_lines += 1
+            elapsed = time() - start_time
+            log.debug(
+                f"Wrote {self.total_lines} nodes and edges"
+                f" to {self.tempfile.name} in {elapsed:.4f}s"
+            )
+            self.graph_dumped = True
+            del self.graph
+            self.tempfile.seek(0)

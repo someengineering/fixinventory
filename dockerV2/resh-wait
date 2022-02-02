@@ -1,0 +1,71 @@
+#!/bin/bash
+set -e
+. /usr/local/etc/resoto/defaults
+. /usr/local/etc/resoto/common
+
+pidfile=/var/run/resoto/resh-wait.pid
+run=true
+trap ':' USR1
+
+
+main() {
+    if (set -o noclobber; echo $$ > "$pidfile") 2> /dev/null; then
+        trap shutdown SIGINT SIGTERM
+        trap 'error_handler $? $LINENO $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]}); trap - ERR' ERR
+        while [ $run = true ]; do
+            info "Connect to this container and execute 'resh' to start the Resoto shell"
+            sleep 900 || true
+        done
+    else
+        info "Found existing PID file - checking process"
+        check_lock $pidfile
+    fi
+}
+
+
+shutdown() {
+    debug "Received signal to shut down"
+    clear_lock "$pidfile"
+    run=false
+}
+
+
+check_lock() {
+    local pidfile
+    local predecessor_pid
+    local numre
+    pidfile=$1
+    predecessor_pid=$(<"$pidfile")
+    numre='^[0-9]+$'
+    if [[ "$predecessor_pid" =~ $numre ]] ; then
+        debug "Sending SIGUSR1 to PID $predecessor_pid"
+        if kill -USR1 "$predecessor_pid" &> /dev/null; then
+            fatal "Process with PID $predecessor_pid already running - exiting"
+        else
+            info "Removing stale PID file and starting run"
+            clear_lock_and_run "$pidfile"
+        fi
+    else
+        warn "Predecessor PID is corrupt - clearing lock and running"
+        clear_lock_and_run "$pidfile"
+    fi
+}
+
+
+clear_lock_and_run() {
+    local pidfile
+    pidfile=$1
+    clear_lock "$pidfile"
+    main
+}
+
+
+clear_lock() {
+    local pidfile
+    pidfile=$1
+    info "Releasing PID file $pidfile"
+    rm -f "$1"
+}
+
+
+main
