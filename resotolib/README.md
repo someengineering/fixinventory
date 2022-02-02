@@ -21,7 +21,7 @@ If you have any questions feel free to [join our Discord](https://discord.gg/som
 
 1. Install poetry https://python-poetry.org/docs/#installation
 2. Install nox https://nox.thea.codes/en/stable/
-3. Run the tests and linters: `tox`
+3. Run the tests and linters: `nox`
 
 ## License
 ```
