@@ -1695,6 +1695,7 @@ class FormatCommand(CLICommand, OutputTransformer):
 
     > query all | format --json | write out.json
     Received a file out.json, which is stored to ./out.json.
+    ```
     """
 
     @property
