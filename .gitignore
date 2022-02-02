@@ -27,4 +27,5 @@ docs/_build/
 .DS_Store
 .coverage
 resotoshell/backup_*
+.nox
 
