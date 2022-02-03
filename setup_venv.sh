@@ -144,11 +144,11 @@ activate_venv() {
 }
 
 ensure_pip() {
-    echo "Ensuring Python pip is available and up to date."
+    echo "Ensuring Python pip, nox and poetry are available and up to date."
     if ! python -m pip help > /dev/null 2>&1; then
         python -m ensurepip -q -U
     fi
-    pip install -q -U pip wheel
+    pip install -q -U pip wheel nox poetry
 }
 
 install_dev() {

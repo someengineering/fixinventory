@@ -16,13 +16,6 @@ be put in here.
 ## Contact
 If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/resoto/issues/new).
 
-
-## Developer setup
-
-1. Install poetry https://python-poetry.org/docs/#installation
-2. Install nox https://nox.thea.codes/en/stable/
-3. Run the tests and linters: `nox`
-
 ## License
 ```
 Copyright 2022 Some Engineering Inc.
