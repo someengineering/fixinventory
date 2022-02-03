@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 """
 Resoto Prometheus exporter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,4 +13,4 @@ __description__ = "Exports Resoto metrics in Prometheus format."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2022 Some Engineering Inc."
-__version__ = "2.0.0a15"
+__version__ = version(__name__)
