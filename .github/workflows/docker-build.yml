@@ -373,6 +373,7 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v3
         with:
+          path: resoto.com
           commit-message: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
           title: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
           body: |
