@@ -1,101 +1,388 @@
 name: Build standalone Docker image
 
 on:
-    push:
-        tags:
-            - "*.*.*"
-        branches:
-            - main
-    pull_request:
-        paths:
-            - 'Dockerfile'
-            - 'docker/**'
-            - '.github/workflows/docker-build.yml'
-    workflow_dispatch:
+  push:
+    tags:
+      - "*.*.*"
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "docker/**"
+      - ".github/workflows/docker-build.yml"
+  workflow_dispatch:
 
 jobs:
-    build:
-        name: Build Docker Images
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Check out repository
-                uses: actions/checkout@v2
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
 
-            -   name: Set build platforms
-                id: platform
-                run: |
-                    if [ "${{ github.ref_type }}" = tag ]; then
-                        echo "::set-output name=uitag::latest"
-                        echo "::set-output name=latest::true"
-                    else
-                        echo "::set-output name=uitag::edge"
-                        echo "::set-output name=latest::false"
-                    fi
+      - name: Set build platforms
+        id: platform
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+              echo "::set-output name=uitag::latest"
+              echo "::set-output name=latest::true"
+          else
+              echo "::set-output name=uitag::edge"
+              echo "::set-output name=latest::false"
+          fi
 
-            -   name: Docker meta
-                id: meta
-                uses: docker/metadata-action@v3
-                with:
-                    images: |
-                        someengineering/resoto
-                        ghcr.io/someengineering/resoto
-                    flavor: |
-                        latest=${{ steps.platform.outputs.latest }}
-                    tags: |
-                        type=pep440,pattern={{version}}
-                        type=pep440,pattern={{major}}.{{minor}}
-                        type=pep440,pattern={{major}}
-                        type=sha,prefix=
-                        type=edge
-                    labels: |
-                        org.opencontainers.image.title=resoto
-                        org.opencontainers.image.description=Resoto Standalone Image
-                        org.opencontainers.image.vendor=Some Engineering Inc.
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resoto
+            ghcr.io/someengineering/resoto
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resoto
+            org.opencontainers.image.description=Resoto Standalone Image
+            org.opencontainers.image.vendor=Some Engineering Inc.
 
-            -   name: Set up Docker Buildx
-                id: buildx
-                uses: docker/setup-buildx-action@v1
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
 
-            -   name: Cache Docker layers
-                uses: actions/cache@v2
-                with:
-                    path: /tmp/.buildx-cache
-                    key: ${{ runner.os }}-buildx-${{ github.sha }}
-                    restore-keys: |
-                        ${{ runner.os }}-buildx-
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
-            -   name: Log in to Docker Hub
-                if: github.event_name != 'pull_request'
-                uses: docker/login-action@v1
-                with:
-                    username: ${{ secrets.DOCKERHUB_USER }}
-                    password: ${{ secrets.DOCKERHUB_PASS }}
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
 
-            -   name: Log in to GitHub Container Registry
-                if: github.event_name != 'pull_request'
-                uses: docker/login-action@v1
-                with:
-                    registry: ghcr.io
-                    username: ${{ github.actor }}
-                    password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            -   name: Build and push Docker image
-                uses: docker/build-push-action@v2
-                with:
-                    context: .
-                    file: ./Dockerfile
-                    platforms: linux/amd64
-                    push: ${{ github.event_name != 'pull_request' }}
-                    build-args: |
-                        UI_IMAGE_TAG=${{ steps.platform.outputs.uitag }}
-                        SOURCE_COMMIT=${{ github.sha }}
-                        TESTS=false
-                    tags: ${{ steps.meta.outputs.tags }}
-                    labels: ${{ steps.meta.outputs.labels }}
-                    cache-from: type=local,src=/tmp/.buildx-cache
-                    cache-to: type=local,dest=/tmp/.buildx-cache-new
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            UI_IMAGE_TAG=${{ steps.platform.outputs.uitag }}
+            SOURCE_COMMIT=${{ github.sha }}
+            TESTS=false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-            -   name: Move cache
-                run: |
-                    rm -rf /tmp/.buildx-cache
-                    mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  split-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Get short commit SHA
+        id: sha
+        run: echo "::set-output name=short::${GITHUB_SHA::7}"
+
+      - name: Set build platforms
+        id: platform
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+              echo "::set-output name=targets::linux/amd64,linux/arm64"
+              echo "::set-output name=uitag::latest"
+              echo "::set-output name=latest::true"
+          else
+              echo "::set-output name=targets::linux/amd64"
+              echo "::set-output name=uitag::edge"
+              echo "::set-output name=latest::false"
+          fi
+
+      - name: Check short commit SHA and build targets
+        run: |
+          echo ${{ steps.sha.outputs.short }}
+          echo ${{ steps.platform.outputs.targets }}
+          echo ${{ steps.platform.outputs.uitag }}
+          echo ${{ steps.platform.outputs.latest }}
+
+      - name: Docker resotobase meta
+        id: basemeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resotobase
+            ghcr.io/someengineering/resotobase
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resotobase
+            org.opencontainers.image.description=Resoto base image
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Docker resotocore meta
+        id: coremeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resotocore
+            ghcr.io/someengineering/resotocore
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resotocore
+            org.opencontainers.image.description=Resoto Core
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Docker resotoworker meta
+        id: workermeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resotoworker
+            ghcr.io/someengineering/resotoworker
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resotoworker
+            org.opencontainers.image.description=Resoto Worker
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Docker resotometrics meta
+        id: metricsmeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resotometrics
+            ghcr.io/someengineering/resotometrics
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resotometrics
+            org.opencontainers.image.description=Resoto Metrics
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Docker resotoshell meta
+        id: shellmeta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            someengineering/resotoshell
+            ghcr.io/someengineering/resotoshell
+          flavor: |
+            latest=${{ steps.platform.outputs.latest }}
+          tags: |
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=pep440,pattern={{major}}
+            type=sha,prefix=
+            type=edge
+          labels: |
+            org.opencontainers.image.title=resotoshell
+            org.opencontainers.image.description=Resoto Shell (resh)
+            org.opencontainers.image.vendor=Some Engineering Inc.
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64,amd64
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: base-${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            base-${{ runner.os }}-buildx-
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push resotobase Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resotobase
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            UI_IMAGE_TAG=${{ steps.platform.outputs.uitag }}
+            SOURCE_COMMIT=${{ github.sha }}
+            TESTS=false
+          tags: ${{ steps.basemeta.outputs.tags }}
+          labels: ${{ steps.basemeta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Build and push resotocore Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resotocore
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            IMAGE_TAG=${{ steps.sha.outputs.short }}
+          tags: ${{ steps.coremeta.outputs.tags }}
+          labels: ${{ steps.coremeta.outputs.labels }}
+
+      - name: Build and push resotoworker Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resotoworker
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            IMAGE_TAG=${{ steps.sha.outputs.short }}
+          tags: ${{ steps.workermeta.outputs.tags }}
+          labels: ${{ steps.workermeta.outputs.labels }}
+
+      - name: Build and push resotometrics Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resotometrics
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            IMAGE_TAG=${{ steps.sha.outputs.short }}
+          tags: ${{ steps.metricsmeta.outputs.tags }}
+          labels: ${{ steps.metricsmeta.outputs.labels }}
+
+      - name: Build and push resotoshell Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.resotoshell
+          platforms: ${{ steps.platform.outputs.targets }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            IMAGE_TAG=${{ steps.sha.outputs.short }}
+          tags: ${{ steps.shellmeta.outputs.tags }}
+          labels: ${{ steps.shellmeta.outputs.labels }}
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  release:
+    name: Create Release
+    if: github.ref_type == 'tag'
+    needs:
+      - build
+      - split-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Check out someengineering/resoto.com
+        uses: actions/checkout@v2
+        with:
+          repository: someengineering/resoto.com
+          path: resoto.com
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=2) | jq -r '(.[] | .name)')
+          date=$(date +'%Y-%m-%d')
+          file="resoto.com/news/${date}-v${tags[0]}.md"
+          echo -e $(python tools/release_notes.py ${tags[1]} ${tags[0]}) > $file
+          echo ::set-output name=tag::${tags[0]}
+          echo ::set-output name=file::$file
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
+          title: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
+          body: |
+            Adds automatically generated [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}) release notes.
+          labels: |
+            🤖 bot
+          branch: release/v${{ steps.release_notes.outputs.tag }}
+          delete-branch: true
+
+      - uses: ncipollo/release-action@v1
+        with:
+          bodyFile: ${{ steps.release_notes.outputs.file }}
+          token: ${{ secrets.GITHUB_TOKEN }}
