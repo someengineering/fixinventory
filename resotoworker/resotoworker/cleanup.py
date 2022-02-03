@@ -14,7 +14,7 @@ def cleanup():
     query_filter = ""
     if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
         clouds = '["' + '", "'.join(ArgumentParser.args.collector) + '"]'
-        query_filter = f"and metadata.ancestors.cloud.id in {clouds} "
+        query_filter = f"and /ancestors.cloud.reported.id in {clouds} "
     query = (
         f"desired.clean == true and metadata.cleaned == false {query_filter}<-[0:]->"
     )
