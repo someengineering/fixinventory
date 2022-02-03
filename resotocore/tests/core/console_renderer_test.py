@@ -7,9 +7,9 @@ from core.console_renderer import ConsoleColorSystem, ConsoleRenderer
 
 def test_color_system() -> None:
     assert ConsoleColorSystem.monochrome.rich_color_system is None
-    assert ConsoleColorSystem.eight_bit.rich_color_system is "256"
-    assert ConsoleColorSystem.truecolor.rich_color_system is "truecolor"
-    assert ConsoleColorSystem.legacy_windows.rich_color_system is "windows"
+    assert ConsoleColorSystem.eight_bit.rich_color_system == "256"
+    assert ConsoleColorSystem.truecolor.rich_color_system == "truecolor"
+    assert ConsoleColorSystem.legacy_windows.rich_color_system == "windows"
 
 
 def test_from_name() -> None:
