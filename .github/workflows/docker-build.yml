@@ -362,6 +362,7 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
+        shell: bash
         run: |
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=2) | jq -r '(.[] | .name)')
           date=$(date +'%Y-%m-%d')
@@ -377,7 +378,7 @@ jobs:
           commit-message: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
           title: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
           body: |
-            Adds automatically generated [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}) release notes.
+            Adds automatically generated release notes for [v${{ steps.release_notes.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release_notes.outputs.tag }}).
           labels: |
             🤖 bot
           branch: release/v${{ steps.release_notes.outputs.tag }}
