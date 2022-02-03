@@ -203,8 +203,15 @@ pip_install() {
     package_name=${package_name//_/-}
     local relative_path="${path_prefix}${package}/"
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
-        echo "Installing $package_name editable from local path $relative_path"
-        pip install -q --editable "$relative_path"
+        if [ "$package_name" = 'resotolib' ]; then
+            echo "Installing $package_name editable from local path $relative_path"
+            cd "$package_name"
+            poetry install
+            cd ..
+        else
+            echo "Installing $package_name editable from local path $relative_path"
+            pip install -q --editable "$relative_path"
+        fi
     else
         ensure_git
         local git_repo="git+https://github.com/someengineering/resoto.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
