@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 from rich.text import Text
+
 from core.console_renderer import ConsoleColorSystem, ConsoleRenderer
 
 
@@ -18,10 +19,11 @@ def test_from_name() -> None:
 
 def test_renderer_is_thread_safe() -> None:
     element = Text("some", "blue").append(Text("=", "dim").append("23", "green"))
-    expected = ConsoleRenderer.renderer(color_system=ConsoleColorSystem.standard).render(element)
+    renderer = ConsoleRenderer.create_renderer(color_system=ConsoleColorSystem.standard)
+    expected = renderer.render(element)
 
     def render() -> None:
-        assert ConsoleRenderer.renderer(color_system=ConsoleColorSystem.standard).render(element) == expected
+        assert renderer.render(element) == expected
 
     with ThreadPoolExecutor(3) as pool:
         for n in range(0, 1000):

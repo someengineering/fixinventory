@@ -702,11 +702,15 @@ class Api:
         try:
             columns = int(request.headers.get("Resoto-Shell-Columns", "120"))
             rows = int(request.headers.get("Resoto-Shell-Rows", "50"))
-            colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "standard"))
-            formatter = ConsoleRenderer.renderer(width=columns, height=rows, color_system=colors)
+            terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
+            colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
+            formatter = ConsoleRenderer.create_renderer(
+                width=columns, height=rows, color_system=colors, terminal=terminal
+            )
             return CLIContext(env=dict(request.query), console_formatter=formatter)
-        except Exception:
-            return CLIContext(env=dict(request.query), console_formatter=ConsoleRenderer.renderer())
+        except Exception as ex:
+            log.debug("Could not create CLI context.", exc_info=ex)
+            return CLIContext(env=dict(request.query), console_formatter=ConsoleRenderer.create_renderer())
 
     async def evaluate(self, request: Request) -> StreamResponse:
         ctx = self.cli_context_from_request(request)

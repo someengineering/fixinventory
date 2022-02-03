@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import deque, defaultdict
 from contextlib import contextmanager
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union, Literal, Dict, Generator
 
@@ -25,7 +26,9 @@ class ConsoleColorSystem(Enum):
         return ConsoleColorSystem[name.lower()]
 
     @property
-    def rich_color_system(self) -> Optional[Literal["auto", "standard", "256", "truecolor", "windows"]]:
+    def rich_color_system(
+        self,
+    ) -> Optional[Literal["auto", "standard", "256", "truecolor", "windows"]]:
         if self == ConsoleColorSystem.monochrome:
             return None
         elif self == ConsoleColorSystem.eight_bit:
@@ -56,23 +59,22 @@ class ConsolePool:
         self.consoles: Dict[ConsoleColorSystem, deque[Console]] = defaultdict(deque)
 
     @contextmanager
-    def with_console(self, system: Optional[ConsoleColorSystem]) -> Generator[Console, None, None]:
-        cs = system if system else ConsoleColorSystem.standard
+    def with_console(self, system: ConsoleColorSystem) -> Generator[Console, None, None]:
         try:
-            console = self.consoles[cs].pop()
+            console = self.consoles[system].pop()
         except IndexError:
             console = Console(
-                color_system=cs.rich_color_system,
+                color_system=system.rich_color_system,
                 force_terminal=True,
                 force_interactive=False,
                 width=120,
                 height=25,
-                no_color=cs == ConsoleColorSystem.monochrome,
-                legacy_windows=cs == ConsoleColorSystem.legacy_windows,
+                no_color=system == ConsoleColorSystem.monochrome,
+                legacy_windows=system == ConsoleColorSystem.legacy_windows,
                 theme=ResotoTheme,
             )
         yield console
-        self.consoles[cs].append(console)
+        self.consoles[system].append(console)
 
 
 class ConsoleRenderer(ABC):
@@ -84,28 +86,28 @@ class ConsoleRenderer(ABC):
     console_pool = ConsolePool()
 
     @staticmethod
-    def renderer(
-        width: Optional[int] = None, height: Optional[int] = None, color_system: Optional[ConsoleColorSystem] = None
-    ) -> ConsoleRenderer:
-        return ConsolePoolRenderer(width, height, color_system)
-
-
-class ConsolePoolRenderer(ConsoleRenderer):
-    def __init__(
-        self,
+    def create_renderer(
         width: Optional[int] = None,
         height: Optional[int] = None,
         color_system: Optional[ConsoleColorSystem] = None,
-    ):
-        self.width = width
-        self.height = height
-        self.color_system = color_system
+        terminal: Optional[bool] = None,
+    ) -> ConsoleRenderer:
+        return ConsolePoolRenderer(width, height, color_system, terminal)
+
+
+@dataclass
+class ConsolePoolRenderer(ConsoleRenderer):
+    width: Optional[int] = None
+    height: Optional[int] = None
+    color_system: Optional[ConsoleColorSystem] = None
+    terminal: Optional[bool] = None
 
     def render(self, element: Union[str, JupyterMixin]) -> str:
         to_render = Markdown(element) if isinstance(element, str) else element
         # get a console with the correct color system
-
-        with ConsoleRenderer.console_pool.with_console(self.color_system) as console:
+        cs = self.color_system
+        system = cs if cs else (ConsoleColorSystem.standard if self.terminal else ConsoleColorSystem.monochrome)
+        with ConsoleRenderer.console_pool.with_console(system) as console:
             # explicitly set the width and height here
             console.width = self.width if self.width else 80
             console.height = self.height if self.height else 25

@@ -430,7 +430,7 @@ def model_json() -> str:
 
 
 def test_markup() -> None:
-    ctx = CLIContext(console_formatter=ConsoleRenderer.renderer(color_system=ConsoleColorSystem.monochrome))
+    ctx = CLIContext(console_formatter=ConsoleRenderer.create_renderer(color_system=ConsoleColorSystem.monochrome))
     md = dedent(
         """
         - b1 test
