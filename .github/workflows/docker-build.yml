@@ -354,6 +354,7 @@ jobs:
         with:
           repository: someengineering/resoto.com
           path: resoto.com
+          token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -367,7 +368,7 @@ jobs:
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=2) | jq -r '(.[] | .name)')
           date=$(date +'%Y-%m-%d')
           file="resoto.com/news/${date}-v${tags[0]}.md"
-          echo -e $(python tools/release_notes.py ${tags[1]} ${tags[0]}) > $file
+          python tools/release_notes.py ${tags[1]} ${tags[0]} > $file
           echo ::set-output name=tag::${tags[0]}
           echo ::set-output name=file::$file
 
@@ -383,6 +384,9 @@ jobs:
             🤖 bot
           branch: release/v${{ steps.release_notes.outputs.tag }}
           delete-branch: true
+          token: ${{ secrets.SOME_CI_PAT }}
+          committer: C.K. <98986935+some-ci@users.noreply.github.com>
+          author: C.K. <98986935+some-ci@users.noreply.github.com>
 
       - uses: ncipollo/release-action@v1
         with:

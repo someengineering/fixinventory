@@ -71,10 +71,10 @@ def show_log(from_tag: str, to_tag: str):
 
     print(f"# v{to_tag}")
     for group, commits in grouped.items():
-        print(f"\\n\\n## {long_names.get(group, group)}\\n")
+        print(f"\n## {long_names.get(group, group)}\n")
         for commit in commits:
             print(
-                f"\\n- [`{commit.commit_hash}`](https://github.com/someengineering/resoto/commit/{commit.commit_hash}) "
+                f"- [`{commit.commit_hash}`](https://github.com/someengineering/resoto/commit/{commit.commit_hash}) "
                 f'<span class="badge badge--secondary">{commit.component}</span> {commit.message}'
                 f"([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))"
             )
