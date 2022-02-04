@@ -122,43 +122,75 @@ class QueryPart(CLICommand, ABC):
 
 class QueryAllPart(QueryPart):
     """
-    Usage: query [--include-edges] [--explain] <query>
 
-    This command allows to query the graph using filters, traversals and functions.
+    ```shell
+    query [--include-edges] [--explain] <query>
+    ```
 
-    Filters have the form <path.to.property> <op> <value>.
-    - path is the complete path of names in the json structure combined with a dot (e.g. reported.cpu_count).
+    This command allows to query the graph using filters, traversals, functions and aggregates.
+
+    ## Options
+
+    - `--include-edges`: Return edges in addition to nodes.
+    - `--explain`: Instead of executing the query, analyze its cost.
+
+    ## Parameters
+
+    - `query` [mandatory]: The query to execute.
+
+
+    ### Filters
+
+    Filters have the form `path op value`.
+    - `path` is the complete path of names in the json structure combined with a dot (e.g. reported.cpu_count).
+
       In case the path contains elements, that are not json conform,
-      they can be put into backticks (e.g. foo.bla.`:-)`.baz).
-    - operator is one of: <=, >=, >, <, ==, !=, =~, !~, in, not in (e.g. !=)
-    - value is a json literal (e.g. "test", 23, [1, 2, 3], true, {"a": 12}).
+      they can be put into backticks (e.g. foo.bla.\\`:-)\\`.baz).
+    - `operator` is one of: `<=`, `>=`, `>`, `<`, `==`, `!=`, `=~`, `!~`, `in`, `not in`.
+
+      Note:  `=` is the same as `==` and `~` is the same as `=~`.
+    - value is a json literal (e.g. `"test"`, `23`, `[1, 2, 3]`, `true`, `{"a": 12}`).
+
       Note: the query parser allows to omit the parentheses for strings most of the time.
       In case the string contains whitespace or a special character, you should
       put the string into parentheses.
-    Example: reported.cpu_count >= 4, name!="test", title in ["first", "second"]
+
+    Example:
+    ```shell
+    reported.cpu_count >= 4, name!="test", title in ["first", "second"]
+    ```
 
     Filters can be combined with `and` and `or` and use parentheses.
-    Example: (cpu_count>=4 and name!="test") or title in ["first", "second"]
+    Example:
+    ```shell
+    (cpu_count>=4 and name!="test") or (title in ["first", "second"] and name=="test")
+    ```
+
+    ### Traversals
 
     Outbound traversals are traversals from a node in direction of the edge to another node, while
     inbound traversals walk the graph in opposite direction.
-    Example:
-        Assuming 2 nodes with one connecting directed edge: NodeA ---> NodeB
-        - traversing outbound from NodeA will yield NodeB
-        - traversing inbound from NodeB will yield NodeA
-    The syntax for outbound traversals is --> and for inbound traversals is <--.
-    The traversal also allows to define the number of levels to walk in the graph:
-    -[1:1]-> (shorthand for -->) starts from the current node and selects all nodes that can be reached by walking
-        exactly one step outbound.
-    -[0:1]-> starts (and includes) the current node and selects all nodes that can be reached by walking exactly
-        one step outbound.
-    -[<x>:<y>]-> walks from the current node to all nodes that can be reached with x steps outbound.
-        From here all nodes are selected including all nodes that can be reached in y steps outbound
-        relative to the starting node.
-    -[<x>]-> shorthand -[<x>:<x>]->
-    -[<x>:]->  walks from the current node to all nodes that can be reached with x steps outbound.
-        From here all nodes to the graph leafs are selected.
-    The same logic is used for inbound traversals (<--, <-[0:1]-, <-[2]-, <-[2:]-).
+    Assuming 2 nodes with one connecting directed edge: `NodeA ---> NodeB`,
+    traversing outbound from `NodeA` will yield `NodeB`, while traversing inbound from `NodeB` will yield `NodeA`.
+
+    The syntax for outbound traversals is `-->` and for inbound traversals is `<--`.
+    A traversal can be refined and allows to define the number of levels to walk in the graph:
+
+    - `-[1:1]->` (shorthand for `-->`) starts from the current node and selects all nodes that can be reached by walking
+      exactly one step outbound.
+    - `-[0:1]->` starts (and includes) the current node and selects all nodes that can be reached by walking exactly
+      one step outbound.
+    - `-[<x>:<y>]->` walks from the current node to all nodes that can be reached with x steps outbound.
+      From here all nodes are selected including all nodes that can be reached in y steps outbound
+      relative to the starting node.
+    - `-[<x>]->` shorthand `-[<x>:<x>]->`
+    - `-[<x>:]->`  walks from the current node to all nodes that can be reached with x steps outbound.
+      From here all nodes to the graph leafs are selected.
+
+
+    The same logic is used for inbound traversals (`<--`, `<-[0:1]-`, `<-[2]-`, `<-[2:]-`).
+
+    ### Functions
 
     There are predefined functions that can be used in combination with any filter.
     - is(<kind>): selects all nodes that are of type <kind> or any subtype of <kind>.
@@ -170,13 +202,35 @@ class QueryAllPart(QueryPart):
     - has_key(<path>): tests if the specified name is defined in the json object.
       Example: is(volume) and has_key(tags, owner)
 
-    Limit and sort.
+    ### Aggregations
+
+    Aggregate data by using on of the following functions: `sum`, `avg`, `min`, `max` and `count`.
+    Multiple aggregation functions can be applied to the result set by separating them by comma.
+    Each aggregation function can be named via an optional `as <name>` clause.
+
+    Aggregation functions can be grouped using aggregation values.
+    Multiple grouping values can be defined by separating them via comma.
+    Each grouping variable can be renamed via an optional `as <name>` clause.
+
+    Examples:
+    ```shell
+    > query aggregate(kind: sum(1)): is(volume)
+    > query aggregate(kind as kind: sum(1) as count): is(volume)
+    > query aggregate(kind, volume_type: sum(1) as count): is(volume)
+    > query aggregate(kind: sum(volume_size) as summed, sum(1) as count): is(volume)
+    > query aggregate(sum(volume_size) as summed, sum(1) as count): is(volume)
+    ```
+
+    ### Sort and Limit
+
     The number of query results can be limited to a defined number by using limit <limit>
     and sorted by using sort <sort_column> [asc, desc].
     Limit and sort is allowed before a traversal and as last statement to the query result.
     Example: query is(volume) sort volume_size desc limit 3 <-[2]- sort name limit 1
 
     Use --explain to understand the cost of a query. A query explanation has this form (example):
+
+    ```json
     {
         "available_nr_items": 142670,
         "estimated_cost": 61424,
@@ -184,53 +238,76 @@ class QueryAllPart(QueryPart):
         "full_collection_scan": false,
         "rating": "Simple"
     }
+    ```
 
-    - available_nr_items describe the number of all available nodes in the graph.
-    - estimated_cost shows the absolute cost of this query. See rating for an interpreted number.
-    - estimated_nr_items estimated number of items returned for this query.
-        It is computed based on query statistics and heuristics and does not reflect the real number.
-    - full_collection_scan indicates, if a full collection scan is required.
-        In case this is true, the query does not take advantage of any indexes.
-    - rating The more general rating of this query.
-        Simple: The estimated cost is fine - the query will most probably run smoothly.
-        Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
-        Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
-
-
-    Parameter:
-        --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
-        --explain: Instead of executing this query, explain the query cost
+    - `available_nr_items` describe the number of all available nodes in the graph.
+    - `estimated_cost shows` the absolute cost of this query. See rating for an interpreted number.
+    - `estimated_nr_items` estimated number of items returned for this query.
+       It is computed based on query statistics and heuristics and does not reflect the real number.
+    - `full_collection_scan` indicates, if a full collection scan is required.
+       In case this is true, the query does not take advantage of any indexes.
+    - `rating` The more general rating of this query.
+       Simple: The estimated cost is fine - the query will most probably run smoothly.
+       Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
+       Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
 
 
-    Example:
-        # matches documents with reported section like { "reported": { "prop1": "a" ....} }
-        query /reported.prop1 == "a"
-        # resotoshell set's the command section to reported by default. So the query above can simply be written as:
-        query prop1 == "a"
-        # matches documents with desired section like { "desired": { "some": { "nested" : 1 ..}}
-        query /desired.some.nested in [1,2,3]
-        # matches documents with reported section like { "reported": { "array": [1, 2, 3] ... }}
-        # reported.array[*] means any index would suffice, if one element would be 2
-        query reported.array[*] == 2
-        # in this example the index is defined explicitly, meaning the second element of the array should be 2
-        query reported.array[1] == 2
-        # this will not only select nodes, but also edges. Downstream commands need to handle the different types.
-        query --include-edges is(graph_root) -[0:2]->
-        # does not execute the query, but will show an explanation of the query cost.
-        query --explain is(graph_root) -[0:2]->
+    ## Examples
 
+    ```shell
+    # Query all volumes with state available
+    > query is(volume) and volume_status=available
+    kind=gcp_disk, id=71, name=gke-1, volume_status=available, age=5mo26d, cloud=gcp, account=dev, region=us-central1
+    kind=gcp_disk, id=12, name=pvc-2, volume_status=available, age=4mo15d, cloud=gcp, account=eng, region=us-west1
+    kind=gcp_disk, id=17, name=pvc-2, volume_status=available, age=9mo29d, cloud=gcp, account=eng, region=us-west1
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-        section [optional]: interpret all property paths with respect to this section.
-            With section "reported" set, the query `name=~"test"` would be interpreted as `reported.name=~"test"`.
-            Note: the resotoshell sets the section to reported by default.
-            If you want to quickly override the section on one command line, you can define env vars in from of the
-            command line (e.g.: `section=desired query clean==true`). It is possible to use absolute path using `/`,
-            so the section will not have any effect (e.g.: `query /desired.clean==true`)
+    # Other sections than reported, need to be defined from the root /
+    > query is(volume) and /desired.cleanup=true
 
+    # Sort and limit the number of results
+    > query is(volume) sort name asc limit 3
+    kind=aws_ec2_volume, id=vol-1, name=adf-image-1, age=2mo1d, cloud=aws, account=general-support, region=us-west-2
+    kind=aws_ec2_volume, id=vol-2, name=adf-image-2, age=2mo1d, cloud=aws, account=general-support, region=us-west-2
 
-    See https://docs.some.engineering/manual/discovery.html for a more detailed explanation of query.
+    # Emit nodes together with the edges
+    > query --include-edges id(root) -[0:1]->
+    node_id=root, kind=graph_root, id=root, name=root
+    node_id=L_tRxI2tn6iLZdK3e8EQ3w, kind=cloud, id=gcp, name=gcp, age=5d5h, cloud=gcp
+    root -> L_tRxI2tn6iLZdK3e8EQ3w
+    node_id=WYcfqyMIkPAPoAHiEIIKOw, kind=cloud, id=aws, name=aws, age=5d5h, cloud=aws
+    root -> WYcfqyMIkPAPoAHiEIIKOw
+
+    # Aggregate resulting nodes
+    > query aggregate(kind as kind: sum(1) as count): is(volume)
+    group:
+      kind: aws_ec2_volume
+    count: 1799
+    ---
+    group:
+      kind: gcp_disk
+    count: 1100
+
+    # Do not execute the query, but show an explanation of the query cost.
+    > query --explain is(graph_root) -[0:1]->
+    available_nr_items: 142670
+    estimated_cost: 58569
+    estimated_nr_items: 8
+    full_collection_scan: false
+    rating: simple
+    ```
+
+    ## Environment Variables
+
+    - `graph` [default=resoto]: the name of the graph to operate on.
+    - `section` [default=reported]: interpret all property paths with respect to this section.
+       With section `reported` set, the query `name=~"test"` would be interpreted as `reported.name=~"test"`.
+       Note: the resotoshell sets the section to reported by default.
+       If you want to quickly override the section on one command line, you can define env vars in from of the
+       command line (e.g.: `section=desired query clean==true`). It is possible to use absolute path using `/`,
+       so all paths have to be defined from root (e.g.: `query desired.clean==true`)
+
+    See [https://resoto.com/docs/reference/cli/query/](https://resoto.com/docs/reference/cli/query/)
+    for a more detailed explanation of query.
     """
 
     @property
@@ -243,29 +320,42 @@ class QueryAllPart(QueryPart):
 
 class PredecessorPart(QueryPart):
     """
-    Usage: predecessors [--with-origin] [edge_type]
+    ```shell
+    predecessors [--with-origin] [edge_type]
+    ```
 
-    Part of a query.
-    Select all predecessors of this node in the graph.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B: A --> B
-    $> query id(B) | predecessor
-    -> will select A
-    $> query id(B) | predecessor --with-origin
-    -> will select A and B
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
 
-    Parameter:
-        --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
+    ## Options
+    - `--with-origin` [Optional, default to false]: includes the current element into the result set.
 
-    Example:
-        metadata prop1 == "a" | predecessors | match prop2 == "b"
+    ## Parameters
+    - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
+    In order to define which graph to walk, the edge_type can be specified.
+
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+
+    ## Examples
+
+    ```shell
+    > query is(volume) and volume_status=available | predecessors | query is(volume_type)
+    kind=gcp_disk_type, name=pd-standard, age=2yr1mo, cloud=gcp, account=eng, region=us-central1, zone=us-central1-a
+    kind=gcp_disk_type, name=pd-standard, age=2yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
+    kind=aws_ec2_volume_type, name=gp2, age=5d8h, cloud=aws, account=sales, region=us-west-2
+    ```
     """
 
     @property
@@ -292,29 +382,42 @@ class PredecessorPart(QueryPart):
 
 class SuccessorPart(QueryPart):
     """
-    Usage: successors [--with-origin] [edge_type]
+    ```shell
+    successors [--with-origin] [edge_type]
+    ```
 
-    Part of a query.
-    Select all successors of this node in the graph.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B: A --> B
-    $> query id(A) | successor
-    -> will select B
-    $> query id(A) | successor --with-origin
-    -> will select A and B
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
 
-    Parameter:
-        --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
+    ## Options
+    - `--with-origin` [Optional, default to false]: includes the current element into the result set.
 
-    Example:
-        metadata prop1 == "a" | successors | match prop2 == "b"
+    ## Parameters
+    - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
+    In order to define which graph to walk, the edge_type can be specified.
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+
+
+    ## Examples
+
+    ```shell
+    > query is(volume_type) | successors | query is(volume)
+    kind=gcp_disk, id=16, name=gke16, age=8mo29d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
+    kind=gcp_disk, id=26, name=gke26, age=8mo29d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
+    kind=aws_ec2_volume, id=vol1, name=vol1, age=2mo11d, cloud=aws, account=insights, region=us-west-2
+    ```
     """
 
     @property
@@ -327,29 +430,45 @@ class SuccessorPart(QueryPart):
 
 class AncestorPart(QueryPart):
     """
-    Usage: ancestors [--with-origin] [edge_type]
+    ```shell
+    ancestors [--with-origin] [edge_type]
+    ```
 
-    Part of a query.
-    Select all ancestors of this node in the graph.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C
-    $> query id(C) | ancestors
-    -> will select B and A
-    $> query id(C) | predecessor --with-origin
-    -> will select C and B and A
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
 
-    Parameter:
-        --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to `delete`]: This argument defines which edge type to use.
+    ## Options
+    - `--with-origin` [Optional, default to false]: includes the current element into the result set.
 
-    Example:
-        metadata prop1 == "a" | ancestors | match prop2 == "b"
+    ## Parameters
+    - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
+    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
+    In order to define which graph to walk, the edge_type can be specified.
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
+    If --with-origin is specified, the current element is included in the result set as well.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+
+    ## Examples
+
+    ```shell
+    > query is(volume_type) limit 1 | ancestors
+    kind=gcp_service_sku, id=D2, name=Storage PD Capacity, age=5d8h, cloud=gcp, account=sre
+    kind=gcp_zone, id=2, name=us-central1-a, age=52yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
+    kind=gcp_region, id=1000, name=us-central1, age=52yr1mo, cloud=gcp, account=sre, region=us-central1
+    kind=gcp_service, id=6F81-5844-456A, name=Compute Engine, age=5d8h, cloud=gcp, account=sre
+    kind=gcp_project, id=sre-tests, name=sre-tests, age=5d8h, cloud=gcp, account=sre
+    kind=cloud, id=gcp, name=gcp, age=5d8h, cloud=gcp
+    kind=graph_root, id=root, name=root
+    ```
     """
 
     @property
@@ -362,29 +481,32 @@ class AncestorPart(QueryPart):
 
 class DescendantPart(QueryPart):
     """
-    Usage: descendants [--with-origin] [edge_type]
+    ```shell
+    descendants [--with-origin] [edge_type]
+    ```
 
-    Part of a query.
-    Select all descendants of this node in the graph.
+    This command extends an already existing query.
+    It will select all descendants of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C
-    $> query id(A) | descendants
-    -> will select B and C
-    $> query id(A) | descendants --with-origin
-    -> will select A and B and C
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
+    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
 
-    Parameter:
-        --with-origin [Optional, default to false]: includes the current element into the result set.
-        edge_type [Optional, defaults to `default`]: This argument defines which edge type to use.
+    ## Options
+    - `--with-origin` [Optional, default to false]: includes the current element into the result set.
 
-    Example:
-        metadata prop1 == "a" | descendants | match prop2 == "b"
+    ## Parameters
+    - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
+    ## Examples
+
+    ```shell
+    > query is(volume_type) limit 1 | descendants --with-origin
+    kind=gcp_disk_type, name=pd-standard, age=52yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
+    kind=gcp_disk, id=881, name=disk-1, age=1yr2mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
+    ```
     """
 
     @property
@@ -397,40 +519,63 @@ class DescendantPart(QueryPart):
 
 class AggregatePart(QueryPart):
     """
-    Usage: aggregate [group_prop, .., group_prop]: [function(), .. , function()]
+    ```shell
+    aggregate [group_prop, .., group_prop]: [function(), .. , function()]
+    ```
 
-    Part of a query.
-    Using the results of a query by aggregating over properties of this result
-    by aggregating over given properties and applying given aggregation functions.
+    This command extends an already existing query.
+    Using the results of a query by aggregating over given properties and applying given aggregation functions.
 
-    Parameter:
-        group_prop: the name of the property to use for grouping. Multiple grouping variables are possible.
-                    Every grouping variable can be renamed via an as name directive. (prop as prop_name)
-        function(): grouping function to be applied on every resulting node.
-                    Following functions are possible: sum, count, min, max, avg
-                    The function contains the variable name (e.g.: min(path.to.prop))
-                    It is possible to use static values (e.g.: sum(1))
-                    It is possible to use simple math expressions in the function (e.g. min(path.to.prop * 3 + 2))
-                    It is possible to name the result of this function (e.g. count(foo) as number_of_foos)
+    Aggregate data by using on of the following functions: `sum`, `avg`, `min`, `max` and `count`.
+    Multiple aggregation functions can be applied to the result set by separating them by comma.
+    Each aggregation function can be named via an optional `as <name>` clause.
 
-    Example:
-        aggregate reported.kind as kind, reported.cloud.name as cloud, reported.region.name as region : sum(1) as count
-            [
-                { "count": 228, "group": { "cloud": "aws", "kind": "aws_ec2_instance", "region": "us-east-1" }},
-                { "count": 326, "group": { "cloud": "gcp", "kind": "gcp_instance", "region": "us-west1" }},
-                .
-                .
-            ]
-        aggregate reported.instance_status as status: sum(reported.cores) as cores, sum(reported.memory) as mem
-            [
-                { "cores": 116, "mem": 64 , "group": { "status": "busy" }},
-                { "cores": 2520, "mem": 9824, "group": { "status": "running" }},
-                { "cores": 257, "mem": 973, "group": { "status": "stopped" }},
-                { "cores": 361, "mem": 1441, "group": { "status": "terminated" }},
-            ]
+    Aggregation functions can be grouped using aggregation values.
+    Multiple grouping values can be defined by separating them via comma.
+    Each grouping variable can be renamed via an optional `as <name>` clause.
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
+    ## Parameters
+
+    - `group_prop`: the name of the property to use for grouping.
+       Multiple grouping variables are possible, separated by comma.
+       Every grouping variable can be renamed via an as name directive (`prop as prop_name`).
+    - `function`: grouping function to be applied on every resulting node.
+       Following functions are possible: `sum`, `count`, `min`, `max`, `avg`.
+       The function contains the variable name (e.g.: min(path.to.prop))
+       It is possible to use static values (e.g.: sum(1))
+       It is possible to use simple math expressions in the function (e.g. min(path.to.prop * 3 + 2))
+       It is possible to name the result of this function (e.g. count(foo) as number_of_foos)
+
+    ## Examples
+
+    ```shell
+    # Count all volumes in the system based on the kind
+    > query is(volume) | aggregate kind as kind: sum(1) as count
+    group:
+      kind: aws_ec2_volume
+    count: 1799
+    ---
+    group:
+      kind: gcp_disk
+    count: 1100
+
+    # Count all volumes in the system together with the complete volume size based on the kind
+    > query is(volume) | aggregate kind: sum(volume_size) as summed, sum(1) as count
+    group:
+      reported.kind: aws_ec2_volume
+    summed: 130903
+    count: 1799
+    ---
+    group:
+      reported.kind: gcp_disk
+    summed: 23930
+    count: 1100
+
+    # Sum the available volume size without any group
+    > query is(volume) | aggregate sum(volume_size) as summed, sum(1) as count
+    summed: 154833
+    count: 2899
+    ```
     """
 
     @property
@@ -443,17 +588,34 @@ class AggregatePart(QueryPart):
 
 class HeadCommand(QueryPart):
     """
-    Usage: head [num]
+    ```shell
+    head [-num]
+    ```
 
-    Take <num> number of elements from the input stream and send them downstream.
+    Take [num] number of elements from the input stream and send them downstream.
     The rest of the stream is discarded.
 
-    Parameter:
-        num [optional, defaults to 100]: the number of elements to take from the head
+    Note: using a query, the same result can be achieved using `sort` and `limit`.
 
-    Example:
-         json [1,2,3,4,5] | head 2  # will result in [1, 2]
-         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    ## Options
+    - `-num` [optional, defaults to 100]: the number of elements to take from the head.
+
+    ## Examples
+
+    ```shell
+    # Json array with 5 elements is defined. We only take the first 2 elements.
+    > json [1,2,3,4,5] | head -2
+    1
+    2
+
+    # A query is performed to select all volumes. Only the first 2 results are taken.
+    > query is(volume) | head -2
+    kind=gcp_disk, id=12, name=gke-1, age=5mo26d, cloud=gcp, account=eng, region=us-central1, zone=us-central1-c
+    kind=gcp_disk, id=34, name=pvc-2, age=4mo16d, cloud=gcp, account=dev, region=us-west1, zone=us-west1-a
+    ```
+
+    ## Related
+    - `tail` - take the last number of elements.
     """
 
     @property
@@ -474,17 +636,34 @@ class HeadCommand(QueryPart):
 
 class TailCommand(QueryPart):
     """
-    Usage: tail [num]
+    ```shell
+    tail [-num]
+    ```
 
-    Take the last <num> number of elements from the input stream and send them downstream.
-    The beginning of the stream is consumed, but discarded.
+    Take the last [num] number of elements from the input stream and send them downstream.
+    The beginning of the stream is consumed and discarded.
 
-    Parameter:
-        num [optional, defaults to 100]: the number of elements to return from the end.
+    Note: using a query, the same result can be achieved using `sort` and `limit`.
 
-    Example:
-         json [1,2,3,4,5] | tail 2  # will result in [4, 5]
-         json [1,2,3,4,5] | head    # will result in [1, 2, 3, 4, 5]
+    ## Options
+    - `-num` [optional, defaults to 100]: the number of elements to take from the head.
+
+    ## Examples
+
+    ```shell
+    # Json array with 5 elements is defined. We only take the last 2 elements.
+    > json [1,2,3,4,5] | tail -2
+    4
+    5
+
+    # A query is performed to select all volumes. Only the last 2 results are taken.
+    > query is(volume) | tail -2
+    kind=aws_ec2_volume, id=vol-0, name=vol-0, age=2mo1d, cloud=aws, account=dev, region=us-west-2
+    kind=gcp_disk, id=123, name=gke-1, age=7mo22d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
+    ```
+
+    ## Related
+    - `head` - take a defined number of elements.
     """
 
     @property
@@ -501,18 +680,51 @@ class TailCommand(QueryPart):
 
 class CountCommand(QueryPart):
     """
-    Usage: count [arg]
+    ```shell
+    count [arg]
+    ```
 
-    In case no arg is given: it counts the number of instances provided to count.
+    In case no arg is given, it counts the number of instances provided to count.
     In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
 
-    Parameter:
-        arg [optional]: Instead of counting the instances, count the occurrences of given instance.
+    This command is part of a query.
+    `count` uses an aggregation query under the hood.
+    In case you need more advances aggregations, please see `help aggregation`.
 
-    Example:
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count    # will result in [[ "total matched: 3", "total unmatched: 0" ]]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count a  # will result in [[ "1:1", "2:1", "3:1", .... ]]
-        json [{"a": 1}, {"a": 2}, {"a": 3}] | count b  # will result in [[ "total matched: 0", "total unmatched: 3" ]]
+    ## Parameters
+
+    - `arg` [optional]: Instead of counting the instances, count the occurrences of given instance.
+
+
+    ## Examples
+
+    ```shell
+    # Json array with 3 objects is defined and then counted.
+    > json [{"a": 1}, {"a": 2}, {"a": 1}] | count
+    total matched: 3
+    total unmatched: 0
+
+    # Json array with 3 objects is defined. This time the occurrences of the value of a is counted.
+    > json [{"a": 1}, {"a": 2}, {"a": 1}] | count a
+    2: 1
+    1: 2
+    total matched: 3
+    total unmatched: 0
+
+    > json [{"a": 1}, {"a": 2}, {"a": 3}] | count b
+    total matched: 0
+    total unmatched: 3
+
+    > query all | count
+    total matched: 142670
+    total unmatched: 0
+
+    > query all | count /ancestors.cloud.reported.name
+    gcp: 42403
+    aws: 93168
+    total matched: 135571
+    total unmatched: 0
+    ```
     """
 
     @property
@@ -567,12 +779,25 @@ class CountCommand(QueryPart):
 
 class EchoCommand(CLICommand):
     """
-    Usage: echo <message>
+    ```shell
+    echo <message>
+    ```
 
     Send the provided message to downstream.
 
-    Example:
-        echo "test"              # will result in ["test"]
+    ## Parameters
+    - `message` is the message to send downstream.
+
+    ## Examples
+    ```shell
+    # Hello World in resoto
+    > echo Hello World
+    Hello World
+
+    # Echo the current time. The placeholder @TIME@ is replaced during execution time.
+    > echo The current time is @TIME@
+    The current time is 09:16:18
+    ```
     """
 
     @property
@@ -588,14 +813,38 @@ class EchoCommand(CLICommand):
 
 class JsonCommand(CLICommand):
     """
-    Usage: json <json>
+    ```shell
+    json <json-string>
+    ```
 
-    The defined json will be parsed and written to the out stream.
-    If the defined element is a json array, each element will be send downstream.
+    The defined json-string will be parsed into a json structure.
+    If the defined element is a json array, each element of the array will be sent downstream.
+    Any other json type will be sent as is.
 
-    Example:
-        json "test"              # will result in ["test"]
-        json [1,2,3,4] | count   # will result in [{ "matched": 4, "not_matched": 0 }]
+    ## Parameters
+
+    - `json-string` the json string that is parsed as json.
+
+    ## Examples
+
+    ```shell
+    # A simple json string is parsed.
+    > json "test"
+    test
+
+    # A json object is parsed.
+    > json {"a": 1, "b": 2}
+    a: 1
+    b: 2
+
+    # An array of json objects is parsed. Each element is sent downstream.
+    > json [{"a":1, "b": 2}, {"c": 3, "d": 4}]
+    a: 1
+    b: 2
+    ---
+    c: 3
+    d: 4
+    ```
     """
 
     @property
@@ -621,12 +870,21 @@ class JsonCommand(CLICommand):
 
 class SleepCommand(CLICommand):
     """
-    Usage: sleep <seconds>
-
+    ```shell
+    sleep <seconds>
+    ```
     Sleep the amount of seconds. An empty string is emitted.
 
-    Example:
-        sleep 123        # will result in [""] after 123 seconds
+    ## Parameters
+    - `seconds` the number of seconds to sleep.
+
+    ### Examples
+    ```shell
+    # Print the string "6 seconds later..." after 6 seconds.
+    > sleep 6; echo 6 seconds later...
+
+    ---
+    6 seconds later...
     """
 
     @property
@@ -655,10 +913,15 @@ class SleepCommand(CLICommand):
 
 class AggregateToCountCommand(CLICommand, InternalPart):
     """
-    Usage: aggregate_to_count
+    ```shell
+    aggregate_to_count
+    ```
 
     This command transforms the output of an aggregation query to the output of the count command.
+    ```
     { "group": { "name": "group_name" }, "count": 123 }  --> group_name: 123
+    ```
+
     Expected group key: `name`
     Expected function key: `count`
 
@@ -698,21 +961,23 @@ class AggregateToCountCommand(CLICommand, InternalPart):
 
 class ExecuteQueryCommand(CLICommand, InternalPart):
     """
-    Usage: execute_query [--include-edges] <query>
+    ```shell
+    execute_query [--include-edges] [--explain] <query>
+    ```
 
-    A query is performed against the graph database and all resulting elements will be emitted.
-    To learn more about the query, visit https://docs.some.engineering/
+    This command is usually not invoked directly - use `query` instead.
 
-    Parameter:
-        --include-edges: This flag indicates, that not only nodes should be returned, but also all related edges.
+    ## Options
 
+    - `--include-edges`: Return edges in addition to nodes.
+    - `--explain`: Instead of executing the query, analyze its cost.
 
-    Example:
-        execute_query isinstance("ec2") and (cpu>12 or cpu<3)  # will result in all matching elements [{..}, {..}, ..]
+    ## Parameters
 
-    Environment Variables:
-        graph [mandatory]: the name of the graph to operate on
-        section [optional, defaults to "reported"]: on which section the query is performed
+    - `query` [mandatory]: The query to execute.
+
+    ## Related
+    - `query` - query the graph.
     """
 
     @property
@@ -795,13 +1060,28 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
 
 class EnvCommand(CLICommand):
     """
-    Usage: env
+    ```shell
+    env
+    ```
 
     Emits the provided environment.
     This is useful to inspect the environment given to the CLI interpreter.
 
-    Example:
-        env  # will result in a json object representing the env. E.g.: [{ "env_var1": "test", "env_var2": "foo" }]
+    ## Examples
+    ```shell
+    # The resotoshell will set the graph, section and a session id.
+    > env
+    graph: resoto
+    section: reported
+    resoto_session_id: SHQF9MBUEJ
+
+    # Environment variables can be defined directly on the command line
+    > section=desired foo=bla env
+    graph: resoto
+    section: desired
+    resoto_session_id: SHQF9MBUEJ
+    foo: bla
+    ```
     """
 
     @property
@@ -817,20 +1097,36 @@ class EnvCommand(CLICommand):
 
 class ChunkCommand(CLICommand):
     """
-    Usage: chunk [num]
+    ```shell
+    chunk [num]
+    ```
 
     Take <num> number of elements from the input stream, put them in a list and send a stream of list downstream.
     The last chunk might have a lower size than the defined chunk size.
 
-    Parameter:
-        num [optional, defaults to 100]: the number of elements to put into a chunk.
+    ## Parameters
+    - `num` [optional, defaults to 100] - the number of elements to put into one chunk.
 
-    Example:
-         json [1,2,3,4,5] | chunk 2  # will result in [[1, 2], [3, 4], [5]]
-         json [1,2,3,4,5] | chunk    # will result in [[1, 2, 3, 4, 5]]
+    ## Examples
 
-    See:
-        flatten for the reverse operation.
+    ```shell
+    # Chunk an array by putting up to 2 elements into one chunk and sent it downstream.
+    > json [1,2,3,4,5] | chunk 2
+    [1, 2]
+    [3, 4]
+    [5]
+
+    # Chunk an array by putting up to 3 elements into one chunk and sent it downstream.
+    > json [1,2,3,4,5] | chunk 3
+    [1, 2, 3]
+    [4, 5]
+
+    # The output of query can be chunked as well. The result is omitted here for brevity.
+    > query is(volume) limit 5 | chunk 3
+    ```
+
+    ## Related
+    - `flatten` - for flattening a chunked input stream.
     """
 
     @property
@@ -847,18 +1143,35 @@ class ChunkCommand(CLICommand):
 
 class FlattenCommand(CLICommand):
     """
-    Usage: flatten
+    ```shell
+    flatten
+    ```
 
     Take array elements from the input stream and put them to the output stream one after the other,
     while preserving the original order.
 
-    Example:
-         json [1, 2, 3, 4, 5] | chunk 2 | flatten  # will result in [1, 2, 3, 4, 5]
-         json [1, 2, 3, 4, 5] | flatten            # nothing to flat [1, 2, 3, 4, 5]
-         json [[1, 2], 3, [4, 5]] | flatten        # will result in [1, 2, 3, 4, 5]
+    ## Examples:
 
-    See:
-        chunk which is able to put incoming elements into chunks
+    ```shell
+    # In case elements of the stream are arrays, they will be flattened.
+    > json [[1, 2], 3, [4, 5]] | flatten
+    1
+    2
+    3
+    4
+    5
+
+    # An already flat stream of elements is not changed.
+    > json [1, 2, 3, 4, 5] | flatten
+    1
+    2
+    3
+    4
+    5
+    ```
+
+    ## Related
+    - `chunk` to put incoming elements into chunks
     """
 
     @property
@@ -877,15 +1190,28 @@ class FlattenCommand(CLICommand):
 
 class UniqCommand(CLICommand):
     """
-    Usage: uniq
+    ```shell
+    uniq
+    ```
 
     All elements flowing through the uniq command are analyzed and all duplicates get removed.
     Note: a hash value is computed from json objects, which is ignorant of the order of properties,
-    so that {"a": 1, "b": 2} is declared equal to {"b": 2, "a": 1}
+    so that `{"a": 1, "b": 2}` is declared equal to `{"b": 2, "a": 1}`
 
-    Example:
-        json [1, 2, 3, 1, 2, 3] | uniq                     # will result in [1, 2, 3]
-        json [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq   # will result in [{"a": 1, "b": 2}]
+    ## Examples
+
+    ```shell
+    # Multiple occurrences of the same element are sorted out.
+    > json [1, 2, 3, 1, 2, 3] | uniq
+    1
+    2
+    3
+
+    # The same logic applies to json objects
+    > json [{"a": 1, "b": 2}, {"b": 2, "a": 1}] | uniq
+    a: 1
+    b: 2
+    ```
     """
 
     @property
@@ -918,23 +1244,38 @@ class UniqCommand(CLICommand):
 
 class JqCommand(CLICommand, OutputTransformer):
     """
-    Usage: jq <filter>
+    ```
+    jq <filter>
+    ```
 
     Use the well known jq JSON processor to manipulate incoming json.
-    Every element from the incoming stream is passed to the this jq command.
-    See: https://stedolan.github.io/jq/ for a list of possible jq arguments.
+    Every element from the incoming stream is passed to jq.
+    See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
 
-    Parameter:
-        filter: the filter argument for jq.
+    ## Parameter
 
-    Example:
-        $> query is(aws_ec2_instance) | jq '.reported.id'
-           ["id-1", "id-2"]
-           Query all aws ec2 instances and then only pick the reported.id.
-        $> query is(aws_ec2_instance) | jq '. | {id: .reported.id, rev:.revision}'
-           [{"id": "id-1", "rev": "1"}, {"id": "id-2", "rev": "5"}]
+    - `filter` the filter definition to create a jq program.
 
-    See also: format, list.
+    ## Examples
+
+    ```shell
+    # Query ec2 instances and extract only the name property
+    > query is(aws_ec2_instance) limit 2| jq .name
+    build-node-1
+    prod-23
+
+    # Query ec2 instances and create a new json object for each entry with name and owner.
+    > query is(aws_ec2_instance) limit 2 | jq {name: .name, owner: .tags.owner}
+    name: build-node-1
+    owner: frosty
+    ---
+    name: prod-23
+    owner: bog-team
+    ```
+
+    ## Related
+    - `format` - to format incoming objects to a defined string.
+    - `list` - create list output for every element.
     """
 
     @property
@@ -981,34 +1322,52 @@ class JqCommand(CLICommand, OutputTransformer):
 
 class KindCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: kind [-p property_path] [name_of_kind]
+    ```shell
+    kind [-p property_path] [name]
+    ```
 
-    kind gives information about the graph data kinds.
+    kind gives information about the available graph data kinds.
 
-    Use case 1: show all available kinds:
-    $> kind
-    This will list all available kinds and print the name as list.
+    ## Options
 
-    Use case 2: show all details about a specific kind:
-    $> kind graph_root
-    This will show all available information about the given kind.
+    - `-p` [Optional] property_path: lookup the kind for the defined property path.
+       This will do a reverse lookup and search all kinds for the specified property path.
 
-    Use case 3: I want to know the kind of a property in my model
-    $> kind reported.tags.owner
-    Lookup the type of the given property in the model.
-    Assume a complex model A with reported properties: name:string, tags:dictionary[string, string]
-    A lookup of property name reported.tags.owner will yield the type string
+    ## Parameters
 
+    - `name` [Optional]: show available information about the kind with provided name.
 
-    Parameter:
-        name_of_kind: the name of the kind to show more detailed information.
-        -p <path>: the path of the property where want to know the kind
+    ## Examples
 
+    ```shell
 
-    Example:
-        kind                   # will result in the list of kinds e.g. [ cloud, account, region ... ]
-        kind graph_root        # will show information about graph root. { "name": "graph_root", .... }
-        kind -p reported.tags  # will show the kind of the property with this path.
+    # Show all available kinds.
+    > kind
+    access_key
+    .
+    .
+    zone
+
+    # Show details about a specific kind.
+    > kind graph_root
+    name: graph_root
+    bases:
+    - graph_root
+    properties:
+    - description: The name of this node.
+      kind: string
+      name: name
+      required: false
+    - description: All attached tags of this node.
+      kind: dictionary[string, string]
+      name: tags
+      required: false
+
+    # Lookup the type of the given property path in the model.
+    > kind -p reported.tags.owner
+    name: string
+    runtime_kind: string
+    ```
     """
 
     @property
@@ -1085,7 +1444,9 @@ class SetDesiredStateBase(CLICommand, ABC):
 
 class SetDesiredCommand(SetDesiredStateBase):
     """
-    Usage: set_desired [property]=[value]
+    ```shell
+    set_desired <property>=<value> [<property>=<value> ..]
+    ```
 
     Set one or more desired properties for every database node that is received on the input channel.
     The desired state of each node in the database is merged with this new desired state, so that
@@ -1093,35 +1454,25 @@ class SetDesiredCommand(SetDesiredStateBase):
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
+    The result of this command will emit the updated state.
 
-    The result of this command will emit the complete object with desired and reported state:
-    { "id": "..", "desired": { .. }, "reported": { .. } }
+    ## Parameters
 
-    Parameter:
-       One or more parameters of form [property]=[value] separated by a space.
-       [property] is the name of the property to set.
-       [value] is a json primitive type: string, int, number, boolean or null.
-       Quotation marks for strings are optional.
+    - `property` - the name of the property to set in the desired section.
+    - `value` - the value of the property to set in the desired section. This needs to be a json element.
 
+    Multiple properties can be changed by defining multiple property=value definitions separated by space.
 
-    Example:
-        query isinstance("ec2") | set_desired a=b b="c" num=2   # will result in
-            [
-                { "id": "abc" "desired": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
-                .
-                .
-                { "id": "xyz" "desired": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
-            ]
-        json [{"id": "id1"}, {"id": "id2"}] | set_desired a=b
-            [
-                { "id": "id1", "desired": { "a": b }, "reported": { .. } },
-                { "id": "id2", "desired": { "a": b }, "reported": { .. } },
-            ]
-        json ["id1", "id2"] | set_desired a=b
-            [
-                { "id": "id1", "desired": { "a": b }, "reported": { .. } },
-                { "id": "id2", "desired": { "a": b }, "reported": { .. } },
-            ]
+    ## Examples
+
+    ```shell
+    > query is(instance) limit 1 | set_desired a=b b="c" num=2 | list /id, /desired
+    id=123, a=b, b=c, num=2
+
+    > json ["id1", "id2"] | set_desired a=b | list /id /desired
+    id=id1, a=b
+    id=id2, a=b
+    ```
     """
 
     @property
@@ -1140,10 +1491,12 @@ class SetDesiredCommand(SetDesiredStateBase):
 
 class CleanCommand(SetDesiredStateBase):
     """
-    Usage: clean [reason]
+    ```shell
+    clean [reason]
+    ```
 
-    Mark incoming objects for cleaning.
-    All objects marked as such will be eventually cleaned in the next delete run.
+    Mark incoming objects for cleanup.
+    All objects marked as such will eventually be cleaned up in the next delete run.
 
     An optional reason can be provided.
     This reason is used to log each marked element, which can be useful to understand the reason
@@ -1152,30 +1505,22 @@ class CleanCommand(SetDesiredStateBase):
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
 
-    The result of this command will emit the complete object with desired and reported state:
-    { "id": "..", "desired": { .. }, "reported": { .. } }
+    The result of this command will emit the updated object.
 
-    Parameter:
-        reason [optional]: the reason why this resource is marked for cleaning
+    ## Parameters
+    - `reason` [Optional] - a log message is issued with this reason, once a resource is marked for cleanup.
 
-    Example:
-        query isinstance("ec2") and atime<"-2d" | clean
-            [
-                { "id": "abc" "desired": { "clean": true }, "reported": { .. } },
-                .
-                .
-                { "id": "xyz" "desired": { "clean": true }, "reported": { .. } },
-            ]
-        json [{"id": "id1"}, {"id": "id2"}] | clean
-            [
-                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
-            ]
-        json ["id1", "id2"] | clean
-            [
-                { "id": "id1", "desired": { "clean": true }, "reported": { .. } },
-                { "id": "id2", "desired": { "clean": true }, "reported": { .. } },
-            ]
+    ## Examples
+    ```shell
+    # Query for volumes that have not been accessed in the last month
+    # Mark them for cleanup and show the id as well as the complete desired section.
+    > query is(volume) and last_access>1month | clean "Volume not accessed for longer than 1 month" | list id, /desired
+    id=vol-123, clean=true
+
+    # Manually mark a list of resources for cleanup.
+    > json ["vol-123"] | clean | list id, /desired
+    id=vol-123, clean=true
+    ```
     """
 
     @property
@@ -1191,7 +1536,7 @@ class CleanCommand(SetDesiredStateBase):
     async def set_desired(
         self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
-        reason = f"Reason: {arg}" if arg else "No reason provided."
+        reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
             uid = value_in_path(elem, NodePath.node_id)
             r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
@@ -1227,7 +1572,9 @@ class SetMetadataStateBase(CLICommand, ABC):
 
 class SetMetadataCommand(SetMetadataStateBase):
     """
-    Usage: set_metadata [property]=[value]
+    ```shell
+    set_metadata <property>=<value> [<property>=<value> ..]
+    ```
 
     Set one or more metadata properties for every database node that is received on the input channel.
     The metadata state of each node in the database is merged with this new metadata state, so that
@@ -1235,32 +1582,26 @@ class SetMetadataCommand(SetMetadataStateBase):
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
+    The result of this command will emit the updated state.
 
-    Parameter:
-       One or more parameters of form [property]=[value] separated by a space.
-       [property] is the name of the property to set.
-       [value] is a json primitive type: string, int, number, boolean or null.
-       Quotation marks for strings are optional.
+    ## Parameters
+
+    - `property` - the name of the property to set in the desired section.
+    - `value` - the value of the property to set in the desired section. This needs to be a json element.
+
+    Multiple properties can be changed by defining multiple property=value definitions separated by space.
 
 
-    Example:
-        query isinstance("ec2") | set_metadata a=b b="c" num=2   # will result in
-            [
-                { "id": "abc" "metadata": { "a": "b", "b: "c" "num": 2, "other": "abc" }, "reported": { .. } },
-                .
-                .
-                { "id": "xyz" "metadata": { "a": "b", "b: "c" "num": 2 }, "reported": { .. } },
-            ]
-        json [{"id": "id1"}, {"id": "id2"}] | set_metadata a=b
-            [
-                { "id": "id1", "metadata": { "a": b }, "reported": { .. } },
-                { "id": "id2", "metadata": { "a": b }, "reported": { .. } },
-            ]
-        json ["id1", "id2"] | set_metadata a=b
-            [
-                { "id": "id1", "metadata": { "a": b }, "reported": { .. } },
-                { "id": "id2", "metadata": { "a": b }, "reported": { .. } },
-            ]
+    ## Examples
+
+    ```shell
+    > query is(instance) limit 1 | set_metadata a=b b="c" num=2 | list /id, /metadata
+    id=123, a=b, b=c, num=2
+
+    > json ["id1", "id2"] | set_metadata a=b | list /id /metadata
+    id=id1, a=b
+    id=id2, a=b
+    ```
     """
 
     @property
@@ -1279,32 +1620,28 @@ class SetMetadataCommand(SetMetadataStateBase):
 
 class ProtectCommand(SetMetadataStateBase):
     """
-    Usage: protect
+    ```shell
+    protect
+    ```
 
     Mark incoming objects as protected.
-    All objects marked as such will be safe from deletion.
+    All objects marked as such will not be cleaned up, even if they are marked for cleanup.
 
     This command assumes, that all incoming elements are either objects coming from a query or are object ids.
     All objects coming from a query will have a property `id`.
+    The result of this command will emit the updated object.
 
-    Example:
-        query isinstance("ec2") and atime<"-2d" | protect
-            [
-                { "id": "abc" "metadata": { "protected": true }, "reported": { .. } },
-                .
-                .
-                { "id": "xyz" "metadata": { "protected": true }, "reported": { .. } },
-            ]
-        json [{"id": "id1"}, {"id": "id2"}] | clean
-            [
-                { "id": "id1", "metadata": { "protected": true }, "reported": { .. } },
-                { "id": "id2", "metadata": { "protected": true }, "reported": { .. } },
-            ]
-        json ["id1", "id2"] | clean
-            [
-                { "id": "id1", "metadata": { "protected": true }, "reported": { .. } },
-                { "id": "id2", "metadata": { "protected": true }, "reported": { .. } },
-            ]
+    ## Examples
+
+    ```shell
+    # Query for instances that are tagged with "build node" - such nodes should never be clean up.
+    > query is(instance) and tags.job=="build node" | protect | list id, /metadata
+    id=ins123, protected=true
+
+    # Manually protect a list of resources.
+    > json ["ins123"] | protect | list id, /metadata
+    id=vol-123, protected=true
+    ```
     """
 
     @property
@@ -1320,34 +1657,45 @@ class ProtectCommand(SetMetadataStateBase):
 
 class FormatCommand(CLICommand, OutputTransformer):
     """
-    Usage: format [--<format-name>] [format string]
+    ```
+    format [--json][--ndjson][--text][--cytoscape][--graphml][--dot] [format string]
+    ```
 
     This command creates a string from the json input based on the format string.
     The format string might contain placeholders in curly braces that access properties of the json object.
     If a property is not available, it will result in the string `null`.
-
     You can either use a format string or you can use a predefined format.
-    Following predefined formats are available via command line flag:
 
-    --json - will create a json string from the incoming json. The result will be a json array.
-    --ndjson - will create a json object for every element, where one element fits on one line.
-    --text - will create a text representation of every element.
-    --cytoscape - will create a string representation in the well known cytoscape format.
-                  See: https://js.cytoscape.org/#notation/elements-json
-    --graphml - will create string representaion of the result in graphml format.
-                See:http://graphml.graphdrawing.org
-    --dot - will create a string representation in graphviz dot format.
-            See: https://graphviz.org/doc/info/lang.html
+    ## Options
+    - `--json` [Optional] - will create a json string from the incoming json. The result will be a json array.
+    - `--ndjson` [Optional] - will create a json object for every element, where one element fits on one line.
+    - `--text` [Optional] - will create a text representation of every element.
+    - `--cytoscape` [Optional] - will create a string representation in the well known cytoscape format.
+      See: [https://js.cytoscape.org/#notation/elements-json](https://js.cytoscape.org/#notation/elements-json)
+    - `--graphml` [Optional] - will create string representaion of the result in graphml format.
+      See: [http://graphml.graphdrawing.org](http://graphml.graphdrawing.org)
+    - `--dot` [Optional] - will create a string representation in graphviz dot format.
+      See: [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html)
 
-    Parameter:
-        format_string [optional]: a string with any content with placeholders to be filled by the object.
+    ## Parameters
+    - `format_string` [optional]: a string with any content with placeholders to be filled by the object.
+      Placeholders are defined in curly braces.
 
-    Example:
-        json {"a":"b", "b": {"c":"d"}} | format {a}!={b.c}          # This will result in [ "b!=d" ]
-        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}< # This will result in [ "only select >2<" ]
-        json {} | format {a}:{b.c.d}:{foo.bla[23].test}             # This will result in [ "null:null:null" ]
-        query all | format --json | write out.json                  # This will write the result to file out.json.
+
+    ## Examples
+
+    ```shell
+    # Example json to extract a formatted string using placeholder format
+    > json {"a":"b", "b": {"c":"d"}} | format >{a}< and not >{b.c}<
+    >b< and not >d<
+
+    # Accessing any nested or list property is possible
+    > json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}<
+    only select >2<
+
+    > query all | format --json | write out.json
+    Received a file out.json, which is stored to ./out.json.
+    ```
     """
 
     @property
@@ -1411,13 +1759,59 @@ list_arg_parse = list_single_arg_parse.sep_by(comma_p, min=1)
 
 class DumpCommand(CLICommand, OutputTransformer):
     """
-    Usage: dump
+    ```
+    dump
+    ```
 
     Dump all properties of an incoming element.
-    If no output format is given, the output is transformed to fit on one line per element using the list command.
-    Dump will maintain all incoming properties.
 
-    See: list, jq, format
+    ## Example
+
+    ```shell
+    > query is(volume) limit 1 | dump
+    id: 0QcwZ5DHsS58A1tHEk5JRQ
+    reported:
+      kind: gcp_disk
+      id: '7027640035137'
+      tags:
+        owner: 'dev-rel'
+      name: gke-cluster-1
+      ctime: '2021-08-04T08:31:42Z'
+      volume_size: 50
+      volume_type: pd-standard
+      volume_status: available
+      snapshot_before_delete: false
+      link: https://www.googleapis.com/compute/v1/projects/eng-ksphere-platform/zones/us-central1-c/disks/gke-cluster-1
+      label_fingerprint: nT7_dAxskBs=
+      last_attach_timestamp: '2021-08-04T08:31:42Z'
+      last_detach_timestamp: '2021-08-04T08:31:42Z'
+      age: 5mo25d
+    metadata:
+      protected: false
+    ancestors:
+      cloud:
+        reported:
+          name: gcp
+          id: gcp
+      account:
+        reported:
+          name: eng-ksphere-platform
+          id: eng-ksphere-platform
+      region:
+        reported:
+          name: us-central1
+          id: '1000'
+      zone:
+        reported:
+          name: us-central1-c
+          id: '2002'
+    ```
+
+    ## Related
+
+    - `format` - Create a string from object based on a defined format.
+    - `list` - Define a list of properties to show.
+    - `jq` - Define a transformation via the well known `jq` command.
     """
 
     @property
@@ -1435,22 +1829,26 @@ class DumpCommand(CLICommand, OutputTransformer):
 
 class ListCommand(CLICommand, OutputTransformer):
     """
-    Usage: list [props_to_show]
+    ```
+    list [property [as <name>]] [,property ...]
+    ```
 
     This command creates a string from the json input based on the defined properties to show.
 
     If no prop is defined a predefined list of properties will be shown:
-        - reported.kind as kind
-        - reported.id as id
-        - reported.name as name
-        - reported.age as age
-        - ancestors.cloud.reported.name as cloud
-        - ancestors.account.reported.name as account
-        - ancestors.region.reported.name as region
-        - ancestors.zone.reported.name as zone
 
-    If props_to_show is defined, it will override the default and will show the defined properties.
-    The syntax for props_to_show is a comma delimited list of property paths.
+    - /reported.kind as kind
+    - /reported.id as id
+    - /reported.name as name
+    - /reported.age as age
+    - /reported.last_update as last_update
+    - /ancestors.cloud.reported.name as cloud
+    - /ancestors.account.reported.name as account
+    - /ancestors.region.reported.name as region
+    - /ancestors.zone.reported.name as zone
+
+    If property is defined, it will override the default and will show the defined properties.
+    The syntax for property is a comma delimited list of property paths.
     The property path can be absolute, meaning it includes the section name (reported, desired, metadata).
     In case the section name is not defined, the reported section is assumed automatically.
 
@@ -1465,35 +1863,47 @@ class ListCommand(CLICommand, OutputTransformer):
     The `as` clause is important, in case the last part of the property path is not sufficient as property name.
 
 
-    Parameter:
-        props_to_show [optional]: a space delimited definition of properties to show
+    ## Parameters
 
-    Example:
-        $> query is(aws_ec2_instance) limit 3 | list
-          kind=aws_ec2_instance, id=1, name=sun, ctime=2020-09-10T13:24:45Z, cloud=aws, account=prod, region=us-west-2
-          kind=aws_ec2_instance, id=2, name=moon, ctime=2021-09-21T01:08:11Z, cloud=aws, account=dev, region=us-west-2
-          kind=aws_ec2_instance, id=3, name=star, ctime=2021-09-25T23:28:40Z, cloud=aws, account=int, region=us-east-1
+    - property [optional]: a comma separated list of properties to show. Each property defines the path
+      to the property with an optional name.
 
-        $> query is(aws_ec2_instance) limit 3 | list reported.name
-          name=sun
-          name=moon
-          name=star
+      *Example*: `path.to.property as prop1`.
 
-        # section name is missing, reported is used automatically
-        $> query is(aws_ec2_instance) limit 3 | list kind, name
-          kind=aws_ec2_instance, name=sun
-          kind=aws_ec2_instance, name=moon
-          kind=aws_ec2_instance, name=star
+    ## Examples
 
-        $> query is(aws_ec2_instance) limit 3 | list kind as a, name as b
-          a=aws_ec2_instance, b=sun
-          a=aws_ec2_instance, b=moon
-          a=aws_ec2_instance, b=star
+    ```shell
+    # If all parameters are omitted, the predefined default list is taken.
+    > query is(aws_ec2_instance) limit 3 | list
+    kind=aws_ec2_instance, id=1, name=sun, ctime=2020-09-10T13:24:45Z, cloud=aws, account=prod, region=us-west-2
+    kind=aws_ec2_instance, id=2, name=moon, ctime=2021-09-21T01:08:11Z, cloud=aws, account=dev, region=us-west-2
+    kind=aws_ec2_instance, id=3, name=star, ctime=2021-09-25T23:28:40Z, cloud=aws, account=int, region=us-east-1
 
-        $> query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
-          a=aws_ec2_instance, b=sun
-          a=aws_ec2_instance, b=moon
-          a=aws_ec2_instance, b=star
+    # Explicitly define the properties to show without renaming them.
+    > query is(aws_ec2_instance) limit 3 | list kind, name
+    kind=aws_ec2_instance, name=sun
+    kind=aws_ec2_instance, name=moon
+    kind=aws_ec2_instance, name=star
+
+    # Same query and same result as before, with an explicit rename clause.
+    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b
+    a=aws_ec2_instance, b=sun
+    a=aws_ec2_instance, b=moon
+    a=aws_ec2_instance, b=star
+
+    # Properties that do not exist, are not printed.
+    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
+    a=aws_ec2_instance, b=sun
+    a=aws_ec2_instance, b=moon
+    a=aws_ec2_instance, b=star
+    ```
+
+    ## Related
+
+    - `format` - Create a string from object based on a defined format.
+    - `dump` - will show the complete content tree of an incoming object.
+    - `jq` - Define a transformation via the well known `jq` command.
+
     """
 
     # This is the list of properties to show in the list command by default
@@ -1588,114 +1998,120 @@ class ListCommand(CLICommand, OutputTransformer):
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: jobs [list|show|add|update|delete|activate|deactivate|run|running] [--id <id>] [--schedule <cron_expression>]
-                [--wait-for-event <event_name>] [--timeout <duration_in_seconds>] [command_line]
-           jobs list
-           jobs show <id>
-           jobs add [--id <id>] [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
-           jobs update <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
-           jobs delete <id>
-           jobs activate <id>
-           jobs deactivate <id>
-           jobs run <id>
-           jobs running
+    ```shell
+    jobs list
+    jobs show <id>
+    jobs add [--id <id>] [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
+    jobs update <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
+    jobs delete <id>
+    jobs activate <id>
+    jobs deactivate <id>
+    jobs run <id>
+    jobs running
+    ```
 
-
-    jobs list: get the list of all jobs in the system
-    jobs show <id>: show the current definition of the job defined by given job identifier.
-    jobs add ...: add a job to the task handler with provided identifier, trigger and command line to execute.
-    jobs update <id> ... : update trigger and or command line of an existing job with provided identifier.
-    jobs delete <id>: delete the job with the provided identifier.
-    jobs activate <id>: activate the triggers of a job.
-    jobs deactivate <id>: deactivate the triggers of a job - so the job will not get started.
-    jobs run <id>: run the job as if the trigger would be triggered.
-    jobs running: show all currently running jobs.
+    - `jobs list`: get the list of all jobs in the system
+    - `jobs show <id>`: show the current definition of the job defined by given job identifier.
+    - `jobs add ...`: add a job to the task handler with provided identifier, trigger and command line to execute.
+    - `jobs update <id> ...` : update trigger and or command line of an existing job with provided identifier.
+    - `jobs delete <id>`: delete the job with the provided identifier.
+    - `jobs activate <id>`: activate the triggers of a job.
+    - `jobs deactivate <id>`: deactivate the triggers of a job. The job will not get started in case the trigger fires.
+    - `jobs run <id>`: run the job as if the trigger would be triggered.
+    - `jobs running`: show all currently running jobs.
 
 
     A job can be scheduled, react on events or both:
-        - scheduled via defined cron expression
-        - event triggered via defined identifier of event to trigger this job
-        - combined scheduled + event trigger once the schedule triggers this job,
-          it is possible to wait for an incoming event, before the command line is executed.
+    - scheduled via a defined cron expression
+    - event triggered via defined identifier of event to trigger this job
+    - combined scheduled + event trigger once the schedule triggers this job,
+      it is possible to wait for an incoming event, before the command line is executed.
 
-    Note:
-        - if a job is triggered, while it is already running, the invocation will wait for the current run to finish.
-          This means that there will be no parallel execution of jobs with the same identifier at any moment in time.
-        - a command line is not allowed to run longer than the specified timeout.
-          It is killed in case this timeout is exceeded.
+    *Note:*
 
-    Parameter:
-        --id <id> [optional]:         The identifier of this job. If no id is defined a random identifier is generated.
-        --schedule <cron_expression>  [optional]: defines the recurrent schedule in crontab format.
-        --wait-for-event <event_name> [optional]: if defined, the job waits for the specified event to occur.
-                                      If this parameter is defined in combination with a schedule, the schedule has
-                                      to trigger first, before the event will trigger the execution.
-        --timeout [optional, default=3600] Number of seconds, the job is allowed to run. In case this timeout is
-                                      exceeded, the job run will be killed.
-        command_line [mandatory]:     the CLI command line that will be executed, when the job is triggered.
-                                      Note: It is recommended to wrap the command line into single quotes or escape all
-                                      CLI terms like pipe or semicolon (| -> \\|).
-                                      Multiple command lines can be defined by separating them via semicolon.
+    If a job is triggered, while it is already running, the invocation will wait for the current run to finish.
+    This means that there will be no parallel execution of jobs with the same identifier at any moment in time.
+    A command line is not allowed to run longer than the specified timeout.
+    It is killed in case this timeout is exceeded.
+
+    ## Options
+    - `--id` <id> [optional]: The identifier of this job. If no id is defined a random identifier is generated.
+    - `--schedule` <cron_expression>  [optional]: defines the recurrent schedule in crontab format.
+    - `--wait-for-event` <event_name> [optional]: if defined, the job waits for the specified event to occur.
+         If this parameter is defined in combination with a schedule, the schedule has
+         to trigger first, before the event will trigger the execution.
+    - `--timeout` [optional, default=3600] Number of seconds, the job is allowed to run. In case this timeout is
+         exceeded, the job run will be killed.
 
 
-    Example:
-        # print hello world every minute to the console
-        $> jobs add --id say-hello --schedule "* * * * *" echo hello world
-        Job say-hello added.
+    ## Parameters
+    - `command_line` [mandatory]: the CLI command line that will be executed, when the job is triggered.
+       Note: It is recommended to wrap the command line into single quotes or escape all
+       CLI terms like pipe or semicolon (| -> \\|).
+       Multiple command lines can be defined by separating them via semicolon.
 
-        # print all available jobs in the system
-        $> jobs list
-        id: say-hello
-        trigger:
-          cron_expression: '* * * * *'
-        command: echo hello world
 
-        # show a specific job by identifier
-        $> jobs show say-hello
-        id: say-hello
-        trigger:
-          cron_expression: '* * * * *'
-        command: echo hello world
+    ## Examples
 
-        # every morning at 4: wait for message of type collect_done and print a message
-        $> jobs add --id early_hi --schedule "0 4 * * *" --wait-for-event collect_done 'match is("volume") | format id'
-        Job early_hi added.
+    ```shell
+    # print hello world every minute to the console
+    > jobs add --id say-hello --schedule "* * * * *" echo hello world
+    Job say-hello added.
 
-        # wait for message of type collect_done and print a message
-        $> jobs add --id wait_for_collect_done collect_done: echo hello world
-        Job wait_for_collect_done added.
+    # print all available jobs in the system
+    > jobs list
+    id: say-hello
+    trigger:
+      cron_expression: '* * * * *'
+    command: echo hello world
 
-        # run the job directly without waiting for a trigger
-        $> jobs run say-hello
-        Job say-hello started with id a4bb64cc-7385-11ec-b2cb-dad780437c53.
+    # show a specific job by identifier
+    > jobs show say-hello
+    id: say-hello
+    trigger:
+      cron_expression: '* * * * *'
+    command: echo hello world
 
-        # show all currently running jobs
-        $> jobs running
-        job: say-hello
-        started_at: '2022-01-12T09:01:34Z'
-        task-id: a4bb64cc-7385-11ec-b2cb-dad780437c53
+    # every morning at 4: wait for message of type collect_done and print a message
+    > jobs add --id early_hi --schedule "0 4 * * *" --wait-for-event collect_done 'match is("volume") | format id'
+    Job early_hi added.
 
-        # triggers can be activated and deactivated.
-        # Deactivated triggers will not trigger the job.
-        # The active flag shows the state of activation.
-        $> jobs deactivate say-hello
-        id: say-hello
-        command: echo hello world
-        active: false
-        trigger:
-          cron_expression: '* * * * *'
+    # wait for message of type collect_done and print a message
+    > jobs add --id wait_for_collect_done collect_done: echo hello world
+    Job wait_for_collect_done added.
 
-        # activate the triggers of the job.
-        $> jobs activate say-hello
-        id: say-hello
-        command: echo hello world
-        active: true
-        trigger:
-          cron_expression: '* * * * *'
+    # run the job directly without waiting for a trigger
+    > jobs run say-hello
+    Job say-hello started with id a4bb64cc-7385-11ec-b2cb-dad780437c53.
 
-        # delete a job
-        $> jobs delete say-hello
-        Job say-hello deleted.
+    # show all currently running jobs
+    > jobs running
+    job: say-hello
+    started_at: '2022-01-12T09:01:34Z'
+    task-id: a4bb64cc-7385-11ec-b2cb-dad780437c53
+
+    # triggers can be activated and deactivated.
+    # Deactivated triggers will not trigger the job.
+    # The active flag shows the state of activation.
+    > jobs deactivate say-hello
+    id: say-hello
+    command: echo hello world
+    active: false
+    trigger:
+      cron_expression: '* * * * *'
+
+    # activate the triggers of the job.
+    > jobs activate say-hello
+    id: say-hello
+    command: echo hello world
+    active: true
+    trigger:
+      cron_expression: '* * * * *'
+
+    # delete a job
+    > jobs delete say-hello
+    Job say-hello deleted.
+    ```
     """
 
     @property
@@ -1795,7 +2211,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             )
 
         async def show_help() -> AsyncIterator[str]:
-            yield f"{self.name} - {self.info()}\n\n{self.help()}"
+            yield self.rendered_help(ctx)
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
@@ -1874,8 +2290,10 @@ class SendWorkerTaskCommand(CLICommand, ABC):
 
 class TagCommand(SendWorkerTaskCommand):
     """
-    Usage: tag update [--nowait] [tag_name new_value]
-           tag delete [--nowait] [tag_name]
+    ```
+    tag update [--nowait] [tag_name new_value]
+    tag delete [--nowait] [tag_name]
+    ```
 
     This command can be used to update or delete a specific tag.
     Tags have a name and value - both name and value are strings.
@@ -1892,43 +2310,35 @@ class TagCommand(SendWorkerTaskCommand):
 
     The command would wait for the worker to report the result back synchronously.
     Once the cli command returns, also the tag update/delete is finished.
-    If the command should not wait for the result, the action can be performed in background via the --nowait flag.
+    If the command should not wait for the result, the action can be performed in background via the `--nowait` flag.
 
-    There are 2 modes of operations:
-    - The incoming elements are defined by a query:
-      Example: `match x>2 | tag delete foo`
-      All elements that match the query are updated.
-    - The incoming elements are defined by a string or string array:
-      Example: `echo id_of_node_23` | tag delete foo`
-               `json ["id1", "id2", "id3"] | tag delete foo`
-      In this case the related strings are interpreted as id and loaded from the graph.
+    The input of this command is either a query result or the identifier of the resource as string.
+
+    ## Options
+    - `--nowait` if this flag is defined, the cli will send the tag command to the worker
+       and will not wait for the task to finish.
 
 
-    Parameter:
-        command_name [mandatory]: is either update or delete
-        tag_name [mandatory]: the name of the tag to change
-        tag_value: in case of update: the format string to create the new value of the tag_name.
-                   All format templates are rendered using the related entity.
-                   Example: test_{name}_{kind} -> test_pvc-123_disk
-        --nowait if this flag is defined, the cli will send the tag command to the worker
-                 and will not wait for the task to finish.
+    ## Parameters
+    - `tag_name` [mandatory]: the name of the tag to change
+    - `tag_value` [mandatory]: in case of update: the new value of the tag_name.
+       The tag_value can use format templates (`help format`) to define the value with backreferences from the object.
+       Example: test_{name}_{kind} -> test_pvc-123_disk
 
+    ## Examples
+    ```shell
+    # Make sure there is no resource that is tagged with 'foo'
+    > query is(resource) and tags.foo!=null | tag delete foo
+    kind=aws_ec2_keypair, id=key-0, name=default, age=1yr8mo, cloud=aws, account=eng-sre, region=us-west-2
 
-    Example:
-        # Make sure no resource is tagged as `foo`
-        $> query is(resource) and tags.foo != null | tag delete foo
-        kind=aws_ec2_keypair, id=key-abc, name=default, age=1yr8mo, cloud=aws, account=dev, region=us-west-2
-        kind=gcp_disk, id=1234, name=default, age=5mo25d, cloud=gcp, account=eng, region=us-central1-c
+    # Manually select the resources to tag by using the id.
+    > json["key-0"] | tag delete foo
+    kind=aws_ec2_keypair, id=key-0, name=default, age=1yr8mo, cloud=aws, account=eng-sre, region=us-west-2
 
-        # Create a name tag for volumes that do not define such a tag
-        # The name is created using the name of the resource and the account (e.g. "Gen: gke-clu-1 eng")
-        $> query is(volume) and tags.name==null | tag update name "Gen: {name} {/ancestors.account.reported.name}"
-        kind=gcp_instance, id=123, name=agent, age=3yr9mo, cloud=gcp, account=se, region=us-central1, zone=us-central1-c
-        kind=gcp_instance, id=234, name=bkom, age=2mo25d, cloud=gcp, account=se, region=us-west1, zone=us-west1-b
-        kind=gcp_instance, id=345, name=worker0, age=8mo16d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
-
-    Environment Variables:
-        graph: the name of the graph to operate on.
+    # Updating a tag by using a format template.
+    > query is(volume) and tags.owner == null limit 1 | tag update owner "gen_{/ancestors.account.reported.name}_{name}"
+    kind=gcp_disk, id=123, name=gke-1, age=5mo27d, cloud=gcp, account=eng, region=us-central1, zone=us-central1-c
+    ```
     """
 
     @property
@@ -2025,7 +2435,9 @@ class TagCommand(SendWorkerTaskCommand):
 
 class StartTaskCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: start_task <name of task>
+    ```shell
+    start_task <name of task>
+    ```
 
     Start a task with given task descriptor id.
 
@@ -2034,11 +2446,13 @@ class StartTaskCommand(CLICommand, PreserveOutputFormat):
     In case parallel tasks are forbidden a new task can not be started.
     If a task could be started or not is returned as result message of this command.
 
-    Parameter:
-        task_name [mandatory]:  The name of the related task definition.
+    ## Parameters
+    - `task_name` [mandatory]:  The name of the related task definition.
 
-    Example:
-        start_task example_task # Will return Task 6d96f5dc has been started
+    ## Examples
+    ```shell
+    > start_task example_task
+    ```
 
     See: add_job, delete_job, jobs
     """
@@ -2106,11 +2520,20 @@ class UploadCommand(CLICommand, InternalPart):
 
 class SystemCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: system backup create [name]
-           system backup restore <path>
-           system info
+    ```
+    system backup create [name]
+    system backup restore <path>
+    system info
+    ```
 
-    system backup create [name]:
+    ## Parameters
+    - `name` [optional] - the file name of the backup that is created. If no name is provided,
+      a new name is created by using the current time and this format: `backup_yyyyMMdd_hmm`.
+      Example: backup_20211022_1028
+    - `path` [mandatory] - path to the local backup file.
+
+
+    ## Backup creation
 
     Create a system backup for the complete database, which contains:
     - backup of all graph data
@@ -2119,55 +2542,57 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     - backup of all subscribers data
     - backup of all configuration data
 
-    This backup can be restored via system backup restore.
+    This backup can be restored via `system backup restore <path>`.
     Since this command creates a complete backup, it can be restored to an empty database.
 
-    Note: a backup acquires a global write lock. This basically means, that *no write* can be
-          performed, while the backup is created!
-    Note: the backup is not encrypted.
-
-    Parameter:
-        name [optional] - name of the backup file.
-                          If no name is provided the name will be `backup_yyyyMMdd_hmm`.
-                          Example: backup_20211022_1028
-
-    Example:
-        system backup create                  # this will create a backup written to backup_{time_now}.
-        system backup create backup bck_1234  # this will create a backup written to bck_1234.
+    *Note*: a backup acquires a global write lock. This basically means, that *no write* can be
+    performed, while the backup is created! The backup is not encrypted.
 
 
-    system backup restore:
+    ## Restore a backup
 
-    Restores the complete database state from a previously generated backup.
+    The complete database state from a previously generated backup can be restored.
     All existing data in the database will be overwritten.
     This command will not wipe any existing data: if there are collections in the database, that are not included
     in the backup, it will not be deleted by this process.
     In order to restore exactly the same state as in the backup, you should start from an empty database.
 
-    Note: a backup acquires a global write lock. This basically means, that *no write* can be
-          performed, while the backup is restored!
-    Note: After the restore process is done, the resotocore process will stop. It should be restarted by
-          the process supervisor automatically. The restart is necessary to take effect from the changed
-          underlying data source.
+    *Note*: a backup acquires a global write lock. This basically means, that *no write* can be
+    performed, while the backup is restored! After the restore process is done,
+    the resotocore process will stop. It should be restarted by the process supervisor automatically.
+    The restart is necessary to take effect from the changed underlying data source.
 
-    path [mandatory] - path to the local backup file.
 
-    Example:
-        system backup restore /path/to/backup    # this will restore the backup from the given local path.
-
-    system info:
+    ## System information
 
     Prints information about the currently running system.
 
-    Example:
-        system info
-            name: resotocore
-            version: 2.0.0a11
-            cpus: 8
-            mem_available: 2.75 GiB
-            mem_total: 16.00 GiB
-            inside_docker: false
-            started_at: '2022-01-20T14:00:17Z'
+
+    ## Examples
+    ```shell
+    # Create a backup. The name of the backup will have the current time.
+    > system backup create
+    Received a file backup_20220202_1121, which is stored to ./backup_20220202_1121.
+
+    # Create a backup and provide a name for it
+    > system backup create bck_1234
+    Received a file bck_1234, which is stored to ./bck_1234.
+
+    # Restore a backup. This will stop the running resotocore instance.
+    > system backup restore bck_1234
+    Database has been restored successfully!
+    Since all data has changed in the database eventually, this service needs to be restarted!
+
+    # Show system information.
+    > system info
+    name: resotocore
+    version: 2.0.0a14
+    cpus: 8
+    mem_available: 2.85 GiB
+    mem_total: 16.00 GiB
+    inside_docker: false
+    started_at: '2022-02-02T11:23:19Z'
+    ```
     """
 
     @property
@@ -2187,11 +2612,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             # fmt: off
             process = await asyncio.create_subprocess_exec(
                 "arangodump",
-                "--progress", "false",           # do not show progress
-                "--threads", "8",                # default is 2
-                "--log.level", "error",          # only print error messages
+                "--progress", "false",  # do not show progress
+                "--threads", "8",  # default is 2
+                "--log.level", "error",  # only print error messages
                 "--output-directory", temp_dir,  # directory to write to
-                "--overwrite", "true",           # required for existing directories
+                "--overwrite", "true",  # required for existing directories
                 "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
                 "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
                 "--server.database", args.graphdb_database,
@@ -2241,11 +2666,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             args = self.dependencies.args
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
-                "--progress", "false",           # do not show progress
-                "--threads", "8",                # default is 2
-                "--log.level", "error",          # only print error messages
-                "--input-directory", temp_dir,   # directory to write to
-                "--overwrite", "true",           # required for existing db collections
+                "--progress", "false",  # do not show progress
+                "--threads", "8",  # default is 2
+                "--log.level", "error",  # only print error messages
+                "--input-directory", temp_dir,  # directory to write to
+                "--overwrite", "true",  # required for existing db collections
                 "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
                 "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
                 "--server.database", args.graphdb_database,
@@ -2311,16 +2736,25 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
 
 class WriteCommand(CLICommand):
     """
-    Usage: write <file-name>
+    ```shell
+    write <file-name>
+    ```
 
     Writes the result of this command to a file with given name.
 
-    Parameter:
-        file-name [mandatory]:  The name of the file to write to.
+    ## Parameters
+    - `file-name` [mandatory]:  The name of the file to write to.
 
-    Example:
-        query all limit 3 | format --json | write out.json # Write 3 nodes to the file out.json in json format.
-        query all limit 3 | format --text | write out.txt # Write 3 nodes to the file out.txt in text format.
+    ## Examples
+    ```shell
+    # Select 3 resources, format them as json and write it to the file out.json.
+    > query all limit 3 | format --json | write out.json
+    Received a file out.json, which is stored to ./out.json.
+
+    # Select the root node and traverse 2 levels deep. Format the result as dot graph and write it to out.dot.
+    > query --include-edges id(root) -[0:2]-> | format --dot | write out.dot
+    Received a file out.dot, which is stored to ./out.dot.
+    ```
     """
 
     @property
@@ -2355,44 +2789,60 @@ class WriteCommand(CLICommand):
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
     """
-    Usage: templates
-           templates <name_of_template>
-           templates add <name_of_template> <query_template>
-           templates update <name_of_template> <query_template>
-           templates delete <name_of_template>
-           templates test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
+    ```shell
+    templates
+    templates <name_of_template>
+    templates add <name_of_template> <query_template>
+    templates update <name_of_template> <query_template>
+    templates delete <name_of_template>
+    templates test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
+    ```
 
-
-    templates: get the list of all templates
-    templates <name>: get the current definition of the template defined by given template name
-    templates add <name> <template>: add a query template to the query template library under given name.
-    templates update <name> <template>: update a query template in the query template library.
-    templates delete <name>: delete the query template with given name.
-    templates test k=v <template_to_expand>: test the defined template.
+    - `templates: get the list of all templates
+    - `templates <name>`: get the current definition of the template defined by given template name
+    - `templates add <name> <template>`: add a query template to the query template library under given name.
+    - `templates update <name> <template>`: update a query template in the query template library.
+    - `templates delete <name>`: delete the query template with given name.
+    - `templates test k=v <template_to_expand>`: test the defined template.
 
     Placeholders are defined in 2 double curly braces {{placeholder}}
-    and get replaced by the provided placeholder value during render time.
+    and get replaced by the provided placeholder value during render_console time.
     The name of the placeholder can be any valid alphanumeric string.
     The template 'is({{kind}})' with expand parameters kind=volume becomes
     'is(volume)' during expand time.
 
-    Parameter:
-        name_of_template:  The name of the query template.
-        query_template:  The query with template placeholders.
-        key=value: any number of key/value pairs separated by comma
+    ## Parameters
 
-    Example:
-        $> templates test kind=volume is({{kind}})
-        is(volume)
-        $> templates add filter_kind is({{kind}})
-        Template filter_kind added to the query library.
-        is({{kind}})
-        > templates
-        filter_kind: is({{kind}})
-        $> templates filter_kind
-        is({{kind}})
-        $> templates delete filter_kind
-        Template filter_kind deleted from the query library.
+    - `name_of_template`:  The name of the query template.
+    - `query_template`:  The query with template placeholders.
+    - `key=value`: any number of key/value pairs separated by comma
+
+    ## Examples
+    ```shell
+    # Test a template by populating it with provided key/value pairs
+    > templates test kind=volume is({{kind}})
+    is(volume)
+
+    # Add a very simple template with name filter_kind to the query library
+    > templates add filter_kind is({{kind}})
+    Template filter_kind added to the query library.
+    is({{kind}})
+
+    # List all templates in the query library
+    > templates
+    filter_kind: is({{kind}})
+
+    # Show one specific template by provided name
+    > templates filter_kind
+    is({{kind}})
+
+    # Use this template in a query
+    > query expand(filter_kind, kind=volume) and name=~dkl
+    kind=aws_ec2_volume, id=vol-1, name=dkl-3, age=2mo2d, cloud=aws, account=eng, region=us-west-2
+
+    > templates delete filter_kind
+    Template filter_kind deleted from the query library.
+    ```
     """
 
     @property
@@ -2416,7 +2866,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             return len(templates), stream.iterate(template_str(t) for t in templates)
 
         async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
-            # try to render the template with dummy values and see if the query can be parsed
+            # try to render_console the template with dummy values and see if the query can be parsed
             try:
                 rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
                 parse_query(rendered_query, **ctx.env)
@@ -2467,8 +2917,10 @@ class HttpRequestTemplate:
 
 class HttpCommand(CLICommand):
     """
-    Usage: http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
-                   [http_method] <url> [headers] [query_params]
+    ```shell
+    http[s] [--compress] [--timeout <seconds>] [--no-ssl-verify] [--no-body] [--nr-of-retries <num>]
+            [http_method] <url> [headers] [query_params]
+    ```
 
     This command takes every object from the incoming stream and sends this object to the defined http(s) endpoint.
     The payload of the request contains the object.
@@ -2477,33 +2929,42 @@ class HttpCommand(CLICommand):
           E.g.: query is(volume) limit 30 | chunk 10 | http test.foo.org
                 will perform up to 3 requests, where every request will contain up to 10 elements.
 
-    Parameter:
-        --compress [optional]: enable compression of the request body
-        --timeout <seconds> [optional, default: 30]: if the request takes longer than the specified seconds
-             it will be aborted
-        --no-ssl-verify [optional]: the ssl certificate will not be verified.
-        --no-body [optional]: if this flag is enabled, no content is sent in the request body
-        --nr-of-retries [optional, default=3]: in case the request is not successful (no 2xx), the request
-             is retried this often. There will be an exponential backoff between the retries.
-        http_method [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
-        url: the full url of the endpoint to call. Example: https://localhost:8080/call/me
-             If the scheme is not defined, it is taken from the command (http or https).
-             If the host is localhost, it can be omitted (e.g. :8080/call/me)
-        headers: a list of http headers can be defined via <header_name>:<header_value>
-             Example: HeaderA:test HeaderB:rest
-             Note: You can use quotes to use whitespace chars: "HeaderC:this is the value"
-        query_params: a list of query parameters can be defined via <param>==<param_value>.
-             Example: param1==test param2==rest
-             Note: You can use quotes to use whitespace chars: "param3==this is the value"
+    ## Options
+    - `--compress` [optional]: enable compression of the request body
+    - `--timeout` <seconds> [optional, default: 30]: if the request takes longer than the specified seconds
+      it will be aborted
+    - `--no-ssl-verify` [optional]: the ssl certificate will not be verified.
+    - `--no-body` [optional]: if this flag is enabled, no content is sent in the request body
+    - `--nr-of-retries` [optional, default=3]: in case the request is not successful (no 2xx), the request
+      is retried this often. There will be an exponential backoff between the retries.
+
+    ## Parameters
+    - `http_method` [optional, default: POST]: one of GET, PUT, POST, DELETE or PATCH
+    - `url`: the full url of the endpoint to call. Example: https://localhost:8080/call/me
+      If the scheme is not defined, it is taken from the command (http or https).
+      If the host is localhost, it can be omitted (e.g. :8080/call/me)
+    - `headers`: a list of http headers can be defined via <header_name>:<header_value>
+      Example: HeaderA:test HeaderB:rest
+      Note: You can use quotes to use whitespace chars: "HeaderC:this is the value"
+    - `query_params`: a list of query parameters can be defined via <param>==<param_value>.
+      Example: param1==test param2==rest
+      Note: You can use quotes to use whitespace chars: "param3==this is the value"
 
 
-    Example:
-        $> query is(volume) and reported.volume_encrypted==false | https my.node.org/handle_unencrypted
-        3 requests with status 200 sent.
-        $> query is(volume) | chunk 50 | https --compress my.node.org/handle
-        2 requests with status 200 sent.
-        $> query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from resotocore" type==volume
-        2 requests with status 200 sent.
+    ## Examples
+    ```shell
+    # Look for unencrypted volumes and report them to the specified endpoint
+    > query is(volume) and reported.volume_encrypted==false | https my.node.org/handle_unencrypted
+    3 requests with status 200 sent.
+
+    # Query all volumes and send chunks of 50 volumes per request to the specified handler
+    > query is(volume) | chunk 50 | https --compress my.node.org/handle
+    2 requests with status 200 sent.
+
+    # Same query as before, but define special header values and query parameter
+    > query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from resotocore" type==volume
+    2 requests with status 200 sent.
+    ```
     """
 
     @property

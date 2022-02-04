@@ -3,6 +3,7 @@ import pathlib
 import re
 import shutil
 import sys
+from functools import cache
 from threading import Event
 from typing import Dict, Union, Any, Optional
 from urllib.parse import urlencode, urlsplit
@@ -13,6 +14,7 @@ from prompt_toolkit.history import FileHistory
 from requests import Response
 from requests_toolbelt import MultipartDecoder, MultipartEncoder
 from requests_toolbelt.multipart.decoder import BodyPart
+from rich.console import Console
 
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers, add_args as jwt_add_args
@@ -96,6 +98,8 @@ def send_command(
             {
                 "Resoto-Shell-Columns": str(tty_columns),
                 "Resoto-Shell-Rows": str(tty_rows),
+                "Resoto-Shell-Color-System": color_system(),
+                "Resoto-Shell-Terminal": "true",
             }
         )
 
@@ -190,6 +194,21 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
             handle_result(part, num == 0)
 
 
+@cache
+def color_system() -> str:
+    if ArgumentParser.args.no_color:
+        return "monochrome"
+    else:
+        lookup = {
+            None: "monochrome",
+            "standard": "standard",
+            "256": "eight_bit",
+            "truecolor": "truecolor",
+            "windows": "legacy_windows",
+        }
+        return lookup.get(Console().color_system, "standard")
+
+
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--resotocore-uri",
@@ -218,6 +237,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="If files are received, they are written to this directory.",
         default=".",
         dest="download_directory",
+    )
+    arg_parser.add_argument(
+        "--no-color",
+        help="Output should be rendered plain without any color escape sequences.",
+        dest="no_color",
+        action="store_true",
+        default=False,
     )
     arg_parser.add_argument(
         "--stdin",

@@ -7,6 +7,7 @@ from asyncio import Task
 from dataclasses import replace
 from datetime import timedelta, datetime
 from functools import reduce
+from textwrap import dedent
 from typing import Dict, List, Tuple
 from typing import Optional, Any
 
@@ -112,32 +113,42 @@ class HelpCommand(CLICommand):
         return "Shows available commands, as well as help for any specific command."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        def help_command() -> Stream:
-            def show_cmd(cmd: CLICommand) -> str:
-                return f"{cmd.name} - {cmd.info()}\n\n{cmd.help()}"
+        def overview() -> str:
+            all_parts = sorted(self.parts.values(), key=lambda p: p.name)
+            parts = (p for p in all_parts if isinstance(p, CLICommand))
+            indent = "                 "  # required for dedent to work properly
+            available = "\n".join(f"{indent}- `{part.name}` - {part.info()}" for part in parts)
+            aliases = "\n".join(
+                f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items()
+            )
+            replacements = "\n".join(f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements().items())
+            result = dedent(
+                f"""
+                 # resotocore CLI ({version()})
 
+                 ## Valid placeholder string: \n{replacements}
+
+                 ## Available Aliases: \n{aliases}
+
+                 ## Available Commands: \n{available}
+
+                 *Note* that you can pipe commands using the pipe character (|)
+                 and chain multiple commands using the semicolon (;)."
+
+                 Use `help <command>` to show help for a specific command.
+                 """
+            )
+            return ctx.render_console(result)
+
+        def help_command() -> Stream:
             if not arg:
-                all_parts = sorted(self.parts.values(), key=lambda p: p.name)
-                parts = (p for p in all_parts if isinstance(p, CLICommand))
-                available = "\n".join(f"   {part.name} - {part.info()}" for part in parts)
-                aliases = "\n".join(
-                    f"   {alias} ({cmd}) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items()
-                )
-                replacements = "\n".join(f"   @{key}@ -> {value}" for key, value in CLI.replacements().items())
-                result = (
-                    f"\nresotocore CLI ({version()})\n\n\n"
-                    f"Valid placeholder string:\n{replacements}\n\n"
-                    f"Available Commands:\n{available}\n\n"
-                    f"Available Aliases:\n{aliases}\n\n"
-                    f"Note that you can pipe commands using the pipe character (|)\n"
-                    f"and chain multiple commands using the semicolon (;)."
-                )
+                result = overview()
             elif arg and arg in self.all_parts:
-                result = show_cmd(self.all_parts[arg])
+                result = self.all_parts[arg].rendered_help(ctx)
             elif arg and arg in self.aliases:
                 alias = self.aliases[arg]
                 explain = f"{arg} is an alias for {alias}\n\n"
-                result = explain + show_cmd(self.all_parts[alias])
+                result = explain + self.all_parts[alias].rendered_help(ctx)
             else:
                 result = f"No command found with this name: {arg}"
 

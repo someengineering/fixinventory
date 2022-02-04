@@ -12,16 +12,18 @@ from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable,
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
+from rich.jupyter import JupyterMixin
 from parsy import test_char, string
 
 from core.analytics import AnalyticsEventSender
 from core.cli import JsGen, T, Sink
 from core.db.db_access import DbAccess
 from core.error import CLIParseError
+from core.console_renderer import ConsoleRenderer
 from core.message_bus import MessageBus
 from core.parse_util import l_curly_dp, r_curly_dp
 from core.model.model_handler import ModelHandler
-from core.query.model import Query, variable_to_absolute
+from core.query.model import Query, variable_to_absolute, PathRoot
 from core.query.template_expander import TemplateExpander
 from core.task.job_handler import JobHandler
 from core.types import Json, JsonElement
@@ -58,14 +60,24 @@ class CLIContext:
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(default_factory=dict)
+    console_formatter: Optional[ConsoleRenderer] = None
 
     def variable_in_section(self, variable: str) -> str:
-        # if there is no query, no section should be adjusted
-        return variable_to_absolute(self.env.get("section"), variable) if self.query else variable
+        # if there is no query, always assume the root section
+        section = self.env.get("section") if self.query else PathRoot
+        return variable_to_absolute(section, variable)
+
+    def render_console(self, element: Union[str, JupyterMixin]) -> str:
+        if self.console_formatter:
+            return self.console_formatter.render(element)
+        elif isinstance(element, JupyterMixin):
+            return str(element)
+        else:
+            return element
 
     def formatter(self, format_string: str) -> Callable[[Any], str]:
         """
-        A formatter can be used to string format objects based on a provided format string.
+        A renderer can be used to string format objects based on a provided format string.
         """
 
         def format_variable(name: str) -> str:
@@ -92,7 +104,10 @@ EmptyContext = CLIContext()
 class CLIEngine(ABC):
     @abstractmethod
     async def evaluate_cli_command(
-        self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
+        self,
+        cli_input: str,
+        context: CLIContext = EmptyContext,
+        replace_place_holder: bool = True,
     ) -> List[ParsedCommandLine]:
         pass
 
@@ -256,6 +271,10 @@ class CLICommand(ABC):
         # if not defined in subclass, fallback to inline doc
         doc = inspect.getdoc(type(self))
         return doc if doc else f"{self.name}: no help available."
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        text = f"\n**{self.name}: {self.info()}**\n\n{self.help()}"
+        return ctx.render_console(text)
 
     @abstractmethod
     def info(self) -> str:
