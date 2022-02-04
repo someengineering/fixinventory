@@ -1,4 +1,4 @@
-from typing import List, Any, Generator
+from typing import List, Any, Generator, Hashable
 
 from networkx import DiGraph, connected_components
 
@@ -19,7 +19,7 @@ def dependent_node_iterator(
 
         # make sure a node is only selected if it is not visited already
         # and all predecessors have been visited already
-        def allowed(nid: Any) -> bool:
+        def allowed(nid: Hashable) -> bool:
             pred = g.predecessors(nid)
             req = [n for n in pred if n != nid and n not in visited]
             return nid not in visited and not req
