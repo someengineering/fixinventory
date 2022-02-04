@@ -38,3 +38,7 @@ def test_delete_nodes(graph: DiGraph):
         for node in parallel:
             to_delete.remove_node(node["id"])
     assert len(to_delete.nodes) == 0
+
+
+def test_empty_graph():
+    assert list(dependent_node_iterator(DiGraph())) == []
