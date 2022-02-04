@@ -21,21 +21,21 @@ def graph() -> DiGraph:
 
 def test_reversed_directed_traversal(graph: DiGraph):
     result = [list(island) for island in dependent_node_iterator(graph)]
-    assert len(result) == 3  # 3 islands
+    assert len(result) == 3  # 3 steps to complete
 
-    def nodes(ls: List[List[int]]) -> List[List[Dict[str, int]]]:
-        return [[{"id": e} for e in sub] for sub in ls]
+    def nodes(*ls: int) -> List[Dict[str, int]]:
+        return [{"id": e} for e in ls]
 
-    island1, island2, island3 = result
-    assert island1 == nodes([[3], [2], [1]])  # 3 -> 2 -> 1
-    assert island2 == nodes([[5, 7], [6], [4]])  # 5,7 -> 6 -> 4
-    assert island3 == nodes([[10, 11, 13], [9, 12], [8]])  # 10,11,13 -> 9,12 -> 8
+    assert result == [
+        nodes(3, 5, 7, 10, 11, 13),
+        nodes(2, 6, 9, 12),
+        nodes(1, 4, 8),
+    ]
 
 
 def test_delete_nodes(graph: DiGraph):
     to_delete = graph.copy()
-    for island in dependent_node_iterator(graph):
-        for parallel in island:
-            for node in parallel:
-                to_delete.remove_node(node["id"])
+    for parallel in dependent_node_iterator(graph):
+        for node in parallel:
+            to_delete.remove_node(node["id"])
     assert len(to_delete.nodes) == 0

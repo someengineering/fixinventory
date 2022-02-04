@@ -5,7 +5,7 @@ from networkx import DiGraph, connected_components
 
 def dependent_node_iterator(
     in_graph: DiGraph,
-) -> List[Generator[List[Any], None, None]]:
+) -> Generator[List[Any], None, None]:
     """
     Produces a list of generators, where each generator produces a list of nodes.
     Each generation of nodes only depend on previously generated nodes.
@@ -37,7 +37,17 @@ def dependent_node_iterator(
     # reverse the directed graph -> a leaf becomes a root
     graph = in_graph.reverse()
     # find all islands and create a generator per island
-    return [
+    generators = [
         successor_it(graph.subgraph(island_nodes))
         for island_nodes in connected_components(graph.to_undirected(as_view=True))
     ]
+    # concatenate the result of the generators
+    while generators:
+        nxt = []
+        for e in generators:
+            try:
+                nxt.extend(next(e))
+            except StopIteration:
+                generators.remove(e)
+        if nxt:
+            yield nxt
