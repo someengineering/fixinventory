@@ -6,6 +6,7 @@ import base64
 import hashlib
 import uuid
 import weakref
+from resotolib.graph import EdgeType
 from resotolib.logging import log
 from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
@@ -480,9 +481,11 @@ class BaseResource(ABC):
     def to_json(self):
         return self.__repr__()
 
-    def add_deferred_connection(self, attr, value, parent=True) -> None:
+    def add_deferred_connection(
+        self, attr, value, parent: bool = True, edge_type: EdgeType = EdgeType.default
+    ) -> None:
         self._deferred_connections.append(
-            {"attr": attr, "value": value, "parent": parent}
+            {"attr": attr, "value": value, "parent": parent, "edge_type": edge_type}
         )
 
     def resolve_deferred_connections(self, graph) -> None:
@@ -491,6 +494,7 @@ class BaseResource(ABC):
         while self._deferred_connections:
             dc = self._deferred_connections.pop(0)
             node = graph.search_first(dc["attr"], dc["value"])
+            edge_type = dc["edge_type"]
             if node:
                 if dc["parent"]:
                     src = node
@@ -498,7 +502,7 @@ class BaseResource(ABC):
                 else:
                     src = self
                     dst = node
-                graph.add_edge(src, dst)
+                graph.add_edge(src, dst, edge_type=edge_type)
 
     def predecessors(self, graph, edge_type=None) -> Iterator:
         """Returns an iterator of the node's parent nodes"""
