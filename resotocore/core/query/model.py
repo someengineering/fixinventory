@@ -7,7 +7,7 @@ from functools import reduce, partial
 from itertools import chain
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set, Iterable
 
-from backports.cached_property import cached_property
+from functools import cached_property
 from jsons import set_deserializer
 
 from core.model.graph_access import EdgeType, Direction
