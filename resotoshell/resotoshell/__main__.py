@@ -196,14 +196,17 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
 
 @cache
 def color_system() -> str:
-    lookup = {
-        None: "monochrome",
-        "standard": "standard",
-        "256": "eight_bit",
-        "truecolor": "truecolor",
-        "windows": "legacy_windows",
-    }
-    return lookup.get(Console().color_system, "standard")
+    if ArgumentParser.args.no_color:
+        return "monochrome"
+    else:
+        lookup = {
+            None: "monochrome",
+            "standard": "standard",
+            "256": "eight_bit",
+            "truecolor": "truecolor",
+            "windows": "legacy_windows",
+        }
+        return lookup.get(Console().color_system, "standard")
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
@@ -234,6 +237,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="If files are received, they are written to this directory.",
         default=".",
         dest="download_directory",
+    )
+    arg_parser.add_argument(
+        "--no-color",
+        help="Output should be rendered plain without any color escape sequences.",
+        dest="no_color",
+        action="store_true",
+        default=False,
     )
     arg_parser.add_argument(
         "--stdin",
