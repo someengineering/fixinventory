@@ -48,9 +48,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable ../resotolib
-          pip install -r requirements-test.txt
-          pip install -r requirements.txt
+          pip install poetry
+          poetry install
       - name: Run Tests
         run: |
           coverage run --source core -m pytest

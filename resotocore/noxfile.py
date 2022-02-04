@@ -27,8 +27,8 @@ def install_with_constraints(session: Session, *args, **kwargs) -> None:
 
 @nox.session(python=["3.9"])
 def test(session: Session) -> None:
-    args = session.posargs
-    session.run("poetry", "install", "--no-dev", external=True)
+    args = session.posargs or locations
+    session.run("poetry", "install", "-v", "--no-dev", external=True)
     install_with_constraints(
         session, "coverage[toml]", "pytest", "pytest-cov", "pytest-runner", "pytest-asyncio", "deepdiff", "hypothesis"
     )
@@ -47,6 +47,13 @@ def black(session) -> None:
     args = session.posargs or locations
     install_with_constraints(session, "black")
     session.run("black", "--line-length", "120", "--check", "--diff", "--target-version", "py39", *args)
+
+
+@nox.session(python=["3.9"])
+def pylint(session) -> None:
+    args = session.posargs or locations
+    install_with_constraints(session, "pylint")
+    session.run("pylint", *args)
 
 
 @nox.session(python=["3.8"])

@@ -1,4 +1,4 @@
-from importlib.metadata import version
+from importlib.metadata import version as meta_version
 
 """
 Resoto core graph platform
@@ -13,7 +13,7 @@ __description__ = "resoto core."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2022 Some Engineering Inc."
-__version__ = version(__name__)
+__version__ = meta_version(__name__)
 
 
 def version() -> str:
