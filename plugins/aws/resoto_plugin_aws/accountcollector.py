@@ -8,7 +8,8 @@ from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
 from resotolib.args import ArgumentParser
-from resotolib.graph import Graph, EdgeType
+from resotolib.graph import Graph
+from resotolib.graph.edges import EdgeType
 from resotolib.utils import make_valid_timestamp, chunks
 from .utils import aws_session, paginate, arn_partition
 from .resources import *
