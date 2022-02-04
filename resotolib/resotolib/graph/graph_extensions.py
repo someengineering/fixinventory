@@ -9,7 +9,6 @@ def dependent_node_iterator(
     """
     Produces a list of generators, where each generator produces a list of nodes.
     Each generation of nodes only depend on previously generated nodes.
-    All nodes from the same generation can be treated
     """
 
     def successor_it(g: DiGraph) -> Generator[List[Any], None, None]:
