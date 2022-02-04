@@ -69,9 +69,9 @@ def show_log(from_tag: str, to_tag: str):
         ],
     )
 
-    print(f"# v{to_tag}\n")
+    print(f"# v{to_tag}")
 
-    print("## What's Changed")
+    print("\n## What's Changed")
     for group, commits in grouped.items():
         print(f"\n### {long_names.get(group, group)}\n")
         for commit in commits:
@@ -81,8 +81,11 @@ def show_log(from_tag: str, to_tag: str):
                 f"([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))"
             )
 
-    print("\n## Docker Images\n")
-    for image in ['resoto', 'resotocore', 'resotoworker', 'resotoshell', 'resotometrics']:
+    print("\n## Docker Images")
+    print("\n### All-in-One\n")
+    print(f"- `somecr.io/someengineering/resoto:{to_tag}`")
+    print("\n### Components\n")
+    for image in ['resotocore', 'resotoworker', 'resotoshell', 'resotometrics']:
         print(f"- `somecr.io/someengineering/{image}:{to_tag}`")
 
 
