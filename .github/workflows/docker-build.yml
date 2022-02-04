@@ -397,5 +397,14 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          body: ${{ steps.release_notes.outputs.link }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ${{ steps.release_notes.outputs.link }}
+
+            ### Docker Images
+
+            - `somecr.io/someengineering/resoto:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotocore:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotoworker:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotoshell:${{ steps.release_notes.outputs.tag }}`
+            - `somecr.io/someengineering/resotometrics:${{ steps.release_notes.outputs.tag }}`
