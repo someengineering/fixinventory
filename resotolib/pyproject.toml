@@ -27,6 +27,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Utilities",
 ]
+include = ["resotolib/web/static/*"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
