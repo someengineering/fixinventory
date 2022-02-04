@@ -14,10 +14,10 @@ from resotolib.baseresources import (
     GraphRoot,
     Cloud,
     BaseResource,
+    EdgeType,
 )
 from resotolib.utils import json_default, get_resource_attributes
 from resotolib.args import ArgumentParser
-from resotolib.graph.edges import EdgeType, EdgeKey
 from resotolib.graph.export import (
     dataclasses_to_resotocore_model,
     node_to_dict,
@@ -34,7 +34,7 @@ from io import BytesIO
 from dataclasses import fields
 from typeguard import check_type
 from time import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 
 metrics_graph_search = Summary(
@@ -85,6 +85,7 @@ metrics_graph2pajek = Summary(
     "resoto_graph2pajek_seconds", "Time it took the graph2pajek() method"
 )
 
+EdgeKey = namedtuple("EdgeKey", ["src", "dst", "edge_type"])
 
 
 class Graph(networkx.MultiDiGraph):

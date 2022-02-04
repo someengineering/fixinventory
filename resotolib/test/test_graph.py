@@ -1,8 +1,7 @@
 import pytest
-import resotolib.logging as logging
 from resotolib.graph import Graph, GraphContainer, GraphExportIterator
-from resotolib.graph.edges import EdgeType
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, EdgeType
+import resotolib.logging as logging
 from dataclasses import dataclass
 from typing import ClassVar
 from sys import getrefcount

@@ -6,7 +6,6 @@ import base64
 import hashlib
 import uuid
 import weakref
-from resotolib.graph import EdgeType
 from resotolib.logging import log
 from enum import Enum
 from typing import Dict, Iterator, List, ClassVar, Optional
@@ -49,6 +48,13 @@ def unless_protected(f):
         return f(self, *args, **kwargs)
 
     return wrapper
+
+
+class EdgeType(Enum):
+    default = "default"
+    delete = "delete"
+    start = "start"
+    stop = "stop"
 
 
 @dataclass(eq=False)
