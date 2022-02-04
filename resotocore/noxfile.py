@@ -3,7 +3,7 @@ from nox.sessions import Session
 
 import tempfile
 
-nox.options.sessions = ["lint", "test",  "black", "mypy"]
+nox.options.sessions = ["lint", "test", "black", "mypy"]
 locations = "core", "tests"
 
 
@@ -65,7 +65,7 @@ def coverage(session) -> None:
     session.run("poetry", "install", "-v", "--no-dev", external=True)
     install_with_constraints(
         session, "coverage[toml]", "pytest", "pytest-cov", "pytest-runner", "pytest-asyncio", "deepdiff", "hypothesis"
-    )    
+    )
     session.run("coverage", "run", "--source", "core", "-m", "pytest", *args)
     session.run("coverage", "combine", *args)
     session.run("coverage", "xml", *args)
