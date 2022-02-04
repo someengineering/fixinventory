@@ -35,6 +35,7 @@ resh = 'resotoshell.__main__:main'
 python = "^3.8"
 prompt-toolkit = "3.0.24"
 requests-toolbelt = "0.9.1"
+rich = "11.1.0"
 resotolib = { path = "../resotolib", develop = true }
 
 [tool.poetry.dev-dependencies]
