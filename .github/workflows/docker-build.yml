@@ -368,11 +368,12 @@ jobs:
         shell: bash
         run: |
           mapfile -t tags < <(echo $(curl -sL https://api.github.com/repos/someengineering/resoto/tags?per_page=2) | jq -r '(.[] | .name)')
-          date=$(date +'%Y-%m-%d')
-          file="resoto.com/news/${date}-v${tags[0]}.md"
+          file="resoto.com/news/$(date +'%Y-%m-%d')-v${tags[0]}.md"
+          link="https://resoto.com/news/$(date +'%Y/%m/%d')/v${tags[0]}"
           python tools/release_notes.py ${tags[1]} ${tags[0]} > $file
           echo ::set-output name=tag::${tags[0]}
           echo ::set-output name=file::$file
+          echo ::set-output name=link::$link
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v3
@@ -392,5 +393,5 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          bodyFile: ${{ steps.release_notes.outputs.file }}
+          body: ${{ steps.release_notes.outputs.link }}
           token: ${{ secrets.GITHUB_TOKEN }}
