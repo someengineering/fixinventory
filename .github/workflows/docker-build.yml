@@ -1,4 +1,4 @@
-name: Build standalone Docker image
+name: Build Docker Images
 
 on:
   push:
@@ -17,6 +17,7 @@ jobs:
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -101,8 +102,9 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   split-build:
-    name: Build Docker Images
+    name: Build split Docker Images
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -345,6 +347,7 @@ jobs:
       - build
       - split-build
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -391,7 +394,8 @@ jobs:
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
-      - uses: ncipollo/release-action@v1
+      - name: Create release
+        uses: ncipollo/release-action@v1
         with:
           body: ${{ steps.release_notes.outputs.link }}
           token: ${{ secrets.GITHUB_TOKEN }}
