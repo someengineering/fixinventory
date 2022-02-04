@@ -48,6 +48,7 @@ clean-pyc: ## remove Python file artifacts
 
 clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
+	rm -fr .nox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
@@ -65,8 +66,8 @@ lint: venv ## check style with flake8
 test: venv ## run tests quickly with the default Python
 	pytest
 
-test-all: venv ## run tests on every Python version with tox
-	tox
+test-all: venv ## run tests on every Python version with nox
+	nox
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source core -m pytest
@@ -89,18 +90,15 @@ install: clean ## install the package to the active Python's site-packages
 venv-pypy:
 	pypy3.8 -m venv venv-pypy
 	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../resotolib
-	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
-	. ./venv-pypy/bin/activate && pip install -r requirements.txt
+	. ./venv-pypy/bin/activate && pip install poetry
+	. ./venv-pypy/bin/activate && poetry install --no-dev
 
 
 venv:
 	python3 -m venv venv --prompt "resotocore env"
 	. ./venv/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv/bin/activate && pip install --upgrade --editable ../resotolib
-	. ./venv/bin/activate && pip install -r requirements-dev.txt
-	. ./venv/bin/activate && pip install -r requirements-test.txt
-	. ./venv/bin/activate && pip install -r requirements.txt
+	. ./venv/bin/activate && pip install poetry nox
+	. ./venv/bin/activate && poetry install
 	. ./venv/bin/activate && mypy --python-version 3.8 core tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."
 	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive core tests || true
@@ -109,7 +107,7 @@ venv:
 setup: clean clean-env venv
 
 list-outdated: venv
-	pip list --outdated
+	poetry show --outdated
 
 install-latest: venv
-	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
+	poetry update
