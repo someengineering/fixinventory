@@ -248,6 +248,8 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
         logging.getLogger("backoff").setLevel(logging.FATAL)
         # transitions (fsm) creates a lot of log noise. Only show warnings.
         logging.getLogger("transitions.core").setLevel(logging.WARNING)
+        # apscheduler uses the term Job when it triggers, which confuses people.
+        logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
 
     # set/reset process creation method
     reset_process_start_method()
