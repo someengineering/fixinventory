@@ -41,10 +41,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry nox
       - name: Check Formatting
-        run: black --line-length 120 --check core tests
+        run: nox -rs black
       - name: Lint
         run: |
-          flake8 core
-          pylint core
+          nox -rs lint
       - name: MyPy
         run: nox -rs mypy

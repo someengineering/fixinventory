@@ -38,8 +38,10 @@ def test(session: Session) -> None:
 @nox.session(python=["3.9"])
 def lint(session) -> None:
     args = session.posargs
+    session.run("poetry", "install", "-v", "--no-dev", external=True)
     install_with_constraints(session, "flake8", "flake8-black", "pep8-naming", "pylint")
     session.run("flake8", "--verbose", "core", *args)
+    session.run("pylint", "core", *args)
 
 
 @nox.session(python=["3.9"])
@@ -49,16 +51,21 @@ def black(session) -> None:
     session.run("black", "--line-length", "120", "--check", "--diff", "--target-version", "py39", *args)
 
 
-@nox.session(python=["3.9"])
-def pylint(session) -> None:
-    args = session.posargs or locations
-    install_with_constraints(session, "pylint")
-    session.run("pylint", *args)
-
-
 @nox.session(python=["3.8"])
 def mypy(session) -> None:
     args = session.posargs or locations
     session.run("poetry", "install", external=True)
     install_with_constraints(session, "mypy")
     session.run("mypy", "--install-types", "--non-interactive", "--python-version", "3.8", "--strict", *args)
+
+
+@nox.session(python=["3.9"])
+def coverage(session) -> None:
+    args = session.posargs
+    session.run("poetry", "install", "-v", "--no-dev", external=True)
+    install_with_constraints(
+        session, "coverage[toml]", "pytest", "pytest-cov", "pytest-runner", "pytest-asyncio", "deepdiff", "hypothesis"
+    )    
+    session.run("coverage", "run", "--source", "core", "-m", "pytest", *args)
+    session.run("coverage", "combine", *args)
+    session.run("coverage", "xml", *args)

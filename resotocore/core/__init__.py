@@ -1,5 +1,6 @@
 from importlib.metadata import version as meta_version
 
+# pylint: disable=pointless-string-statement
 """
 Resoto core graph platform
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
