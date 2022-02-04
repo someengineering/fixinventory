@@ -20,16 +20,15 @@ def graph() -> DiGraph:
 
 
 def test_reversed_directed_traversal(graph: DiGraph):
-    result = [list(island) for island in dependent_node_iterator(graph)]
-    assert len(result) == 3  # 3 steps to complete
-
     def nodes(*ls: int) -> List[Dict[str, int]]:
         return [{"id": e} for e in ls]
 
+    result = list(dependent_node_iterator(graph))
+    assert len(result) == 3  # 3 steps to complete
     assert result == [
-        nodes(3, 5, 7, 10, 11, 13),
-        nodes(2, 6, 9, 12),
-        nodes(1, 4, 8),
+        nodes(3, 5, 7, 10, 11, 13),  # step 1
+        nodes(2, 6, 9, 12),  # step 2
+        nodes(1, 4, 8),  # step 3
     ]
 
 
