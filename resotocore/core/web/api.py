@@ -33,21 +33,22 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
-from resotolib.jwt import encode_jwt
 from networkx.readwrite import cytoscape_data
+from resotolib.jwt import encode_jwt
 
 from core.analytics import AnalyticsEventSender
 from core.cli.cli import CLI
+from core.cli.command import ListCommand, all_commands, aliases
 from core.cli.model import (
     ParsedCommandLine,
     CLIContext,
     OutputTransformer,
     PreserveOutputFormat,
-    InternalPart,
     CLICommand,
+    InternalPart,
 )
-from core.cli.command import ListCommand, all_commands, aliases
 from core.config import ConfigEntity
+from core.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from core.db.db_access import DbAccess
 from core.db.graphdb import GraphDB
 from core.db.model import QueryModel
@@ -696,9 +697,23 @@ class Api:
         replacements = self.cli.replacements()
         return web.json_response({"commands": commands, "replacements": replacements, "aliases": aliases()})
 
+    @staticmethod
+    def cli_context_from_request(request: Request) -> CLIContext:
+        try:
+            columns = int(request.headers.get("Resoto-Shell-Columns", "120"))
+            rows = int(request.headers.get("Resoto-Shell-Rows", "50"))
+            terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
+            colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
+            formatter = ConsoleRenderer.create_renderer(
+                width=columns, height=rows, color_system=colors, terminal=terminal
+            )
+            return CLIContext(env=dict(request.query), console_formatter=formatter)
+        except Exception as ex:
+            log.debug("Could not create CLI context.", exc_info=ex)
+            return CLIContext(env=dict(request.query), console_formatter=ConsoleRenderer.create_renderer())
+
     async def evaluate(self, request: Request) -> StreamResponse:
-        # all query parameter become the env of this command
-        ctx = CLIContext(dict(request.query))
+        ctx = self.cli_context_from_request(request)
         command = await request.text()
         parsed = await self.cli.evaluate_cli_command(command, ctx)
 
@@ -712,7 +727,7 @@ class Api:
     async def execute(self, request: Request) -> StreamResponse:
         temp_dir: Optional[str] = None
         try:
-            ctx = CLIContext(dict(request.query))
+            ctx = self.cli_context_from_request(request)
             if request.content_type.startswith("text"):
                 command = (await request.text()).strip()
             elif request.content_type.startswith("multipart"):
