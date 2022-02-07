@@ -1285,7 +1285,7 @@ class JqCommand(CLICommand, OutputTransformer):
     def info(self) -> str:
         return "Filter and process json."
 
-    path_re = re.compile("[.](?:([A-Za-z])+|(\\[]))[A-Za-z0-9\\[\\].]*")
+    path_re = re.compile("[.](?:(/?[A-Za-z]+)|(\\[]))[A-Za-z0-9\\[\\].]*")
 
     @staticmethod
     def rewrite_props(arg: str, ctx: CLIContext) -> str:
