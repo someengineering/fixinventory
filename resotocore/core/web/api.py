@@ -548,7 +548,7 @@ class Api:
         graph = self.db.get_graph_db(graph_id)
         patch = await request.json()
         md = await self.model_handler.load_model()
-        node = await graph.update_node(md, node_id, patch, section)
+        node = await graph.update_node(md, node_id, patch, False, section)
         return web.json_response(node)
 
     async def delete_node(self, request: Request) -> StreamResponse:

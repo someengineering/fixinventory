@@ -2378,7 +2378,7 @@ class TagCommand(SendWorkerTaskCommand):
                 if is_node(result):
                     db = self.dependencies.db_access.get_graph_db(env["graph"])
                     try:
-                        updated: Json = await db.update_node(model, result["id"], result, None)
+                        updated: Json = await db.update_node(model, result["id"], result, True, None)
                         return updated
                     except ClientError as ex:
                         # if the change could not be reflected in database, show success

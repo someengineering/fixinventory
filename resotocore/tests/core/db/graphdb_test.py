@@ -519,9 +519,14 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    json = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
-    assert to_foo(json).name == "bla"
+    json_patch = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
+    assert to_foo(json_patch).name == "bla"
     assert to_foo(await graph_db.get_node(foo_model, "some_other")).name == "bla"
+    json_replace = (
+        await graph_db.update_node(foo_model, "some_other", {"kind": "bla", "identifier": "123"}, True, "reported")
+    )["reported"]
+    json_replace.pop("ctime")  # ctime is added by the system automatically. remove it
+    assert json_replace == {"kind": "bla", "identifier": "123"}
 
 
 @pytest.mark.asyncio
@@ -584,7 +589,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 @pytest.mark.asyncio
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
+    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
     await event_graph_db.delete_node("some_other")
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
