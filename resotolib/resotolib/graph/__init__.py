@@ -270,6 +270,7 @@ class Graph(networkx.MultiDiGraph):
         This means it is valid if there are cycles in the graph but not for the same edge type.
         :return: True if the graph is acyclic for all edge types, otherwise False.
         """
+        log.debug("Ensuring graph is directed and acyclic per edge type")
         edges_per_type = defaultdict(list)
         for edge in self.edges(keys=True):
             if len(edge) == 3:
@@ -678,6 +679,7 @@ def validate_dataclass(node: BaseResource):
 
 
 def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
+    log.debug("Validating attribute types of all graph dataclasses")
     node_chksums = {}
     for node in graph.nodes:
         if isinstance(node, BaseResource):
