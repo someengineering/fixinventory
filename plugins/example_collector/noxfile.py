@@ -4,7 +4,7 @@ from nox.sessions import Session
 import tempfile
 
 nox.options.sessions = "lint", "test", "black"
-locations = "resoto_plugin_gcp", "test", "noxfile.py"
+locations = "resoto_plugin_example_collector", "test", "noxfile.py"
 
 
 def install_with_constraints(session: Session, *args, **kwargs):
