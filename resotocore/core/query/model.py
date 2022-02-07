@@ -770,9 +770,11 @@ class Query:
         parts = [p.change_variable(fn) for p in self.parts]
         return replace(self, aggregate=aggregate, parts=parts)
 
-    def rewrite_for_ancestors_descendants(self) -> Query:
-        def rewrite_for_aggregate(aggregate: Aggregate, parts: List[Part]) -> None:
-            anc_desc = {path: 1 for path in aggregate.property_paths() if is_ancestor_descendant(path)}
+    def rewrite_for_ancestors_descendants(self, additional_paths_to_select: Optional[Iterable[str]] = None) -> Query:
+        def rewrite_for_additional_paths(parts: List[Part]) -> None:
+            paths: Set[str] = self.aggregate.property_paths() if self.aggregate else set()
+            paths.update(additional_paths_to_select or set())
+            anc_desc = {path: 1 for path in paths if is_ancestor_descendant(path)}
             if anc_desc:
                 current = parts[0]
                 queries = current.merge_queries_for(anc_desc)
@@ -784,8 +786,8 @@ class Query:
                 parts[0] = replace(current, term=merge_term)
 
         adapted = [part.rewrite_for_ancestors_descendants() for part in self.parts]
-        if self.aggregate:
-            rewrite_for_aggregate(self.aggregate, adapted)
+        if self.aggregate or additional_paths_to_select:
+            rewrite_for_additional_paths(adapted)
         return replace(self, parts=adapted)
 
     def on_section(self, section: Optional[str] = PathRoot) -> Query:

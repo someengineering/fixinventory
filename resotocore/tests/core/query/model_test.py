@@ -1,7 +1,18 @@
 import pytest
 
 from core.model.graph_access import Direction
-from core.query.model import P, Query, AllTerm, IsTerm, PathRoot, Part, MergeQuery, Navigation, MergeTerm
+from core.query.model import (
+    P,
+    Query,
+    AllTerm,
+    IsTerm,
+    PathRoot,
+    Part,
+    MergeQuery,
+    Navigation,
+    MergeTerm,
+    NavigateUntilRoot,
+)
 from core.query.query_parser import parse_query
 
 
@@ -200,7 +211,23 @@ def test_merge_query_creation() -> None:
     assert Part(AllTerm()).merge_queries_for(["ancestors.foo.reported.bla"]) == merge_foo
     # merge_foo is already included and not added
     assert Part(MergeTerm(AllTerm(), merge_foo)).merge_queries_for(["ancestors.foo.reported.bla"]) == merge_foo
+    # neither ancestors/descendants
     with pytest.raises(Exception):
         Part(AllTerm()).merge_queries_for(["unknown.foo.reported.bla"])
+    # no path is given
     with pytest.raises(Exception):
         Part(AllTerm()).merge_queries_for(["ancestors.foo"])
+
+    # rewrite for ancestors/descendants also work with additional properties
+    assert (
+        str(Query.by("test").rewrite_for_ancestors_descendants(["ancestors.kind.reported.prop", "test", "a"]))
+        == 'is("test") {ancestors.kind: all <-[1:]- is("kind")}'
+    )
+    assert (
+        str(
+            Query.by("test")
+            .merge_with("ancestors.cloud", NavigateUntilRoot, IsTerm(["cloud"]))
+            .rewrite_for_ancestors_descendants(["ancestors.kind.reported.prop", "test", "a"])
+        )
+        == 'is("test") {ancestors.kind: all <-[1:]- is("kind"), ancestors.cloud: all <-[1:]- is("cloud")}'
+    )
