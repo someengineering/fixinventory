@@ -796,8 +796,8 @@ class GraphExportIterator:
         if gmk == "account":
             self.graph_merge_kind = BaseAccount
         self.graph_exported = False
+        self.export_lock = threading.Lock()
         self.total_lines = 0
-        self.dump_lock = threading.Lock()
 
     def __del__(self):
         try:
@@ -830,7 +830,7 @@ class GraphExportIterator:
         self.tempfile.seek(0)
 
     def export_graph(self):
-        with self.dump_lock:
+        with self.export_lock:
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
