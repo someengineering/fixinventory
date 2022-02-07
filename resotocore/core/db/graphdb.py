@@ -48,7 +48,9 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
+    async def update_node(
+        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+    ) -> Json:
         pass
 
     @abstractmethod
@@ -175,29 +177,39 @@ class ArangoGraphDB(GraphDB):
             trafo = self.document_to_instance_fn(model)
             return trafo(result["new"])
 
-    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
-        return await self.update_node_with(self.db, model, node_id, patch, section)
+    async def update_node(
+        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+    ) -> Json:
+        return await self.update_node_with(self.db, model, node_id, patch_or_replace, replace, section)
 
     async def update_node_with(
-        self, db: AsyncArangoDBBase, model: Model, node_id: str, patch: Json, section: Optional[str]
+        self,
+        db: AsyncArangoDBBase,
+        model: Model,
+        node_id: str,
+        patch_or_replace: Json,
+        replace: bool,
+        section: Optional[str],
     ) -> Json:
         node = await self.by_id_with(db, node_id)
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
-        if "revision" in patch and patch["revision"] != node["_rev"]:
-            raise OptimisticLockingFailed(node_id, node["_rev"], patch["revision"])
+        if "revision" in patch_or_replace and patch_or_replace["revision"] != node["_rev"]:
+            raise OptimisticLockingFailed(node_id, node["_rev"], patch_or_replace["revision"])
 
         updated = node.copy()
         if section:
             existing_section = node.get(section)
             existing_section = existing_section if existing_section else {}
-            updated[section] = {**existing_section, **patch}
+            updated[section] = patch_or_replace if replace else {**existing_section, **patch_or_replace}
         else:
             for sect in Section.content_ordered:
-                if sect in patch:
+                if sect in patch_or_replace:
                     existing_section = node.get(sect)
                     existing_section = existing_section if existing_section else {}
-                    updated[sect] = {**existing_section, **patch[sect]}
+                    updated[sect] = (
+                        patch_or_replace[sect] if replace else {**existing_section, **patch_or_replace[sect]}
+                    )
 
         # Only the reported section is defined by the model and can be coerced
         kind = model[updated[Section.reported]]
@@ -218,7 +230,7 @@ class ArangoGraphDB(GraphDB):
             if sec in adjusted:
                 update[sec] = adjusted[sec]
 
-        result = await db.update(self.vertex_name, update, return_new=True)
+        result = await db.update(self.vertex_name, update, return_new=True, merge=not replace)
         trafo = self.document_to_instance_fn(model)
         return trafo(result["new"])
 
@@ -254,7 +266,7 @@ class ArangoGraphDB(GraphDB):
             async def update_node_multi(js: Json, node_ids: List[str]) -> AsyncGenerator[Json, None]:
                 for node_id in node_ids:
                     log.debug(f"Update node: change={js} on {node_id}")
-                    single_update = await self.update_node_with(tx, model, node_id, js, None)
+                    single_update = await self.update_node_with(tx, model, node_id, js, False, None)
                     yield single_update
 
             for section, ids in deletes.items():
@@ -1035,8 +1047,10 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeCreated, {"graph": self.graph_name})
         return result
 
-    async def update_node(self, model: Model, node_id: str, patch: Json, section: Optional[str]) -> Json:
-        result = await self.real.update_node(model, node_id, patch, section)
+    async def update_node(
+        self, model: Model, node_id: str, patch_or_replace: Json, replace: bool, section: Optional[str]
+    ) -> Json:
+        result = await self.real.update_node(model, node_id, patch_or_replace, replace, section)
         await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
         return result
 
