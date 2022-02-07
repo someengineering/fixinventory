@@ -58,10 +58,10 @@ class EdgeType(Enum):
 
     @staticmethod
     def from_value(value: Optional[str] = None) -> Enum:
-        if value is not None:
-            for v, e in EdgeType.__members__.items():
-                if value == v:
-                    return e
+        try:
+            return EdgeType(value)
+        except ValueError:
+            pass
         return EdgeType.default
 
 
