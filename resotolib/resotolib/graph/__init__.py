@@ -795,7 +795,7 @@ class GraphExportIterator:
         gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
         if gmk == "account":
             self.graph_merge_kind = BaseAccount
-        self.graph_dumped = False
+        self.graph_exported = False
         self.total_lines = 0
         self.dump_lock = threading.Lock()
 
@@ -806,8 +806,8 @@ class GraphExportIterator:
             pass
 
     def __iter__(self):
-        if not self.graph_dumped:
-            self.dump_graph()
+        if not self.graph_exported:
+            self.export_graph()
         start_time = time()
         last_sent = time()
         lines_sent = 0
@@ -829,7 +829,7 @@ class GraphExportIterator:
         log.debug(f"Sent {lines_sent} nodes and edges in {elapsed:.4f}s")
         self.tempfile.seek(0)
 
-    def dump_graph(self):
+    def export_graph(self):
         with self.dump_lock:
             start_time = time()
             for node in self.graph.nodes:
@@ -865,6 +865,6 @@ class GraphExportIterator:
                 f"Wrote {self.total_lines} nodes and edges"
                 f" to {self.tempfile.name} in {elapsed:.4f}s"
             )
-            self.graph_dumped = True
+            self.graph_exported = True
             del self.graph
             self.tempfile.seek(0)
