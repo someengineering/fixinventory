@@ -30,19 +30,18 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          key: $\{\{runner.os}}-pip-$\{\{hashFiles('pyproject.toml')}}
           restore-keys: |
             $\{\{ runner.os }}-pip-
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
-          pip install tox wheel flake8
+          pip install poetry nox
 
       - name: Run tests
         working-directory: ./plugins/onelogin
-        run: tox
+        run: nox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
