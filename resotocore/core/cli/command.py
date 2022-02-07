@@ -65,6 +65,7 @@ from core.cli.model import (
     CLIFileRequirement,
     CLIDependencies,
     ParsedCommand,
+    NoTerminalOutput,
 )
 from core.db.model import QueryModel
 from core.dependencies import system_info
@@ -2734,7 +2735,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
-class WriteCommand(CLICommand):
+class WriteCommand(CLICommand, NoTerminalOutput):
     """
     ```shell
     write <file-name>

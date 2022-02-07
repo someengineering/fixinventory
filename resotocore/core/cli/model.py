@@ -60,7 +60,7 @@ class CLIContext:
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(default_factory=dict)
-    console_formatter: Optional[ConsoleRenderer] = None
+    console_renderer: Optional[ConsoleRenderer] = None
 
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section
@@ -68,8 +68,8 @@ class CLIContext:
         return variable_to_absolute(section, variable)
 
     def render_console(self, element: Union[str, JupyterMixin]) -> str:
-        if self.console_formatter:
-            return self.console_formatter.render(element)
+        if self.console_renderer:
+            return self.console_renderer.render(element)
         elif isinstance(element, JupyterMixin):
             return str(element)
         else:
@@ -301,6 +301,12 @@ class OutputTransformer(ABC):
 class PreserveOutputFormat(ABC):
     """
     Mark all commands where the output should not be flattened to default line output.
+    """
+
+
+class NoTerminalOutput(ABC):
+    """
+    Mark all commands where the output should not contain any terminal escape codes.
     """
 
 

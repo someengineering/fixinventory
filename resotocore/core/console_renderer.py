@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections import deque, defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union, Literal, Dict, Generator
+from functools import lru_cache
+from typing import Optional, Union, Literal, Dict, Generator, ClassVar
 
 from rich.console import Console
 from rich.default_styles import DEFAULT_STYLES
@@ -77,30 +77,15 @@ class ConsolePool:
         self.consoles[system].append(console)
 
 
-class ConsoleRenderer(ABC):
-    @abstractmethod
-    def render(self, element: Union[str, JupyterMixin]) -> str:
-        pass
-
-    # Use this object pool to maintain used consoles
-    console_pool = ConsolePool()
-
-    @staticmethod
-    def create_renderer(
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        color_system: Optional[ConsoleColorSystem] = None,
-        terminal: Optional[bool] = None,
-    ) -> ConsoleRenderer:
-        return ConsolePoolRenderer(width, height, color_system, terminal)
-
-
 @dataclass
-class ConsolePoolRenderer(ConsoleRenderer):
+class ConsoleRenderer:
     width: Optional[int] = None
     height: Optional[int] = None
     color_system: Optional[ConsoleColorSystem] = None
     terminal: Optional[bool] = None
+
+    # Use this object pool to maintain used consoles
+    console_pool: ClassVar[ConsolePool] = ConsolePool()
 
     def render(self, element: Union[str, JupyterMixin]) -> str:
         to_render = Markdown(element) if isinstance(element, str) else element
@@ -115,3 +100,9 @@ class ConsolePoolRenderer(ConsoleRenderer):
             with console.capture() as capture:
                 console.print(to_render)
             return capture.get()
+
+    @staticmethod
+    @lru_cache
+    def default_renderer() -> ConsoleRenderer:
+        # Output is created in a way, that it can be displayed on any terminal
+        return ConsoleRenderer(80, 25, ConsoleColorSystem.monochrome)
