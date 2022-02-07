@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "resoto-plugin-aws"
+version = "2.0.0a16"
+description = "Resoto AWS Plugin"
+authors = ["Some Engineering Inc."]
+license = "Apache-2.0"
+homepage = "https://resoto.com/"
+repository = "https://github.com/someengineering/resoto"
+documentation = "https://resoto.com/docs/"
+keywords = ["cloud", "security", "infrastructure intelligence"]
+classifiers = [
+    # Current project status
+    "Development Status :: 4 - Beta",
+    # Audience
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    # License information
+    "License :: OSI Approved :: Apache Software License",
+    # Supported python versions
+    "Programming Language :: Python :: 3.8",
+    # Supported OS's
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    # Extra metadata
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Utilities",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+retrying = "1.3.3"
+SQLAlchemy = "1.4.29"
+boto3 = "1.20.32"
+botocore = "1.23.32"
+resotolib = { path = "../../resotolib", develop = true }
+
+[tool.poetry.dev-dependencies]
+flake8 = "4.0.1"
+pep8-naming = "0.12.1"
+coverage = {extras = ["toml"], version = "6.3.1"}
+pylint = "2.12.2"
+pytest = "6.2.5"
+pytest-cov = "3.0.0"
+pytest-runner = "5.3.1"
+mypy = "0.931"
+black = "22.1.0"
+flake8-black = "0.2.4"
+
+[tool.poetry.scripts]
+resoto-aws-org-list = "resoto_plugin_aws.cmd.org_list:main"
+resoto-aws-s3 = "resoto_plugin_aws.cmd.s3:main"
+
+[tool.poetry.plugins."resoto.plugins"]
+"aws" = "resoto_plugin_aws:AWSPlugin"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.paths]
+source = ["resoto_plugin_tagvalidator"]
+
+[tool.coverage.run]
+branch = true
+source = ["resoto_plugin_tagvalidator"]
+
+[tool.coverage.report]
+show_missing = true
