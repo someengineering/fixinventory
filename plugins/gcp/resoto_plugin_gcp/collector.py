@@ -576,8 +576,10 @@ class GCPProjectCollector:
             search_map: Dict containing a mapping similar to attr_map except that
                 any results get looked up in `self.graph` instead of just passing
                 the result data as an attribute.
-            successors: List of resource successors (child nodes)
-            predecessors: List of resource predecessors (parent nodes)
+            successors: Dict of EdgeTypes with List of resource
+                successors (child nodes)
+            predecessors: Dict of EdgeTypes with List of resource
+                predecessors (parent nodes)
             client_kwargs: **kwargs that get passed to the GCP client
             resource_kwargs: **kwargs that get passed to the GCP resource
             paginate_subitems_name: Name of a resource in a aggregatedList result set
@@ -599,9 +601,9 @@ class GCPProjectCollector:
         if resource_kwargs is None:
             resource_kwargs = {}
         if successors is None:
-            successors = []
+            successors = {}
         if predecessors is None:
-            predecessors = []
+            predecessors = {}
         parent_map = {True: predecessors, False: successors}
 
         # For APIs that take a parent (`projects/*/locations/*`) parameter,

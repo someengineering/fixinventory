@@ -39,9 +39,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
 
-        query = (
-            '(edge_type=delete) reported.kind in ["aws_elb", "aws_alb", "aws_alb_target_group"] <-[0:]->'
-        )
+        query = '(edge_type=delete) reported.kind in ["aws_elb", "aws_alb", "aws_alb_target_group"] <-[0:]->'
         graph = cg.graph(query)
         self.loadbalancer_cleanup(graph)
         cg.patch_nodes(graph)
@@ -134,7 +132,9 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                         or len(
                             [
                                 i
-                                for i in tg.predecessors(graph, edge_type=EdgeType.delete)
+                                for i in tg.predecessors(
+                                    graph, edge_type=EdgeType.delete
+                                )
                                 if isinstance(i, AWSEC2Instance)
                                 and i.instance_status != "terminated"
                             ]

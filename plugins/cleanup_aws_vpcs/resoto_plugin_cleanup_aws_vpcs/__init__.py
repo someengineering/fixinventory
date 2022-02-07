@@ -1,3 +1,4 @@
+from resotolib.baseresources import EdgeType
 import yaml
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logging import log
@@ -76,7 +77,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
 
             vpc_instances = [
                 i
-                for i in node.descendants(graph)
+                for i in node.descendants(graph, edge_type=EdgeType.delete)
                 if isinstance(i, AWSEC2Instance)
                 and i.instance_status not in ("shutting-down", "terminated")
                 and not i.clean
@@ -90,7 +91,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
 
             log.debug(f"{log_prefix} Marking dependent resources for cleanup as well.")
 
-            for descendant in node.descendants(graph):
+            for descendant in node.descendants(graph, edge_type=EdgeType.delete):
                 log.debug(f"Found descendant {descendant.rtdname} of VPC {node.dname}")
                 if isinstance(
                     descendant,
