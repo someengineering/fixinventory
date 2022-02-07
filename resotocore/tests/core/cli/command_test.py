@@ -5,6 +5,7 @@ import re
 import shutil
 import tempfile
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import List, Dict, Optional, Any, AsyncIterator, Tuple
 
@@ -23,6 +24,7 @@ from core.cli import is_node
 from core.cli.cli import CLI
 from core.cli.command import HttpCommand, JqCommand
 from core.cli.model import CLIDependencies, CLIContext
+from core.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
@@ -638,7 +640,7 @@ async def test_templates_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_write_command(cli: CLI) -> None:
-    async def check_file(res: Stream) -> None:
+    async def check_file(res: Stream, check_content: Optional[str] = None) -> None:
         async with res.stream() as streamer:
             only_one = True
             async for s in streamer:
@@ -649,11 +651,25 @@ async def test_write_command(cli: CLI) -> None:
                 assert p.name.startswith("write_test")
                 assert only_one
                 only_one = False
+                if check_content:
+                    with open(s, "r") as file:
+                        data = file.read()
+                        assert data == check_content
 
     # result can be read as json
     await cli.execute_cli_command("query all limit 3 | format --json | write write_test.json ", check_file)
     # result can be read as yaml
     await cli.execute_cli_command("query all limit 3 | format --yaml | write write_test.yaml ", check_file)
+    # write enforces unescaped output.
+    truecolor = CLIContext(console_renderer=ConsoleRenderer(80, 25, ConsoleColorSystem.truecolor, True))
+    monochrome = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    # Make sure, that the truecolor output is different from monochrome output
+    mono_out = await cli.execute_cli_command("help", stream.list, monochrome)
+    assert await cli.execute_cli_command("help", stream.list, truecolor) != mono_out
+    # We expect the content of the written file to contain monochrome output.
+    assert await cli.execute_cli_command(
+        "help | write write_test.txt", partial(check_file, check_content="\n".join(mono_out[0])), truecolor
+    )
 
 
 @pytest.mark.asyncio
