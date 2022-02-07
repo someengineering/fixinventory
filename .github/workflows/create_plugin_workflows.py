@@ -44,7 +44,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install poetry nox
-          poetry install
 """
 
 step_run_test = """
