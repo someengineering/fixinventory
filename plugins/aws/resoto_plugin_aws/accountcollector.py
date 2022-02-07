@@ -1048,6 +1048,7 @@ class AWSAccountCollector:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
                         graph.add_edge(p, g)
+                        graph.add_edge(g, p, edge_type=EdgeType.delete)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchEntity":
                     log.exception(
@@ -1146,6 +1147,7 @@ class AWSAccountCollector:
                     ip = graph.search_first("arn", instance_profile["Arn"])
                     if ip:
                         graph.add_edge(r, ip)
+                        graph.add_edge(r, ip, edge_type=EdgeType.delete)
 
                 role_response = role_client.list_attached_role_policies(RoleName=r.name)
                 policies = role_response.get("AttachedPolicies", [])
@@ -1158,6 +1160,7 @@ class AWSAccountCollector:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
                         graph.add_edge(r, p)
+                        graph.add_edge(r, p, edge_type=EdgeType.delete)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchEntity":
                     log.exception(
@@ -1224,6 +1227,7 @@ class AWSAccountCollector:
                     p = graph.search_first("arn", policy["PolicyArn"])
                     if p:
                         graph.add_edge(p, u)
+                        graph.add_edge(u, p, edge_type=EdgeType.delete)
 
                 user_response = user_client.list_groups_for_user(UserName=u.name)
                 groups = user_response.get("Groups", [])
