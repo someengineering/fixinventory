@@ -525,6 +525,8 @@ async def test_jq_command(cli: CLI) -> None:
     ctx = CLIContext(env={"section": "reported"}, query=Query.by("test"))
     # .test -> .reported.test
     assert JqCommand.rewrite_props(".a,.b", ctx) == ".reported.a,.reported.b"
+    # absolute paths are rewritten correctly
+    assert JqCommand.rewrite_props("./reported", ctx) == ".reported"
     # object construction is supported
     assert JqCommand.rewrite_props("{a:.a, b:.b}", ctx) == "{a:.reported.a, b:.reported.b}"
     # no replacement after pipe
@@ -533,6 +535,10 @@ async def test_jq_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('json {"a":{"b":1}} | jq ".a.b"', stream.list)
     assert len(result[0]) == 1
     assert result[0][0] == 1
+
+    # allow absolute paths as json path
+    result = await cli.execute_cli_command('json {"id":"123", "reported":{"b":1}} | jq "./reported"', stream.list)
+    assert result == [[{"b": 1}]]
 
     # jq .kind is rewritten as .reported.kind
     result = await cli.execute_cli_command("query is(foo) limit 2 | jq .kind", stream.list)
