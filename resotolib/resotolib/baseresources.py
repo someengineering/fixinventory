@@ -56,6 +56,14 @@ class EdgeType(Enum):
     start = "start"
     stop = "stop"
 
+    @staticmethod
+    def from_value(value: Optional[str] = None) -> Enum:
+        if value is not None:
+            for v, e in EdgeType.__members__.items():
+                if value == v:
+                    return e
+        return EdgeType.default
+
 
 @dataclass(eq=False)
 class BaseResource(ABC):
