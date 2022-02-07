@@ -1,0 +1,63 @@
+[tool.poetry]
+name = "resoto-plugin-protect_snowflakes"
+version = "2.0.0a16"
+description = "Resoto Snowflake Protection Plugin"
+authors = ["Some Engineering Inc."]
+license = "Apache-2.0"
+homepage = "https://resoto.com/"
+repository = "https://github.com/someengineering/resoto"
+documentation = "https://resoto.com/docs/"
+keywords = ["cloud", "security", "infrastructure intelligence"]
+classifiers = [
+    # Current project status
+    "Development Status :: 4 - Beta",
+    # Audience
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    # License information
+    "License :: OSI Approved :: Apache Software License",
+    # Supported python versions
+    "Programming Language :: Python :: 3.8",
+    # Supported OS's
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    # Extra metadata
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Utilities",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyYAML = "6.0"
+resotolib = { path = "../../resotolib", develop = true }
+
+[tool.poetry.dev-dependencies]
+flake8 = "4.0.1"
+pep8-naming = "0.12.1"
+coverage = {extras = ["toml"], version = "6.3.1"}
+pylint = "2.12.2"
+pytest = "6.2.5"
+pytest-cov = "3.0.0"
+pytest-runner = "5.3.1"
+mypy = "0.931"
+black = "22.1.0"
+flake8-black = "0.2.4"
+
+[tool.poetry.plugins."resoto.plugins"]
+"protect_snowflakes" = "resoto_plugin_protect_snowflakes:ProtectSnowflakesPlugin"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.paths]
+source = ["resoto_plugin_protect_snowflakes"]
+
+[tool.coverage.run]
+branch = true
+source = ["resoto_plugin_protect_snowflakes"]
+
+[tool.coverage.report]
+show_missing = true
