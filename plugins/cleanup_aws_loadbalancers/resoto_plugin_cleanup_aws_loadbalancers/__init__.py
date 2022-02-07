@@ -1,4 +1,5 @@
 from resotolib.baseplugin import BaseActionPlugin
+from resotolib.baseresources import EdgeType
 from resotolib.logging import log
 from resotolib.core.query import CoreGraph
 from resotolib.graph import Graph
@@ -39,7 +40,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
         cg = CoreGraph()
 
         query = (
-            'reported.kind in ["aws_elb", "aws_alb", "aws_alb_target_group"] <-[0:]->'
+            '(edge_type=delete) reported.kind in ["aws_elb", "aws_alb", "aws_alb_target_group"] <-[0:]->'
         )
         graph = cg.graph(query)
         self.loadbalancer_cleanup(graph)
@@ -70,7 +71,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 and len(
                     [
                         i
-                        for i in node.predecessors(graph)
+                        for i in node.predecessors(graph, edge_type=EdgeType.delete)
                         if isinstance(i, AWSEC2Instance)
                         and i.instance_status != "terminated"
                     ]
@@ -90,7 +91,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 and len(
                     [
                         n
-                        for n in node.predecessors(graph)
+                        for n in node.predecessors(graph, edge_type=EdgeType.delete)
                         if isinstance(n, AWSALBTargetGroup)
                     ]
                 )
@@ -106,7 +107,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 node.clean = True
             elif (
                 isinstance(node, AWSALBTargetGroup)
-                and len(list(node.successors(graph))) == 0
+                and len(list(node.successors(graph, edge_type=EdgeType.delete))) == 0
             ):
                 log.debug(
                     (
@@ -119,7 +120,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                 cleanup_alb = True
                 target_groups = [
                     n
-                    for n in node.predecessors(graph)
+                    for n in node.predecessors(graph, edge_type=EdgeType.delete)
                     if isinstance(n, AWSALBTargetGroup)
                 ]
 
@@ -133,7 +134,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                         or len(
                             [
                                 i
-                                for i in tg.predecessors(graph)
+                                for i in tg.predecessors(graph, edge_type=EdgeType.delete)
                                 if isinstance(i, AWSEC2Instance)
                                 and i.instance_status != "terminated"
                             ]
