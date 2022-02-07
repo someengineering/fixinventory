@@ -77,7 +77,8 @@ class AsyncCursor(AsyncIterator[Json]):
 
             from_id = element.get("_from")
             to_id = element.get("_to")
-            if from_id is not None and to_id is not None:
+            link_id = element.get("_link_id")
+            if from_id is not None and to_id is not None and link_id is not None:
                 edge_key = (from_id, to_id)
                 if edge_key not in self.visited_edge:
                     self.visited_edge.add(edge_key)
@@ -85,8 +86,12 @@ class AsyncCursor(AsyncIterator[Json]):
                         self.vt_len = len(re.sub("/.*$", "", from_id)) + 1
                     edge = {
                         "type": "edge",
+                        # example: vertex_name/node_id -> node_id
                         "from": from_id[self.vt_len :],  # noqa: E203
-                        "to": to_id[self.vt_len :],  # noqa: E203,
+                        # example: vertex_name/node_id -> node_id
+                        "to": to_id[self.vt_len :],  # noqa: E203
+                        # example: vertex_name_default/edge_id -> default
+                        "edge_type": re.sub("/.*$", "", link_id[self.vt_len :]),  # noqa: E203
                     }
             # if the vertex is not returned: return the edge
             # otherwise return the vertex and remember the edge

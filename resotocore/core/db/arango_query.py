@@ -356,7 +356,11 @@ def query_string(
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
             link_str = f", {link}" if with_edges else ""
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
-            inout_result = f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to}})" if with_edges else out_crsr
+            inout_result = (
+                f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to, _link_id:{link}._id}})"
+                if with_edges
+                else out_crsr
+            )
             if outer_merge and part_idx == 0:
                 graph_cursor = in_crsr
                 outer_for = ""

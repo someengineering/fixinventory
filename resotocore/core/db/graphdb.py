@@ -366,10 +366,11 @@ class ArangoGraphDB(GraphDB):
 
     async def query_graph(self, query: QueryModel) -> DiGraph:
         async with await self.query_graph_gen(query) as cursor:
-            graph = DiGraph()
+            graph = MultiDiGraph()
             async for item in cursor:
-                if "from" in item and "to" in item:
-                    graph.add_edge(item["from"], item["to"])
+                if "from" in item and "to" in item and "edge_type" in item:
+                    key = (item["from"], item["to"], item["edge_type"])
+                    graph.add_edge(item["from"], item["to"], key, edge_type=item["edge_type"])
                 elif "id" in item:
                     graph.add_node(item["id"], **item)
             return graph
