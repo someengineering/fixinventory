@@ -649,7 +649,7 @@ use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
 
 [[package]]
 name = "resotolib"
-version = "2.0.0a15"
+version = "2.0.0a16"
 description = "Resoto common library."
 category = "main"
 optional = false
