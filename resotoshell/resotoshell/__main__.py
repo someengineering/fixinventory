@@ -3,7 +3,7 @@ import pathlib
 import re
 import shutil
 import sys
-from functools import cache
+from functools import lru_cache
 from threading import Event
 from typing import Dict, Union, Any, Optional
 from urllib.parse import urlencode, urlsplit
@@ -194,7 +194,7 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
             handle_result(part, num == 0)
 
 
-@cache
+@lru_cache(maxsize=None)
 def color_system() -> str:
     if ArgumentParser.args.no_color:
         return "monochrome"
