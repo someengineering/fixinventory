@@ -204,7 +204,7 @@ pip_install() {
     local relative_path="${path_prefix}${package}/"
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
-        cd "$package_name"
+        cd "$relative_path"
         poetry install -q
         cd ..
     else
