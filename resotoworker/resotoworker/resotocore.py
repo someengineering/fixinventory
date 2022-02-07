@@ -72,6 +72,7 @@ def send_graph(
     log.debug(f"Sending graph via {merge_uri}")
 
     graph_export_iterator = GraphExportIterator(graph, delete_tempfile=not dump_json)
+    graph_export_iterator.export_graph()
 
     headers = {
         "Content-Type": "application/x-ndjson",
