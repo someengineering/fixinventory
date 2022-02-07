@@ -8,7 +8,6 @@ from resotolib.graph import Graph
 from resotolib.args import ArgumentParser
 from resotolib.utils import except_log_and_pass
 from prometheus_client import Summary
-from sqlalchemy import delete
 from .resources import (
     GCPGKECluster,
     GCPProject,
