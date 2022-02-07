@@ -29,6 +29,7 @@ from typing import (
     Callable,
     Awaitable,
     cast,
+    Set,
 )
 from urllib.parse import urlparse, urlunparse
 
@@ -2351,7 +2352,7 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
-    def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
+    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
         async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
@@ -2362,7 +2363,7 @@ class TagCommand(SendWorkerTaskCommand):
                 .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
                 .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
                 .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
-            )
+            ).rewrite_for_ancestors_descendants(variables)
             query_model = QueryModel(query, model)
             async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
                 async for a in crs:
@@ -2403,6 +2404,8 @@ class TagCommand(SendWorkerTaskCommand):
         p = NoExitArgumentParser()
         p.add_argument("--nowait", dest="nowait", default=False, action="store_true")
         ns, rest = p.parse_known_args(arg_tokens)
+        variables: Optional[Set[str]] = None
+
         if arg_tokens[0] == "delete" and len(rest) == 2:
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
                 "tag",
@@ -2411,7 +2414,7 @@ class TagCommand(SendWorkerTaskCommand):
             )  # noqa: E731
         elif arg_tokens[0] == "update" and len(rest) == 3:
             _, tag, vin = rest
-            formatter = ctx.formatter(double_quoted_or_simple_string_dp.parse(vin))
+            formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
                 "tag",
                 self.carz_from_node(item),
@@ -2422,7 +2425,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
-                load = self.load_by_id_merged(model, in_stream, **ctx.env)
+                load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
                 result_handler = self.handle_result(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
