@@ -99,17 +99,17 @@ class ModelHandlerDB(ModelHandler):
             "skinparam ArrowColor #ffaf37\n"
             "skinparam ArrowThickness 2\n"
             "skinparam BackgroundColor transparent\n"
-            "skinparam ClassAttributeFontColor #ffe797\n"
-            "skinparam ClassBackgroundColor #194875\n"
-            "skinparam ClassBorderColor Black\n"
-            "skinparam ClassFontColor #ffe797\n"
+            "skinparam ClassAttributeFontColor #d9b8ff\n"
+            "skinparam ClassBackgroundColor #3d176e\n"
+            "skinparam ClassBorderColor #000d19\n"
+            "skinparam ClassFontColor #d9b8ff\n"
             "skinparam ClassFontName Helvetica\n"
             "skinparam ClassFontSize 17\n"
             "skinparam Padding 5\n"
             "skinparam RoundCorner 5\n"
             "skinparam Shadowing false\n"
-            "skinparam stereotypeCBackgroundColor #1a83af\n"
-            "skinparam stereotypeIBackgroundColor #1a83af\n"
+            "skinparam stereotypeCBackgroundColor #e98df7\n"
+            "skinparam stereotypeIBackgroundColor #e98df7\n"
         )
 
         nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
