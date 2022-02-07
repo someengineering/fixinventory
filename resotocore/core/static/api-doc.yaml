@@ -218,9 +218,9 @@ paths:
                           [
                               { "id": "a", "data": { "kind": "loadbalancer", "ip": "1.2.3.4", "mathod": "roundrobin" } },
                               { "id": "b", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
-                              { "from": "a", "to": "b" },
+                              { "from": "a", "to": "b", "edge_type": "default" },
                               { "id": "c", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
-                              { "from": "a", "to": "c" }
+                              { "from": "a", "to": "c", "edge_type": "default" }
                           ]
             responses:
                 "200":
@@ -270,9 +270,9 @@ paths:
                           [
                               { "id": "a", "data": { "kind": "loadbalancer", "ip": "1.2.3.4", "mathod": "roundrobin" } },
                               { "id": "b", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
-                              { "from": "a", "to": "b" },
+                              { "from": "a", "to": "b", "edge_type": "default" },
                               { "id": "c", "data": { "kind": "compute_instance", "machine_type": "gt-5", "cores": 24 } },
-                              { "from": "a", "to": "c" }
+                              { "from": "a", "to": "c", "edge_type": "default" }
                           ]
             responses:
                 "200":
@@ -705,7 +705,7 @@ paths:
                             example: |
                                 {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
                                 {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
-                                {"type": "edge", "from": "root", "to": "cloud_id"}
+                                {"type": "edge", "from": "root", "to": "cloud_id", "edge_type": "default"}
                         text/plain:
                             example: |
                                 reported:
@@ -768,6 +768,7 @@ paths:
                                 type: edge
                                 from: root
                                 to: 2RZlTX9yzeBwTNT_H1KZVA
+                                edge_type: default
 
                         application/vnd.graphml+xml:
                             example: |
@@ -914,7 +915,7 @@ paths:
                             example: |
                                 {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
                                 {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
-                                {"type": "edge", "from": "root", "to": "cloud_id"}
+                                {"type": "edge", "from": "root", "to": "cloud_id", "edge_type": "default"}
                         text/plain:
                             example: |
                                 reported:
@@ -977,6 +978,7 @@ paths:
                                 type: edge
                                 from: root
                                 to: 2RZlTX9yzeBwTNT_H1KZVA
+                                edge_type: default
 
                         application/vnd.graphml+xml:
                             example: |
@@ -2051,11 +2053,18 @@ components:
                 to:
                     description: "The id of the node to go to"
                     type: string
+                edge_type:
+                    description: "The type of this edge"
+                    type: string
+                    enum:
+                        - default
+                        - delete
             example:
               {
                   "type": "edge",
                   "from": "node_id_of_a_in_graph",
-                  "to": "node_id_of_b_in_graph"
+                  "to": "node_id_of_b_in_graph",
+                  "edge_type": "default"
               }
         Graph:
             description: "A graph is just an array of nodes and edges"

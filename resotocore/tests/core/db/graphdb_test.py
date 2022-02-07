@@ -390,6 +390,10 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert GraphAccess.root_id(graph) == "sub_root"
     assert list(graph.successors("sub_root"))[0] == "9"
     assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
+    for from_node, to_node, data in graph.edges.data(True):
+        assert from_node == "9" or to_node == "9"
+        assert data == {"edge_type": "default"}
+
     for node_id, node in graph.nodes.data(True):
         if node_id == "9":
             assert node["metadata"]["query_tag"] == "red"
