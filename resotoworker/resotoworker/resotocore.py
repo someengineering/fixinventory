@@ -16,10 +16,11 @@ def send_to_resotocore(graph: Graph):
     base_uri = ArgumentParser.args.resotocore_uri.strip("/")
     resotocore_graph = ArgumentParser.args.resotocore_graph
     dump_json = ArgumentParser.args.debug_dump_json
+    tempdir = ArgumentParser.args.tempdir
 
     create_graph(base_uri, resotocore_graph)
-    update_model(graph, base_uri, dump_json=dump_json)
-    send_graph(graph, base_uri, resotocore_graph, dump_json=dump_json)
+    update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir)
+    send_graph(graph, base_uri, resotocore_graph, dump_json=dump_json, tempdir=tempdir)
 
 
 def create_graph(resotocore_base_uri: str, resotocore_graph: str):
@@ -37,7 +38,9 @@ def create_graph(resotocore_base_uri: str, resotocore_graph: str):
         raise RuntimeError(f"Failed to create graph: {r.content}")
 
 
-def update_model(graph: Graph, resotocore_base_uri: str, dump_json: bool = False):
+def update_model(
+    graph: Graph, resotocore_base_uri: str, dump_json: bool = False, tempdir: str = None
+) -> None:
     model_uri = f"{resotocore_base_uri}/model"
 
     log.debug(f"Updating model via {model_uri}")
@@ -46,7 +49,7 @@ def update_model(graph: Graph, resotocore_base_uri: str, dump_json: bool = False
 
     if dump_json:
         with tempfile.NamedTemporaryFile(
-            prefix="resoto-model-", suffix=".json", delete=not dump_json
+            prefix="resoto-model-", suffix=".json", delete=not dump_json, dir=tempdir
         ) as model_outfile:
             log.info(f"Writing model json to file {model_outfile.name}")
             model_outfile.write(model_json.encode())
@@ -66,12 +69,15 @@ def send_graph(
     resotocore_base_uri: str,
     resotocore_graph: str,
     dump_json: bool = False,
+    tempdir: str = None,
 ):
     merge_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/merge"
 
     log.debug(f"Sending graph via {merge_uri}")
 
-    graph_export_iterator = GraphExportIterator(graph, delete_tempfile=not dump_json)
+    graph_export_iterator = GraphExportIterator(
+        graph, delete_tempfile=not dump_json, tempdir=tempdir
+    )
     graph_export_iterator.export_graph()
 
     headers = {
@@ -101,4 +107,11 @@ def add_args(arg_parser: ArgumentParser) -> None:
         help="Dump the generated json data (default: False)",
         dest="debug_dump_json",
         action="store_true",
+    )
+    arg_parser.add_argument(
+        "--tempdir",
+        help="Directory to create temporary files in (default: system default)",
+        default=None,
+        dest="tempdir",
+        type=str,
     )
