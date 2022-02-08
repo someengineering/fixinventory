@@ -82,7 +82,9 @@ main() {
         activate_venv "$python_cmd"
     fi
     ensure_pip
-    if [ "$dev_mode" = true ]; then
+    # git install uses the "legacy" pip installation method. For this to work, we need to install the dev dependencies.
+    # poetry takes care of this for us, so we don't need to install them here. 
+    if [ "$git_install" = true ] && [ "$dev_mode" = true ]; then
         install_dev
     fi
     install_resoto
