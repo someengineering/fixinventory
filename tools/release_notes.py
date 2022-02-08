@@ -82,6 +82,7 @@ def show_log(from_tag: str, to_tag: str):
                 f"([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))"
             )
 
+    print("\n<!--truncate-->")
     print("\n## Docker Images")
     print("\n### All-in-One\n")
     print(f"- `somecr.io/someengineering/resoto:{to_tag}`")
