@@ -49,7 +49,8 @@ def parse_commit(row: list[str]) -> Commit:
         component, group = brackets[0], "feat"
     else:
         component, group = "resoto", "feat"
-    message, pr = re.fullmatch("(?:\\[.+])?\s*(.*)\\(#(\d+)\\)", msg).groups()
+    msg_pr = re.fullmatch("(?:\\[.+])?\\s*(.*)\\(#(\\d+)\\)", msg)
+    message, pr = msg_pr.groups() if msg_pr else (msg, "")
     return Commit(
         commit_hash,
         author,
