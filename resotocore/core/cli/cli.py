@@ -260,16 +260,16 @@ class CLI:
             if isinstance(part, QueryAllPart):
                 query = query.combine(await parse_query(arg))
             elif isinstance(part, PredecessorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, 1, edge)
             elif isinstance(part, SuccessorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, 1, edge)
             elif isinstance(part, AncestorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, Navigation.Max, edge)
             elif isinstance(part, DescendantPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, Navigation.Max, edge)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)

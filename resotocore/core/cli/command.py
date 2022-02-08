@@ -341,14 +341,9 @@ class PredecessorPart(QueryPart):
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
-
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 
@@ -368,7 +363,7 @@ class PredecessorPart(QueryPart):
         return "Select all predecessors of this node in the graph."
 
     @staticmethod
-    def parse_args(arg: Optional[str] = None) -> Tuple[int, str]:
+    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, str]:
         def valid_edge_type(name: str) -> str:
             if name in EdgeType.all:
                 return name
@@ -377,7 +372,7 @@ class PredecessorPart(QueryPart):
 
         parser = NoExitArgumentParser()
         parser.add_argument("--with-origin", dest="origin", default=1, action="store_const", const=0)
-        parser.add_argument("edge", default=EdgeType.default, type=valid_edge_type, nargs="?")
+        parser.add_argument("edge", default=ctx.env.get("edge_type", EdgeType.default), type=valid_edge_type, nargs="?")
         parsed = parser.parse_args(arg.split() if arg else [])
         return parsed.origin, parsed.edge
 
@@ -402,14 +397,10 @@ class SuccessorPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
 
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+      The parameter takes precedence over the env var.
 
 
     ## Examples
@@ -450,14 +441,10 @@ class AncestorPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
 
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 
@@ -501,6 +488,10 @@ class DescendantPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
+
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 

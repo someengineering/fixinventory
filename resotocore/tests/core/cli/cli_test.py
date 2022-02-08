@@ -6,7 +6,7 @@ from pytest import fixture
 from typing import Tuple, List, AsyncIterator
 
 from core.analytics import InMemoryEventSender
-from core.cli.model import ParsedCommands, ParsedCommand
+from core.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from core.cli.cli import CLI, multi_command_parser
 from core.cli.model import CLIDependencies
 from core.cli.command import (
@@ -184,10 +184,15 @@ async def test_parse_env_vars(cli: CLI) -> None:
 
 
 def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
-    assert PredecessorPart.parse_args() == (1, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin") == (0, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin delete") == (0, EdgeType.delete)
-    assert PredecessorPart.parse_args("delete") == (1, EdgeType.delete)
+    plain = CLIContext()
+    w_delete = CLIContext(env={"edge_type": EdgeType.delete})
+    assert PredecessorPart.parse_args(None, w_delete) == (1, EdgeType.delete)
+    assert PredecessorPart.parse_args(None, plain) == (1, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin", plain) == (0, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin", w_delete) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("--with-origin delete", plain) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("--with-origin delete", w_delete) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("delete", w_delete) == (1, EdgeType.delete)
 
 
 @pytest.mark.asyncio
