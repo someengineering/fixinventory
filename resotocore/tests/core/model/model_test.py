@@ -1,7 +1,6 @@
 import json
 from datetime import datetime, timedelta
 from textwrap import dedent
-from time import perf_counter
 from typing import Type, Any, Union, cast, List
 
 import pytest
@@ -442,12 +441,3 @@ def test_markup() -> None:
     result = ctx.render_console(md)
     assert len(result) > len(md)
     assert "• b1 test" in result
-
-
-def test_load_model() -> None:
-    with open("/Users/matthias/Downloads/dumps/22_02_08/model.json", "r") as f:
-        kinds = from_js(json.loads(f.read()), List[Kind])
-        for a in range(0, 10):
-            start = perf_counter()
-            Model.from_kinds(kinds)
-            print(f"TOOK: {perf_counter() - start}")
