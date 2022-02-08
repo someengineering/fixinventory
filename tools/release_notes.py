@@ -15,6 +15,7 @@ Commit = namedtuple(
 
 long_names = {"feat": "Features", "fix": "Fixes", "chore": "Chores"}
 rewrite_component = {"api-docs": "docs", "README": "docs"}
+rewrite_group = {"bug": "fix"}
 
 
 def git_commits(from_tag: str, to_tag: str):
@@ -53,7 +54,7 @@ def parse_commit(row: list[str]) -> Commit:
         commit_hash,
         author,
         rewrite_component.get(component, component),
-        group,
+        rewrite_group.get(group, group),
         message,
         pr,
         time,
@@ -85,7 +86,7 @@ def show_log(from_tag: str, to_tag: str):
     print("\n### All-in-One\n")
     print(f"- `somecr.io/someengineering/resoto:{to_tag}`")
     print("\n### Components\n")
-    for image in ['resotocore', 'resotoworker', 'resotoshell', 'resotometrics']:
+    for image in ["resotocore", "resotoworker", "resotoshell", "resotometrics"]:
         print(f"- `somecr.io/someengineering/{image}:{to_tag}`")
 
 
