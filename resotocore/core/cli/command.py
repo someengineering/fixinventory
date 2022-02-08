@@ -342,7 +342,7 @@ class PredecessorPart(QueryPart):
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
     ## Environment Variables
-    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
       The parameter takes precedence over the env var.
 
     ## Examples
@@ -399,7 +399,7 @@ class SuccessorPart(QueryPart):
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
     ## Environment Variables
-    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
       The parameter takes precedence over the env var.
 
 
@@ -443,7 +443,7 @@ class AncestorPart(QueryPart):
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
     ## Environment Variables
-    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
       The parameter takes precedence over the env var.
 
     ## Examples
@@ -490,7 +490,7 @@ class DescendantPart(QueryPart):
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
     ## Environment Variables
-    - `edge_type` [Optional]: Defines the type if the edge to navigate.
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
       The parameter takes precedence over the env var.
 
     ## Examples
