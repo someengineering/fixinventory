@@ -117,7 +117,12 @@ class DbUpdaterProcess(Process):
         self.args = args
 
     def next_action(self) -> ProcessAction:
-        return self.read_queue.get(True, 30)  # type: ignore
+        try:
+            # graph is read into memory. If the sender does not send data in a given amount of time,
+            # we raise an exception and abort the update.
+            return self.read_queue.get(True, 90)  # type: ignore
+        except Empty as ex:
+            raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
 
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
         model = Model.from_kinds([kind async for kind in db.model_db.all()])
