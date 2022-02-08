@@ -127,8 +127,8 @@ def test_merge_term() -> None:
 
 
 def test_navigation_default() -> None:
-    assert str(Navigation(1, 1)) == "-->"
-    assert str(Navigation(1, Navigation.Max)) == "-[1:]->"
+    assert str(Navigation(1, 1)) == "-default->"
+    assert str(Navigation(1, Navigation.Max)) == "-default[1:]->"
 
 
 def test_navigation() -> None:
@@ -168,10 +168,10 @@ def test_query() -> None:
     assert (
         str(query)
         == 'aggregate(foo: sum(cpu))(merge_with_ancestors="cloud"):'
-        + '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) --> '
-        + "(some.int.value < 1 and some.other == 23) --> "
+        + '((is("ec2") and cpu > 4) and (mem < 23 or mem < 59)) -default-> '
+        + "(some.int.value < 1 and some.other == 23) -default-> "
         + '(active == 12 and in_subnet(ip, "1.2.3.4/96")) '
-        + "with(empty, -->) sort test asc limit 10"
+        + "with(empty, -default->) sort test asc limit 10"
     )
     assert_round_trip(query_parser, query)
 

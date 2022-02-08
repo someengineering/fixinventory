@@ -349,7 +349,7 @@ class Navigation:
         until = self.until
         until_str = "" if until == Navigation.Max else until
         depth = ("" if start == 1 else f"[{start}]") if start == until else f"[{start}:{until_str}]"
-        nav = depth if self.edge_type == EdgeType.default else f"{self.edge_type}{depth}"
+        nav = f"{self.edge_type}{depth}"
         if self.direction == Direction.outbound:
             return f"-{nav}->"
         elif self.direction == Direction.inbound:
