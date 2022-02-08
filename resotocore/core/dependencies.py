@@ -17,6 +17,7 @@ from resotolib.utils import iec_size_format
 from core import async_extensions, version
 from core.analytics import AnalyticsEventSender
 from core.db.db_access import DbAccess
+from core.durations import parse_duration
 from core.model.adjust_node import DirectAdjuster
 from core.util import utc
 
@@ -220,6 +221,13 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         action="store_true",
         help="Start the collect workflow, when the first handling actor connects to the system.",
     )
+    parser.add_argument(
+        "---graph-update-abort-after",
+        dest="graph_updates_abort_after",
+        default="4h",
+        type=parse_duration,
+        help="If a graph update takes longer than this duration, the update is aborted.",
+    )
     parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
     if parsed.version:
@@ -268,6 +276,6 @@ def reset_process_start_method() -> None:
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
-def db_access(db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
+def db_access(config: Namespace, db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
     adjuster = DirectAdjuster()
-    return DbAccess(db, event_sender, adjuster)
+    return DbAccess(db, event_sender, adjuster, update_outdated=config.graph_updates_abort_after)
