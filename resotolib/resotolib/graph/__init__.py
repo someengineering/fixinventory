@@ -784,10 +784,13 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphExportIterator:
-    def __init__(self, graph: Graph, delete_tempfile: bool = True):
+    def __init__(self, graph: Graph, delete_tempfile: bool = True, tempdir: str = None):
         self.graph = graph
         self.tempfile = tempfile.NamedTemporaryFile(
-            prefix="resoto-graph-", suffix=".ndjson", delete=delete_tempfile
+            prefix="resoto-graph-",
+            suffix=".ndjson",
+            delete=delete_tempfile,
+            dir=tempdir,
         )
         if not delete_tempfile:
             log.info(f"Writing graph json to file {self.tempfile.name}")
