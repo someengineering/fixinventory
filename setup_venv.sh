@@ -205,8 +205,11 @@ pip_install() {
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
         cd "$relative_path"
-        poetry install -q
+        poetry install 
         cd ..
+        if [ "$plugin" = true ]; then
+            cd ..
+        fi
     else
         ensure_git
         local git_repo="git+https://github.com/someengineering/resoto.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
