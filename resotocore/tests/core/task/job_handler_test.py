@@ -17,7 +17,7 @@ class InMemJobHandler(JobHandler):
         self.jobs.append(job)
 
     async def delete_job(self, job_id: str) -> Optional[Job]:
-        job: Optional[Job] = first(lambda j: j.id == job_id, self.jobs)  # type: ignore # pypy
+        job: Optional[Job] = first(lambda j: j.id == job_id, self.jobs)
         if job:
             self.jobs.remove(job)
             return job

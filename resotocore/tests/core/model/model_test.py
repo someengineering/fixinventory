@@ -1,7 +1,8 @@
 import json
 from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import Type, Any, Union, cast
+from time import perf_counter
+from typing import Type, Any, Union, cast, List
 
 import pytest
 from deepdiff import DeepDiff
@@ -260,7 +261,7 @@ def test_property_path() -> None:
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
-    person_path = person.property_by_path()
+    person_path = {p.path: p for p in person.all_resolved_properties()}
     assert len(person_path) == 11
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
@@ -441,3 +442,12 @@ def test_markup() -> None:
     result = ctx.render_console(md)
     assert len(result) > len(md)
     assert "• b1 test" in result
+
+
+def test_load_model() -> None:
+    with open("/Users/matthias/Downloads/dumps/22_02_08/model.json", "r") as f:
+        kinds = from_js(json.loads(f.read()), List[Kind])
+        for a in range(0, 10):
+            start = perf_counter()
+            Model.from_kinds(kinds)
+            print(f"TOOK: {perf_counter() - start}")

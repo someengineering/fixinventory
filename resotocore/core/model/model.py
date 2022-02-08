@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from functools import reduce
 from json import JSONDecodeError
@@ -18,7 +19,7 @@ from core.model.transform_kind_convert import converters
 from core.model.typed_model import from_js
 from core.parse_util import make_parser
 from core.types import Json, JsonElement, ValidationResult, ValidationFn
-from core.util import if_set, utc, duration
+from core.util import if_set, utc, duration, first
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -165,10 +166,11 @@ class PropertyPath:
 EmptyPath = PropertyPath([])
 
 
+@dataclass
 class ResolvedProperty:
-    def __init__(self, prop: Property, kind: SimpleKind):
-        self.prop = prop
-        self.kind = kind
+    path: PropertyPath
+    prop: Property
+    kind: SimpleKind
 
 
 class Kind(ABC):
@@ -656,7 +658,7 @@ class ComplexKind(Kind):
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__property_by_path: Dict[PropertyPath, ResolvedProperty] = {}
+        self.__property_by_path: List[ResolvedProperty] = []
         self.__synthetic_props: List[ResolvedProperty] = []
 
     def resolve(self, model: Dict[str, Kind]) -> None:
@@ -681,17 +683,17 @@ class ComplexKind(Kind):
                         self.__all_props += base.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
-                        self.__property_by_path.update(base.__property_by_path)
-            self.__synthetic_props = [p for p in self.__property_by_path.values() if p.prop.synthetic]
+                        self.__property_by_path.extend(base.__property_by_path)
+            self.__synthetic_props = [p for p in self.__property_by_path if p.prop.synthetic]
 
-    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> Dict[PropertyPath, ResolvedProperty]:
+    def __resolve_property_paths(self, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
-        ) -> Dict[PropertyPath, ResolvedProperty]:
+        ) -> List[ResolvedProperty]:
             arr = "[]" if array else ""
             relative = path.child(f"{prop.name}{arr}") if add_prop_to_path else path
             if isinstance(kind, SimpleKind):
-                return {relative if add_prop_to_path else path: ResolvedProperty(prop, kind)}
+                return [ResolvedProperty(relative if add_prop_to_path else path, prop, kind)]
             elif isinstance(kind, ArrayKind):
                 return path_for(prop, kind.inner, path, True)
             elif isinstance(kind, DictionaryKind):
@@ -699,11 +701,11 @@ class ComplexKind(Kind):
             elif isinstance(kind, ComplexKind):
                 return kind.__resolve_property_paths(relative)
             else:
-                return {}
+                return []
 
-        result: Dict[PropertyPath, ResolvedProperty] = {}
+        result: List[ResolvedProperty] = []
         for x in self.properties:
-            result.update(path_for(x, self.__resolved_kinds[x.name][1], from_path))
+            result.extend(path_for(x, self.__resolved_kinds[x.name][1], from_path))
 
         return result
 
@@ -730,9 +732,7 @@ class ComplexKind(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    def property_by_path(self) -> Dict[PropertyPath, ResolvedProperty]:
-        if not self.__resolved:
-            raise AttributeError(f"property_by_path {self.fqn}: References are not resolved yet!")
+    def all_resolved_properties(self) -> List[ResolvedProperty]:
         return self.__property_by_path
 
     def all_props(self) -> List[Property]:
@@ -834,8 +834,8 @@ class Model:
     def __init__(self, kinds: Dict[str, Kind]):
         self.kinds = kinds
         complexes = (k for k in kinds.values() if isinstance(k, ComplexKind))
-        self.__property_kind_by_path: Dict[PropertyPath, ResolvedProperty] = reduce(
-            lambda res, k: {**res, **k.property_by_path()}, complexes, {}
+        self.__property_kind_by_path: List[ResolvedProperty] = reduce(
+            lambda res, k: res + k.all_resolved_properties(), complexes, []
         )
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -868,10 +868,9 @@ class Model:
 
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
-        if path not in self.__property_kind_by_path:
-            # path not known according to known model: it could be anything.
-            return ResolvedProperty(Property.any_prop(), AnyKind.any())
-        return self.__property_kind_by_path[path]
+        found: Optional[ResolvedProperty] = first(lambda prop: prop.path == path, self.__property_kind_by_path)
+        # if the path is not known according to known model: it could be anything.
+        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind.any())
 
     def kind_by_path(self, path_: str) -> SimpleKind:
         return self.property_by_path(path_).kind
@@ -908,10 +907,10 @@ class Model:
 
         # Create a list of kinds that have changed to the existing model
         to_update = []
-        for kind in kinds:
-            existing = self.kinds.get(kind.fqn)
-            if kind.fqn not in predefined_kinds_by_name and (not existing or existing != kind):
-                to_update.append(kind)
+        for elem in kinds:
+            existing = self.kinds.get(elem.fqn)
+            if elem.fqn not in predefined_kinds_by_name and (not existing or existing != elem):
+                to_update.append(elem)
 
         # Short circuit, if there are no changes
         if not to_update:
@@ -927,42 +926,54 @@ class Model:
                 raise AttributeError(f"{hint()} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
-        updates = {kind.fqn: kind for kind in to_update}
+        updates = {elem.fqn: elem for elem in to_update}
         updated = {**self.kinds, **updates}
-        for kind in to_update:
-            kind.resolve(updated)
+        for elem in to_update:
+            elem.resolve(updated)
 
         # check if updating existing kinds is allowed
         for name in self.kinds.keys() & updates.keys():
             update_is_valid(self.kinds[name], updates[name])
 
         # check if no property path is overlapping
-        def check(all_paths: Dict[PropertyPath, ResolvedProperty], kind: Kind) -> Dict[PropertyPath, ResolvedProperty]:
+        def check(all_nested_props: List[ResolvedProperty], kind: Kind) -> List[ResolvedProperty]:
             if isinstance(kind, ComplexKind):
-                paths = kind.property_by_path()
-                intersect = paths.keys() & all_paths.keys()
+                resolved_kind = kind.all_resolved_properties()
+                paths = {a.path for a in resolved_kind}
+                all_paths = {a.path for a in all_nested_props}
+                intersect = paths & all_paths
+
+                def nested_prop(props: List[ResolvedProperty], p: PropertyPath) -> ResolvedProperty:
+                    prop: Optional[ResolvedProperty] = first(lambda rp: rp.path == p, props)
+                    if prop:
+                        return prop
+                    else:
+                        raise AttributeError(f"No resolved property for path {p} in [{props}]")
 
                 def simple_kind_incompatible(p: PropertyPath) -> bool:
-                    left = paths[p].kind
-                    right = all_paths[p].kind
+                    left = nested_prop(resolved_kind, p).kind
+                    right = nested_prop(all_nested_props, p).kind
                     return (left.fqn != right.fqn) and not (isinstance(left, AnyKind) or isinstance(right, AnyKind))
 
                 # Filter out duplicates that have the same kind or any side is any
                 non_unique = list(filter(simple_kind_incompatible, intersect))
                 if non_unique:
-                    message = ", ".join(f"{a} ({all_paths[a].kind.fqn} -> {paths[a].kind.fqn})" for a in non_unique)
+                    message = ", ".join(
+                        f"{a} ({nested_prop(all_nested_props,a).kind.fqn} -> {nested_prop(resolved_kind,a).kind.fqn})"
+                        for a in non_unique
+                    )
                     raise AttributeError(
                         f"Update not possible. {kind.fqn}: following properties would be non unique having "
                         f"the same path but different type: {message}"
                     )
-                return {**paths, **all_paths}
+                return resolved_kind + all_nested_props
             else:
-                return all_paths
+                return all_nested_props
 
-        def flat(all_paths: Dict[PropertyPath, ResolvedProperty], kind: Kind) -> Dict[PropertyPath, ResolvedProperty]:
-            return {**all_paths, **kind.property_by_path()} if isinstance(kind, ComplexKind) else all_paths
+        def flat(all_paths: List[ResolvedProperty], kind: Kind) -> List[ResolvedProperty]:
+            return all_paths + kind.all_resolved_properties() if isinstance(kind, ComplexKind) else all_paths
 
-        reduce(check, updates.values(), reduce(flat, self.kinds.values(), {}))  # type: ignore
+        reduce(check, updates.values(), reduce(flat, self.kinds.values(), []))  # type: ignore
 
         return Model(updated)
 

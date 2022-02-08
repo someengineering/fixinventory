@@ -147,7 +147,9 @@ def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:  # type: ignore
     return False
 
 
-def first(f: Callable[[Any], bool], iterable: Iterable) -> Optional[Any]:  # type: ignore # pypy
+# we expect a callable that returns a truthy value.
+# Due to limitations of lambda expressions we use Any here.
+def first(f: Callable[[Any], Any], iterable: Iterable) -> Optional[Any]:  # type: ignore # pypy
     for a in iterable:
         if f(a):
             return a

@@ -216,7 +216,7 @@ class TaskDescription(ABC):
         self.mutable = mutable
 
     def step_by_name(self, name: str) -> Optional[Step]:
-        return first(lambda x: x.name == name, self.steps)  # type: ignore # pypy
+        return first(lambda x: x.name == name, self.steps)
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, TaskDescription) else False
