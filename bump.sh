@@ -15,9 +15,8 @@ find resotolib \
         resotoshell \
         resotometrics \
         plugins \
-    -name setup.py -o \
-    -name __init__.py -o \
-    -name requirements.txt \
+    -name pyproject.toml -o \
+    -name poetry.lock \
 | xargs grep "$bump_from" \
 | cut -d : -f 1 \
 | xargs sed -i -e "s/$bump_from/$bump_to/g"
