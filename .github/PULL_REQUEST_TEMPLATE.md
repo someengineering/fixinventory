@@ -9,7 +9,7 @@
 <!-- (Feel free to remove any items that do not apply to this PR.) -->
 
 - [ ] Add test coverage for new or updated functionality
-- [ ] Lint and test with `tox`
+- [ ] Lint and test with `nox`
 - [ ] Document new or updated functionality (someengineering/resoto.com#XXXX)
 
 # Issues Fixed
