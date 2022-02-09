@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "resoto-plugin-cleanup_aws_loadbalancers"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "AWS Loadbalancers Cleaner Plugin"
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"

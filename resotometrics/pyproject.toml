@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "resotometrics"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Exports Resoto metrics in Prometheus format."
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"

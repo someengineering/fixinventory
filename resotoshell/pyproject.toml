@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "resotoshell"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Commandline interpreter to interact with Resoto."
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"

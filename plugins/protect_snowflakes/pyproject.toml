@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "resoto-plugin-protect_snowflakes"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Resoto Snowflake Protection Plugin"
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"

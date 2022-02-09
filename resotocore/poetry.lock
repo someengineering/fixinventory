@@ -1066,7 +1066,7 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "resotolib"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Resoto common library."
 category = "main"
 optional = false

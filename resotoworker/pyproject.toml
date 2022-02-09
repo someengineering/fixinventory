@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "resotoworker"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Runs collector plugins and sends the result to resotocore."
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"

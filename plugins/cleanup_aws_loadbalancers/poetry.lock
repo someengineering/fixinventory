@@ -711,7 +711,7 @@ use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
 
 [[package]]
 name = "resoto-plugin-aws"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Resoto AWS Plugin"
 category = "main"
 optional = false
@@ -731,7 +731,7 @@ url = "../aws"
 
 [[package]]
 name = "resotolib"
-version = "2.0.0a16"
+version = "2.0.0a17"
 description = "Resoto common library."
 category = "main"
 optional = false
