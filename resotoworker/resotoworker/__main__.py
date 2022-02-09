@@ -160,12 +160,12 @@ def core_actions_processor(
                 start_time = time.time()
                 collect_and_send(collectors)
                 run_time = int(time.time() - start_time)
-                log.debug(f"Collect ran for {run_time} seconds")
+                log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
                 start_time = time.time()
                 cleanup()
                 run_time = int(time.time() - start_time)
-                log.debug(f"Cleanup ran for {run_time} seconds")
+                log.info(f"Cleanup ran for {run_time} seconds")
             else:
                 raise ValueError(f"Unknown message type {message_type}")
         except Exception as e:
