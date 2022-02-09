@@ -855,6 +855,9 @@ class GraphExportIterator:
                 node_json = json.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
+            elapsed_nodes = time() - start_time
+            log.debug(f"Exported {self.number_of_nodes} nodes in {elapsed_nodes:.4f}s")
+            start_time = time()
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
@@ -871,7 +874,9 @@ class GraphExportIterator:
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.tempfile.write(edge_json.encode())
                 self.total_lines += 1
-            elapsed = time() - start_time
+            elapsed_edges = time() - start_time
+            log.debug(f"Exported {self.number_of_edges} edges in {elapsed_edges:.4f}s")
+            elapsed = elapsed_nodes + elapsed_edges
             log.info(f"Exported {self.total_lines} nodes and edges in {elapsed:.4f}s")
             self.graph_exported = True
             del self.graph
