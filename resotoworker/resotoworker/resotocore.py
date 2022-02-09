@@ -55,7 +55,7 @@ def update_model(
     model_json = json.dumps(graph.export_model(), indent=4)
 
     if dump_json:
-        ts = datetime.now().strftime("%Y-%m-%d-%H-%M-")
+        ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         with tempfile.NamedTemporaryFile(
             prefix=f"resoto-model-{ts}-",
             suffix=".json",
