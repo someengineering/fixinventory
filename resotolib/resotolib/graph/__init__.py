@@ -1,6 +1,7 @@
 from __future__ import annotations
 import networkx
 from networkx.algorithms.dag import is_directed_acyclic_graph
+from datetime import datetime
 import threading
 import pickle
 import json
@@ -101,6 +102,7 @@ class Graph(networkx.MultiDiGraph):
     def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.root = None
+        self._log_edge_creation = True
         if isinstance(root, BaseResource):
             self.root = root
             self.add_node(
@@ -113,7 +115,6 @@ class Graph(networkx.MultiDiGraph):
         If the other graph has a graph.root an edge will be created between
         it and our own graph root.
         """
-        self.update(edges=graph.edges, nodes=graph.nodes)
         if isinstance(self.root, BaseResource) and isinstance(
             getattr(graph, "root", None), BaseResource
         ):
@@ -123,6 +124,12 @@ class Graph(networkx.MultiDiGraph):
             self.add_edge(self.root, graph.root)
         else:
             log.warning("Merging graphs with no valid roots")
+
+        try:
+            self._log_edge_creation = False
+            self.update(edges=graph.edges, nodes=graph.nodes)
+        finally:
+            self._log_edge_creation = True
         self.resolve_deferred_connections()
 
     def add_resource(
@@ -184,7 +191,11 @@ class Graph(networkx.MultiDiGraph):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
         return_key = super().add_edge(src, dst, key=key, **attr)
-        if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
+        if (
+            self._log_edge_creation
+            and isinstance(src, BaseResource)
+            and isinstance(dst, BaseResource)
+        ):
             log.debug(
                 f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})"
             )
@@ -786,8 +797,9 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 class GraphExportIterator:
     def __init__(self, graph: Graph, delete_tempfile: bool = True, tempdir: str = None):
         self.graph = graph
+        ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         self.tempfile = tempfile.NamedTemporaryFile(
-            prefix="resoto-graph-",
+            prefix=f"resoto-graph-{ts}-",
             suffix=".ndjson",
             delete=delete_tempfile,
             dir=tempdir,
@@ -801,6 +813,8 @@ class GraphExportIterator:
         self.graph_exported = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
+        self.number_of_nodes = int(graph.number_of_nodes())
+        self.number_of_edges = int(graph.number_of_edges())
 
     def __del__(self):
         try:
@@ -818,19 +832,22 @@ class GraphExportIterator:
         report_every = round(self.total_lines / 10)
 
         while line := self.tempfile.readline():
+            lines_sent += 1
             if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
                 percent = round(lines_sent / self.total_lines * 100)
                 elapsed = time() - last_sent
                 log.debug(
-                    f"Sent {lines_sent} nodes and edges ({percent}%) - {elapsed:.4f}s"
+                    f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s"
                 )
                 last_sent = time()
-            lines_sent += 1
             yield line
-
-        elapsed = time() - start_time
-        log.debug(f"Sent {lines_sent} nodes and edges in {elapsed:.4f}s")
         self.tempfile.seek(0)
+        elapsed = time() - start_time
+        log.info(
+            f"Sent {lines_sent}/{self.total_lines},"
+            f" {self.number_of_nodes} nodes and {self.number_of_edges} edges"
+            f" in {elapsed:.4f}s"
+        )
 
     def export_graph(self):
         with self.export_lock:
@@ -847,6 +864,9 @@ class GraphExportIterator:
                 node_json = json.dumps(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
+            elapsed_nodes = time() - start_time
+            log.debug(f"Exported {self.number_of_nodes} nodes in {elapsed_nodes:.4f}s")
+            start_time = time()
             for edge in self.graph.edges:
                 from_node = edge[0]
                 to_node = edge[1]
@@ -863,11 +883,10 @@ class GraphExportIterator:
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.tempfile.write(edge_json.encode())
                 self.total_lines += 1
-            elapsed = time() - start_time
-            log.debug(
-                f"Wrote {self.total_lines} nodes and edges"
-                f" to {self.tempfile.name} in {elapsed:.4f}s"
-            )
+            elapsed_edges = time() - start_time
+            log.debug(f"Exported {self.number_of_edges} edges in {elapsed_edges:.4f}s")
+            elapsed = elapsed_nodes + elapsed_edges
+            log.info(f"Exported {self.total_lines} nodes and edges in {elapsed:.4f}s")
             self.graph_exported = True
             del self.graph
             self.tempfile.seek(0)

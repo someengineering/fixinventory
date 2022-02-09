@@ -1,8 +1,10 @@
-from resotolib.graph import Graph, GraphContainer, EdgeType
-from resotolib.baseresources import BaseResource
+import pytest
+from resotolib.graph import Graph, GraphContainer, EdgeType, GraphExportIterator
+from resotolib.baseresources import BaseResource, GraphRoot
 import resotolib.logging as logging
 from dataclasses import dataclass
 from typing import ClassVar
+from sys import getrefcount
 
 logging.getLogger("resoto").setLevel(logging.DEBUG)
 
@@ -98,3 +100,24 @@ def test_multidigraph():
     assert g.is_dag_per_edge_type()
     g.add_edge(b, a)
     assert g.is_dag_per_edge_type() is False
+
+
+def test_baseresource_chksum():
+    g = Graph()
+    a = SomeTestResource("a", {})
+    with pytest.raises(RuntimeError):
+        a.chksum
+    g.add_node(a)
+    assert isinstance(a.chksum, str)
+
+
+def test_graph_export_iterator():
+    g = Graph(root=GraphRoot("root", {}))
+    a = SomeTestResource("a", {})
+    g.add_resource(g.root, a)
+    assert getrefcount(g) == 2
+    gei = GraphExportIterator(g)
+    assert getrefcount(g) == 3
+    gei.export_graph()
+    assert getrefcount(g) == 2
+    assert len(list(gei)) == 3

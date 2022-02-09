@@ -1,6 +1,7 @@
 import json
 import requests
 import tempfile
+from datetime import datetime
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
 from resotolib.jwt import encode_jwt_to_headers
@@ -20,7 +21,14 @@ def send_to_resotocore(graph: Graph):
 
     create_graph(base_uri, resotocore_graph)
     update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir)
-    send_graph(graph, base_uri, resotocore_graph, dump_json=dump_json, tempdir=tempdir)
+
+    graph_export_iterator = GraphExportIterator(
+        graph, delete_tempfile=not dump_json, tempdir=tempdir
+    )
+    #  The graph is not required any longer and can be released.
+    del graph
+    graph_export_iterator.export_graph()
+    send_graph(graph_export_iterator, base_uri, resotocore_graph)
 
 
 def create_graph(resotocore_base_uri: str, resotocore_graph: str):
@@ -48,8 +56,12 @@ def update_model(
     model_json = json.dumps(graph.export_model(), indent=4)
 
     if dump_json:
+        ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         with tempfile.NamedTemporaryFile(
-            prefix="resoto-model-", suffix=".json", delete=not dump_json, dir=tempdir
+            prefix=f"resoto-model-{ts}-",
+            suffix=".json",
+            delete=not dump_json,
+            dir=tempdir,
         ) as model_outfile:
             log.info(f"Writing model json to file {model_outfile.name}")
             model_outfile.write(model_json.encode())
@@ -65,27 +77,19 @@ def update_model(
 
 
 def send_graph(
-    graph: Graph,
+    graph_export_iterator: GraphExportIterator,
     resotocore_base_uri: str,
     resotocore_graph: str,
-    dump_json: bool = False,
-    tempdir: str = None,
 ):
     merge_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/merge"
 
     log.debug(f"Sending graph via {merge_uri}")
 
-    graph_export_iterator = GraphExportIterator(
-        graph, delete_tempfile=not dump_json, tempdir=tempdir
-    )
-    graph_export_iterator.export_graph()
-
     headers = {
         "Content-Type": "application/x-ndjson",
-        "Resoto-Worker-Nodes": str(graph.number_of_nodes()),
-        "Resoto-Worker-Edges": str(graph.number_of_edges()),
+        "Resoto-Worker-Nodes": str(graph_export_iterator.number_of_nodes),
+        "Resoto-Worker-Edges": str(graph_export_iterator.number_of_edges),
     }
-    del graph
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
