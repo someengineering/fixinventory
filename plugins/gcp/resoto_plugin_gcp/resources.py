@@ -638,6 +638,7 @@ class GCPServiceSKU(GCPResource, PhantomBaseResource):
             if cost > -1:
                 self.usage_unit_nanos = cost
 
+
 @dataclass(eq=False)
 class GCPGKECluster(GCPResource, BaseResource):
     kind: ClassVar[str] = "gcp_gke_cluster"
@@ -671,9 +672,10 @@ class GCPGKECluster(GCPResource, BaseResource):
         )
         if self._cluster_status == InstanceStatus.TERMINATED:
             self._cleaned = True
-    
+
     def _cluster_status_getter(self) -> str:
         return self._cluster_status.value
+
 
 GCPGKECluster.cluster_status = property(
     GCPGKECluster._cluster_status_getter, GCPGKECluster._cluster_status_setter

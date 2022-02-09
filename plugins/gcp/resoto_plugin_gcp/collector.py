@@ -604,7 +604,7 @@ class GCPProjectCollector:
 
         # For APIs that take a parent (`projects/*/locations/*`) parameter,
         # setting the project is not expected.
-        if not "parent" in resource_kwargs and "project" in default_resource_args:
+        if "parent" not in resource_kwargs and "project" in default_resource_args:
             resource_kwargs["project"] = self.project.id
 
         client = gcp_client(
@@ -613,13 +613,13 @@ class GCPProjectCollector:
             credentials=self.credentials,
             **client_kwargs,
         )
-        
+
         # Some more recent client implementations have nested callables before
-        # the actual client_method_name method, 
+        # the actual client_method_name method,
         # e.g. discovery.build('container', 'v1').projects().locations().clusters()
         for client_nested_callable in client_nested_callables:
-           client = getattr(client, client_nested_callable)()
-           
+            client = getattr(client, client_nested_callable)()
+
         gcp_resource = getattr(client, client_method_name)
         if not callable(gcp_resource):
             raise RuntimeError(f"No method {client_method_name} on client {client}")
@@ -1534,9 +1534,9 @@ class GCPProjectCollector:
     def collect_gke_clusters(self):
         self.collect_something(
             resource_class=GCPGKECluster,
-            resource_kwargs = {"parent": f"projects/{self.project.id}/locations/-"},
-            client_nested_callables = ["projects", "locations"],
-            paginate_items_name = "clusters",
+            resource_kwargs={"parent": f"projects/{self.project.id}/locations/-"},
+            client_nested_callables=["projects", "locations"],
+            paginate_items_name="clusters",
             attr_map={
                 "ctime": lambda r: iso2datetime(r.get("createTime")),
                 "initial_cluster_version": "initialClusterVersion",
@@ -1545,4 +1545,3 @@ class GCPProjectCollector:
                 "current_node_count": "currentNodeCount",
             },
         )
-
