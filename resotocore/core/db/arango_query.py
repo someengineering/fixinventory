@@ -110,12 +110,10 @@ def query_string(
             name = f"{cursor}.{fn.name}" if isinstance(fn.name, str) else str(fn.name)
             return f"{name} {fn.combined_ops()}" if fn.ops else name
 
-        vs = {str(v.name): f"var_{num}" for num, v in enumerate(a.group_by)}
-        fs = {v.name: f"fn_{num}" for num, v in enumerate(a.group_func)}
-        variables = ", ".join(f"{vs[str(v.name)]}={var_name(v.name)}" for v in a.group_by)
-        funcs = ", ".join(f"{fs[v.name]}={v.function}({func_term(v)})" for v in a.group_func)
-        agg_vars = ", ".join(f'"{v.get_as_name()}": {vs[str(v.name)]}' for v in a.group_by)
-        agg_funcs = ", ".join(f'"{f.get_as_name()}": {fs[f.name]}' for f in a.group_func)
+        variables = ", ".join(f"var_{num}={var_name(v.name)}" for num, v in enumerate(a.group_by))
+        funcs = ", ".join(f"fn_{num}={f.function}({func_term(f)})" for num, f in enumerate(a.group_func))
+        agg_vars = ", ".join(f'"{v.get_as_name()}": var_{num}' for num, v in enumerate(a.group_by))
+        agg_funcs = ", ".join(f'"{f.get_as_name()}": fn_{num}' for num, f in enumerate(a.group_func))
         group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
         aggregate_term = f"collect {variables} aggregate {funcs}"
         return_result = f"{{{group_result} {agg_funcs}}}"
