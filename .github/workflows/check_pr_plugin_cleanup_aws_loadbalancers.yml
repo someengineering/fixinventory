@@ -41,7 +41,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./plugins/cleanup_aws_loadbalancers
-        run:
+        run: |
           nox
           nox -rs coverage_ci
 

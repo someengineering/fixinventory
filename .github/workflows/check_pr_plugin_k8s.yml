@@ -41,7 +41,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./plugins/k8s
-        run:
+        run: |
           nox
           nox -rs coverage_ci
 

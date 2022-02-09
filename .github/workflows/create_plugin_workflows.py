@@ -49,7 +49,7 @@ jobs:
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
-        run:
+        run: |
           nox
           nox -rs coverage_ci
 
