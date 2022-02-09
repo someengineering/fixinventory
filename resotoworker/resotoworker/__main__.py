@@ -16,7 +16,7 @@ from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
-from resotoworker.collect import collect, add_args as collect_add_args
+from resotoworker.collect import collect_and_send, add_args as collect_add_args
 from resotoworker.cleanup import cleanup, add_args as cleanup_add_args
 from resotoworker.resotocore import add_args as resotocore_add_args
 from resotoworker.tag import core_tag_tasks_processor
@@ -158,7 +158,7 @@ def core_actions_processor(
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collect(collectors)
+                collect_and_send(collectors)
                 run_time = int(time.time() - start_time)
                 log.debug(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

@@ -10,46 +10,48 @@ from resotolib.logging import log, setup_logger
 from typing import List, Optional
 
 
-def collect(collectors: List[BaseCollectorPlugin]) -> None:
-    graph = Graph(root=GraphRoot("root", {}))
+def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
+    def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
+        graph = Graph(root=GraphRoot("root", {}))
 
-    max_workers = (
-        len(collectors)
-        if len(collectors) < ArgumentParser.args.pool_size
-        else ArgumentParser.args.pool_size
-    )
-    if max_workers == 0:
-        log.error(
-            "No workers configured or no collector plugins loaded - skipping collect"
+        max_workers = (
+            len(collectors)
+            if len(collectors) < ArgumentParser.args.pool_size
+            else ArgumentParser.args.pool_size
         )
-        return
-    pool_args = {"max_workers": max_workers}
-    if ArgumentParser.args.fork:
-        pool_args["mp_context"] = multiprocessing.get_context("spawn")
-        pool_args["initializer"] = resotolib.signal.initializer
-        pool_executor = futures.ProcessPoolExecutor
-        collect_args = {"args": ArgumentParser.args}
-    else:
-        pool_executor = futures.ThreadPoolExecutor
-        collect_args = {}
-
-    with pool_executor(**pool_args) as executor:
-        wait_for = [
-            executor.submit(
-                collect_plugin_graph,
-                collector,
-                **collect_args,
+        if max_workers == 0:
+            log.error(
+                "No workers configured or no collector plugins loaded - skipping collect"
             )
-            for collector in collectors
-        ]
-        for future in futures.as_completed(wait_for):
-            cluster_graph = future.result()
-            if not isinstance(cluster_graph, Graph):
-                log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
-                continue
-            graph.merge(cluster_graph)
-    sanitize(graph)
-    send_to_resotocore(graph)
+            return
+        pool_args = {"max_workers": max_workers}
+        if ArgumentParser.args.fork:
+            pool_args["mp_context"] = multiprocessing.get_context("spawn")
+            pool_args["initializer"] = resotolib.signal.initializer
+            pool_executor = futures.ProcessPoolExecutor
+            collect_args = {"args": ArgumentParser.args}
+        else:
+            pool_executor = futures.ThreadPoolExecutor
+            collect_args = {}
+
+        with pool_executor(**pool_args) as executor:
+            wait_for = [
+                executor.submit(
+                    collect_plugin_graph,
+                    collector,
+                    **collect_args,
+                )
+                for collector in collectors
+            ]
+            for future in futures.as_completed(wait_for):
+                cluster_graph = future.result()
+                if not isinstance(cluster_graph, Graph):
+                    log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                    continue
+                graph.merge(cluster_graph)
+        sanitize(graph)
+        return graph
+    send_to_resotocore(collect(collectors))
 
 
 def collect_plugin_graph(
