@@ -414,6 +414,10 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
     async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model)) as g:
         assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 11}]
 
+    agg_multi_fn_same_prop = parse_query('aggregate(sum(f) as a, max(f) as b): is("bla")').on_section("reported")
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_multi_fn_same_prop, foo_model)) as g:
+        assert [x async for x in g] == [{"a": 2300, "b": 23}]
+
 
 @pytest.mark.asyncio
 async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
