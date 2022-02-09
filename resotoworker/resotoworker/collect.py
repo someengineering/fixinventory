@@ -1,54 +1,59 @@
 import multiprocessing
 import resotolib.signal
+from time import time
 from concurrent import futures
 from resotoworker.resotocore import send_to_resotocore
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import GraphContainer, Graph, sanitize
+from resotolib.baseresources import GraphRoot
+from resotolib.graph import Graph, sanitize
 from resotolib.logging import log, setup_logger
 from typing import List, Optional
 
 
-def collect(collectors: List[BaseCollectorPlugin]) -> None:
-    graph_container = GraphContainer(cache_graph=False)
-    graph = graph_container.graph
-    max_workers = (
-        len(collectors)
-        if len(collectors) < ArgumentParser.args.pool_size
-        else ArgumentParser.args.pool_size
-    )
-    if max_workers == 0:
-        log.error(
-            "No workers configured or no collector plugins loaded - skipping collect"
-        )
-        return
-    pool_args = {"max_workers": max_workers}
-    if ArgumentParser.args.fork:
-        pool_args["mp_context"] = multiprocessing.get_context("spawn")
-        pool_args["initializer"] = resotolib.signal.initializer
-        pool_executor = futures.ProcessPoolExecutor
-        collect_args = {"args": ArgumentParser.args}
-    else:
-        pool_executor = futures.ThreadPoolExecutor
-        collect_args = {}
+def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
+    def collect(collectors: List[BaseCollectorPlugin]) -> Graph:
+        graph = Graph(root=GraphRoot("root", {}))
 
-    with pool_executor(**pool_args) as executor:
-        wait_for = [
-            executor.submit(
-                collect_plugin_graph,
-                collector,
-                **collect_args,
+        max_workers = (
+            len(collectors)
+            if len(collectors) < ArgumentParser.args.pool_size
+            else ArgumentParser.args.pool_size
+        )
+        if max_workers == 0:
+            log.error(
+                "No workers configured or no collector plugins loaded - skipping collect"
             )
-            for collector in collectors
-        ]
-        for future in futures.as_completed(wait_for):
-            cluster_graph = future.result()
-            if not isinstance(cluster_graph, Graph):
-                log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
-                continue
-            graph.merge(cluster_graph)
-    sanitize(graph)
-    send_to_resotocore(graph)
+            return
+        pool_args = {"max_workers": max_workers}
+        if ArgumentParser.args.fork:
+            pool_args["mp_context"] = multiprocessing.get_context("spawn")
+            pool_args["initializer"] = resotolib.signal.initializer
+            pool_executor = futures.ProcessPoolExecutor
+            collect_args = {"args": ArgumentParser.args}
+        else:
+            pool_executor = futures.ThreadPoolExecutor
+            collect_args = {}
+
+        with pool_executor(**pool_args) as executor:
+            wait_for = [
+                executor.submit(
+                    collect_plugin_graph,
+                    collector,
+                    **collect_args,
+                )
+                for collector in collectors
+            ]
+            for future in futures.as_completed(wait_for):
+                cluster_graph = future.result()
+                if not isinstance(cluster_graph, Graph):
+                    log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
+                    continue
+                graph.merge(cluster_graph)
+        sanitize(graph)
+        return graph
+
+    send_to_resotocore(collect(collectors))
 
 
 def collect_plugin_graph(
@@ -63,8 +68,10 @@ def collect_plugin_graph(
         setup_logger("resotoworker")
 
     log.debug(f"Starting new collect process for {collector.cloud}")
+    start_time = time()
     collector.start()
     collector.join(ArgumentParser.args.timeout)
+    elapsed = time() - start_time
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
             log.error(
@@ -78,7 +85,7 @@ def collect_plugin_graph(
                 " - ignoring plugin results"
             )
             return None
-        log.info(f"Collector of plugin {collector.cloud} finished")
+        log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
         return collector.graph
     else:
         log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
@@ -94,7 +101,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--pool-size",
-        help="Collector Thread/Process Pool Size (default: 5)",
+        help="Collector thread/process pool size (default: 5)",
         dest="pool_size",
         default=5,
         type=int,

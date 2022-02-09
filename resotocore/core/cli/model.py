@@ -7,7 +7,7 @@ from argparse import Namespace
 from asyncio import Queue, Task, iscoroutine
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast
+from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
 
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
@@ -60,7 +60,7 @@ class CLIContext:
     uploaded_files: Dict[str, str] = field(default_factory=dict)  # id -> path
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(default_factory=dict)
-    console_formatter: Optional[ConsoleRenderer] = None
+    console_renderer: Optional[ConsoleRenderer] = None
 
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section
@@ -68,21 +68,31 @@ class CLIContext:
         return variable_to_absolute(section, variable)
 
     def render_console(self, element: Union[str, JupyterMixin]) -> str:
-        if self.console_formatter:
-            return self.console_formatter.render(element)
+        if self.console_renderer:
+            return self.console_renderer.render(element)
         elif isinstance(element, JupyterMixin):
             return str(element)
         else:
             return element
 
-    def formatter(self, format_string: str) -> Callable[[Any], str]:
+    def formatter(self, format_string: str) -> Callable[[Json], str]:
+        return self.formatter_with_variables(format_string, False)[0]
+
+    def formatter_with_variables(
+        self, format_string: str, collect_variables: bool = True
+    ) -> Tuple[Callable[[Json], str], Optional[Set[str]]]:
         """
         A renderer can be used to string format objects based on a provided format string.
         """
 
+        variables: Optional[Set[str]] = set() if collect_variables else None
+
         def format_variable(name: str) -> str:
             assert "__" not in name, "No dunder attributes allowed"
-            return "{" + self.variable_in_section(name) + "}"
+            in_section = self.variable_in_section(name)
+            if collect_variables:
+                variables.add(in_section)  # type: ignore
+            return "{" + in_section + "}"
 
         def render_simple_property(prop: Any) -> str:
             return json.dumps(prop) if isinstance(prop, bool) else str(prop)
@@ -95,7 +105,7 @@ class CLIContext:
         def format_object(obj: Any) -> str:
             return formatter.format_map(AccessJson.wrap(obj, "null", render_simple_property))
 
-        return format_object
+        return format_object, variables
 
 
 EmptyContext = CLIContext()
@@ -301,6 +311,12 @@ class OutputTransformer(ABC):
 class PreserveOutputFormat(ABC):
     """
     Mark all commands where the output should not be flattened to default line output.
+    """
+
+
+class NoTerminalOutput(ABC):
+    """
+    Mark all commands where the output should not contain any terminal escape codes.
     """
 
 

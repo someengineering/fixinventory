@@ -5,7 +5,7 @@ import calendar
 import logging
 from asyncio import Task
 from dataclasses import replace
-from datetime import timedelta, datetime
+from datetime import timedelta
 from functools import reduce
 from textwrap import dedent
 from typing import Dict, List, Tuple
@@ -45,7 +45,9 @@ from core.cli.model import (
     CLIContext,
     EmptyContext,
     CLISource,
+    NoTerminalOutput,
 )
+from core.console_renderer import ConsoleRenderer
 from core.error import CLIParseError
 from core.model.typed_model import class_fqn
 from core.parse_util import (
@@ -121,7 +123,9 @@ class HelpCommand(CLICommand):
             aliases = "\n".join(
                 f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items()
             )
-            replacements = "\n".join(f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements().items())
+            replacements = "\n".join(
+                f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements(**ctx.env).items()
+            )
             result = dedent(
                 f"""
                  # resotocore CLI ({version()})
@@ -258,16 +262,16 @@ class CLI:
             if isinstance(part, QueryAllPart):
                 query = query.combine(await parse_query(arg))
             elif isinstance(part, PredecessorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, 1, edge)
             elif isinstance(part, SuccessorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, 1, edge)
             elif isinstance(part, AncestorPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, Navigation.Max, edge)
             elif isinstance(part, DescendantPart):
-                origin, edge = PredecessorPart.parse_args(arg)
+                origin, edge = PredecessorPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, Navigation.Max, edge)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
@@ -316,9 +320,17 @@ class CLI:
                 return ctx_wq, [*query_parts, *remaining]
             return ctx, commands
 
-        async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
+        def adjust_context(parsed: ParsedCommands) -> CLIContext:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = replace(context, env=cmd_env)
+            last_command = self.commands.get(parsed.commands[-1].cmd) if parsed.commands else None
+            if isinstance(last_command, NoTerminalOutput) and ctx.console_renderer:
+                return replace(ctx, env=cmd_env, console_renderer=ConsoleRenderer.default_renderer())
+            else:
+                return replace(context, env=cmd_env)
+
+        async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
+            ctx = adjust_context(parsed)
             ctx, commands = await combine_query_parts([self.command(c.cmd, c.args, ctx) for c in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
             return ParsedCommandLine(ctx, parsed, commands, not_met)
@@ -350,7 +362,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
-            n = datetime.now(get_localzone())
+            n = ut.astimezone(get_localzone())
         except Exception:
             n = ut
         return {

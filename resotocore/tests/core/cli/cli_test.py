@@ -6,7 +6,7 @@ from pytest import fixture
 from typing import Tuple, List, AsyncIterator
 
 from core.analytics import InMemoryEventSender
-from core.cli.model import ParsedCommands, ParsedCommand
+from core.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from core.cli.cli import CLI, multi_command_parser
 from core.cli.model import CLIDependencies
 from core.cli.command import (
@@ -184,10 +184,15 @@ async def test_parse_env_vars(cli: CLI) -> None:
 
 
 def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
-    assert PredecessorPart.parse_args() == (1, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin") == (0, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin delete") == (0, EdgeType.delete)
-    assert PredecessorPart.parse_args("delete") == (1, EdgeType.delete)
+    plain = CLIContext()
+    w_delete = CLIContext(env={"edge_type": EdgeType.delete})
+    assert PredecessorPart.parse_args(None, w_delete) == (1, EdgeType.delete)
+    assert PredecessorPart.parse_args(None, plain) == (1, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin", plain) == (0, EdgeType.default)
+    assert PredecessorPart.parse_args("--with-origin", w_delete) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("--with-origin delete", plain) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("--with-origin delete", w_delete) == (0, EdgeType.delete)
+    assert PredecessorPart.parse_args("delete", w_delete) == (1, EdgeType.delete)
 
 
 @pytest.mark.asyncio
@@ -196,17 +201,20 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert len(commands) == 1
     assert len(commands[0].commands) == 1
     assert commands[0].commands[0].name == "execute_query"
-    assert commands[0].executable_commands[0].arg == '(reported.some_int == 0 and reported.identifier =~ "9_") -[1:]->'
+    assert (
+        commands[0].executable_commands[0].arg
+        == '(reported.some_int == 0 and reported.identifier =~ "9_") -default[1:]->'
+    )
     commands = await cli.evaluate_cli_command("query some_int==0 | descendants")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -[1:]->"
+    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[1:]->"
     commands = await cli.evaluate_cli_command("query some_int==0 | ancestors | ancestors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-[2:]-"
+    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2:]-"
     commands = await cli.evaluate_cli_command("query some_int==0 | predecessors | predecessors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-[2]-"
+    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2]-"
     commands = await cli.evaluate_cli_command("query some_int==0 | successors | successors | successors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -[3]->"
+    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[3]->"
     commands = await cli.evaluate_cli_command("query some_int==0 | successors | predecessors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 --> all <--"
+    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default-> all <-default-"
     # defining the edge type is supported as well
     commands = await cli.evaluate_cli_command("query some_int==0 | successors delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete->"

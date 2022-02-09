@@ -29,6 +29,7 @@ from typing import (
     Callable,
     Awaitable,
     cast,
+    Set,
 )
 from urllib.parse import urlparse, urlunparse
 
@@ -65,6 +66,7 @@ from core.cli.model import (
     CLIFileRequirement,
     CLIDependencies,
     ParsedCommand,
+    NoTerminalOutput,
 )
 from core.db.model import QueryModel
 from core.dependencies import system_info
@@ -339,14 +341,9 @@ class PredecessorPart(QueryPart):
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
 
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
-
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 
@@ -366,7 +363,7 @@ class PredecessorPart(QueryPart):
         return "Select all predecessors of this node in the graph."
 
     @staticmethod
-    def parse_args(arg: Optional[str] = None) -> Tuple[int, str]:
+    def parse_args(arg: Optional[str], ctx: CLIContext) -> Tuple[int, str]:
         def valid_edge_type(name: str) -> str:
             if name in EdgeType.all:
                 return name
@@ -375,7 +372,7 @@ class PredecessorPart(QueryPart):
 
         parser = NoExitArgumentParser()
         parser.add_argument("--with-origin", dest="origin", default=1, action="store_const", const=0)
-        parser.add_argument("edge", default=EdgeType.default, type=valid_edge_type, nargs="?")
+        parser.add_argument("edge", default=ctx.env.get("edge_type", EdgeType.default), type=valid_edge_type, nargs="?")
         parsed = parser.parse_args(arg.split() if arg else [])
         return parsed.origin, parsed.edge
 
@@ -400,14 +397,10 @@ class SuccessorPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
 
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
+      The parameter takes precedence over the env var.
 
 
     ## Examples
@@ -448,14 +441,10 @@ class AncestorPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
-    The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
-    In order to define which graph to walk, the edge_type can be specified.
 
-    If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 
@@ -499,6 +488,10 @@ class DescendantPart(QueryPart):
 
     ## Parameters
     - `edge_type` [Optional, default to `default`]: Defines the type of edge to navigate.
+
+    ## Environment Variables
+    - `edge_type` [Optional]: Defines the type of the edge to navigate.
+      The parameter takes precedence over the env var.
 
     ## Examples
 
@@ -1396,7 +1389,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
             elif isinstance(kind, ComplexKind):
-                props = sorted(kind.all_props(), key=lambda k: k.name)
+                props = sorted(kind.all_props, key=lambda k: k.name)
                 return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": to_json(props)}
             else:
                 return {"name": kind.fqn}
@@ -2351,7 +2344,7 @@ class TagCommand(SendWorkerTaskCommand):
     def timeout(self) -> timedelta:
         return timedelta(seconds=30)
 
-    def load_by_id_merged(self, model: Model, in_stream: Stream, **env: str) -> Stream:
+    def load_by_id_merged(self, model: Model, in_stream: Stream, variables: Optional[Set[str]], **env: str) -> Stream:
         async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
@@ -2362,7 +2355,7 @@ class TagCommand(SendWorkerTaskCommand):
                 .merge_with("ancestors.account", NavigateUntilRoot, IsTerm(["account"]))
                 .merge_with("ancestors.region", NavigateUntilRoot, IsTerm(["region"]))
                 .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
-            )
+            ).rewrite_for_ancestors_descendants(variables)
             query_model = QueryModel(query, model)
             async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
                 async for a in crs:
@@ -2378,7 +2371,7 @@ class TagCommand(SendWorkerTaskCommand):
                 if is_node(result):
                     db = self.dependencies.db_access.get_graph_db(env["graph"])
                     try:
-                        updated: Json = await db.update_node(model, result["id"], result, None)
+                        updated: Json = await db.update_node(model, result["id"], result, True, None)
                         return updated
                     except ClientError as ex:
                         # if the change could not be reflected in database, show success
@@ -2403,6 +2396,8 @@ class TagCommand(SendWorkerTaskCommand):
         p = NoExitArgumentParser()
         p.add_argument("--nowait", dest="nowait", default=False, action="store_true")
         ns, rest = p.parse_known_args(arg_tokens)
+        variables: Optional[Set[str]] = None
+
         if arg_tokens[0] == "delete" and len(rest) == 2:
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
                 "tag",
@@ -2411,7 +2406,7 @@ class TagCommand(SendWorkerTaskCommand):
             )  # noqa: E731
         elif arg_tokens[0] == "update" and len(rest) == 3:
             _, tag, vin = rest
-            formatter = ctx.formatter(double_quoted_or_simple_string_dp.parse(vin))
+            formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
                 "tag",
                 self.carz_from_node(item),
@@ -2422,7 +2417,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         def setup_stream(in_stream: Stream) -> Stream:
             def with_dependencies(model: Model) -> Stream:
-                load = self.load_by_id_merged(model, in_stream, **ctx.env)
+                load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
                 result_handler = self.handle_result(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
@@ -2734,7 +2729,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             raise CLIParseError(f"system: Can not parse {arg}")
 
 
-class WriteCommand(CLICommand):
+class WriteCommand(CLICommand, NoTerminalOutput):
     """
     ```shell
     write <file-name>

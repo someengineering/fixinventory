@@ -19,7 +19,7 @@ def test_from_name() -> None:
 
 def test_renderer_is_thread_safe() -> None:
     element = Text("some", "blue").append(Text("=", "dim").append("23", "green"))
-    renderer = ConsoleRenderer.create_renderer(color_system=ConsoleColorSystem.standard)
+    renderer = ConsoleRenderer(color_system=ConsoleColorSystem.standard)
     expected = renderer.render(element)
 
     def render() -> None:

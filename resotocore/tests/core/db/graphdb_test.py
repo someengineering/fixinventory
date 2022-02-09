@@ -390,6 +390,10 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert GraphAccess.root_id(graph) == "sub_root"
     assert list(graph.successors("sub_root"))[0] == "9"
     assert set(graph.successors("9")) == {f"9_{x}" for x in range(0, 10)}
+    for from_node, to_node, data in graph.edges.data(True):
+        assert from_node == "9" or to_node == "9"
+        assert data == {"edge_type": "default"}
+
     for node_id, node in graph.nodes.data(True):
         if node_id == "9":
             assert node["metadata"]["query_tag"] == "red"
@@ -409,6 +413,10 @@ async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model)
 
     async with await filled_graph_db.query_aggregation(QueryModel(agg_combined_var_query, foo_model)) as g:
         assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 11}]
+
+    agg_multi_fn_same_prop = parse_query('aggregate(sum(f) as a, max(f) as b): is("bla")').on_section("reported")
+    async with await filled_graph_db.query_aggregation(QueryModel(agg_multi_fn_same_prop, foo_model)) as g:
+        assert [x async for x in g] == [{"a": 2300, "b": 23}]
 
 
 @pytest.mark.asyncio
@@ -519,9 +527,14 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     await graph_db.wipe()
     await graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    json = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
-    assert to_foo(json).name == "bla"
+    json_patch = await graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
+    assert to_foo(json_patch).name == "bla"
     assert to_foo(await graph_db.get_node(foo_model, "some_other")).name == "bla"
+    json_replace = (
+        await graph_db.update_node(foo_model, "some_other", {"kind": "bla", "identifier": "123"}, True, "reported")
+    )["reported"]
+    json_replace.pop("ctime")  # ctime is added by the system automatically. remove it
+    assert json_replace == {"kind": "bla", "identifier": "123"}
 
 
 @pytest.mark.asyncio
@@ -584,7 +597,7 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 @pytest.mark.asyncio
 async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
     await event_graph_db.create_node(foo_model, "some_other", to_json(Foo("some_other", "foo")), "root")
-    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, "reported")
+    await event_graph_db.update_node(foo_model, "some_other", {"name": "bla"}, False, "reported")
     await event_graph_db.delete_node("some_other")
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)

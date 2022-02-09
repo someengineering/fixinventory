@@ -548,7 +548,7 @@ class Api:
         graph = self.db.get_graph_db(graph_id)
         patch = await request.json()
         md = await self.model_handler.load_model()
-        node = await graph.update_node(md, node_id, patch, section)
+        node = await graph.update_node(md, node_id, patch, False, section)
         return web.json_response(node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
@@ -704,13 +704,11 @@ class Api:
             rows = int(request.headers.get("Resoto-Shell-Rows", "50"))
             terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
             colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
-            formatter = ConsoleRenderer.create_renderer(
-                width=columns, height=rows, color_system=colors, terminal=terminal
-            )
-            return CLIContext(env=dict(request.query), console_formatter=formatter)
+            renderer = ConsoleRenderer(width=columns, height=rows, color_system=colors, terminal=terminal)
+            return CLIContext(env=dict(request.query), console_renderer=renderer)
         except Exception as ex:
             log.debug("Could not create CLI context.", exc_info=ex)
-            return CLIContext(env=dict(request.query), console_formatter=ConsoleRenderer.create_renderer())
+            return CLIContext(env=dict(request.query), console_renderer=ConsoleRenderer.default_renderer())
 
     async def evaluate(self, request: Request) -> StreamResponse:
         ctx = self.cli_context_from_request(request)

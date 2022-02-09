@@ -42,7 +42,7 @@ class DbAccess(ABC):
         job_name: str = "jobs",
         config_entity: str = "configs",
         template_entity: str = "templates",
-        update_outdated: timedelta = timedelta(minutes=30),
+        update_outdated: timedelta = timedelta(hours=4),
     ):
         self.event_sender = event_sender
         self.database = arango_database
