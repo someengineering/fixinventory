@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from functools import wraps
+from functools import wraps, cached_property
 from datetime import datetime, timezone, timedelta
 from copy import deepcopy
 import base64
@@ -116,7 +116,7 @@ class BaseResource(ABC):
         if not hasattr(self, "_mtime"):
             self._mtime = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}('{self.id}', name='{self.name}',"
             f" region='{self.region().name}', zone='{self.zone().name}',"
@@ -124,7 +124,19 @@ class BaseResource(ABC):
             f" ctime={self.ctime!r}, uuid={self.uuid}, chksum={self.chksum})"
         )
 
-    def _keys(self):
+    def _keys(self) -> tuple:
+        """Return a tuple of all keys that make this resource unique
+
+        Must not be called before the resource is connected to the graph
+        as the relative location within the graph is used to determine the
+        tuple of unique keys.
+
+        E.g. instance -> aws -> 123457 -> us-east-1 -> us-east-1b -> i-987654 -> myServer
+        """
+        if self._graph is None:
+            raise RuntimeError(
+                f"_keys() called on {self.rtdname} before resource was added to graph"
+            )
         return (
             self.kind,
             self.cloud().id,
@@ -203,8 +215,9 @@ class BaseResource(ABC):
     def delete_tag(self, key) -> bool:
         raise NotImplementedError
 
-    @property
+    @cached_property
     def chksum(self) -> str:
+        """Return a checksum of the resource."""
         return (
             base64.urlsafe_b64encode(
                 hashlib.blake2b(str(self._keys()).encode(), digest_size=16).digest()
