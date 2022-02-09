@@ -25,6 +25,7 @@ def send_to_resotocore(graph: Graph):
     graph_export_iterator = GraphExportIterator(
         graph, delete_tempfile=not dump_json, tempdir=tempdir
     )
+    #  The graph is not required any longer and can be released.
     del graph
     graph_export_iterator.export_graph()
     send_graph(graph_export_iterator, base_uri, resotocore_graph)
