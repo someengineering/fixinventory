@@ -121,9 +121,7 @@ COPY plugins /usr/src/plugins
 WORKDIR /usr/src
 RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
 RUN for plugin_dir in $(find plugins/ -maxdepth 1 -mindepth 1 -type d); do \
-        cd "/usr/src/$plugin_dir" && \
-        /usr/local/resoto-venv-python3/bin/activate && python -m poetry install && \
-        cd ../.. ; \
+        (cd "/usr/src/$plugin_dir"; . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install) ;\
     done
 
 # Copy image config and startup files
