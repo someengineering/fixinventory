@@ -49,7 +49,9 @@ jobs:
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
-        run: nox
+        run:
+          nox
+          nox -rs coverage_ci
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2

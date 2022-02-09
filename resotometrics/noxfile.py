@@ -1,54 +1,43 @@
 import nox
 from nox.sessions import Session
+from urllib.request import pathname2url
+import os, webbrowser
 
-import tempfile
-
-nox.options.sessions = "test", "lint", "black"
-locations = "resotometrics", "test", "noxfile.py"
-
-
-def install_with_constraints(session: Session, *args, **kwargs):
-    """
-    This wrapper allows nox to use the exact versions of transitive dependencies
-    captured in the poetry.lock file.
-    """
-    with tempfile.NamedTemporaryFile() as requirements:
-        session.run(
-            "poetry",
-            "export",
-            "--dev",
-            "--without-hashes",
-            "--format=requirements.txt",
-            f"--output={requirements.name}",
-            external=True,
-        )
-        session.install(f"--constraint={requirements.name}", *args, **kwargs)
+nox.options.sessions = ["lint", "test"]
+src_location = "resotometrics"
+all_locations = [src_location] + ["test"]
 
 
-@nox.session(python=["3.8", "3.9"])
-def test(session: Session):
-    args = session.posargs
-    session.run("poetry", "install", "--no-dev", external=True)
-    install_with_constraints(session, "coverage[toml]", "pytest", "pytest-cov")
+@nox.session(python=["3.8"])
+def test(session: Session) -> None:
+    args = session.posargs or all_locations
+    session.run("poetry", "install", external=True)
     session.run("pytest", *args)
 
 
-@nox.session(python=["3.9"])
-def lint(session):
-    args = session.posargs or locations
-    install_with_constraints(session, "flake8", "flake8-black", "pep8-naming")
-    session.run("flake8", "--verbose", *args)
+@nox.session(python=["3.8"])
+def lint(session) -> None:
+    args = session.posargs or all_locations
+    session.run("poetry", "install", external=True)
+    session.run("black", "--line-length", "120", "--check", "--diff", "--target-version", "py39", *args)
+    session.run("flake8", src_location)
+    session.run("pylint", src_location)
+    session.run("mypy", "--install-types", "--non-interactive", "--python-version", "3.8", "--strict", *args)
 
 
-@nox.session(python=["3.9"])
-def black(session):
-    args = session.posargs or locations
-    install_with_constraints(session, "black")
-    session.run("black", "--check", "--diff", *args)
+@nox.session(python=["3.8"])
+def coverage(session) -> None:
+    args = session.posargs
+    session.run("poetry", "install", external=True)
+    session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
+    session.run("coverage", "report", "-m", *args)
+    session.run("coverage", "html", *args)
+    webbrowser.open("file://" + pathname2url(os.path.abspath('htmlcov/index.html')))
 
 
-@nox.session(python=["3.9"])
-def mypy(session):
-    args = session.posargs or locations
-    install_with_constraints(session, "mypy")
-    session.run("mypy", *args)
+@nox.session(python=["3.8"])
+def coverage_ci(session) -> None:
+    args = session.posargs
+    session.run("poetry", "install", external=True)
+    session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
+    session.run("coverage", "xml", *args)
