@@ -113,7 +113,6 @@ RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
 # Build resoto plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
-
 RUN for plugin_dir in $(find plugins/ -maxdepth 1 -mindepth 1 -type d); do \
         (cd "/usr/src/$plugin_dir"; . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install) ;\
     done
