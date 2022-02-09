@@ -834,7 +834,7 @@ class GraphExportIterator:
             yield line
 
         elapsed = time() - start_time
-        log.debug(
+        log.info(
             f"Sent {lines_sent}/{self.total_lines},"
             f" {self.number_of_nodes} nodes and {self.number_of_edges} edges"
             f" in {elapsed:.4f}s"
@@ -872,10 +872,7 @@ class GraphExportIterator:
                 self.tempfile.write(edge_json.encode())
                 self.total_lines += 1
             elapsed = time() - start_time
-            log.debug(
-                f"Wrote {self.total_lines} nodes and edges"
-                f" to {self.tempfile.name} in {elapsed:.4f}s"
-            )
+            log.info(f"Exported {self.total_lines} nodes and edges in {elapsed:.4f}s")
             self.graph_exported = True
             del self.graph
             self.tempfile.seek(0)
