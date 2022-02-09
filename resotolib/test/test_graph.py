@@ -1,3 +1,4 @@
+import pytest
 from resotolib.graph import Graph, GraphContainer, EdgeType
 from resotolib.baseresources import BaseResource
 import resotolib.logging as logging
@@ -98,3 +99,12 @@ def test_multidigraph():
     assert g.is_dag_per_edge_type()
     g.add_edge(b, a)
     assert g.is_dag_per_edge_type() is False
+
+
+def test_baseresource_chksum():
+    g = Graph()
+    a = SomeTestResource("a", {})
+    with pytest.raises(RuntimeError):
+        a.chksum
+    g.add_node(a)
+    assert isinstance(a.chksum, str)
