@@ -360,7 +360,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
-            n = datetime.now(get_localzone())
+            n = ut if now_string else datetime.now(get_localzone())
         except Exception:
             n = ut
         return {
