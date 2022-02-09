@@ -82,11 +82,11 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.paths]
-source = ["resotocore"]
+source = ["core"]
 
 [tool.coverage.run]
 branch = true
-source = ["resotocore"]
+source = ["core"]
 
 [tool.coverage.report]
 show_missing = true

@@ -1,5 +1,7 @@
 import nox
 from nox.sessions import Session
+from urllib.request import pathname2url
+import os, webbrowser, sys
 
 nox.options.sessions = ["lint", "test"]
 locations = "core", "tests"
@@ -25,6 +27,16 @@ def lint(session) -> None:
 
 @nox.session(python=["3.8"])
 def coverage(session) -> None:
+    args = session.posargs
+    session.run("poetry", "install", external=True)
+    session.run("coverage", "run", "--source", "core", "-m", "pytest", *args)
+    session.run("coverage", "report", "-m", *args)
+    session.run("coverage", "html", *args)
+    webbrowser.open("file://" + pathname2url(os.path.abspath('htmlcov/index.html')))
+
+
+@nox.session(python=["3.8"])
+def coverage_ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("coverage", "run", "--source", "core", "-m", "pytest", *args)
