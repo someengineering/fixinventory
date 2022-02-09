@@ -98,7 +98,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--pool-size",
-        help="Collector Thread/Process Pool Size (default: 5)",
+        help="Collector thread/process pool size (default: 5)",
         dest="pool_size",
         default=5,
         type=int,
