@@ -1,6 +1,7 @@
 import json
 import requests
 import tempfile
+from datetime import datetime
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
 from resotolib.jwt import encode_jwt_to_headers
@@ -54,8 +55,12 @@ def update_model(
     model_json = json.dumps(graph.export_model(), indent=4)
 
     if dump_json:
+        ts = datetime.now().strftime("%Y-%m-%d-%H-%M-")
         with tempfile.NamedTemporaryFile(
-            prefix="resoto-model-", suffix=".json", delete=not dump_json, dir=tempdir
+            prefix=f"resoto-model-{ts}-",
+            suffix=".json",
+            delete=not dump_json,
+            dir=tempdir,
         ) as model_outfile:
             log.info(f"Writing model json to file {model_outfile.name}")
             model_outfile.write(model_json.encode())

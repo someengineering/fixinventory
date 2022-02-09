@@ -1,6 +1,7 @@
 from __future__ import annotations
 import networkx
 from networkx.algorithms.dag import is_directed_acyclic_graph
+from datetime import datetime
 import threading
 import pickle
 import json
@@ -786,8 +787,9 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 class GraphExportIterator:
     def __init__(self, graph: Graph, delete_tempfile: bool = True, tempdir: str = None):
         self.graph = graph
+        ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         self.tempfile = tempfile.NamedTemporaryFile(
-            prefix="resoto-graph-",
+            prefix=f"resoto-graph-{ts}-",
             suffix=".ndjson",
             delete=delete_tempfile,
             dir=tempdir,
