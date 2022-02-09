@@ -43,5 +43,3 @@ jobs:
       - name: Lint
         run: |
           nox -rs lint
-      - name: MyPy
-        run: nox -rs mypy
