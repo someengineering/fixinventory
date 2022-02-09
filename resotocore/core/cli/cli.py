@@ -123,7 +123,9 @@ class HelpCommand(CLICommand):
             aliases = "\n".join(
                 f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items()
             )
-            replacements = "\n".join(f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements().items())
+            replacements = "\n".join(
+                f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements(**ctx.env).items()
+            )
             result = dedent(
                 f"""
                  # resotocore CLI ({version()})
