@@ -1,7 +1,7 @@
 import nox
 from nox.sessions import Session
 from urllib.request import pathname2url
-import os, webbrowser, sys
+import os, webbrowser
 
 nox.options.sessions = ["lint", "test"]
 locations = "core", "tests"
@@ -40,5 +40,4 @@ def coverage_ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("coverage", "run", "--source", "core", "-m", "pytest", *args)
-    session.run("coverage", "combine", *args)
     session.run("coverage", "xml", *args)
