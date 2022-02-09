@@ -801,6 +801,8 @@ class GraphExportIterator:
         self.graph_exported = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
+        self.number_of_nodes = int(graph.number_of_nodes())
+        self.number_of_edges = int(graph.number_of_edges())
 
     def __del__(self):
         try:
@@ -817,20 +819,24 @@ class GraphExportIterator:
         percent = 0
         report_every = round(self.total_lines / 10)
 
+        self.tempfile.seek(0)
         while line := self.tempfile.readline():
+            lines_sent += 1
             if report_every > 0 and lines_sent > 0 and lines_sent % report_every == 0:
                 percent = round(lines_sent / self.total_lines * 100)
                 elapsed = time() - last_sent
                 log.debug(
-                    f"Sent {lines_sent} nodes and edges ({percent}%) - {elapsed:.4f}s"
+                    f"Sent {lines_sent}/{self.total_lines} nodes and edges ({percent}%) - {elapsed:.4f}s"
                 )
                 last_sent = time()
-            lines_sent += 1
             yield line
 
         elapsed = time() - start_time
-        log.debug(f"Sent {lines_sent} nodes and edges in {elapsed:.4f}s")
-        self.tempfile.seek(0)
+        log.debug(
+            f"Sent {lines_sent}/{self.total_lines},"
+            f" {self.number_of_nodes} nodes and {self.number_of_edges} edges"
+            f" in {elapsed:.4f}s"
+        )
 
     def export_graph(self):
         with self.export_lock:

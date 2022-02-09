@@ -4,14 +4,15 @@ from concurrent import futures
 from resotoworker.resotocore import send_to_resotocore
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import GraphContainer, Graph, sanitize
+from resotolib.baseresources import GraphRoot
+from resotolib.graph import Graph, sanitize
 from resotolib.logging import log, setup_logger
 from typing import List, Optional
 
 
 def collect(collectors: List[BaseCollectorPlugin]) -> None:
-    graph_container = GraphContainer(cache_graph=False)
-    graph = graph_container.graph
+    graph = Graph(root=GraphRoot("root", {}))
+
     max_workers = (
         len(collectors)
         if len(collectors) < ArgumentParser.args.pool_size
