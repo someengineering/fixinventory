@@ -553,7 +553,7 @@ class GCPProjectCollector:
         successors: List = None,
         predecessors: List = None,
         client_kwargs: Dict = None,
-        client_nested_callables: Type[str] = [],
+        client_nested_callables: List[str] = None,
         resource_kwargs: Dict = None,
         paginate_subitems_name: str = None,
         post_process: Callable = None,
@@ -594,6 +594,8 @@ class GCPProjectCollector:
             paginate_subitems_name = client_method_name
         if client_kwargs is None:
             client_kwargs = {}
+        if client_nested_callables is None:
+            client_nested_callables = []
         if resource_kwargs is None:
             resource_kwargs = {}
         if successors is None:
