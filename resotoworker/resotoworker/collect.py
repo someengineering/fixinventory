@@ -51,6 +51,7 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
                 graph.merge(cluster_graph)
         sanitize(graph)
         return graph
+
     send_to_resotocore(collect(collectors))
 
 
