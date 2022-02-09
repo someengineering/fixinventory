@@ -102,6 +102,7 @@ class Graph(networkx.MultiDiGraph):
     def __init__(self, *args, root: BaseResource = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.root = None
+        self._log_edge_creation = True
         if isinstance(root, BaseResource):
             self.root = root
             self.add_node(
@@ -123,7 +124,12 @@ class Graph(networkx.MultiDiGraph):
             self.add_edge(self.root, graph.root)
         else:
             log.warning("Merging graphs with no valid roots")
-        self.update(edges=graph.edges, nodes=graph.nodes)
+
+        try:
+            self._log_edge_creation = False
+            self.update(edges=graph.edges, nodes=graph.nodes)
+        finally:
+            self._log_edge_creation = True
         self.resolve_deferred_connections()
 
     def add_resource(
@@ -185,7 +191,11 @@ class Graph(networkx.MultiDiGraph):
             log.error(f"Edge from {src} to {dst} already exists in graph")
             return
         return_key = super().add_edge(src, dst, key=key, **attr)
-        if isinstance(src, BaseResource) and isinstance(dst, BaseResource):
+        if (
+            self._log_edge_creation
+            and isinstance(src, BaseResource)
+            and isinstance(dst, BaseResource)
+        ):
             log.debug(
                 f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})"
             )
