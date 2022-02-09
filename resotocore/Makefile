@@ -57,16 +57,14 @@ clean-env: ## remove environment
 	rm -fr venv
 	rm -fr venv-pypy
 
-lint: venv ## check style with flake8
-	black --line-length 120 --check core tests
-	flake8 core
-	pylint core
-	mypy --python-version 3.8 --strict core tests
+lint: ## check style with flake8
+	nox -rs lint
+	nox -rs mypy
 
-test: venv ## run tests quickly with the default Python
+test: ## run tests quickly with the default Python
 	pytest
 
-test-all: venv ## run tests on every Python version with nox
+test-all: ## run tests on every Python version with nox
 	nox
 
 coverage: ## check code coverage quickly with the default Python
@@ -106,8 +104,8 @@ venv:
 
 setup: clean clean-env venv
 
-list-outdated: venv
+list-outdated:
 	poetry show --outdated
 
-install-latest: venv
+install-latest:
 	poetry update

@@ -83,7 +83,7 @@ main() {
     fi
     ensure_pip
     # git install uses the "legacy" pip installation method. For this to work, we need to install the dev dependencies.
-    # poetry takes care of this for us, so we don't need to install them here. 
+    # poetry takes care of this for us, so we don't need to install them here.
     if [ "$git_install" = true ] && [ "$dev_mode" = true ]; then
         install_dev
     fi
@@ -207,7 +207,7 @@ pip_install() {
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
         cd "$relative_path"
-        poetry install 
+        poetry install
         cd ..
         if [ "$plugin" = true ]; then
             cd ..
