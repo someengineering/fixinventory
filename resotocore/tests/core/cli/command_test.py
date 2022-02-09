@@ -675,7 +675,7 @@ async def test_write_command(cli: CLI) -> None:
     assert await cli.execute_cli_command("help", stream.list, truecolor) != mono_out
     # We expect the content of the written file to contain monochrome output.
     assert await cli.execute_cli_command(
-        "help | write write_test.txt", partial(check_file, check_content="\n".join(mono_out[0])), truecolor
+        "help | write write_test.txt", partial(check_file, check_content="\n".join(mono_out[0]), env=env), truecolor
     )
 
 
