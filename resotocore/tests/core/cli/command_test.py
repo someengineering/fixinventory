@@ -32,7 +32,7 @@ from core.query.model import Template, Query
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
 from core.task.task_handler import TaskHandler
 from core.types import JsonElement, Json
-from core.util import AccessJson
+from core.util import AccessJson, utc_str
 from core.worker_task_queue import WorkerTask
 
 # noinspection PyUnresolvedReferences
@@ -667,8 +667,9 @@ async def test_write_command(cli: CLI) -> None:
     # result can be read as yaml
     await cli.execute_cli_command("query all limit 3 | format --yaml | write write_test.yaml ", check_file)
     # write enforces unescaped output.
-    truecolor = CLIContext(console_renderer=ConsoleRenderer(80, 25, ConsoleColorSystem.truecolor, True))
-    monochrome = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
+    env = {"now": utc_str()}  # fix the time, so that replacements will stay equal
+    truecolor = CLIContext(console_renderer=ConsoleRenderer(80, 25, ConsoleColorSystem.truecolor, True), env=env)
+    monochrome = CLIContext(console_renderer=ConsoleRenderer.default_renderer(), env=env)
     # Make sure, that the truecolor output is different from monochrome output
     mono_out = await cli.execute_cli_command("help", stream.list, monochrome)
     assert await cli.execute_cli_command("help", stream.list, truecolor) != mono_out

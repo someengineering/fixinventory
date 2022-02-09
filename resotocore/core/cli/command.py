@@ -1389,7 +1389,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
             elif isinstance(kind, ComplexKind):
-                props = sorted(kind.all_props(), key=lambda k: k.name)
+                props = sorted(kind.all_props, key=lambda k: k.name)
                 return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": to_json(props)}
             else:
                 return {"name": kind.fqn}

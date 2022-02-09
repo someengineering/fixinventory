@@ -5,7 +5,7 @@ import calendar
 import logging
 from asyncio import Task
 from dataclasses import replace
-from datetime import timedelta, datetime
+from datetime import timedelta
 from functools import reduce
 from textwrap import dedent
 from typing import Dict, List, Tuple
@@ -360,7 +360,7 @@ class CLI:
         ut = from_utc(now_string) if now_string else utc()
         t = ut.date()
         try:
-            n = datetime.now(get_localzone())
+            n = ut.astimezone(get_localzone())
         except Exception:
             n = ut
         return {

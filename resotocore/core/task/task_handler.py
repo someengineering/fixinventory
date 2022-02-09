@@ -147,7 +147,7 @@ class TaskHandler(JobHandler):
         return wi
 
     async def start_task(self, desc: TaskDescription, reason: str) -> Optional[RunningTask]:
-        existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())  # type: ignore
+        existing = first(lambda x: x.descriptor.id == desc.id and x.is_active, self.tasks.values())
         if existing:
             if desc.on_surpass == TaskSurpassBehaviour.Skip:
                 log.info(
@@ -292,7 +292,7 @@ class TaskHandler(JobHandler):
         return list(self.tasks.values())
 
     async def start_task_by_descriptor_id(self, uid: str) -> Optional[RunningTask]:
-        td = first(lambda t: t.id == uid, self.task_descriptions)  # type: ignore # pypy
+        td = first(lambda t: t.id == uid, self.task_descriptions)
         if td:
             return await self.start_task(td, "direct")
         else:
@@ -303,7 +303,7 @@ class TaskHandler(JobHandler):
 
     async def add_job(self, job: Job) -> None:
         descriptions = list(self.task_descriptions)
-        existing = first(lambda td: td.id == job.id, descriptions)  # type: ignore # pypy
+        existing = first(lambda td: td.id == job.id, descriptions)
         if existing:
             if not existing.mutable:
                 raise AttributeError(f"There is an existing job with this {job.id} which can not be deleted!")

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import Type, Any, Union, cast
+from typing import Type, Any, Union, cast, List
 
 import pytest
 from deepdiff import DeepDiff
@@ -250,17 +250,16 @@ def test_property_path() -> None:
     p2 = PropertyPath(["a", "b", "c", "d"])
     p3 = PropertyPath(["a", "b"])
     p4 = p3.child("c").child("d")
-    assert p1 == p2
-    assert hash(p1) == hash(p2)
-    assert p2 == p1
-    assert p1 != p3
-    assert p2 == p4
+    assert p1.same_as(p2)
+    assert p2.same_as(p1)
+    assert not p1.same_as(p3)
+    assert p2.same_as(p4)
 
 
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
-    person_path = person.property_by_path()
+    person_path = {p.path: p for p in person.resolved_properties}
     assert len(person_path) == 11
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
@@ -296,7 +295,8 @@ def test_update(person_model: Model) -> None:
         )
     assert (
         str(not_allowed.value)
-        == "Update not possible. Address: following properties would be non unique having the same path but different type: city (string -> int32)"
+        == "Update not possible: following properties would be non unique having the same path but different type: "
+        "Address.city (string -> int32)"
     )
 
     updated = person_model.update_kinds([StringKind("Foo")])
@@ -308,7 +308,8 @@ def test_update(person_model: Model) -> None:
         updated.update_kinds([ComplexKind("Bla", [], [Property("id", "int32")])])
     assert (
         str(duplicate.value)
-        == "Update not possible. Bla: following properties would be non unique having the same path but different type: id (string -> int32)"
+        == "Update not possible: following properties would be non unique having the same path but different type: "
+        "Bla.id (string -> int32)"
     )
 
 

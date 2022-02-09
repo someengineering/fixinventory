@@ -1122,12 +1122,12 @@ class EventGraphDB(GraphDB):
         return await self.real.list_in_progress_updates()
 
     async def commit_batch_update(self, batch_id: str) -> None:
-        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
+        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())
         await self.real.commit_batch_update(batch_id)
         await self.event_sender.core_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
 
     async def abort_update(self, batch_id: str) -> None:
-        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())  # type: ignore
+        info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())
         await self.real.abort_update(batch_id)
         await self.event_sender.core_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
