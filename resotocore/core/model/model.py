@@ -5,7 +5,6 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone, date
-from functools import reduce
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
 
@@ -133,10 +132,11 @@ class Property:
 class PropertyPath:
     @staticmethod
     def from_path(path: str) -> PropertyPath:
-        return PropertyPath(path.split("."))
+        return PropertyPath(path.split("."), path)
 
-    def __init__(self, path: Sequence[Optional[str]]):
+    def __init__(self, path: Sequence[Optional[str]], str_rep: Optional[str] = None):
         self.path = path
+        self.path_str = str_rep if str_rep else ".".join(a if a else "" for a in self.path)
 
     @property
     def root(self) -> bool:
@@ -147,11 +147,14 @@ class PropertyPath:
         update.append(part)
         return PropertyPath(update)
 
-    def __repr__(self) -> str:
-        return ".".join(a if a else "" for a in self.path)
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, PropertyPath) and len(other.path) == len(self.path):
+    def same_as(self, other: PropertyPath) -> bool:
+        """
+        Checks if the given path is the same this path.
+        Note: the path may include "holes" marked as None.
+              The holes mean positions that have to be ignored.
+              [A,B,C] same_as [A,None,C] same_as [A,None,None] same_as [None,None,None]
+        """
+        if len(other.path) == len(self.path):
             for left, right in zip(self.path, other.path):
                 if left is not None and right is not None and left != right:
                     return False
@@ -159,17 +162,26 @@ class PropertyPath:
         else:
             return False
 
+    def __repr__(self) -> str:
+        return self.path_str
+
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, PropertyPath) and other.path_str == self.path_str
+
     def __hash__(self) -> int:
-        return len(self.path)
+        return hash(self.path_str)
 
 
-EmptyPath = PropertyPath([])
+EmptyPath = PropertyPath([], "")
 
 
-@dataclass
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class ResolvedProperty:
+    # The path of the resolved property in a complex kind
     path: PropertyPath
+    # The metadata of the property (name etc.)
     prop: Property
+    # the resolved kind of this property
     kind: SimpleKind
 
 
@@ -836,9 +848,10 @@ class Model:
 
     def __init__(self, kinds: Dict[str, Kind]):
         self.kinds = kinds
-        complexes = (k for k in kinds.values() if isinstance(k, ComplexKind))
-        self.__property_kind_by_path: List[ResolvedProperty] = reduce(
-            lambda res, k: res + k.resolved_properties, complexes, []
+        self.__property_kind_by_path: List[ResolvedProperty] = list(
+            # several complex kinds might have the same property
+            # reduce the list by hash over the path.
+            {r.path: r for c in kinds.values() if isinstance(c, ComplexKind) for r in c.resolved_properties}.values()
         )
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -871,7 +884,7 @@ class Model:
 
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
-        found: Optional[ResolvedProperty] = first(lambda prop: prop.path == path, self.__property_kind_by_path)
+        found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
         # if the path is not known according to known model: it could be anything.
         return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind.any())
 

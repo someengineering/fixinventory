@@ -250,11 +250,10 @@ def test_property_path() -> None:
     p2 = PropertyPath(["a", "b", "c", "d"])
     p3 = PropertyPath(["a", "b"])
     p4 = p3.child("c").child("d")
-    assert p1 == p2
-    assert hash(p1) == hash(p2)
-    assert p2 == p1
-    assert p1 != p3
-    assert p2 == p4
+    assert p1.same_as(p2)
+    assert p2.same_as(p1)
+    assert not p1.same_as(p3)
+    assert p2.same_as(p4)
 
 
 def test_property_path_on_model(person_model: Model) -> None:
