@@ -1,6 +1,6 @@
 import pytest
 from resotolib.graph import Graph, GraphContainer, GraphExportIterator
-from resotolib.baseresources import BaseResource, EdgeType
+from resotolib.baseresources import BaseResource, EdgeType, GraphRoot
 import resotolib.logging as logging
 from dataclasses import dataclass
 from typing import ClassVar
