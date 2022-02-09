@@ -637,3 +637,44 @@ class GCPServiceSKU(GCPResource, PhantomBaseResource):
                         break
             if cost > -1:
                 self.usage_unit_nanos = cost
+
+@dataclass(eq=False)
+class GCPGKECluster(GCPResource, BaseResource):
+    kind: ClassVar[str] = "gcp_gke_cluster"
+    api_identifier: ClassVar[str] = "cluster"
+    client: ClassVar[str] = "container"
+    api_version: ClassVar[str] = "v1"
+
+    initial_cluster_version: Optional[str] = None
+    current_master_version: Optional[str] = None
+    current_node_count: Optional[int] = None
+    cluster_status: Optional[str] = ""
+
+    cluster_status_map: ClassVar[Dict[str, InstanceStatus]] = {
+        "PROVISIONING": InstanceStatus.BUSY,
+        "STAGING": InstanceStatus.BUSY,
+        "RUNNING": InstanceStatus.RUNNING,
+        "STOPPING": InstanceStatus.BUSY,
+        "SUSPENDING": InstanceStatus.BUSY,
+        "SUSPENDED": InstanceStatus.STOPPED,
+        "REPAIRING": InstanceStatus.BUSY,
+        "TERMINATED": InstanceStatus.TERMINATED,
+        "busy": InstanceStatus.BUSY,
+        "running": InstanceStatus.RUNNING,
+        "stopped": InstanceStatus.STOPPED,
+        "terminated": InstanceStatus.TERMINATED,
+    }
+
+    def _cluster_status_setter(self, value: str) -> None:
+        self._cluster_status = self.cluster_status_map.get(
+            value, InstanceStatus.UNKNOWN
+        )
+        if self._cluster_status == InstanceStatus.TERMINATED:
+            self._cleaned = True
+    
+    def _cluster_status_getter(self) -> str:
+        return self._cluster_status.value
+
+GCPGKECluster.cluster_status = property(
+    GCPGKECluster._cluster_status_getter, GCPGKECluster._cluster_status_setter
+)
