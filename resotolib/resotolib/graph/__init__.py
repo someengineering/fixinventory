@@ -114,7 +114,6 @@ class Graph(networkx.MultiDiGraph):
         If the other graph has a graph.root an edge will be created between
         it and our own graph root.
         """
-        self.update(edges=graph.edges, nodes=graph.nodes)
         if isinstance(self.root, BaseResource) and isinstance(
             getattr(graph, "root", None), BaseResource
         ):
@@ -124,6 +123,7 @@ class Graph(networkx.MultiDiGraph):
             self.add_edge(self.root, graph.root)
         else:
             log.warning("Merging graphs with no valid roots")
+        self.update(edges=graph.edges, nodes=graph.nodes)
         self.resolve_deferred_connections()
 
     def add_resource(
