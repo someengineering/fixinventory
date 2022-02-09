@@ -260,7 +260,7 @@ def test_property_path() -> None:
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
-    person_path = {p.path: p for p in person.all_resolved_properties()}
+    person_path = {p.path: p for p in person.resolved_properties}
     assert len(person_path) == 11
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
@@ -296,7 +296,8 @@ def test_update(person_model: Model) -> None:
         )
     assert (
         str(not_allowed.value)
-        == "Update not possible. Address: following properties would be non unique having the same path but different type: city (string -> int32)"
+        == "Update not possible: following properties would be non unique having the same path but different type: "
+        "Address.city (string -> int32)"
     )
 
     updated = person_model.update_kinds([StringKind("Foo")])
@@ -308,7 +309,8 @@ def test_update(person_model: Model) -> None:
         updated.update_kinds([ComplexKind("Bla", [], [Property("id", "int32")])])
     assert (
         str(duplicate.value)
-        == "Update not possible. Bla: following properties would be non unique having the same path but different type: id (string -> int32)"
+        == "Update not possible: following properties would be non unique having the same path but different type: "
+        "Bla.id (string -> int32)"
     )
 
 
