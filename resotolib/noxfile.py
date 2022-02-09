@@ -21,7 +21,6 @@ def lint(session) -> None:
     session.run("poetry", "install", external=True)
     session.run("black", "--check", "--diff", "--target-version", "py39", *args)
     session.run("flake8", src_location)
-    session.run("pylint", src_location)
 
 
 @nox.session(python=["3.8"])
