@@ -10,7 +10,7 @@ all_locations = [src_location] + ["test"]
 
 @nox.session(python=["3.8"])
 def test(session: Session) -> None:
-    args = session.posargs or all_locations
+    args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("pytest", *args)
 
