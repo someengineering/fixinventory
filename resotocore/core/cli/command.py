@@ -126,14 +126,14 @@ class QueryAllPart(QueryPart):
     """
 
     ```shell
-    query [--include-edges] [--explain] <query>
+    query [--with-edges] [--explain] <query>
     ```
 
     This command allows to query the graph using filters, traversals, functions and aggregates.
 
     ## Options
 
-    - `--include-edges`: Return edges in addition to nodes.
+    - `--with-edges`: Return edges in addition to nodes.
     - `--explain`: Instead of executing the query, analyze its cost.
 
     ## Parameters
@@ -272,7 +272,7 @@ class QueryAllPart(QueryPart):
     kind=aws_ec2_volume, id=vol-2, name=adf-image-2, age=2mo1d, cloud=aws, account=general-support, region=us-west-2
 
     # Emit nodes together with the edges
-    > query --include-edges id(root) -[0:1]->
+    > query --with-edges id(root) -[0:1]->
     node_id=root, kind=graph_root, id=root, name=root
     node_id=L_tRxI2tn6iLZdK3e8EQ3w, kind=cloud, id=gcp, name=gcp, age=5d5h, cloud=gcp
     root -> L_tRxI2tn6iLZdK3e8EQ3w
@@ -955,14 +955,14 @@ class AggregateToCountCommand(CLICommand, InternalPart):
 class ExecuteQueryCommand(CLICommand, InternalPart):
     """
     ```shell
-    execute_query [--include-edges] [--explain] <query>
+    execute_query [--with-edges] [--explain] <query>
     ```
 
     This command is usually not invoked directly - use `query` instead.
 
     ## Options
 
-    - `--include-edges`: Return edges in addition to nodes.
+    - `--with-edges`: Return edges in addition to nodes.
     - `--explain`: Instead of executing the query, analyze its cost.
 
     ## Parameters
@@ -983,7 +983,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
     @staticmethod
     def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
         parser = NoExitArgumentParser()
-        parser.add_argument("--include-edges", dest="include-edges", default=None, action="store_true")
+        parser.add_argument("--with-edges", dest="with-edges", default=None, action="store_true")
         parser.add_argument("--explain", dest="explain", default=None, action="store_true")
         parsed, rest = parser.parse_known_args(arg.split(maxsplit=2))
         return {k: v for k, v in vars(parsed).items() if v is not None}, " ".join(rest)
@@ -1004,7 +1004,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
 
         # Read all argument flags / options
         parsed, rest = self.parse_known(arg)
-        with_edges: bool = parsed.get("include-edges", False)
+        with_edges: bool = parsed.get("with-edges", False)
         explain: bool = parsed.get("explain", False)
 
         # all templates are expanded at this point, so we can call the parser directly.
@@ -1842,7 +1842,7 @@ class ListCommand(CLICommand, OutputTransformer):
 
     If property is defined, it will override the default and will show the defined properties.
     The syntax for property is a comma delimited list of property paths.
-    The property path can be absolute, meaning it includes the section name (reported, desired, metadata).
+    The property path can be absolute, meaning it with the section name (reported, desired, metadata).
     In case the section name is not defined, the reported section is assumed automatically.
 
     The defined property path will be looked for every element in the incoming json.
@@ -1926,8 +1926,8 @@ class ListCommand(CLICommand, OutputTransformer):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
-            # include the object id, if edges are requested
-            if ctx.query_options.get("include-edges") is True:
+            # with the object id, if edges are requested
+            if ctx.query_options.get("with-edges") is True:
                 result.append((["id"], "node_id"))
             # add all default props
             result.extend(self.default_properties_to_show)
@@ -1979,7 +1979,7 @@ class ListCommand(CLICommand, OutputTransformer):
                         first = False
                 return result
             elif is_edge(elem):
-                return f'{elem.get("from")} -> {elem.get("to")}'
+                return f'{elem.get("from")} -> {elem.get("to")}: {elem.get("edge_type")}'
             else:
                 return elem
 
@@ -2747,7 +2747,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
     Received a file out.json, which is stored to ./out.json.
 
     # Select the root node and traverse 2 levels deep. Format the result as dot graph and write it to out.dot.
-    > query --include-edges id(root) -[0:2]-> | format --dot | write out.dot
+    > query --with-edges id(root) -[0:2]-> | format --dot | write out.dot
     Received a file out.dot, which is stored to ./out.dot.
     ```
     """
