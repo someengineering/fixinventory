@@ -4,7 +4,7 @@ from urllib.request import pathname2url
 import os, webbrowser
 
 nox.options.sessions = ["lint", "test"]
-src_location = "resoto_plugin_aws_alarms"
+src_location = "resoto_plugin_cleanup_aws_alarms"
 all_locations = [src_location] + ["test"]
 
 
