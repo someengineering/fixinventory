@@ -27,12 +27,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Utilities",
 ]
-include = [
-    "requirements-dev.txt",
-    "requirements-test.txt",
-    "requirements.",
-    "core/static/*",
-]
+include = ["core/static/*"]
 
 [tool.poetry.scripts]
 resotoworker = 'resotoworker.__main__:main'
