@@ -91,7 +91,7 @@ class Direction:
     # Same direction as the edge direction
     outbound = "out"
     # Ignore the direction of the edge and traverse in any direction.
-    any = "inout"
+    any = "any"
 
     # The set of all allowed directions.
     all: Set[str] = {inbound, outbound, any}

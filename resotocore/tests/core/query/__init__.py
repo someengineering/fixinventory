@@ -78,7 +78,7 @@ def navigation(ud: UD) -> Navigation:
     length = d.draw(integers(min_value=0, max_value=100))
     ed = d.draw(edge_type)
     direction = d.draw(edge_direction)
-    return Navigation(start, length + start, ed, direction)
+    return Navigation(start, length + start, [ed], direction)
 
 
 @composite

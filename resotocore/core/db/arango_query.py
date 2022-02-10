@@ -310,9 +310,10 @@ def query_string(
                 filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                 filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
+                edge_type_traversals = f", {direction} ".join(db.edge_collection(et) for et in nav.edge_types)
                 return (
                     f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
-                    f"{db.edge_collection(nav.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                    f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
                     f"FILTER {filter_root}{filter_clause} "
                 ) + inner
 
@@ -345,7 +346,9 @@ def query_string(
             )
             return out
 
-        def inout(in_crsr: str, start: int, until: int, edge_type: str, direction: str) -> str:
+        def inout(
+            in_crsr: str, start: int, until: int, edge_types: List[str], direction: str, out_edge_types: List[str]
+        ) -> str:
             nonlocal query_part
             in_c = next_crs("io_in")
             out = next_crs("io_out")
@@ -366,26 +369,34 @@ def query_string(
                 graph_cursor = in_c
                 outer_for = f"FOR {in_c} in {in_crsr} "
 
+            edge_type_traversals = f", {dir_bound} ".join(db.edge_collection(et) for et in edge_types)
+            two_direction_traversal = (
+                ", " + (", ".join(f"OUTBOUND {db.edge_collection(et)}" for et in out_edge_types))
+                if direction == Direction.any
+                else ""
+            )
             query_part += (
                 f"LET {out} =({outer_for}"
                 f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor} "
-                f"{db.edge_collection(edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                f"{edge_type_traversals}{two_direction_traversal} OPTIONS {{ bfs: true, {unique} }} "
                 f"RETURN DISTINCT {inout_result}) "
             )
             return out
 
         def navigation(in_crsr: str, nav: Navigation) -> str:
             nonlocal query_part
-            if nav.direction == Direction.any:
+            out = nav.maybe_two_directional_outbound_edge_type or nav.edge_types
+            # arango can traverse inbound and outbound at the same time, but not using the same edge type
+            if nav.direction == Direction.any and set(out) & set(nav.edge_types):
                 # traverse to root
-                to_in = inout(in_crsr, nav.start, nav.until, nav.edge_type, Direction.inbound)
+                to_in = inout(in_crsr, nav.start, nav.until, nav.edge_types, Direction.inbound, out)
                 # traverse to leaf (in case of 0: use 1 to not have the current element twice)
-                to_out = inout(in_crsr, max(1, nav.start), nav.until, nav.edge_type, Direction.outbound)
+                to_out = inout(in_crsr, max(1, nav.start), nav.until, out, Direction.outbound, out)
                 nav_crsr = next_crs()
                 query_part += f"LET {nav_crsr} = UNION({to_in}, {to_out})"
                 return nav_crsr
             else:
-                return inout(in_crsr, nav.start, nav.until, nav.edge_type, nav.direction)
+                return inout(in_crsr, nav.start, nav.until, nav.edge_types, nav.direction, out)
 
         if isinstance(p.term, MergeTerm):
             filter_cursor = filter_statement(in_cursor, p.term.pre_filter)

@@ -162,6 +162,7 @@ class AsyncArangoDBBase:
         skip_inaccessible_cols: Optional[bool] = None,
         max_runtime: Optional[Number] = None,
     ) -> AsyncCursorContext:
+        print(f"\n>>>>>>>>>>> {query}\n")
         cursor = await run_async(
             self.db.aql.execute,
             query,

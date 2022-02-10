@@ -132,24 +132,21 @@ def test_navigation_default() -> None:
 
 
 def test_navigation() -> None:
-    def make_default(nav: Navigation) -> Navigation:
-        return Navigation(nav.start, nav.until, EdgeType.default, nav.direction)
-
     for edge_type in EdgeType.all:
         # the default edge type is not rendered, so we set it explicitly to make the mapping homogeneous
-        fn = make_default if edge_type == EdgeType.default else None
-        for direction in Direction.all:
-            for start, until in [(0, 0), (1, 1), (5, 5), (1, 10), (1, Navigation.Max), (10, Navigation.Max)]:
-                assert_round_trip(navigation_parser, Navigation(start, until, edge_type, direction), fn)
+        for start, until in [(0, 0), (1, 1), (5, 5), (1, 10), (1, Navigation.Max), (10, Navigation.Max)]:
+            assert_round_trip(navigation_parser, Navigation(start, until, [edge_type], Direction.any, [edge_type]))
+            for direction in Direction.all:
+                assert_round_trip(navigation_parser, Navigation(start, until, [edge_type], direction))
 
 
 def test_part() -> None:
     assert_round_trip(part_parser, Part(P.of_kind("test")))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, EdgeType.delete)))
-    assert_round_trip(part_parser, Part(P.of_kind("test"), "red", navigation=Navigation(1, 10, EdgeType.delete)))
-    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(maybe_edge_type=EdgeType.delete))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), navigation=Navigation(1, 10, [EdgeType.delete])))
+    assert_round_trip(part_parser, Part(P.of_kind("test"), "red", navigation=Navigation(1, 10, [EdgeType.delete])))
+    with_clause = WithClause(WithClauseFilter("==", 0), Navigation(maybe_edge_types=[EdgeType.delete]))
     assert_round_trip(
-        part_parser, Part(P.of_kind("test"), "green", with_clause, navigation=Navigation(1, 10, EdgeType.delete))
+        part_parser, Part(P.of_kind("test"), "green", with_clause, navigation=Navigation(1, 10, [EdgeType.delete]))
     )
 
 
@@ -185,10 +182,10 @@ def test_query_with_preamble() -> None:
     parse_query('id("root")')  # no preamble
     # edge type can be defined in preamble
     q1 = parse_query('(edge_type=delete): id("root") -[0:1]->')
-    assert q1.parts[0].navigation.edge_type == "delete"  # type: ignore
+    assert q1.parts[0].navigation.edge_types == ["delete"]  # type: ignore
     # edge type can be defined via kwargs
     q2 = parse_query('id("root") -[0:1]->', edge_type="delete")
-    assert q2.parts[0].navigation.edge_type == "delete"  # type: ignore
+    assert q2.parts[0].navigation.edge_types == ["delete"]  # type: ignore
     # aggregation and preamble
     q3 = parse_query('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')
     assert q3.aggregate.group_by[0].name == AggregateVariableName("region")  # type: ignore
@@ -270,7 +267,7 @@ def test_with_clause() -> None:
     predicate_term.parse("foo == bla")
     wc: WithClause = with_clause_parser.parse("with(empty, -delete-> foo == bla and test > 23 with(any, -delete->))")
     assert wc.with_filter == WithClauseFilter("==", 0)
-    assert wc.navigation == Navigation(maybe_edge_type="delete")
+    assert wc.navigation == Navigation(maybe_edge_types=["delete"])
     assert str(wc.term) == '(foo == "bla" and test > 23)'
     assert str(wc.with_clause) == "with(any, -delete->)"
     term = Query.mk_term("foo", P("test") == 23)
@@ -279,7 +276,7 @@ def test_with_clause() -> None:
 
     def edge(wc: WithClause) -> WithClause:
         wcr = replace(wc, with_clause=edge(wc.with_clause)) if wc.with_clause else wc
-        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_type=EdgeType.default))
+        return replace(wcr, navigation=replace(wcr.navigation, maybe_edge_types=[EdgeType.default]))
 
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav, term, WithClause(clause_filter, nav)), edge)
     assert_round_trip(with_clause_parser, WithClause(clause_filter, nav), edge)
