@@ -185,7 +185,6 @@ edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
 @make_parser
 def edge_type_parser() -> Parser:
     edge_types = yield edge_type_p.sep_by(comma_p).map(set)
-    edge_types = EdgeType.all if "all" in edge_types else edge_types
     for et in edge_types:
         if et not in EdgeType.all:
             raise AttributeError(f"Given EdgeType is not known: {et}")
