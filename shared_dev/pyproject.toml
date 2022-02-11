@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "resotolib"
+name = "shared_dev"
 version = "2.0.0a17"
-description = "Resoto common library."
+description = "Resoto test dependencies which are used across tests."
 authors = ["Some Engineering Inc."]
 license = "Apache-2.0"
 homepage = "https://resoto.com/"
@@ -27,35 +27,20 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Utilities",
 ]
-include = ["resotolib/web/static/*"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-networkx = "2.6.3"
-typeguard = "2.13.3"
-websocket-client = "1.2.3"
-psutil = "5.9.0"
-requests = "2.27.1"
-prometheus-client = "0.12.0"
-PyJWT = "2.3.0"
-typing-compat = "0.1.0"
-CherryPy = "18.6.1"
-cryptography = "36.0.1"
-pyparsing = "3.0.6"
-
-[tool.poetry.dev-dependencies]
-shared_dev = { path = "../shared_dev" }
+flake8 = "4.0.1"
+pep8-naming = "0.12.1"
+coverage = {extras = ["toml"], version = "6.3.1"}
+pylint = "2.12.2"
+pytest = "6.2.5"
+pytest-cov = "3.0.0"
+pytest-runner = "5.3.1"
+mypy = "0.931"
+black = "22.1.0"
+flake8-black = "0.2.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.coverage.paths]
-source = ["resotolib"]
-
-[tool.coverage.run]
-branch = true
-source = ["resotolib"]
-
-[tool.coverage.report]
-show_missing = true

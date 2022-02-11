@@ -59,16 +59,8 @@ resotolib = { path = "../resotolib", develop = true }
 
 [tool.poetry.dev-dependencies]
 flake8 = "4.0.1"
-pep8-naming = "0.12.1"
-coverage = {extras = ["toml"], version = "6.3.1"}
-pylint = "2.12.2"
-pytest = "6.2.5"
-pytest-cov = "3.0.0"
-pytest-runner = "5.3.1"
+shared_dev = { path = "../shared_dev" }
 pytest-asyncio = "0.17.2"
-mypy = "0.931"
-black = "22.1.0"
-flake8-black = "0.2.4"
 deepdiff = "5.7.0"
 hypothesis = "6.36.1"
 
