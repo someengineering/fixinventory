@@ -1,4 +1,4 @@
-# `shared`
+# `shared-dev`
 Shared dev dependencies for all resoto modules
 
 
