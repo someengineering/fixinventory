@@ -42,6 +42,12 @@ typing-compat = "0.1.0"
 CherryPy = "18.6.1"
 cryptography = "36.0.1"
 pyparsing = "3.0.6"
+# todo: remove the line below once we use poetry 1.2
+platformdirs = "2.5.0"
+# todo: remove the line below once we use poetry 1.2
+packaging = "21.3"
+# todo: remove the line below once we use poetry 1.2
+"tomli" = "2.0.1"
 
 [tool.poetry.dev-dependencies]
 shared_dev = { path = "../shared_dev" }

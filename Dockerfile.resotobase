@@ -83,38 +83,42 @@ ENV PYTHONIOENCODING=utf-8
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip poetry
 RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip install -U pip poetry
 
+# Copy the shared dev dependencies so the project can be resolved. Not actually installed. 
+COPY shared_dev /usr/src/shared_dev 
+WORKDIR /usr/src/shared_dev
+
 # Build resotolib
 COPY resotolib /usr/src/resotolib
 WORKDIR /usr/src/resotolib
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
-RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m poetry install
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m poetry install --no-dev
 
 # Build resotocore
 COPY resotocore /usr/src/resotocore
 WORKDIR /usr/src/resotocore
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
-RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m poetry install
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev
+RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m poetry install --no-dev
 
 # Build resotoworker
 COPY resotoworker /usr/src/resotoworker
 WORKDIR /usr/src/resotoworker
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev
 
 # Build resotometrics
 COPY resotometrics /usr/src/resotometrics
 WORKDIR /usr/src/resotometrics
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev
 
 # Build resotoshell
 COPY resotoshell /usr/src/resotoshell
 WORKDIR /usr/src/resotoshell
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install
+RUN . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev
 
 # Build resoto plugins
 COPY plugins /usr/src/plugins
 WORKDIR /usr/src
 RUN for plugin_dir in $(find plugins/ -maxdepth 1 -mindepth 1 -type d); do \
-        (cd "/usr/src/$plugin_dir"; . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install) ;\
+        (cd "/usr/src/$plugin_dir"; . /usr/local/resoto-venv-python3/bin/activate && python -m poetry install --no-dev) ;\
     done
 
 # Copy image config and startup files

@@ -403,7 +403,7 @@ test = ["pytest (>=6.2)", "pytest-cov (>=2.12)", "codecov (>=2.1)"]
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -434,7 +434,7 @@ flake8-polyfill = ">=1.0.2,<2"
 name = "platformdirs"
 version = "2.5.0"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -660,11 +660,14 @@ develop = true
 CherryPy = "18.6.1"
 cryptography = "36.0.1"
 networkx = "2.6.3"
+packaging = "21.3"
+platformdirs = "2.5.0"
 prometheus-client = "0.12.0"
 psutil = "5.9.0"
 PyJWT = "2.3.0"
 pyparsing = "3.0.6"
 requests = "2.27.1"
+tomli = "2.0.1"
 typeguard = "2.13.3"
 typing-compat = "0.1.0"
 websocket-client = "1.2.3"
@@ -757,7 +760,7 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
