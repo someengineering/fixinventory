@@ -80,7 +80,7 @@ build-backend = "poetry.core.masonry.api"
 source = ["core"]
 
 [tool.coverage.run]
-branch = false
+branch = true
 concurrency = ["multiprocessing"]
 source = ["core"]
 omit = ["*/resotolib/*"]
