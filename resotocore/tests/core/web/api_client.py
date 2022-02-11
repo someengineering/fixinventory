@@ -98,8 +98,8 @@ class ApiClient:
     @staticmethod
     def graph_to_json(graph: MultiDiGraph) -> List[Json]:
         ga: List[Json] = [{**node, "type": "node"} for _, node in graph.nodes(data=True)]
-        for from_node, to_node in graph.edges():
-            ga.append({"type": "edge", "from": from_node, "to": to_node})
+        for from_node, to_node, data in graph.edges(data=True):
+            ga.append({"type": "edge", "from": from_node, "to": to_node, "edge_type": data["edge_type"]})
         return ga
 
     async def merge_graph(self, graph: str, update: MultiDiGraph) -> GraphUpdate:

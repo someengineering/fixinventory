@@ -147,7 +147,7 @@ async def test_graph_api(core_client: ApiClient) -> None:
 
     # merge a complete graph
     merged = await core_client.merge_graph(g, create_graph("test"))
-    assert merged == GraphUpdate(112, 1, 0, 112, 0, 0)
+    assert merged == GraphUpdate(112, 1, 0, 212, 0, 0)
 
     # batch graph update and commit
     batch1_id, batch1_info = await core_client.add_to_batch(g, create_graph("hello"), "batch1")

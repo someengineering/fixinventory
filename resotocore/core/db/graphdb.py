@@ -369,8 +369,8 @@ class ArangoGraphDB(GraphDB):
             graph = MultiDiGraph()
             async for item in cursor:
                 if "from" in item and "to" in item and "edge_type" in item:
-                    key = (item["from"], item["to"], item["edge_type"])
-                    graph.add_edge(item["from"], item["to"], key, edge_type=item["edge_type"])
+                    key = GraphAccess.edge_key(item["from"], item["to"], item["edge_type"])
+                    graph.add_edge(key.from_node, key.to_node, key, edge_type=key.edge_type)
                 elif "id" in item:
                     graph.add_node(item["id"], **item)
             return graph
