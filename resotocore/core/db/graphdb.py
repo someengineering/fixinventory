@@ -11,7 +11,7 @@ from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
-from networkx import MultiDiGraph, DiGraph
+from networkx import MultiDiGraph
 
 from core.analytics import CoreEvent, AnalyticsEventSender
 from core.db import arango_query, EstimatedQueryCost
@@ -108,7 +108,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         pass
 
     @abstractmethod
@@ -364,7 +364,7 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         async with await self.query_graph_gen(query) as cursor:
             graph = MultiDiGraph()
             async for item in cursor:
@@ -1152,7 +1152,7 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_aggregation(query)
 
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_graph(query)
