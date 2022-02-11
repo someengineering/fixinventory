@@ -83,9 +83,19 @@ ENV PYTHONIOENCODING=utf-8
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -U pip poetry
 RUN . /usr/local/resoto-venv-pypy3/bin/activate && pypy3 -m pip install -U pip poetry
 
-# Copy the shared dev dependencies so the project can be resolved. Not actually installed. 
-COPY shared_dev /usr/src/shared_dev 
-WORKDIR /usr/src/shared_dev
+# Fake the shared dev dependencies so the project can be resolved. Not actually installed. 
+RUN mkdir /usr/src/shared_dev
+RUN mkdir /usr/src/shared_dev/shared_dev
+RUN touch /usr/src/shared_dev/shared_dev/__init__.py
+RUN echo '[tool.poetry]\n\
+name = "shared_dev"\n\
+version = "2.0.0a17"\n\
+authors = ["Some Engineering Inc."]\n\ 
+\n\
+[build-system]\n\ 
+requires = ["poetry-core>=1.0.0"]\n\ 
+build-backend = "poetry.core.masony.api"\n\ 
+' > /usr/src/shared_dev/pyproject.toml
 
 # Build resotolib
 COPY resotolib /usr/src/resotolib
