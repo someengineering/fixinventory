@@ -865,7 +865,9 @@ class ArangoGraphDB(GraphDB):
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
                 nodes.add_persistent_index(
-                    ["_key", "refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "created"],
+                    # if _key would be defined as first property, the optimizer would use it in case
+                    # a simple id() query would be executed.
+                    ["refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "created", "_key"],
                     sparse=False,
                     name="update_nodes_ref_id",
                 )

@@ -197,13 +197,18 @@ def edge_definition_parser() -> Parser:
     edge_types = yield edge_type_parser
     maybe_range = yield range_parser.optional()
     start, until = maybe_range if maybe_range else (1, 1)
-    return start, until, edge_types
+    after_bracket_edge_types = yield edge_type_parser
+    if edge_types and after_bracket_edge_types:
+        raise AttributeError("Edge types can not be defined before and after the [start,until] definition.")
+    return start, until, edge_types or after_bracket_edge_types
 
 
 @make_parser
 def two_directional_edge_definition_parser() -> Parser:
-    start, until, edge_types = yield edge_definition_parser
+    edge_types = yield edge_type_parser
+    maybe_range = yield range_parser.optional()
     outbound_edge_types = yield edge_type_parser
+    start, until = maybe_range if maybe_range else (1, 1)
     return start, until, edge_types, outbound_edge_types
 
 

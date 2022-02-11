@@ -333,7 +333,7 @@ class MergeTerm(Term):
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
-    Max: ClassVar[int] = 10000
+    Max: ClassVar[int] = 250
 
     start: int = 1
     until: int = 1

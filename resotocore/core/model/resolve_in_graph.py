@@ -23,6 +23,7 @@ class NodePath:
     is_phantom = ["metadata", "phantom"]
     from_node = ["from"]
     to_node = ["to"]
+    edge_type = ["edge_type"]
     ancestor_account_name = ["ancestors", "account", "reported", "name"]
 
 

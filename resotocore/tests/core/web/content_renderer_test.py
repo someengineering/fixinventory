@@ -114,7 +114,7 @@ async def test_dot() -> None:
         return {"type": "node", "id": name, "reported": {"kind": name, "name": name}, "ancestors": ancestors}
 
     def edge(from_node: str, to_node: str) -> Json:
-        return {"type": "edge", "from": from_node, "to": to_node}
+        return {"type": "edge", "from": from_node, "to": to_node, "edge_type": "delete"}
 
     nodes = [node("a", "acc1"), node("b", "acc1"), node("c", "acc2")]
     edges = [edge("a", "b"), edge("a", "c"), edge("b", "c")]
@@ -133,9 +133,9 @@ async def test_dot() -> None:
             ' "a" [label="a|a", style=filled fillcolor=1];\n'
             ' "b" [label="b|b", style=filled fillcolor=2];\n'
             ' "c" [label="c|c", style=filled fillcolor=3];\n'
-            ' "a" -> "b"\n'
-            ' "a" -> "c"\n'
-            ' "b" -> "c"\n'
+            ' "a" -> "b" [label="delete"]\n'
+            ' "a" -> "c" [label="delete"]\n'
+            ' "b" -> "c" [label="delete"]\n'
             ' subgraph "acc1" {\n'
             '    "a"\n'
             '    "b"\n'
