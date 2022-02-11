@@ -15,7 +15,6 @@ from typing import (
     Callable,
     AsyncIterator,
     Set,
-    Tuple,
     AsyncContextManager,
     Awaitable,
 )
@@ -39,7 +38,9 @@ class AsyncCursor(AsyncIterator[Json]):
     def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Json]]]):
         self.cursor = cursor
         self.visited_node: Set[str] = set()
-        self.visited_edge: Set[Tuple[str, str]] = set()
+        self.visited_edge: Set[str] = set()
+        self.deferred_edges: List[Json] = []
+        self.cursor_exhausted = False
         self.trafo = trafo if trafo else identity
         self.vt_len: Optional[int] = None
         self.on_hold: Optional[Json] = None
@@ -53,11 +54,18 @@ class AsyncCursor(AsyncIterator[Json]):
             res = self.on_hold
             self.on_hold = None
             return res
+        elif self.cursor_exhausted:
+            return await self.next_deferred_edge()
         else:
-            while True:
-                element = await self.get_next()
-                if element:
-                    return element
+            try:
+                while True:
+                    element = await self.get_next()
+                    if element:
+                        return element
+            except StopAsyncIteration:
+                # iterator exhausted: all elements have been processed. Now yield all deferred edges.
+                self.cursor_exhausted = True
+                return await self.next_deferred_edge()
 
     def close(self) -> None:
         self.cursor.close(ignore_missing=True)
@@ -79,9 +87,8 @@ class AsyncCursor(AsyncIterator[Json]):
             to_id = element.get("_to")
             link_id = element.get("_link_id")
             if from_id is not None and to_id is not None and link_id is not None:
-                edge_key = (from_id, to_id)
-                if edge_key not in self.visited_edge:
-                    self.visited_edge.add(edge_key)
+                if link_id not in self.visited_edge:
+                    self.visited_edge.add(link_id)
                     if not self.vt_len:
                         self.vt_len = len(re.sub("/.*$", "", from_id)) + 1
                     edge = {
@@ -93,6 +100,10 @@ class AsyncCursor(AsyncIterator[Json]):
                         # example: vertex_name_default/edge_id -> default
                         "edge_type": re.sub("/.*$", "", link_id[self.vt_len :]),  # noqa: E203
                     }
+                    # make sure that both nodes of the edge have been visited already
+                    if from_id not in self.visited_node or to_id not in self.visited_node:
+                        self.deferred_edges.append(edge)
+                        edge = None
             # if the vertex is not returned: return the edge
             # otherwise return the vertex and remember the edge
             if vertex:
@@ -115,6 +126,12 @@ class AsyncCursor(AsyncIterator[Json]):
             return res
         except CursorNextError as ex:
             raise QueryTookToLongError("Cursor does not exist any longer, since the query ran for too long.") from ex
+
+    async def next_deferred_edge(self) -> Json:
+        try:
+            return self.deferred_edges.pop()
+        except IndexError as ex:
+            raise StopAsyncIteration from ex
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
