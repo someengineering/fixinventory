@@ -392,7 +392,7 @@ def query_string(
             else:
                 nav_crsr = next_crs()
                 all_walks_combined = ",".join(all_walks)
-                query_part += f"LET {nav_crsr} = UNION({all_walks_combined})"
+                query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
                 return nav_crsr
 
         if isinstance(p.term, MergeTerm):
