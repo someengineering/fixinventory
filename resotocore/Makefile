@@ -59,7 +59,6 @@ clean-env: ## remove environment
 
 lint: ## check style with flake8
 	nox -rs lint
-	nox -rs mypy
 
 test: ## run tests quickly with the default Python
 	pytest

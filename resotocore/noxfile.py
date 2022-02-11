@@ -30,9 +30,10 @@ def coverage(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
+    session.run("coverage", "combine")
     session.run("coverage", "report", "-m", *args)
     session.run("coverage", "html", *args)
-    webbrowser.open("file://" + pathname2url(os.path.abspath('htmlcov/index.html')))
+    webbrowser.open("file://" + pathname2url(os.path.abspath("htmlcov/index.html")))
 
 
 @nox.session(python=["3.8"])
@@ -40,4 +41,5 @@ def coverage_ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
-    session.run("coverage", "xml", *args)
+    session.run("coverage", "combine")
+    session.run("coverage", "xml")
