@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from resotolib.args import ArgumentParser
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp, chunks
-from .utils import aws_session, paginate
+from .utils import aws_session, paginate, arn_partition
 from .resources import *
 from prometheus_client import Summary, Counter
 from pkg_resources import resource_filename
@@ -1683,6 +1683,7 @@ class AWSAccountCollector:
                 b = AWSS3Bucket(
                     bucket.name,
                     {},
+                    arn=f"arn:{arn_partition(region)}:s3:::{bucket.name}",
                     _account=self.account,
                     _region=region,
                     ctime=bucket.creation_date,

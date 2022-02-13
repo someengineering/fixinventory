@@ -3,7 +3,7 @@ import boto3.session
 import uuid
 from typing import Iterable
 from resotolib.args import ArgumentParser
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseRegion, BaseResource
 from resotolib.graph import Graph
 from retrying import retry
 from prometheus_client import Counter
@@ -82,3 +82,12 @@ def paginate(method: callable, **kwargs) -> Iterable:
     for page in paginator.paginate(**kwargs).result_key_iters():
         for result in page:
             yield result
+
+
+def arn_partition(region: BaseRegion):
+    arn_partition = "aws"
+    if region.id.startswith("cn-"):
+        arn_partition = "aws-cn"
+    elif region.id.startswith("us-gov-"):
+        arn_partition = "aws-us-gov"
+    return arn_partition
