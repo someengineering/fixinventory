@@ -1,5 +1,6 @@
 from dataclasses import replace
 from functools import reduce
+from typing import List
 
 import parsy
 from parsy import string, Parser, regex
@@ -182,21 +183,42 @@ edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
 
 
 @make_parser
-def edge_definition() -> Parser:
-    maybe_edge_type = yield edge_type_p.optional()
+def edge_type_parser() -> Parser:
+    edge_types = yield edge_type_p.sep_by(comma_p).map(set)
+    for et in edge_types:
+        if et not in EdgeType.all:
+            raise AttributeError(f"Given EdgeType is not known: {et}")
+    return list(edge_types)
+
+
+@make_parser
+def edge_definition_parser() -> Parser:
+    edge_types = yield edge_type_parser
     maybe_range = yield range_parser.optional()
-    parsed_range = maybe_range if maybe_range else (1, 1)
-    return parsed_range[0], parsed_range[1], maybe_edge_type
+    start, until = maybe_range if maybe_range else (1, 1)
+    after_bracket_edge_types = yield edge_type_parser
+    if edge_types and after_bracket_edge_types:
+        raise AttributeError("Edge types can not be defined before and after the [start,until] definition.")
+    return start, until, edge_types or after_bracket_edge_types
 
 
-out_p = lexeme(string("-") >> edge_definition << string("->")).map(
+@make_parser
+def two_directional_edge_definition_parser() -> Parser:
+    edge_types = yield edge_type_parser
+    maybe_range = yield range_parser.optional()
+    outbound_edge_types = yield edge_type_parser
+    start, until = maybe_range if maybe_range else (1, 1)
+    return start, until, edge_types, outbound_edge_types
+
+
+out_p = lexeme(string("-") >> edge_definition_parser << string("->")).map(
     lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.outbound)
 )
-in_p = lexeme(string("<-") >> edge_definition << string("-")).map(
+in_p = lexeme(string("<-") >> edge_definition_parser << string("-")).map(
     lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.inbound)
 )
-in_out_p = lexeme(string("<-") >> edge_definition << string("->")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.any)
+in_out_p = lexeme(string("<-") >> two_directional_edge_definition_parser << string("->")).map(
+    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.any, nav[3])
 )
 navigation_parser = in_out_p | out_p | in_p
 
@@ -368,27 +390,29 @@ def query_parser() -> Parser:
 
 
 def parse_query(query: str, **env: str) -> Query:
-    def set_edge_type_if_not_set(part: Part, edge_type: str) -> Part:
+    def set_edge_type_if_not_set(part: Part, edge_types: List[str]) -> Part:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
-            if wc.navigation and not wc.navigation.maybe_edge_type:
-                nav = replace(nav, maybe_edge_type=edge_type)
+            if wc.navigation and not wc.navigation.maybe_edge_types:
+                nav = replace(nav, maybe_edge_types=edge_types)
             inner = set_in_with_clause(wc.with_clause) if wc.with_clause else wc.with_clause
             return replace(wc, navigation=nav, with_clause=inner)
 
         nav = part.navigation
-        if part.navigation and not part.navigation.maybe_edge_type:
-            nav = replace(nav, maybe_edge_type=edge_type)
+        if part.navigation and not part.navigation.maybe_edge_types:
+            nav = replace(nav, maybe_edge_types=edge_types)
         adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
         return replace(part, navigation=nav, with_clause=adapted_wc)
 
     try:
         parsed: Query = query_parser.parse(query.strip())
-        et: str = parsed.preamble.get("edge_type", env.get("edge_type", EdgeType.default))  # type: ignore
-        if et not in EdgeType.all:
-            raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeType.all}")
+        pre = parsed.preamble
+        ets: List[str] = pre.get("edge_type", env.get("edge_type", EdgeType.default)).split(",")  # type: ignore
+        for et in ets:
+            if et not in EdgeType.all:
+                raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeType.all}")
 
-        adapted = [set_edge_type_if_not_set(part, et) for part in parsed.parts]
+        adapted = [set_edge_type_if_not_set(part, ets) for part in parsed.parts]
         # remove values from preamble, that are only used at parsing time
         preamble = parsed.preamble.copy()
         preamble.pop("edge_type", None)

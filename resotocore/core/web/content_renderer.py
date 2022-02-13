@@ -78,8 +78,9 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
         elif type_name == "edge":
             from_node = value_in_path(item, NodePath.from_node)
             to_node = value_in_path(item, NodePath.to_node)
+            edge_type = value_in_path(item, NodePath.edge_type)
             if from_node and to_node:
-                yield f' "{from_node}" -> "{to_node}"\n'
+                yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]\n'
     # All elements in the same account are rendered as dedicated subgraph
     for account, uids in in_account.items():
         yield f' subgraph "{account}" {{\n'

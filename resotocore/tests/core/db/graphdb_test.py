@@ -116,6 +116,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             iid = f"{o}_{i}"
             add_node(iid, "bla", node=to_json(Bla(iid, name=bla_text)))
             add_edge(oid, iid)
+            add_edge(iid, oid, EdgeType.delete)
     return graph
 
 
@@ -261,7 +262,7 @@ async def event_graph_db(filled_graph_db: ArangoGraphDB, event_sender: Analytics
     return EventGraphDB(filled_graph_db, event_sender)
 
 
-async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> DiGraph:
+async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> MultiDiGraph:
     blas = Query.by("foo", P("identifier") == base_id).traverse_out(0, Navigation.Max)
     return await db.query_graph(QueryModel(blas.on_section("reported"), model))
 
@@ -276,7 +277,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     # empty database: all changes are written to a temp table
     assert await graph_db.merge_graph(g, foo_model, batch_id, True) == (
         ["collector"],
-        GraphUpdate(112, 1, 0, 112, 0, 0),
+        GraphUpdate(112, 1, 0, 212, 0, 0),
     )
     assert len((await load_graph(graph_db, md)).nodes) == 0
     # not allowed to commit an unknown batch
@@ -303,15 +304,15 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
     p = ["collector"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
-    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(112, 1, 0, 112, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(112, 1, 0, 212, 0, 0))
     # exactly the same graph is updated: expect no changes
     assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
     assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 100, 0, 0, 0, 0))
     # the width of the graph is reduced: expect nodes and edges to be removed
-    assert await graph_db.merge_graph(create("maybe", width=5), foo_model) == (p, GraphUpdate(0, 0, 80, 0, 0, 80))
+    assert await graph_db.merge_graph(create("maybe", width=5), foo_model) == (p, GraphUpdate(0, 0, 80, 0, 0, 155))
     # going back to the previous graph: the same amount of nodes and edges is inserted
-    assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(80, 0, 0, 80, 0, 0))
+    assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(80, 0, 0, 155, 0, 0))
     # updating with the same data again, does not perform any changes
     assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
 
@@ -399,6 +400,21 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
             assert node["metadata"]["query_tag"] == "red"
         else:
             assert "tag" not in node["metadata"]
+
+    async def assert_result(query: str, nodes: int, edges: int) -> None:
+        q = parse_query(query)
+        graph = await filled_graph_db.query_graph(QueryModel(q, foo_model))
+        assert len(graph.nodes) == nodes
+        assert len(graph.edges) == edges
+
+    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]default->", 11, 20)
+    await assert_result("is(foo) and reported.identifier==9 <-default[0:]delete->", 4, 3)
+    await assert_result("is(foo) and reported.identifier==9 <-default[0:]->", 14, 13)
+    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]->", 11, 10)
+    await assert_result("is(foo) and reported.identifier==9 -default[0:]->", 11, 10)
+    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]-", 11, 10)
+    await assert_result("is(foo) and reported.identifier==9 <-default[0:]-", 4, 3)
+    await assert_result("is(foo) and reported.identifier==9 -delete[0:]->", 1, 0)
 
 
 @pytest.mark.asyncio

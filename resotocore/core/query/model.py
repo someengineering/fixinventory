@@ -333,23 +333,26 @@ class MergeTerm(Term):
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Navigation:
     # Define the maximum level of navigation
-    Max: ClassVar[int] = 10000
+    Max: ClassVar[int] = 250
 
     start: int = 1
     until: int = 1
-    maybe_edge_type: Optional[str] = EdgeType.default
+    maybe_edge_types: Optional[List[str]] = None
     direction: str = Direction.outbound
+    maybe_two_directional_outbound_edge_type: Optional[List[str]] = None
 
     @property
-    def edge_type(self) -> str:
-        return EdgeType.default if self.maybe_edge_type is None else self.maybe_edge_type
+    def edge_types(self) -> List[str]:
+        return self.maybe_edge_types or [EdgeType.default]
 
     def __str__(self) -> str:
         start = self.start
         until = self.until
         until_str = "" if until == Navigation.Max else until
-        depth = ("" if start == 1 else f"[{start}]") if start == until else f"[{start}:{until_str}]"
-        nav = f"{self.edge_type}{depth}"
+        mo = self.maybe_two_directional_outbound_edge_type
+        depth = ("" if start == 1 else f"[{start}]") if start == until and not mo else f"[{start}:{until_str}]"
+        out_nav = ",".join(mo) if mo else ""
+        nav = f'{",".join(self.edge_types)}{depth}{out_nav}'
         if self.direction == Direction.outbound:
             return f"-{nav}->"
         elif self.direction == Direction.inbound:
@@ -359,10 +362,10 @@ class Navigation:
 
 
 NavigateUntilRoot = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_type=EdgeType.default, direction=Direction.inbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.inbound
 )
 NavigateUntilLeaf = Navigation(
-    start=1, until=Navigation.Max, maybe_edge_type=EdgeType.default, direction=Direction.outbound
+    start=1, until=Navigation.Max, maybe_edge_types=[EdgeType.default], direction=Direction.outbound
 )
 
 
@@ -728,15 +731,15 @@ class Query:
         p0 = parts[0]
         if p0.navigation:
             # we already traverse in this direction: add start and until
-            if p0.navigation.edge_type == edge_type and p0.navigation.direction == direction:
+            if edge_type in p0.navigation.edge_types and p0.navigation.direction == direction:
                 start_m = min(Navigation.Max, start + p0.navigation.start)
                 until_m = min(Navigation.Max, until + p0.navigation.until)
-                parts[0] = replace(p0, navigation=Navigation(start_m, until_m, edge_type, direction))
+                parts[0] = replace(p0, navigation=replace(p0.navigation, start=start_m, until=until_m))
             # this is another traversal: so we need to start a new part
             else:
-                parts.insert(0, Part(AllTerm(), navigation=Navigation(start, until, edge_type, direction)))
+                parts.insert(0, Part(AllTerm(), navigation=Navigation(start, until, [edge_type], direction)))
         else:
-            parts[0] = replace(p0, navigation=Navigation(start, until, edge_type, direction))
+            parts[0] = replace(p0, navigation=Navigation(start, until, [edge_type], direction))
         return replace(self, parts=parts)
 
     def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:
@@ -890,7 +893,7 @@ class Query:
         def navigation_analytics(navigation: Navigation) -> None:
             counters["navigation"] += 1
             counters[f"navigation_{navigation.direction}"] += 1
-            counters[f"navigation_{navigation.edge_type}"] += 1
+            counters[f"navigation_{navigation.edge_types}"] += 1
             counters["navigation_until_max"] = max(counters["navigation_until_max"], navigation.until)
 
         def is_ancestor_merge(q: Query) -> bool:

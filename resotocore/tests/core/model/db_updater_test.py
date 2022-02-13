@@ -40,8 +40,8 @@ async def test_merge_process(
     async def iterator() -> AsyncGenerator[bytes, None]:
         for node in graph.nodes():
             yield bytes(json.dumps(graph.nodes[node]), "utf-8")
-        for from_node, to_node in graph.edges():
-            yield bytes(json.dumps({"from": from_node, "to": to_node}), "utf-8")
+        for from_node, to_node, data in graph.edges(data=True):
+            yield bytes(json.dumps({"from": from_node, "to": to_node, "edge_type": data["edge_type"]}), "utf-8")
 
     result = await merge_graph_process(graph_db, event_sender, args, iterator(), timedelta(seconds=30), None)
-    assert result == GraphUpdate(112, 1, 0, 112, 0, 0)
+    assert result == GraphUpdate(112, 1, 0, 212, 0, 0)

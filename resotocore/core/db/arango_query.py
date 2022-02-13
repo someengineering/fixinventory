@@ -310,9 +310,10 @@ def query_string(
                 filter_clause = f"({term(crsr, cl.term)})" if cl.term else "true"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                 filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
+                edge_type_traversals = f", {direction} ".join(db.edge_collection(et) for et in nav.edge_types)
                 return (
                     f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
-                    f"{db.edge_collection(nav.edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                    f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
                     f"FILTER {filter_root}{filter_clause} "
                 ) + inner
 
@@ -376,16 +377,23 @@ def query_string(
 
         def navigation(in_crsr: str, nav: Navigation) -> str:
             nonlocal query_part
+            all_walks = []
             if nav.direction == Direction.any:
-                # traverse to root
-                to_in = inout(in_crsr, nav.start, nav.until, nav.edge_type, Direction.inbound)
-                # traverse to leaf (in case of 0: use 1 to not have the current element twice)
-                to_out = inout(in_crsr, max(1, nav.start), nav.until, nav.edge_type, Direction.outbound)
-                nav_crsr = next_crs()
-                query_part += f"LET {nav_crsr} = UNION({to_in}, {to_out})"
-                return nav_crsr
+                for et in nav.edge_types:
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.inbound))
+                for et in nav.maybe_two_directional_outbound_edge_type or nav.edge_types:
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.outbound))
             else:
-                return inout(in_crsr, nav.start, nav.until, nav.edge_type, nav.direction)
+                for et in nav.edge_types:
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, nav.direction))
+
+            if len(all_walks) == 1:
+                return all_walks[0]
+            else:
+                nav_crsr = next_crs()
+                all_walks_combined = ",".join(all_walks)
+                query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
+                return nav_crsr
 
         if isinstance(p.term, MergeTerm):
             filter_cursor = filter_statement(in_cursor, p.term.pre_filter)

@@ -185,7 +185,7 @@ async def test_query_source(cli: CLI) -> None:
     result2 = await cli.execute_cli_command('query expand(test, fid="9_")', stream.list)
     assert len(result2[0]) == 10
 
-    result3 = await cli.execute_cli_command("query --include-edges is(graph_root) -[0:1]->", stream.list)
+    result3 = await cli.execute_cli_command("query --with-edges is(graph_root) -[0:1]->", stream.list)
     # node: graph_root
     # node: collector
     # edge: graph_root -> collector
@@ -193,7 +193,7 @@ async def test_query_source(cli: CLI) -> None:
     # = 3 elements
     assert len(result3[0]) == 3
 
-    result4 = await cli.execute_cli_command("query --explain --include-edges is(graph_root) -[0:1]->", stream.list)
+    result4 = await cli.execute_cli_command("query --explain --with-edges is(graph_root) -[0:1]->", stream.list)
     assert result4[0][0]["rating"] == "simple"
 
     # use absolute path syntax

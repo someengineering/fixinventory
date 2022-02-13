@@ -11,7 +11,7 @@ from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
-from networkx import MultiDiGraph, DiGraph
+from networkx import MultiDiGraph
 
 from core.analytics import CoreEvent, AnalyticsEventSender
 from core.db import arango_query, EstimatedQueryCost
@@ -108,7 +108,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         pass
 
     @abstractmethod
@@ -364,13 +364,13 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         async with await self.query_graph_gen(query) as cursor:
             graph = MultiDiGraph()
             async for item in cursor:
                 if "from" in item and "to" in item and "edge_type" in item:
-                    key = (item["from"], item["to"], item["edge_type"])
-                    graph.add_edge(item["from"], item["to"], key, edge_type=item["edge_type"])
+                    key = GraphAccess.edge_key(item["from"], item["to"], item["edge_type"])
+                    graph.add_edge(key.from_node, key.to_node, key, edge_type=key.edge_type)
                 elif "id" in item:
                     graph.add_node(item["id"], **item)
             return graph
@@ -865,7 +865,9 @@ class ArangoGraphDB(GraphDB):
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
                 nodes.add_persistent_index(
-                    ["_key", "refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "created"],
+                    # if _key would be defined as first property, the optimizer would use it in case
+                    # a simple id() query would be executed.
+                    ["refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "created", "_key"],
                     sparse=False,
                     name="update_nodes_ref_id",
                 )
@@ -1150,7 +1152,7 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_aggregation(query)
 
-    async def query_graph(self, query: QueryModel) -> DiGraph:
+    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
         return await self.real.query_graph(query)
