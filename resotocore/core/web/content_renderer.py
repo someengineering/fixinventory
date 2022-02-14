@@ -26,8 +26,8 @@ log = logging.getLogger(__name__)
 
 
 async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
-    sep = ",\n"
-    yield "[\n"
+    sep = ","
+    yield "["
     first = True
     async for item in gen:
         js = json.dumps(to_json(item))
@@ -35,19 +35,18 @@ async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
             yield sep
         yield js
         first = False
-    yield "\n]"
+    yield "]"
 
 
 async def respond_ndjson(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
-    sep = "\n"
     async for item in gen:
         js = json.dumps(to_json(item), check_circular=False)
-        yield js + sep
+        yield js
 
 
 async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     flag = False
-    sep = "---\n"
+    sep = "---"
     async for item in gen:
         yml = yaml.dump(to_json(item), default_flow_style=False, sort_keys=False)
         if flag:
@@ -62,7 +61,7 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     colors: Dict[str, int] = defaultdict(lambda: (next(cit) % 12) + 1)
     node = "node [shape=Mrecord colorscheme=paired12]"
     edge = "edge [arrowsize=0.5]"
-    yield f"digraph {{\nrankdir=LR\noverlap=false\nsplines=true\n{node}\n{edge}\n"
+    yield f"digraph {{\nrankdir=LR\noverlap=false\nsplines=true\n{node}\n{edge}"
     in_account: Dict[str, List[str]] = defaultdict(list)
     async for item in gen:
         type_name = item.get("type")
@@ -74,19 +73,19 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
                 account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
                 paired12 = colors[kind]
                 in_account[account].append(uid)
-                yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];\n'
+                yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];'
         elif type_name == "edge":
             from_node = value_in_path(item, NodePath.from_node)
             to_node = value_in_path(item, NodePath.to_node)
             edge_type = value_in_path(item, NodePath.edge_type)
             if from_node and to_node:
-                yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]\n'
+                yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]'
     # All elements in the same account are rendered as dedicated subgraph
     for account, uids in in_account.items():
-        yield f' subgraph "{account}" {{\n'
+        yield f' subgraph "{account}" {{'
         for uid in uids:
-            yield f'    "{uid}"\n'
-        yield " }\n"
+            yield f'    "{uid}"'
+        yield " }"
 
     yield "}"
 
@@ -104,8 +103,7 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
 
     try:
         flag = False
-        sep = "---\n"
-        cr = "\n"
+        sep = "---"
         async for item in gen:
             js = to_json(item)
             if isinstance(js, (dict, list)):
@@ -114,8 +112,6 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
                 yml = yaml.dump(to_result(js), default_flow_style=False, sort_keys=False)
                 yield yml
             else:
-                if flag:
-                    yield cr
                 yield str(js)
             flag = True
     except QueryTookToLongError:

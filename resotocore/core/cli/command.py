@@ -2768,7 +2768,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
                 async with in_stream.stream() as streamer:
                     async for out in streamer:
                         if isinstance(out, str):
-                            await f.write(out)
+                            await f.write(out + "\n")
                         else:
                             raise AttributeError("No output format is defined! Consider to use the format command.")
             yield path
