@@ -863,8 +863,9 @@ class Api:
         response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
         enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
+        cr = "\n".encode("utf-8")
         async for data in result_gen:
-            await writer.write(data)
+            await writer.write(data + cr)
         await response.write_eof()
         return response
 

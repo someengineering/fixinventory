@@ -55,7 +55,7 @@ async def test_yaml(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_yaml(streamer):
-            result += elem
+            result += elem + "\n"
         assert [a for a in yaml.full_load_all(result)] == elements
 
 
@@ -66,9 +66,9 @@ async def test_text_simple_elements(elements: List[JsonElement]) -> None:
     async with stream.iterate(elements).stream() as streamer:
         result = ""
         async for elem in respond_text(streamer):
-            result += elem
+            result += elem + "\n"
         # every element is rendered as single line
-        assert len(elements) == len(result.split("\n"))
+        assert len(elements) + 1 == len(result.split("\n"))
 
 
 @given(lists(node_gen(), min_size=1, max_size=10))
@@ -122,7 +122,7 @@ async def test_dot() -> None:
     async with stream.iterate(nodes + edges).stream() as streamer:
         result = ""
         async for elem in respond_dot(streamer):
-            result += elem
+            result += elem + "\n"
         expected = (
             "digraph {\n"
             "rankdir=LR\n"
@@ -143,6 +143,6 @@ async def test_dot() -> None:
             ' subgraph "acc2" {\n'
             '    "c"\n'
             " }\n"
-            "}"
+            "}\n"
         )
         assert result == expected
