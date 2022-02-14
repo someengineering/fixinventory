@@ -37,8 +37,6 @@ jobs:
         with:
           path: ~/.cache
           key: $\{\{runner.os}}-cache-$\{\{hashFiles('pyproject.toml')}}-$\{\{hashFiles('poetry.lock')}}
-          restore-keys: |
-            $\{\{ runner.os }}-cache-
 
       - name: Install Dependencies
         run: |

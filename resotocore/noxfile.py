@@ -37,9 +37,12 @@ def coverage(session) -> None:
 
 
 @nox.session(python=["3.8"])
-def coverage_ci(session) -> None:
+def ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
+    session.run("black", "--line-length", "120", "--check", "--diff", "--target-version", "py39", *all_locations)
+    session.run("flake8", src_location)
+    session.run("pylint", src_location)
     session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
     session.run("coverage", "combine")
     session.run("coverage", "xml")

@@ -28,8 +28,6 @@ jobs:
         with:
           path: ~/.cache
           key: $\{\{runner.os}}-cache-$\{\{hashFiles('pyproject.toml')}}-$\{\{hashFiles('poetry.lock')}}
-          restore-keys: |
-            $\{\{ runner.os }}-cache-
 
       - name: Install Dependencies
         run: |
@@ -39,8 +37,7 @@ jobs:
       - name: Run tests
         working-directory: ./resotoshell
         run: |
-          nox
-          nox -rs coverage_ci
+          nox -rs ci
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
