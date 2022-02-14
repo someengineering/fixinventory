@@ -46,7 +46,7 @@ jobs:
           pip install poetry nox
       - name: Run Tests
         run: |
-          nox -rs coverage_ci
+          nox -rs ci
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
