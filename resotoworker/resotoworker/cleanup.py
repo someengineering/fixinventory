@@ -16,7 +16,7 @@ def cleanup():
         clouds = '["' + '", "'.join(ArgumentParser.args.collector) + '"]'
         query_filter = f"and /ancestors.cloud.reported.id in {clouds} "
     query = (
-        f"desired.clean == true and metadata.cleaned == false {query_filter}<-[0:]->"
+        f"desired.clean == true and metadata.cleaned == false {query_filter}<-default,delete[0:]->"
     )
 
     graph = cg.graph(query)
