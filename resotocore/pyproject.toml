@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "core"
+name = "resotocore"
 version = "2.0.0a17"
 description = "Resoto core."
 authors = ["Some Engineering Inc."]
@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Utilities",
 ]
-include = ["core/static/*"]
+include = ["resotocore/static/*"]
 
 [tool.poetry.scripts]
 resotoworker = 'resotoworker.__main__:main'
@@ -69,12 +69,12 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.paths]
-source = ["core"]
+source = ["resotocore"]
 
 [tool.coverage.run]
 branch = true
 concurrency = ["multiprocessing"]
-source = ["core"]
+source = ["resotocore"]
 omit = ["*/resotolib/*"]
 
 [tool.coverage.report]
