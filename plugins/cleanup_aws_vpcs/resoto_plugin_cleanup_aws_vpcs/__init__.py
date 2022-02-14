@@ -44,7 +44,7 @@ class CleanupAWSVPCsPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
 
-        query = "is(aws_vpc) and desired.clean == true and metadata.cleaned == false <-[0:]->"
+        query = "is(aws_vpc) and /desired.clean == true and /metadata.cleaned == false <-default,delete[0:]delete->"
         graph = cg.graph(query)
         self.vpc_cleanup(graph)
         cg.patch_nodes(graph)

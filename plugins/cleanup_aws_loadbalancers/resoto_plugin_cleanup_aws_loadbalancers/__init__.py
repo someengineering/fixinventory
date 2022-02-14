@@ -39,7 +39,7 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
 
-        query = '(edge_type=delete) reported.kind in ["aws_elb", "aws_alb", "aws_alb_target_group"] <-[0:]->'
+        query = 'is(["aws_elb", "aws_alb", "aws_alb_target_group"]) <-default,delete[0:]delete->'
         graph = cg.graph(query)
         self.loadbalancer_cleanup(graph)
         cg.patch_nodes(graph)
