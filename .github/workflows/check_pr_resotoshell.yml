@@ -26,10 +26,10 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
+          path: ~/.cache
+          key: $\{\{runner.os}}-cache-$\{\{hashFiles('pyproject.toml')}}-$\{\{hashFiles('poetry.lock')}}
           restore-keys: |
-            $\{\{ runner.os }}-pip-
+            $\{\{ runner.os }}-cache-
 
       - name: Install Dependencies
         run: |
