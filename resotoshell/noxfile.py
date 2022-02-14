@@ -34,7 +34,7 @@ def coverage(session) -> None:
 
 
 @nox.session(python=["3.8"])
-def coverage_ci(session) -> None:
+def ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
     session.run("black", "--check", "--diff", "--target-version", "py39", *all_locations)
