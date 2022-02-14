@@ -37,7 +37,7 @@ def coverage(session) -> None:
 def ci(session) -> None:
     args = session.posargs
     session.run("poetry", "install", external=True)
-    session.run("black", "--check", "--diff", "--target-version", "py39", *args)
+    session.run("black", "--check", "--diff", "--target-version", "py39", *all_locations)
     session.run("flake8", src_location)
     session.run("coverage", "run", "--source", src_location, "-m", "pytest", *args)
     session.run("coverage", "xml", *args)
