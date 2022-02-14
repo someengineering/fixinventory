@@ -4,7 +4,7 @@ from urllib.request import pathname2url
 import os, webbrowser
 
 nox.options.sessions = ["lint", "test"]
-src_location = "core"
+src_location = "resotocore"
 all_locations = [src_location] + ["tests"]
 
 
