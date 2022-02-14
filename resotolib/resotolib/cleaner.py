@@ -1,7 +1,9 @@
+from networkx import DiGraph
 from resotolib.args import ArgumentParser
 from resotolib.graph import Graph
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.utils import defaultlist
+from resotolib.graph.graph_extensions import dependent_node_iterator
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
 from resotolib.logging import log
@@ -25,10 +27,11 @@ class Cleaner:
             return
 
         log.info("Running cleanup")
-        cleanup_nodes = [
-            node for node in self.graph.nodes() if node.clean and not node.cleaned
-        ]
-        cleanup_plan = defaultlist(lambda: [])
+        delete_graph = DiGraph(self.graph.edge_type_subgraph(EdgeType.DELETE))
+        for node in list(delete_graph.nodes):
+            if not node.clean:
+                delete_graph.remove_node(node)
+        cleanup_nodes = list(delete_graph.nodes)
 
         for node in cleanup_nodes:
             log.debug(
@@ -37,7 +40,6 @@ class Cleaner:
                     f" {node.max_graph_depth}"
                 )
             )
-            cleanup_plan[node.max_graph_depth].append(node)
 
         with ThreadPoolExecutor(
             max_workers=ArgumentParser.args.cleanup_pool_size,
@@ -45,7 +47,7 @@ class Cleaner:
         ) as executor:
             executor.map(self.pre_clean, cleanup_nodes)
 
-        for nodes in reversed(cleanup_plan):
+        for nodes in dependent_node_iterator(delete_graph):
             with ThreadPoolExecutor(
                 max_workers=ArgumentParser.args.cleanup_pool_size,
                 thread_name_prefix="cleaner",
