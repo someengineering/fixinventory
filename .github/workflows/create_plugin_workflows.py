@@ -35,7 +35,7 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
+          path: ~/.cache/pypoetry
           key: $\{\{runner.os}}-pip-$\{\{hashFiles('pyproject.toml')}}
           restore-keys: |
             $\{\{ runner.os }}-pip-
@@ -50,8 +50,7 @@ step_run_test = """
       - name: Run tests
         working-directory: @directory@
         run: |
-          nox
-          nox -rs coverage_ci
+          nox -rs ci
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2

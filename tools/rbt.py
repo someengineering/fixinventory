@@ -34,7 +34,7 @@ def bump_version(args):
 
         f.close()
 
-        f = open(f'../{file}', 'w') 
+        f = open(f'../{file}', 'w')
         f.write(updated)
         f.close()
 

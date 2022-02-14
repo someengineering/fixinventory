@@ -29,7 +29,7 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
+          path: ~/.cache/pypoetry
           key: $\{\{runner.os}}-pip-$\{\{hashFiles('pyproject.toml')}}
           restore-keys: |
             $\{\{ runner.os }}-pip-
@@ -42,8 +42,7 @@ jobs:
       - name: Run tests
         working-directory: ./plugins/cleanup_aws_loadbalancers
         run: |
-          nox
-          nox -rs coverage_ci
+          nox -rs ci
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
