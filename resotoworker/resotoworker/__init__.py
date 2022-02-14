@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 """
 Resoto worker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,4 +13,4 @@ __description__ = "Runs collector plugins and sends the result to resotocore."
 __author__ = "Some Engineering Inc."
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright © 2022 Some Engineering Inc."
-__version__ = "2.0.0a17"
+__version__ = version(__name__)

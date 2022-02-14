@@ -35,22 +35,20 @@ jobs:
       - name: Restore dependency cache
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
-          key: $\{\{runner.os}}-pip-$\{\{hashFiles('setup.py')}}
-          restore-keys: |
-            $\{\{ runner.os }}-pip-
+          path: ~/.cache
+          key: $\{\{runner.os}}-cache-$\{\{hashFiles('pyproject.toml')}}-$\{\{hashFiles('poetry.lock')}}
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
-          pip install tox wheel flake8
+          pip install poetry nox
 """
 
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
-        run: tox
+        run: |
+          nox -rs ci
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2

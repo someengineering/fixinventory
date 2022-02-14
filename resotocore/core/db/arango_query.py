@@ -53,6 +53,7 @@ def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tupl
     return f"""{query_str} FOR result in {cursor} RETURN result""", bind_vars
 
 
+# noqa: C901
 def query_string(
     db: Any,
     query: Query,
