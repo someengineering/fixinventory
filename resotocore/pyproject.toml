@@ -30,7 +30,7 @@ classifiers = [
 include = ["resotocore/static/*"]
 
 [tool.poetry.scripts]
-resotoworker = 'resotoworker.__main__:main'
+resotocore = 'resotocore.__main__:main'
 
 [tool.poetry.dependencies]
 python = "^3.8"
