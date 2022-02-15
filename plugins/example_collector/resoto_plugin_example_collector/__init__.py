@@ -46,8 +46,10 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         )
         self.graph.add_resource(account, region2)
 
-        network = ExampleNetwork("someNetwork", tags={"Name": "Example Network"})
-        self.graph.add_resource(region1, network)
+        network1 = ExampleNetwork("someNetwork1", tags={"Name": "Example Network 1"})
+        network2 = ExampleNetwork("someNetwork2", tags={"Name": "Example Network 2"})
+        self.graph.add_resource(region1, network1)
+        self.graph.add_resource(region2, network2)
 
         instance1 = ExampleInstance(
             "someInstance1",
@@ -59,7 +61,9 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             instance_memory=32,
             instance_status="running",
         )
-        self.graph.add_resource(network, instance1)
+        self.graph.add_resource(region1, instance1)
+        self.graph.add_resource(network1, instance1)
+        self.graph.add_resource(network1, instance1, edge_type=EdgeType.delete)
 
         instance2 = ExampleInstance(
             "someInstance2",
@@ -71,6 +75,8 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             instance_status="stopped",
         )
         self.graph.add_resource(region2, instance2)
+        self.graph.add_resource(network2, instance2)
+        self.graph.add_resource(network2, instance2, edge_type=EdgeType.delete)
 
         volume1 = ExampleVolume(
             "someVolume1", tags={"Name": "Example Volume 1"}, volume_status="in-use"
@@ -83,6 +89,8 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
             "someVolume2", tags={"Name": "Example Volume 2"}, volume_status="available"
         )
         self.graph.add_resource(region2, volume2)
+        self.graph.add_edge(instance2, volume2)
+        self.graph.add_edge(volume2, instance2, edge_type=EdgeType.delete)
 
         custom_resource = ExampleCustomResource(
             "someExampleResource",
