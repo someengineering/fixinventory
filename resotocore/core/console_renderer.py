@@ -88,7 +88,11 @@ class ConsoleRenderer:
     console_pool: ClassVar[ConsolePool] = ConsolePool()
 
     def render(self, element: Union[str, JupyterMixin]) -> str:
-        to_render = Markdown(element) if isinstance(element, str) else element
+        # Code blocks are rendered via pygments, which can be styled using themes.
+        # For a list of styles see: https://stylishthemes.github.io/Syntax-Themes/pygments/
+        # The default uses monokai, which can be hard to read on standard terminal devices.
+        # See: https://github.com/someengineering/resoto/issues/652 for problems with monokai.
+        to_render = Markdown(element, code_theme="native") if isinstance(element, str) else element
         # get a console with the correct color system
         cs = self.color_system
         system = cs if cs else (ConsoleColorSystem.standard if self.terminal else ConsoleColorSystem.monochrome)
