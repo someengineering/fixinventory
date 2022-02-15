@@ -82,9 +82,7 @@ main() {
         activate_venv "$python_cmd"
     fi
     ensure_pip
-    # git install uses the "legacy" pip installation method. For this to work, we need to install the dev dependencies.
-    # poetry takes care of this for us, so we don't need to install them here.
-    if [ "$git_install" = true ] && [ "$dev_mode" = true ]; then
+    if [ "$dev_mode" = true ]; then
         install_dev
     fi
     install_resoto
@@ -146,11 +144,11 @@ activate_venv() {
 }
 
 ensure_pip() {
-    echo "Ensuring Python pip, nox and poetry are available and up to date."
+    echo "Ensuring Python pip is available and up to date."
     if ! python -m pip help > /dev/null 2>&1; then
         python -m ensurepip -q -U
     fi
-    pip install -q -U pip wheel nox poetry
+    pip install -q -U pip wheel
 }
 
 install_dev() {
@@ -179,7 +177,7 @@ install_resoto() {
 }
 
 install_plugins() {
-    local collector_plugins=(aws gcp slack onelogin k8s onprem github example_collector cleanup_expired cleanup_aws_alarms cleanup_aws_loadbalancers cleanup_aws_vpcs cleanup_untagged cleanup_volumes protect_snowflakes tagvalidator vsphere)
+    local collector_plugins=(aws gcp slack onelogin k8s onprem github example_collector cleanup_expired cleanup_aws_alarms cleanup_aws_loadbalancers cleanup_aws_vpcs cleanup_untagged cleanup_volumes protect_snowflakes tagvalidator)
     for plugin in "${collector_plugins[@]}"; do
         pip_install "$plugin" true
     done
@@ -206,12 +204,7 @@ pip_install() {
     local relative_path="${path_prefix}${package}/"
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
-        cd "$relative_path"
-        poetry install
-        cd ..
-        if [ "$plugin" = true ]; then
-            cd ..
-        fi
+        pip install -q --editable "$relative_path"
     else
         ensure_git
         local git_repo="git+https://github.com/someengineering/resoto.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
