@@ -25,7 +25,7 @@ from core.parse_util import l_curly_dp, r_curly_dp
 from core.model.model_handler import ModelHandler
 from core.query.model import Query, variable_to_absolute, PathRoot
 from core.query.template_expander import TemplateExpander
-from core.task.job_handler import JobHandler
+from core.task import TaskHandler
 from core.types import Json, JsonElement
 from core.util import AccessJson
 from core.worker_task_queue import WorkerTaskQueue
@@ -151,8 +151,8 @@ class CLIDependencies:
         return self.lookup["model_handler"]  # type:ignore
 
     @property
-    def job_handler(self) -> JobHandler:
-        return self.lookup["job_handler"]  # type:ignore
+    def task_handler(self) -> TaskHandler:
+        return self.lookup["task_handler"]  # type:ignore
 
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:

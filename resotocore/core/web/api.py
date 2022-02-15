@@ -61,7 +61,7 @@ from core.model.typed_model import to_json, from_js, to_js_str, to_js
 from core.query import QueryParser
 from core.task.model import Subscription
 from core.task.subscribers import SubscriptionHandler
-from core.task.task_handler import TaskHandler
+from core.task.task_handler import TaskHandlerService
 from core.types import Json
 from core.util import (
     uuid_str,
@@ -106,7 +106,7 @@ class Api:
         db: DbAccess,
         model_handler: ModelHandler,
         subscription_handler: SubscriptionHandler,
-        workflow_handler: TaskHandler,
+        workflow_handler: TaskHandlerService,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,

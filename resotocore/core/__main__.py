@@ -24,7 +24,7 @@ from core.model.typed_model import to_json, class_fqn
 from core.query.template_expander import DBTemplateExpander
 from core.task.scheduler import Scheduler
 from core.task.subscribers import SubscriptionHandler
-from core.task.task_handler import TaskHandler
+from core.task.task_handler import TaskHandlerService
 from core.util import shutdown_process, utc
 from core.web import runner
 from core.web.api import Api
@@ -88,10 +88,10 @@ def run(arguments: List[str]) -> None:
     default_env = {"graph": args.cli_default_graph, "section": args.cli_default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
-    task_handler = TaskHandler(
+    task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
     )
-    cli_deps.extend(job_handler=task_handler)
+    cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,
         model,

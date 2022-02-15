@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import shutil
 import tempfile
 from datetime import timedelta
@@ -28,9 +27,10 @@ from core.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from core.db.jobdb import JobDb
 from core.error import CLIParseError
 from core.model.model import predefined_kinds
+from core.model.typed_model import to_js
 from core.query.model import Template, Query
 from core.task.task_description import TimeTrigger, Workflow, EventTrigger
-from core.task.task_handler import TaskHandler
+from core.task.task_handler import TaskHandlerService
 from core.types import JsonElement, Json
 from core.util import AccessJson, utc_str
 from core.worker_task_queue import WorkerTask
@@ -350,7 +350,20 @@ async def test_format(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
+async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, test_workflow: Workflow) -> None:
+    async def execute(cmd: str) -> List[JsonElement]:
+        ctx = CLIContext(cli.cli_env)
+        return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
+
+    assert await execute("workflows list") == ["test_workflow"]
+    assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
+    wf = await execute("workflows run test_workflow")
+    assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
+    assert len(await execute("workflows running")) == 1
+
+
+@pytest.mark.asyncio
+async def test_jobs_command(cli: CLI, task_handler: TaskHandlerService, job_db: JobDb) -> None:
     async def execute(cmd: str) -> List[List[JsonElement]]:
         ctx = CLIContext(cli.cli_env)
         return await cli.execute_cli_command(cmd, stream.list, ctx)
@@ -479,13 +492,6 @@ async def test_tag_command(
         # and the real result is found when the forked task is awaited, which happens by the CLI reaper
         awaitable, info = await cli.dependencies.forked_tasks.get()
         assert (await awaitable)["id"] in ["root", "collector"]  # type:ignore
-
-
-@pytest.mark.asyncio
-async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
-    result = await cli.execute_cli_command(f"start_task {test_workflow.id}", stream.list)
-    assert len(result[0]) == 1
-    assert re.match("Task .+ has been started", result[0][0])
 
 
 @pytest.mark.asyncio

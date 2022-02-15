@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import Optional, List
 
 from core.message_bus import MessageBus, CoreMessage, Message
-from core.task.job_handler import JobHandler
+from core.task import TaskHandler
 from core.task.task_description import PerformAction, Workflow
 from core.util import uuid_str
 
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 def wait_and_start(
     workflows: List[Workflow],
-    job_handler: JobHandler,
+    task_handler: TaskHandler,
     message_bus: MessageBus,
     wait_after_connect: timedelta = timedelta(seconds=10),
 ) -> Task:  # type: ignore # pypy
@@ -24,7 +24,7 @@ def wait_and_start(
     Note: this is a one_off action: after the initial connect has happened, the task will complete.
 
     :param workflows: the known workflows.
-    :param job_handler: the job handler to start the workflow.
+    :param task_handler: the job handler to start the workflow.
     :param message_bus: the message bus to listen for incoming subscribers.
     :param wait_after_connect: amount of time to wait between connect and workflow trigger.
     :return: running task that will succeed once the first subscribing actor connects.
@@ -56,7 +56,7 @@ def wait_and_start(
                     await asyncio.sleep(wait_after_connect.total_seconds())
                     log.info(f"Start workflow {maybe_workflow.name}")
                     # start the workflow
-                    await job_handler.start_task_by_descriptor_id(maybe_workflow.id)
+                    await task_handler.start_task_by_descriptor_id(maybe_workflow.id)
                     # exit the loop and destroy the listener
                     break
         log.info("task done")
