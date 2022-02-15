@@ -1,0 +1,2 @@
+resotolib==2.0.0a17
+kubernetes==21.7.0
