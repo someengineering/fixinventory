@@ -30,6 +30,9 @@ class Cleaner:
         for node in list(delete_graph.nodes):
             if not node.clean:
                 delete_graph.remove_node(node)
+        for node in self.graph.nodes:
+            if node.clean and node not in delete_graph:
+                delete_graph.add_node(node)
         cleanup_nodes = list(delete_graph.nodes)
 
         for node in cleanup_nodes:
