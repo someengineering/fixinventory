@@ -320,20 +320,20 @@ class QueryAllPart(QueryPart):
         return "Query the graph."
 
 
-class PredecessorPart(QueryPart):
+class PredecessorsPart(QueryPart):
     """
     ```shell
     predecessors [--with-origin] [edge_type]
     ```
 
     This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
+    It will select all predecessors of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(C) | predecessors`
+    will select B, while `query id(A) | predecessors --with-origin` will select C and B.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -377,20 +377,20 @@ class PredecessorPart(QueryPart):
         return parsed.origin, parsed.edge
 
 
-class SuccessorPart(QueryPart):
+class SuccessorsPart(QueryPart):
     """
     ```shell
     successors [--with-origin] [edge_type]
     ```
 
     This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
+    It will select all successors of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | successors`
+    will select B, while `query id(A) | successors --with-origin` will select C and B.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -421,20 +421,20 @@ class SuccessorPart(QueryPart):
         return "Select all successor of this node in the graph."
 
 
-class AncestorPart(QueryPart):
+class AncestorsPart(QueryPart):
     """
     ```shell
     ancestors [--with-origin] [edge_type]
     ```
 
     This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
+    It will select all ancestors of the currently selected nodes of the query.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    Assume node A with descendant B with descendant C: A --> B --> C `query id(C) | ancestors`
+    will select B and A, while `query id(C) | ancestors --with-origin` will select C and B and A.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -468,7 +468,7 @@ class AncestorPart(QueryPart):
         return "Select all ancestors of this node in the graph."
 
 
-class DescendantPart(QueryPart):
+class DescendantsPart(QueryPart):
     """
     ```shell
     descendants [--with-origin] [edge_type]
@@ -3102,11 +3102,11 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
         AggregateToCountCommand(d),
-        AncestorPart(d),
+        AncestorsPart(d),
         ChunkCommand(d),
         CleanCommand(d),
         CountCommand(d),
-        DescendantPart(d),
+        DescendantsPart(d),
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
@@ -3121,14 +3121,14 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         KindCommand(d),
         ListCommand(d),
         TemplatesCommand(d),
-        PredecessorPart(d),
+        PredecessorsPart(d),
         ProtectCommand(d),
         QueryAllPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
         StartTaskCommand(d),
-        SuccessorPart(d),
+        SuccessorsPart(d),
         SystemCommand(d),
         TagCommand(d),
         TailCommand(d),

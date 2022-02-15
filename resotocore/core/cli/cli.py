@@ -22,10 +22,10 @@ from core.analytics import CoreEvent
 from core.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from core.cli.command import (
     QueryAllPart,
-    PredecessorPart,
-    SuccessorPart,
-    AncestorPart,
-    DescendantPart,
+    PredecessorsPart,
+    SuccessorsPart,
+    AncestorsPart,
+    DescendantsPart,
     AggregatePart,
     CountCommand,
     HeadCommand,
@@ -261,17 +261,17 @@ class CLI:
             arg = command.arg if command.arg else ""
             if isinstance(part, QueryAllPart):
                 query = query.combine(await parse_query(arg))
-            elif isinstance(part, PredecessorPart):
-                origin, edge = PredecessorPart.parse_args(arg, ctx)
+            elif isinstance(part, PredecessorsPart):
+                origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, 1, edge)
-            elif isinstance(part, SuccessorPart):
-                origin, edge = PredecessorPart.parse_args(arg, ctx)
+            elif isinstance(part, SuccessorsPart):
+                origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, 1, edge)
-            elif isinstance(part, AncestorPart):
-                origin, edge = PredecessorPart.parse_args(arg, ctx)
+            elif isinstance(part, AncestorsPart):
+                origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_in(origin, Navigation.Max, edge)
-            elif isinstance(part, DescendantPart):
-                origin, edge = PredecessorPart.parse_args(arg, ctx)
+            elif isinstance(part, DescendantsPart):
+                origin, edge = PredecessorsPart.parse_args(arg, ctx)
                 query = query.traverse_out(origin, Navigation.Max, edge)
             elif isinstance(part, AggregatePart):
                 group_vars, group_function_vars = aggregate_parameter_parser.parse(arg)
