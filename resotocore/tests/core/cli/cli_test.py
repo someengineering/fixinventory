@@ -18,7 +18,7 @@ from core.cli.command import (
     aliases,
     AggregateToCountCommand,
     all_commands,
-    PredecessorPart,
+    PredecessorsPart,
 )
 from core.db.db_access import DbAccess
 from core.db.graphdb import ArangoGraphDB
@@ -186,13 +186,13 @@ async def test_parse_env_vars(cli: CLI) -> None:
 def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
     plain = CLIContext()
     w_delete = CLIContext(env={"edge_type": EdgeType.delete})
-    assert PredecessorPart.parse_args(None, w_delete) == (1, EdgeType.delete)
-    assert PredecessorPart.parse_args(None, plain) == (1, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin", plain) == (0, EdgeType.default)
-    assert PredecessorPart.parse_args("--with-origin", w_delete) == (0, EdgeType.delete)
-    assert PredecessorPart.parse_args("--with-origin delete", plain) == (0, EdgeType.delete)
-    assert PredecessorPart.parse_args("--with-origin delete", w_delete) == (0, EdgeType.delete)
-    assert PredecessorPart.parse_args("delete", w_delete) == (1, EdgeType.delete)
+    assert PredecessorsPart.parse_args(None, w_delete) == (1, EdgeType.delete)
+    assert PredecessorsPart.parse_args(None, plain) == (1, EdgeType.default)
+    assert PredecessorsPart.parse_args("--with-origin", plain) == (0, EdgeType.default)
+    assert PredecessorsPart.parse_args("--with-origin", w_delete) == (0, EdgeType.delete)
+    assert PredecessorsPart.parse_args("--with-origin delete", plain) == (0, EdgeType.delete)
+    assert PredecessorsPart.parse_args("--with-origin delete", w_delete) == (0, EdgeType.delete)
+    assert PredecessorsPart.parse_args("delete", w_delete) == (1, EdgeType.delete)
 
 
 @pytest.mark.asyncio
