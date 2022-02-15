@@ -27,10 +27,15 @@ class Cleaner:
             return
 
         log.info("Running cleanup")
+        # create a subgraph of all the nodes that have a delete edge
         delete_graph = DiGraph(self.graph.edge_type_subgraph(EdgeType.delete))
+        # from that graph delete all the nodes not marked for cleanup
         for node in list(delete_graph.nodes):
             if not node.clean:
                 delete_graph.remove_node(node)
+        # add all the nodes that are supposed to be cleaned
+        # but do not have a delete edge so weren't part of the
+        # subgraph
         for node in self.graph.nodes:
             if node.clean and node not in delete_graph:
                 delete_graph.add_node(node)
@@ -39,12 +44,14 @@ class Cleaner:
         for node in cleanup_nodes:
             log.debug(f"Adding {node.rtdname} to cleanup plan")
 
+        log.debug(f"Sending {len(cleanup_nodes)} nodes to pre-cleanup pool")
         with ThreadPoolExecutor(
             max_workers=ArgumentParser.args.cleanup_pool_size,
             thread_name_prefix="pre_cleaner",
         ) as executor:
             executor.map(self.pre_clean, cleanup_nodes)
 
+        log.debug(f"Running parallel cleanup on {len(cleanup_nodes)} nodes")
         parallel_pass_num = 1
         for nodes in dependent_node_iterator(delete_graph):
             log.debug(
