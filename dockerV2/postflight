@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+. /usr/local/etc/resoto/common
+
+info "Running postflight checks"
+. /usr/local/resoto-venv-pypy3/bin/activate
+info "Checking resotocore in PyPy"
+resotocore --help > /dev/null
+
+. /usr/local/resoto-venv-python3/bin/activate
+for prg in resoto{core,worker,metrics}; do
+    info "Checking $prg in CPython"
+    "$prg" --help > /dev/null
+done
+info "Checking resh in CPython"
+resh --help > /dev/null
+info "All checks passed"

@@ -130,6 +130,7 @@ WORKDIR /usr/src/resoto
 COPY dockerV2/defaults /usr/local/etc/resoto/defaults
 COPY dockerV2/common /usr/local/etc/resoto/common
 COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
+COPY dockerV2/postflight /usr/local/sbin/postflight
 COPY dockerV2/resh-shim /usr/local/bin/resh-shim
 COPY dockerV2/resh-wait /usr/local/bin/resh-wait
 COPY dockerV2/resotocore-shim /usr/local/bin/resotocore-shim
@@ -137,6 +138,7 @@ COPY dockerV2/resotoworker-shim /usr/local/bin/resotoworker-shim
 COPY dockerV2/resotometrics-shim /usr/local/bin/resotometrics-shim
 RUN chmod 755 \
     /usr/local/sbin/bootstrap \
+    /usr/local/sbin/postflight \
     /usr/local/bin/resh-shim \
     /usr/local/bin/resotocore-shim \
     /usr/local/bin/resotoworker-shim \
@@ -183,6 +185,7 @@ RUN groupadd -g "${PGID:-0}" -o resoto \
     && rm -f /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
+    && /usr/local/sbin/postflight \
     && ln -s /usr/local/bin/resh-shim /usr/bin/resh \
     && ln -s /usr/local/bin/resotocore-shim /usr/bin/resotocore \
     && ln -s /usr/local/bin/resotoworker-shim /usr/bin/resotoworker \

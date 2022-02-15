@@ -10,6 +10,7 @@ on:
     paths:
       - "Dockerfile"
       - "docker/**"
+      - "dockerV2/**"
       - ".github/workflows/docker-build.yml"
   workflow_dispatch:
 
