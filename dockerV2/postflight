@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+. /usr/local/etc/resoto/common
+
+. /usr/local/resoto-venv-pypy3/bin/activate
+info "Testing resotocore in PyPy"
+resotocore --help > /dev/null
+
+. /usr/local/resoto-venv-python3/bin/activate
+for prg in resoto{core,worker,metrics}; do
+    info "Testing $prg in CPython"
+    "$prg" --help > /dev/null
+done
+info "Testing resh in CPython"
+resh --help > /dev/null
+info "All tests passed"
