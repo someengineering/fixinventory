@@ -2,7 +2,6 @@ from networkx import DiGraph
 from resotolib.args import ArgumentParser
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource, EdgeType
-from resotolib.utils import defaultlist
 from resotolib.graph.graph_extensions import dependent_node_iterator
 from concurrent.futures import ThreadPoolExecutor
 from prometheus_client import Summary
