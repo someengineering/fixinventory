@@ -150,7 +150,7 @@ def send_command(
                     return
 
     try:
-        handle_response(post_request(command, "text/plain"))
+        handle_response(post_request(command.encode("utf-8"), "text/plain"))
     except Exception as ex:
         print(f"Error performing command: `{command}`\nReason: {ex}")
 
