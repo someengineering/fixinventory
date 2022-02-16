@@ -1,6 +1,6 @@
 from typing import List, Any, Generator, Hashable
 
-from networkx import DiGraph, connected_components
+from networkx import MultiDiGraph, DiGraph, connected_components
 
 
 def dependent_node_iterator(
@@ -12,7 +12,6 @@ def dependent_node_iterator(
     """
 
     def successor_it(g: DiGraph) -> Generator[List[Any], None, None]:
-        nodes = g.nodes
         visited = set()
         # start with all roots of the sub-graph
         to_emit = {n for n, d in g.in_degree if d == 0}
@@ -25,8 +24,8 @@ def dependent_node_iterator(
             return nid not in visited and not req
 
         while to_emit:
-            # emit the related node data
-            yield [nodes[nid] for nid in to_emit]
+            # emit the related node
+            yield [nid for nid in to_emit]
             # add all nodes as visited
             visited.update(to_emit)
             # get all successors
@@ -34,6 +33,8 @@ def dependent_node_iterator(
                 succ for nid in to_emit for succ in g.successors(nid) if allowed(succ)
             }
 
+    if isinstance(in_graph, MultiDiGraph):
+        raise RuntimeError("MultiDiGraph not supported")
     # reverse the directed graph -> a leaf becomes a root
     graph = in_graph.reverse()
     # find all islands and create a generator per island

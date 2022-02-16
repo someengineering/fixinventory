@@ -3,9 +3,11 @@ import json
 from urllib.parse import urlencode
 from resotolib.graph import Graph, sanitize
 from resotolib.graph.export import node_from_dict, node_to_dict
+from resotolib.baseresources import EdgeType
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
 from resotolib.jwt import encode_jwt_to_headers
+from typing import Optional
 
 
 class CoreGraph:
@@ -30,10 +32,14 @@ class CoreGraph:
             execute_endpoint += f"?{query_string}"
         return self.post(execute_endpoint, command, headers)
 
-    def query(self, query: str):
+    def query(self, query: str, edge_type: Optional[EdgeType] = None):
         log.debug(f"Sending query {query}")
         headers = {"Accept": "application/x-ndjson"}
-        return self.post(self.query_uri, query, headers)
+        query_endpoint = self.query_uri
+        if edge_type is not None:
+            query_string = urlencode({"edge_type": edge_type.value})
+            query_endpoint += f"?{query_string}"
+        return self.post(query_endpoint, query, headers)
 
     @staticmethod
     def post(uri, data, headers):
@@ -69,9 +75,12 @@ class CoreGraph:
             elif data.get("type") == "edge":
                 node_from = data.get("from")
                 node_to = data.get("to")
+                edge_type = EdgeType.from_value(data.get("edge_type"))
                 if node_from not in node_mapping or node_to not in node_mapping:
                     raise ValueError(f"One of {node_from} -> {node_to} unknown")
-                graph.add_edge(node_mapping[node_from], node_mapping[node_to])
+                graph.add_edge(
+                    node_mapping[node_from], node_mapping[node_to], edge_type=edge_type
+                )
 
         graph = Graph()
         node_mapping = {}
