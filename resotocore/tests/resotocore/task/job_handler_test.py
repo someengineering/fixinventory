@@ -1,17 +1,20 @@
 from typing import List, Optional, Dict
 
-from resotocore.task.job_handler import JobHandler
-from resotocore.task.task_description import RunningTask, Job
+from resotocore.task import TaskHandler
+from resotocore.task.task_description import RunningTask, Job, Workflow
 from resotocore.util import first
 
 
-class InMemJobHandler(JobHandler):
+class InMemJobHandler(TaskHandler):
     def __init__(self) -> None:
         self.jobs: List[Job] = []
         self.started_tasks: List[str] = []
 
     async def list_jobs(self) -> List[Job]:
         return self.jobs
+
+    async def list_workflows(self) -> List[Workflow]:
+        return []
 
     async def add_job(self, job: Job) -> None:
         self.jobs.append(job)

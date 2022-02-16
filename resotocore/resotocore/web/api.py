@@ -61,7 +61,7 @@ from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
-from resotocore.task.task_handler import TaskHandler
+from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
 from resotocore.util import (
     uuid_str,
@@ -106,7 +106,7 @@ class Api:
         db: DbAccess,
         model_handler: ModelHandler,
         subscription_handler: SubscriptionHandler,
-        workflow_handler: TaskHandler,
+        workflow_handler: TaskHandlerService,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,

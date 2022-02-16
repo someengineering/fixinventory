@@ -86,7 +86,7 @@ from resotocore.parse_util import (
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
 from resotocore.types import Json, JsonElement
 from resotocore.util import (
     uuid_str,
@@ -2129,7 +2129,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return {"id": job.id, "command": job.command.command, "active": job.active, **trigger, **wait}
 
         async def list_jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
-            listed = await self.dependencies.job_handler.list_jobs()
+            listed = await self.dependencies.task_handler.list_jobs()
 
             async def iterate() -> AsyncIterator[JsonElement]:
                 for job in listed:
@@ -2138,7 +2138,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return len(listed), iterate()
 
         async def show_job(job_id: str) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 yield job_to_json(matching[0])
             else:
@@ -2167,24 +2167,24 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 job = Job(uid, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
             else:
                 job = Job(uid, ExecuteCommand(command), timeout, environment=ctx.env)
-            await self.dependencies.job_handler.add_job(job)
+            await self.dependencies.task_handler.add_job(job)
             yield f"Job {job.id} added."
 
         async def delete_job(job_id: str) -> AsyncIterator[str]:
-            job = await self.dependencies.job_handler.delete_job(job_id)
+            job = await self.dependencies.task_handler.delete_job(job_id)
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(job_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(job_id)
             yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 m = matching[0]
                 if m.trigger is not None:
                     job = Job(m.id, m.command, m.timeout, m.trigger, m.wait, m.environment, m.mutable, active)
-                    await self.dependencies.job_handler.add_job(job)
+                    await self.dependencies.task_handler.add_job(job)
                     yield job_to_json(job)
                 else:
                     yield f"Job {job_id} does not have any trigger that could be activated/deactivated."
@@ -2192,7 +2192,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 yield f"No job with this id: {job_id}"
 
         async def running_jobs() -> Tuple[int, Stream]:
-            tasks = await self.dependencies.job_handler.running_tasks()
+            tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
                 {
                     "job": t.descriptor.id,
@@ -2426,48 +2426,6 @@ class TagCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         return CLIFlow(setup_stream)
-
-
-class StartTaskCommand(CLICommand, PreserveOutputFormat):
-    """
-    ```shell
-    start_task <name of task>
-    ```
-
-    Start a task with given task descriptor id.
-
-    The configured surpass behaviour of a task definition defines, if multiple tasks of the same task definition
-    are allowed to run in parallel.
-    In case parallel tasks are forbidden a new task can not be started.
-    If a task could be started or not is returned as result message of this command.
-
-    ## Parameters
-    - `task_name` [mandatory]:  The name of the related task definition.
-
-    ## Examples
-    ```shell
-    > start_task example_task
-    ```
-
-    See: add_job, delete_job, jobs
-    """
-
-    @property
-    def name(self) -> str:
-        return "start_task"
-
-    def info(self) -> str:
-        return "Start a task with the given name."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def start_task() -> AsyncIterator[str]:
-            if not arg:
-                raise CLIParseError("Name of task is not provided")
-
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(arg)
-            yield f"Task {task.id} has been started" if task else "Task can not be started."
-
-        return CLISource.single(start_task)
 
 
 class FileCommand(CLICommand, InternalPart):
@@ -3098,6 +3056,153 @@ class HttpCommand(CLICommand):
         return CLIFlow(self.perform_requests(template))
 
 
+class WorkflowsCommand(CLICommand):
+    """
+    ```shell
+    workflows list
+    workflows show <id>
+    workflows run <id>
+    workflows running
+    ```
+
+    - `workflows list`: get the list of all workflows in the system
+    - `workflows show <id>`: show the current definition of the workflow defined by given identifier.
+    - `workflows run <id>`: run the workflow as if the trigger would be triggered.
+    - `workflows running`: show all currently running workflows.
+
+    The workflows that currently available are all hard-wired into resotocore.
+    We will support user defined workflows in the future.
+
+    *Note:*
+
+    If a workflow is triggered, while it is already running, the invocation will wait for the current run to finish.
+    This means that there will be no parallel execution of workflows with the same identifier at any moment in time.
+
+    ## Options
+    - `--id` <id> [optional]: The identifier of this workflow.
+
+    ## Examples
+
+    ```shell
+    # print all available workflows in the system
+    > workflows list
+    collect
+    cleanup
+    metrics
+    collect_and_cleanup
+
+    # show a specific workflows by identifier
+    > workflows show collect
+    id: collect
+    name: collect
+    steps:
+    - action:
+        message_type: pre_collect
+      name: pre_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: collect
+      name: collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_collect
+      name: post_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: pre_generate_metrics
+      name: pre_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: generate_metrics
+      name: generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_generate_metrics
+      name: post_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    triggers:
+    - filter_data: null
+      message_type: start_collect_workflow
+    on_surpass: Wait
+
+    # run the workflow directly without waiting for a trigger
+    > workflows run collect
+    Workflow collect started with id cb1013a4-8e81-11ec-8fc0-dad780437c54.
+
+    # show all currently running workflows
+    > workflows running
+    workflow: collect
+    started_at: '2022-02-15T17:08:02Z'
+    task-id: d54f92b8-8e81-11ec-8fc0-dad780437c54
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "workflows"
+
+    def info(self) -> str:
+        return "Manage all workflows."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
+        async def list_workflows() -> Tuple[int, AsyncIterator[JsonElement]]:
+            listed = await self.dependencies.task_handler.list_workflows()
+
+            async def iterate() -> AsyncIterator[JsonElement]:
+                for wf in listed:
+                    yield wf.id
+
+            return len(listed), iterate()
+
+        async def show_workflow(wf_id: str) -> AsyncIterator[JsonElement]:
+            matching = [wf for wf in await self.dependencies.task_handler.list_workflows() if wf.id == wf_id]
+            if matching:
+                yield to_js(matching[0])
+            else:
+                yield f"No workflow with this id: {wf_id}"
+
+        async def run_workflow(wf_id: str) -> AsyncIterator[str]:
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(wf_id)
+            yield (
+                f"Workflow {task.descriptor.id} started with id {task.id}."
+                if task
+                else f"No workflow with this id: {wf_id}"
+            )
+
+        async def running_workflows() -> Tuple[int, Stream]:
+            tasks = await self.dependencies.task_handler.running_tasks()
+            return len(tasks), stream.iterate(
+                {
+                    "workflow": t.descriptor.id,
+                    "started_at": to_json(t.task_started_at),
+                    "task-id": t.id,
+                }
+                for t in tasks
+                if isinstance(t.descriptor, Workflow)
+            )
+
+        async def show_help() -> AsyncIterator[str]:
+            yield self.rendered_help(ctx)
+
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] == "show":
+            return CLISource.single(partial(show_workflow, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "run":
+            return CLISource.single(partial(run_workflow, args[1].strip()))
+        elif arg and len(args) == 1 and args[0] == "running":
+            return CLISource(running_workflows)
+        elif arg and len(args) == 1 and args[0] == "list":
+            return CLISource(list_workflows)
+        else:
+            return CLISource.single(show_help)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
@@ -3127,12 +3232,12 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
-        StartTaskCommand(d),
         SuccessorsPart(d),
         SystemCommand(d),
         TagCommand(d),
         TailCommand(d),
         UniqCommand(d),
+        WorkflowsCommand(d),
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
@@ -3144,4 +3249,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "query", "start_workflow": "start_task", "https": "http"}
+    return {"match": "query", "https": "http"}

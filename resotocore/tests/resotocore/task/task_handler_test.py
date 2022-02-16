@@ -25,7 +25,8 @@ from resotocore.task.task_description import (
     Job,
     TaskSurpassBehaviour,
 )
-from resotocore.task.task_handler import TaskHandler
+from resotocore.task import TaskHandler
+from resotocore.task.task_handler import TaskHandlerService
 from tests.resotocore.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
@@ -85,12 +86,12 @@ async def task_handler(
     cli: CLI,
     test_workflow: Workflow,
     task_handler_args: Namespace,
-) -> AsyncGenerator[TaskHandler, None]:
-    task_handler = TaskHandler(
+) -> AsyncGenerator[TaskHandlerService, None]:
+    task_handler = TaskHandlerService(
         running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, task_handler_args
     )
     task_handler.task_descriptions = [test_workflow]
-    cli.dependencies.lookup["job_handler"] = task_handler
+    cli.dependencies.lookup["task_handler"] = task_handler
     async with task_handler:
         yield task_handler
 
@@ -110,7 +111,7 @@ def test_workflow() -> Workflow:
 
 
 @pytest.mark.asyncio
-async def test_run_job(task_handler: TaskHandler, all_events: List[Message]) -> None:
+async def test_run_job(task_handler: TaskHandlerService, all_events: List[Message]) -> None:
     await task_handler.handle_event(Event("start me up"))
     started: Event = await wait_for_message(all_events, "task_started", Event)
     await wait_for_message(all_events, "task_end", Event)
@@ -159,8 +160,8 @@ async def test_recover_workflow(
     task_handler_args: Namespace,
     test_workflow: Workflow,
 ) -> None:
-    def handler() -> TaskHandler:
-        th = TaskHandler(
+    def handler() -> TaskHandlerService:
+        th = TaskHandlerService(
             running_task_db,
             job_db,
             message_bus,
@@ -214,7 +215,7 @@ async def test_recover_workflow(
 
 @pytest.mark.asyncio
 async def test_wait_for_running_job(
-    task_handler: TaskHandler,
+    task_handler: TaskHandlerService,
     test_workflow: Workflow,
     all_events: List[Message],
 ) -> None:

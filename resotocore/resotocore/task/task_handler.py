@@ -23,7 +23,7 @@ from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.error import ParseError, CLIParseError
 from resotocore.message_bus import MessageBus, Event, Action, ActionDone, Message, ActionError
-from resotocore.task.job_handler import JobHandler
+from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.start_workflow_on_first_subscriber import wait_and_start
@@ -50,7 +50,7 @@ from resotocore.util import first, Periodic, group_by, uuid_str, utc_str, utc
 log = logging.getLogger(__name__)
 
 
-class TaskHandler(JobHandler):
+class TaskHandlerService(TaskHandler):
 
     # region init
 
@@ -207,14 +207,14 @@ class TaskHandler(JobHandler):
                 await self.running_task_db.delete(data.id)
         return instances
 
-    async def __aenter__(self) -> TaskHandler:
+    async def __aenter__(self) -> TaskHandlerService:
         return await self.start()
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         return await self.stop()
 
-    async def start(self) -> TaskHandler:
-        log.info("TaskHandler is starting up!")
+    async def start(self) -> TaskHandlerService:
+        log.info("TaskHandlerService is starting up!")
 
         # load job descriptions from configuration files
         file_jobs = [await self.parse_job_file(file) for file in self.args.jobs] if self.args.jobs else []
@@ -299,7 +299,10 @@ class TaskHandler(JobHandler):
             raise NameError(f"No task with such id: {uid}")
 
     async def list_jobs(self) -> List[Job]:
-        return [job for job in self.task_descriptions if isinstance(job, Job)]
+        return [td for td in self.task_descriptions if isinstance(td, Job)]
+
+    async def list_workflows(self) -> List[Workflow]:
+        return [td for td in self.task_descriptions if isinstance(td, Workflow)]
 
     async def add_job(self, job: Job) -> None:
         descriptions = list(self.task_descriptions)
