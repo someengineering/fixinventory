@@ -24,7 +24,7 @@ def dependent_node_iterator(
             return nid not in visited and not req
 
         while to_emit:
-            # emit the related node data
+            # emit the related node
             yield [nid for nid in to_emit]
             # add all nodes as visited
             visited.update(to_emit)
