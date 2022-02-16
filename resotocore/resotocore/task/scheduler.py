@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 from typing import Callable, Any, List
 
@@ -30,8 +31,11 @@ class Scheduler:
     def cron(
         self, job_id: str, name: str, cron_string: str, func: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> Job:
-        trigger = CronTrigger.from_crontab(cron_string)
-        return self.scheduler.add_job(func, trigger, args, kwargs, job_id, name)
+        # This catcher can be removed, once APScheduler released a version > 3.8.1
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            trigger = CronTrigger.from_crontab(cron_string)
+            return self.scheduler.add_job(func, trigger, args, kwargs, job_id, name)
 
     def at(self, job_id: str, name: str, dt: datetime, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Job:
         return self.scheduler.add_job(func, "date", args, kwargs, job_id, name, run_date=dt)
