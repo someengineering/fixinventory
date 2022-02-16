@@ -109,7 +109,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
             members = self.list_conversation_members(c)
             for member_id in members:
                 m = self.graph.search_first_all({"kind": "slack_user", "id": member_id})
-                self.graph.add_edge(m, c)
+                self.graph.add_edge(c, m)
 
     @retry(
         stop_max_attempt_number=10, retry_on_exception=retry_on_request_limit_exceeded

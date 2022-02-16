@@ -2,7 +2,7 @@ import unittest
 import threading
 import time
 import copy
-from resotolib.utils import RWLock
+from resotolib.utils import RWLock, ordinal
 from resotolib.baseresources import BaseResource
 from dataclasses import dataclass
 from typing import ClassVar
@@ -204,3 +204,16 @@ def test_resource_tags_dict():
     assert r.key is key
     assert r.value is new_value
     assert r.tags[key] == new_value
+
+
+def test_ordinal():
+    assert ordinal(1) == "1st"
+    assert ordinal(2) == "2nd"
+    assert ordinal(3) == "3rd"
+    assert ordinal(4) == "4th"
+    assert ordinal(11) == "11th"
+    assert ordinal(12) == "12th"
+    assert ordinal(13) == "13th"
+    assert ordinal(21) == "21st"
+    assert ordinal(22) == "22nd"
+    assert ordinal(23) == "23rd"
