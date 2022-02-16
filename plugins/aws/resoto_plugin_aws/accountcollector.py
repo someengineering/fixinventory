@@ -378,6 +378,11 @@ class AWSAccountCollector:
                         f"Not authorized to collect resources in account {self.account.dname} region {region.id}"
                     )
                     return graph
+                elif e.response["Error"]["Code"] in (
+                    "RequestLimitExceeded",
+                    "Throttling",
+                ):
+                    raise
                 else:
                     log.exception(
                         (
