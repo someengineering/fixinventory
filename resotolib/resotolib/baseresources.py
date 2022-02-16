@@ -53,8 +53,6 @@ def unless_protected(f):
 class EdgeType(Enum):
     default = "default"
     delete = "delete"
-    start = "start"
-    stop = "stop"
 
     @staticmethod
     def from_value(value: Optional[str] = None) -> Enum:
