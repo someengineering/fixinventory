@@ -194,7 +194,7 @@ def handle_result(part: Union[Response, BodyPart], first: bool = True) -> None:
             handle_result(part, num == 0)
 
 
-@lru_cache()
+@lru_cache(maxsize=None)
 def color_system() -> str:
     if ArgumentParser.args.no_color:
         return "monochrome"
