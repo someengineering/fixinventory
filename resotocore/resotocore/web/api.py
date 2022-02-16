@@ -164,12 +164,19 @@ class Api:
                 web.post("/graph/{graph_id}", self.create_graph),
                 web.delete("/graph/{graph_id}", self.wipe),
                 # No section of the graph
+                # TODO: deprecated. Remove it.
                 web.post("/graph/{graph_id}/query/raw", self.raw),
                 web.post("/graph/{graph_id}/query/explain", self.explain),
                 web.post("/graph/{graph_id}/query/list", self.query_list),
                 web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
                 web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
-                web.get("/graph/{graph_id}/search", self.search_graph),
+                # search the graph
+                web.post("/graph/{graph_id}/search/raw", self.raw),
+                web.post("/graph/{graph_id}/search/explain", self.explain),
+                web.post("/graph/{graph_id}/search/list", self.query_list),
+                web.post("/graph/{graph_id}/search/graph", self.query_graph_stream),
+                web.post("/graph/{graph_id}/search/aggregate", self.query_aggregation),
+                # maintain the graph
                 web.patch("/graph/{graph_id}/nodes", self.update_nodes),
                 web.post("/graph/{graph_id}/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
@@ -658,26 +665,26 @@ class Api:
     async def query_list(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
-        timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_list(query_model, count, timeout) as cursor:
+        timeout = if_set(request.query.get("search_timeout"), duration)
+        async with await graph_db.search_list(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
-        result = await graph_db.query_graph(query_model)
+        result = await graph_db.search_graph(query_model)
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
     async def query_graph_stream(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
-        timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_graph_gen(query_model, count, timeout) as cursor:
+        timeout = if_set(request.query.get("search_timeout"), duration)
+        async with await graph_db.search_graph_gen(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
-        async with await graph_db.query_aggregation(query_model) as gen:
+        async with await graph_db.search_aggregation(query_model) as gen:
             return await self.stream_response_from_gen(request, gen)
 
     async def wipe(self, request: Request) -> StreamResponse:
