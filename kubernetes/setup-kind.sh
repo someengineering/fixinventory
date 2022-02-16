@@ -7,7 +7,7 @@ set -o pipefail
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 NO_START_KIND="${NO_START_KIND:-}"
 
-if [ -z "${NO_START_KIND}"]; then
+if [ -z "${NO_START_KIND}" ]; then
   kind create cluster
 fi
 
