@@ -43,13 +43,13 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -r requirements-test.txt
           pip install -r requirements.txt
-          mypy core tests > /dev/null 2>&1 || true
+          mypy resotocore tests > /dev/null 2>&1 || true
           mypy --install-types --non-interactive || true
       - name: Check Formatting
-        run: black --line-length 120 --check core tests
+        run: black --line-length 120 --check resotocore tests
       - name: Lint
         run: |
-          flake8 core
-          pylint core
+          flake8 resotocore
+          pylint resotocore
       - name: MyPy
-        run: mypy --strict core tests
+        run: mypy --strict resotocore tests
