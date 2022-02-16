@@ -129,49 +129,49 @@ async def test_json_source(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_predecessors(cli: CLI) -> None:
-    r1 = await cli.execute_cli_command("query id(4_0) | predecessors", stream.list)
+    r1 = await cli.execute_cli_command("search id(4_0) | predecessors", stream.list)
     assert len(r1[0]) == 1
-    r2 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin", stream.list)
+    r2 = await cli.execute_cli_command("search id(4_0) | predecessors --with-origin", stream.list)
     assert len(r2[0]) == 2
-    r3 = await cli.execute_cli_command("query id(4_0) | predecessors --with-origin default", stream.list)
+    r3 = await cli.execute_cli_command("search id(4_0) | predecessors --with-origin default", stream.list)
     assert len(r3[0]) == 2
-    r4 = await cli.execute_cli_command("query id(4_0) | predecessors delete", stream.list)
+    r4 = await cli.execute_cli_command("search id(4_0) | predecessors delete", stream.list)
     assert len(r4[0]) == 0
 
 
 @pytest.mark.asyncio
 async def test_ancestors(cli: CLI) -> None:
-    r1 = await cli.execute_cli_command("query id(4_0) | ancestors", stream.list)
+    r1 = await cli.execute_cli_command("search id(4_0) | ancestors", stream.list)
     assert len(r1[0]) == 4
-    r2 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin", stream.list)
+    r2 = await cli.execute_cli_command("search id(4_0) | ancestors --with-origin", stream.list)
     assert len(r2[0]) == 5
-    r3 = await cli.execute_cli_command("query id(4_0) | ancestors --with-origin default", stream.list)
+    r3 = await cli.execute_cli_command("search id(4_0) | ancestors --with-origin default", stream.list)
     assert len(r3[0]) == 5
-    r4 = await cli.execute_cli_command("query id(4_0) | ancestors delete", stream.list)
+    r4 = await cli.execute_cli_command("search id(4_0) | ancestors delete", stream.list)
     assert len(r4[0]) == 0
 
 
 @pytest.mark.asyncio
 async def test_successors(cli: CLI) -> None:
-    r1 = await cli.execute_cli_command("query id(4) | successors", stream.list)
+    r1 = await cli.execute_cli_command("search id(4) | successors", stream.list)
     assert len(r1[0]) == 10
-    r2 = await cli.execute_cli_command("query id(4) | successors --with-origin", stream.list)
+    r2 = await cli.execute_cli_command("search id(4) | successors --with-origin", stream.list)
     assert len(r2[0]) == 11
-    r3 = await cli.execute_cli_command("query id(4) | successors --with-origin default", stream.list)
+    r3 = await cli.execute_cli_command("search id(4) | successors --with-origin default", stream.list)
     assert len(r3[0]) == 11
-    r4 = await cli.execute_cli_command("query id(4) | successors delete", stream.list)
+    r4 = await cli.execute_cli_command("search id(4) | successors delete", stream.list)
     assert len(r4[0]) == 0
 
 
 @pytest.mark.asyncio
 async def test_descendants(cli: CLI) -> None:
-    r1 = await cli.execute_cli_command("query id(4) | descendants", stream.list)
+    r1 = await cli.execute_cli_command("search id(4) | descendants", stream.list)
     assert len(r1[0]) == 10
-    r2 = await cli.execute_cli_command("query id(4) | descendants --with-origin", stream.list)
+    r2 = await cli.execute_cli_command("search id(4) | descendants --with-origin", stream.list)
     assert len(r2[0]) == 11
-    r3 = await cli.execute_cli_command("query id(4) | descendants --with-origin default", stream.list)
+    r3 = await cli.execute_cli_command("search id(4) | descendants --with-origin default", stream.list)
     assert len(r3[0]) == 11
-    r4 = await cli.execute_cli_command("query id(4) | descendants delete", stream.list)
+    r4 = await cli.execute_cli_command("search id(4) | descendants delete", stream.list)
     assert len(r4[0]) == 0
 
 
@@ -663,9 +663,9 @@ async def test_write_command(cli: CLI) -> None:
                         assert data == check_content
 
     # result can be read as json
-    await cli.execute_cli_command("query all limit 3 | format --json | write write_test.json ", check_file)
+    await cli.execute_cli_command("search all limit 3 | format --json | write write_test.json ", check_file)
     # result can be read as yaml
-    await cli.execute_cli_command("query all limit 3 | format --yaml | write write_test.yaml ", check_file)
+    await cli.execute_cli_command("search all limit 3 | format --yaml | write write_test.yaml ", check_file)
     # write enforces unescaped output.
     env = {"now": utc_str()}  # fix the time, so that replacements will stay equal
     truecolor = CLIContext(console_renderer=ConsoleRenderer(80, 25, ConsoleColorSystem.truecolor, True), env=env)
@@ -719,7 +719,7 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
     )
 
     # take 3 instance of type bla and send it to the echo server
-    result = await cli.execute_cli_command(f"query is(bla) limit 3 | http :{port}/test", stream.list)
+    result = await cli.execute_cli_command(f"search is(bla) limit 3 | http :{port}/test", stream.list)
     # one line is returned to the user with a summary of the response types.
     assert result == [["3 requests with status 200 sent."]]
     # make sure all 3 requests have been received - the body is the complete json node
@@ -730,6 +730,6 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 
     # failing requests are retried
     requests.clear()
-    await cli.execute_cli_command(f"query is(bla) limit 1 | http --backoff-base 0.001 :{port}/fail", stream.list)
+    await cli.execute_cli_command(f"search is(bla) limit 1 | http --backoff-base 0.001 :{port}/fail", stream.list)
     # 1 request + 3 retries => 4 requests
     assert len(requests) == 4
