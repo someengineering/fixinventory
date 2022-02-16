@@ -761,3 +761,8 @@ def get_local_hostnames(
         if isinstance(csr_san_dns_names, list):
             hostnames.update(csr_san_dns_names)
     return list(hostnames)
+
+
+def ordinal(num: int) -> str:
+    suffix = "tsnrhtdd"[(num // 10 % 10 != 1) * (num % 10 < 4) * num % 10 :: 4]
+    return f"{num}{suffix}"

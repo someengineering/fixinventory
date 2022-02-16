@@ -483,7 +483,7 @@ class AWSEC2InternetGateway(AWSResource, BaseGateway):
     def pre_delete(self, graph: Graph) -> bool:
         ec2 = aws_resource(self, "ec2", graph)
         internet_gateway = ec2.InternetGateway(self.id)
-        for predecessor in self.predecessors(graph):
+        for predecessor in self.predecessors(graph, edge_type=EdgeType.delete):
             if isinstance(predecessor, AWSVPC):
                 log_msg = f"Detaching {predecessor.kind} {predecessor.dname}"
                 self.log(log_msg)
@@ -722,7 +722,7 @@ class AWSIAMUser(AWSResource, BaseUser):
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         user = iam.User(self.name)
-        for successor in self.successors(graph):
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
             if isinstance(successor, AWSIAMPolicy):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
@@ -755,7 +755,7 @@ class AWSIAMGroup(AWSResource, BaseGroup):
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         group = iam.Group(self.name)
-        for successor in self.successors(graph):
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
             if isinstance(successor, AWSIAMPolicy):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
@@ -788,7 +788,7 @@ class AWSIAMRole(AWSResource, BaseRole):
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         role = iam.Role(self.name)
-        for successor in self.successors(graph):
+        for successor in self.successors(graph, edge_type=EdgeType.delete):
             if isinstance(successor, AWSIAMPolicy):
                 log_msg = f"Detaching {successor.rtdname}"
                 self.log(log_msg)
@@ -831,7 +831,7 @@ class AWSIAMInstanceProfile(AWSResource, BaseInstanceProfile):
     def pre_delete(self, graph: Graph) -> bool:
         iam = aws_resource(self, "iam", graph)
         instance_profile = iam.InstanceProfile(self.name)
-        for predecessor in self.predecessors(graph):
+        for predecessor in self.predecessors(graph, edge_type=EdgeType.delete):
             if isinstance(predecessor, AWSIAMRole):
                 log_msg = f"Detaching {predecessor.rtdname}"
                 self.log(log_msg)

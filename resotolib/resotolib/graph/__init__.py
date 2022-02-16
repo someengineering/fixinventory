@@ -14,6 +14,7 @@ from resotolib.baseresources import (
     GraphRoot,
     Cloud,
     BaseResource,
+    EdgeType,
 )
 from resotolib.utils import json_default, get_resource_attributes
 from resotolib.args import ArgumentParser
@@ -34,7 +35,6 @@ from dataclasses import fields
 from typeguard import check_type
 from time import time
 from collections import defaultdict, namedtuple
-from enum import Enum
 
 
 metrics_graph_search = Summary(
@@ -84,14 +84,6 @@ metrics_graph2gexf = Summary(
 metrics_graph2pajek = Summary(
     "resoto_graph2pajek_seconds", "Time it took the graph2pajek() method"
 )
-
-
-class EdgeType(Enum):
-    default = "default"
-    delete = "delete"
-    start = "start"
-    stop = "stop"
-
 
 EdgeKey = namedtuple("EdgeKey", ["src", "dst", "edge_type"])
 
@@ -278,6 +270,7 @@ class Graph(networkx.MultiDiGraph):
         This means it is valid if there are cycles in the graph but not for the same edge type.
         :return: True if the graph is acyclic for all edge types, otherwise False.
         """
+        log.debug("Ensuring graph is directed and acyclic per edge type")
         edges_per_type = defaultdict(list)
         for edge in self.edges(keys=True):
             if len(edge) == 3:
@@ -686,6 +679,7 @@ def validate_dataclass(node: BaseResource):
 
 
 def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
+    log.debug("Validating attribute types of all graph dataclasses")
     node_chksums = {}
     for node in graph.nodes:
         if isinstance(node, BaseResource):

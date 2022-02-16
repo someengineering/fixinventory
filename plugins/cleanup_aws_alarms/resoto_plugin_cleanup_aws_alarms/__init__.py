@@ -30,7 +30,7 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
 
-        query = "is(aws_cloudwatch_alarm) <-[0:]->"
+        query = "is(aws_cloudwatch_alarm) <-default,delete[0:]delete->"
         graph = cg.graph(query)
         self.alarm_cleanup(graph)
         cg.patch_nodes(graph)

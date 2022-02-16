@@ -3,7 +3,7 @@ import socket
 from pprint import pformat
 from retrying import retry
 from typing import Callable, List, Dict, Type, Union
-from resotolib.baseresources import BaseResource
+from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph import Graph
 from resotolib.args import ArgumentParser
 from resotolib.utils import except_log_and_pass
@@ -550,8 +550,8 @@ class GCPProjectCollector:
         parent_resource: Union[BaseResource, str] = None,
         attr_map: Dict = None,
         search_map: Dict = None,
-        successors: List = None,
-        predecessors: List = None,
+        successors: Dict[EdgeType, List[str]] = None,
+        predecessors: Dict[EdgeType, List[str]] = None,
         client_kwargs: Dict = None,
         client_nested_callables: List[str] = None,
         resource_kwargs: Dict = None,
@@ -576,8 +576,10 @@ class GCPProjectCollector:
             search_map: Dict containing a mapping similar to attr_map except that
                 any results get looked up in `self.graph` instead of just passing
                 the result data as an attribute.
-            successors: List of resource successors (child nodes)
-            predecessors: List of resource predecessors (parent nodes)
+            successors: Dict of EdgeTypes with List of resource
+                successors (child nodes)
+            predecessors: Dict of EdgeTypes with List of resource
+                predecessors (parent nodes)
             client_kwargs: **kwargs that get passed to the GCP client
             resource_kwargs: **kwargs that get passed to the GCP resource
             paginate_subitems_name: Name of a resource in a aggregatedList result set
@@ -599,9 +601,9 @@ class GCPProjectCollector:
         if resource_kwargs is None:
             resource_kwargs = {}
         if successors is None:
-            successors = []
+            successors = {}
         if predecessors is None:
-            predecessors = []
+            predecessors = {}
         parent_map = {True: predecessors, False: successors}
 
         # For APIs that take a parent (`projects/*/locations/*`) parameter,
@@ -651,44 +653,50 @@ class GCPProjectCollector:
                 log.debug(
                     f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
                 )
-            self.graph.add_resource(pr, r)
+            self.graph.add_resource(pr, r, edge_type=EdgeType.default)
 
-            for is_parent, sr_names in parent_map.items():
-                for sr_name in sr_names:
-                    if sr_name in search_results:
-                        srs = search_results[sr_name]
-                        for sr in srs:
-                            if is_parent:
-                                src = sr
-                                dst = r
-                            else:
-                                src = r
-                                dst = sr
-                            self.graph.add_edge(src, dst)
-                    else:
-                        if sr_name in search_map:
-                            graph_search = search_map[sr_name]
-                            attr = graph_search[0]
-                            value_name = graph_search[1]
-                            if value_name in resource:
-                                value = resource[value_name]
-                                if isinstance(value, List):
-                                    values = value
-                                    for value in values:
-                                        r.add_deferred_connection(
-                                            attr, value, is_parent
-                                        )
-                                elif isinstance(value, str):
-                                    r.add_deferred_connection(attr, value, is_parent)
+            for is_parent, edge_sr_names in parent_map.items():
+                for edge_type, sr_names in edge_sr_names.items():
+                    for sr_name in sr_names:
+                        if sr_name in search_results:
+                            srs = search_results[sr_name]
+                            for sr in srs:
+                                if is_parent:
+                                    src = sr
+                                    dst = r
                                 else:
-                                    log.error(
-                                        (
-                                            "Unable to add deferred connection for"
-                                            f" value {value} of type {type(value)}"
-                                        )
-                                    )
+                                    src = r
+                                    dst = sr
+                                self.graph.add_edge(src, dst, edge_type=edge_type)
                         else:
-                            log.error(f"Key {sr_name} is missing in search_map")
+                            if sr_name in search_map:
+                                graph_search = search_map[sr_name]
+                                attr = graph_search[0]
+                                value_name = graph_search[1]
+                                if value_name in resource:
+                                    value = resource[value_name]
+                                    if isinstance(value, List):
+                                        values = value
+                                        for value in values:
+                                            r.add_deferred_connection(
+                                                attr,
+                                                value,
+                                                is_parent,
+                                                edge_type=edge_type,
+                                            )
+                                    elif isinstance(value, str):
+                                        r.add_deferred_connection(
+                                            attr, value, is_parent, edge_type=edge_type
+                                        )
+                                    else:
+                                        log.error(
+                                            (
+                                                "Unable to add deferred connection for"
+                                                f" value {value} of type {type(value)}"
+                                            )
+                                        )
+                            else:
+                                log.error(f"Key {sr_name} is missing in search_map")
             if callable(post_process):
                 post_process(r, self.graph)
 
@@ -709,7 +717,7 @@ class GCPProjectCollector:
                         _zone=resource.zone(),
                         ctime=resource.ctime,
                     )
-                    graph.add_resource(resource, q)
+                    graph.add_resource(resource, q, edge_type=EdgeType.default)
             resource._quotas = None
 
         self.collect_something(
@@ -754,8 +762,8 @@ class GCPProjectCollector:
                     )
                 ),
             },
-            predecessors=["volume_type"],
-            successors=["__users"],
+            predecessors={EdgeType.default: ["volume_type", "__users"]},
+            successors={EdgeType.delete: ["__users"]},
         )
 
     @metrics_collect_instances.time()
@@ -790,8 +798,10 @@ class GCPProjectCollector:
                 machine_type.id = result.get("id")
                 machine_type.instance_cores = float(result.get("guestCpus"))
                 machine_type.instance_memory = float(result.get("memoryMb", 0) / 1024)
-                graph.add_resource(machine_type.zone(graph), machine_type)
-                graph.add_edge(machine_type, resource)
+                graph.add_resource(
+                    machine_type.zone(graph), machine_type, edge_type=EdgeType.default
+                )
+                graph.add_edge(machine_type, resource, edge_type=EdgeType.default)
                 self.post_process_machine_type(machine_type, graph)
                 resource._machine_type = machine_type
 
@@ -822,7 +832,10 @@ class GCPProjectCollector:
                 "instance_status": "status",
                 "machine_type_link": "machineType",
             },
-            predecessors=["__network", "__subnetwork", "machine_type"],
+            predecessors={
+                EdgeType.default: ["__network", "__subnetwork", "machine_type"],
+                EdgeType.delete: ["__network", "__subnetwork"],
+            },
         )
 
     @metrics_collect_disk_types.time()
@@ -888,7 +901,7 @@ class GCPProjectCollector:
                 skus.append(sku)
 
             if len(skus) == 1:
-                graph.add_edge(skus[0], resource)
+                graph.add_edge(skus[0], resource, edge_type=EdgeType.default)
                 resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
             else:
                 log.debug(f"Unable to determine SKU for {resource}")
@@ -913,7 +926,10 @@ class GCPProjectCollector:
             search_map={
                 "__network": ["link", "network"],
             },
-            predecessors=["__network"],
+            predecessors={
+                EdgeType.default: ["__network"],
+                EdgeType.delete: ["__network"],
+            },
         )
 
     @metrics_collect_vpn_tunnels.time()
@@ -925,7 +941,10 @@ class GCPProjectCollector:
                 "__vpn_gateway": ["link", "vpnGateway"],
                 "__target_vpn_gateway": ["link", "targetVpnGateway"],
             },
-            successors=["__target_vpn_gateway", "__vpn_gateway"],
+            successors={
+                EdgeType.default: ["__target_vpn_gateway", "__vpn_gateway"],
+                EdgeType.delete: ["__target_vpn_gateway", "__vpn_gateway"],
+            },
         )
 
     @metrics_collect_vpn_gateways.time()
@@ -936,7 +955,10 @@ class GCPProjectCollector:
             search_map={
                 "__network": ["link", "network"],
             },
-            predecessors=["__network"],
+            predecessors={
+                EdgeType.default: ["__network"],
+                EdgeType.delete: ["__network"],
+            },
         )
 
     @metrics_collect_target_vpn_gateways.time()
@@ -947,7 +969,10 @@ class GCPProjectCollector:
             search_map={
                 "__network": ["link", "network"],
             },
-            predecessors=["__network"],
+            predecessors={
+                EdgeType.default: ["__network"],
+                EdgeType.delete: ["__network"],
+            },
         )
 
     @metrics_collect_routers.time()
@@ -958,7 +983,10 @@ class GCPProjectCollector:
             search_map={
                 "__network": ["link", "network"],
             },
-            predecessors=["__network"],
+            predecessors={
+                EdgeType.default: ["__network"],
+                EdgeType.delete: ["__network"],
+            },
         )
 
     @metrics_collect_routes.time()
@@ -968,7 +996,10 @@ class GCPProjectCollector:
             search_map={
                 "__network": ["link", "network"],
             },
-            predecessors=["__network"],
+            predecessors={
+                EdgeType.default: ["__network"],
+                EdgeType.delete: ["__network"],
+            },
         )
 
     @metrics_collect_security_policies.time()
@@ -986,6 +1017,7 @@ class GCPProjectCollector:
                 "volume_size": lambda r: int(r.get("diskSizeGb", -1)),
                 "storage_bytes": lambda r: int(r.get("storageBytes", -1)),
             },
+            predecessors={EdgeType.default: ["volume_id"]},
         )
 
     @metrics_collect_ssl_certificates.time()
@@ -1005,7 +1037,8 @@ class GCPProjectCollector:
             search_map={
                 "__user": ["link", "user"],
             },
-            successors=["__user"],
+            predecessors={EdgeType.default: ["__user"]},
+            successors={EdgeType.delete: ["__user"]},
         )
 
     @staticmethod
@@ -1095,7 +1128,7 @@ class GCPProjectCollector:
             skus.append(sku)
 
         if len(skus) == 1 and resource.name in ("g1-small", "f1-micro"):
-            graph.add_edge(skus[0], resource)
+            graph.add_edge(skus[0], resource, edge_type=EdgeType.default)
             resource.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
         elif len(skus) == 2 or (len(skus) == 3 and "custom" in resource.name):
             ondemand_cost = 0
@@ -1114,7 +1147,7 @@ class GCPProjectCollector:
                     ):
                         continue
                     ondemand_cost += sku.usage_unit_nanos * ram
-                graph.add_edge(sku, resource)
+                graph.add_edge(sku, resource, edge_type=EdgeType.default)
             if ondemand_cost > 0:
                 resource.ondemand_cost = ondemand_cost / 1000000000
         else:
@@ -1153,7 +1186,10 @@ class GCPProjectCollector:
                 "default_port": "defaultPort",
                 "neg_type": "networkEndpointType",
             },
-            predecessors=["__network", "__subnetwork"],
+            predecessors={
+                EdgeType.default: ["__network", "__subnetwork"],
+                EdgeType.delete: ["__network", "__subnetwork"],
+            },
         )
 
     @metrics_collect_global_network_endpoint_groups.time()
@@ -1168,7 +1204,10 @@ class GCPProjectCollector:
                 "default_port": "defaultPort",
                 "neg_type": "networkEndpointType",
             },
-            predecessors=["__network", "__subnetwork"],
+            predecessors={
+                EdgeType.default: ["__network", "__subnetwork"],
+                EdgeType.delete: ["__network", "__subnetwork"],
+            },
         )
 
     @metrics_collect_instance_groups.time()
@@ -1185,7 +1224,8 @@ class GCPProjectCollector:
             ):
                 i = graph.search_first("link", r.get("instance"))
                 if i:
-                    graph.add_edge(i, resource)
+                    graph.add_edge(resource, i, edge_type=EdgeType.default)
+                    graph.add_edge(i, resource, edge_type=EdgeType.delete)
 
         self.collect_something(
             resource_class=GCPInstanceGroup,
@@ -1194,7 +1234,10 @@ class GCPProjectCollector:
                 "__subnetwork": ["link", "subnetwork"],
                 "__network": ["link", "network"],
             },
-            predecessors=["__network", "__subnetwork"],
+            predecessors={
+                EdgeType.default: ["__network", "__subnetwork"],
+                EdgeType.delete: ["__network", "__subnetwork"],
+            },
             post_process=post_process,
         )
 
@@ -1215,7 +1258,11 @@ class GCPProjectCollector:
                     ),
                 ],
             },
-            predecessors=["__instance_group", "__health_checks"],
+            predecessors={
+                EdgeType.default: ["__instance_group"],
+                EdgeType.delete: ["__instance_group", "__health_checks"],
+            },
+            successors={EdgeType.default: ["__health_checks"]},
         )
 
     @metrics_collect_autoscalers.time()
@@ -1234,7 +1281,10 @@ class GCPProjectCollector:
                     lambda r: r.get("autoscalingPolicy", {}).get("maxNumReplicas", -1)
                 ),
             },
-            successors=["__instance_group_manager"],
+            successors={
+                EdgeType.default: ["__instance_group_manager"],
+                EdgeType.delete: ["__instance_group_manager"],
+            },
         )
 
     @metrics_collect_health_checks.time()
@@ -1290,7 +1340,7 @@ class GCPProjectCollector:
             search_map={
                 "__default_service": ["link", "defaultService"],
             },
-            successors=["__default_service"],
+            successors={EdgeType.default: ["__default_service"]},
         )
 
     @metrics_collect_target_pools.time()
@@ -1306,7 +1356,8 @@ class GCPProjectCollector:
                 "session_affinity": "sessionAffinity",
                 "failover_ratio": "failoverRatio",
             },
-            predecessors=["__instances", "__health_checks"],
+            predecessors={EdgeType.delete: ["__instances", "__health_checks"]},
+            successors={EdgeType.default: ["__instances", "__health_checks"]},
         )
 
     @metrics_collect_target_instances.time()
@@ -1317,7 +1368,8 @@ class GCPProjectCollector:
             search_map={
                 "__instance": ["link", "instance"],
             },
-            predecessors=["__instance"],
+            predecessors={EdgeType.delete: ["__instance"]},
+            successors={EdgeType.default: ["__instance"]},
         )
 
     @metrics_collect_target_http_proxies.time()
@@ -1328,7 +1380,8 @@ class GCPProjectCollector:
             search_map={
                 "__url_map": ["link", "urlMap"],
             },
-            predecessors=["__url_map"],
+            predecessors={EdgeType.delete: ["__url_map"]},
+            successors={EdgeType.default: ["__url_map"]},
         )
 
     @metrics_collect_target_https_proxies.time()
@@ -1340,7 +1393,8 @@ class GCPProjectCollector:
                 "__url_map": ["link", "urlMap"],
                 "__ssl_certificates": ["link", "sslCertificates"],
             },
-            predecessors=["__url_map", "__ssl_certificates"],
+            predecessors={EdgeType.delete: ["__url_map", "__ssl_certificates"]},
+            successors={EdgeType.default: ["__url_map", "__ssl_certificates"]},
         )
 
     @metrics_collect_target_ssl_proxies.time()
@@ -1351,7 +1405,8 @@ class GCPProjectCollector:
                 "__service": ["link", "service"],
                 "__ssl_certificates": ["link", "sslCertificates"],
             },
-            predecessors=["__service", "__ssl_certificates"],
+            predecessors={EdgeType.delete: ["__service", "__ssl_certificates"]},
+            successors={EdgeType.default: ["__service", "__ssl_certificates"]},
         )
 
     @metrics_collect_target_tcp_proxies.time()
@@ -1361,7 +1416,8 @@ class GCPProjectCollector:
             search_map={
                 "__service": ["link", "service"],
             },
-            predecessors=["__service"],
+            predecessors={EdgeType.delete: ["__service"]},
+            successors={EdgeType.default: ["__service"]},
         )
 
     @metrics_collect_target_grpc_proxies.time()
@@ -1371,7 +1427,8 @@ class GCPProjectCollector:
             search_map={
                 "__url_map": ["link", "urlMap"],
             },
-            predecessors=["__url_map"],
+            predecessors={EdgeType.delete: ["__url_map"]},
+            successors={EdgeType.default: ["__url_map"]},
         )
 
     @metrics_collect_backend_services.time()
@@ -1386,7 +1443,8 @@ class GCPProjectCollector:
                     (lambda r: [g.get("group", "") for g in r.get("backends", [])]),
                 ],
             },
-            predecessors=["__health_checks", "__backends"],
+            predecessors={EdgeType.delete: ["__health_checks", "__backends"]},
+            successors={EdgeType.default: ["__health_checks", "__backends"]},
         )
 
     @metrics_collect_forwarding_rules.time()
@@ -1411,7 +1469,8 @@ class GCPProjectCollector:
             search_map={
                 "__target": ["link", "target"],
             },
-            predecessors=["__target"],
+            predecessors={EdgeType.delete: ["__target"]},
+            successors={EdgeType.default: ["__target"]},
             post_process=post_process,
         )
 
@@ -1429,7 +1488,8 @@ class GCPProjectCollector:
             search_map={
                 "__target": ["link", "target"],
             },
-            predecessors=["__target"],
+            predecessors={EdgeType.delete: ["__target"]},
+            successors={EdgeType.default: ["__target"]},
         )
 
     @metrics_collect_buckets.time()
@@ -1509,7 +1569,7 @@ class GCPProjectCollector:
                     _region=service.region(graph),
                     _zone=service.zone(graph),
                 )
-                graph.add_resource(service, sku)
+                graph.add_resource(service, sku, edge_type=EdgeType.default)
 
         self.collect_something(
             resource_class=GCPService,
@@ -1529,7 +1589,7 @@ class GCPProjectCollector:
             search_map={
                 "__machine_type": ["link", "machineType"],
             },
-            predecessors=["__machine_type"],
+            predecessors={EdgeType.default: ["__machine_type"]},
         )
 
     @metrics_collect_gke_clusters.time()

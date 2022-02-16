@@ -10,6 +10,18 @@ services:
       - 8529:8529
     volumes:
       - resoto_graphdb_data:/var/lib/arangodb3
+  tsdb:
+    image: prom/prometheus:v2.33.3
+    ports:
+      - 9090:9090
+    volumes:
+      - ./dockerV2/prometheus.yml:/etc/prometheus/prometheus.yml
+      - resoto_tsdb_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=730d
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
     image: somecr.io/someengineering/resotocore:2.0.0a16
     depends_on:
@@ -19,7 +31,9 @@ services:
     environment:
       - PSK
       - RESOTOCORE_HOST=resotocore
+      - RESOTOCORE_UI_PATH=/usr/local/resoto/ui/
       - RESOTOCORE_START_COLLECT_ON_SUBSCRIBER_CONNECT=true
+      - RESOTOCORE_TSDB_PROXY_URL=http://tsdb:9090
       - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
       - RESOTOCORE_GRAPHDB_PASSWORD=changeme
     restart: always
@@ -37,7 +51,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotometrics: 
-    image: somecr.io/someengineering/resotometrics::2.0.0a16
+    image: somecr.io/someengineering/resotometrics:2.0.0a16
     depends_on:
       - resotocore
     ports:
@@ -60,3 +74,4 @@ services:
     stop_grace_period: 2m
 volumes:
   resoto_graphdb_data:
+  resoto_tsdb_data:
