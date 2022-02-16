@@ -57,10 +57,10 @@ clean-env: ## remove environment
 	rm -fr venv-pypy
 
 lint: venv ## check style with flake8
-	black --line-length 120 --check core tests
-	flake8 core
-	pylint core
-	mypy --python-version 3.8 --strict core tests
+	black --line-length 120 --check resotocore tests
+	flake8 resotocore
+	pylint resotocore
+	mypy --python-version 3.8 --strict resotocore tests
 
 test: venv ## run tests quickly with the default Python
 	pytest
@@ -69,7 +69,7 @@ test-all: venv ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source core -m pytest
+	coverage run --source resotocore -m pytest
 	coverage combine
 	coverage report -m
 	coverage html
