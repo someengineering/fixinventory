@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from networkx import DiGraph
 from pytest import fixture
 
