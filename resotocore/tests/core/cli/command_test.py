@@ -521,6 +521,11 @@ async def test_list_command(cli: CLI) -> None:
     )
     assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
 
+    # List supports csv output
+    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
+    result = await cli.execute_cli_command(f"json {json.dumps(props)}" " | list --csv a,b,c,d,e,f", stream.list)
+    assert result[0] == ["a,b,c,d,e,f", "a,True,False,,12,1.234"]
+
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
