@@ -27,9 +27,10 @@ from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
 from resotocore.model.model import predefined_kinds
+from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
-from resotocore.task.task_handler import TaskHandler
+from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str
 from resotocore.worker_task_queue import WorkerTask
