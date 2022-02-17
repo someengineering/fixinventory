@@ -1895,12 +1895,19 @@ class ListCommand(CLICommand, OutputTransformer):
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
 
-    # Properties that do not exist will be printed as empty values .
-    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
+    # Properties that do not exist will be printed as empty values when using csv or markdown output.
+    > query is(aws_ec2_instance) limit 3 | list --csv kind as a, name as b, does_not_exist
     a,b,does_not_exist
     aws_ec2_instance,sun,
     aws_ec2_instance,moon,
     aws_ec2_instance,star,
+
+    > query is(aws_ec2_instance) limit 3 | list --markdown kind as a, name as b, does_not_exist
+    |a               |b   |does_not_exist|
+    |----------------|----|--------------|
+    |aws_ec2_instance|sun |None          |
+    |aws_ec2_instance|moon|None          |
+    |aws_ec2_instance|star|None          |
     ```
 
     ## Related
