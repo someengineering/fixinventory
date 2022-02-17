@@ -82,6 +82,6 @@ kubectl --namespace resoto rollout status deploy/resoto-resotometrics --timeout=
 
 # see an example query!
 echo 'Setup done. You can now run queries. For example:'
-echo 'kubectl --namespace resoto exec -i deploy/resoto-resotocore -- resotoshell --stdin <<EOF'
+echo 'kubectl --namespace resoto exec -i deploy/resoto-resotocore -- resh --stdin <<EOF'
 echo 'query is(resource) | count reported.kind'
 echo 'EOF'
