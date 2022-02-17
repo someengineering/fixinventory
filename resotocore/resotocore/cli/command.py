@@ -1864,6 +1864,10 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
+    - --csv [optional]: if set, the output will be formatted as CSV.
+
+    - --markdown [optional]: if set, the output will be formatted as Markdown table.
+
     ## Examples
 
     ```shell
@@ -1890,6 +1894,13 @@ class ListCommand(CLICommand, OutputTransformer):
     a=aws_ec2_instance, b=sun
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
+
+    # Properties that do not exist will be printed as empty values .
+    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
+    a,b,does_not_exist
+    aws_ec2_instance,sun,
+    aws_ec2_instance,moon,
+    aws_ec2_instance,star,
     ```
 
     ## Related
@@ -1989,32 +2000,35 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        async def fmt_csv(elem: Json, idx: int) -> AsyncIterator[JsonElement]:
+        async def csv_stream(in_stream: JsGen) -> JsGen:
+            output = io.StringIO()
+            dialect = csv.unix_dialect()
+            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
             def to_csv_string(lst: List[Any]) -> str:
-                output = io.StringIO()
-                dialect = csv.unix_dialect()
-                writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(lst)
-                return output.getvalue().rstrip()
+                csv_value = output.getvalue().rstrip()
+                output.truncate(0)
+                output.seek(0)
+                return csv_value
 
-            if idx == 0:
-                header_values = [name for _, name in props_to_show]
-                yield to_csv_string(header_values)
-            if is_node(elem):
-                result = []
-                for prop_path, _ in props_to_show:
-                    value = value_in_path(elem, prop_path)
-                    result.append(value)
-                yield to_csv_string(result)
+            header_values = [name for _, name in props_to_show]
+            yield to_csv_string(header_values)
 
-        def fmt(indexed_elem: Tuple[int, JsonElement]) -> JsGen:
-            idx, elem = indexed_elem
+            async for elem in in_stream:
+                if is_node(elem):
+                    result = []
+                    for prop_path, _ in props_to_show:
+                        value = value_in_path(elem, prop_path)
+                        result.append(value)
+                    yield to_csv_string(result)
+
+        def fmt(in_stream: JsGen) -> JsGen:
             if parsed.csv:
-                return fmt_csv(elem, idx) if isinstance(elem, dict) else stream.just(str(elem))
+                return csv_stream(in_stream)
             else:
-                return stream.just(fmt_json(elem) if isinstance(elem, dict) else str(elem))
+                return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
-        return CLIFlow(lambda in_stream: stream.flatmap(stream.zip(stream.count(), in_stream), fmt))
+        return CLIFlow(fmt)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
