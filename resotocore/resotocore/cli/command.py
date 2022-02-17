@@ -2076,7 +2076,6 @@ class ListCommand(CLICommand, OutputTransformer):
                     line += "|"
                     yield line
 
-            # noqa: E1101
             markdown_chunks = (
                 in_stream
                 | pipe.filter(is_node)
