@@ -1864,6 +1864,9 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
+
+    ## Options
+
     - --csv [optional]: if set, the output will be formatted as CSV. Can't be used together with --markdown.
 
     - --markdown [optional]: if set, the output will be formatted as Markdown. Can't be used together with --csv.
