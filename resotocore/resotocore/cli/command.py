@@ -37,7 +37,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 from aiohttp import ClientTimeout, JsonPayload
-from aiostream import stream
+from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
@@ -1864,9 +1864,9 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
-    - --csv [optional]: if set, the output will be formatted as CSV.
+    - --csv [optional]: if set, the output will be formatted as CSV. Can't be used together with --markdown.
 
-    - --markdown [optional]: if set, the output will be formatted as Markdown table.
+    - --markdown [optional]: if set, the output will be formatted as Markdown. Can't be used together with --csv.
 
     ## Examples
 
@@ -1937,7 +1937,9 @@ class ListCommand(CLICommand, OutputTransformer):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
-        parser.add_argument("--csv", dest="csv", action="store_true")
+        output_type = parser.add_mutually_exclusive_group()
+        output_type.add_argument("--csv", dest="csv", action="store_true")
+        output_type.add_argument("--markdown", dest="markdown", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
 
@@ -2000,10 +2002,11 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        async def csv_stream(in_stream: JsGen) -> JsGen:
+        async def csv_stream(in_stream: Stream) -> JsGen:
             output = io.StringIO()
             dialect = csv.unix_dialect()
             writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
+
             def to_csv_string(lst: List[Any]) -> str:
                 writer.writerow(lst)
                 csv_value = output.getvalue().rstrip()
@@ -2014,17 +2017,71 @@ class ListCommand(CLICommand, OutputTransformer):
             header_values = [name for _, name in props_to_show]
             yield to_csv_string(header_values)
 
-            async for elem in in_stream:
-                if is_node(elem):
-                    result = []
-                    for prop_path, _ in props_to_show:
-                        value = value_in_path(elem, prop_path)
-                        result.append(value)
-                    yield to_csv_string(result)
+            async with in_stream.stream() as s:
+                async for elem in s:
+                    if is_node(elem):
+                        result = []
+                        for prop_path, _ in props_to_show:
+                            value = value_in_path(elem, prop_path)
+                            result.append(value)
+                        yield to_csv_string(result)
+
+        def markdown_stream(in_stream: Stream) -> JsGen:
+
+            chunk_size = 500
+
+            columns_padding = [len(name) for _, name in props_to_show]
+            headers = [name for _, name in props_to_show]
+
+            def extract_values(elem: JsonElement) -> List[Any | None]:
+                result = []
+                for idx, prop_path in enumerate(props_to_show):
+                    value = value_in_path(elem, prop_path[0])
+                    columns_padding[idx] = max(columns_padding[idx], len(str(value)))
+                    result.append(value)
+                return result
+
+            async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
+                idx, rows = chunk
+
+                if idx == 0:
+                    # render the header of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{header.ljust(padding)}"
+                    line += "|"
+                    yield line
+
+                    # render the separator of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{'-' * padding}"
+                    line += "|"
+                    yield line
+
+                for row in rows:
+                    line = ""
+                    for value, padding in zip(row, columns_padding):
+                        line += f"|{str(value).ljust(padding)}"
+                    line += "|"
+                    yield line
+
+            markdown_chunks = (
+                in_stream
+                | pipe.filter(is_node)
+                | pipe.map(extract_values)
+                | pipe.chunks(chunk_size)
+                | pipe.enumerate()
+                | pipe.flatmap(generate_markdown)
+            )
+
+            return markdown_chunks
 
         def fmt(in_stream: JsGen) -> JsGen:
             if parsed.csv:
                 return csv_stream(in_stream)
+            elif parsed.markdown:
+                return markdown_stream(in_stream)
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
