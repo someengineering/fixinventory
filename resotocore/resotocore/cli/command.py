@@ -8,6 +8,8 @@ import re
 import shutil
 import tarfile
 import tempfile
+import io
+import csv
 from abc import abstractmethod, ABC
 from asyncio import Future, Task
 from asyncio.subprocess import Process
@@ -25,7 +27,6 @@ from typing import (
     AsyncIterator,
     Hashable,
     Iterable,
-    Union,
     Callable,
     Awaitable,
     cast,
@@ -36,7 +37,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 from aiohttp import ClientTimeout, JsonPayload
-from aiostream import stream
+from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
@@ -1863,6 +1864,13 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
+
+    ## Options
+
+    - `--csv` [optional]: format the output as CSV. Can't be used together with `--markdown`.
+
+    - `--markdown` [optional]: format the output as Markdown table. Can't be used together with `--csv`.
+
     ## Examples
 
     ```shell
@@ -1889,6 +1897,20 @@ class ListCommand(CLICommand, OutputTransformer):
     a=aws_ec2_instance, b=sun
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
+
+    # Properties that do not exist will be printed as empty values when using csv or markdown output.
+    > query is(instance) limit 3 | list --csv instance_cores as cores, name, does_not_exist
+    cores,name,does_not_exist
+    2,node-1,
+    1,something_else,
+    4,very-long-instance-name-123,
+
+    > query is(instance) limit 3 | list --markdown instance_cores as cores, name, does_not_exist
+    |cores|name                       |does_not_exist|
+    |-----|---------------------------|--------------|
+    |2    |node-1                     |null          |
+    |1    |something_else             |null          |
+    |4    |very-long-instance-name-123|null          |
     ```
 
     ## Related
@@ -1924,6 +1946,13 @@ class ListCommand(CLICommand, OutputTransformer):
         return "Transform incoming objects as string with defined properties."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
+        parser = NoExitArgumentParser()
+        output_type = parser.add_mutually_exclusive_group()
+        output_type.add_argument("--csv", dest="csv", action="store_true")
+        output_type.add_argument("--markdown", dest="markdown", action="store_true")
+        parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
+        properties = " ".join(properties_list) if properties_list else None
+
         def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
             # with the object id, if edges are requested
@@ -1965,7 +1994,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 props.append((path, as_name))
             return props
 
-        props_to_show = parse_props_to_show(arg) if arg is not None else default_props_to_show()
+        props_to_show = parse_props_to_show(properties) if properties is not None else default_props_to_show()
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):
@@ -1983,10 +2012,104 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        def fmt(elem: JsonElement) -> JsonElement:
-            return fmt_json(elem) if isinstance(elem, dict) else str(elem)
+        async def csv_stream(in_stream: Stream) -> JsGen:
+            output = io.StringIO()
+            dialect = csv.unix_dialect()
+            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
 
-        return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
+            def to_csv_string(lst: List[Any]) -> str:
+                writer.writerow(lst)
+                csv_value = output.getvalue().rstrip()
+                output.truncate(0)
+                output.seek(0)
+                return csv_value
+
+            header_values = [name for _, name in props_to_show]
+            yield to_csv_string(header_values)
+
+            async with in_stream.stream() as s:
+                async for elem in s:
+                    if is_node(elem):
+                        result = []
+                        for prop_path, _ in props_to_show:
+                            value = value_in_path(elem, prop_path)
+                            result.append(value)
+                        yield to_csv_string(result)
+
+        def markdown_stream(in_stream: Stream) -> JsGen:
+
+            chunk_size = 500
+
+            columns_padding = [len(name) for _, name in props_to_show]
+            headers = [name for _, name in props_to_show]
+
+            def extract_values(elem: JsonElement) -> List[Any | None]:
+                result = []
+                for idx, prop_path in enumerate(props_to_show):
+                    value = value_in_path(elem, prop_path[0])
+                    columns_padding[idx] = max(columns_padding[idx], len(str(value)))
+                    result.append(value)
+                return result
+
+            async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
+                idx, rows = chunk
+
+                def to_str(elem: Any) -> str:
+                    if isinstance(elem, dict):
+                        return ", ".join(f"{str((k, v))}" for k, v in sorted(elem.items()))
+                    elif isinstance(elem, list):
+                        return "[" + ", ".join(to_str(e) for e in elem) + "]"
+                    elif elem is None:
+                        return "null"
+                    elif elem is True:
+                        return "true"
+                    elif elem is False:
+                        return "false"
+                    else:
+                        return str(elem)
+
+                if idx == 0:
+                    # render the header of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{header.ljust(padding)}"
+                    line += "|"
+                    yield line
+
+                    # render the separator of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{'-' * padding}"
+                    line += "|"
+                    yield line
+
+                for row in rows:
+                    line = ""
+                    for value, padding in zip(row, columns_padding):
+                        line += f"|{to_str(value).ljust(padding)}"
+                    line += "|"
+                    yield line
+
+            markdown_chunks = (
+                in_stream
+                | pipe.filter(is_node)
+                | pipe.map(extract_values)
+                | pipe.chunks(chunk_size)
+                | pipe.enumerate()
+                | pipe.flatmap(generate_markdown)
+            )
+
+            return markdown_chunks
+
+        def fmt(in_stream: JsGen) -> JsGen:
+            if parsed.csv:
+                return csv_stream(in_stream)
+            elif parsed.markdown:
+                return markdown_stream(in_stream)
+            else:
+                return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
+
+        return CLIFlow(fmt)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -2239,7 +2362,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         result_handler: Callable[[WorkerTask, Future[Json]], Awaitable[Json]],
         wait_for_result: bool,
     ) -> Stream:
-        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> Union[JsonElement]:
+        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> JsonElement:
             future = asyncio.get_event_loop().create_future()
             task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
             # enqueue this task
