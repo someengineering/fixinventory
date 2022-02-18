@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import shutil
 import tempfile
 from datetime import timedelta
@@ -28,9 +27,10 @@ from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
 from resotocore.model.model import predefined_kinds
+from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
-from resotocore.task.task_handler import TaskHandler
+from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str
 from resotocore.worker_task_queue import WorkerTask
@@ -350,7 +350,20 @@ async def test_format(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_jobs_command(cli: CLI, task_handler: TaskHandler, job_db: JobDb) -> None:
+async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, test_workflow: Workflow) -> None:
+    async def execute(cmd: str) -> List[JsonElement]:
+        ctx = CLIContext(cli.cli_env)
+        return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
+
+    assert await execute("workflows list") == ["test_workflow"]
+    assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
+    wf = await execute("workflows run test_workflow")
+    assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
+    assert len(await execute("workflows running")) == 1
+
+
+@pytest.mark.asyncio
+async def test_jobs_command(cli: CLI, task_handler: TaskHandlerService, job_db: JobDb) -> None:
     async def execute(cmd: str) -> List[List[JsonElement]]:
         ctx = CLIContext(cli.cli_env)
         return await cli.execute_cli_command(cmd, stream.list, ctx)
@@ -482,13 +495,6 @@ async def test_tag_command(
 
 
 @pytest.mark.asyncio
-async def test_start_task_command(cli: CLI, task_handler: TaskHandler, test_workflow: Workflow) -> None:
-    result = await cli.execute_cli_command(f"start_task {test_workflow.id}", stream.list)
-    assert len(result[0]) == 1
-    assert re.match("Task .+ has been started", result[0][0])
-
-
-@pytest.mark.asyncio
 async def test_kind_command(cli: CLI) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
     for kind in predefined_kinds:
@@ -520,6 +526,29 @@ async def test_list_command(cli: CLI) -> None:
         "search id(sub_root) limit 1 | list some_string, some_int, /metadata.node_id", stream.list
     )
     assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
+
+    # List supports csv output
+    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
+    result = await cli.execute_cli_command(
+        f"json {json.dumps(props)}" " | list --csv a,b,c,d,e,f,non_existent", stream.list
+    )
+    assert result[0] == ["a,b,c,d,e,f,non_existent", "a,True,False,,12,1.234,"]
+
+    # List supports markdown output
+    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
+    result = await cli.execute_cli_command(
+        f"json {json.dumps(props)}" " | list --markdown a,b,c,d,e,f,non_existent", stream.list
+    )
+    assert result[0] == [
+        "|a|b   |c    |d   |e |f    |non_existent|",
+        "|-|----|-----|----|--|-----|------------|",
+        "|a|true|false|null|12|1.234|null        |",
+    ]
+
+    # List supports only markdown or csv, but not both at the same time
+    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
+    with pytest.raises(CLIParseError):
+        await cli.execute_cli_command(f"json {json.dumps(props)}" " | list --csv --markdown", stream.list)
 
 
 @pytest.mark.asyncio

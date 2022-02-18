@@ -8,6 +8,8 @@ import re
 import shutil
 import tarfile
 import tempfile
+import io
+import csv
 from abc import abstractmethod, ABC
 from asyncio import Future, Task
 from asyncio.subprocess import Process
@@ -25,7 +27,6 @@ from typing import (
     AsyncIterator,
     Hashable,
     Iterable,
-    Union,
     Callable,
     Awaitable,
     cast,
@@ -36,7 +37,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 from aiohttp import ClientTimeout, JsonPayload
-from aiostream import stream
+from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
@@ -86,7 +87,7 @@ from resotocore.parse_util import (
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
 from resotocore.types import Json, JsonElement
 from resotocore.util import (
     uuid_str,
@@ -1868,6 +1869,13 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
+
+    ## Options
+
+    - `--csv` [optional]: format the output as CSV. Can't be used together with `--markdown`.
+
+    - `--markdown` [optional]: format the output as Markdown table. Can't be used together with `--csv`.
+
     ## Examples
 
     ```shell
@@ -1894,6 +1902,20 @@ class ListCommand(CLICommand, OutputTransformer):
     a=aws_ec2_instance, b=sun
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
+
+    # Properties that do not exist will be printed as empty values when using csv or markdown output.
+    > search is(instance) limit 3 | list --csv instance_cores as cores, name, does_not_exist
+    cores,name,does_not_exist
+    2,node-1,
+    1,something_else,
+    4,very-long-instance-name-123,
+
+    > search is(instance) limit 3 | list --markdown instance_cores as cores, name, does_not_exist
+    |cores|name                       |does_not_exist|
+    |-----|---------------------------|--------------|
+    |2    |node-1                     |null          |
+    |1    |something_else             |null          |
+    |4    |very-long-instance-name-123|null          |
     ```
 
     ## Related
@@ -1929,6 +1951,13 @@ class ListCommand(CLICommand, OutputTransformer):
         return "Transform incoming objects as string with defined properties."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
+        parser = NoExitArgumentParser()
+        output_type = parser.add_mutually_exclusive_group()
+        output_type.add_argument("--csv", dest="csv", action="store_true")
+        output_type.add_argument("--markdown", dest="markdown", action="store_true")
+        parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
+        properties = " ".join(properties_list) if properties_list else None
+
         def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
             # with the object id, if edges are requested
@@ -1970,7 +1999,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 props.append((path, as_name))
             return props
 
-        props_to_show = parse_props_to_show(arg) if arg is not None else default_props_to_show()
+        props_to_show = parse_props_to_show(properties) if properties is not None else default_props_to_show()
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):
@@ -1988,10 +2017,104 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        def fmt(elem: JsonElement) -> JsonElement:
-            return fmt_json(elem) if isinstance(elem, dict) else str(elem)
+        async def csv_stream(in_stream: Stream) -> JsGen:
+            output = io.StringIO()
+            dialect = csv.unix_dialect()
+            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
 
-        return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
+            def to_csv_string(lst: List[Any]) -> str:
+                writer.writerow(lst)
+                csv_value = output.getvalue().rstrip()
+                output.truncate(0)
+                output.seek(0)
+                return csv_value
+
+            header_values = [name for _, name in props_to_show]
+            yield to_csv_string(header_values)
+
+            async with in_stream.stream() as s:
+                async for elem in s:
+                    if is_node(elem):
+                        result = []
+                        for prop_path, _ in props_to_show:
+                            value = value_in_path(elem, prop_path)
+                            result.append(value)
+                        yield to_csv_string(result)
+
+        def markdown_stream(in_stream: Stream) -> JsGen:
+
+            chunk_size = 500
+
+            columns_padding = [len(name) for _, name in props_to_show]
+            headers = [name for _, name in props_to_show]
+
+            def extract_values(elem: JsonElement) -> List[Any | None]:
+                result = []
+                for idx, prop_path in enumerate(props_to_show):
+                    value = value_in_path(elem, prop_path[0])
+                    columns_padding[idx] = max(columns_padding[idx], len(str(value)))
+                    result.append(value)
+                return result
+
+            async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
+                idx, rows = chunk
+
+                def to_str(elem: Any) -> str:
+                    if isinstance(elem, dict):
+                        return ", ".join(f"{str((k, v))}" for k, v in sorted(elem.items()))
+                    elif isinstance(elem, list):
+                        return "[" + ", ".join(to_str(e) for e in elem) + "]"
+                    elif elem is None:
+                        return "null"
+                    elif elem is True:
+                        return "true"
+                    elif elem is False:
+                        return "false"
+                    else:
+                        return str(elem)
+
+                if idx == 0:
+                    # render the header of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{header.ljust(padding)}"
+                    line += "|"
+                    yield line
+
+                    # render the separator of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{'-' * padding}"
+                    line += "|"
+                    yield line
+
+                for row in rows:
+                    line = ""
+                    for value, padding in zip(row, columns_padding):
+                        line += f"|{to_str(value).ljust(padding)}"
+                    line += "|"
+                    yield line
+
+            markdown_chunks = (
+                in_stream
+                | pipe.filter(is_node)
+                | pipe.map(extract_values)
+                | pipe.chunks(chunk_size)
+                | pipe.enumerate()
+                | pipe.flatmap(generate_markdown)
+            )
+
+            return markdown_chunks
+
+        def fmt(in_stream: JsGen) -> JsGen:
+            if parsed.csv:
+                return csv_stream(in_stream)
+            elif parsed.markdown:
+                return markdown_stream(in_stream)
+            else:
+                return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
+
+        return CLIFlow(fmt)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -2134,7 +2257,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return {"id": job.id, "command": job.command.command, "active": job.active, **trigger, **wait}
 
         async def list_jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
-            listed = await self.dependencies.job_handler.list_jobs()
+            listed = await self.dependencies.task_handler.list_jobs()
 
             async def iterate() -> AsyncIterator[JsonElement]:
                 for job in listed:
@@ -2143,7 +2266,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return len(listed), iterate()
 
         async def show_job(job_id: str) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 yield job_to_json(matching[0])
             else:
@@ -2172,24 +2295,24 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 job = Job(uid, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
             else:
                 job = Job(uid, ExecuteCommand(command), timeout, environment=ctx.env)
-            await self.dependencies.job_handler.add_job(job)
+            await self.dependencies.task_handler.add_job(job)
             yield f"Job {job.id} added."
 
         async def delete_job(job_id: str) -> AsyncIterator[str]:
-            job = await self.dependencies.job_handler.delete_job(job_id)
+            job = await self.dependencies.task_handler.delete_job(job_id)
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(job_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(job_id)
             yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 m = matching[0]
                 if m.trigger is not None:
                     job = Job(m.id, m.command, m.timeout, m.trigger, m.wait, m.environment, m.mutable, active)
-                    await self.dependencies.job_handler.add_job(job)
+                    await self.dependencies.task_handler.add_job(job)
                     yield job_to_json(job)
                 else:
                     yield f"Job {job_id} does not have any trigger that could be activated/deactivated."
@@ -2197,7 +2320,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 yield f"No job with this id: {job_id}"
 
         async def running_jobs() -> Tuple[int, Stream]:
-            tasks = await self.dependencies.job_handler.running_tasks()
+            tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
                 {
                     "job": t.descriptor.id,
@@ -2244,7 +2367,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         result_handler: Callable[[WorkerTask, Future[Json]], Awaitable[Json]],
         wait_for_result: bool,
     ) -> Stream:
-        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> Union[JsonElement]:
+        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> JsonElement:
             future = asyncio.get_event_loop().create_future()
             task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
             # enqueue this task
@@ -2431,48 +2554,6 @@ class TagCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         return CLIFlow(setup_stream)
-
-
-class StartTaskCommand(CLICommand, PreserveOutputFormat):
-    """
-    ```shell
-    start_task <name of task>
-    ```
-
-    Start a task with given task descriptor id.
-
-    The configured surpass behaviour of a task definition defines, if multiple tasks of the same task definition
-    are allowed to run in parallel.
-    In case parallel tasks are forbidden a new task can not be started.
-    If a task could be started or not is returned as result message of this command.
-
-    ## Parameters
-    - `task_name` [mandatory]:  The name of the related task definition.
-
-    ## Examples
-    ```shell
-    > start_task example_task
-    ```
-
-    See: add_job, delete_job, jobs
-    """
-
-    @property
-    def name(self) -> str:
-        return "start_task"
-
-    def info(self) -> str:
-        return "Start a task with the given name."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def start_task() -> AsyncIterator[str]:
-            if not arg:
-                raise CLIParseError("Name of task is not provided")
-
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(arg)
-            yield f"Task {task.id} has been started" if task else "Task can not be started."
-
-        return CLISource.single(start_task)
 
 
 class FileCommand(CLICommand, InternalPart):
@@ -3103,6 +3184,153 @@ class HttpCommand(CLICommand):
         return CLIFlow(self.perform_requests(template))
 
 
+class WorkflowsCommand(CLICommand):
+    """
+    ```shell
+    workflows list
+    workflows show <id>
+    workflows run <id>
+    workflows running
+    ```
+
+    - `workflows list`: get the list of all workflows in the system
+    - `workflows show <id>`: show the current definition of the workflow defined by given identifier.
+    - `workflows run <id>`: run the workflow as if the trigger would be triggered.
+    - `workflows running`: show all currently running workflows.
+
+    The workflows that currently available are all hard-wired into resotocore.
+    We will support user defined workflows in the future.
+
+    *Note:*
+
+    If a workflow is triggered, while it is already running, the invocation will wait for the current run to finish.
+    This means that there will be no parallel execution of workflows with the same identifier at any moment in time.
+
+    ## Options
+    - `--id` <id> [optional]: The identifier of this workflow.
+
+    ## Examples
+
+    ```shell
+    # print all available workflows in the system
+    > workflows list
+    collect
+    cleanup
+    metrics
+    collect_and_cleanup
+
+    # show a specific workflows by identifier
+    > workflows show collect
+    id: collect
+    name: collect
+    steps:
+    - action:
+        message_type: pre_collect
+      name: pre_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: collect
+      name: collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_collect
+      name: post_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: pre_generate_metrics
+      name: pre_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: generate_metrics
+      name: generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_generate_metrics
+      name: post_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    triggers:
+    - filter_data: null
+      message_type: start_collect_workflow
+    on_surpass: Wait
+
+    # run the workflow directly without waiting for a trigger
+    > workflows run collect
+    Workflow collect started with id cb1013a4-8e81-11ec-8fc0-dad780437c54.
+
+    # show all currently running workflows
+    > workflows running
+    workflow: collect
+    started_at: '2022-02-15T17:08:02Z'
+    task-id: d54f92b8-8e81-11ec-8fc0-dad780437c54
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "workflows"
+
+    def info(self) -> str:
+        return "Manage all workflows."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
+        async def list_workflows() -> Tuple[int, AsyncIterator[JsonElement]]:
+            listed = await self.dependencies.task_handler.list_workflows()
+
+            async def iterate() -> AsyncIterator[JsonElement]:
+                for wf in listed:
+                    yield wf.id
+
+            return len(listed), iterate()
+
+        async def show_workflow(wf_id: str) -> AsyncIterator[JsonElement]:
+            matching = [wf for wf in await self.dependencies.task_handler.list_workflows() if wf.id == wf_id]
+            if matching:
+                yield to_js(matching[0])
+            else:
+                yield f"No workflow with this id: {wf_id}"
+
+        async def run_workflow(wf_id: str) -> AsyncIterator[str]:
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(wf_id)
+            yield (
+                f"Workflow {task.descriptor.id} started with id {task.id}."
+                if task
+                else f"No workflow with this id: {wf_id}"
+            )
+
+        async def running_workflows() -> Tuple[int, Stream]:
+            tasks = await self.dependencies.task_handler.running_tasks()
+            return len(tasks), stream.iterate(
+                {
+                    "workflow": t.descriptor.id,
+                    "started_at": to_json(t.task_started_at),
+                    "task-id": t.id,
+                }
+                for t in tasks
+                if isinstance(t.descriptor, Workflow)
+            )
+
+        async def show_help() -> AsyncIterator[str]:
+            yield self.rendered_help(ctx)
+
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] == "show":
+            return CLISource.single(partial(show_workflow, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "run":
+            return CLISource.single(partial(run_workflow, args[1].strip()))
+        elif arg and len(args) == 1 and args[0] == "running":
+            return CLISource(running_workflows)
+        elif arg and len(args) == 1 and args[0] == "list":
+            return CLISource(list_workflows)
+        else:
+            return CLISource.single(show_help)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
@@ -3132,12 +3360,12 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
-        StartTaskCommand(d),
         SuccessorsPart(d),
         SystemCommand(d),
         TagCommand(d),
         TailCommand(d),
         UniqCommand(d),
+        WorkflowsCommand(d),
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
@@ -3149,4 +3377,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "search", "query": "search", "start_workflow": "start_task", "https": "http"}
+    return {"match": "search", "query": "search", "https": "http"}
