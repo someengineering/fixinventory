@@ -542,7 +542,7 @@ async def test_list_command(cli: CLI) -> None:
     assert result[0] == [
         "|a|b   |c    |d   |e |f    |non_existent|",
         "|-|----|-----|----|--|-----|------------|",
-        "|a|True|False|None|12|1.234|None        |",
+        "|a|true|false|null|12|1.234|null        |",
     ]
 
     # List supports only markdown or csv, but not both at the same time

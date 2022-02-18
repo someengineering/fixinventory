@@ -1899,18 +1899,18 @@ class ListCommand(CLICommand, OutputTransformer):
     a=aws_ec2_instance, b=star
 
     # Properties that do not exist will be printed as empty values when using csv or markdown output.
-    > query is(aws_ec2_instance) limit 3 | list --csv kind as a, name as b, does_not_exist
-    a,b,does_not_exist
-    aws_ec2_instance,sun,
-    aws_ec2_instance,moon,
-    aws_ec2_instance,star,
+    > query is(instance) limit 3 | list --csv instance_cores as cores, name, does_not_exist
+    cores,name,does_not_exist
+    2,node-1,
+    1,something_else,
+    4,very-long-instance-name-123,
 
-    > query is(aws_ec2_instance) limit 3 | list --markdown kind as a, name as b, does_not_exist
-    |a               |b   |does_not_exist|
-    |----------------|----|--------------|
-    |aws_ec2_instance|sun |None          |
-    |aws_ec2_instance|moon|None          |
-    |aws_ec2_instance|star|None          |
+    > query is(instance) limit 3 | list --markdown instance_cores as cores, name, does_not_exist
+    |cores|name                       |does_not_exist|
+    |-----|---------------------------|--------------|
+    |2    |node-1                     |null          |
+    |1    |something_else             |null          |
+    |4    |very-long-instance-name-123|null          |
     ```
 
     ## Related
@@ -2054,6 +2054,20 @@ class ListCommand(CLICommand, OutputTransformer):
             async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
                 idx, rows = chunk
 
+                def to_str(elem: Any) -> str:
+                    if isinstance(elem, dict):
+                        return ", ".join(f"{str((k, v))}" for k, v in sorted(elem.items()))
+                    elif isinstance(elem, list):
+                        return "[" + ", ".join(to_str(e) for e in elem) + "]"
+                    elif elem is None:
+                        return "null"
+                    elif elem is True:
+                        return "true"
+                    elif elem is False:
+                        return "false"
+                    else:
+                        return str(elem)
+
                 if idx == 0:
                     # render the header of the table
                     line = ""
@@ -2072,7 +2086,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 for row in rows:
                     line = ""
                     for value, padding in zip(row, columns_padding):
-                        line += f"|{str(value).ljust(padding)}"
+                        line += f"|{to_str(value).ljust(padding)}"
                     line += "|"
                     yield line
 
