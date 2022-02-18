@@ -176,9 +176,8 @@ async def test_graph_api(core_client: ApiClient) -> None:
     # create the raw search
     raw = await core_client.search_graph_raw(g, 'id("3")')
     assert raw == {
-        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  "
-        'RETURN UNSET(m0, ["flat"])) '
-        "FOR result in filter0 RETURN result",
+        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        'FOR result in filter0 RETURN UNSET(result, ["flat"])',
         "bind_vars": {"b0": "3"},
     }
 

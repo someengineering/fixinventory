@@ -457,6 +457,19 @@ async def test_query_with_merge(filled_graph_db: ArangoGraphDB, foo_model: Model
 
 
 @pytest.mark.asyncio
+async def test_query_with_fulltext(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def search(query: str) -> List[JsonElement]:
+        async with await filled_graph_db.search_list(QueryModel(parse_query(query), foo_model)) as cursor:
+            return [elem async for elem in cursor]
+
+    # Note: the fulltext index is eventually consistent. Since the database is wiped and cleaned for this test
+    # we should not have any assumptions about the results, other than the query succeeds
+    await search("((a and b) or (c and d)) and e")
+    await search('is(foo) and test --> "bim bam bom bum"')
+    await search('is(foo) {a: --> "some prop" } "some other prop" --> "bim bam bom bum"')
+
+
+@pytest.mark.asyncio
 async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     q = parse_query(
         "is(foo) --> is(bla) { "

@@ -51,10 +51,32 @@ def test_fulltext_term() -> None:
     part = parse_query("(a>0 and (foo and (b>1 and c>2 and d)))").parts[0]
     ft, remaining = fulltext_term_combine(part.term)
     assert str(remaining) == "((b > 1 and c > 2) and a > 0)"
-    assert str(ft) == '("foo" and "d")'
-    with pytest.raises(Exception):  # there are 2 fulltext terms or combined with something else
-        fulltext_term_combine(parse_query("(a>0 and b) or (c and d)").parts[0].term)
-    with pytest.raises(Exception):  # fulltext query after merge
-        fulltext_term_combine(parse_query("a>0 {c: <--} fulltext").parts[0].term)
-    with pytest.raises(Exception):  # fulltext in merge query
-        fulltext_term_combine(parse_query("a>0 {c: <-- fulltext }").parts[0].term)
+    assert str(ft) == '("d" and "foo")'
+    # there are 2 fulltext terms or combined with something else
+    ft, remaining = fulltext_term_combine(parse_query("(a>0 and b) or (c and d)").parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query("a>0 {c: <--} fulltext").parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query("a>0 {c: <-- fulltext }").parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query("a and b or c and d").parts[0].term)
+    assert str(ft) == '((("a" and "b") or "c") and "d")'
+
+
+def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
+    def query_string(query: str) -> str:
+        query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
+        return query_str
+
+    single_ft_index = (
+        "LET m0=(FOR ft in search_ns SEARCH ANALYZER(ft.flat IN TOKENS(@b0, 'text_en'), 'text_en') "
+        "SORT BM25(ft) DESC RETURN ft) "
+        'FOR result in m0 RETURN UNSET(result, ["flat"])'
+    )
+    assert query_string("a") == single_ft_index
+    assert query_string('"some other fulltext string"') == single_ft_index
+    # and/or is combined correctly
+    assert (
+        "ANALYZER((((ft.flat IN TOKENS(@b0, 'text_en')) and (ft.flat IN TOKENS(@b1, 'text_en'))) or "
+        "(ft.flat IN TOKENS(@b2, 'text_en'))) and (ft.flat IN TOKENS(@b3, 'text_en')), 'text_en')"
+    ) in query_string("a and b or c and d")

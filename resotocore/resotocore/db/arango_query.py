@@ -559,31 +559,28 @@ def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
                 and term.op == "or"
                 and term.find_term(lambda x: not isinstance(x, FulltextTerm) and not isinstance(x, CombinedTerm))
             ):
-                raise AttributeError(
-                    "Fulltext terms can only be or-combined using other fulltext terms.\n"
-                    f"Term >{term.left}< can not be combined with >{term.right}<.\n"
-                    'Consider to rewrite the query. Example: ("dev" or "prod") and cpu_count>3'
-                )
+                # This term can not utilize the search index!
+                return AllTerm(), term
             left = isinstance(term.left, FulltextTerm)
             right = isinstance(term.right, FulltextTerm)
             if left and right:
                 return term, AllTerm()
             elif left:
-                full, remaining = combine_fulltext(term.right)
-                return term.left & full, remaining
+                ft, remaining = combine_fulltext(term.right)
+                return ft.combine(term.op, term.left), remaining
             elif right:
-                full, remaining = combine_fulltext(term.left)
-                return term.right & full, remaining
+                ft, remaining = combine_fulltext(term.left)
+                return ft.combine(term.op, term.right), remaining
             else:
                 lf, remaining_left = combine_fulltext(term.right)
                 rf, remaining_right = combine_fulltext(term.left)
-                return lf & rf, remaining_left.combine(term.op, remaining_right)
+                return lf.combine(term.op, rf), remaining_left.combine(term.op, remaining_right)
         elif isinstance(term, NotTerm):
-            full, remaining = combine_fulltext(term.term)
-            return NotTerm(full), NotTerm(remaining)
+            ft, remaining = combine_fulltext(term.term)
+            return NotTerm(ft), NotTerm(remaining)
         elif isinstance(term, MergeTerm):
-            full, remaining = combine_fulltext(term.pre_filter)
-            return full, replace(term, pre_filter=remaining)
+            ft, remaining = combine_fulltext(term.pre_filter)
+            return ft, replace(term, pre_filter=remaining)
         else:
             raise AttributeError(f"Can not handle term of type: {type(term)} ({term})")
 

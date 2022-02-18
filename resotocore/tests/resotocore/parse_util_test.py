@@ -1,7 +1,15 @@
 import pytest
 from parsy import ParseError
 
-from resotocore.parse_util import integer_dp, float_dp, json_value_p, unquoted_string_dp, unquoted_string_p, variable_p
+from resotocore.parse_util import (
+    integer_dp,
+    float_dp,
+    json_value_p,
+    unquoted_string_dp,
+    unquoted_string_p,
+    variable_p,
+    unquoted_string_parser,
+)
 
 
 def test_variable_p() -> None:
@@ -27,6 +35,18 @@ def test_unquoted_string_dp() -> None:
     with pytest.raises(ParseError) as ex:
         unquoted_string_dp.parse("2021%")
     assert str(ex.value) == "expected 'A-Za-z0-9_-:' at 0:5"
+    # not will not be parsed, but words
+    p = unquoted_string_parser("not", "test", "foo")
+    assert p.parse("nothing") == "nothing"
+    assert p.parse("tester") == "tester"
+    assert p.parse("fooo") == "fooo"
+    assert p.parse("no") == "no"
+    with pytest.raises(ParseError):
+        assert p.parse("not")  # stop word
+    with pytest.raises(ParseError):
+        assert p.parse("not_123")  # stop word
+    with pytest.raises(ParseError):
+        assert p.parse("test")  # stop word
 
 
 def test_json_value_p() -> None:

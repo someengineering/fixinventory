@@ -95,7 +95,9 @@ def unquoted_string_parser(*stop_words: str) -> Parser:
 
         result = stream[start:index]
         for stop in stop_words:
-            if result.startswith(stop):
+            stop_len = len(stop)
+            # make sure the result is not a stop word. e.g. foo should match foo, foo-123 but not foobar
+            if result.startswith(stop) and (len(result) == stop_len or not str.isalpha(result[stop_len])):
                 return parsy.Result.failure(index, "A-Za-z0-9_-:")
 
         if index <= len(stream) and valid_string_chars and found_no_number:
