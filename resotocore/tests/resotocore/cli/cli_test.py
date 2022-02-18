@@ -150,7 +150,7 @@ async def test_query_database(cli: CLI) -> None:
     assert isinstance(p2, AggregateToCountCommand)
 
     with pytest.raises(Exception):
-        await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
+        await cli.evaluate_cli_command("search a>>>>")  # command is un-parsable
 
     with pytest.raises(CLIParseError):
         cli.cli_env = {}  # delete the env

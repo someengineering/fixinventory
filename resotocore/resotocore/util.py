@@ -133,7 +133,9 @@ def interleave(elements: List[AnyT]) -> List[Tuple[AnyT, AnyT]]:
         return list(zip(elements, nxt))
 
 
-def exist(f: Callable[[Any], bool], iterable: Iterable) -> bool:  # type: ignore # pypy
+# we expect a callable that returns a truthy value.
+# Due to limitations of lambda expressions we use Any here.
+def exist(f: Callable[[Any], Any], iterable: Iterable) -> bool:  # type: ignore # pypy
     """
     Items are passed to the callable as long as it returns False.
     Return True once the callable finds one True, otherwise return False.

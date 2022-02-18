@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from dataclasses import replace
 from typing import Union, List, Tuple, Any, Optional, Dict, Set
 
 from arango.typings import Json
@@ -34,6 +35,7 @@ from resotocore.query.model import (
     MergeQuery,
     Query,
     SortOrder,
+    FulltextTerm,
 )
 from resotocore.query.query_parser import merge_ancestors_parser
 from resotocore.util import first, set_value_in_path, exist
@@ -63,6 +65,8 @@ def query_string(
     counters: Dict[str, int],
     outer_merge: Optional[str] = None,
 ) -> Tuple[str, str]:
+    # Note: the parts are maintained in reverse order
+    query_parts = query.parts[::-1]
     model = query_model.model
     merge_names: Set[str] = query_model.query.merge_names
     mw = query.preamble.get("merge_with_ancestors")
@@ -164,6 +168,12 @@ def query_string(
         is_result = " or ".join(is_results)
         return is_result if len(is_results) == 1 else f"({is_result})"
 
+    def fulltext_term(cursor: str, t: FulltextTerm) -> str:
+        bvn = next_bind_var_name()
+        bind_vars[bvn] = t.text
+        # the fulltext index is based on the flat property. The full text term is tokenized.
+        return f"{cursor}.flat IN TOKENS(@{bvn}, 'text_en')"
+
     def not_term(cursor: str, t: NotTerm) -> str:
         return f"NOT ({term(cursor, t.term)})"
 
@@ -180,6 +190,8 @@ def query_string(
             return is_term(cursor, ab_term)
         elif isinstance(ab_term, NotTerm):
             return not_term(cursor, ab_term)
+        elif isinstance(ab_term, FulltextTerm):
+            return fulltext_term(cursor, ab_term)
         elif isinstance(ab_term, CombinedTerm):
             left = term(cursor, ab_term.left)
             right = term(cursor, ab_term.right)
@@ -455,14 +467,29 @@ def query_string(
         sorts = ", ".join(single_sort(s) for s in so)
         return f" SORT {sorts} "
 
+    def fulltext(ft_term: Term, filter_term: Term) -> Tuple[str, str]:
+        # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
+        query_parts[0] = replace(query_parts[0], term=filter_term)
+        crs = next_crs()
+        doc = f"search_{db.vertex_name}"
+        ftt = term("ft", ft_term)
+        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'text_en') SORT BM25(ft) DESC RETURN ft)"
+        return q, crs
+
+    for p in query_parts[1:]:
+        assert not p.term.contains_term_type(
+            FulltextTerm
+        ), "Fulltext search can only be used in the beginning of a query, not after a graph traversal."
+
     parts = []
-    crsr = start_cursor
-    for idx, p in enumerate(reversed(query.parts)):
+    ft, remaining = fulltext_term_combine(query_parts[0].term)
+    fulltext_part, crsr = fulltext(ft, remaining) if ft else ("", start_cursor)
+    for idx, p in enumerate(query_parts):
         part_tuple = part(p, crsr, idx)
         parts.append(part_tuple)
         crsr = part_tuple[1]
 
-    all_parts = " ".join(p[3] for p in parts)
+    all_parts = fulltext_part + " ".join(p[3] for p in parts)
     resulting_cursor, query_str = merge_ancestors(crsr, all_parts, merge_with) if merge_with else (crsr, all_parts)
     nxt = next_crs()
     if query.aggregate:  # return aggregate
@@ -487,7 +514,7 @@ async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> Esti
     q_string, bind = to_query(graph_db, model, with_edges=with_edges)
     nr_nodes = await graph_db.db.count(graph_db.vertex_name)
     plan = await graph_db.db.explain(query=q_string, bind_vars=bind)
-    full_collection_scan = exist(lambda node: node["type"] == "EnumerateCollectionNode", plan["nodes"])  # type: ignore
+    full_collection_scan = exist(lambda node: node["type"] == "EnumerateCollectionNode", plan["nodes"])
     estimated_cost = int(plan["estimatedCost"])
     estimated_items = int(plan["estimatedNrItems"])
     # If the number of returned items is small, most of the computation happens on the db side
@@ -499,3 +526,57 @@ async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> Esti
     best = Rating.complex if full_collection_scan else Rating.simple
     rating = best if ratio < 0.2 else (Rating.complex if ratio < 1 else Rating.bad)
     return EstimatedSearchCost(estimated_cost, estimated_items, nr_nodes, full_collection_scan, rating)
+
+
+def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
+    """
+    Split the term of this part into the independent fulltext term and the remaining part of the term.
+    Logic: self.term == fulltext & remaining
+    The fulltext term is
+    :return:
+    """
+
+    def combine_fulltext(term: Term) -> Tuple[Term, Term]:
+        if not term.contains_term_type(FulltextTerm):
+            return AllTerm(), term
+        elif isinstance(term, FulltextTerm):
+            return term, AllTerm()
+        elif isinstance(term, CombinedTerm):
+            if (
+                (term.left.contains_term_type(FulltextTerm) or term.right.contains_term_type(FulltextTerm))
+                and term.op == "or"
+                and term.find_term(lambda x: not isinstance(x, FulltextTerm) and not isinstance(x, CombinedTerm))
+            ):
+                raise AttributeError(
+                    "Only single full text searches can be combined using or but not complex filters. "
+                    "Consider to rewrite the query. Example: (test or rest) and cpu_count>3"
+                )
+            left = isinstance(term.left, FulltextTerm)
+            right = isinstance(term.right, FulltextTerm)
+            if left and right:
+                return term, AllTerm()
+            elif left:
+                full, remaining = combine_fulltext(term.right)
+                return term.left & full, remaining
+            elif right:
+                full, remaining = combine_fulltext(term.left)
+                return term.right & full, remaining
+            else:
+                lf, remaining_left = combine_fulltext(term.right)
+                rf, remaining_right = combine_fulltext(term.left)
+                return lf & rf, remaining_left.combine(term.op, remaining_right)
+        elif isinstance(term, NotTerm):
+            full, remaining = combine_fulltext(term.term)
+            return NotTerm(full), NotTerm(remaining)
+        elif isinstance(term, MergeTerm):
+            if term.post_filter.contains_term_type(FulltextTerm) if term.post_filter else False:
+                raise AttributeError("Full text search can be used before the merge statement, not afterwards.")
+            if exist(lambda mq: exist(lambda p: p.term.contains_term_type(FulltextTerm), mq.query.parts), term.merge):
+                raise AttributeError("Full text search can not be used in merge queries!")
+            full, remaining = combine_fulltext(term.pre_filter)
+            return full, replace(term, pre_filter=remaining)
+        else:
+            raise AttributeError(f"Can not handle term of type: {type(term)} ({term})")
+
+    fulltext, new_term = combine_fulltext(term_in)
+    return (None, term_in) if isinstance(fulltext, AllTerm) else (fulltext, new_term)

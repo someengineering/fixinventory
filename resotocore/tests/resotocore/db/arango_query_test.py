@@ -1,7 +1,7 @@
 import pytest
 
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating
-from resotocore.db.arango_query import to_query, query_cost
+from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
@@ -45,3 +45,16 @@ async def test_query_cost(foo_model: Model, graph_db: GraphDB) -> None:
     c4 = await cost("all {parents: <-[0:]-} sort reported.name asc")
     assert c4.full_collection_scan is True
     assert c4.rating is EstimatedQueryCostRating.bad
+
+
+def test_fulltext_term() -> None:
+    part = parse_query("(a>0 and (foo and (b>1 and c>2 and d)))").parts[0]
+    ft, remaining = fulltext_term_combine(part.term)
+    assert str(remaining) == "((b > 1 and c > 2) and a > 0)"
+    assert str(ft) == '("foo" and "d")'
+    with pytest.raises(Exception):  # there are 2 fulltext terms or combined with something else
+        fulltext_term_combine(parse_query("(a>0 and b) or (c and d)").parts[0].term)
+    with pytest.raises(Exception):  # fulltext query after merge
+        fulltext_term_combine(parse_query("a>0 {c: <--} fulltext").parts[0].term)
+    with pytest.raises(Exception):  # fulltext in merge query
+        fulltext_term_combine(parse_query("a>0 {c: <-- fulltext }").parts[0].term)

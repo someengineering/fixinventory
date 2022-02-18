@@ -12,6 +12,11 @@ from resotocore.query.model import (
     Navigation,
     MergeTerm,
     NavigateUntilRoot,
+    IdTerm,
+    FulltextTerm,
+    Predicate,
+    NotTerm,
+    FunctionTerm,
 )
 from resotocore.query.query_parser import parse_query
 
@@ -232,3 +237,13 @@ def test_merge_query_creation() -> None:
         )
         == 'is("test") {ancestors.kind: all <-default[1:]- is("kind"), ancestors.cloud: all <-default[1:]- is("cloud")}'
     )
+
+
+def test_term_contains() -> None:
+    term = parse_query("(test or fest) and (p>1 or p<2) {a: <-- is(foo)} not(a>23)").parts[0].term
+    assert term.contains_term_type(IdTerm) is False
+    assert term.contains_term_type(IsTerm) is True
+    assert term.contains_term_type(FulltextTerm) is True
+    assert term.contains_term_type(Predicate) is True
+    assert term.contains_term_type(NotTerm) is True
+    assert term.contains_term_type(FunctionTerm) is False

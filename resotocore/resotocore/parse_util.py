@@ -72,30 +72,38 @@ unquoted_allowed_characters = re.compile("[A-Za-z0-9_\\-:/]")
 unquoted_end_of_unquoted_str = re.compile("[,\\[\\])(}{\\s]")
 
 
-@make_direct_parser
-def unquoted_string_parser(stream: str, index: int) -> parsy.Result:
-    # read from index until -> end_of_unquoted_str
-    # all characters in between have to be allowed characters
-    # there has to be at least one non-digit character (to not read numbers as strings)
-    start = index
-    found_no_number = False
-    valid_string_chars = True
+def unquoted_string_parser(*stop_words: str) -> Parser:
+    @make_direct_parser
+    def unquoted_string_direct_parser(stream: str, index: int) -> parsy.Result:
+        # read from index until -> end_of_unquoted_str
+        # all characters in between have to be allowed characters
+        # there has to be at least one non-digit character (to not read numbers as strings)
+        start = index
+        found_no_number = False
+        valid_string_chars = True
 
-    # valid numbers are: digits or a minus at the start: 123, -321
-    def is_no_number() -> bool:
-        char = stream[index]
-        return not str.isdigit(char) and not (start == index and char == "-")
+        # valid numbers are: digits or a minus at the start: 123, -321
+        def is_no_number() -> bool:
+            char = stream[index]
+            return not str.isdigit(char) and not (start == index and char == "-")
 
-    # look ahead to next delimiter
-    while index < len(stream) and valid_string_chars and not unquoted_end_of_unquoted_str.match(stream[index]):
-        found_no_number = is_no_number() if not found_no_number else found_no_number
-        valid_string_chars = unquoted_allowed_characters.match(stream[index]) is not None
-        index += 1
+        # look ahead to next delimiter
+        while index < len(stream) and valid_string_chars and not unquoted_end_of_unquoted_str.match(stream[index]):
+            found_no_number = is_no_number() if not found_no_number else found_no_number
+            valid_string_chars = unquoted_allowed_characters.match(stream[index]) is not None
+            index += 1
 
-    if index <= len(stream) and valid_string_chars and found_no_number:
-        return parsy.Result.success(index, stream[start:index])
-    else:
-        return parsy.Result.failure(index, "A-Za-z0-9_-:")
+        result = stream[start:index]
+        for stop in stop_words:
+            if result.startswith(stop):
+                return parsy.Result.failure(index, "A-Za-z0-9_-:")
+
+        if index <= len(stream) and valid_string_chars and found_no_number:
+            return parsy.Result.success(index, result)
+        else:
+            return parsy.Result.failure(index, "A-Za-z0-9_-:")
+
+    return unquoted_string_direct_parser
 
 
 string_esc_dp = string("\\") >> (
@@ -109,7 +117,8 @@ string_esc_dp = string("\\") >> (
     | string("t").result("\t")
     | regex(r"u[0-9a-fA-F]{4}").map(lambda s: chr(int(s[1:], 16)))
 )
-unquoted_string_dp = unquoted_string_parser
+
+unquoted_string_dp = unquoted_string_parser()
 
 single_quote_dp = string("'")
 single_quoted_string_part_dp = regex(r"[^'\\]+")
