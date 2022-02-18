@@ -1867,9 +1867,9 @@ class ListCommand(CLICommand, OutputTransformer):
 
     ## Options
 
-    - --csv [optional]: if set, the output will be formatted as CSV. Can't be used together with --markdown.
+    - `--csv` [optional]: format the output as CSV. Can't be used together with `--markdown`.
 
-    - --markdown [optional]: if set, the output will be formatted as Markdown. Can't be used together with --csv.
+    - `--markdown` [optional]: format the output as Markdown table. Can't be used together with `--csv`.
 
     ## Examples
 
