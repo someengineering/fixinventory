@@ -52,7 +52,7 @@ def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tupl
     query = query_model.query
     bind_vars: Json = {}
     cursor, query_str = query_string(db, query, query_model, db.vertex_name, with_edges, bind_vars, count)
-    return f"""{query_str} FOR result in {cursor} RETURN result""", bind_vars
+    return f"""{query_str} FOR result in {cursor} RETURN UNSET(result, {unset_props})""", bind_vars
 
 
 def query_string(
@@ -169,10 +169,12 @@ def query_string(
         return is_result if len(is_results) == 1 else f"({is_result})"
 
     def fulltext_term(cursor: str, t: FulltextTerm) -> str:
+        # This fulltext filter can not take advantage of the fulltext search index.
+        # Instead, we filter the resulting entry for an occurrence of at least one word in the term.
+        # The flat property is used via a regexp search.
         bvn = next_bind_var_name()
-        bind_vars[bvn] = t.text
-        # the fulltext index is based on the flat property. The full text term is tokenized.
-        return f"{cursor}.flat IN TOKENS(@{bvn}, 'text_en')"
+        bind_vars[bvn] = "|".join({f"({re.escape(w)})" for w in t.text.split()})
+        return f"{cursor}.flat=~@{bvn} "
 
     def not_term(cursor: str, t: NotTerm) -> str:
         return f"NOT ({term(cursor, t.term)})"
@@ -282,7 +284,7 @@ def query_string(
             limited = f" LIMIT {p.limit} " if p.limit else " "
             sort_by = sort(crsr, p.sort) if p.sort else " "
             for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}"
-            return_stmt = f"RETURN UNSET({f_res}, {unset_props})"
+            return_stmt = f"RETURN {f_res}"
             query_part += f"LET {filtered_out} = ({for_stmt}{return_stmt})"
             return filtered_out
 
@@ -467,19 +469,30 @@ def query_string(
         sorts = ", ".join(single_sort(s) for s in so)
         return f" SORT {sorts} "
 
-    def fulltext(ft_term: Term, filter_term: Term) -> Tuple[str, str]:
+    def fulltext(ft_part: Term, filter_term: Term) -> Tuple[str, str]:
+        # The fulltext index only understands not, combine and fulltext
+        def ft_term(cursor: str, ab_term: Term) -> str:
+            if isinstance(ab_term, NotTerm):
+                return f"NOT ({ft_term(cursor, ab_term.term)})"
+            elif isinstance(ab_term, FulltextTerm):
+                bvn = next_bind_var_name()
+                bind_vars[bvn] = ab_term.text
+                # the fulltext index is based on the flat property. The full text term is tokenized.
+                return f"{cursor}.flat IN TOKENS(@{bvn}, 'text_en')"
+            elif isinstance(ab_term, CombinedTerm):
+                left = ft_term(cursor, ab_term.left)
+                right = ft_term(cursor, ab_term.right)
+                return f"({left}) {ab_term.op} ({right})"
+            else:
+                raise AttributeError(f"Do not understand: {ab_term}")
+
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
         query_parts[0] = replace(query_parts[0], term=filter_term)
         crs = next_crs()
         doc = f"search_{db.vertex_name}"
-        ftt = term("ft", ft_term)
+        ftt = ft_term("ft", ft_part)
         q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'text_en') SORT BM25(ft) DESC RETURN ft)"
         return q, crs
-
-    for p in query_parts[1:]:
-        assert not p.term.contains_term_type(
-            FulltextTerm
-        ), "Fulltext search can only be used in the beginning of a query, not after a graph traversal."
 
     parts = []
     ft, remaining = fulltext_term_combine(query_parts[0].term)
@@ -531,9 +544,8 @@ async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> Esti
 def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
     """
     Split the term of this part into the independent fulltext term and the remaining part of the term.
-    Logic: self.term == fulltext & remaining
-    The fulltext term is
-    :return:
+    Logic: self.term ~=logical_equivalent=~ fulltext & remaining
+    :return: a term that can utilize the fulltext search index and a "normal" filter term.
     """
 
     def combine_fulltext(term: Term) -> Tuple[Term, Term]:
@@ -548,8 +560,9 @@ def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
                 and term.find_term(lambda x: not isinstance(x, FulltextTerm) and not isinstance(x, CombinedTerm))
             ):
                 raise AttributeError(
-                    "Only single full text searches can be combined using or but not complex filters. "
-                    "Consider to rewrite the query. Example: (test or rest) and cpu_count>3"
+                    "Fulltext terms can only be or-combined using other fulltext terms.\n"
+                    f"Term >{term.left}< can not be combined with >{term.right}<.\n"
+                    'Consider to rewrite the query. Example: ("dev" or "prod") and cpu_count>3'
                 )
             left = isinstance(term.left, FulltextTerm)
             right = isinstance(term.right, FulltextTerm)
@@ -569,10 +582,6 @@ def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
             full, remaining = combine_fulltext(term.term)
             return NotTerm(full), NotTerm(remaining)
         elif isinstance(term, MergeTerm):
-            if term.post_filter.contains_term_type(FulltextTerm) if term.post_filter else False:
-                raise AttributeError("Full text search can be used before the merge statement, not afterwards.")
-            if exist(lambda mq: exist(lambda p: p.term.contains_term_type(FulltextTerm), mq.query.parts), term.merge):
-                raise AttributeError("Full text search can not be used in merge queries!")
             full, remaining = combine_fulltext(term.pre_filter)
             return full, replace(term, pre_filter=remaining)
         else:
