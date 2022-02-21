@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import calendar
 import logging
+import os
 from asyncio import Task
 from dataclasses import replace
 from datetime import timedelta
@@ -16,6 +17,7 @@ from aiostream.core import Stream
 from itertools import takewhile
 from parsy import Parser
 from tzlocal import get_localzone
+from rich.text import Text
 
 from resotocore import version
 from resotocore.analytics import CoreEvent
@@ -101,6 +103,9 @@ class HelpCommand(CLICommand):
     Show help text for a command or general help information.
     """
 
+    with open(os.path.dirname(__file__) + "/../static/ck-ascii-truecolor.ans", "r") as myfile:
+        ck = Text.from_ansi(myfile.read())
+
     def __init__(self, dependencies: CLIDependencies, parts: List[CLICommand], aliases: Dict[str, str]):
         super().__init__(dependencies)
         self.all_parts = {p.name: p for p in parts + [self]}
@@ -142,7 +147,9 @@ class HelpCommand(CLICommand):
                  Use `help <command>` to show help for a specific command.
                  """
             )
-            return ctx.render_console(result)
+            # Only render the logo if color is enabled
+            logo = ctx.render_console(self.ck) if ctx.supports_color() else ""
+            return logo + ctx.render_console(result)
 
         def help_command() -> Stream:
             if not arg:
