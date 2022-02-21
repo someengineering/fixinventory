@@ -66,6 +66,16 @@ class DigitalOceanResource:
 
 
 @dataclass(eq=False)
+class DigitalOceanProject(DigitalOceanResource, BaseAccount):
+    """DigitalOcean project"""
+
+    kind: ClassVar[str] = "digitalocean_project"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+
+@dataclass(eq=False)
 class DigitalOceanInstance(DigitalOceanResource, BaseInstance):
     """An DigitalOcean Instance Resource
 
