@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logging import log
