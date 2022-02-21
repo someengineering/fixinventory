@@ -40,7 +40,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         projects = projects_api_instance.list_projects()
 
         for project in projects.get('projects', []):
-            self.collect_project(project['id'])
+            self.collect_project(project)
 
 
     @staticmethod

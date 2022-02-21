@@ -12,7 +12,7 @@ def test_args():
     arg_parser.parse_args()
     assert ArgumentParser.args.digitalocean_region is None
 
-def test_api_call():
+def api_call():
 
     configuration = resoto_digitalocean_client.Configuration(
         access_token = os.environ['DO_TOKEN']
@@ -41,3 +41,12 @@ def test_api_call():
             assert False
         except resoto_digitalocean_client.ApiException as e:
             print("Exception when calling ClickApplicationsApi->install_kubernetes: %s\n" % e)
+
+def test_collect():
+
+    collector = DigitalOceanCollectorPlugin()
+
+
+    collector.collect()
+
+    
