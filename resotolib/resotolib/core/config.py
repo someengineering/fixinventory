@@ -23,6 +23,16 @@ class ConfigNotFoundError(Exception):
     pass
 
 
+def get_configs(resotocore_uri: str = None, psk: str = None) -> Dict:
+    resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
+
+    log.debug(f"Getting configs")
+    r = requests.get(f"{resotocore_uri}/configs", headers=headers)
+    if r.status_code == 200:
+        return r.json()
+    raise RuntimeError(f"Error getting configs: {r.content.decode('utf-8')}")
+
+
 def get_config(config_id: str, resotocore_uri: str = None, psk: str = None) -> Dict:
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
