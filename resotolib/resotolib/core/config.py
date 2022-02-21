@@ -46,9 +46,7 @@ def set_config(
     )
     if r.status_code == 200:
         return True
-    raise RuntimeError(
-        f"Error storing config {config_id}: {r.content.decode('utf-8')}"
-    )
+    raise RuntimeError(f"Error storing config {config_id}: {r.content.decode('utf-8')}")
 
 
 def delete_config(config_id: str, resotocore_uri: str = None, psk: str = None) -> bool:
