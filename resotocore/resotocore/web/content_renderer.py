@@ -121,8 +121,8 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
             "Try one of the following:\n"
             "- refine your query\n"
             "- add a limit to your query\n"
-            "- define a longer timeout via env var query_timeout\n"
-            "  e.g. $> query_timeout=60s query all\n"
+            "- define a longer timeout via env var search_timeout\n"
+            "  e.g. $> search_timeout=60s query all\n"
             "---------------------------------------------------\n\n"
         )
 

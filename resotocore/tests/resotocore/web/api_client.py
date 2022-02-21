@@ -5,7 +5,7 @@ from networkx import MultiDiGraph
 
 from resotocore.cli.model import ParsedCommands, ParsedCommand
 from resotocore.config import ConfigEntity
-from resotocore.db import EstimatedQueryCost
+from resotocore.db import EstimatedSearchCost
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model, Kind
 from resotocore.model.typed_model import from_js, to_js
@@ -142,43 +142,36 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
-    async def query_graph_raw(self, graph: str, query: str) -> AccessJson:
-        async with self.session.post(self.base_path + f"/graph/{graph}/query/raw", data=query) as r:
+    async def search_graph_raw(self, graph: str, search: str) -> AccessJson:
+        async with self.session.post(self.base_path + f"/graph/{graph}/search/raw", data=search) as r:
             if r.status == 200:
                 return AccessJson.wrap_object(await r.json())
             else:
                 raise AttributeError(await r.text())
 
-    async def query_graph_explain(self, graph: str, query: str) -> EstimatedQueryCost:
-        async with self.session.post(self.base_path + f"/graph/{graph}/query/explain", data=query) as r:
+    async def search_graph_explain(self, graph: str, search: str) -> EstimatedSearchCost:
+        async with self.session.post(self.base_path + f"/graph/{graph}/search/explain", data=search) as r:
             if r.status == 200:
-                return from_js(await r.json(), EstimatedQueryCost)
+                return from_js(await r.json(), EstimatedSearchCost)
             else:
                 raise AttributeError(await r.text())
 
-    async def query_list(self, graph: str, query: str) -> List[AccessJson]:
-        async with self.session.post(self.base_path + f"/graph/{graph}/query/list", data=query) as r:
-            if r.status == 200:
-                return AccessJson.wrap_list(await r.json())
-            else:
-                raise AttributeError(await r.text())
-
-    async def query_graph(self, graph: str, query: str) -> List[AccessJson]:
-        async with self.session.post(self.base_path + f"/graph/{graph}/query/graph", data=query) as r:
+    async def search_list(self, graph: str, search: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/search/list", data=search) as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())
             else:
                 raise AttributeError(await r.text())
 
-    async def query_aggregate(self, graph: str, query: str) -> List[AccessJson]:
-        async with self.session.post(self.base_path + f"/graph/{graph}/query/aggregate", data=query) as r:
+    async def search_graph(self, graph: str, search: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/search/graph", data=search) as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())
             else:
                 raise AttributeError(await r.text())
 
-    async def search(self, graph: str, term: str) -> List[AccessJson]:
-        async with self.session.get(self.base_path + f"/graph/{graph}/search", params={"term": term}) as r:
+    async def search_aggregate(self, graph: str, search: str) -> List[AccessJson]:
+        async with self.session.post(self.base_path + f"/graph/{graph}/search/aggregate", data=search) as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())
             else:

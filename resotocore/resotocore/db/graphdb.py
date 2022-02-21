@@ -14,7 +14,7 @@ from arango.typings import Json
 from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
-from resotocore.db import arango_query, EstimatedQueryCost
+from resotocore.db import arango_query, EstimatedSearchCost
 from resotocore.db.async_arangodb import (
     AsyncArangoDB,
     AsyncArangoTransactionDB,
@@ -96,27 +96,27 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         pass
 
     @abstractmethod
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         pass
 
     @abstractmethod
@@ -336,7 +336,7 @@ class ArangoGraphDB(GraphDB):
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
@@ -350,7 +350,7 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
@@ -364,8 +364,8 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
-        async with await self.query_graph_gen(query) as cursor:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
+        async with await self.search_graph_gen(query) as cursor:
             graph = MultiDiGraph()
             async for item in cursor:
                 if "from" in item and "to" in item and "edge_type" in item:
@@ -375,12 +375,12 @@ class ArangoGraphDB(GraphDB):
                     graph.add_node(item["id"], **item)
             return graph
 
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         q_string, bind = await self.to_query(query)
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(query=q_string, bind_vars=bind)
 
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         return await arango_query.query_cost(self, query, with_edges)
 
     async def wipe(self) -> None:
@@ -1133,31 +1133,31 @@ class EventGraphDB(GraphDB):
         await self.real.abort_update(batch_id)
         await self.event_sender.core_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_list(query, with_count, timeout, **kwargs)
+        return await self.real.search_list(query, with_count, timeout, **kwargs)
 
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_graph_gen(query, with_count, timeout)
+        return await self.real.search_graph_gen(query, with_count, timeout)
 
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_aggregation(query)
+        return await self.real.search_aggregation(query)
 
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_graph(query)
+        return await self.real.search_graph(query)
 
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         return await self.real.explain(query)
 
     async def wipe(self) -> None:

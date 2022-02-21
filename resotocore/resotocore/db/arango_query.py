@@ -7,7 +7,7 @@ from typing import Union, List, Tuple, Any, Optional, Dict, Set
 from arango.typings import Json
 
 from resotocore.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
-from resotocore.db import EstimatedQueryCost, EstimatedQueryCostRating as Rating
+from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Rating
 from resotocore.db.arangodb_functions import as_arangodb_function
 from resotocore.db.model import QueryModel
 from resotocore.model.graph_access import EdgeType, Section, Direction
@@ -483,7 +483,7 @@ def query_string(
     return resulting_cursor, query_str
 
 
-async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedQueryCost:
+async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedSearchCost:
     q_string, bind = to_query(graph_db, model, with_edges=with_edges)
     nr_nodes = await graph_db.db.count(graph_db.vertex_name)
     plan = await graph_db.db.explain(query=q_string, bind_vars=bind)
@@ -498,4 +498,4 @@ async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> Esti
     # the best rating is complex, if a full collection scan is required.
     best = Rating.complex if full_collection_scan else Rating.simple
     rating = best if ratio < 0.2 else (Rating.complex if ratio < 1 else Rating.bad)
-    return EstimatedQueryCost(estimated_cost, estimated_items, nr_nodes, full_collection_scan, rating)
+    return EstimatedSearchCost(estimated_cost, estimated_items, nr_nodes, full_collection_scan, rating)

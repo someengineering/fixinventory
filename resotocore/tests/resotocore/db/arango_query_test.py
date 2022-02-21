@@ -1,6 +1,6 @@
 import pytest
 
-from resotocore.db import EstimatedQueryCost, EstimatedQueryCostRating
+from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating
 from resotocore.db.arango_query import to_query, query_cost
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
@@ -26,7 +26,7 @@ def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> N
 
 @pytest.mark.asyncio
 async def test_query_cost(foo_model: Model, graph_db: GraphDB) -> None:
-    async def cost(query_str: str) -> EstimatedQueryCost:
+    async def cost(query_str: str) -> EstimatedSearchCost:
         query = parse_query(query_str)
         return await query_cost(graph_db, QueryModel(query, foo_model), False)
 
