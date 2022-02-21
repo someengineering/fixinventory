@@ -77,8 +77,8 @@ class CLIContext:
 
     def supports_color(self) -> bool:
         return (
-            self.console_renderer
-            and self.console_renderer.color_system
+            self.console_renderer is not None
+            and self.console_renderer.color_system is not None
             and self.console_renderer.color_system != ConsoleColorSystem.monochrome
         )
 

@@ -103,8 +103,8 @@ class HelpCommand(CLICommand):
     Show help text for a command or general help information.
     """
 
-    with open(os.path.dirname(__file__) + "/../static/ck-ascii-truecolor.ans", "r") as myfile:
-        ck = Text.from_ansi(myfile.read())
+    with open(os.path.dirname(__file__) + "/../static/ck-ascii-truecolor.ans", "r", encoding="utf-8") as log_file:
+        ck = Text.from_ansi(log_file.read())
 
     def __init__(self, dependencies: CLIDependencies, parts: List[CLICommand], aliases: Dict[str, str]):
         super().__init__(dependencies)
