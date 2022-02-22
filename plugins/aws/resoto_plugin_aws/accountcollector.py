@@ -1,3 +1,4 @@
+from unicodedata import name
 import botocore.exceptions
 import concurrent.futures
 import socket
@@ -220,6 +221,10 @@ metrics_collect_cloudformation_stacks = Summary(
     "resoto_plugin_aws_collect_cloudformation_stacks_seconds",
     "Time it took the collect_cloudformation_stacks() method",
 )
+metrics_collect_cloudformation_stack_sets = Summary(
+    "resoto_plugin_aws_collect_cloudformation_stack_sets_seconds",
+    "Time it took the collect_cloudformation_stack_sets() method",
+)
 metrics_collect_eks_clusters = Summary(
     "resoto_plugin_aws_collect_eks_clusters_seconds",
     "Time it took the collect_eks_clusters() method",
@@ -290,6 +295,7 @@ class AWSAccountCollector:
             "network_interfaces": self.collect_network_interfaces,
             "nat_gateways": self.collect_nat_gateways,
             "rds_instances": self.collect_rds_instances,
+            "cloudformation_stack_sets": self.collect_cloudformation_stack_sets,
             "cloudformation_stacks": self.collect_cloudformation_stacks,
             "eks_clusters": self.collect_eks_clusters,
             "vpc_peering_connections": self.collect_vpc_peering_connections,
@@ -2184,6 +2190,60 @@ class AWSAccountCollector:
             s.stack_parameters = self.parameters_as_dict(stack.get("Parameters", []))
             s.mtime = stack.get("LastUpdatedTime")
             log.debug(f"Found Cloudformation Stack {s.name} ({s.id})")
+            graph.add_resource(region, s)
+
+    @metrics_collect_cloudformation_stack_sets.time()
+    def collect_cloudformation_stack_sets(
+        self, region: AWSRegion, graph: Graph
+    ) -> None:
+        log.info(
+            f"Collecting AWS Cloudformation Stack Sets in account {self.account.dname} region {region.id}"
+        )
+
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("cloudformation", region_name=region.id)
+
+        response = client.list_stack_sets()
+        stack_sets = response.get("Summaries", [])
+        while response.get("NextToken") is not None:
+            response = client.list_stack_sets(NextToken=response["NextToken"])
+            stack_sets.extend(response.get("Summaries", []))
+
+        for stack_set_summary in stack_sets:
+            stack_set = client.describe_stack_set(
+                StackSetName=stack_set_summary["StackSetName"]
+            )
+            stack_set = stack_set.get("StackSet", {})
+            s = AWSCloudFormationStackSet(
+                stack_set["StackSetId"],
+                self.tags_as_dict(stack_set["Tags"]),
+                name=stack_set["StackSetName"],
+                _account=self.account,
+                _region=region,
+                stack_set_status=stack_set["Status"],
+                stack_set_parameters=self.parameters_as_dict(
+                    stack_set.get("Parameters", [])
+                ),
+                stack_set_capabilities=stack_set.get("Capabilities", []),
+                arn=stack_set["StackSetARN"],
+                stack_set_administration_role_arn=stack_set["AdministrationRoleARN"],
+                stack_set_execution_role_name=stack_set["ExecutionRoleName"],
+                stack_set_drift_detection_details=stack_set.get(
+                    "StackSetDriftDetectionDetails", {}
+                ),
+                stack_set_last_drift_check_timestamp=stack_set.get(
+                    "StackSetDriftDetectionDetails", {}
+                ).get("LastDriftCheckTimestamp"),
+                stack_set_auto_deployment=stack_set.get("AutoDeployment", {}),
+                stack_set_permission_model=stack_set.get("PermissionModel"),
+                stack_set_organizational_unit_ids=stack_set.get(
+                    "OrganizationalUnitIds", []
+                ),
+                stack_set_managed_execution_active=stack_set.get(
+                    "ManagedExecution", {}
+                ).get("Active"),
+            )
+            log.debug(f"Found Cloudformation Stack Set {s.name} ({s.id})")
             graph.add_resource(region, s)
 
     @metrics_collect_eks_clusters.time()

@@ -1135,3 +1135,25 @@ class AWSCloudwatchAlarm(AWSResource, BaseResource):
         client = aws_client(self, "cloudwatch")
         client.untag_resource(ResourceARN=self.arn, TagKeys=[key])
         return True
+
+
+@dataclass(eq=False)
+class AWSCloudFormationStackSet(AWSResource, BaseResource):
+    kind: ClassVar[str] = "aws_cloudformation_stack_set"
+    description: Optional[str] = None
+    stack_set_status: Optional[str] = None
+    stack_set_parameters: Dict = field(default_factory=dict)
+    stack_set_capabilities: Optional[List] = field(default_factory=list)
+    stack_set_administration_role_arn: Optional[str] = None
+    stack_set_execution_role_name: Optional[str] = None
+    stack_set_drift_detection_details: Optional[Dict] = field(default_factory=dict)
+    stack_set_last_drift_check_timestamp: Optional[datetime] = None
+    stack_set_auto_deployment: Optional[Dict] = field(default_factory=dict)
+    stack_set_permission_model: Optional[str] = None
+    stack_set_organizational_unit_ids: Optional[List] = field(default_factory=list)
+    stack_set_managed_execution_active: Optional[bool] = None
+
+    def delete(self, graph: Graph) -> bool:
+        cf = aws_client(self, "cloudformation", graph)
+        cf.delete_stack_set(StackSetName=self.name)
+        return True
