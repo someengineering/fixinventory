@@ -493,10 +493,10 @@ class BaseResource(ABC):
         return self.__repr__()
 
     def add_deferred_connection(
-        self, attr, value, parent: bool = True, edge_type: EdgeType = EdgeType.default
+        self, search: Dict, parent: bool = True, edge_type: EdgeType = EdgeType.default
     ) -> None:
         self._deferred_connections.append(
-            {"attr": attr, "value": value, "parent": parent, "edge_type": edge_type}
+            {"search": search, "parent": parent, "edge_type": edge_type}
         )
 
     def resolve_deferred_connections(self, graph) -> None:
@@ -504,7 +504,7 @@ class BaseResource(ABC):
             graph = self._graph
         while self._deferred_connections:
             dc = self._deferred_connections.pop(0)
-            node = graph.search_first(dc["attr"], dc["value"])
+            node = graph.search_first_all(dc["search"])
             edge_type = dc["edge_type"]
             if node:
                 if dc["parent"]:

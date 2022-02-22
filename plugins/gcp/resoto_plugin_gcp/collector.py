@@ -679,14 +679,15 @@ class GCPProjectCollector:
                                         values = value
                                         for value in values:
                                             r.add_deferred_connection(
-                                                attr,
-                                                value,
+                                                {attr: value},
                                                 is_parent,
                                                 edge_type=edge_type,
                                             )
                                     elif isinstance(value, str):
                                         r.add_deferred_connection(
-                                            attr, value, is_parent, edge_type=edge_type
+                                            {attr: value},
+                                            is_parent,
+                                            edge_type=edge_type,
                                         )
                                     else:
                                         log.error(
