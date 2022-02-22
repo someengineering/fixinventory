@@ -173,7 +173,7 @@ def query_string(
 
     def fulltext_term(cursor: str, t: FulltextTerm) -> str:
         # This fulltext filter can not take advantage of the fulltext search index.
-        # Instead, we filter the resulting entry for an occurrence of at least one word in the term.
+        # Instead, we filter the resulting entry to match a regular expression derived from the term.
         # The flat property is used via a regexp search.
         bvn = next_bind_var_name()
         dl = fulltext_delimiter_regexp
