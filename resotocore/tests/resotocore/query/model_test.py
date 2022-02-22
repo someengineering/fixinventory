@@ -240,7 +240,7 @@ def test_merge_query_creation() -> None:
 
 
 def test_term_contains() -> None:
-    term = parse_query("(test or fest) and (p>1 or p<2) {a: <-- is(foo)} not(a>23)").parts[0].term
+    term = parse_query('("test" or "fest") and (p>1 or p<2) {a: <-- is(foo)} not(a>23)').parts[0].term
     assert term.contains_term_type(IdTerm) is False
     assert term.contains_term_type(IsTerm) is True
     assert term.contains_term_type(FulltextTerm) is True

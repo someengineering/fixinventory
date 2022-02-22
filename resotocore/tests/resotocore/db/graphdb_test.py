@@ -464,8 +464,8 @@ async def test_query_with_fulltext(filled_graph_db: ArangoGraphDB, foo_model: Mo
 
     # Note: the fulltext index is eventually consistent. Since the database is wiped and cleaned for this test
     # we should not have any assumptions about the results, other than the query succeeds
-    await search("((a and b) or (c and d)) and e")
-    await search('is(foo) and test --> "bim bam bom bum"')
+    await search('(("a" and "b") or ("c" and "d")) and "e"')
+    await search('is(foo) and "test" --> "bim bam bom bum"')
     await search('is(foo) {a: --> "some prop" } "some other prop" --> "bim bam bom bum"')
 
 

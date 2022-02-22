@@ -125,17 +125,17 @@ def test_filter_term() -> None:
 
 def test_fulltext_term() -> None:
     assert_round_trip(term_parser, FulltextTerm("test"))
-    assert term_parser.parse("foo") == FulltextTerm("foo")
+    assert term_parser.parse('"foo"') == FulltextTerm("foo")
     # multiple strings are not allowed
     with pytest.raises(ParseError):
         term_parser.parse("foo bla bar")
     # multiple strings in quotes are allowed
     assert term_parser.parse('"foo bla bar"') == FulltextTerm("foo bla bar")
     # combined term can be parsed
-    assert term_parser.parse("foo and test>3") == CombinedTerm(
+    assert term_parser.parse('"foo" and test>3') == CombinedTerm(
         FulltextTerm("foo"), "and", Predicate("test", ">", 3, {})
     )
-    assert term_parser.parse("a>1 and (b and (c<1 or d) and e) or f and g==2")
+    assert term_parser.parse('a>1 and ("b" and (c<1 or "d") and "e") or "f" and g==2')
 
 
 def test_merge_term() -> None:

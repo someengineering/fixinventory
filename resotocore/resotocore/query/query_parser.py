@@ -129,9 +129,7 @@ def not_term() -> Parser:
 
 
 # A fulltext term should not read any keywords of the language
-fulltext_term = (
-    quoted_string_p | lexeme(unquoted_string_parser("not", "sort", "limit", "#", "with", "and", "or"))
-).map(FulltextTerm)
+fulltext_term = quoted_string_p.map(FulltextTerm)
 literal_list_comma_separated_p = (quoted_string_p | literal_p).sep_by(comma_p, min=1)
 literal_list_in_square_brackets = l_bracket_p >> literal_list_comma_separated_p << r_bracket_p
 literal_list_optional_brackets = literal_list_in_square_brackets | literal_list_comma_separated_p
