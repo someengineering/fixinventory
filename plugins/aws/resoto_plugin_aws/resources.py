@@ -1157,3 +1157,51 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
         cf = aws_client(self, "cloudformation", graph)
         cf.delete_stack_set(StackSetName=self.name)
         return True
+
+    class ModificationMode(Enum):
+        """Defines Tag modification mode"""
+
+        UPDATE = auto()
+        DELETE = auto()
+
+    def update_tag(self, key, value) -> bool:
+        return self._modify_tag(
+            key, value, mode=AWSCloudFormationStackSet.ModificationMode.UPDATE
+        )
+
+    def delete_tag(self, key) -> bool:
+        return self._modify_tag(
+            key, mode=AWSCloudFormationStackSet.ModificationMode.DELETE
+        )
+
+    def _modify_tag(self, key, value=None, mode=None) -> bool:
+        tags = dict(self.tags)
+        if mode == AWSCloudFormationStackSet.ModificationMode.DELETE:
+            if not self.tags.get(key):
+                raise KeyError(key)
+            del tags[key]
+        elif mode == AWSCloudFormationStackSet.ModificationMode.UPDATE:
+            if self.tags.get(key) == value:
+                return True
+            tags.update({key: value})
+        else:
+            return False
+
+        cf = aws_client(self, "cloudformation")
+        response = cf.update_stack_set(
+            StackSetName=self.name,
+            Capabilities=["CAPABILITY_NAMED_IAM"],
+            UsePreviousTemplate=True,
+            Tags=[{"Key": label, "Value": value} for label, value in tags.items()],
+            Parameters=[
+                {"ParameterKey": parameter, "UsePreviousValue": True}
+                for parameter in self.stack_set_parameters.keys()
+            ],
+        )
+        if response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) != 200:
+            raise RuntimeError(
+                "Error updating AWS Cloudformation Stack Set"
+                f" {self.dname} for {mode.name} of tag {key}"
+            )
+        self.tags = tags
+        return True
