@@ -10,7 +10,7 @@ from typing import Optional, Generator, Any, Dict, List, Set, Tuple
 
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
-from resotocore.model.model import Model
+from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind, DateTimeKind, DictionaryKind
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.types import Json
 from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 # This version is used when the content hash of a node is computed.
 # All computed hashes will be invalidated, by incrementing the version.
 # This can be used, if computed values should be recomputed for all imported data.
-ContentHashVersion = 2
+ContentHashVersion = 3
 
 
 class Section:
@@ -139,7 +139,7 @@ class GraphBuilder:
         # create content hash
         sha = GraphBuilder.content_hash(reported, desired, metadata)
         # flat all properties into a single string for search
-        flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported))
+        flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
         self.graph.add_node(
             node_id,
             id=node_id,
@@ -172,25 +172,34 @@ class GraphBuilder:
         return sha256.hexdigest()
 
     @staticmethod
-    def flatten(js: Json) -> str:
+    def flatten(js: Json, kind: Kind) -> str:
         result = ""
 
-        def dispatch(value: object) -> None:
+        def dispatch(value: Any, k: Kind) -> None:
             nonlocal result
             if isinstance(value, dict):
-                for elem in value.values():
-                    dispatch(elem)
+                for prop, elem in value.items():
+                    sub = (
+                        k.property_kind_of(prop, AnyKind())
+                        if isinstance(k, ComplexKind)
+                        else (k.value_kind if isinstance(k, DictionaryKind) else AnyKind())
+                    )
+                    dispatch(elem, sub)
             elif isinstance(value, list):
+                sub = k.inner if isinstance(k, ArrayKind) else AnyKind()
                 for elem in value:
-                    dispatch(elem)
+                    dispatch(elem, sub)
             elif value is None or isinstance(value, bool):
                 pass
             else:
+                # in case of date time: "2017-05-30T22:04:34Z" -> "2017-05-30 22:04:34"
+                if isinstance(k, DateTimeKind):
+                    value = re.sub("[ZT]", " ", value)
                 if result:
                     result += " "
                 result += str(value).strip()
 
-        dispatch(js)
+        dispatch(js, kind)
         return result
 
     def check_complete(self) -> None:
@@ -320,7 +329,8 @@ class GraphAccess:
         return node
 
     def dump(self, node_id: str, node: Json) -> Json:
-        return self.dump_direct(node_id, node)
+        kind = node.get("kind", AnyKind())
+        return self.dump_direct(node_id, node, kind)
 
     def predecessors(self, node_id: str, edge_type: str) -> Generator[str, Any, None]:
         for pred_id in self.g.predecessors(node_id):
@@ -370,7 +380,7 @@ class GraphAccess:
         return True
 
     @staticmethod
-    def dump_direct(node_id: str, node: Json, recompute: bool = False) -> Json:
+    def dump_direct(node_id: str, node: Json, kind: Kind, recompute: bool = False) -> Json:
         reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
@@ -379,7 +389,7 @@ class GraphAccess:
         if recompute or "hash" not in node:
             node["hash"] = GraphBuilder.content_hash(reported, desired, metadata)
         if recompute or "flat" not in node:
-            node["flat"] = GraphBuilder.flatten(reported)
+            node["flat"] = GraphBuilder.flatten(reported, kind)
         if "kinds" not in node:
             node["kinds"] = [reported["kind"]]
         return node

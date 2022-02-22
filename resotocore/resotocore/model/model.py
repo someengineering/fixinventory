@@ -238,7 +238,7 @@ class Kind(ABC):
             else:
                 raise TypeError(f"Unhandled runtime kind: {rk}")
         elif js.get("fqn") == "any" and js.get("runtime_kind") == "any":
-            return AnyKind.any()
+            return AnyKind()
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: Optional[List[str]] = js.get("bases")
@@ -290,19 +290,18 @@ class SimpleKind(Kind, ABC):
 
 
 class AnyKind(SimpleKind):
-    def __init__(self, fqn: str):
-        super().__init__(fqn, "any")
+    def __init__(self) -> None:
+        super().__init__("any", "any")
+
+    def __new__(cls) -> AnyKind:
+        if cls.__singleton is None:
+            cls.__singleton = super(AnyKind, cls).__new__(cls)
+        return cls.__singleton
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return None
 
     __singleton: Optional[AnyKind] = None
-
-    @classmethod
-    def any(cls) -> AnyKind:
-        if not cls.__singleton:
-            cls.__singleton = cls("any")
-        return cls.__singleton
 
 
 class StringKind(SimpleKind):
@@ -715,6 +714,10 @@ class ComplexKind(Kind):
     def __getitem__(self, name: str) -> Property:
         return self.__prop_by_name[name]
 
+    def property_kind_of(self, name: str, or_else: Kind) -> Kind:
+        maybe = self.__resolved_kinds.get(name)
+        return maybe[1] if maybe else or_else
+
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
@@ -802,7 +805,7 @@ predefined_kinds = [
     NumberKind("int64", "int64"),
     NumberKind("float", "float"),
     NumberKind("double", "double"),
-    AnyKind.any(),
+    AnyKind(),
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
@@ -886,7 +889,7 @@ class Model:
         path = PropertyPath.from_path(path_)
         found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
         # if the path is not known according to known model: it could be anything.
-        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind.any())
+        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
 
     def kind_by_path(self, path_: str) -> SimpleKind:
         return self.property_by_path(path_).kind

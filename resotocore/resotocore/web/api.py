@@ -836,7 +836,7 @@ class Api:
 
         if request.content_type == "application/json":
             return stream_json_array()
-        elif request.content_type == "application/x-ndjson":
+        elif request.content_type in ["application/x-ndjson", "application/ndjson"]:
             return stream_lines()
         else:
             raise AttributeError("Can not read graph. Currently supported formats: json and ndjson!")
