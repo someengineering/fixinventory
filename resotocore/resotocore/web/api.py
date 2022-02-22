@@ -651,17 +651,6 @@ class Api:
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
 
-    async def search_graph(self, request: Request) -> StreamResponse:
-        if "term" not in request.query:
-            raise AttributeError("Expect query parameter term to be defined!")
-        query_string = request.query.get("term", "")
-        limit = int(request.query.get("limit", "10"))
-        model = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
-        result = graph_db.search(model, query_string, limit)
-        # noinspection PyTypeChecker
-        return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
-
     async def query_list(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"

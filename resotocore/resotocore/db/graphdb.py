@@ -8,6 +8,7 @@ from functools import partial
 from numbers import Number
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, cast
 
+from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
@@ -15,6 +16,7 @@ from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
 from resotocore.db import arango_query, EstimatedSearchCost
+from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import (
     AsyncArangoDB,
     AsyncArangoTransactionDB,
@@ -72,10 +74,6 @@ class GraphDB(ABC):
     @abstractmethod
     async def delete_node(self, node_id: str) -> None:
         pass
-
-    @abstractmethod
-    async def search(self, model: Model, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        yield {}  # only here for mypy type check (detects coroutine otherwise)
 
     @abstractmethod
     async def merge_graph(
@@ -147,15 +145,6 @@ class ArangoGraphDB(GraphDB):
 
     def edge_collection(self, edge_type: str) -> str:
         return f"{self.name}_{edge_type}"
-
-    async def search(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, model: Model, tokens: str, limit: int
-    ) -> AsyncGenerator[Json, None]:
-        bind = {"tokens": tokens, "limit": limit}
-        trafo = self.document_to_instance_fn(model)
-        with await self.db.aql(query=self.query_search_token(), bind_vars=bind) as cursor:
-            for element in cursor:
-                yield trafo(element)
 
     async def get_node(self, model: Model, node_id: str) -> Optional[Json]:
         node = await self.by_id(node_id)
@@ -844,6 +833,11 @@ class ArangoGraphDB(GraphDB):
                 # add edge definition to the graph
                 gdb.create_edge_definition(edge_name, [vertex_name], [vertex_name])
 
+        # The view index was created using a default analyzer
+        # This method can be removed before 2.0 is released.
+        def delete_wrong_index_view() -> None:
+            db.db.delete_view(f"search_{self.vertex_name}", ignore_missing=True)
+
         async def create_update_graph(
             graph_name: str, vertex_name: str, edge_name: str
         ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
@@ -898,15 +892,35 @@ class ArangoGraphDB(GraphDB):
         async def create_update_views(nodes: VertexCollection) -> None:
             name = f"search_{nodes.name}"
             prop = "flat"  # only the flat property is indexes
+
+            # make sure the delimited analyzer exists
+            try:
+                db.db.analyzer("delimited")
+            except AnalyzerGetError:
+                delete_wrong_index_view()
+                db.db.create_analyzer(
+                    "delimited",
+                    "pipeline",
+                    {
+                        "pipeline": [
+                            # lower case (leaving accents as is)
+                            {"type": "norm", "properties": {"locale": "en_US.utf-8", "accent": True, "case": "lower"}},
+                            # split the input
+                            *[{"type": "delimiter", "properties": {"delimiter": a}} for a in fulltext_delimiter],
+                            # remove empty strings
+                            {"type": "stopwords", "properties": {"stopwords": [""], "hex": False}},
+                        ]
+                    },
+                    ["frequency", "norm", "position"],
+                )
+
             views = {view["name"]: view for view in await db.views()}
             if name not in views:
                 await db.create_view(
                     name,
                     "arangosearch",
                     {
-                        "links": {
-                            nodes.name: {"analyzers": ["identity"], "fields": {prop: {"analyzers": ["text_en"]}}}
-                        },
+                        "links": {nodes.name: {"fields": {prop: {"analyzers": ["delimited"]}}}},
                         "primarySort": [{"field": prop, "direction": "desc"}],
                         "inBackground": True,  # note: this setting only applies when the view is created
                     },
@@ -931,15 +945,6 @@ class ArangoGraphDB(GraphDB):
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{from_node}:{to_node}"))
-
-    def query_search_token(self) -> str:
-        return f"""
-        FOR doc IN search_{self.vertex_name}
-        SEARCH ANALYZER(doc.flat IN TOKENS(@tokens, 'text_en'), 'text_en')
-        SORT BM25(doc) DESC
-        LIMIT @limit
-        RETURN doc
-        """
 
     # parameter: rid
     # return: the complete document
@@ -1084,9 +1089,6 @@ class EventGraphDB(GraphDB):
         )
         async for a in result:
             yield a
-
-    def search(self, model: Model, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        return self.real.search(model, tokens, limit)
 
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False

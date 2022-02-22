@@ -69,7 +69,7 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
         return query_str
 
     single_ft_index = (
-        "LET m0=(FOR ft in search_ns SEARCH ANALYZER(ft.flat IN TOKENS(@b0, 'text_en'), 'text_en') "
+        "LET m0=(FOR ft in search_ns SEARCH ANALYZER(PHRASE(ft.flat, @b0), 'delimited') "
         "SORT BM25(ft) DESC RETURN ft) "
         'FOR result in m0 RETURN UNSET(result, ["flat"])'
     )
@@ -77,6 +77,6 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
     assert query_string('"some other fulltext string"') == single_ft_index
     # and/or is combined correctly
     assert (
-        "ANALYZER((((ft.flat IN TOKENS(@b0, 'text_en')) and (ft.flat IN TOKENS(@b1, 'text_en'))) or "
-        "(ft.flat IN TOKENS(@b2, 'text_en'))) and (ft.flat IN TOKENS(@b3, 'text_en')), 'text_en')"
+        "ANALYZER((((PHRASE(ft.flat, @b0)) and (PHRASE(ft.flat, @b1))) or "
+        "(PHRASE(ft.flat, @b2))) and (PHRASE(ft.flat, @b3)), 'delimited')"
     ) in query_string('"a" and "b" or "c" and "d"')

@@ -43,8 +43,11 @@ from resotocore.util import first, set_value_in_path, exist
 log = logging.getLogger(__name__)
 
 allowed_first_merge_part = Part(AllTerm())
-
 unset_props = json.dumps(["flat"])
+# This list of delimiter is also used in the arango delimiter index.
+# In case the definition is changed, also the index needs to change!
+fulltext_delimiter = [" ", "_", "-", "@", ":", "/", "."]
+fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fulltext_delimiter) + "]+")
 
 
 def to_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
@@ -173,8 +176,9 @@ def query_string(
         # Instead, we filter the resulting entry for an occurrence of at least one word in the term.
         # The flat property is used via a regexp search.
         bvn = next_bind_var_name()
-        bind_vars[bvn] = "|".join({f"({re.escape(w)})" for w in t.text.split()})
-        return f"{cursor}.flat=~@{bvn} "
+        dl = fulltext_delimiter_regexp
+        bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
+        return f"REGEX_TEST({cursor}.flat, @{bvn}, true)"
 
     def not_term(cursor: str, t: NotTerm) -> str:
         return f"NOT ({term(cursor, t.term)})"
@@ -478,7 +482,7 @@ def query_string(
                 bvn = next_bind_var_name()
                 bind_vars[bvn] = ab_term.text
                 # the fulltext index is based on the flat property. The full text term is tokenized.
-                return f"{cursor}.flat IN TOKENS(@{bvn}, 'text_en')"
+                return f"PHRASE({cursor}.flat, @{bvn})"
             elif isinstance(ab_term, CombinedTerm):
                 left = ft_term(cursor, ab_term.left)
                 right = ft_term(cursor, ab_term.right)
@@ -491,7 +495,7 @@ def query_string(
         crs = next_crs()
         doc = f"search_{db.vertex_name}"
         ftt = ft_term("ft", ft_part)
-        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'text_en') SORT BM25(ft) DESC RETURN ft)"
+        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
         return q, crs
 
     parts = []
@@ -577,7 +581,7 @@ def fulltext_term_combine(term_in: Term) -> Tuple[Optional[Term], Term]:
                 return lf.combine(term.op, rf), remaining_left.combine(term.op, remaining_right)
         elif isinstance(term, NotTerm):
             ft, remaining = combine_fulltext(term.term)
-            return NotTerm(ft), NotTerm(remaining)
+            return NotTerm(ft), remaining if isinstance(remaining, AllTerm) else NotTerm(remaining)
         elif isinstance(term, MergeTerm):
             ft, remaining = combine_fulltext(term.pre_filter)
             return ft, replace(term, pre_filter=remaining)
