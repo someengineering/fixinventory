@@ -1,9 +1,9 @@
+import os
 import sys
 import time
-import inspect
-import resotolib.baseresources
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
+from resotolib.core.config import get_config, set_config, ConfigNotFoundError
 from functools import partial
 from resotolib.core.actions import CoreActions
 from resotometrics.metrics import Metrics, GraphCollector
@@ -20,6 +20,13 @@ from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
 from resotolib.args import ArgumentParser
 from signal import signal, SIGTERM, SIGINT
+from yaml import load
+
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
 
 shutdown_event = Event()
 
@@ -113,20 +120,27 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
         return reply_message
 
 
-def find_metrics(mod):
+def find_metrics():
     log.debug("Finding metrics")
-    metrics_descriptions = {}
-    for _, obj in inspect.getmembers(mod):
-        if inspect.isclass(obj) and hasattr(obj, "metrics_description"):
-            metrics_description = obj.metrics_description
-            if len(metrics_description) > 0:
-                metrics_descriptions.update(metrics_description)
+    try:
+        metrics_descriptions = get_config("resotometrics")
+    except ConfigNotFoundError:
+        log.debug("Metrics config not found in resotocore - loading default metrics")
+        local_path = os.path.abspath(os.path.dirname(__file__))
+        default_metrics_file = f"{local_path}/default_metrics.yaml"
+        if not os.path.isfile(default_metrics_file):
+            raise RuntimeError(
+                f"Could not find default metrics file {default_metrics_file}"
+            )
+        with open(default_metrics_file, "r") as f:
+            metrics_descriptions = load(f, Loader=Loader)
+        set_config("resotometrics", metrics_descriptions)
     return metrics_descriptions
 
 
 @metrics_update_metrics.time()
 def update_metrics(metrics: Metrics, query_uri: str) -> None:
-    metrics_descriptions = find_metrics(resotolib.baseresources)
+    metrics_descriptions = find_metrics()
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return

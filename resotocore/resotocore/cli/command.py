@@ -1948,7 +1948,7 @@ class ListCommand(CLICommand, OutputTransformer):
         return "list"
 
     def info(self) -> str:
-        return "Transform incoming objects as string with defined properties."
+        return "Format elements as property list, csv or markdown."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()

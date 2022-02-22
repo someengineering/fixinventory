@@ -540,7 +540,7 @@ def increase_limits() -> None:
             log.error(f"Failed to increase {limit_name} {soft_limit} -> {hard_limit}")
 
 
-resource_attributes_blacklist = ["metrics_description", "event_log"]
+resource_attributes_blacklist = ["event_log"]
 
 
 def get_resource_attributes(

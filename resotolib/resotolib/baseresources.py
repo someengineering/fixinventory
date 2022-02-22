@@ -71,7 +71,7 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also three class variables, kind, phantom and metrics_description.
+    There's also two class variables, kind and phantom.
     kind is a string describing the type of resource, e.g. 'aws_ec2_instance'
     or 'some_cloud_load_balancer'.
     phantom is a bool describing whether or not the resource actually exists within
@@ -82,7 +82,6 @@ class BaseResource(ABC):
 
     kind: ClassVar[str] = "resource"
     phantom: ClassVar[bool] = False
-    metrics_description: ClassVar[Dict] = {}
 
     id: str
     tags: Dict[str, str] = None
@@ -714,19 +713,6 @@ class BaseType(BaseQuota):
 @dataclass(eq=False)
 class BaseInstanceQuota(BaseQuota):
     kind: ClassVar[str] = "instance_quota"
-    metrics_description: ClassVar[Dict] = {
-        "instances_quotas_total": {
-            "help": "Quotas of Instances",
-            "labels": ["cloud", "account", "region", "type", "quota_type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type, quota_type as quota_type:"
-                " sum(quota) as instances_quotas_total):"
-                " is(instance_quota) and quota >= 0"
-            ),
-        },
-    }
     instance_type: Optional[str] = None
 
     def __post_init__(self, *args, **kwargs) -> None:
@@ -738,18 +724,6 @@ class BaseInstanceQuota(BaseQuota):
 @dataclass(eq=False)
 class BaseInstanceType(BaseType):
     kind: ClassVar[str] = "instance_type"
-    metrics_description: ClassVar[Dict] = {
-        "reserved_instances_total": {
-            "help": "Number of Reserved Instances",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type, quota_type as quota_type:"
-                " sum(reservations) as reserved_instances_total): is(instance_type) and reservations >= 0"
-            ),
-        },
-    }
     instance_type: Optional[str] = None
     instance_cores: float = 0.0
     instance_memory: float = 0.0
@@ -781,18 +755,6 @@ class BaseCloud(BaseResource):
 @dataclass(eq=False)
 class BaseAccount(BaseResource):
     kind: ClassVar[str] = "account"
-    metrics_description: ClassVar[Dict] = {
-        "accounts_total": {
-            "help": "Number of Accounts",
-            "labels": ["cloud"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud:"
-                " sum(1) as accounts_total):"
-                " is(account)"
-            ),
-        },
-    }
 
     def account(self, graph=None):
         return self
@@ -825,68 +787,6 @@ class InstanceStatus(Enum):
 @dataclass(eq=False)
 class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
-    metrics_description: ClassVar[Dict] = {
-        "instances_total": {
-            "help": "Number of Instances",
-            "labels": ["cloud", "account", "region", "type", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type, instance_status as status:"
-                " sum(1) as instances_total):"
-                " is(instance)"
-            ),
-        },
-        "cores_total": {
-            "help": "Number of CPU cores",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type:"
-                " sum(instance_cores) as cores_total):"
-                " is(instance) and instance_status == running"
-            ),
-        },
-        "memory_bytes": {
-            "help": "Amount of RAM in bytes",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type:"
-                " sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes):"
-                " is(instance) and instance_status == running"
-            ),
-        },
-        "instances_hourly_cost_estimate": {
-            "help": "Hourly instance cost estimate",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, instance_type as type:"
-                " sum(/ancestors.instance_type.reported.ondemand_cost) as instances_hourly_cost_estimate):"
-                " is(instance) and instance_status == running"
-            ),
-        },
-        "cleaned_instances_total": {
-            "help": "Cleaned number of Instances",
-            "labels": ["cloud", "account", "region", "type", "status"],
-        },
-        "cleaned_cores_total": {
-            "help": "Cleaned number of CPU cores",
-            "labels": ["cloud", "account", "region", "type"],
-        },
-        "cleaned_memory_bytes": {
-            "help": "Cleaned amount of RAM in bytes",
-            "labels": ["cloud", "account", "region", "type"],
-        },
-        "cleaned_instances_hourly_cost_estimate": {
-            "help": "Cleaned hourly instance cost estimate",
-            "labels": ["cloud", "account", "region", "type"],
-        },
-    }
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
@@ -911,19 +811,6 @@ BaseInstance.instance_status = property(
 @dataclass(eq=False)
 class BaseVolumeType(BaseType):
     kind: ClassVar[str] = "volume_type"
-    metrics_description: ClassVar[Dict] = {
-        "volumes_quotas_bytes": {
-            "help": "Quotas of Volumes in bytes",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, volume_type as type:"
-                " sum(quota * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes):"
-                " is(volume_type) and quota >= 0"
-            ),
-        },
-    }
     volume_type: str = ""
     ondemand_cost: float = 0.0
 
@@ -944,53 +831,6 @@ class VolumeStatus(Enum):
 @dataclass(eq=False)
 class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
-    metrics_description: ClassVar[Dict] = {
-        "volumes_total": {
-            "help": "Number of Volumes",
-            "labels": ["cloud", "account", "region", "type", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
-                " sum(1) as volumes_total):"
-                " is(volume)"
-            ),
-        },
-        "volume_bytes": {
-            "help": "Size of Volumes in bytes",
-            "labels": ["cloud", "account", "region", "type", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
-                " sum(volume_size * 1024 * 1024 * 1024) as volume_bytes):"
-                " is(volume)"
-            ),
-        },
-        "volumes_monthly_cost_estimate": {
-            "help": "Monthly volume cost estimate",
-            "labels": ["cloud", "account", "region", "type", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, volume_type as type, volume_status as status:"
-                " sum(/ancestors.volume_type.reported.ondemand_cost) as volumes_monthly_cost_estimate):"
-                " is(volume)"
-            ),
-        },
-        "cleaned_volumes_total": {
-            "help": "Cleaned number of Volumes",
-            "labels": ["cloud", "account", "region", "type", "status"],
-        },
-        "cleaned_volume_bytes": {
-            "help": "Cleaned size of Volumes in bytes",
-            "labels": ["cloud", "account", "region", "type", "status"],
-        },
-        "cleaned_volumes_monthly_cost_estimate": {
-            "help": "Cleaned monthly volume cost estimate",
-            "labels": ["cloud", "account", "region", "type", "status"],
-        },
-    }
     volume_size: int = 0
     volume_type: str = ""
     volume_status: str = ""
@@ -1018,39 +858,6 @@ BaseVolume.volume_status = property(
 @dataclass(eq=False)
 class BaseSnapshot(BaseResource):
     kind: ClassVar[str] = "snapshot"
-    metrics_description: ClassVar[Dict] = {
-        "snapshots_total": {
-            "help": "Number of Snapshots",
-            "labels": ["cloud", "account", "region", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, snapshot_status as status:"
-                " sum(1) as snapshots_total):"
-                " is(snapshot)"
-            ),
-        },
-        "snapshots_volumes_bytes": {
-            "help": "Size of Snapshots Volumes in bytes",
-            "labels": ["cloud", "account", "region", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, snapshot_status as status:"
-                " sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes):"
-                " is(snapshot)"
-            ),
-        },
-        "cleaned_snapshots_total": {
-            "help": "Cleaned number of Snapshots",
-            "labels": ["cloud", "account", "region", "status"],
-        },
-        "cleaned_snapshots_volumes_bytes": {
-            "help": "Cleaned size of Snapshots Volumes in bytes",
-            "labels": ["cloud", "account", "region", "status"],
-        },
-    }
-
     snapshot_status: str = ""
     description: str = ""
     volume_id: Optional[str] = None
@@ -1079,141 +886,32 @@ class GraphRoot(PhantomBaseResource):
 @dataclass(eq=False)
 class BaseBucket(BaseResource):
     kind: ClassVar[str] = "bucket"
-    metrics_description: ClassVar[Dict] = {
-        "buckets_total": {
-            "help": "Number of Storage Buckets",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as buckets_total):"
-                " is(bucket)"
-            ),
-        },
-        "cleaned_buckets_total": {
-            "help": "Cleaned number of Storage Buckets",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
-    metrics_description: ClassVar[Dict] = {
-        "keypairs_total": {
-            "help": "Number of Key Pairs",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as keypairs_total):"
-                " is(keypair)"
-            ),
-        },
-        "cleaned_keypairs_total": {
-            "help": "Cleaned number of Key Pairs",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     fingerprint: str = ""
 
 
 @dataclass(eq=False)
 class BaseBucketQuota(BaseQuota):
     kind: ClassVar[str] = "bucket_quota"
-    metrics_description: ClassVar[Dict] = {
-        "buckets_quotas_total": {
-            "help": "Quotas of Storage Buckets",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as buckets_quotas_total):"
-                " is(bucket_quota)"
-            ),
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseNetwork(BaseResource):
     kind: ClassVar[str] = "network"
-    metrics_description: ClassVar[Dict] = {
-        "networks_total": {
-            "help": "Number of Networks",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as networks_total):"
-                " is(network)"
-            ),
-        },
-        "cleaned_networks_total": {
-            "help": "Cleaned number of Networks",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseNetworkQuota(BaseQuota):
     kind: ClassVar[str] = "network_quota"
-    metrics_description: ClassVar[Dict] = {
-        "networks_quotas_total": {
-            "help": "Quotas of Networks",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as networks_quotas_total):"
-                " is(network_quota)"
-            ),
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
-    metrics_description: ClassVar[Dict] = {
-        "databases_total": {
-            "help": "Number of Databases",
-            "labels": ["cloud", "account", "region", "type", "instance_type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, db_type as type, instance_type as instance_type:"
-                " sum(1) as databases_total):"
-                " is(database)"
-            ),
-        },
-        "databases_bytes": {
-            "help": "Size of Databases in bytes",
-            "labels": ["cloud", "account", "region", "type", "instance_type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, db_type as type, instance_type as instance_type:"
-                " sum(volume_size * 1024 * 1024 * 1024) as databases_bytes):"
-                " is(database)"
-            ),
-        },
-        "cleaned_databases_total": {
-            "help": "Cleaned number of Databases",
-            "labels": ["cloud", "account", "region", "type", "instance_type"],
-        },
-        "cleaned_databases_bytes": {
-            "help": "Cleaned size of Databases in bytes",
-            "labels": ["cloud", "account", "region", "type", "instance_type"],
-        },
-    }
     db_type: str = ""
     db_status: str = ""
     db_endpoint: str = ""
@@ -1228,23 +926,6 @@ class BaseDatabase(BaseResource):
 @dataclass(eq=False)
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
-    metrics_description: ClassVar[Dict] = {
-        "load_balancers_total": {
-            "help": "Number of Load Balancers",
-            "labels": ["cloud", "account", "region", "type"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, lb_type as type:"
-                " sum(1) as load_balancers_total):"
-                " is(load_balancer)"
-            ),
-        },
-        "cleaned_load_balancers_total": {
-            "help": "Cleaned number of Load Balancers",
-            "labels": ["cloud", "account", "region", "type"],
-        },
-    }
     lb_type: str = ""
     backends: List[str] = field(default_factory=list)
 
@@ -1252,235 +933,56 @@ class BaseLoadBalancer(BaseResource):
 @dataclass(eq=False)
 class BaseLoadBalancerQuota(BaseQuota):
     kind: ClassVar[str] = "load_balancer_quota"
-    metrics_description: ClassVar[Dict] = {
-        "load_balancers_quotas_total": {
-            "help": "Quotas of Load Balancers",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as load_balancers_quotas_total):"
-                " is(load_balancer_quota)"
-            ),
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseSubnet(BaseResource):
     kind: ClassVar[str] = "subnet"
-    metrics_description: ClassVar[Dict] = {
-        "subnets_total": {
-            "help": "Number of Subnets",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as subnets_total):"
-                " is(subnet)"
-            ),
-        },
-        "cleaned_subnets_total": {
-            "help": "Cleaned number of Subnets",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseGateway(BaseResource):
     kind: ClassVar[str] = "gateway"
-    metrics_description: ClassVar[Dict] = {
-        "gateways_total": {
-            "help": "Number of Gateways",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as gateways_total):"
-                " is(gateway)"
-            ),
-        },
-        "cleaned_gateways_total": {
-            "help": "Cleaned number of Gateways",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseTunnel(BaseResource):
     kind: ClassVar[str] = "tunnel"
-    metrics_description: ClassVar[Dict] = {
-        "tunnels_total": {
-            "help": "Number of Tunnels",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as tunnels_total):"
-                " is(tunnel)"
-            ),
-        },
-        "cleaned_tunnels_total": {
-            "help": "Cleaned number of Tunnels",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseGatewayQuota(BaseQuota):
     kind: ClassVar[str] = "gateway_quota"
-    metrics_description: ClassVar[Dict] = {
-        "gateways_quotas_total": {
-            "help": "Quotas of Gateways",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as gateways_quotas_total):"
-                " is(gateway_quota)"
-            ),
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseSecurityGroup(BaseResource):
     kind: ClassVar[str] = "security_group"
-    metrics_description: ClassVar[Dict] = {
-        "security_groups_total": {
-            "help": "Number of Security Groups",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as security_groups_total):"
-                " is(security_group)"
-            ),
-        },
-        "cleaned_security_groups_total": {
-            "help": "Cleaned number of Security Groups",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseRoutingTable(BaseResource):
     kind: ClassVar[str] = "routing_table"
-    metrics_description: ClassVar[Dict] = {
-        "routing_tables_total": {
-            "help": "Number of Routing Tables",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as routing_tables_total):"
-                " is(routing_table)"
-            ),
-        },
-        "cleaned_routing_tables_total": {
-            "help": "Cleaned number of Routing Tables",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
-    metrics_description: ClassVar[Dict] = {
-        "network_acls_total": {
-            "help": "Number of Network ACLs",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as network_acls_total):"
-                " is(network_acl)"
-            ),
-        },
-        "cleaned_network_acls_total": {
-            "help": "Cleaned number of Network ACLs",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BasePeeringConnection(BaseResource):
     kind: ClassVar[str] = "peering_connection"
-    metrics_description: ClassVar[Dict] = {
-        "peering_connections_total": {
-            "help": "Number of Peering Connections",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as peering_connections_total):"
-                " is(peering_connection)"
-            ),
-        },
-        "cleaned_peering_connections_total": {
-            "help": "Cleaned number of Peering Connections",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseEndpoint(BaseResource):
     kind: ClassVar[str] = "endpoint"
-    metrics_description: ClassVar[Dict] = {
-        "endpoints_total": {
-            "help": "Number of Endpoints",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as endpoints_total):"
-                " is(endpoint)"
-            ),
-        },
-        "cleaned_endpoints_total": {
-            "help": "Cleaned number of Endpoints",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseNetworkInterface(BaseResource):
     kind: ClassVar[str] = "network_interface"
-    metrics_description: ClassVar[Dict] = {
-        "network_interfaces_total": {
-            "help": "Number of Network Interfaces",
-            "labels": ["cloud", "account", "region", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, network_interface_status as status:"
-                " sum(1) as network_interfaces_total):"
-                " is(network_interface)"
-            ),
-        },
-        "cleaned_network_interfaces_total": {
-            "help": "Cleaned number of Network Interfaces",
-            "labels": ["cloud", "account", "region", "status"],
-        },
-    }
     network_interface_status: str = ""
     network_interface_type: str = ""
     mac: str = ""
@@ -1493,197 +995,48 @@ class BaseNetworkInterface(BaseResource):
 @dataclass(eq=False)
 class BaseUser(BaseResource):
     kind: ClassVar[str] = "user"
-    metrics_description: ClassVar[Dict] = {
-        "users_total": {
-            "help": "Number of Users",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as users_total):"
-                " is(user)"
-            ),
-        },
-        "cleaned_users_total": {
-            "help": "Cleaned number of Users",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseGroup(BaseResource):
     kind: ClassVar[str] = "group"
-    metrics_description: ClassVar[Dict] = {
-        "groups_total": {
-            "help": "Number of Groups",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as groups_total):"
-                " is(group)"
-            ),
-        },
-        "cleaned_groups_total": {
-            "help": "Cleaned number of Groups",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BasePolicy(BaseResource):
     kind: ClassVar[str] = "policy"
-    metrics_description: ClassVar[Dict] = {
-        "policies_total": {
-            "help": "Number of Policies",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as policies_total):"
-                " is(policy)"
-            ),
-        },
-        "cleaned_policies_total": {
-            "help": "Cleaned number of Policies",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseRole(BaseResource):
     kind: ClassVar[str] = "role"
-    metrics_description: ClassVar[Dict] = {
-        "roles_total": {
-            "help": "Number of Roles",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as roles_total):"
-                " is(role)"
-            ),
-        },
-        "cleaned_roles_total": {
-            "help": "Cleaned number of Roles",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseInstanceProfile(BaseResource):
     kind: ClassVar[str] = "instance_profile"
-    metrics_description: ClassVar[Dict] = {
-        "instance_profiles_total": {
-            "help": "Number of Instance Profiles",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as instance_profiles_total):"
-                " is(instance_profile)"
-            ),
-        },
-        "cleaned_instance_profiles_total": {
-            "help": "Cleaned number of Instance Profiles",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseAccessKey(BaseResource):
     kind: ClassVar[str] = "access_key"
-    metrics_description: ClassVar[Dict] = {
-        "access_keys_total": {
-            "help": "Number of Access Keys",
-            "labels": ["cloud", "account", "region", "status"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region, access_key_status as status:"
-                " sum(1) as access_keys_total):"
-                " is(access_key)"
-            ),
-        },
-        "cleaned_access_keys_total": {
-            "help": "Cleaned number of Access Keys",
-            "labels": ["cloud", "account", "region", "status"],
-        },
-    }
     access_key_status: str = ""
 
 
 @dataclass(eq=False)
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
-    metrics_description: ClassVar[Dict] = {
-        "certificates_total": {
-            "help": "Number of Certificates",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as certificates_total):"
-                " is(certificate)"
-            ),
-        },
-        "cleaned_certificates_total": {
-            "help": "Cleaned number of Certificates",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     expires: Optional[datetime] = None
 
 
 @dataclass(eq=False)
 class BaseCertificateQuota(BaseQuota):
     kind: ClassVar[str] = "certificate_quota"
-    metrics_description: ClassVar[Dict] = {
-        "certificates_quotas_total": {
-            "help": "Quotas of Certificates",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as certificates_quotas_total):"
-                " is(certificate_quota)"
-            ),
-        },
-    }
 
 
 @dataclass(eq=False)
 class BaseStack(BaseResource):
     kind: ClassVar[str] = "stack"
-    metrics_description: ClassVar[Dict] = {
-        "stacks_total": {
-            "help": "Number of Stacks",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as stacks_total):"
-                " is(stack)"
-            ),
-        },
-        "cleaned_stacks_total": {
-            "help": "Cleaned number of Stacks",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     stack_status: str = ""
     stack_status_reason: str = ""
     stack_parameters: Dict = field(default_factory=dict)
@@ -1692,23 +1045,6 @@ class BaseStack(BaseResource):
 @dataclass(eq=False)
 class BaseAutoScalingGroup(BaseResource):
     kind: ClassVar[str] = "autoscaling_group"
-    metrics_description: ClassVar[Dict] = {
-        "autoscaling_groups_total": {
-            "help": "Number of Autoscaling Groups",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as autoscaling_groups_total):"
-                " is(autoscaling_group)"
-            ),
-        },
-        "cleaned_autoscaling_groups_total": {
-            "help": "Cleaned number of Autoscaling Groups",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     min_size: int = -1
     max_size: int = -1
 
@@ -1716,23 +1052,6 @@ class BaseAutoScalingGroup(BaseResource):
 @dataclass(eq=False)
 class BaseIPAddress(BaseResource):
     kind: ClassVar[str] = "ip_address"
-    metrics_description: ClassVar[Dict] = {
-        "ip_addresses_total": {
-            "help": "Number of IP Addresses",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as ip_addresses_total):"
-                " is(ip_address)"
-            ),
-        },
-        "cleaned_ip_addresses_total": {
-            "help": "Cleaned number of IP Addresses",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     ip_address: str = ""
     ip_address_family: str = ""
 
@@ -1740,23 +1059,6 @@ class BaseIPAddress(BaseResource):
 @dataclass(eq=False)
 class BaseHealthCheck(BaseResource):
     kind: ClassVar[str] = "health_check"
-    metrics_description: ClassVar[Dict] = {
-        "health_checks_total": {
-            "help": "Number of Health Checks",
-            "labels": ["cloud", "account", "region"],
-            "type": "gauge",
-            "query": (
-                "aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account,"
-                " /ancestors.region.reported.name as region:"
-                " sum(1) as health_checks_total):"
-                " is(health_check)"
-            ),
-        },
-        "cleaned_health_checks_total": {
-            "help": "Cleaned number of Health Checks",
-            "labels": ["cloud", "account", "region"],
-        },
-    }
     check_interval: int = -1
     healthy_threshold: int = -1
     unhealthy_threshold: int = -1

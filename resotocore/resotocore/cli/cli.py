@@ -3,18 +3,21 @@ from __future__ import annotations
 import asyncio
 import calendar
 import logging
+import os
 from asyncio import Task
 from dataclasses import replace
 from datetime import timedelta
 from functools import reduce
+from itertools import takewhile
 from textwrap import dedent
 from typing import Dict, List, Tuple
 from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
-from itertools import takewhile
 from parsy import Parser
+from rich.padding import Padding
+from rich.text import Text
 from tzlocal import get_localzone
 
 from resotocore import version
@@ -101,6 +104,9 @@ class HelpCommand(CLICommand):
     Show help text for a command or general help information.
     """
 
+    with open(os.path.dirname(__file__) + "/../static/ck-unicode-truecolor.ans", "r", encoding="utf-8") as log_file:
+        ck = Text.from_ansi(log_file.read())
+
     def __init__(self, dependencies: CLIDependencies, parts: List[CLICommand], aliases: Dict[str, str]):
         super().__init__(dependencies)
         self.all_parts = {p.name: p for p in parts + [self]}
@@ -128,8 +134,6 @@ class HelpCommand(CLICommand):
             )
             result = dedent(
                 f"""
-                 # resotocore CLI ({version()})
-
                  ## Valid placeholder string: \n{replacements}
 
                  ## Available Aliases: \n{aliases}
@@ -142,7 +146,15 @@ class HelpCommand(CLICommand):
                  Use `help <command>` to show help for a specific command.
                  """
             )
-            return ctx.render_console(result)
+            headline = ctx.render_console(f"# resotocore CLI ({version()})")
+            # ck mascot is centered (rendered if color is enabled)
+            middle = (
+                int((ctx.console_renderer.width - 22) / 2)
+                if ctx.console_renderer is not None and ctx.console_renderer.width is not None
+                else 0
+            )
+            logo = ctx.render_console(Padding(self.ck, pad=(0, 0, 0, middle))) if ctx.supports_color() else ""
+            return headline + logo + ctx.render_console(result)
 
         def help_command() -> Stream:
             if not arg:

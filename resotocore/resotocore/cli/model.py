@@ -19,7 +19,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
-from resotocore.console_renderer import ConsoleRenderer
+from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.message_bus import MessageBus
 from resotocore.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
@@ -74,6 +74,13 @@ class CLIContext:
             return str(element)
         else:
             return element
+
+    def supports_color(self) -> bool:
+        return (
+            self.console_renderer is not None
+            and self.console_renderer.color_system is not None
+            and self.console_renderer.color_system != ConsoleColorSystem.monochrome
+        )
 
     def formatter(self, format_string: str) -> Callable[[Json], str]:
         return self.formatter_with_variables(format_string, False)[0]
