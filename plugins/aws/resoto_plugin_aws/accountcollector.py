@@ -2245,17 +2245,21 @@ class AWSAccountCollector:
             )
             log.debug(f"Found Cloudformation Stack Set {s.name} ({s.id})")
             graph.add_resource(region, s)
-            response = client.list_stack_instances(StackName=s.name)
-            stack_instances = response.get("Summaries", [])
-            while response.get("NextToken") is not None:
-                response = client.list_stack_instances(
-                    StackName=s.name, NextToken=response["NextToken"]
-                )
-                stack_instances.extend(response.get("Summaries", []))
-            for stack_instance in stack_instances:
-                stack_instance_region = stack_instance.get("Region")
-                stack_instance_account = stack_instance.get("Account")
-                stack_instance_stack_id = stack_instance.get("StackId")
+            # The following requires a feature in the core that would
+            # allow to add edges between resources of different accounts.
+            #
+            # response = client.list_stack_instances(StackName=s.name)
+            # stack_instances = response.get("Summaries", [])
+            # while response.get("NextToken") is not None:
+            #     response = client.list_stack_instances(
+            #         StackName=s.name, NextToken=response["NextToken"]
+            #     )
+            #     stack_instances.extend(response.get("Summaries", []))
+            # for stack_instance in stack_instances:
+            #     stack_instance_region = stack_instance.get("Region")
+            #     stack_instance_account = stack_instance.get("Account")
+            #     stack_instance_stack_id = stack_instance.get("StackId")
+            # create a deferred connection that's being resolved core side
 
     @metrics_collect_eks_clusters.time()
     def collect_eks_clusters(self, region: AWSRegion, graph: Graph) -> None:
