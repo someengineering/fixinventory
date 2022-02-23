@@ -2761,12 +2761,13 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
-            _, stderr = await process.communicate()
+            stdout, stderr = await process.communicate()
             maybe_proc = process
             code = await process.wait()
             if code == 0:
                 yield "Database has been restored successfully!"
             else:
+                log.error(f"Could not restore backup: {code}. out={stdout.decode()}, err={stderr.decode()}")
                 raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr.decode()}")
         finally:
             if maybe_proc and maybe_proc.returncode is None:
@@ -2774,18 +2775,19 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                     maybe_proc.kill()
                     await asyncio.sleep(5)
             shutil.rmtree(temp_dir)
-            log.info("Restore process complete. Restart the service.")
-            yield "Since all data has changed in the database eventually, this service needs to be restarted!"
-            # for testing purposes, we can avoid sys exit
-            if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
 
-                async def wait_and_exit() -> None:
-                    log.info("Database was restored successfully - going to STOP the service!")
-                    await asyncio.sleep(1)
-                    shutdown_process(0)
+        log.info("Restore process complete. Restart the service.")
+        yield "Since all data has changed in the database eventually, this service needs to be restarted!"
+        # for testing purposes, we can avoid sys exit
+        if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
 
-                # create a background task, so that the current request can be executed completely
-                asyncio.create_task(wait_and_exit())
+            async def wait_and_exit() -> None:
+                log.info("Database was restored successfully - going to STOP the service!")
+                await asyncio.sleep(1)
+                shutdown_process(0)
+
+            # create a background task, so that the current request can be executed completely
+            asyncio.create_task(wait_and_exit())
 
     @staticmethod
     async def show_system_info() -> AsyncIterator[Json]:
