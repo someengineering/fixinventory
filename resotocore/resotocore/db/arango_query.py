@@ -259,15 +259,15 @@ def query_string(
         query_part = ""
         filtered_out = ""
 
-        def filter_statement(current_cursor: str, part_term: Term) -> str:
-            if isinstance(part_term, AllTerm) and p.limit is None and not p.sort:
+        def filter_statement(current_cursor: str, part_term: Term, limit: Optional[int]) -> str:
+            if isinstance(part_term, AllTerm) and limit is None and not p.sort:
                 return current_cursor
             nonlocal query_part, filtered_out
             crsr = next_crs()
             filtered_out = next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
-            limited = f" LIMIT {p.limit} " if p.limit else " "
+            limited = f" LIMIT {limit} " if limit else " "
             sort_by = sort(crsr, p.sort) if p.sort else " "
             for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}"
             return_stmt = f"RETURN UNSET({f_res}, {unset_props})"
@@ -396,14 +396,15 @@ def query_string(
                 return nav_crsr
 
         if isinstance(p.term, MergeTerm):
-            filter_cursor = filter_statement(in_cursor, p.term.pre_filter)
+            # do not allow a limit in the prefilter
+            filter_cursor = filter_statement(in_cursor, p.term.pre_filter, None)
             cursor, merge_part = merge(filter_cursor, p.term.merge)
             query_part += merge_part
             post = p.term.post_filter if p.term.post_filter else AllTerm()
             # always do the post filter in case of sort or limit
-            cursor = filter_statement(cursor, post)
+            cursor = filter_statement(cursor, post, p.limit)
         else:
-            cursor = filter_statement(in_cursor, p.term)
+            cursor = filter_statement(in_cursor, p.term, p.limit)
         cursor = with_clause(cursor, p.with_clause) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
