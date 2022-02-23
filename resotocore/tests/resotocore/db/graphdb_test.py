@@ -421,7 +421,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)").on_section("reported")
     async with await filled_graph_db.search_aggregation(QueryModel(agg_query, foo_model)) as gen:
-        assert [x async for x in gen] == [{"group": {"reported.kind": "foo"}, "instances": 11}]
+        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 11}]
 
     agg_combined_var_query = parse_query(
         'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
