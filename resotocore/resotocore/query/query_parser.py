@@ -100,9 +100,7 @@ def function_term() -> Parser:
 @make_parser
 def not_term() -> Parser:
     yield not_p
-    yield lparen_p
-    term = yield simple_term_p
-    yield rparen_p
+    term = yield filter_term_parser
     return NotTerm(term)
 
 
