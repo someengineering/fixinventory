@@ -315,7 +315,7 @@ class MergeQuery:
         return f"{self.name}{arr}: {self.query}"
 
     def change_variable(self, fn: Callable[[str], str]) -> MergeQuery:
-        return replace(self, query=self.query.change_variable(fn))
+        return replace(self, name=fn(self.name), query=self.query.change_variable(fn))
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
