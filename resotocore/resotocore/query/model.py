@@ -580,7 +580,10 @@ class AggregateVariable:
         return f"{self.name}{with_as}"
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else str(self.name)
+        def from_name() -> str:
+            return self.name.name.rsplit(".", 1)[-1] if isinstance(self.name, AggregateVariableName) else str(self.name)
+
+        return self.as_name if self.as_name else from_name()
 
     def change_variable(self, fn: Callable[[str], str]) -> AggregateVariable:
         return replace(self, name=self.name.change_variable(fn))
