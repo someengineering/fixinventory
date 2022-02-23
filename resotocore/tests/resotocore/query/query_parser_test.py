@@ -106,7 +106,9 @@ def test_combined() -> None:
 
 
 def test_not() -> None:
-    assert_round_trip(not_term, (P.of_kind("foo") | P.of_kind("bla")).not_term())
+    assert_round_trip(not_term, (P.with_id("foo") | P.of_kind("bla")).not_term())
+    assert_round_trip(not_term, P.of_kind("bla").not_term())
+    assert_round_trip(not_term, term_parser.parse("not(is(a) or not is(b) and not a>1 or not b<2 or not(a>1))"))
 
 
 def test_filter_term() -> None:
