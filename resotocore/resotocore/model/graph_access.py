@@ -324,8 +324,10 @@ class GraphAccess:
             # search for ancestor that matches filter criteria
             anc = self.ancestor_of(node_id, EdgeType.default, resolver.kind)
             if anc:
+                on_self = anc.get("id") == node_id
                 for res in resolver.resolve:
-                    with_ancestor(anc, res)
+                    if not on_self or res.apply_on_self:
+                        with_ancestor(anc, res)
         return node
 
     def dump(self, node_id: str, node: Json) -> Json:
