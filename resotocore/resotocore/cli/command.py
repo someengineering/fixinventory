@@ -2694,6 +2694,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             process = await asyncio.create_subprocess_exec(
                 "arangodump",
                 "--progress", "false",  # do not show progress
+                "--include-system-collections", "true",  # graphs are considered a system collection
                 "--threads", "8",  # default is 2
                 "--log.level", "error",  # only print error messages
                 "--output-directory", temp_dir,  # directory to write to
@@ -2704,13 +2705,18 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
                 "--configuration", "none",
+                stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
-            _, stderr = await process.communicate()
+            stdout_b, stderr_b = await process.communicate()
             maybe_proc = process
             code = await process.wait()
+            stdout = stdout_b.decode() if stdout_b else ""
+            stderr = stderr_b.decode() if stderr_b else ""
+
             if code == 0:
+                log.debug(f"arangodump: out={stdout}, err={stderr}.")
                 files = os.listdir(temp_dir)
                 name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
                 backup = os.path.join(temp_dir, name)
@@ -2720,7 +2726,8 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                         await run_async(tar.add, os.path.join(temp_dir, file), file)
                 yield backup
             else:
-                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr.decode()}")
+                log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
+                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
         finally:
             if maybe_proc and maybe_proc.returncode is None:
                 with suppress(Exception):
@@ -2748,6 +2755,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
                 "--progress", "false",  # do not show progress
+                "--include-system-collections", "true",  # graphs are considered a system collection
                 "--threads", "8",  # default is 2
                 "--log.level", "error",  # only print error messages
                 "--input-directory", temp_dir,  # directory to write to
@@ -2758,17 +2766,22 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
                 "--configuration", "none",
+                stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
-            stdout, stderr = await process.communicate()
+            stdout_b, stderr_b = await process.communicate()
             maybe_proc = process
             code = await process.wait()
+            stdout = stdout_b.decode() if stdout_b else ""
+            stderr = stderr_b.decode() if stderr_b else ""
+
             if code == 0:
+                log.debug(f"arangorestore: out={stdout}, err={stderr}.")
                 yield "Database has been restored successfully!"
             else:
-                log.error(f"Could not restore backup: {code}. out={stdout.decode()}, err={stderr.decode()}")
-                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr.decode()}")
+                log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
+                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
         finally:
             if maybe_proc and maybe_proc.returncode is None:
                 with suppress(Exception):

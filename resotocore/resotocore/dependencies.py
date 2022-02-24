@@ -250,7 +250,9 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
         force=True,
     )
     # adjust log levels for specific loggers
-    if not args.debug:
+    if args.debug:
+        logging.getLogger("resotocore").setLevel(logging.DEBUG)
+    else:
         # mute analytics transmission errors unless debug is enabled
         logging.getLogger("posthog").setLevel(logging.FATAL)
         logging.getLogger("backoff").setLevel(logging.FATAL)
