@@ -17,27 +17,6 @@ log = resotolib.logging.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)
-class DigitalOceanAccount(BaseAccount):
-    """DigitalOcean account"""
-
-    kind: ClassVar[str] = "digitalocean_account"
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
-
-
-@dataclass(eq=False)
-class DigitalOceanRegion(BaseRegion):
-    """DigitalOcean region"""
-
-    kind: ClassVar[str] = "digitalocean_region"
-
-    def delete(self, graph: Graph) -> bool:
-        """Regions can usually not be deleted so we return NotImplemented"""
-        return NotImplemented
-
-
-@dataclass(eq=False)
 class DigitalOceanResource:
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
@@ -63,6 +42,27 @@ class DigitalOceanResource:
         """Delete a resource tag in the cloud"""
         log.debug(f"Deleting tag {key} on resource {self.id}")
         return True
+        
+
+@dataclass(eq=False)
+class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
+    """DigitalOcean Team"""
+
+    kind: ClassVar[str] = "digitalocean_team"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented # DO does not have a team API yet
+
+
+@dataclass(eq=False)
+class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
+    """DigitalOcean region"""
+
+    kind: ClassVar[str] = "digitalocean_region"
+
+    def delete(self, graph: Graph) -> bool:
+        """Regions can usually not be deleted so we return NotImplemented"""
+        return NotImplemented
 
 
 @dataclass(eq=False)
@@ -86,12 +86,10 @@ class DigitalOceanInstance(DigitalOceanResource, BaseInstance):
 
     kind: ClassVar[str] = "digitalocean_instance"
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
-        "pending": InstanceStatus.BUSY,
-        "running": InstanceStatus.RUNNING,
-        "shutting-down": InstanceStatus.BUSY,
-        "terminated": InstanceStatus.TERMINATED,
-        "stopping": InstanceStatus.BUSY,
-        "stopped": InstanceStatus.STOPPED,
+        "new": InstanceStatus.BUSY,
+        "active": InstanceStatus.RUNNING,
+        "off": InstanceStatus.TERMINATED,
+        "archive": InstanceStatus.TERMINATED,
     }
 
     def _instance_status_setter(self, value: str) -> None:
