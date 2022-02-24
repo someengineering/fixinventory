@@ -3,18 +3,17 @@ from __future__ import annotations
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from functools import reduce, partial
+from functools import reduce, partial, cached_property
 from itertools import chain
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set, Iterable
 
-from backports.cached_property import cached_property
 from jsons import set_deserializer
 
 from resotocore.model.graph_access import EdgeType, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
 from resotocore.types import Json, JsonElement
-from resotocore.util import combine_optional
+from resotocore.util import combine_optional, first
 
 PathRoot = "/"
 
@@ -163,6 +162,26 @@ class PArray:
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Term(abc.ABC):
+    """
+    @startuml
+    class Term
+    Term <|-- CombinedTerm
+    Term <|-- NotTerm
+    Term <|-- MergeTerm
+    Term <|--- AllTerm
+    Term <|--- FulltextTerm
+    Term <|--- Predicate
+    Term <|--- IdTerm
+    Term <|--- IsTerm
+    Term <|--- FunctionTerm
+    NotTerm --> Term: not
+    CombinedTerm --> Term: left
+    CombinedTerm --> Term: right
+    MergeTerm --> Term: pre_filter
+    MergeTerm --> Term: post_filter
+    @enduml
+    """
+
     def __or__(self, other: Term) -> Term:
         return self.or_term(other)
 
@@ -174,6 +193,14 @@ class Term(abc.ABC):
 
     def not_term(self) -> NotTerm:
         return NotTerm(self)
+
+    def combine(self, op: str, other: Term) -> Term:
+        if op == "or":
+            return self.or_term(other)
+        elif op == "and":
+            return self.and_term(other)
+        else:
+            raise AttributeError(f"Don't know how to combine with {op}")
 
     def or_term(self, other: Term) -> Term:
         if isinstance(self, AllTerm):
@@ -209,6 +236,25 @@ class Term(abc.ABC):
 
         return walk(self)
 
+    def find_term(self, fn: Callable[[Term], bool]) -> Optional[Term]:
+        if fn(self):
+            return self
+        if isinstance(self, CombinedTerm):
+            return self.left.find_term(fn) or self.right.find_term(fn)
+        elif isinstance(self, NotTerm):
+            return self.term.find_term(fn)
+        elif isinstance(self, MergeTerm):
+            return (
+                self.pre_filter.find_term(fn)
+                or (self.post_filter.find_term(fn) if self.post_filter else None)
+                or first(lambda mq: first(lambda p: p.term.find_term(fn), mq.query.parts), self.merge)
+            )
+        else:
+            return None
+
+    def contains_term_type(self, clazz: type) -> bool:
+        return self.find_term(lambda x: isinstance(x, clazz)) is not None
+
     # noinspection PyUnusedLocal
     @staticmethod
     def from_json(js: Dict[str, Any], _: type = object, **kwargs: Any) -> Term:
@@ -231,6 +277,13 @@ class Term(abc.ABC):
 
 
 class AllTerm(Term):
+    _instance = None
+
+    def __new__(cls) -> AllTerm:
+        if cls._instance is None:
+            cls._instance = super(AllTerm, cls).__new__(cls)
+        return cls._instance
+
     def __str__(self) -> str:
         return "all"
 
@@ -241,6 +294,14 @@ class NotTerm(Term):
 
     def __str__(self) -> str:
         return f"not({self.term})"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class FulltextTerm(Term):
+    text: str
+
+    def __str__(self) -> str:
+        return f'"{self.text}"'
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -705,18 +766,18 @@ class Query:
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
         parts = self.parts.copy()
-        first = parts[0]
-        if first.navigation is None:
+        first_part = parts[0]
+        if first_part.navigation is None:
             # just add the filter to this query
-            parts[0] = Part(CombinedTerm(first.term, "and", res))
+            parts[0] = Part(CombinedTerm(first_part.term, "and", res))
         else:
             # put to the start
             parts.insert(0, Part(res))
         return replace(self, parts=parts)
 
     def filter_with(self, clause: WithClause) -> Query:
-        first = replace(self.parts[0], with_clause=clause)
-        return replace(self, parts=[first, *self.parts[1:]])
+        first_part = replace(self.parts[0], with_clause=clause)
+        return replace(self, parts=[first_part, *self.parts[1:]])
 
     def traverse_out(self, start: int = 1, until: int = 1, edge_type: str = EdgeType.default) -> Query:
         return self.traverse(start, until, edge_type, Direction.outbound)
@@ -761,14 +822,14 @@ class Query:
 
     def merge_with(self, path: str, navigation: Navigation, term: Term) -> Query:
         parts = self.parts.copy()
-        first = parts[0]
+        first_part = parts[0]
         merge = MergeQuery(path, Query([Part(term), Part(AllTerm(), navigation=navigation)]))
         term = (
-            replace(first.term, merge=[*first.term.merge, merge])
-            if isinstance(first.term, MergeTerm)
-            else MergeTerm(first.term, [merge])
+            replace(first_part.term, merge=[*first_part.term.merge, merge])
+            if isinstance(first_part.term, MergeTerm)
+            else MergeTerm(first_part.term, [merge])
         )
-        parts[0] = replace(first, term=term)
+        parts[0] = replace(first_part, term=term)
         return replace(self, parts=parts)
 
     def change_variable(self, fn: Callable[[str], str]) -> Query:

@@ -68,12 +68,12 @@ class ModelHandlerDB(ModelHandler):
 
         def node_visible(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
-            if hide and exist(lambda r: r.fullmatch(k.fqn), hide):  # type: ignore
+            if hide and exist(lambda r: r.fullmatch(k.fqn), hide):
                 return False
             if show is None:
                 return True
             else:
-                return exist(lambda r: r.fullmatch(k.fqn), show)  # type: ignore
+                return exist(lambda r: r.fullmatch(k.fqn), show)
 
         def class_node(cpx: ComplexKind) -> str:
             props = "\n".join([f"**{p.name}**: {p.kind}" for p in cpx.properties])

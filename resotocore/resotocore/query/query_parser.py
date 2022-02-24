@@ -27,7 +27,6 @@ from resotocore.parse_util import (
     whitespace,
     quoted_string_p,
     space_dp,
-    json_value_p,
     variable_p,
     variable_no_array_p,
     integer_p,
@@ -36,6 +35,14 @@ from resotocore.parse_util import (
     r_curly_dp,
     l_curly_p,
     r_curly_p,
+    unquoted_string_parser,
+    json_array_parser,
+    json_object_p,
+    true_dp,
+    false_dp,
+    null_dp,
+    double_quoted_string_dp,
+    float_dp,
 )
 from resotocore.query.model import (
     Predicate,
@@ -59,6 +66,7 @@ from resotocore.query.model import (
     NotTerm,
     MergeTerm,
     MergeQuery,
+    FulltextTerm,
 )
 
 operation_p = (
@@ -76,6 +84,20 @@ function_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["in_subnet"
 
 preamble_prop_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["edge_type", "merge_with_ancestors"]])
 
+# This json parser is different from the one of parse_util: it uses query stop words
+json_value_in_query_p = lexeme(
+    double_quoted_string_dp
+    | json_array_parser
+    | json_object_p
+    | true_dp
+    | false_dp
+    | null_dp
+    # use stop words to not read navigations as strings: a <--, a <-default-, a <-delete-
+    | unquoted_string_parser("--", *[f"-{a}" for a in EdgeType.all])
+    | float_dp
+    | integer_dp
+)
+
 
 @make_parser
 def predicate_term() -> Parser:
@@ -83,7 +105,7 @@ def predicate_term() -> Parser:
     modifier = yield array_modifier_p.optional()
     opts = {"filter": modifier} if modifier else {}
     op = yield operation_p
-    value = yield json_value_p
+    value = yield json_value_in_query_p
     return Predicate(name, op, value, opts)
 
 
@@ -92,7 +114,7 @@ def function_term() -> Parser:
     fn = yield function_p
     yield lparen_p
     name = yield variable_p
-    args = yield (comma_p >> json_value_p).many()
+    args = yield (comma_p >> json_value_in_query_p).many()
     yield rparen_p
     return FunctionTerm(fn, name, args)
 
@@ -104,13 +126,15 @@ def not_term() -> Parser:
     return NotTerm(term)
 
 
+# A fulltext term should not read any keywords of the language
+fulltext_term = quoted_string_p.map(FulltextTerm)
 literal_list_comma_separated_p = (quoted_string_p | literal_p).sep_by(comma_p, min=1)
 literal_list_in_square_brackets = l_bracket_p >> literal_list_comma_separated_p << r_bracket_p
 literal_list_optional_brackets = literal_list_in_square_brackets | literal_list_comma_separated_p
 is_term = lexeme(string("is") >> lparen_p >> literal_list_optional_brackets << rparen_p).map(IsTerm)
 id_term = lexeme(string("id") >> lparen_p >> (quoted_string_p | literal_p) << rparen_p).map(IdTerm)
 match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
-leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term | not_term
+leaf_term_p = is_term | id_term | match_all_term | function_term | predicate_term | not_term | fulltext_term
 bool_op_p = lexeme(string("and") | string("or"))
 not_p = lexeme(string("not"))
 
@@ -383,7 +407,11 @@ def preamble_parser() -> Parser:
 @make_parser
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
-    parts = yield part_parser.at_least(1)
+    parts: List[Part] = yield part_parser.at_least(1)
+    # Make sure the parts are connected via traversals (is not enforced by the parser)
+    for p in parts[0:-1]:
+        if not p.navigation:
+            raise ParseError(f"Query can not be executed. Navigation traversal missing after: {p}")
     return Query(parts[::-1], preamble, maybe_aggregate)
 
 

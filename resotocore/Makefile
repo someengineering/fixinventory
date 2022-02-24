@@ -101,9 +101,9 @@ venv:
 	. ./venv/bin/activate && pip install -r requirements-dev.txt
 	. ./venv/bin/activate && pip install -r requirements-test.txt
 	. ./venv/bin/activate && pip install -r requirements.txt
-	. ./venv/bin/activate && mypy --python-version 3.8 core tests > /dev/null 2>&1 || true
+	. ./venv/bin/activate && mypy --python-version 3.8 resotocore tests > /dev/null 2>&1 || true
 	echo "Run mypy once to collect all required types and packages..."
-	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive core tests || true
+	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive resotocore tests || true
 	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
 
 setup: clean clean-env venv

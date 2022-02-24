@@ -1,7 +1,7 @@
 import pytest
 
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating
-from resotocore.db.arango_query import to_query, query_cost
+from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
@@ -45,3 +45,38 @@ async def test_query_cost(foo_model: Model, graph_db: GraphDB) -> None:
     c4 = await cost("all {parents: <-[0:]-} sort reported.name asc")
     assert c4.full_collection_scan is True
     assert c4.rating is EstimatedQueryCostRating.bad
+
+
+def test_fulltext_term() -> None:
+    part = parse_query('(a>0 and ("foo" and (b>1 and c>2 and "d")))').parts[0]
+    ft, remaining = fulltext_term_combine(part.term)
+    assert str(remaining) == "((b > 1 and c > 2) and a > 0)"
+    assert str(ft) == '("d" and "foo")'
+    # there are 2 fulltext terms or combined with something else
+    ft, remaining = fulltext_term_combine(parse_query('(a>0 and "b") or ("c" and "d")').parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query('a>0 {c: <--} "fulltext"').parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query('a>0 {c: <-- "fulltext" }').parts[0].term)
+    assert ft is None  # fulltext index can not be utilized
+    ft, remaining = fulltext_term_combine(parse_query('"a" and "b" or "c" and "d"').parts[0].term)
+    assert str(ft) == '((("a" and "b") or "c") and "d")'
+
+
+def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
+    def query_string(query: str) -> str:
+        query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
+        return query_str
+
+    single_ft_index = (
+        "LET m0=(FOR ft in search_ns SEARCH ANALYZER(PHRASE(ft.flat, @b0), 'delimited') "
+        "SORT BM25(ft) DESC RETURN ft) "
+        'FOR result in m0 RETURN UNSET(result, ["flat"])'
+    )
+    assert query_string('"a"') == single_ft_index
+    assert query_string('"some other fulltext string"') == single_ft_index
+    # and/or is combined correctly
+    assert (
+        "ANALYZER((((PHRASE(ft.flat, @b0)) and (PHRASE(ft.flat, @b1))) or "
+        "(PHRASE(ft.flat, @b2))) and (PHRASE(ft.flat, @b3)), 'delimited')"
+    ) in query_string('"a" and "b" or "c" and "d"')
