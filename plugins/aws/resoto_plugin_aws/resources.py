@@ -6,7 +6,7 @@ from resotolib.baseresources import *
 from resotolib.graph import Graph
 from resotolib.utils import make_valid_timestamp
 from .utils import aws_client, aws_resource
-from typing import ClassVar
+from typing import ClassVar, Any
 from dataclasses import dataclass
 from resotolib.logging import log
 
@@ -1143,14 +1143,16 @@ class AWSCloudFormationStackSet(AWSResource, BaseResource):
     description: Optional[str] = None
     stack_set_status: Optional[str] = None
     stack_set_parameters: Dict = field(default_factory=dict)
-    stack_set_capabilities: Optional[List] = field(default_factory=list)
+    stack_set_capabilities: Optional[List[str]] = field(default_factory=list)
     stack_set_administration_role_arn: Optional[str] = None
     stack_set_execution_role_name: Optional[str] = None
-    stack_set_drift_detection_details: Optional[Dict] = field(default_factory=dict)
+    stack_set_drift_detection_details: Optional[Dict[str, Any]] = field(
+        default_factory=dict
+    )
     stack_set_last_drift_check_timestamp: Optional[datetime] = None
-    stack_set_auto_deployment: Optional[Dict] = field(default_factory=dict)
+    stack_set_auto_deployment: Optional[Dict[str, bool]] = field(default_factory=dict)
     stack_set_permission_model: Optional[str] = None
-    stack_set_organizational_unit_ids: Optional[List] = field(default_factory=list)
+    stack_set_organizational_unit_ids: Optional[List[str]] = field(default_factory=list)
     stack_set_managed_execution_active: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
