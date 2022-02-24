@@ -2247,6 +2247,7 @@ class AWSAccountCollector:
             graph.add_resource(region, s)
             # The following requires a feature in the core that would
             # allow to add edges between resources of different accounts.
+            # https://github.com/someengineering/resoto/issues/693
             #
             # response = client.list_stack_instances(StackName=s.name)
             # stack_instances = response.get("Summaries", [])
