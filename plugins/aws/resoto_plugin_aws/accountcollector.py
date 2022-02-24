@@ -2203,10 +2203,12 @@ class AWSAccountCollector:
         session = aws_session(self.account.id, self.account.role)
         client = session.client("cloudformation", region_name=region.id)
 
-        response = client.list_stack_sets()
+        response = client.list_stack_sets(Status="ACTIVE")
         stack_sets = response.get("Summaries", [])
         while response.get("NextToken") is not None:
-            response = client.list_stack_sets(NextToken=response["NextToken"])
+            response = client.list_stack_sets(
+                Status="ACTIVE", NextToken=response["NextToken"]
+            )
             stack_sets.extend(response.get("Summaries", []))
 
         for stack_set_summary in stack_sets:
@@ -2216,18 +2218,20 @@ class AWSAccountCollector:
             stack_set = stack_set.get("StackSet", {})
             s = AWSCloudFormationStackSet(
                 stack_set["StackSetId"],
-                self.tags_as_dict(stack_set["Tags"]),
-                name=stack_set["StackSetName"],
+                self.tags_as_dict(stack_set.get("Tags", [])),
+                name=stack_set.get("StackSetName"),
                 _account=self.account,
                 _region=region,
-                stack_set_status=stack_set["Status"],
+                stack_set_status=stack_set.get("Status"),
                 stack_set_parameters=self.parameters_as_dict(
                     stack_set.get("Parameters", [])
                 ),
                 stack_set_capabilities=stack_set.get("Capabilities", []),
-                arn=stack_set["StackSetARN"],
-                stack_set_administration_role_arn=stack_set["AdministrationRoleARN"],
-                stack_set_execution_role_name=stack_set["ExecutionRoleName"],
+                arn=stack_set.get("StackSetARN"),
+                stack_set_administration_role_arn=stack_set.get(
+                    "AdministrationRoleARN"
+                ),
+                stack_set_execution_role_name=stack_set.get("ExecutionRoleName"),
                 stack_set_drift_detection_details=stack_set.get(
                     "StackSetDriftDetectionDetails", {}
                 ),
