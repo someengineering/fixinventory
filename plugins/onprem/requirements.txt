@@ -1,2 +1,2 @@
-resotolib==2.0.0a17
+resotolib==2.0.0a18
 paramiko==2.9.2
