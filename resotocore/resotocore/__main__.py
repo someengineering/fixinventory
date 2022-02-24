@@ -106,7 +106,7 @@ def run(arguments: List[str]) -> None:
         args,
     )
     event_emitter = emit_recurrent_events(
-        event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1)
+        event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
     )
 
     async def on_start() -> None:
