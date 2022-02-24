@@ -4,6 +4,7 @@ import socket
 import urllib3
 import json
 import re
+from datetime import datetime, timezone, timedelta
 from functools import lru_cache
 from threading import Lock
 from collections.abc import Mapping
@@ -220,6 +221,10 @@ metrics_collect_cloudformation_stacks = Summary(
     "resoto_plugin_aws_collect_cloudformation_stacks_seconds",
     "Time it took the collect_cloudformation_stacks() method",
 )
+metrics_collect_cloudformation_stack_sets = Summary(
+    "resoto_plugin_aws_collect_cloudformation_stack_sets_seconds",
+    "Time it took the collect_cloudformation_stack_sets() method",
+)
 metrics_collect_eks_clusters = Summary(
     "resoto_plugin_aws_collect_eks_clusters_seconds",
     "Time it took the collect_eks_clusters() method",
@@ -290,6 +295,7 @@ class AWSAccountCollector:
             "network_interfaces": self.collect_network_interfaces,
             "nat_gateways": self.collect_nat_gateways,
             "rds_instances": self.collect_rds_instances,
+            "cloudformation_stack_sets": self.collect_cloudformation_stack_sets,
             "cloudformation_stacks": self.collect_cloudformation_stacks,
             "eks_clusters": self.collect_eks_clusters,
             "vpc_peering_connections": self.collect_vpc_peering_connections,
@@ -1354,7 +1360,7 @@ class AWSAccountCollector:
                         )
                     )
                     i.add_deferred_connection(
-                        "arn", instance.iam_instance_profile["Arn"]
+                        {"arn": instance.iam_instance_profile["Arn"]}
                     )
                 log.debug(
                     f"Found instance {i.id} of type {i.instance_type} status {i.instance_status}"
@@ -1848,10 +1854,10 @@ class AWSAccountCollector:
                                 f"Queuing deferred connection from Server Certificate {certificate_arn} to ALB {a.id}"
                             )
                             a.add_deferred_connection(
-                                "arn", certificate_arn, parent=False
+                                {"arn": certificate_arn}, parent=False
                             )
                             a.add_deferred_connection(
-                                "arn", certificate_arn, edge_type=EdgeType.delete
+                                {"arn": certificate_arn}, edge_type=EdgeType.delete
                             )
 
             except botocore.exceptions.ClientError:
@@ -1928,10 +1934,10 @@ class AWSAccountCollector:
                             f"Queuing deferred connection from Server Certificate {ssl_certificate_id} to ELB {e.id}"
                         )
                         e.add_deferred_connection(
-                            "arn", ssl_certificate_id, parent=False
+                            {"arn": ssl_certificate_id}, parent=False
                         )
                         e.add_deferred_connection(
-                            "arn", ssl_certificate_id, edge_type=EdgeType.delete
+                            {"arn": ssl_certificate_id}, edge_type=EdgeType.delete
                         )
             except botocore.exceptions.ClientError:
                 log.exception(f"Some boto3 call failed on resource {elb} - skipping")
@@ -2186,6 +2192,80 @@ class AWSAccountCollector:
             log.debug(f"Found Cloudformation Stack {s.name} ({s.id})")
             graph.add_resource(region, s)
 
+    @metrics_collect_cloudformation_stack_sets.time()
+    def collect_cloudformation_stack_sets(
+        self, region: AWSRegion, graph: Graph
+    ) -> None:
+        log.info(
+            f"Collecting AWS Cloudformation Stack Sets in account {self.account.dname} region {region.id}"
+        )
+
+        session = aws_session(self.account.id, self.account.role)
+        client = session.client("cloudformation", region_name=region.id)
+
+        response = client.list_stack_sets(Status="ACTIVE")
+        stack_sets = response.get("Summaries", [])
+        while response.get("NextToken") is not None:
+            response = client.list_stack_sets(
+                Status="ACTIVE", NextToken=response["NextToken"]
+            )
+            stack_sets.extend(response.get("Summaries", []))
+
+        for stack_set_summary in stack_sets:
+            stack_set = client.describe_stack_set(
+                StackSetName=stack_set_summary["StackSetName"]
+            )
+            stack_set = stack_set.get("StackSet", {})
+            s = AWSCloudFormationStackSet(
+                stack_set["StackSetId"],
+                self.tags_as_dict(stack_set.get("Tags", [])),
+                name=stack_set.get("StackSetName"),
+                _account=self.account,
+                _region=region,
+                stack_set_status=stack_set.get("Status"),
+                stack_set_parameters=self.parameters_as_dict(
+                    stack_set.get("Parameters", [])
+                ),
+                stack_set_capabilities=stack_set.get("Capabilities", []),
+                arn=stack_set.get("StackSetARN"),
+                stack_set_administration_role_arn=stack_set.get(
+                    "AdministrationRoleARN"
+                ),
+                stack_set_execution_role_name=stack_set.get("ExecutionRoleName"),
+                stack_set_drift_detection_details=stack_set.get(
+                    "StackSetDriftDetectionDetails", {}
+                ),
+                stack_set_last_drift_check_timestamp=stack_set.get(
+                    "StackSetDriftDetectionDetails", {}
+                ).get("LastDriftCheckTimestamp"),
+                stack_set_auto_deployment=stack_set.get("AutoDeployment", {}),
+                stack_set_permission_model=stack_set.get("PermissionModel"),
+                stack_set_organizational_unit_ids=stack_set.get(
+                    "OrganizationalUnitIds", []
+                ),
+                stack_set_managed_execution_active=stack_set.get(
+                    "ManagedExecution", {}
+                ).get("Active"),
+            )
+            log.debug(f"Found Cloudformation Stack Set {s.name} ({s.id})")
+            graph.add_resource(region, s)
+            # The following requires a feature in the core that would
+            # allow to add edges between resources of different accounts.
+            # https://github.com/someengineering/resoto/issues/693
+            #
+            # response = client.list_stack_instances(StackName=s.name)
+            # stack_instances = response.get("Summaries", [])
+            # while response.get("NextToken") is not None:
+            #     response = client.list_stack_instances(
+            #         StackName=s.name, NextToken=response["NextToken"]
+            #     )
+            #     stack_instances.extend(response.get("Summaries", []))
+            # for stack_instance in stack_instances:
+            #     stack_instance_region = stack_instance.get("Region")
+            #     stack_instance_account = stack_instance.get("Account")
+            #     stack_instance_stack_id = stack_instance.get("StackId")
+            # create a deferred connection that's being resolved core side
+
     @metrics_collect_eks_clusters.time()
     def collect_eks_clusters(self, region: AWSRegion, graph: Graph) -> None:
         log.info(
@@ -2219,9 +2299,9 @@ class AWSAccountCollector:
                 log.debug(
                     f"Queuing deferred connection from role {cluster['roleArn']} to {c.kind} {c.id}"
                 )
-                c.add_deferred_connection("arn", cluster["roleArn"], parent=False)
+                c.add_deferred_connection({"arn": cluster["roleArn"]}, parent=False)
                 c.add_deferred_connection(
-                    "arn", cluster["roleArn"], edge_type=EdgeType.delete
+                    {"arn": cluster["roleArn"]}, edge_type=EdgeType.delete
                 )
             graph.add_resource(region, c)
             self.get_eks_nodegroups(region, graph, c)
