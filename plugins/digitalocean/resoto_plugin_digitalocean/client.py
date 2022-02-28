@@ -1,6 +1,6 @@
 import resotolib.logging
-from resoto_digitalocean_client.api import project_resources_api, projects_api, droplets_api
-from resoto_digitalocean_client import ApiClient
+from resoto_digitalocean_openapi_client.api import project_resources_api, projects_api, droplets_api
+from resoto_digitalocean_openapi_client import ApiClient
 from typing import Dict, List, Any
 import logging
 

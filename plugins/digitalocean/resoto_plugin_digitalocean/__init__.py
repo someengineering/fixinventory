@@ -9,8 +9,8 @@ from resotolib.args import ArgumentParser
 from functools import reduce
 
 
-from resoto_digitalocean_client.api import projects_api
-from resoto_digitalocean_client import Configuration, ApiClient
+from resoto_digitalocean_openapi_client.api import projects_api
+from resoto_digitalocean_openapi_client import Configuration, ApiClient
 
 from .resources import DigitalOceanTeam, DigitalOceanProject
 from .collector import DigitalOceanTeamCollector

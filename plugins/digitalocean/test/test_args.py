@@ -1,6 +1,6 @@
 from resotolib.args import get_arg_parser, ArgumentParser
 from resoto_plugin_digitalocean import DigitalOceanCollectorPlugin
-import resoto_digitalocean_client
+import resoto_digitalocean_openapi_client
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
@@ -14,11 +14,11 @@ def test_args():
 
 def api_call():
 
-    configuration = resoto_digitalocean_client.Configuration(
+    configuration = resoto_digitalocean_openapi_client.Configuration(
         access_token = os.environ['DO_TOKEN']
     )
 
-    with resoto_digitalocean_client.ApiClient(configuration) as api_client:
+    with resoto_digitalocean_openapi_client.ApiClient(configuration) as api_client:
         client = StreamingWrapper(api_client)
 
         try:
@@ -40,16 +40,16 @@ def api_call():
                 print(resp)
 
             assert False
-        except resoto_digitalocean_client.ApiException as e:
+        except resoto_digitalocean_openapi_client.ApiException as e:
             print("Exception when calling ClickApplicationsApi->install_kubernetes: %s\n" % e)
 
 def test_collect():
 
-    configuration = resoto_digitalocean_client.Configuration(
+    configuration = resoto_digitalocean_openapi_client.Configuration(
         access_token = os.environ['DO_TOKEN']
     )
 
-    with resoto_digitalocean_client.ApiClient(configuration) as api_client:
+    with resoto_digitalocean_openapi_client.ApiClient(configuration) as api_client:
         client = StreamingWrapper(api_client)
 
         projects = client.list_projects()
