@@ -1,5 +1,10 @@
 import resotolib.logging
-from resoto_digitalocean_openapi_client.api import project_resources_api, projects_api, droplets_api
+from resoto_digitalocean_openapi_client.api import (
+    project_resources_api, 
+    projects_api, 
+    droplets_api,
+    regions_api,
+)
 from resoto_digitalocean_openapi_client import ApiClient
 from typing import Dict, List, Any
 import logging
@@ -11,12 +16,11 @@ log = resotolib.logging.getLogger("resoto." + __name__)
 # todo: stream the response
 class StreamingWrapper:
 
-    log.setLevel(logging.DEBUG)
-
     def __init__(self, api_client: ApiClient) -> None:
         self.projects = projects_api.ProjectsApi(api_client)
         self.project_resources = project_resources_api.ProjectResourcesApi(api_client)
         self.droplets = droplets_api.DropletsApi(api_client)
+        self.regions = regions_api.RegionsApi(api_client)
     
 
     def list_projects(self) -> List[Dict[str, Any]]:
@@ -48,3 +52,13 @@ class StreamingWrapper:
             )
         )
         return response['droplets']
+
+    def list_regions(self) -> List[Dict[str, Any]]:
+        response = self.regions.list_all_regions()
+        log.debug(
+            (
+                "list_regions: "
+                f"{response}"
+            )
+        )
+        return response['regions']

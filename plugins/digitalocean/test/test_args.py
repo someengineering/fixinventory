@@ -5,6 +5,8 @@ from resoto_plugin_digitalocean.client import StreamingWrapper
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
 import os
+import json
+
 
 def test_args():
     arg_parser = get_arg_parser()
@@ -22,22 +24,24 @@ def api_call():
         client = StreamingWrapper(api_client)
 
         try:
-            projects = client.list_projects()
-            print('all projects list')
-            print(projects)
+            # projects = client.list_projects()
+            # print('all projects list')
+            # print(projects)
 
-            print('project team')
-            print(projects[0]['owner_uuid'])
+            # print('project team')
+            # print(projects[0]['owner_uuid'])
 
+
+            print('regions')
+            print(json.dumps(client.list_regions()))
 
             print('droplets')
-            print(client.list_droplets()[0])
-
+            print(json.dumps(client.list_droplets()[0]))
         
-            for project in projects:
-                print(f"getting project {project['name']}")
-                resp = client.list_project_resources(project['id'])
-                print(resp)
+            # for project in projects:
+                # print(f"getting project {project['name']}")
+                # resp = client.list_project_resources(project['id'])
+                # print(resp)
 
             assert False
         except resoto_digitalocean_openapi_client.ApiException as e:

@@ -60,6 +60,8 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
+    available: bool = True
+
     def delete(self, graph: Graph) -> bool:
         """Regions can usually not be deleted so we return NotImplemented"""
         return NotImplemented

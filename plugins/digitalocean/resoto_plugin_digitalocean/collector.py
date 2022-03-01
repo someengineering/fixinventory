@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanTeam
+from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -35,6 +35,10 @@ metrics_collect_intances = Summary(
     "resoto_plugin_digitalocean_collect_droplets_seconds",
     "Time it took the collect_droplets() method",
 )
+metrics_collect_regions = Summary(
+    "resoto_plugin_digitalocean_collect_regions_seconds",
+    "Time it took the collect_regions() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -56,14 +60,14 @@ class DigitalOceanTeamCollector:
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
         self.mandatory_collectors = {
-            "instances": self.collect_instances,
+            "regions": self.collect_regions,
         }
         # Global collectors are resources that are either specified on a global level
         # as opposed to a per zone or per region level or they are zone/region
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
         self.global_collectors = {
-            
+            "instances": self.collect_instances,
         }
         
         self.project_collectors = {
@@ -128,6 +132,9 @@ class DigitalOceanTeamCollector:
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
             remove_nodes.clear()
 
+        rmnodes(DigitalOceanRegion)
+
+
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
     ) -> Dict:
@@ -140,7 +147,7 @@ class DigitalOceanTeamCollector:
 
         kwargs = {
             "id": str(result.get("id")), 
-            "tags": dict(map(extract_tag,  result.get("tags"))),
+            # "tags": dict(map(extract_tag,  result.get("tags"))),
             "name": result.get("name"),
             "ctime": iso2datetime(result.get("created_at")),
             "_account": self.team,
@@ -307,5 +314,19 @@ class DigitalOceanTeamCollector:
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
-            }
+            },
+            search_map={"_region": ["id", lambda droplet: droplet['region']['slug']]},
+        )
+
+    @metrics_collect_regions.time()
+    def collect_regions(self) -> None:
+        regions = self.client.list_regions()
+        self.collect_something(
+            regions,
+            resource_class=DigitalOceanRegion,
+            attr_map={
+                "id": "slug",
+                "name": "name",
+            },
+            search_map={},
         )
