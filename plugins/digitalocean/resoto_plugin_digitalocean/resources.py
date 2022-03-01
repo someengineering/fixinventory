@@ -11,6 +11,7 @@ from resotolib.baseresources import (
     BaseVolume,
     InstanceStatus,
     VolumeStatus,
+    BaseDatabase,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -136,6 +137,10 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
 DigitalOceanVolume.volume_status = property(
     DigitalOceanVolume._volume_status_getter, DigitalOceanVolume._volume_status_setter
 )
+
+@dataclass(eq=False)
+class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
+    kind: ClassVar[str] = "digitalocean_database"
 
 
 @dataclass(eq=False)

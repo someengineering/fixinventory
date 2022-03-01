@@ -14,7 +14,7 @@ def test_args():
     arg_parser.parse_args()
     assert ArgumentParser.args.digitalocean_region is None
 
-def api_call():
+def atest_api_call():
 
     configuration = resoto_digitalocean_openapi_client.Configuration(
         access_token = os.environ['DO_TOKEN']
@@ -33,7 +33,7 @@ def api_call():
 
 
             print('volumes')
-            print(json.dumps(client.list_volumes()))
+            print(client.list_databases())
         
             # for project in projects:
                 # print(f"getting project {project['name']}")

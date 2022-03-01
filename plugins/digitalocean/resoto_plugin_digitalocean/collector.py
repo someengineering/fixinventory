@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume
+from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -73,6 +73,7 @@ class DigitalOceanTeamCollector:
         self.global_collectors = {
             "instances": self.collect_instances,
             "volumes": self.collect_volumes,
+            "databases": self.collect_databases,
         }
         
         self.project_collectors = {
@@ -339,9 +340,9 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
-        regions = self.client.list_volumes()
+        volumes = self.client.list_volumes()
         self.collect_something(
-            regions,
+            volumes,
             resource_class=DigitalOceanVolume,
             attr_map={
                 "volume_size": "size_gigabytes",
@@ -350,4 +351,47 @@ class DigitalOceanTeamCollector:
                 "__users": ["id", lambda vol: list(map(lambda id: str(id), vol["droplet_ids"]))],
             },
             predecessors={EdgeType.default: ["__users"]},
+        )
+
+    @metrics_collect_databases.time()
+    def collect_databases(self) -> None:
+
+        dbtype_to_size = {
+            "db-s-1vcpu-1gb": 10,
+            "db-s-1vcpu-2gb": 25,
+            "db-s-2vcpu-4gb": 38,
+            "db-s-4vcpu-8gb": 115,
+            "db-s-6vcpu-16gb": 270,
+            "db-s-8vcpu-32gb": 580,
+            "db-s-16vcpu-64gb": 1012,
+            "gd-2vcpu-8gb": 25,
+            "gd-4vcpu-16gb": 60,
+            "gd-8vcpu-32gb": 145,
+            "gd-16vcpu-64gb": 325,
+            "gd-32vcpu-128gb": 695,
+            "gd-40vcpu-160gb": 875,
+            "so1_5-2vcpu-16gb": 400,
+            "so1_5-4vcpu-32gb": 845,
+            "so1_5-8vcpu-64gb": 1680,
+            "so1_5-16vcpu-128gb": 3410,
+            "so1_5-24vcpu-192gb": 5140,
+            "so1_5-32vcpu-256gb": 6860,
+        }
+
+        databases = self.client.list_databases()
+        self.collect_something(
+            databases,
+            resource_class=DigitalOceanDatabase,
+            attr_map={
+                "db_type": "engine",
+                "db_status": "status",
+                "db_version": "version",
+                "db_endpoint": lambda db: db.get("connection", {}).get("host", ""),
+                "instance_type": "size",
+                "volume_size": lambda db: dbtype_to_size.get(db.get("size", "") , 0),
+            },
+            search_map={
+                "_region": ["id", "region"]
+                # todo: vpc
+            },
         )
