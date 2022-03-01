@@ -57,7 +57,9 @@ def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
     return check_defined if defined else always_valid
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class SyntheticProperty:
+    path: List[str]
     """
     A synthetic property does not exist in the underlying data model.
     It is defined by a function on an existing other property.
@@ -65,31 +67,17 @@ class SyntheticProperty:
              the function is age=now-ctime.
     """
 
-    def __init__(self, path: List[str]):
-        self.path = path
 
-    def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, SyntheticProperty) else False
-
-
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Property:
-    def __init__(
-        self,
-        name: str,
-        kind: str,
-        required: bool = False,
-        synthetic: Optional[SyntheticProperty] = None,
-        description: Optional[str] = None,
-    ):
-        self.name = name
-        self.kind = kind
-        self.required = required
-        self.synthetic = synthetic
-        self.description = description
-        assert synthetic is None or not required, "Synthetic properties can not be required!"
+    name: str
+    kind: str
+    required: bool = False
+    synthetic: Optional[SyntheticProperty] = None
+    description: Optional[str] = None
 
-    def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Property) else False
+    def __post_init__(self) -> None:
+        assert self.synthetic is None or not self.required, "Synthetic properties can not be required!"
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)

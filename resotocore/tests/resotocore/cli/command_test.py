@@ -26,7 +26,7 @@ from resotocore.cli.model import CLIDependencies, CLIContext
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
-from resotocore.model.model import predefined_kinds
+from resotocore.model.model import Model, ComplexKind
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
@@ -495,10 +495,11 @@ async def test_tag_command(
 
 
 @pytest.mark.asyncio
-async def test_kind_command(cli: CLI) -> None:
+async def test_kind_command(cli: CLI, foo_model: Model) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
-    for kind in predefined_kinds:
-        assert kind.fqn in result[0]
+    for kind in foo_model.kinds.values():
+        if isinstance(kind, ComplexKind):
+            assert kind.fqn in result[0]
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
     result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)

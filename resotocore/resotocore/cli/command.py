@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import json
 import logging
 import os.path
@@ -8,8 +10,6 @@ import re
 import shutil
 import tarfile
 import tempfile
-import io
-import csv
 from abc import abstractmethod, ABC
 from asyncio import Future, Task
 from asyncio.subprocess import Process
@@ -73,7 +73,7 @@ from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeType
-from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
+from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
 from resotocore.parse_util import (
@@ -1319,13 +1319,13 @@ class JqCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, process))
 
 
-class KindCommand(CLICommand, PreserveOutputFormat):
+class KindsCommand(CLICommand, PreserveOutputFormat):
     """
     ```shell
-    kind [-p property_path] [name]
+    kinds [-p property_path] [name]
     ```
 
-    kind gives information about the available graph data kinds.
+    kinds gives information about the available graph data kinds.
 
     ## Options
 
@@ -1339,28 +1339,36 @@ class KindCommand(CLICommand, PreserveOutputFormat):
     ## Examples
 
     ```shell
-
     # Show all available kinds.
-    > kind
+    > kinds
     access_key
     .
     .
     zone
 
     # Show details about a specific kind.
-    > kind graph_root
-    name: graph_root
+    > kinds volume
+    name: volume
     bases:
-    - graph_root
+    - resource
     properties:
-    - description: The name of this node.
+      age: duration
+      atime: datetime
+      ctime: datetime
+      id: string
       kind: string
-      name: name
-      required: false
-    - description: All attached tags of this node.
-      kind: dictionary[string, string]
-      name: tags
-      required: false
+      last_access: duration
+      last_update: duration
+      mtime: datetime
+      name: string
+      snapshot_before_delete: boolean
+      tags: dictionary[string, string]
+      volume_encrypted: boolean
+      volume_iops: int64
+      volume_size: int64
+      volume_status: string
+      volume_throughput: int64
+      volume_type: string
 
     # Lookup the type of the given property path in the model.
     > kind -p reported.tags.owner
@@ -1371,7 +1379,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
 
     @property
     def name(self) -> str:
-        return "kind"
+        return "kinds"
 
     def info(self) -> str:
         return "Retrieves information about the graph data kinds."
@@ -1395,8 +1403,18 @@ class KindCommand(CLICommand, PreserveOutputFormat):
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
             elif isinstance(kind, ComplexKind):
+                synth = {k.prop.name: k for k in kind.synthetic_props() if len(k.path.path) == 1}
+
+                def kind_name(p: Property) -> str:
+                    # in case of synthetic property
+                    return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
+
                 props = sorted(kind.all_props, key=lambda k: k.name)
-                return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": to_json(props)}
+                return {
+                    "name": kind.fqn,
+                    "bases": list(kind.kind_hierarchy() - {kind.fqn}),
+                    "properties": {p.name: kind_name(p) for p in props},
+                }
             else:
                 return {"name": kind.fqn}
 
@@ -1409,7 +1427,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
                 return 1, stream.just(result)
             else:
-                result = sorted(list(model.kinds.keys()))
+                result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
                 return len(model.kinds), stream.iterate(result)
 
         return CLISource(source)
@@ -2095,6 +2113,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     line += "|"
                     yield line
 
+            # noinspection PyUnresolvedReferences
             markdown_chunks = (
                 in_stream
                 | pipe.filter(is_node)
@@ -3366,7 +3385,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JobsCommand(d),
         JqCommand(d),
         JsonCommand(d),
-        KindCommand(d),
+        KindsCommand(d),
         ListCommand(d),
         TemplatesCommand(d),
         PredecessorsPart(d),
@@ -3392,4 +3411,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "search", "query": "search", "https": "http"}
+    return {"match": "search", "query": "search", "https": "http", "kind": "kinds"}
