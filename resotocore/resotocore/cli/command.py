@@ -1371,7 +1371,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
       volume_type: string
 
     # Lookup the type of the given property path in the model.
-    > kind -p reported.tags.owner
+    > kinds -p reported.tags.owner
     name: string
     runtime_kind: string
     ```
