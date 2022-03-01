@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam
+from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -38,6 +38,10 @@ metrics_collect_intances = Summary(
 metrics_collect_regions = Summary(
     "resoto_plugin_digitalocean_collect_regions_seconds",
     "Time it took the collect_regions() method",
+)
+metrics_collect_volumes = Summary(
+    "resoto_plugin_digitalocean_collect_volumes_seconds",
+    "Time it took the collect_volumes() method",
 )
 
 class DigitalOceanTeamCollector:
@@ -68,6 +72,7 @@ class DigitalOceanTeamCollector:
         # for all zones/regions.
         self.global_collectors = {
             "instances": self.collect_instances,
+            "volumes": self.collect_volumes,
         }
         
         self.project_collectors = {
@@ -163,7 +168,7 @@ class DigitalOceanTeamCollector:
                 kwargs[map_to] = data
 
         # By default we search for a resources region and/or zone
-        default_search_map = {"_region": ["link", "region"]}
+        default_search_map = {}
         search_results = {}
         if search_map is None:
             search_map = dict(default_search_map)
@@ -329,4 +334,20 @@ class DigitalOceanTeamCollector:
                 "name": "name",
             },
             search_map={},
+        )
+
+
+    @metrics_collect_volumes.time()
+    def collect_volumes(self) -> None:
+        regions = self.client.list_volumes()
+        self.collect_something(
+            regions,
+            resource_class=DigitalOceanVolume,
+            attr_map={
+                "volume_size": "size_gigabytes",
+            },
+            search_map={
+                "__users": ["id", lambda vol: list(map(lambda id: str(id), vol["droplet_ids"]))],
+            },
+            predecessors={EdgeType.default: ["__users"]},
         )

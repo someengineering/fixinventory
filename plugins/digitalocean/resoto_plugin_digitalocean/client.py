@@ -4,6 +4,7 @@ from resoto_digitalocean_openapi_client.api import (
     projects_api, 
     droplets_api,
     regions_api,
+    block_storage_api
 )
 from resoto_digitalocean_openapi_client import ApiClient
 from typing import Dict, List, Any
@@ -21,6 +22,7 @@ class StreamingWrapper:
         self.project_resources = project_resources_api.ProjectResourcesApi(api_client)
         self.droplets = droplets_api.DropletsApi(api_client)
         self.regions = regions_api.RegionsApi(api_client)
+        self.volumes = block_storage_api.BlockStorageApi(api_client)
     
 
     def list_projects(self) -> List[Dict[str, Any]]:
@@ -62,3 +64,13 @@ class StreamingWrapper:
             )
         )
         return response['regions']
+
+    def list_volumes(self) -> List[Dict[str, Any]]:
+        response = self.volumes.list_all_volumes()
+        log.debug(
+            (
+                "list_volumes: "
+                f"{response}"
+            )
+        )
+        return response['volumes']

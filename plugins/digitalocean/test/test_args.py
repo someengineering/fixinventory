@@ -32,11 +32,8 @@ def api_call():
             # print(projects[0]['owner_uuid'])
 
 
-            print('regions')
-            print(json.dumps(client.list_regions()))
-
-            print('droplets')
-            print(json.dumps(client.list_droplets()[0]))
+            print('volumes')
+            print(json.dumps(client.list_volumes()))
         
             # for project in projects:
                 # print(f"getting project {project['name']}")
