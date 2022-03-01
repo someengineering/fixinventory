@@ -495,11 +495,26 @@ async def test_tag_command(
 
 
 @pytest.mark.asyncio
-async def test_kind_command(cli: CLI, foo_model: Model) -> None:
+async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
     for kind in foo_model.kinds.values():
         if isinstance(kind, ComplexKind):
             assert kind.fqn in result[0]
+    result = await cli.execute_cli_command("kind foo", stream.list)
+    assert result[0][0] == {
+        "name": "foo",
+        "bases": ["base"],
+        "properties": {
+            "age": "duration",
+            "ctime": "datetime",
+            "identifier": "string",
+            "kind": "string",
+            "name": "string",
+            "now_is": "datetime",
+            "some_int": "int32",
+            "some_string": "string",
+        },
+    }
     result = await cli.execute_cli_command("kind string", stream.list)
     assert result[0][0] == {"name": "string", "runtime_kind": "string"}
     result = await cli.execute_cli_command("kind -p reported.ctime", stream.list)
