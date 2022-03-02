@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase
+from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -43,6 +43,10 @@ metrics_collect_volumes = Summary(
     "resoto_plugin_digitalocean_collect_volumes_seconds",
     "Time it took the collect_volumes() method",
 )
+metrics_collect_vpcs = Summary(
+    "resoto_plugin_digitalocean_collect_vpcs_seconds",
+    "Time it took the collect_vpcs() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -63,18 +67,19 @@ class DigitalOceanTeamCollector:
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
-        self.mandatory_collectors = {
-            "regions": self.collect_regions,
-        }
+        self.mandatory_collectors: List[Tuple[str, Callable]] = [
+            ("regions", self.collect_regions)
+        ]
         # Global collectors are resources that are either specified on a global level
         # as opposed to a per zone or per region level or they are zone/region
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
-        self.global_collectors = {
-            "instances": self.collect_instances,
-            "volumes": self.collect_volumes,
-            "databases": self.collect_databases,
-        }
+        self.global_collectors: List[Tuple[str, Callable]] = [
+            ("vpcs", self.collect_vpcs),
+            ("instances", self.collect_instances),
+            ("volumes", self.collect_volumes),
+            ("databases", self.collect_databases),
+        ]
         
         self.project_collectors = {
             # "databases": self.collect_databases,
@@ -115,12 +120,12 @@ class DigitalOceanTeamCollector:
             )
         )
 
-        for collector_name, collector in self.mandatory_collectors.items():
+        for collector_name, collector in self.mandatory_collectors:
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.team.rtdname}")
                 collector()
 
-        for collector_name, collector in self.global_collectors.items():
+        for collector_name, collector in self.global_collectors:
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.team.rtdname}")
                 collector()
@@ -321,7 +326,12 @@ class DigitalOceanTeamCollector:
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
             },
-            search_map={"_region": ["id", lambda droplet: droplet['region']['slug']]},
+            search_map={
+                "_region": ["id", lambda droplet: droplet['region']['slug']],
+                "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
+
+            },
+            predecessors={EdgeType.default: ["__vpcs"]},
         )
 
     @metrics_collect_regions.time()
@@ -391,7 +401,19 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda db: dbtype_to_size.get(db.get("size", "") , 0),
             },
             search_map={
-                "_region": ["id", "region"]
-                # todo: vpc
+                "_region": ["id", "region"],
+                "__vpcs": ["id", lambda db: db["private_network_uuid"]],
+            },
+            predecessors={EdgeType.default: ["__vpcs"]},
+        )
+
+    @metrics_collect_vpcs.time()
+    def collect_vpcs(self) -> None:
+        vpcs = self.client.list_vpcs()
+        self.collect_something(
+            vpcs,
+            resource_class=DigitalOceanNetwork,
+            search_map={
+                "_region": ["id", "region"],
             },
         )

@@ -6,6 +6,7 @@ from resoto_digitalocean_openapi_client.api import (
     regions_api,
     block_storage_api,
     databases_api,
+    vpcs_api,
 )
 from resoto_digitalocean_openapi_client import ApiClient
 from typing import Dict, List, Any
@@ -25,6 +26,7 @@ class StreamingWrapper:
         self.regions = regions_api.RegionsApi(api_client)
         self.volumes = block_storage_api.BlockStorageApi(api_client)
         self.databases = databases_api.DatabasesApi(api_client)
+        self.vpc = vpcs_api.VPCsApi(api_client)
     
 
     def list_projects(self) -> List[Dict[str, Any]]:
@@ -35,7 +37,7 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['projects']
+        return response.get('projects', [])
     
     def list_project_resources(self, project_id: str) -> List[Dict[str, Any]]:
         response = self.project_resources.list_project_resources(project_id)
@@ -45,7 +47,7 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['resources']
+        return response.get('resources', [])
 
     def list_droplets(self) -> List[Dict[str, Any]]:
         response = self.droplets.list_all_droplets()
@@ -55,7 +57,7 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['droplets']
+        return response.get('droplets', [])
 
     def list_regions(self) -> List[Dict[str, Any]]:
         response = self.regions.list_all_regions()
@@ -65,7 +67,7 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['regions']
+        return response.get('regions', [])
 
     def list_volumes(self) -> List[Dict[str, Any]]:
         response = self.volumes.list_all_volumes()
@@ -75,7 +77,7 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['volumes']
+        return response.get('volumes', [])
 
     def list_databases(self) -> List[Dict[str, Any]]:
         response = self.databases.list_database_clusters()
@@ -85,4 +87,14 @@ class StreamingWrapper:
                 f"{response}"
             )
         )
-        return response['databases']
+        return response.get('databases', [])
+
+    def list_vpcs(self) -> List[Dict[str, Any]]:
+        response = self.vpc.list_vpcs()
+        log.debug(
+            (
+                "list_vpcs: "
+                f"{response}"
+            )
+        )
+        return response.get('vpcs', [])
