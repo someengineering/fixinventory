@@ -3,6 +3,8 @@ from pydoc import locate
 from typing import Type, Any
 
 import jsons
+from frozendict import frozendict  # type: ignore
+from jsons import set_deserializer, set_serializer
 
 from resotocore.types import JsonElement, Json
 from resotocore.util import AnyT
@@ -45,3 +47,18 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
 
 def to_js_str(node: Any) -> str:
     return jsons.dumps(node, strip_privates=True)  # type: ignore
+
+
+# Define serializers for external types ===============
+
+
+def __unfreeze(f: frozendict, **_: Any) -> Json:
+    return dict(f)
+
+
+def __freeze(json: Json, _: type, **__: Any) -> frozendict:
+    return frozendict(json)
+
+
+set_deserializer(__freeze, frozendict)
+set_serializer(__unfreeze, frozendict)
