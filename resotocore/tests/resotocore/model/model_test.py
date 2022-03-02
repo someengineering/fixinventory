@@ -264,7 +264,7 @@ def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
     person_path = {p.path: p for p in person.resolved_properties}
-    assert len(person_path) == 11
+    assert len(person_path) == 13
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
     assert person_path[PropertyPath(["list[]"])].kind == person_model["string"]
