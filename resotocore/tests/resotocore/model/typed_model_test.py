@@ -2,7 +2,7 @@ import abc
 from datetime import datetime
 
 from deepdiff import DeepDiff
-from frozendict import frozendict  # type: ignore
+from frozendict import frozendict
 
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P
