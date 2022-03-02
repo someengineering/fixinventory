@@ -450,16 +450,75 @@ def test_markup() -> None:
 
 
 def test_yaml(person_model: Model) -> None:
-    person: ComplexKind = person_model["Person"]  # type: ignore
+    person_kind: ComplexKind = person_model["Person"]  # type: ignore
     address = {"zip": "134", "city": "gotham", "number": 123, "float": 1.2345}
-    js = {
-        "id": "123",
-        "kind": "person",
+    person = {
+        "name": "batman",
         "address": address,
+        "addresses": [address, address],
         "other_addresses": {"home": address, "work": address},
-        "addresses": [address, address, address],
+        "simple": [1, 2, 3, 4, 5, True, False, None],
     }
-    assert js == yaml.safe_load(person.create_yaml(js))
+    assert person_kind.create_yaml(person) == dedent(
+        """
+        # The name of the person.
+        name: "batman"
+        # The address of the person.
+        address:\u0020
+          # The zip code.
+          zip: "134"
+          # The name of the city.
+          # And another line.
+          city: "gotham"
+          number: 123
+          float: 1.2345
+        # The list of addresses.
+        addresses:\u0020
+          - # The zip code.
+            zip: "134"
+            # The name of the city.
+            # And another line.
+            city: "gotham"
+            number: 123
+            float: 1.2345
+          - # The zip code.
+            zip: "134"
+            # The name of the city.
+            # And another line.
+            city: "gotham"
+            number: 123
+            float: 1.2345
+        # Other addresses.
+        other_addresses:\u0020
+          home:\u0020
+            # The zip code.
+            zip: "134"
+            # The name of the city.
+            # And another line.
+            city: "gotham"
+            number: 123
+            float: 1.2345
+          work:\u0020
+            # The zip code.
+            zip: "134"
+            # The name of the city.
+            # And another line.
+            city: "gotham"
+            number: 123
+            float: 1.2345
+        simple:\u0020
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - true
+          - false
+          - null
+          """.rstrip()
+    )
+
+    assert person == yaml.safe_load(person_kind.create_yaml(person))
 
 
 @given(json_object_gen)

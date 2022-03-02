@@ -772,7 +772,7 @@ class ComplexKind(Kind):
                 prepend = "  " * indent
                 for prop, value in e.items():
                     description = None
-                    sub = AnyKind()
+                    sub: Kind = AnyKind()
                     if isinstance(kind, ComplexKind):
                         maybe_prop = kind.property_with_kind_of(prop)
                         if maybe_prop:
@@ -799,11 +799,11 @@ class ComplexKind(Kind):
             elif isinstance(e, str):
                 return f'"{e}"'
             elif e is None:
-                return f"null"
+                return "null"
             elif e is True:
-                return f"true"
+                return "true"
             elif e is False:
-                return f"false"
+                return "false"
             else:
                 return str(e)
 
