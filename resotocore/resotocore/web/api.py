@@ -316,7 +316,7 @@ class Api:
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
-        resp = web.Response(body=prometheus_client.generate_latest())
+        resp = web.Response(body=prometheus_client.generate_latest())  # type: ignore
         resp.content_type = prometheus_client.CONTENT_TYPE_LATEST
         return resp
 

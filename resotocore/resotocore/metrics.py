@@ -6,10 +6,10 @@ from prometheus_client import Histogram, Counter, Gauge
 
 # All exported metrics are listed here
 
-MethodDuration = Histogram("method_call_duration", "Duration of single method call", ["module", "name"])
+MethodDuration = Histogram("method_call_duration", "Duration of single method call", ["module", "name"])  # type: ignore
 RequestCount = Counter("requests_total", "Total Request Count", ["method", "endpoint", "http_status"])
-RequestLatency = Histogram("request_latency_seconds", "Request latency", ["endpoint"])
-RequestInProgress = Gauge("requests_in_progress_total", "Requests in progress", ["endpoint", "method"])
+RequestLatency = Histogram("request_latency_seconds", "Request latency", ["endpoint"])  # type: ignore
+RequestInProgress = Gauge("requests_in_progress_total", "Requests in progress", ["endpoint", "method"])  # type: ignore
 
 # Create a type that is bound to the underlying wrapped function
 # This way all signature information is preserved!
@@ -38,7 +38,7 @@ def timed(module: str, name: str, is_async: bool = True) -> Callable[[DecoratedF
                 rv = fn(*args, **kwargs)
                 return rv
             finally:
-                metric.observe(perf_now() - start_time)
+                metric.observe(perf_now() - start_time)  # type: ignore
 
         return cast(DecoratedFn, async_time_decorated)
 
@@ -50,7 +50,7 @@ def timed(module: str, name: str, is_async: bool = True) -> Callable[[DecoratedF
                 rv = await fn(*args, **kwargs)
                 return rv
             finally:
-                metric.observe(perf_now() - start_time)
+                metric.observe(perf_now() - start_time)  # type: ignore
 
         return cast(DecoratedFn, async_time_decorated)
 
