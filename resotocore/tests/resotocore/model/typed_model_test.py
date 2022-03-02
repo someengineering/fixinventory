@@ -2,10 +2,12 @@ import abc
 from datetime import datetime
 
 from deepdiff import DeepDiff
+from frozendict import frozendict  # type: ignore
 
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P
 from resotocore.query.query_parser import parse_query
+from resotocore.task.task_description import ExecuteOnCLI
 
 
 class ModelBase(abc.ABC):
@@ -50,3 +52,8 @@ def test_marshal_query() -> None:
     q = Query.by("ec2", P("foo") > 23, P("test") >= "bummer", P("das") < "set")
     again = parse_query(str(q))
     assert str(q) == str(again)
+
+
+def test_frozen_dict() -> None:
+    res = ExecuteOnCLI("test", frozendict({"test": "foo"}))
+    assert res == from_js(to_js(res), ExecuteOnCLI)
