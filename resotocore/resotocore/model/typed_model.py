@@ -3,7 +3,6 @@ from pydoc import locate
 from typing import Type, Any
 
 import jsons
-from frozendict import frozendict  # type: ignore
 
 from resotocore.types import JsonElement, Json
 from resotocore.util import AnyT
