@@ -4,7 +4,9 @@ from textwrap import dedent
 from typing import Type, Any, Union, cast, List
 
 import pytest
+import yaml
 from deepdiff import DeepDiff
+from hypothesis import HealthCheck, settings, given
 from networkx import DiGraph
 
 from resotocore.cli.model import CLIContext
@@ -28,7 +30,9 @@ from resotocore.model.model import (
     SyntheticProperty,
 )
 from resotocore.model.typed_model import to_json, from_js
+from resotocore.types import Json
 from resotocore.util import from_utc, utc, utc_str
+from tests.resotocore.hypothesis_extension import json_object_gen
 
 
 def test_json_marshalling() -> None:
@@ -353,37 +357,38 @@ def person_model() -> Model:
         "Base",
         [],
         [
-            Property("id", "string", required=True),
-            Property("kind", "string", required=True),
-            Property("list", "string[]"),
-            Property("tags", "dictionary[string, string]"),
-            Property("mtime", "datetime"),
+            Property("id", "string", required=True, description="Some identifier"),
+            Property("kind", "string", required=True, description="Kind if this node."),
+            Property("list", "string[]", description="A list of strings."),
+            Property("tags", "dictionary[string, string]", description="Key/value pairs."),
+            Property("mtime", "datetime", description="Modification time of this node."),
         ],
     )
     address = ComplexKind(
         "Address",
         ["Base"],
         [
-            Property("zip", "zip"),
-            Property("city", "string", required=True),
+            Property("zip", "zip", description="The zip code."),
+            Property("city", "string", required=True, description="The name of the city.\nAnd another line."),
         ],
     )
     person = ComplexKind(
         "Person",
         ["Base"],
         [
-            Property("name", "string"),
-            Property("address", "Address"),
-            Property("other_addresses", "dictionary[string, Address]"),
-            Property("any", "any"),
+            Property("name", "string", description="The name of the person."),
+            Property("address", "Address", description="The address of the person."),
+            Property("other_addresses", "dictionary[string, Address]", description="Other addresses."),
+            Property("addresses", "Address[]", description="The list of addresses."),
+            Property("any", "any", description="Some arbitrary value."),
         ],
     )
     any_foo = ComplexKind(
         "any_foo",
         ["Base"],
         [
-            Property("foo", "any"),
-            Property("test", "string"),
+            Property("foo", "any", description="Some foo value."),
+            Property("test", "string", description="Some test value."),
         ],
     )
     cloud = ComplexKind("cloud", ["Base"], [])
@@ -442,3 +447,23 @@ def test_markup() -> None:
     result = ctx.render_console(md)
     assert len(result) > len(md)
     assert "• b1 test" in result
+
+
+def test_yaml(person_model: Model) -> None:
+    person: ComplexKind = person_model["Person"]  # type: ignore
+    address = {"zip": "134", "city": "gotham", "number": 123, "float": 1.2345}
+    js = {
+        "id": "123",
+        "kind": "person",
+        "address": address,
+        "other_addresses": {"home": address, "work": address},
+        "addresses": [address, address, address],
+    }
+    assert js == yaml.safe_load(person.create_yaml(js))
+
+
+@given(json_object_gen)
+@settings(max_examples=50, suppress_health_check=HealthCheck.all())
+def test_yaml_generation(js: Json) -> None:
+    kind = ComplexKind("test", [], [])
+    assert js == yaml.safe_load(kind.create_yaml(js))

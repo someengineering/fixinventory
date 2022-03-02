@@ -706,6 +706,9 @@ class ComplexKind(Kind):
         maybe = self.__resolved_kinds.get(name)
         return maybe[1] if maybe else or_else
 
+    def property_with_kind_of(self, name: str) -> Optional[Tuple[Property, Kind]]:
+        return self.__resolved_kinds.get(name)
+
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
@@ -761,6 +764,50 @@ class ComplexKind(Kind):
             return result if has_coerced else None
         else:
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
+
+    def create_yaml(self, elem: JsonElement) -> str:
+        def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
+            if isinstance(e, dict):
+                result = "\n" if cr_on_object else ""
+                prepend = "  " * indent
+                for prop, value in e.items():
+                    description = None
+                    sub = AnyKind()
+                    if isinstance(kind, ComplexKind):
+                        maybe_prop = kind.property_with_kind_of(prop)
+                        if maybe_prop:
+                            description = maybe_prop[0].description
+                            sub = maybe_prop[1]
+                    elif isinstance(kind, DictionaryKind):
+                        sub = kind.value_kind
+                    str_value = walk_element(value, sub, indent + 1)
+                    if description:
+                        for line in description.splitlines():
+                            result += f"{prepend}# {line}\n"
+                    result += f"{prepend}{prop}: {str_value}\n"
+                return result.rstrip()
+            elif isinstance(e, list) and e:
+                prepend = "  " * indent + "-"
+                sub = kind.inner if isinstance(kind, ArrayKind) else kind
+                result = "\n"
+                for item in e:
+                    item_str = walk_element(item, sub, indent + 1, False).lstrip()
+                    result += f"{prepend} {item_str}\n"
+                return result.rstrip()
+            elif isinstance(e, list):
+                return "[]"
+            elif isinstance(e, str):
+                return f'"{e}"'
+            elif e is None:
+                return f"null"
+            elif e is True:
+                return f"true"
+            elif e is False:
+                return f"false"
+            else:
+                return str(e)
+
+        return walk_element(elem, self, 0)
 
     @staticmethod
     def resolve_properties(complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
