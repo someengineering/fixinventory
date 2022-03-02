@@ -1,2 +1,1 @@
 resotolib==2.0.0a17
-resoto-digitalocean-openapi-client==0.1.0

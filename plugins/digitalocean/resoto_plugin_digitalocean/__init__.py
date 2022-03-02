@@ -20,8 +20,8 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
     # todo: add a proper config mechanism
     # todo: support multiple accounts
-    config = Configuration(access_token=os.environ['DO_TOKEN'])
-    client = StreamingWrapper(ApiClient(config))
+    token = os.environ['DO_TOKEN']
+    client = StreamingWrapper(token)
 
     def collect(self) -> None:
         """This method is being called by resoto whenever the collector runs

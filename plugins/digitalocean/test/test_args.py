@@ -18,58 +18,52 @@ def test_args():
 
 def atest_api_call():
 
-    configuration = resoto_digitalocean_openapi_client.Configuration(
-        access_token = os.environ['DO_TOKEN']
-    )
+    
+    access_token = os.environ['DO_TOKEN']
+    
 
-    with resoto_digitalocean_openapi_client.ApiClient(configuration) as api_client:
-        client = StreamingWrapper(api_client)
+    
+    client = StreamingWrapper(access_token)
 
-        try:
-            # projects = client.list_projects()
-            # print('all projects list')
-            # print(projects)
+    # projects = client.list_projects()
+    # print('all projects list')
+    # print(projects)
 
-            # print('project team')
-            # print(projects[0]['owner_uuid'])
+    # print('project team')
+    # print(projects[0]['owner_uuid'])
 
 
-            print('volumes')
-            print(client.list_vpcs())
-        
-            # for project in projects:
-                # print(f"getting project {project['name']}")
-                # resp = client.list_project_resources(project['id'])
-                # print(resp)
+    print('volumes')
+    print(client.list_vpcs())
 
-            assert False
-        except resoto_digitalocean_openapi_client.ApiException as e:
-            print("Exception when calling ClickApplicationsApi->install_kubernetes: %s\n" % e)
+    # for project in projects:
+        # print(f"getting project {project['name']}")
+        # resp = client.list_project_resources(project['id'])
+        # print(resp)
+
+    assert False
 
 def test_collect():
 
-    configuration = resoto_digitalocean_openapi_client.Configuration(
-        access_token = os.environ['DO_TOKEN']
-    )
+    access_token = os.environ['DO_TOKEN']
 
-    with resoto_digitalocean_openapi_client.ApiClient(configuration) as api_client:
-        client = StreamingWrapper(api_client)
+    client = StreamingWrapper(access_token)
 
-        projects = client.list_projects()
-        team_id = str(projects[0]['owner_id'])
-        team = DigitalOceanTeam(id = team_id, tags={})
+    projects = client.list_projects()
+    team_id = str(projects[0]['owner_id'])
+    team = DigitalOceanTeam(id = team_id, tags={})
 
-        collector = DigitalOceanTeamCollector(team, client) 
-    
-
-        collector.collect()
-
-        graph_export = f"{list(collector.graph.export_iterator())}"
-
-        graph_export = re.sub("b'", "", graph_export)
-        graph_export = re.sub(r"\\n'", "", graph_export)
+    collector = DigitalOceanTeamCollector(team, client) 
 
 
-        print(graph_export)
+    collector.collect()
 
-        assert False
+    graph_export = f"{list(collector.graph.export_iterator())}"
+
+    graph_export = re.sub("b'", "", graph_export)
+    graph_export = re.sub(r"\\n'", "", graph_export)
+
+
+    print(graph_export)
+
+    assert False
