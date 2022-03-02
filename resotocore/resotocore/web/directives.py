@@ -59,7 +59,7 @@ async def cors_handler(request: Request, handler: RequestHandler) -> StreamRespo
 @middleware
 async def metrics_handler(request: Request, handler: RequestHandler) -> StreamResponse:
     request["start_time"] = perf_now()
-    RequestInProgress.labels(request.path, request.method).inc()
+    RequestInProgress.labels(request.path, request.method).inc()  # type: ignore
     try:
         response = await handler(request)
         RequestCount.labels(request.method, request.path, response.status).inc()
@@ -69,8 +69,8 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         raise ex
     finally:
         resp_time = perf_now() - request["start_time"]
-        RequestLatency.labels(request.path).observe(resp_time)
-        RequestInProgress.labels(request.path, request.method).dec()
+        RequestLatency.labels(request.path).observe(resp_time)  # type: ignore
+        RequestInProgress.labels(request.path, request.method).dec()  # type: ignore
 
 
 def error_handler(
