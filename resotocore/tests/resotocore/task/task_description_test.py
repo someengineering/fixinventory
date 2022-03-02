@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Any, List, Dict, Tuple
 
 from deepdiff import DeepDiff
-from frozendict import frozendict  # type: ignore
+from frozendict import frozendict
 from pytest import fixture
 
 from resotocore.message_bus import MessageBus, Action, ActionDone, ActionError, Event

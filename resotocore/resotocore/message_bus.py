@@ -6,7 +6,7 @@ from asyncio import Queue
 from contextlib import asynccontextmanager
 from typing import Any, Optional, Dict, List, AsyncGenerator
 
-from frozendict import frozendict  # type: ignore
+from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 
 from resotocore.types import Json

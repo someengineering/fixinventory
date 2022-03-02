@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from asyncio import Task
 
 from apscheduler.triggers.cron import CronTrigger
-from frozendict import frozendict  # type: ignore
+from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
@@ -137,7 +137,7 @@ class SendMessage(TaskCommand):
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
-    env: frozendict
+    env: frozendict  # type: ignore
 
 
 # endregion
