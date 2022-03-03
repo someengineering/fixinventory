@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork
+from .resources import DigitalOceanInstance, DigitalOceanProject, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -79,6 +79,7 @@ class DigitalOceanTeamCollector:
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
+            ("project", self.collect_projest)
         ]
         
         self.project_collectors = {
@@ -416,4 +417,26 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["id", "region"],
             },
+        )
+
+    @metrics_collect_projects.time()
+    def collect_projest(self) -> None:
+        def get_resource_id(resource):
+            return resource["urn"].split(":")[-1]
+        projects = self.client.list_projects()
+        project_resources = [list(map(get_resource_id, self.client.list_project_resources(p['id']))) for p in projects]
+        
+        for project, resource_ids in zip(projects, project_resources):
+            project['resource_ids'] = resource_ids
+
+        print(projects)
+        self.collect_something(
+            projects,
+            resource_class=DigitalOceanProject,
+            search_map={
+                "__team": ["id", "owner_uuid"],
+                "__resources": ["id", lambda p: p["resource_ids"]],
+            },
+            predecessors={EdgeType.default: ["__team"]},
+            successors={EdgeType.default: ["__resources"]},
         )

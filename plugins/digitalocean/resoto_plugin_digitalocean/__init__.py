@@ -43,7 +43,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         """Collects an individual team.
         """
         projects = self.client.list_projects()
-        team_id = str(projects[0]['owner_id'])
+        team_id = str(projects[0]['owner_uuid'])
         team = DigitalOceanTeam(id = team_id, tags={})
         
         try:
