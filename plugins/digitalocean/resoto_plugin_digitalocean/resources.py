@@ -115,6 +115,15 @@ DigitalOceanInstance.instance_status = property(
     DigitalOceanInstance._instance_status_setter,
 )
 
+@dataclass(eq=False)
+class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
+    """DigitalOcean Kubernetes Cluster"""
+
+    kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
 
 @dataclass(eq=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):

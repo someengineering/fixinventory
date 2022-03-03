@@ -58,3 +58,9 @@ class StreamingWrapper:
     def list_vpcs(self) -> List[Dict[str, Any]]:
         response = self._make_request("/vpcs")
         return response.get('vpcs', [])
+
+    def list_kubernetes_clusters(self) -> List[Dict[str, Any]]:
+        response = self._make_request("/kubernetes/clusters")
+        return response.get('kubernetes_clusters', [])
+
+    

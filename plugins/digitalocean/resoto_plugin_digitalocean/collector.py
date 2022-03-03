@@ -9,7 +9,7 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanProject, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork
+from .resources import DigitalOceanInstance, DigitalOceanProject, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork, DigitalOceanKubernetesCluster
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -47,6 +47,10 @@ metrics_collect_vpcs = Summary(
     "resoto_plugin_digitalocean_collect_vpcs_seconds",
     "Time it took the collect_vpcs() method",
 )
+metrics_collect_k8s_clusters = Summary(
+    "resoto_plugin_digitalocean_collect_kubernetes_clusters_seconds",
+    "Time it took the collect_kubernetes_clusters() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -79,7 +83,8 @@ class DigitalOceanTeamCollector:
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
-            ("project", self.collect_projest)
+            ("project", self.collect_projest),
+            ( "k8s_clusters", self.collect_k8s_clusters),
         ]
         
         self.project_collectors = {
@@ -429,7 +434,6 @@ class DigitalOceanTeamCollector:
         for project, resource_ids in zip(projects, project_resources):
             project['resource_ids'] = resource_ids
 
-        print(projects)
         self.collect_something(
             projects,
             resource_class=DigitalOceanProject,
@@ -439,4 +443,20 @@ class DigitalOceanTeamCollector:
             },
             predecessors={EdgeType.default: ["__team"]},
             successors={EdgeType.default: ["__resources"]},
+        )
+
+    @metrics_collect_k8s_clusters.time()
+    def collect_k8s_clusters(self) -> None:
+        clusters = self.client.list_kubernetes_clusters()
+        for cluster in clusters:
+            ids = [node["id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]
+            print(ids)
+        self.collect_something(
+            clusters,
+            resource_class=DigitalOceanKubernetesCluster,
+            search_map={
+                "_region": ["id", "region"],
+                "__nodes" : ["id", lambda cluster: [node["droplet_id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
+            },
+            successors={EdgeType.default: ["__nodes"]},
         )

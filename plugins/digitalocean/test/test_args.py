@@ -25,18 +25,14 @@ def atest_api_call():
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_projects()
-    print('all projects list')
+    projects = client.list_kubernetes_clusters()
+    print('all k8s clusters')
     print(projects)
 
     # print('project team')
     # print(projects[0]['owner_uuid'])
 
 
-    for project in projects:
-        print(f"getting project {project['name']}")
-        resp = client.list_project_resources(project['id'])
-        print(resp)
 
     assert False
 
