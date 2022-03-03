@@ -25,9 +25,9 @@ def atest_api_call():
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_kubernetes_clusters()
+    projects = client.list_snapshots()
     print('all k8s clusters')
-    print(projects)
+    print(re.sub("'", '"', str(projects)))
 
     # print('project team')
     # print(projects[0]['owner_uuid'])

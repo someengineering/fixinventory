@@ -9,7 +9,17 @@ from resotolib.args import ArgumentParser
 from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
-from .resources import DigitalOceanInstance, DigitalOceanProject, DigitalOceanRegion, DigitalOceanTeam, DigitalOceanVolume, DigitalOceanDatabase, DigitalOceanNetwork, DigitalOceanKubernetesCluster
+from .resources import (
+    DigitalOceanInstance,
+    DigitalOceanProject, 
+    DigitalOceanRegion, 
+    DigitalOceanTeam, 
+    DigitalOceanVolume, 
+    DigitalOceanDatabase, 
+    DigitalOceanNetwork, 
+    DigitalOceanKubernetesCluster,
+    DigitalOceanSnapshot
+)
 from pprint import pformat
 from .utils import (
     iso2datetime,
@@ -51,6 +61,10 @@ metrics_collect_k8s_clusters = Summary(
     "resoto_plugin_digitalocean_collect_kubernetes_clusters_seconds",
     "Time it took the collect_kubernetes_clusters() method",
 )
+metrics_collect_snapshots = Summary(
+    "resoto_plugin_digitalocean_collect_snapshots_seconds",
+    "Time it took the collect_snapshots() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -85,6 +99,7 @@ class DigitalOceanTeamCollector:
             ("databases", self.collect_databases),
             ("project", self.collect_projest),
             ( "k8s_clusters", self.collect_k8s_clusters),
+            ("snapshots", self.collect_snapshots)
         ]
         
         self.project_collectors = {
@@ -448,9 +463,6 @@ class DigitalOceanTeamCollector:
     @metrics_collect_k8s_clusters.time()
     def collect_k8s_clusters(self) -> None:
         clusters = self.client.list_kubernetes_clusters()
-        for cluster in clusters:
-            ids = [node["id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]
-            print(ids)
         self.collect_something(
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
@@ -459,4 +471,20 @@ class DigitalOceanTeamCollector:
                 "__nodes" : ["id", lambda cluster: [node["droplet_id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
             },
             successors={EdgeType.default: ["__nodes"]},
+        )
+
+    @metrics_collect_snapshots.time()
+    def collect_snapshots(self) -> None:
+        snapshots = self.client.list_snapshots()
+        self.collect_something(
+            snapshots,
+            resource_class=DigitalOceanSnapshot,
+            attr_map={
+                "volume_size": "size_gigabytes",
+            },
+            search_map={
+                "_region": ["id", "regions"],
+                "__resource": ["id", "resource_id"],
+            },
+            predecessors={EdgeType.default: ["__resource"]},
         )

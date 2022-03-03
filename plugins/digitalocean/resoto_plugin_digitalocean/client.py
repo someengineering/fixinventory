@@ -5,7 +5,6 @@ from typing import Dict, List, Any
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
-do_api_endpoint = "https://api.digitalocean.com/v2"
 
 # todo: support pagination and streaming
 # todo: make it async
@@ -17,6 +16,7 @@ class StreamingWrapper:
 
 
     def _make_request(self, path: str) -> Dict:
+        do_api_endpoint = "https://api.digitalocean.com/v2"
         headers = {
             'Authorization': f"Bearer {self.token}",
             'Content-Type': 'application/json',
@@ -62,5 +62,9 @@ class StreamingWrapper:
     def list_kubernetes_clusters(self) -> List[Dict[str, Any]]:
         response = self._make_request("/kubernetes/clusters")
         return response.get('kubernetes_clusters', [])
+
+    def list_snapshots(self) -> List[Dict[str, Any]]:
+        response = self._make_request("/snapshots")
+        return response.get('snapshots', [])
 
     

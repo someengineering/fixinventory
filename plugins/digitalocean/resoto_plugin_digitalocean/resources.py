@@ -8,6 +8,7 @@ from resotolib.baseresources import (
     BaseInstance,
     BaseNetwork,
     BaseResource,
+    BaseSnapshot,
     BaseVolume,
     InstanceStatus,
     VolumeStatus,
@@ -161,6 +162,14 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
+@dataclass(eq=False)
+class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
+    """DigitalOcean image"""
+
+    kind: ClassVar[str] = "digitalocean_snapshot"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
 
 @dataclass(eq=False)
 class DigitalOceanCustomResource(DigitalOceanResource, BaseResource):
