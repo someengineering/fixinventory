@@ -18,7 +18,8 @@ from .resources import (
     DigitalOceanDatabase, 
     DigitalOceanNetwork, 
     DigitalOceanKubernetesCluster,
-    DigitalOceanSnapshot
+    DigitalOceanSnapshot,
+    DigitalOceanLoadBalancer
 )
 from pprint import pformat
 from .utils import (
@@ -65,6 +66,10 @@ metrics_collect_snapshots = Summary(
     "resoto_plugin_digitalocean_collect_snapshots_seconds",
     "Time it took the collect_snapshots() method",
 )
+metrics_collect_load_balancers = Summary(
+    "resoto_plugin_digitalocean_collect_load_balancers_seconds",
+    "Time it took the collect_load_balancers() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -99,7 +104,8 @@ class DigitalOceanTeamCollector:
             ("databases", self.collect_databases),
             ("project", self.collect_projest),
             ( "k8s_clusters", self.collect_k8s_clusters),
-            ("snapshots", self.collect_snapshots)
+            ("snapshots", self.collect_snapshots),
+            ("load_balancers", self.collect_load_balancers),
         ]
         
         self.project_collectors = {
@@ -487,4 +493,23 @@ class DigitalOceanTeamCollector:
                 "__resource": ["id", "resource_id"],
             },
             predecessors={EdgeType.default: ["__resource"]},
+        )
+
+    @metrics_collect_load_balancers.time()
+    def collect_load_balancers(self) -> None:
+        loadbalancers = self.client.list_load_balancers()
+        self.collect_something(
+            loadbalancers,
+            resource_class=DigitalOceanLoadBalancer,
+            search_map={
+                "_region": ["id", lambda droplet: droplet['region']['slug']],
+                "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
+                "__droplets": ["id", lambda vol: list(map(lambda id: str(id), vol["droplet_ids"]))],
+            },
+            predecessors={
+                EdgeType.default: ["__vpcs"]
+            },
+            successors={
+                EdgeType.default: ["__droplets"]
+            }
         )

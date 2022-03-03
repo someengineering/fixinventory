@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, InitVar
 from resotolib.graph import Graph
 from resotolib.baseresources import (
     BaseAccount,
+    BaseLoadBalancer,
     BaseRegion,
     BaseInstance,
     BaseNetwork,
@@ -167,6 +168,16 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
+
+@dataclass(eq=False)
+class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
+    """DigitalOcean load balancer"""
+
+    kind: ClassVar[str] = "digitalocean_load_balancer"
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented

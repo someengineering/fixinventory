@@ -67,4 +67,8 @@ class StreamingWrapper:
         response = self._make_request("/snapshots")
         return response.get('snapshots', [])
 
+    def list_load_balancers(self) -> List[Dict[str, Any]]:
+        response = self._make_request("/load_balancers")
+        return response.get('load_balancers', [])
+
     
