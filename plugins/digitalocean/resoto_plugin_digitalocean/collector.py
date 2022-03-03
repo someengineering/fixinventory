@@ -19,7 +19,8 @@ from .resources import (
     DigitalOceanNetwork, 
     DigitalOceanKubernetesCluster,
     DigitalOceanSnapshot,
-    DigitalOceanLoadBalancer
+    DigitalOceanLoadBalancer,
+    DigitalOceanFloatingIP,
 )
 from pprint import pformat
 from .utils import (
@@ -70,6 +71,10 @@ metrics_collect_load_balancers = Summary(
     "resoto_plugin_digitalocean_collect_load_balancers_seconds",
     "Time it took the collect_load_balancers() method",
 )
+metrics_collect_floating_ips = Summary(
+    "resoto_plugin_digitalocean_collect_floating_ips_seconds",
+    "Time it took the collect_floating_ips() method",
+)
 
 class DigitalOceanTeamCollector:
     """Collects a single DigitalOcean project
@@ -106,6 +111,7 @@ class DigitalOceanTeamCollector:
             ( "k8s_clusters", self.collect_k8s_clusters),
             ("snapshots", self.collect_snapshots),
             ("load_balancers", self.collect_load_balancers),
+            ("floating_ips", self.collect_floating_ips),
         ]
         
         self.project_collectors = {
@@ -512,4 +518,22 @@ class DigitalOceanTeamCollector:
             successors={
                 EdgeType.default: ["__droplets"]
             }
+        )
+
+    @metrics_collect_floating_ips.time()
+    def collect_floating_ips(self) -> None:
+        floating_ips = self.client.list_floating_ips()
+        self.collect_something(
+            floating_ips,
+            resource_class=DigitalOceanFloatingIP,
+            attr_map={
+                "ip_address": "ip",
+            },
+            search_map={
+                "_region": ["id", lambda droplet: droplet['region']['slug']],
+                "__droplet": ["id", lambda d: str(d.get("droplet", {}).get("id", ""))],
+            },
+            predecessors={
+                EdgeType.default: ["__droplet"]
+            },
         )

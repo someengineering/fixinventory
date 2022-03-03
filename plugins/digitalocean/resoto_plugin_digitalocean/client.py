@@ -71,4 +71,7 @@ class StreamingWrapper:
         response = self._make_request("/load_balancers")
         return response.get('load_balancers', [])
 
+    def list_floating_ips(self) -> List[Dict[str, Any]]:
+        response = self._make_request("/floating_ips")
+        return response.get('floating_ips', []) 
     

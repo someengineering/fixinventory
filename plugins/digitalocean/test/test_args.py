@@ -25,7 +25,7 @@ def atest_api_call():
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_snapshots()
+    projects = client.list_floating_ips()
     print('all k8s clusters')
     print(re.sub("'", '"', str(projects)))
 

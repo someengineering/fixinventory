@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, InitVar
 from resotolib.graph import Graph
 from resotolib.baseresources import (
     BaseAccount,
+    BaseIPAddress,
     BaseLoadBalancer,
     BaseRegion,
     BaseInstance,
@@ -181,6 +182,17 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
+
+
+@dataclass(eq=False)
+class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
+    """DigitalOcean floating IP"""
+
+    kind: ClassVar[str] = "digitalocean_floating_ip"
+
+    def delete(self, graph: Graph) -> bool:
+        return NotImplemented
+
 
 @dataclass(eq=False)
 class DigitalOceanCustomResource(DigitalOceanResource, BaseResource):
