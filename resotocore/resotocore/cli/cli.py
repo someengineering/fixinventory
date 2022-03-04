@@ -68,6 +68,7 @@ from resotocore.query.model import (
     AggregateFunction,
     SortOrder,
     PathRoot,
+    Limit,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser
 from resotocore.util import utc_str, utc, from_utc
@@ -268,6 +269,9 @@ class CLI:
 
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
+        # We need to remember the first head/tail, since tail will reverse the sort order
+        first_head_tail_in_a_row: Optional[CLICommand] = None
+        head_tail_keep_order = True
         for command in commands:
             part = command.command
             arg = command.arg if command.arg else ""
@@ -302,14 +306,41 @@ class CLI:
                 query = query.add_sort(f"{PathRoot}count")
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
-                query = query.with_limit(size)
+                limit = query.parts[0].limit or Limit(0, size)
+                if first_head_tail_in_a_row and head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset, min(limit.length, size)))
+                elif first_head_tail_in_a_row and not head_tail_keep_order:
+                    length = min(limit.length, size)
+                    query = query.with_limit(Limit(limit.offset + limit.length - length, length))
+                else:
+                    query = query.with_limit(size)
             elif isinstance(part, TailCommand):
                 size = HeadCommand.parse_size(arg)
-                if not query.current_part.sort:
-                    query = query.add_sort("_key", SortOrder.Desc)
-                query = query.with_limit(size)
+                limit = query.parts[0].limit or Limit(0, size)
+                if first_head_tail_in_a_row and head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset + max(0, limit.length - size), min(limit.length, size)))
+                elif first_head_tail_in_a_row and not head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset, min(limit.length, size)))
+                else:
+                    if query.current_part.sort:
+                        head_tail_keep_order = False
+                        p = query.current_part
+                        # reverse the sort order -> limit -> reverse the result
+                        query.parts[0] = replace(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
+                    else:
+                        # no sort order defined: use the global key in descending order
+                        query = query.add_sort("/_key", SortOrder.Desc)
+                    query = query.with_limit(size)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
+
+            # Remember the first head tail in a row of head tails
+            if isinstance(part, (HeadCommand, TailCommand)):
+                if not first_head_tail_in_a_row:
+                    first_head_tail_in_a_row = part
+            else:
+                first_head_tail_in_a_row = None
+                head_tail_keep_order = True
 
         final_query = query.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)

@@ -67,6 +67,7 @@ from resotocore.query.model import (
     MergeTerm,
     MergeQuery,
     FulltextTerm,
+    Limit,
 )
 
 operation_p = (
@@ -295,7 +296,17 @@ def sort_parser() -> Parser:
 
 
 limit_p = string("limit")
-limit_parser = limit_p + space_dp >> integer_dp
+limit_with_offset_parser = comma_p >> integer_dp
+reversed_p = lexeme(string("reversed")).optional().map(lambda x: x is not None)
+
+
+@make_parser
+def limit_parser() -> Parser:
+    yield limit_p
+    yield space_dp
+    num = yield integer_dp
+    with_offset = yield limit_with_offset_parser.optional()
+    return Limit(num, with_offset) if with_offset else Limit(0, num)
 
 
 @make_parser
@@ -308,7 +319,8 @@ def part_parser() -> Parser:
     limit = yield limit_parser.optional()
     nav = yield navigation_parser.optional() if term or sort or limit else navigation_parser
     term = term if term else AllTerm()
-    return Part(term, tag, with_clause, sort if sort else [], limit, nav)
+    reverse = yield reversed_p
+    return Part(term, tag, with_clause, sort if sort else [], limit, nav, reverse)
 
 
 @make_parser

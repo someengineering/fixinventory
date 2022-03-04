@@ -465,21 +465,32 @@ class WithClause:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
+class Limit:
+    offset: int
+    length: int
+
+    def __str__(self) -> str:
+        return f" limit {self.length}" if self.offset == 0 else f" limit {self.offset}, {self.length}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Part:
     term: Term
     tag: Optional[str] = None
     with_clause: Optional[WithClause] = None
     sort: List[Sort] = field(default_factory=list)
-    limit: Optional[int] = None
+    limit: Optional[Limit] = None
     navigation: Optional[Navigation] = None
+    reverse_result: bool = False
 
     def __str__(self) -> str:
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         tag = f"#{self.tag}" if self.tag else ""
         sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
-        limit = f" limit {self.limit}" if self.limit else ""
+        limit = str(self.limit) if self.limit else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
-        return f"{self.term}{with_clause}{tag}{sort}{limit}{nav}"
+        reverse = " reversed " if self.reverse_result else ""
+        return f"{self.term}{with_clause}{tag}{sort}{limit}{reverse}{nav}"
 
     def change_variable(self, fn: Callable[[str], str]) -> Part:
         return replace(
@@ -729,6 +740,9 @@ class Sort:
     def change_variable(self, fn: Callable[[str], str]) -> Sort:
         return replace(self, name=fn(self.name))
 
+    def reversed(self) -> Sort:
+        return Sort(self.name, SortOrder.Asc if self.order == SortOrder.Desc else SortOrder.Desc)
+
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class Query:
@@ -813,8 +827,9 @@ class Query:
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
         return self.__change_current_part(lambda p: replace(p, sort=[*p.sort, Sort(name, order)]))
 
-    def with_limit(self, num: int) -> Query:
-        return self.__change_current_part(lambda p: replace(p, limit=num))
+    def with_limit(self, num: Union[Limit, int]) -> Query:
+        limit = num if isinstance(num, Limit) else Limit(0, num)
+        return self.__change_current_part(lambda p: replace(p, limit=limit))
 
     def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
@@ -891,6 +906,10 @@ class Query:
         aggregate = self.aggregate if self.aggregate else other.aggregate
         left_last = self.parts[0]
         right_first = other.parts[-1]
+
+        def combine_limit(left: Limit, right: Limit) -> Limit:
+            return Limit(max(left.offset, right.offset), min(left.length, right.length))
+
         if left_last.navigation:
             parts = other.parts + self.parts
         else:
@@ -902,7 +921,7 @@ class Query:
             tag = left_last.tag if left_last.tag else right_first.tag
             with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
             sort = combine_optional(left_last.sort, right_first.sort, lambda l, r: l + r)
-            limit = combine_optional(left_last.limit, right_first.limit, min)
+            limit = combine_optional(left_last.limit, right_first.limit, combine_limit)
             combined = Part(term, tag, with_clause, sort if sort else [], limit, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
         return Query(parts, preamble, aggregate)
