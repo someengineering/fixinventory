@@ -113,17 +113,6 @@ class DigitalOceanTeamCollector:
             ("load_balancers", self.collect_load_balancers),
             ("floating_ips", self.collect_floating_ips),
         ]
-        
-        self.project_collectors = {
-            # "databases": self.collect_databases,
-            # "domains": self.collect_domains,
-            # "droplets": self.collect_instances,
-            # "floating_ips": self.collect_floating_ips,
-            # "kubernetes_clusters": self.collect_kubernetes_clusters,
-            # "load_balancers": self.collect_load_balancers,
-            # "spaces": self.collect_spaces,
-            # "volumes": self.collect_volumes,
-        }
         self.all_collectors = dict(self.mandatory_collectors)
         self.all_collectors.update(self.global_collectors)
         self.collector_set = set(self.all_collectors.keys())
@@ -134,17 +123,10 @@ class DigitalOceanTeamCollector:
 
         Resource collectors add their resources to the local `self.graph` graph.
         """
-        log.info("Collecting DigitalOcean resources for project %s", self.team.id)
+        log.info("Collecting DigitalOcean resources for team %s", self.team.id)
 
         self.graph = Graph(root=self.team)
         collectors = set(self.collector_set)
-
-
-        # if len(ArgumentParser.args.do_collect) > 0:
-        #     collectors = set(ArgumentParser.args.do_collect).intersection(collectors)
-        # if len(ArgumentParser.args.do_no_collect) > 0:
-        #     collectors = collectors - set(ArgumentParser.args.gcp_no_collect)
-        # collectors = collectors.union(set(self.mandatory_collectors.keys()))
 
         log.debug(
             (
@@ -465,10 +447,8 @@ class DigitalOceanTeamCollector:
             projects,
             resource_class=DigitalOceanProject,
             search_map={
-                "__team": ["id", "owner_uuid"],
                 "__resources": ["id", lambda p: p["resource_ids"]],
             },
-            predecessors={EdgeType.default: ["__team"]},
             successors={EdgeType.default: ["__resources"]},
         )
 

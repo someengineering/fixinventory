@@ -16,7 +16,7 @@ def test_args():
     arg_parser.parse_args()
     assert ArgumentParser.args.digitalocean_region is None
 
-def atest_api_call():
+def _test_api_call():
 
     
     access_token = os.environ['DO_TOKEN']
@@ -29,29 +29,16 @@ def atest_api_call():
     print('all projects')
     print(re.sub("'", '"', str(projects)))
 
-    # print('project team')
-    # print(projects[0]['owner_uuid'])
-
-
-
     assert False
 
-def test_collect():
 
-    access_token = os.environ['DO_TOKEN']
+def test_collector():
 
-    client = StreamingWrapper(access_token)
+    plugin_instance = DigitalOceanCollectorPlugin()
 
-    projects = client.list_projects()
-    team_id = str(projects[0]['owner_id'])
-    team = DigitalOceanTeam(id = team_id, tags={})
+    plugin_instance.collect()
 
-    collector = DigitalOceanTeamCollector(team, client) 
-
-
-    collector.collect()
-
-    graph_export = f"{list(collector.graph.export_iterator())}"
+    graph_export = f"{list(plugin_instance.graph.export_iterator())}"
 
     graph_export = re.sub("b'", "", graph_export)
     graph_export = re.sub(r"\\n'", "", graph_export)

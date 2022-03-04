@@ -20,8 +20,6 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
     # todo: add a proper config mechanism
     # todo: support multiple accounts
-    token = os.environ['DO_TOKEN']
-    client = StreamingWrapper(token)
 
     def collect(self) -> None:
         """This method is being called by resoto whenever the collector runs
@@ -32,18 +30,19 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         accounts. An account must always be followed by a region.
         A region can contain arbitrary resources.
         """
-        log.debug("plugin: collecting DigitalOcean resources")
-
-        team_graph = self.collect_team()
-
-        self.graph.merge(team_graph)
+        tokens = ArgumentParser.args.digitalocean_api_tokens
+        log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
+        for token in tokens:
+            self.client = StreamingWrapper(token)
+            team_graph = self.collect_team()
+            self.graph.merge(team_graph)
 
 
     def collect_team(self) -> Optional[Dict]:
         """Collects an individual team.
         """
         projects = self.client.list_projects()
-        team_id = str(projects[0]['owner_uuid'])
+        team_id = str(projects[0]['owner_id'])
         team = DigitalOceanTeam(id = team_id, tags={})
         
         try:
@@ -60,10 +59,10 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--digitalocean-region",
-            help="DigitalOcean Region",
-            dest="digitalocean_region",
+            "--digitalocean-api-tokens",
+            help="DigitalOcean API tokens for the teams to be collected",
+            dest="digitalocean_api_tokens",
             type=str,
-            default=None,
+            default=[],
             nargs="+",
         )
