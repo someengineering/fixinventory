@@ -48,12 +48,12 @@ kind_gen = sampled_from(["volume", "instance", "load_balancer", "volume_type"])
 
 @composite
 def json_element_gen(ud: UD) -> JsonElement:
-    return cast(JsonElement, ud(json_simple_element_gen | json_object_gen | json_array_gen))
+    return cast(JsonElement, ud(json_object_gen | json_simple_element_gen | json_array_gen))
 
 
 json_simple_element_gen = any_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
-json_object_gen = dictionaries(any_string, json_element_gen(), min_size=1, max_size=3)
-json_array_gen = lists(json_element_gen(), max_size=4)
+json_object_gen = dictionaries(any_string, json_element_gen(), min_size=1, max_size=5)
+json_array_gen = lists(json_element_gen(), max_size=5)
 
 
 @composite
