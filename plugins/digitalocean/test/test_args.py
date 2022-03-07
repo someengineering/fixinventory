@@ -17,7 +17,7 @@ def _test_args():
     arg_parser.parse_args()
     assert ArgumentParser.args.digitalocean_region is None
 
-def _test_api_call():
+def test_api_call():
 
     
     access_token = os.environ['DO_TOKEN']
@@ -26,7 +26,7 @@ def _test_api_call():
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_snapshots()
+    projects = client.list_regions()
     print('all projects')
     print(re.sub("'", '"', str(projects)))
 

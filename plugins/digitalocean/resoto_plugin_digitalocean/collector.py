@@ -11,12 +11,12 @@ from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
 from .resources import (
     DigitalOceanInstance,
-    DigitalOceanProject, 
-    DigitalOceanRegion, 
-    DigitalOceanTeam, 
-    DigitalOceanVolume, 
-    DigitalOceanDatabase, 
-    DigitalOceanNetwork, 
+    DigitalOceanProject,
+    DigitalOceanRegion,
+    DigitalOceanTeam,
+    DigitalOceanVolume,
+    DigitalOceanDatabase,
+    DigitalOceanNetwork,
     DigitalOceanKubernetesCluster,
     DigitalOceanSnapshot,
     DigitalOceanLoadBalancer,
@@ -25,7 +25,8 @@ from .resources import (
 from pprint import pformat
 from .utils import (
     iso2datetime,
-    get_result_data
+    get_result_data,
+    region_slug_to_id
 )
 
 
@@ -76,14 +77,14 @@ metrics_collect_floating_ips = Summary(
     "Time it took the collect_floating_ips() method",
 )
 
+
 class DigitalOceanTeamCollector:
-    """Collects a single DigitalOcean project
-    
-    
-    Responsible for collecting all the resources of an individual project.
+    """Collects a single DigitalOcean team
+
+    Responsible for collecting all the resources of an individual team.
     Builds up its own local graph which is then taken by collect_project()
     and merged with the plugin graph.
-    
+
     This way we can have many instances of DigitalOceanCollectorPlugin running in parallel.
     All building up indivetual graphs which in the end are merged to a final graph containing
     all DigitalOcean resources
@@ -108,7 +109,7 @@ class DigitalOceanTeamCollector:
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
             ("project", self.collect_projest),
-            ( "k8s_clusters", self.collect_k8s_clusters),
+            ("k8s_clusters", self.collect_k8s_clusters),
             ("snapshots", self.collect_snapshots),
             ("load_balancers", self.collect_load_balancers),
             ("floating_ips", self.collect_floating_ips),
@@ -172,7 +173,7 @@ class DigitalOceanTeamCollector:
             return (splitted[0], "" if len(splitted) == 1 else splitted[1])
 
         kwargs = {
-            "id": str(result.get("id")), 
+            "id": str(result.get("id")),
             # "tags": dict(map(extract_tag,  result.get("tags"))),
             "name": result.get("name"),
             "ctime": iso2datetime(result.get("created_at")),
@@ -342,7 +343,7 @@ class DigitalOceanTeamCollector:
                 "instance_memory": "memory",
             },
             search_map={
-                "_region": ["id", lambda droplet: droplet['region']['slug']],
+                "_region": ["id", lambda droplet: region_slug_to_id(droplet['region']['slug'])],
                 "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
 
             },
@@ -356,8 +357,12 @@ class DigitalOceanTeamCollector:
             regions,
             resource_class=DigitalOceanRegion,
             attr_map={
-                "id": "slug",
+                "id": lambda r: region_slug_to_id(r["slug"]),
                 "name": "name",
+                "slug": "slug",
+                "features": "features",
+                "available": "available",
+                "sizes": "sizes", 
             },
             search_map={},
         )
@@ -381,6 +386,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_databases.time()
     def collect_databases(self) -> None:
 
+        # this mapping was taken from the digitalocean web console.
         dbtype_to_size = {
             "db-s-1vcpu-1gb": 10,
             "db-s-1vcpu-2gb": 25,
@@ -416,7 +422,7 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda db: dbtype_to_size.get(db.get("size", "") , 0),
             },
             search_map={
-                "_region": ["id", "region"],
+                "_region": ["id", lambda db: region_slug_to_id(db["region"])],
                 "__vpcs": ["id", lambda db: db["private_network_uuid"]],
             },
             predecessors={EdgeType.default: ["__vpcs"]},
@@ -429,7 +435,7 @@ class DigitalOceanTeamCollector:
             vpcs,
             resource_class=DigitalOceanNetwork,
             search_map={
-                "_region": ["id", "region"],
+                "_region": ["id", lambda vpc: region_slug_to_id(vpc["region"])],
             },
         )
 
@@ -459,7 +465,7 @@ class DigitalOceanTeamCollector:
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
             search_map={
-                "_region": ["id", "region"],
+                "_region": ["id", lambda c: region_slug_to_id(c["region"])],
                 "__nodes" : ["id", lambda cluster: [node["droplet_id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
             },
             successors={EdgeType.default: ["__nodes"]},
@@ -475,7 +481,7 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda vol: vol["min_disk_size"],
             },
             search_map={
-                "_region": ["id", "regions"],
+                "_region": ["id", lambda s: [region_slug_to_id(region) for region in s["regions"]]],
                 "__resource": ["id", "resource_id"],
             },
             predecessors={EdgeType.default: ["__resource"]},
@@ -488,9 +494,9 @@ class DigitalOceanTeamCollector:
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
             search_map={
-                "_region": ["id", lambda droplet: droplet['region']['slug']],
-                "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
-                "__droplets": ["id", lambda vol: list(map(lambda id: str(id), vol["droplet_ids"]))],
+                "_region": ["id", lambda lb: region_slug_to_id(lb['region']['slug'])],
+                "__vpcs": ["id", lambda lb: lb['vpc_uuid']],
+                "__droplets": ["id", lambda lb: list(map(lambda id: str(id), lb["droplet_ids"]))],
             },
             predecessors={
                 EdgeType.default: ["__vpcs"]
@@ -510,8 +516,8 @@ class DigitalOceanTeamCollector:
                 "ip_address": "ip",
             },
             search_map={
-                "_region": ["id", lambda droplet: droplet['region']['slug']],
-                "__droplet": ["id", lambda d: str(d.get("droplet", {}).get("id", ""))],
+                "_region": ["id", lambda ip: region_slug_to_id(ip['region']['slug'])],
+                "__droplet": ["id", lambda ip: str(ip.get("droplet", {}).get("id", ""))],
             },
             predecessors={
                 EdgeType.default: ["__droplet"]

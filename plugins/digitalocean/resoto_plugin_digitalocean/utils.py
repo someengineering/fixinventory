@@ -32,3 +32,5 @@ def iso2datetime(ts: str) -> datetime:
     if ts is not None:
         return datetime.fromisoformat(ts)
 
+def region_slug_to_id(slug: str) -> str:
+    return f"do:region:{slug}"

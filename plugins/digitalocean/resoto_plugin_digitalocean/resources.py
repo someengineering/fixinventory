@@ -46,7 +46,7 @@ class DigitalOceanResource:
         """Delete a resource tag in the cloud"""
         log.debug(f"Deleting tag {key} on resource {self.id}")
         return True
-        
+
 
 @dataclass(eq=False)
 class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
@@ -64,7 +64,10 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
-    available: bool = True
+    slug: str = field(default="", repr=False)
+    features: List[str] = field(default_factory=list, repr=False)
+    available: bool = field(default=True, repr=False)
+    sizes: List[str] = field(default_factory=list, repr=False)
 
     def delete(self, graph: Graph) -> bool:
         """Regions can usually not be deleted so we return NotImplemented"""
