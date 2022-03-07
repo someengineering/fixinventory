@@ -17,9 +17,7 @@ from .collector import DigitalOceanTeamCollector
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
-    cloud = "digitalocean"
-    # todo: add a proper config mechanism
-    # todo: support multiple accounts
+    cloud = "do"
 
     def collect(self) -> None:
         """This method is being called by resoto whenever the collector runs
@@ -37,14 +35,13 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             team_graph = self.collect_team(client)
             self.graph.merge(team_graph)
 
-
     def collect_team(self, client: StreamingWrapper) -> Optional[Dict]:
         """Collects an individual team.
         """
         projects = client.list_projects()
         team_id = str(projects[0]['owner_id'])
         team = DigitalOceanTeam(id = team_id, tags={})
-        
+
         try:
             dopc = DigitalOceanTeamCollector(team, client)
             dopc.collect()
