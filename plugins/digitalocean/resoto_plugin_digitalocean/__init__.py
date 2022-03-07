@@ -33,20 +33,20 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         tokens = ArgumentParser.args.digitalocean_api_tokens
         log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
         for token in tokens:
-            self.client = StreamingWrapper(token)
-            team_graph = self.collect_team()
+            client = StreamingWrapper(token)
+            team_graph = self.collect_team(client)
             self.graph.merge(team_graph)
 
 
-    def collect_team(self) -> Optional[Dict]:
+    def collect_team(self, client: StreamingWrapper) -> Optional[Dict]:
         """Collects an individual team.
         """
-        projects = self.client.list_projects()
+        projects = client.list_projects()
         team_id = str(projects[0]['owner_id'])
         team = DigitalOceanTeam(id = team_id, tags={})
         
         try:
-            dopc = DigitalOceanTeamCollector(team, self.client)
+            dopc = DigitalOceanTeamCollector(team, client)
             dopc.collect()
         except Exception:
             log.exception(

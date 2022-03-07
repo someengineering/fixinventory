@@ -472,7 +472,7 @@ class DigitalOceanTeamCollector:
             snapshots,
             resource_class=DigitalOceanSnapshot,
             attr_map={
-                "volume_size": "size_gigabytes",
+                "volume_size": lambda vol: vol["min_disk_size"],
             },
             search_map={
                 "_region": ["id", "regions"],
