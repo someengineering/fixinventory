@@ -26,6 +26,7 @@ from pprint import pformat
 from .utils import (
     iso2datetime,
     get_result_data,
+    kubernetes_id,
     region_id,
     project_id,
     droplet_id,
@@ -110,11 +111,11 @@ class DigitalOceanTeamCollector:
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
-            ("project", self.collect_projects),
             ("k8s_clusters", self.collect_k8s_clusters),
             ("snapshots", self.collect_snapshots),
             ("load_balancers", self.collect_load_balancers),
             ("floating_ips", self.collect_floating_ips),
+            ("project", self.collect_projects),
         ]
         self.all_collectors = dict(self.mandatory_collectors)
         self.all_collectors.update(self.global_collectors)
@@ -446,7 +447,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_projects.time()
     def collect_projects(self) -> None:
         def get_resource_id(resource):
-            return resource["urn"].split(":")[-1]
+            return resource["urn"]
         projects = self.client.list_projects()
         project_resources = [list(map(get_resource_id, self.client.list_project_resources(p['id']))) for p in projects]
 
@@ -478,6 +479,19 @@ class DigitalOceanTeamCollector:
         self.collect_something(
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
+            attr_map={
+                "id": lambda c: kubernetes_id(c["id"]),
+                "verson": "verson",
+                "cluster_subnet": "cluster_subnet",
+                "service_subnet": "service_subnet",
+                "ipv4": "ipv4",
+                "endpoint": "endpoint",
+                "auto_upgrade": "auto_upgrade",
+                "status": lambda c: c["status"]["state"],
+                "surge_upgrade": "surge_upgrade",
+                "registry_enabled": "registry_enabled",
+                "ha": "ha",
+            },
             search_map={
                 "_region": ["id", lambda c: region_id(c["region"])],
                 "__nodes" : ["id", lambda cluster: [droplet_id(node["droplet_id"]) for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],

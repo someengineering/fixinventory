@@ -139,6 +139,17 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
+    verson: str = field(default="")
+    cluster_subnet: str = field(default="")
+    service_subnet: str = field(default="")
+    ipv4: str = field(default="")
+    endpoint: str = field(default="")
+    auto_upgrade: bool = field(default=False)
+    status: str = field(default="")
+    surge_upgrade: bool = field(default=False)
+    registry_enabled: bool = field(default=False)
+    ha: bool = field(default=False)
+
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 

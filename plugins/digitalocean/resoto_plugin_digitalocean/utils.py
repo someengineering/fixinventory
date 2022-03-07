@@ -40,3 +40,6 @@ def project_id(value: str) -> str:
 
 def droplet_id(value: int) -> str:
     return f"do:droplet:{value}"
+
+def kubernetes_id(value: str) -> str:
+    return f"do:kubernetes:{value}"

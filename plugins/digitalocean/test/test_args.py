@@ -20,13 +20,13 @@ def _test_args():
 def test_api_call():
 
     
-    access_token = os.environ['DO_TOKEN']
+    access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
     
 
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_droplets()
+    projects = client.list_project_resources("c04ff309-8e93-46a8-b698-58bc475a7ce0")
     print('all projects')
     print(re.sub("'", '"', str(projects)))
 
