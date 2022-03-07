@@ -168,6 +168,10 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
         "busy": VolumeStatus.BUSY,
     }
 
+    description: str = field(default="")
+    filesystem_type: str = field(default="")
+    filesystam_label: str = field(default="")
+
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 

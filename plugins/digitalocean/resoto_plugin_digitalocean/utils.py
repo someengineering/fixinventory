@@ -43,3 +43,6 @@ def droplet_id(value: int) -> str:
 
 def kubernetes_id(value: str) -> str:
     return f"do:kubernetes:{value}"
+
+def volume_id(value: int) -> str:
+    return f"do:volume:{value}"

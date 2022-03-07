@@ -30,6 +30,7 @@ from .utils import (
     region_id,
     project_id,
     droplet_id,
+    volume_id,
 )
 
 
@@ -380,7 +381,11 @@ class DigitalOceanTeamCollector:
             volumes,
             resource_class=DigitalOceanVolume,
             attr_map={
+                "id": lambda r: volume_id(r["id"]),
                 "volume_size": "size_gigabytes",
+                "description": "description",
+                "filesystem_type": "filesystem_type",
+                "filesystam_label": "filesystam_label",
             },
             search_map={
                 "__users": ["id", lambda vol: list(map(lambda id: droplet_id(id), vol["droplet_ids"]))],
