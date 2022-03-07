@@ -329,6 +329,13 @@ def test_load(model_json: str) -> None:
     assert base.allow_unknown_props is False
 
 
+def test_complex_roots(person_model: Model) -> None:
+    complex_roots = {k.fqn for k in person_model.complex_roots}
+    assert "Person" in complex_roots
+    # address is used in person
+    assert "Address" not in complex_roots
+
+
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11

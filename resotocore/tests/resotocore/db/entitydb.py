@@ -1,3 +1,4 @@
+import asyncio
 from typing import Union, Optional, AsyncGenerator, Type, Callable, Dict, List
 
 from resotocore.db.entitydb import EntityDb, T
@@ -13,6 +14,7 @@ class InMemoryDb(EntityDb[T]):
 
     async def keys(self) -> AsyncGenerator[str, None]:
         for key in self.items:
+            await asyncio.sleep(0)
             yield key
 
     async def all(self) -> AsyncGenerator[T, None]:

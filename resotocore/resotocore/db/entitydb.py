@@ -16,12 +16,12 @@ T = TypeVar("T")
 
 class EntityDb(ABC, Generic[T]):
     @abstractmethod
-    async def keys(self) -> AsyncGenerator[str, None]:
-        yield None  # type: ignore
+    def keys(self) -> AsyncGenerator[str, None]:
+        pass
 
     @abstractmethod
-    async def all(self) -> AsyncGenerator[T, None]:
-        yield None  # type: ignore
+    def all(self) -> AsyncGenerator[T, None]:
+        pass
 
     @abstractmethod
     async def update_many(self, elements: List[T]) -> None:

@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable
 
 import yaml
-from aiohttp.web import Request
+from aiohttp.web import StreamResponse, Request, Response, json_response
 from networkx import DiGraph, cytoscape_data, generate_graphml
 
 from resotocore.cli import is_node
@@ -196,3 +196,14 @@ async def result_binary_gen(request: Request, gen: AsyncIterator[JsonElement]) -
             yield elem.encode("utf-8")
 
     return content_type, encode_utf8()
+
+
+async def single_result(request: Request, js: JsonElement) -> StreamResponse:
+    accept = request.headers.get("accept", "application/json")
+    if accept == "application/json":
+        return json_response(js)
+    elif accept in ["application/yaml", "text/yaml"]:
+        yml = yaml.dump(js)
+        return Response(text=yml, content_type="application/yaml")
+    else:
+        return json_response(js)
