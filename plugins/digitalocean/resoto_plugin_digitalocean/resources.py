@@ -92,21 +92,26 @@ class DigitalOceanProject(DigitalOceanResource, BaseAccount):
 
 
 @dataclass(eq=False)
-class DigitalOceanInstance(DigitalOceanResource, BaseInstance):
-    """An DigitalOcean Instance Resource
+class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
+    """A DigitalOcean Droplet Resource
 
-    Instances have a class variable `instance_status_map` which contains
-    a mapping from the instance status string the cloud API returns
+    Droplet have a class variable `instance_status_map` which contains
+    a mapping from the droplet status string the cloud API returns
     to our internal InstanceStatus state.
     """
 
-    kind: ClassVar[str] = "digitalocean_instance"
+    kind: ClassVar[str] = "digitalocean_droplet"
     instance_status_map: ClassVar[Dict[str, InstanceStatus]] = {
         "new": InstanceStatus.BUSY,
         "active": InstanceStatus.RUNNING,
         "off": InstanceStatus.TERMINATED,
         "archive": InstanceStatus.TERMINATED,
     }
+    backup_ids: List[str] = field(default_factory=list)
+    locked: bool = field(default=False)
+    features: List[str] = field(default_factory=list)
+    image: str = field(default="")
+
 
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
@@ -123,9 +128,9 @@ class DigitalOceanInstance(DigitalOceanResource, BaseInstance):
 # Because we are using dataclasses and allow to supply the `instance_status`
 # string to the constructor we can not use the normal @property decorator.
 # Instead we assign the property once the class has been fully defined.
-DigitalOceanInstance.instance_status = property(
-    DigitalOceanInstance._instance_status_getter,
-    DigitalOceanInstance._instance_status_setter,
+DigitalOceanDroplet.instance_status = property(
+    DigitalOceanDroplet._instance_status_getter,
+    DigitalOceanDroplet._instance_status_setter,
 )
 
 @dataclass(eq=False)

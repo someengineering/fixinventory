@@ -26,7 +26,7 @@ def test_api_call():
     
     client = StreamingWrapper(access_token)
 
-    projects = client.list_projects()
+    projects = client.list_droplets()
     print('all projects')
     print(re.sub("'", '"', str(projects)))
 

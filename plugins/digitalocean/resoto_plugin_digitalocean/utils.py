@@ -37,3 +37,6 @@ def region_id(slug: str) -> str:
 
 def project_id(value: str) -> str:
     return f"do:project:{value}"
+
+def droplet_id(value: int) -> str:
+    return f"do:droplet:{value}"

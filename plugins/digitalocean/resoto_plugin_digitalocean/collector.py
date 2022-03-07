@@ -10,7 +10,7 @@ from prometheus_client import Summary
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 from resotolib.baseresources import BaseResource, EdgeType
 from .resources import (
-    DigitalOceanInstance,
+    DigitalOceanDroplet,
     DigitalOceanProject,
     DigitalOceanRegion,
     DigitalOceanTeam,
@@ -28,6 +28,7 @@ from .utils import (
     get_result_data,
     region_id,
     project_id,
+    droplet_id,
 )
 
 
@@ -334,11 +335,16 @@ class DigitalOceanTeamCollector:
         instances = self.client.list_droplets()
         self.collect_something(
             instances,
-            resource_class=DigitalOceanInstance,
+            resource_class=DigitalOceanDroplet,
             attr_map={
+                "id": lambda d: droplet_id(d["id"]),
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
+                "backup_ids": "backup_ids",
+                "locked": "locked",
+                "features": "features",
+                "image": lambda d: d["image"]["slug"],
             },
             search_map={
                 "_region": ["id", lambda droplet: region_id(droplet['region']['slug'])],
@@ -376,7 +382,7 @@ class DigitalOceanTeamCollector:
                 "volume_size": "size_gigabytes",
             },
             search_map={
-                "__users": ["id", lambda vol: list(map(lambda id: str(id), vol["droplet_ids"]))],
+                "__users": ["id", lambda vol: list(map(lambda id: droplet_id(id), vol["droplet_ids"]))],
             },
             predecessors={EdgeType.default: ["__users"]},
         )
@@ -474,7 +480,7 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanKubernetesCluster,
             search_map={
                 "_region": ["id", lambda c: region_id(c["region"])],
-                "__nodes" : ["id", lambda cluster: [node["droplet_id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
+                "__nodes" : ["id", lambda cluster: [droplet_id(node["droplet_id"]) for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
             },
             successors={EdgeType.default: ["__nodes"]},
         )
@@ -504,7 +510,7 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["id", lambda lb: region_id(lb['region']['slug'])],
                 "__vpcs": ["id", lambda lb: lb['vpc_uuid']],
-                "__droplets": ["id", lambda lb: list(map(lambda id: str(id), lb["droplet_ids"]))],
+                "__droplets": ["id", lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"]))],
             },
             predecessors={
                 EdgeType.default: ["__vpcs"]
@@ -525,7 +531,7 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": ["id", lambda ip: region_id(ip['region']['slug'])],
-                "__droplet": ["id", lambda ip: str(ip.get("droplet", {}).get("id", ""))],
+                "__droplet": ["id", lambda ip: droplet_id(ip.get("droplet", {}).get("id", ""))],
             },
             predecessors={
                 EdgeType.default: ["__droplet"]
