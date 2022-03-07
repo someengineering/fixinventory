@@ -31,6 +31,7 @@ from .utils import (
     project_id,
     droplet_id,
     volume_id,
+    vpc_id,
 )
 
 
@@ -350,7 +351,7 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": ["id", lambda droplet: region_id(droplet['region']['slug'])],
-                "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
+                "__vpcs": ["id", lambda droplet: vpc_id(droplet['vpc_uuid'])],
 
             },
             predecessors={EdgeType.default: ["__vpcs"]},
@@ -433,7 +434,7 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": ["id", lambda db: region_id(db["region"])],
-                "__vpcs": ["id", lambda db: db["private_network_uuid"]],
+                "__vpcs": ["id", lambda db: vpc_id(db["private_network_uuid"])],
             },
             predecessors={EdgeType.default: ["__vpcs"]},
         )
@@ -444,6 +445,12 @@ class DigitalOceanTeamCollector:
         self.collect_something(
             vpcs,
             resource_class=DigitalOceanNetwork,
+            attr_map={
+                "id": "urn",
+                "ip_range": "ip_range",
+                "description": "description",
+                "defalut": "defalut",
+            },
             search_map={
                 "_region": ["id", lambda vpc: region_id(vpc["region"])],
             },
@@ -528,7 +535,7 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanLoadBalancer,
             search_map={
                 "_region": ["id", lambda lb: region_id(lb['region']['slug'])],
-                "__vpcs": ["id", lambda lb: lb['vpc_uuid']],
+                "__vpcs": ["id", lambda lb: vpc_id(lb['vpc_uuid'])],
                 "__droplets": ["id", lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"]))],
             },
             predecessors={

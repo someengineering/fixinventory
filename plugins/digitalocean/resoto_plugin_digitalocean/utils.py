@@ -46,3 +46,6 @@ def kubernetes_id(value: str) -> str:
 
 def volume_id(value: int) -> str:
     return f"do:volume:{value}"
+
+def vpc_id(value: str) -> str:
+    return f"do:vpc:{value}"

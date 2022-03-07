@@ -194,6 +194,10 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
+    ip_range: str = field(default="")
+    description: str = field(default="")
+    defalut: bool = field(default=False)
+
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean image"""
