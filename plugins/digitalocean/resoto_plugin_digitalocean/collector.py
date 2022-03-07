@@ -26,7 +26,8 @@ from pprint import pformat
 from .utils import (
     iso2datetime,
     get_result_data,
-    region_slug_to_id
+    region_id,
+    project_id,
 )
 
 
@@ -108,7 +109,7 @@ class DigitalOceanTeamCollector:
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
             ("databases", self.collect_databases),
-            ("project", self.collect_projest),
+            ("project", self.collect_projects),
             ("k8s_clusters", self.collect_k8s_clusters),
             ("snapshots", self.collect_snapshots),
             ("load_balancers", self.collect_load_balancers),
@@ -168,15 +169,12 @@ class DigitalOceanTeamCollector:
         """See a similar method in the GCPCollectorPlugin"""
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
-        def extract_tag(string: str) -> Tuple[str, str]:
-            splitted = string.split(":", 1)
-            return (splitted[0], "" if len(splitted) == 1 else splitted[1])
-
         kwargs = {
             "id": str(result.get("id")),
-            # "tags": dict(map(extract_tag,  result.get("tags"))),
+            #"tags": dict([(tag,"") for tag in result.get("tags", [])]),
             "name": result.get("name"),
             "ctime": iso2datetime(result.get("created_at")),
+            "mtime": iso2datetime(result.get("updated_at")),
             "_account": self.team,
         }
 
@@ -343,7 +341,7 @@ class DigitalOceanTeamCollector:
                 "instance_memory": "memory",
             },
             search_map={
-                "_region": ["id", lambda droplet: region_slug_to_id(droplet['region']['slug'])],
+                "_region": ["id", lambda droplet: region_id(droplet['region']['slug'])],
                 "__vpcs": ["id", lambda droplet: droplet['vpc_uuid']],
 
             },
@@ -357,7 +355,7 @@ class DigitalOceanTeamCollector:
             regions,
             resource_class=DigitalOceanRegion,
             attr_map={
-                "id": lambda r: region_slug_to_id(r["slug"]),
+                "id": lambda r: region_id(r["slug"]),
                 "name": "name",
                 "slug": "slug",
                 "features": "features",
@@ -422,7 +420,7 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda db: dbtype_to_size.get(db.get("size", "") , 0),
             },
             search_map={
-                "_region": ["id", lambda db: region_slug_to_id(db["region"])],
+                "_region": ["id", lambda db: region_id(db["region"])],
                 "__vpcs": ["id", lambda db: db["private_network_uuid"]],
             },
             predecessors={EdgeType.default: ["__vpcs"]},
@@ -435,23 +433,33 @@ class DigitalOceanTeamCollector:
             vpcs,
             resource_class=DigitalOceanNetwork,
             search_map={
-                "_region": ["id", lambda vpc: region_slug_to_id(vpc["region"])],
+                "_region": ["id", lambda vpc: region_id(vpc["region"])],
             },
         )
 
     @metrics_collect_projects.time()
-    def collect_projest(self) -> None:
+    def collect_projects(self) -> None:
         def get_resource_id(resource):
             return resource["urn"].split(":")[-1]
         projects = self.client.list_projects()
         project_resources = [list(map(get_resource_id, self.client.list_project_resources(p['id']))) for p in projects]
-        
+
+
         for project, resource_ids in zip(projects, project_resources):
             project['resource_ids'] = resource_ids
 
         self.collect_something(
             projects,
             resource_class=DigitalOceanProject,
+            attr_map={
+                "id": lambda p: project_id(p["id"]),
+                "owner_uuid": "owner_uuid",
+                "owner_id": lambda p: str(p["owner_id"]),
+                "description": "description",
+                "purpose": "purpose",
+                "environment": "environment",
+                "is_default": "is_default",
+            },
             search_map={
                 "__resources": ["id", lambda p: p["resource_ids"]],
             },
@@ -465,7 +473,7 @@ class DigitalOceanTeamCollector:
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
             search_map={
-                "_region": ["id", lambda c: region_slug_to_id(c["region"])],
+                "_region": ["id", lambda c: region_id(c["region"])],
                 "__nodes" : ["id", lambda cluster: [node["droplet_id"] for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
             },
             successors={EdgeType.default: ["__nodes"]},
@@ -481,7 +489,7 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda vol: vol["min_disk_size"],
             },
             search_map={
-                "_region": ["id", lambda s: [region_slug_to_id(region) for region in s["regions"]]],
+                "_region": ["id", lambda s: [region_id(region) for region in s["regions"]]],
                 "__resource": ["id", "resource_id"],
             },
             predecessors={EdgeType.default: ["__resource"]},
@@ -494,7 +502,7 @@ class DigitalOceanTeamCollector:
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
             search_map={
-                "_region": ["id", lambda lb: region_slug_to_id(lb['region']['slug'])],
+                "_region": ["id", lambda lb: region_id(lb['region']['slug'])],
                 "__vpcs": ["id", lambda lb: lb['vpc_uuid']],
                 "__droplets": ["id", lambda lb: list(map(lambda id: str(id), lb["droplet_ids"]))],
             },
@@ -516,7 +524,7 @@ class DigitalOceanTeamCollector:
                 "ip_address": "ip",
             },
             search_map={
-                "_region": ["id", lambda ip: region_slug_to_id(ip['region']['slug'])],
+                "_region": ["id", lambda ip: region_id(ip['region']['slug'])],
                 "__droplet": ["id", lambda ip: str(ip.get("droplet", {}).get("id", ""))],
             },
             predecessors={

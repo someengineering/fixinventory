@@ -64,10 +64,10 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
-    slug: str = field(default="", repr=False)
-    features: List[str] = field(default_factory=list, repr=False)
-    available: bool = field(default=True, repr=False)
-    sizes: List[str] = field(default_factory=list, repr=False)
+    slug: str = field(default="")
+    features: List[str] = field(default_factory=list)
+    available: bool = field(default=True)
+    sizes: List[str] = field(default_factory=list)
 
     def delete(self, graph: Graph) -> bool:
         """Regions can usually not be deleted so we return NotImplemented"""
@@ -79,6 +79,13 @@ class DigitalOceanProject(DigitalOceanResource, BaseAccount):
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
+    owner_uuid: str = field(default="")
+    owner_id: str = field(default="")
+    description: str = field(default="")
+    purpose: str = field(default="")
+    environment: str = field(default="")
+    is_default: bool = field(default=False)
+
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
