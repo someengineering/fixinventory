@@ -47,7 +47,7 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
 )
-from resotocore.config import ConfigEntity
+from resotocore.config import ConfigHandler
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
@@ -62,7 +62,7 @@ from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import (
     uuid_str,
     force_gen,
@@ -111,6 +111,7 @@ class Api:
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
         cert_handler: CertificateHandler,
+        config_handler: ConfigHandler,
         cli: CLI,
         query_parser: QueryParser,
         args: Namespace,
@@ -123,6 +124,7 @@ class Api:
         self.event_sender = event_sender
         self.worker_task_queue = worker_task_queue
         self.cert_handler = cert_handler
+        self.config_handler = config_handler
         self.cli = cli
         self.query_parser = query_parser
         self.args = args
@@ -273,32 +275,29 @@ class Api:
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
 
-    async def list_configs(self, _: Request) -> StreamResponse:
-        configs = {config.id: config.config async for config in self.db.config_entity_db.all()}
-        return web.json_response(configs)
+    async def list_configs(self, request: Request) -> StreamResponse:
+        return await self.stream_response_from_gen(request, await self.config_handler.list_config_ids())
 
     async def get_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        config = await self.db.config_entity_db.get(config_id)
+        config = await self.config_handler.get_config(config_id)
         return web.json_response(config.config) if config else HTTPNotFound(text="No config with this id")
 
     async def set_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         config = await request.json()
-        result = await self.db.config_entity_db.update(ConfigEntity(config_id, config))
+        result = await self.config_handler.put_config(config_id, config)
         return web.json_response(result.config)
 
     async def patch_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         patch = await request.json()
-        current = await self.db.config_entity_db.get(config_id)
-        config = current.config if current else {}
-        updated = await self.db.config_entity_db.update(ConfigEntity(config_id, {**config, **patch}))
+        updated = await self.config_handler.patch_config(config_id, patch)
         return web.json_response(updated.config)
 
     async def delete_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        await self.db.config_entity_db.delete(config_id)
+        await self.config_handler.delete_config(config_id)
         return HTTPNoContent()
 
     async def certificate(self, _: Request) -> StreamResponse:
@@ -725,7 +724,7 @@ class Api:
             if request.content_type.startswith("text"):
                 command = (await request.text()).strip()
             elif request.content_type.startswith("multipart"):
-                command = request.headers["Ck-Command"].strip()
+                command = request.headers["Resoto-Shell-Command"].strip()
                 temp = tempfile.mkdtemp()
                 temp_dir = temp
                 files = {}
@@ -850,7 +849,7 @@ class Api:
 
     @staticmethod
     async def stream_response_from_gen(
-        request: Request, gen_in: AsyncIterator[Json], count: Optional[int] = None
+        request: Request, gen_in: AsyncIterator[JsonElement], count: Optional[int] = None
     ) -> StreamResponse:
         # force the async generator, to get an early exception in case of failure
         gen = await force_gen(gen_in)

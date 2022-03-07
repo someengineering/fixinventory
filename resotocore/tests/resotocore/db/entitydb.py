@@ -11,6 +11,10 @@ class InMemoryDb(EntityDb[T]):
         self.t_type = t_type
         self.key_fn = key_fn
 
+    async def keys(self) -> AsyncGenerator[str, None]:
+        for key in self.items:
+            yield key
+
     async def all(self) -> AsyncGenerator[T, None]:
         for js in self.items.values():
             yield from_js(js, self.t_type)

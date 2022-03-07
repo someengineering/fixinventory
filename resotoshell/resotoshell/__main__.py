@@ -142,7 +142,7 @@ def send_command(
                     required = response.json().get("required", [])
                     files = validate_paths({fp["name"]: fp["path"] for fp in required})
                     data = encode_files(files)
-                    headers["Ck-Command"] = command
+                    headers["Resoto-Shell-Command"] = command
                     mp = post_request(data, "multipart/form-data; boundary=file-upload")
                     handle_response(mp, True)
                 else:

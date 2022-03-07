@@ -9,7 +9,6 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
-from resotocore.config import ConfigEntity
 from resotocore.db import EstimatedQueryCostRating
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import predefined_kinds, StringKind, ComplexKind, Property, Kind
@@ -270,7 +269,7 @@ async def test_cli(core_client: ApiClient) -> None:
 async def test_config(core_client: ApiClient) -> None:
     # make sure we have a clean slate
     for config in await core_client.configs():
-        await core_client.delete_config(config.id)
+        await core_client.delete_config(config)
 
     # add/update config
     cfg_id = rnd_str()
@@ -282,7 +281,7 @@ async def test_config(core_client: ApiClient) -> None:
     assert await core_client.config(cfg_id) == {"a": 1, "b": 2, "c": 3}
 
     # list configs
-    assert await core_client.configs() == [ConfigEntity(cfg_id, {"a": 1, "b": 2, "c": 3})]
+    assert await core_client.configs() == [cfg_id]
 
     # delete config
     await core_client.delete_config(cfg_id)

@@ -16,6 +16,7 @@ from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import aliases, all_commands
+from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info
 from resotocore.message_bus import MessageBus
@@ -76,6 +77,7 @@ def run(arguments: List[str]) -> None:
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
+    config_handler = ConfigHandlerService(db.config_entity_db)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
@@ -101,6 +103,7 @@ def run(arguments: List[str]) -> None:
         event_sender,
         worker_task_queue,
         cert_handler,
+        config_handler,
         cli,
         template_expander,
         args,

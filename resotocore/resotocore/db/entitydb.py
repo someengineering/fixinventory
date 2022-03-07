@@ -16,6 +16,10 @@ T = TypeVar("T")
 
 class EntityDb(ABC, Generic[T]):
     @abstractmethod
+    async def keys(self) -> AsyncGenerator[str, None]:
+        yield None  # type: ignore
+
+    @abstractmethod
     async def all(self) -> AsyncGenerator[T, None]:
         yield None  # type: ignore
 
@@ -50,6 +54,11 @@ class ArangoEntityDb(EntityDb[T], ABC):
         self.collection_name = collection_name
         self.t_type = t_type
         self.key_of = key_fn
+
+    async def keys(self) -> AsyncGenerator[str, None]:
+        with await self.db.keys(self.collection_name) as cursor:
+            for element in cursor:
+                yield element
 
     async def all(self) -> AsyncGenerator[T, None]:
         with await self.db.all(self.collection_name) as cursor:
@@ -95,9 +104,11 @@ class EventEntityDb(EntityDb[T]):
         self.event_sender = event_sender
         self.entity_name = entity_name
 
-    async def all(self) -> AsyncGenerator[T, None]:
-        async for a in self.db.all():
-            yield a
+    def keys(self) -> AsyncGenerator[str, None]:
+        return self.db.keys()
+
+    def all(self) -> AsyncGenerator[T, None]:
+        return self.db.all()
 
     async def update_many(self, elements: List[T]) -> None:
         result = await self.db.update_many(elements)
