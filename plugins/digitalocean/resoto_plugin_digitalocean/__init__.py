@@ -4,8 +4,8 @@ from resoto_plugin_digitalocean.client import StreamingWrapper
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.logging import log
-from collector import DigitalOceanTeamCollector
-from resources import DigitalOceanTeam
+from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
+from resoto_plugin_digitalocean.resources import DigitalOceanTeam
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):

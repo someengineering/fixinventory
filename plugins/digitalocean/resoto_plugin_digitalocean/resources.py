@@ -1,4 +1,3 @@
-from abc import ABC
 from dataclasses import InitVar, dataclass, field
 from typing import ClassVar, Dict, List, Optional
 
