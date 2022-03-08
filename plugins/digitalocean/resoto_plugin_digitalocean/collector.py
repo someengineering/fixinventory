@@ -470,7 +470,7 @@ class DigitalOceanTeamCollector:
                 "id": "urn",
                 "ip_range": "ip_range",
                 "description": "description",
-                "defalut": "defalut",
+                "default": "default",
             },
             search_map={
                 "_region": ["id", lambda vpc: region_id(vpc["region"])],

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union, Callable, Any, Dict
+from typing import Union, Callable, Any, Dict, Optional
 
 import resotolib.logging
 
@@ -26,7 +26,7 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
     return data
 
 
-def iso2datetime(ts: str) -> datetime:
+def iso2datetime(ts: Optional[str]) -> Optional[datetime]:
     if ts is None:
         return
     if ts.endswith("Z"):

@@ -28,7 +28,7 @@ class StreamingWrapper:
         log.debug(f"fetching {url}")
 
         json_response = requests.get(url, headers=headers).json()
-        result = result + json_response.get(payload_object_name, [])
+        result.extend(json_response.get(payload_object_name, []))
 
         while json_response.get("links", {}).get("pages", {}).get("last", "") != url:
             url = json_response.get("links", {}).get("pages", {}).get("next", "")
@@ -36,7 +36,7 @@ class StreamingWrapper:
                 break
             log.debug(f"fetching {url}")
             json_response = requests.get(url, headers=headers).json()
-            result = result + json_response.get(payload_object_name, [])
+            result.extend(json_response.get(payload_object_name, []))
 
         log.debug(f"DO request {path}: " f"{json.dumps(result)}")
         return result
