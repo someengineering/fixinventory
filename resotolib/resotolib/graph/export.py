@@ -193,6 +193,26 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
     return model
 
 
+# Use this model exporter, if a dynamic object is exported
+# with given name and properties.
+def dynamic_object_to_resotocore_model(
+    name: str, properties: Dict[str, type]
+) -> List[Json]:
+    dependant = dataclasses_to_resotocore_model(set(properties.values()))
+    # append definition for top level object
+    dependant.append(
+        {
+            "fqn": name,
+            "bases": [],
+            "properties": [
+                {"name": prop_name, "kind": model_name(prop_type), "required": False}
+                for prop_name, prop_type in properties.items()
+            ],
+        }
+    )
+    return dependant
+
+
 def format_value_for_export(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return value.isoformat()

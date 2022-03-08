@@ -10,6 +10,7 @@ from resotolib.graph.export import (
     transitive_dataclasses,
     dataclasses_to_resotocore_model,
     model_name,
+    dynamic_object_to_resotocore_model,
 )
 
 
@@ -131,3 +132,39 @@ def test_dataclasses_to_resotocore_model() -> None:
                 props["optionally_weird_dict"]["kind"]
                 == "dictionary[string, dictionary[string, dictionary[string, dictionary[any, prop]]]]"
             )
+
+
+@dataclass
+class AwsConfig:
+    kind: ClassVar[str] = "aws_config"
+    access_key: str = field(metadata={"description": "The AWS access key."})
+    secret_key: str = field(metadata={"description": "The secret part of the key."})
+
+
+@dataclass
+class GcpConfigConfig:
+    kind: ClassVar[str] = "gcp_config"
+    foo: int = field(metadata={"description": "Some foo value."})
+
+
+def test_config_export():
+    # Let's assume a dynamic top level object of name Config
+    # The properties are defined by name and related type.
+    result = dynamic_object_to_resotocore_model(
+        "config", {"aws": AwsConfig, "gcp": GcpConfigConfig}
+    )
+    result_dict = {a["fqn"]: a for a in result}
+    assert len(result_dict["gcp_config"]["properties"]) == 1
+    assert len(result_dict["aws_config"]["properties"]) == 2
+    # Aws properties are rendered with description
+    aws = {a["name"]: a["description"] for a in result_dict["aws_config"]["properties"]}
+    assert aws == {
+        "access_key": "The AWS access key.",
+        "secret_key": "The secret part of the key.",
+    }
+    # Gcp properties are rendered with description
+    gcp = {a["name"]: a["description"] for a in result_dict["gcp_config"]["properties"]}
+    assert gcp == {"foo": "Some foo value."}
+    # All global config properties are defined
+    config = {a["name"] for a in result_dict["config"]["properties"]}
+    assert config == {"aws", "gcp"}
