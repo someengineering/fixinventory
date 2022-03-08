@@ -52,3 +52,6 @@ def vpc_id(value: str) -> str:
 
 def snapshot_id(value: int) -> str:
     return f"do:snapshot:{value}"
+
+def loadbalancer_id(value: int) -> str:
+    return f"do:loadbalancer:{value}"

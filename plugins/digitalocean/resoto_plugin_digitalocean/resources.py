@@ -212,6 +212,14 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
 
+    ip: str = field(default="")
+    size_unit: int = field(default=1)
+    status: str = field(default="")
+    redirect_http_to_https: bool = field(default=False)
+    enable_proxy_protocol: bool = field(default=False)
+    enable_backend_keepalive: bool = field(default=False)
+    disable_lets_encrypt_dns_records: bool = field(default=False)
+
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 

@@ -33,6 +33,7 @@ from .utils import (
     volume_id,
     vpc_id,
     snapshot_id,
+    loadbalancer_id
 )
 
 
@@ -521,8 +522,6 @@ class DigitalOceanTeamCollector:
                 return volume_id(snapshot["resource_id"])
 
         snapshots = self.client.list_snapshots()
-        for s in snapshots:
-            print(get_resource_id(s))
         self.collect_something(
             snapshots,
             resource_class=DigitalOceanSnapshot,
@@ -546,6 +545,16 @@ class DigitalOceanTeamCollector:
         self.collect_something(
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
+            attr_map={
+                "id": lambda lb: loadbalancer_id(lb["id"]),
+                "ip": "ip",
+                "size_unit": "size_unit",
+                "status": "status",
+                "redirect_http_to_https": "redirect_http_to_https",
+                "enable_proxy_protocol": "enable_proxy_protocol",
+                "enable_backend_keepalive": "enable_backend_keepalive",
+                "disable_lets_encrypt_dns_records": "disable_lets_encrypt_dns_records",
+            },
             search_map={
                 "_region": ["id", lambda lb: region_id(lb['region']['slug'])],
                 "__vpcs": ["id", lambda lb: vpc_id(lb['vpc_uuid'])],
