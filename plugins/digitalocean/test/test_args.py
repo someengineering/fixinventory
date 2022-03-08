@@ -11,46 +11,8 @@ import re
 from resotolib.graph import sanitize
 
 
-def _test_args():
+def test_args():
     arg_parser = get_arg_parser()
     DigitalOceanCollectorPlugin.add_args(arg_parser)
     arg_parser.parse_args()
     assert ArgumentParser.args.digitalocean_region is None
-
-def test_api_call():
-
-    
-    access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
-    
-
-    
-    client = StreamingWrapper(access_token)
-
-    projects = client.list_project_resources("c04ff309-8e93-46a8-b698-58bc475a7ce0")
-    print('all projects')
-    print(re.sub("'", '"', str(projects)))
-
-    assert False
-
-
-def test_collector():
-
-    arg_parser = get_arg_parser()
-    DigitalOceanCollectorPlugin.add_args(arg_parser)
-    arg_parser.parse_args()
-
-    plugin_instance = DigitalOceanCollectorPlugin()
-    plugin_instance.collect()
-
-    sanitize(plugin_instance.graph)
-    assert plugin_instance.graph.is_dag_per_edge_type()
-
-    graph_export = f"{list(plugin_instance.graph.export_iterator())}"
-
-    graph_export = re.sub("b'", "", graph_export)
-    graph_export = re.sub(r"\\n'", "", graph_export)
-
-
-    print(graph_export)
-
-    assert False
