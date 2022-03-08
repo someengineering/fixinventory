@@ -486,7 +486,7 @@ class Part:
     def __str__(self) -> str:
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         tag = f"#{self.tag}" if self.tag else ""
-        sort = " sort " + (",".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
+        sort = " sort " + (", ".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
         limit = str(self.limit) if self.limit else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
         reverse = " reversed " if self.reverse_result else ""

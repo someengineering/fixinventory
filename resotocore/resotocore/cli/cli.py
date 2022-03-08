@@ -176,7 +176,7 @@ class HelpCommand(CLICommand):
 
 CLIArg = Tuple[CLICommand, Optional[str]]
 # If no sort is defined in the part, we use this default sort order
-DefaultSort = [Sort("/reported.kind"), Sort("/reported.id")]
+DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
 class CLI:

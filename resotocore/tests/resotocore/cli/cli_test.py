@@ -206,7 +206,7 @@ def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command('search some_int==0 | search identifier=~"9_" | descendants')
-    sort = "sort reported.kind asc,reported.id asc"
+    sort = "sort reported.kind asc, reported.name asc, reported.id asc"
     assert len(commands) == 1
     assert len(commands[0].commands) == 1
     assert commands[0].commands[0].name == "execute_search"
@@ -249,7 +249,7 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command("search is(volume) | tail -10")
     assert (
         commands[0].executable_commands[0].arg
-        == f'is("volume") sort reported.kind desc,reported.id desc limit 10 reversed '
+        == f'is("volume") sort reported.kind desc, reported.name desc, reported.id desc limit 10 reversed '
     )
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5")
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 5, 5 reversed '
