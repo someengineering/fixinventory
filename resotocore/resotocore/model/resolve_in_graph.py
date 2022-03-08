@@ -35,6 +35,10 @@ class ResolveProp:
     # Path to write this property to
     to_path: List[str]
 
+    # If this resolver should apply, if the related node is the node itself.
+    # e.g.: the node is an account node and the ancestor of type account is requested.
+    apply_on_self: bool = False
+
     @property
     def to(self) -> str:
         return ".".join(self.to_path)
@@ -67,7 +71,7 @@ class GraphResolver:
             [
                 ResolveProp(NodePath.reported_name, ["ancestors", "cloud", "reported", "name"]),
                 ResolveProp(NodePath.reported_id, ["ancestors", "cloud", "reported", "id"]),
-                ResolveProp(NodePath.node_id, ["refs", "cloud_id"]),
+                ResolveProp(NodePath.node_id, ["refs", "cloud_id"], apply_on_self=True),
             ],
         ),
         ResolveAncestor(
@@ -75,7 +79,7 @@ class GraphResolver:
             [
                 ResolveProp(NodePath.reported_name, ["ancestors", "account", "reported", "name"]),
                 ResolveProp(NodePath.reported_id, ["ancestors", "account", "reported", "id"]),
-                ResolveProp(NodePath.node_id, ["refs", "account_id"]),
+                ResolveProp(NodePath.node_id, ["refs", "account_id"], apply_on_self=True),
             ],
         ),
         ResolveAncestor(
@@ -83,7 +87,7 @@ class GraphResolver:
             [
                 ResolveProp(NodePath.reported_name, ["ancestors", "region", "reported", "name"]),
                 ResolveProp(NodePath.reported_id, ["ancestors", "region", "reported", "id"]),
-                ResolveProp(NodePath.node_id, ["refs", "region_id"]),
+                ResolveProp(NodePath.node_id, ["refs", "region_id"], apply_on_self=True),
             ],
         ),
         ResolveAncestor(
@@ -91,7 +95,7 @@ class GraphResolver:
             [
                 ResolveProp(NodePath.reported_name, ["ancestors", "zone", "reported", "name"]),
                 ResolveProp(NodePath.reported_id, ["ancestors", "zone", "reported", "id"]),
-                ResolveProp(NodePath.node_id, ["refs", "zone_id"]),
+                ResolveProp(NodePath.node_id, ["refs", "zone_id"], apply_on_self=True),
             ],
         ),
     ]

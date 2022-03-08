@@ -1,0 +1,269 @@
+access_keys_total:
+  help: Number of Access Keys
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, access_key_status as status:
+    sum(1) as access_keys_total): is(access_key)'
+  type: gauge
+accounts_total:
+  help: Number of Accounts
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud: sum(1) as accounts_total):
+    is(account)'
+  type: gauge
+autoscaling_groups_total:
+  help: Number of Autoscaling Groups
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as autoscaling_groups_total):
+    is(autoscaling_group)'
+  type: gauge
+buckets_quotas_total:
+  help: Quotas of Storage Buckets
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as buckets_quotas_total):
+    is(bucket_quota)'
+  type: gauge
+buckets_total:
+  help: Number of Storage Buckets
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as buckets_total):
+    is(bucket)'
+  type: gauge
+certificates_quotas_total:
+  help: Quotas of Certificates
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as certificates_quotas_total):
+    is(certificate_quota)'
+  type: gauge
+certificates_total:
+  help: Number of Certificates
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as certificates_total):
+    is(certificate)'
+  type: gauge
+cores_total:
+  help: Number of CPU cores
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type:
+    sum(instance_cores) as cores_total): is(instance) and instance_status == running'
+  type: gauge
+databases_bytes:
+  help: Size of Databases in bytes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, db_type as type, instance_type
+    as instance_type: sum(volume_size * 1024 * 1024 * 1024) as databases_bytes): is(database)'
+  type: gauge
+databases_total:
+  help: Number of Databases
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, db_type as type, instance_type
+    as instance_type: sum(1) as databases_total): is(database)'
+  type: gauge
+endpoints_total:
+  help: Number of Endpoints
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as endpoints_total):
+    is(endpoint)'
+  type: gauge
+gateways_quotas_total:
+  help: Quotas of Gateways
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as gateways_quotas_total):
+    is(gateway_quota)'
+  type: gauge
+gateways_total:
+  help: Number of Gateways
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as gateways_total):
+    is(gateway)'
+  type: gauge
+groups_total:
+  help: Number of Groups
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as groups_total):
+    is(group)'
+  type: gauge
+health_checks_total:
+  help: Number of Health Checks
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as health_checks_total):
+    is(health_check)'
+  type: gauge
+instance_profiles_total:
+  help: Number of Instance Profiles
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as instance_profiles_total):
+    is(instance_profile)'
+  type: gauge
+instances_hourly_cost_estimate:
+  help: Hourly instance cost estimate
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type:
+    sum(/ancestors.instance_type.reported.ondemand_cost) as instances_hourly_cost_estimate):
+    is(instance) and instance_status == running'
+  type: gauge
+instances_quotas_total:
+  help: Quotas of Instances
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type,
+    quota_type as quota_type: sum(quota) as instances_quotas_total): is(instance_quota)
+    and quota >= 0'
+  type: gauge
+instances_total:
+  help: Number of Instances
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type,
+    instance_status as status: sum(1) as instances_total): is(instance)'
+  type: gauge
+ip_addresses_total:
+  help: Number of IP Addresses
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as ip_addresses_total):
+    is(ip_address)'
+  type: gauge
+keypairs_total:
+  help: Number of Key Pairs
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as keypairs_total):
+    is(keypair)'
+  type: gauge
+load_balancers_quotas_total:
+  help: Quotas of Load Balancers
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as load_balancers_quotas_total):
+    is(load_balancer_quota)'
+  type: gauge
+load_balancers_total:
+  help: Number of Load Balancers
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, lb_type as type: sum(1)
+    as load_balancers_total): is(load_balancer)'
+  type: gauge
+memory_bytes:
+  help: Amount of RAM in bytes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type:
+    sum(instance_memory * 1024 * 1024 * 1024) as memory_bytes): is(instance) and instance_status
+    == running'
+  type: gauge
+network_acls_total:
+  help: Number of Network ACLs
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as network_acls_total):
+    is(network_acl)'
+  type: gauge
+network_interfaces_total:
+  help: Number of Network Interfaces
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, network_interface_status
+    as status: sum(1) as network_interfaces_total): is(network_interface)'
+  type: gauge
+networks_quotas_total:
+  help: Quotas of Networks
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as networks_quotas_total):
+    is(network_quota)'
+  type: gauge
+networks_total:
+  help: Number of Networks
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as networks_total):
+    is(network)'
+  type: gauge
+peering_connections_total:
+  help: Number of Peering Connections
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as peering_connections_total):
+    is(peering_connection)'
+  type: gauge
+policies_total:
+  help: Number of Policies
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as policies_total):
+    is(policy)'
+  type: gauge
+reserved_instances_total:
+  help: Number of Reserved Instances
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, instance_type as type,
+    quota_type as quota_type: sum(reservations) as reserved_instances_total): is(instance_type)
+    and reservations >= 0'
+  type: gauge
+roles_total:
+  help: Number of Roles
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as roles_total):
+    is(role)'
+  type: gauge
+routing_tables_total:
+  help: Number of Routing Tables
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as routing_tables_total):
+    is(routing_table)'
+  type: gauge
+security_groups_total:
+  help: Number of Security Groups
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as security_groups_total):
+    is(security_group)'
+  type: gauge
+snapshots_total:
+  help: Number of Snapshots
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, snapshot_status as status:
+    sum(1) as snapshots_total): is(snapshot)'
+  type: gauge
+snapshots_volumes_bytes:
+  help: Size of Snapshots Volumes in bytes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, snapshot_status as status:
+    sum(volume_size * 1024 * 1024 * 1024) as snapshots_volumes_bytes): is(snapshot)'
+  type: gauge
+stacks_total:
+  help: Number of Stacks
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as stacks_total):
+    is(stack)'
+  type: gauge
+subnets_total:
+  help: Number of Subnets
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as subnets_total):
+    is(subnet)'
+  type: gauge
+tunnels_total:
+  help: Number of Tunnels
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as tunnels_total):
+    is(tunnel)'
+  type: gauge
+users_total:
+  help: Number of Users
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region: sum(1) as users_total):
+    is(user)'
+  type: gauge
+volume_bytes:
+  help: Size of Volumes in bytes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, volume_type as type, volume_status
+    as status: sum(volume_size * 1024 * 1024 * 1024) as volume_bytes): is(volume)'
+  type: gauge
+volumes_monthly_cost_estimate:
+  help: Monthly volume cost estimate
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, volume_type as type, volume_status
+    as status: sum(/ancestors.volume_type.reported.ondemand_cost) as volumes_monthly_cost_estimate):
+    is(volume)'
+  type: gauge
+volumes_quotas_bytes:
+  help: Quotas of Volumes in bytes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, volume_type as type: sum(quota
+    * 1024 * 1024 * 1024 * 1024) as volumes_quotas_bytes): is(volume_type) and quota
+    >= 0'
+  type: gauge
+volumes_total:
+  help: Number of Volumes
+  query: 'aggregate(/ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name
+    as account, /ancestors.region.reported.name as region, volume_type as type, volume_status
+    as status: sum(1) as volumes_total): is(volume)'
+  type: gauge

@@ -78,9 +78,9 @@ class AsyncCursor(AsyncIterator[Json]):
         vertex = None
         edge = None
         try:
-            _id = element["_id"]
-            if _id not in self.visited_node:
-                self.visited_node.add(_id)
+            _key = element["_key"]
+            if _key not in self.visited_node:
+                self.visited_node.add(_key)
                 vertex = self.trafo(element)
 
             from_id = element.get("_from")
@@ -129,7 +129,10 @@ class AsyncCursor(AsyncIterator[Json]):
 
     async def next_deferred_edge(self) -> Json:
         try:
-            return self.deferred_edges.pop()
+            while True:
+                e = self.deferred_edges.pop()
+                if e["from"] in self.visited_node and e["to"] in self.visited_node:
+                    return e
         except IndexError as ex:
             raise StopAsyncIteration from ex
 

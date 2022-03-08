@@ -3,25 +3,28 @@ from __future__ import annotations
 import asyncio
 import calendar
 import logging
+import os
 from asyncio import Task
 from dataclasses import replace
 from datetime import timedelta
 from functools import reduce
+from itertools import takewhile
 from textwrap import dedent
 from typing import Dict, List, Tuple
 from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
-from itertools import takewhile
 from parsy import Parser
+from rich.padding import Padding
+from rich.text import Text
 from tzlocal import get_localzone
 
 from resotocore import version
 from resotocore.analytics import CoreEvent
 from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink
 from resotocore.cli.command import (
-    QueryAllPart,
+    SearchPart,
     PredecessorsPart,
     SuccessorsPart,
     AncestorsPart,
@@ -30,8 +33,8 @@ from resotocore.cli.command import (
     CountCommand,
     HeadCommand,
     TailCommand,
-    QueryPart,
-    ExecuteQueryCommand,
+    SearchCLIPart,
+    ExecuteSearchCommand,
     JobsCommand,
 )
 from resotocore.cli.model import (
@@ -101,6 +104,9 @@ class HelpCommand(CLICommand):
     Show help text for a command or general help information.
     """
 
+    with open(os.path.dirname(__file__) + "/../static/ck-unicode-truecolor.ans", "r", encoding="utf-8") as log_file:
+        ck = Text.from_ansi(log_file.read())
+
     def __init__(self, dependencies: CLIDependencies, parts: List[CLICommand], aliases: Dict[str, str]):
         super().__init__(dependencies)
         self.all_parts = {p.name: p for p in parts + [self]}
@@ -128,8 +134,6 @@ class HelpCommand(CLICommand):
             )
             result = dedent(
                 f"""
-                 # resotocore CLI ({version()})
-
                  ## Valid placeholder string: \n{replacements}
 
                  ## Available Aliases: \n{aliases}
@@ -142,7 +146,15 @@ class HelpCommand(CLICommand):
                  Use `help <command>` to show help for a specific command.
                  """
             )
-            return ctx.render_console(result)
+            headline = ctx.render_console(f"# resotocore CLI ({version()})")
+            # ck mascot is centered (rendered if color is enabled)
+            middle = (
+                int((ctx.console_renderer.width - 22) / 2)
+                if ctx.console_renderer is not None and ctx.console_renderer.width is not None
+                else 0
+            )
+            logo = ctx.render_console(Padding(self.ck, pad=(0, 0, 0, middle))) if ctx.supports_color() else ""
+            return headline + logo + ctx.render_console(result)
 
         def help_command() -> Stream:
             if not arg:
@@ -236,7 +248,7 @@ class CLI:
         Takes a list of query part commands and combine them to a single executable query command.
         This process can also introduce new commands that should run after the query is finished.
         Therefore, a list of executable commands is returned.
-        :param commands: the incoming executable commands, which actions are all instances of QueryPart.
+        :param commands: the incoming executable commands, which actions are all instances of SearchCLIPart.
         :param ctx: the context to execute within.
         :return: the resulting list of commands to execute.
         """
@@ -247,7 +259,7 @@ class CLI:
 
         async def parse_query(query_arg: str) -> Query:
             nonlocal parsed_options
-            parsed, query_part = ExecuteQueryCommand.parse_known(query_arg)
+            parsed, query_part = ExecuteSearchCommand.parse_known(query_arg)
             parsed_options = {**parsed_options, **parsed}
             # section expansion is disabled here: it will happen on the final query after all parts have been combined
             return await self.dependencies.template_expander.parse_query(
@@ -259,7 +271,7 @@ class CLI:
         for command in commands:
             part = command.command
             arg = command.arg if command.arg else ""
-            if isinstance(part, QueryAllPart):
+            if isinstance(part, SearchPart):
                 query = query.combine(await parse_query(arg))
             elif isinstance(part, PredecessorsPart):
                 origin, edge = PredecessorsPart.parse_args(arg, ctx)
@@ -300,10 +312,10 @@ class CLI:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
         final_query = query.on_section(ctx.env.get("section", PathRoot))
-        options = ExecuteQueryCommand.argument_string(parsed_options)
+        options = ExecuteSearchCommand.argument_string(parsed_options)
         query_string = str(final_query)
-        execute_query = self.command("execute_query", options + query_string, ctx)
-        return final_query, parsed_options, [execute_query, *additional_commands]
+        execute_search = self.command("execute_search", options + query_string, ctx)
+        return final_query, parsed_options, [execute_search, *additional_commands]
 
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
@@ -311,7 +323,7 @@ class CLI:
         async def combine_query_parts(
             commands: List[ExecutableCommand], ctx: CLIContext
         ) -> Tuple[CLIContext, List[ExecutableCommand]]:
-            parts = list(takewhile(lambda x: isinstance(x.command, QueryPart), commands))
+            parts = list(takewhile(lambda x: isinstance(x.command, SearchCLIPart), commands))
             if parts:
                 query, options, query_parts = await self.create_query(parts, ctx)
                 ctx_wq = replace(ctx, query=query, query_options=options)

@@ -1,7 +1,7 @@
 <p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_200.png" alt="Resoto"/>
 <h1 align="center">Housekeeping for Clouds!</h1></p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.jpg" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/someengineering/resoto/main/misc/resoto_banner.png" /></p>
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/resoto?label=latest)](https://github.com/someengineering/resoto/tags/)
 [![Build](https://img.shields.io/github/workflow/status/someengineering/resoto/Build%20Docker%20Images/main)](https://github.com/someengineering/resoto/commits/main)
@@ -40,7 +40,7 @@ Currently it can collect [AWS](plugins/aws/), [Google Cloud](plugins/gcp/), [VMW
 
 ## Docker-based quick start
 
-Docker images are hosted via GitHub container repository: `somecr.io/someengineering/resoto:2.0.0a16`
+Docker images are hosted via GitHub container repository: `somecr.io/someengineering/resoto:2.0.0a17`
 
 In this quick start guide, we’re showing you three things, how to:
 

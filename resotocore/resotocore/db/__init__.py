@@ -17,7 +17,7 @@ class EstimatedQueryCostRating(Enum):
 
 
 @dataclass
-class EstimatedQueryCost:
+class EstimatedSearchCost:
     # Absolute number that shows the cost of this query. See rating for an interpreted number.
     estimated_cost: int
     # This is the estimated number of items returned for this query.

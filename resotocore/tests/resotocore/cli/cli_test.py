@@ -10,7 +10,7 @@ from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from resotocore.cli.cli import CLI, multi_command_parser
 from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import (
-    ExecuteQueryCommand,
+    ExecuteSearchCommand,
     ChunkCommand,
     FlattenCommand,
     UniqCommand,
@@ -101,7 +101,7 @@ def test_command_line_parser() -> None:
 
     check("test", [["test"]])
     check("test | bla |  bar", [["test", "bla", "bar"]])
-    check('query is(foo) and bla.test=="foo"', [['query is(foo) and bla.test=="foo"']])
+    check('search is(foo) and bla.test=="foo"', [['search is(foo) and bla.test=="foo"']])
     check('a 1 | b "s" | c 1.23 | d', [["a 1", 'b "s"', "c 1.23", "d"]])
     check('jq ". | {a:.foo, b: .bla}" ', [['jq ". | {a:.foo, b: .bla}"']])
     check("a|b|c;d|e|f;g|e|h", [["a", "b", "c"], ["d", "e", "f"], ["g", "e", "h"]])
@@ -138,7 +138,7 @@ async def test_multi_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_query_database(cli: CLI) -> None:
-    query = 'query is("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
+    query = 'search is("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
     count = "count f"
     commands = "|".join([query, count])
     result = await cli.evaluate_cli_command(commands)
@@ -146,11 +146,11 @@ async def test_query_database(cli: CLI) -> None:
     line1 = result[0]
     assert len(line1.commands) == 2
     p1, p2 = line1.commands
-    assert isinstance(p1, ExecuteQueryCommand)
+    assert isinstance(p1, ExecuteSearchCommand)
     assert isinstance(p2, AggregateToCountCommand)
 
     with pytest.raises(Exception):
-        await cli.evaluate_cli_command("query this is not a query")  # command is un-parsable
+        await cli.evaluate_cli_command("search a>>>>")  # command is un-parsable
 
     with pytest.raises(CLIParseError):
         cli.cli_env = {}  # delete the env
@@ -171,8 +171,8 @@ async def test_order_of_commands(cli: CLI) -> None:
     assert str(ex.value) == "Command >uniq< can not be used in this position: no source data given"
 
     with pytest.raises(CLIParseError) as ex:
-        await cli.evaluate_cli_command("echo foo | uniq | query bla==23")
-    assert str(ex.value) == "Command >query< can not be used in this position: must be the first command"
+        await cli.evaluate_cli_command("echo foo | uniq | search bla==23")
+    assert str(ex.value) == "Command >search< can not be used in this position: must be the first command"
 
 
 @pytest.mark.asyncio
@@ -205,34 +205,34 @@ def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
 
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
-    commands = await cli.evaluate_cli_command('query some_int==0 | query identifier=~"9_" | descendants')
+    commands = await cli.evaluate_cli_command('search some_int==0 | search identifier=~"9_" | descendants')
     assert len(commands) == 1
     assert len(commands[0].commands) == 1
-    assert commands[0].commands[0].name == "execute_query"
+    assert commands[0].commands[0].name == "execute_search"
     assert (
         commands[0].executable_commands[0].arg
         == '(reported.some_int == 0 and reported.identifier =~ "9_") -default[1:]->'
     )
-    commands = await cli.evaluate_cli_command("query some_int==0 | descendants")
+    commands = await cli.evaluate_cli_command("search some_int==0 | descendants")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[1:]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors | ancestors")
+    commands = await cli.evaluate_cli_command("search some_int==0 | ancestors | ancestors")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2:]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors | predecessors")
+    commands = await cli.evaluate_cli_command("search some_int==0 | predecessors | predecessors")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors | successors | successors")
+    commands = await cli.evaluate_cli_command("search some_int==0 | successors | successors | successors")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[3]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors | predecessors")
+    commands = await cli.evaluate_cli_command("search some_int==0 | successors | predecessors")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default-> all <-default-"
     # defining the edge type is supported as well
-    commands = await cli.evaluate_cli_command("query some_int==0 | successors delete")
+    commands = await cli.evaluate_cli_command("search some_int==0 | successors delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | predecessors delete")
+    commands = await cli.evaluate_cli_command("search some_int==0 | predecessors delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | descendants delete")
+    commands = await cli.evaluate_cli_command("search some_int==0 | descendants delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete[1:]->"
-    commands = await cli.evaluate_cli_command("query some_int==0 | ancestors delete")
+    commands = await cli.evaluate_cli_command("search some_int==0 | ancestors delete")
     assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete[1:]-"
-    commands = await cli.evaluate_cli_command("query some_int==0 | aggregate foo, bla as bla: sum(bar)")
+    commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar)")
     assert (
         commands[0].executable_commands[0].arg
         == "aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0"

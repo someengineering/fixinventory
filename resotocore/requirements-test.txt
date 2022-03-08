@@ -1,7 +1,7 @@
 # test dependencies
-pytest==6.2.5
+pytest==7.0.1
 pytest-cov==3.0.0
-pytest-runner==5.3.1
-pytest-asyncio==0.17.2
+pytest-runner==6.0.0
+pytest-asyncio==0.18.1
 deepdiff==5.7.0
-hypothesis==6.36.1
+hypothesis==6.38.0 # 6.39.0 does not work. https://github.com/HypothesisWorks/hypothesis/issues/3245

@@ -15,7 +15,7 @@ def emit_recurrent_events(
     worker_task_queue: WorkerTaskQueue,
     message_bus: MessageBus,
     frequency: timedelta,
-    first_run: timedelta = timedelta(minutes=1),
+    first_run: timedelta,
 ) -> Periodic:
     async def emit_events() -> None:
         # information about the model

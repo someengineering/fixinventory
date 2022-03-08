@@ -173,37 +173,32 @@ async def test_graph_api(core_client: ApiClient) -> None:
     for n in updated_nodes:
         assert n.reported.name == "bruce"
 
-    # create the raw query
-    raw = await core_client.query_graph_raw(g, 'id("3")')
+    # create the raw search
+    raw = await core_client.search_graph_raw(g, 'id("3")')
     assert raw == {
-        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  "
-        'RETURN UNSET(m0, ["flat"])) '
-        "FOR result in filter0 RETURN result",
+        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        'FOR result in filter0 RETURN UNSET(result, ["flat"])',
         "bind_vars": {"b0": "3"},
     }
 
-    # estimate the query
-    cost = await core_client.query_graph_explain(g, 'id("3")')
+    # estimate the search
+    cost = await core_client.search_graph_explain(g, 'id("3")')
     assert cost.full_collection_scan is False
     assert cost.rating == EstimatedQueryCostRating.simple
 
-    # query list
-    result_list = await core_client.query_list(g, 'id("3") -[0:]->')
+    # search list
+    result_list = await core_client.search_list(g, 'id("3") -[0:]->')
     assert len(result_list) == 11  # one parent node and 10 child nodes
     assert result_list[0].id == "3"  # first node is the parent node
 
-    # query graph
-    result_graph = await core_client.query_graph(g, 'id("3") -[0:]->')
+    # search graph
+    result_graph = await core_client.search_graph(g, 'id("3") -[0:]->')
     assert len(result_graph) == 21  # 11 nodes + 10 edges
     assert result_list[0].id == "3"  # first node is the parent node
 
     # aggregate
-    result_aggregate = await core_client.query_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
+    result_aggregate = await core_client.search_aggregate(g, "aggregate(reported.kind as kind: sum(1) as count): all")
     assert {r.group.kind: r.count for r in result_aggregate} == {"bla": 100, "cloud": 1, "foo": 11, "graph_root": 1}
-
-    # fulltext search
-    # note the fulltext index is only eventually consistent: we do not assume any result other than a successful return
-    await core_client.search(g, "foo")
 
     # delete the graph
     assert await core_client.delete_graph(g) == "Graph deleted."
@@ -253,17 +248,17 @@ async def test_cli(core_client: ApiClient) -> None:
     await core_client.create_graph(g)
     await core_client.merge_graph(g, create_graph("test"))
 
-    # evaluate query with count
-    result = await core_client.cli_evaluate(g, "query all | count kind")
+    # evaluate search with count
+    result = await core_client.cli_evaluate(g, "search all | count kind")
     assert len(result) == 1
     parsed, to_execute = result[0]
     assert len(parsed.commands) == 2
-    assert (parsed.commands[0].cmd, parsed.commands[1].cmd) == ("query", "count")
+    assert (parsed.commands[0].cmd, parsed.commands[1].cmd) == ("search", "count")
     assert len(to_execute) == 2
-    assert (to_execute[0].cmd, to_execute[1].cmd) == ("execute_query", "aggregate_to_count")
+    assert (to_execute[0].cmd, to_execute[1].cmd) == ("execute_search", "aggregate_to_count")
 
-    # execute query with count
-    executed = await core_client.cli_execute(g, "query is(foo) or is(bla) | count kind")
+    # execute search with count
+    executed = await core_client.cli_execute(g, "search is(foo) or is(bla) | count kind")
     assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
 
     # list all cli commands

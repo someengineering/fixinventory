@@ -61,7 +61,7 @@ from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
-from resotocore.task.task_handler import TaskHandler
+from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
 from resotocore.util import (
     uuid_str,
@@ -106,7 +106,7 @@ class Api:
         db: DbAccess,
         model_handler: ModelHandler,
         subscription_handler: SubscriptionHandler,
-        workflow_handler: TaskHandler,
+        workflow_handler: TaskHandlerService,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
@@ -164,12 +164,19 @@ class Api:
                 web.post("/graph/{graph_id}", self.create_graph),
                 web.delete("/graph/{graph_id}", self.wipe),
                 # No section of the graph
+                # TODO: deprecated. Remove it.
                 web.post("/graph/{graph_id}/query/raw", self.raw),
                 web.post("/graph/{graph_id}/query/explain", self.explain),
                 web.post("/graph/{graph_id}/query/list", self.query_list),
                 web.post("/graph/{graph_id}/query/graph", self.query_graph_stream),
                 web.post("/graph/{graph_id}/query/aggregate", self.query_aggregation),
-                web.get("/graph/{graph_id}/search", self.search_graph),
+                # search the graph
+                web.post("/graph/{graph_id}/search/raw", self.raw),
+                web.post("/graph/{graph_id}/search/explain", self.explain),
+                web.post("/graph/{graph_id}/search/list", self.query_list),
+                web.post("/graph/{graph_id}/search/graph", self.query_graph_stream),
+                web.post("/graph/{graph_id}/search/aggregate", self.query_aggregation),
+                # maintain the graph
                 web.patch("/graph/{graph_id}/nodes", self.update_nodes),
                 web.post("/graph/{graph_id}/merge", self.merge_graph),
                 web.post("/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
@@ -309,7 +316,7 @@ class Api:
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
-        resp = web.Response(body=prometheus_client.generate_latest())
+        resp = web.Response(body=prometheus_client.generate_latest())  # type: ignore
         resp.content_type = prometheus_client.CONTENT_TYPE_LATEST
         return resp
 
@@ -644,40 +651,29 @@ class Api:
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
 
-    async def search_graph(self, request: Request) -> StreamResponse:
-        if "term" not in request.query:
-            raise AttributeError("Expect query parameter term to be defined!")
-        query_string = request.query.get("term", "")
-        limit = int(request.query.get("limit", "10"))
-        model = await self.model_handler.load_model()
-        graph_db = self.db.get_graph_db(request.match_info.get("graph_id", "resoto"))
-        result = graph_db.search(model, query_string, limit)
-        # noinspection PyTypeChecker
-        return await self.stream_response_from_gen(request, (to_js(a) async for a in result))
-
     async def query_list(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
-        timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_list(query_model, count, timeout) as cursor:
+        timeout = if_set(request.query.get("search_timeout"), duration)
+        async with await graph_db.search_list(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def cytoscape(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
-        result = await graph_db.query_graph(query_model)
+        result = await graph_db.search_graph(query_model)
         node_link_data = cytoscape_data(result)
         return web.json_response(node_link_data)
 
     async def query_graph_stream(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
-        timeout = if_set(request.query.get("query_timeout"), duration)
-        async with await graph_db.query_graph_gen(query_model, count, timeout) as cursor:
+        timeout = if_set(request.query.get("search_timeout"), duration)
+        async with await graph_db.search_graph_gen(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_aggregation(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
-        async with await graph_db.query_aggregation(query_model) as gen:
+        async with await graph_db.search_aggregation(query_model) as gen:
             return await self.stream_response_from_gen(request, gen)
 
     async def wipe(self, request: Request) -> StreamResponse:
@@ -840,7 +836,7 @@ class Api:
 
         if request.content_type == "application/json":
             return stream_json_array()
-        elif request.content_type == "application/x-ndjson":
+        elif request.content_type in ["application/x-ndjson", "application/ndjson"]:
             return stream_lines()
         else:
             raise AttributeError("Can not read graph. Currently supported formats: json and ndjson!")

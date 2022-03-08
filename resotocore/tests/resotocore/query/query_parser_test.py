@@ -25,9 +25,12 @@ from resotocore.query.model import (
     AllTerm,
     MergeTerm,
     MergeQuery,
+    FulltextTerm,
+    CombinedTerm,
+    Predicate,
 )
 from resotocore.model.graph_access import EdgeType, Direction
-from parsy import Parser
+from parsy import Parser, ParseError
 from resotocore.query.query_parser import (
     predicate_term,
     is_term,
@@ -106,7 +109,9 @@ def test_combined() -> None:
 
 
 def test_not() -> None:
-    assert_round_trip(not_term, (P.of_kind("foo") | P.of_kind("bla")).not_term())
+    assert_round_trip(not_term, (P.with_id("foo") | P.of_kind("bla")).not_term())
+    assert_round_trip(not_term, P.of_kind("bla").not_term())
+    assert_round_trip(not_term, term_parser.parse("not(is(a) or not is(b) and not a>1 or not b<2 or not(a>1))"))
 
 
 def test_filter_term() -> None:
@@ -118,6 +123,21 @@ def test_filter_term() -> None:
         term_parser,
         ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b").is_in([1, 2, 3])) & (P("c") == {"a": 123}),
     )
+
+
+def test_fulltext_term() -> None:
+    assert_round_trip(term_parser, FulltextTerm("test"))
+    assert term_parser.parse('"foo"') == FulltextTerm("foo")
+    # multiple strings are not allowed
+    with pytest.raises(ParseError):
+        term_parser.parse("foo bla bar")
+    # multiple strings in quotes are allowed
+    assert term_parser.parse('"foo bla bar"') == FulltextTerm("foo bla bar")
+    # combined term can be parsed
+    assert term_parser.parse('"foo" and test>3') == CombinedTerm(
+        FulltextTerm("foo"), "and", Predicate("test", ">", 3, {})
+    )
+    assert term_parser.parse('a>1 and ("b" and (c<1 or "d") and "e") or "f" and g==2')
 
 
 def test_merge_term() -> None:

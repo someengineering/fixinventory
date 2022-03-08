@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import json
 import logging
 import os.path
@@ -25,7 +27,6 @@ from typing import (
     AsyncIterator,
     Hashable,
     Iterable,
-    Union,
     Callable,
     Awaitable,
     cast,
@@ -36,7 +37,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 from aiohttp import ClientTimeout, JsonPayload
-from aiostream import stream
+from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
 from parsy import Parser, string
@@ -72,7 +73,7 @@ from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeType
-from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind
+from resotocore.model.model import Model, Kind, ComplexKind, DictionaryKind, SimpleKind, Property
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js
 from resotocore.parse_util import (
@@ -86,7 +87,7 @@ from resotocore.parse_util import (
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand
+from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow
 from resotocore.types import Json, JsonElement
 from resotocore.util import (
     uuid_str,
@@ -113,32 +114,32 @@ from resotocore.worker_task_queue import WorkerTask
 log = logging.getLogger(__name__)
 
 
-# A QueryPart is a command that can be used on the command line.
-# Such a part is not executed, but builds a query, which is executed.
+# A SearchCLIPart is a command that can be used on the command line.
+# Such a part is not executed, but builds a search, which is executed.
 # Therefore, the parse method is implemented in a dummy fashion here.
 # The real interpretation happens in CLI.create_query.
-class QueryPart(CLICommand, ABC):
+class SearchCLIPart(CLICommand, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         return CLISource.empty()
 
 
-class QueryAllPart(QueryPart):
+class SearchPart(SearchCLIPart):
     """
 
     ```shell
-    query [--with-edges] [--explain] <query>
+    search [--with-edges] [--explain] <search-statement>
     ```
 
-    This command allows to query the graph using filters, traversals, functions and aggregates.
+    This command allows to search the graph using filters, traversals, functions and aggregates.
 
     ## Options
 
     - `--with-edges`: Return edges in addition to nodes.
-    - `--explain`: Instead of executing the query, analyze its cost.
+    - `--explain`: Instead of executing the search, analyze its cost.
 
     ## Parameters
 
-    - `query` [mandatory]: The query to execute.
+    - `search-statement` [mandatory]: The search to execute.
 
 
     ### Filters
@@ -153,19 +154,22 @@ class QueryAllPart(QueryPart):
       Note:  `=` is the same as `==` and `~` is the same as `=~`.
     - value is a json literal (e.g. `"test"`, `23`, `[1, 2, 3]`, `true`, `{"a": 12}`).
 
-      Note: the query parser allows to omit the parentheses for strings most of the time.
-      In case the string contains whitespace or a special character, you should
-      put the string into parentheses.
+      Note: the search statement allows to omit the parentheses for strings most of the time.
+      In case it contains whitespace or a special characters, you should put the string into parentheses.
 
     Example:
     ```shell
-    reported.cpu_count >= 4, name!="test", title in ["first", "second"]
+    > search reported.cpu_count >= 4
+    > search name!="test"
+    > search title in ["first", "second"]
+    > search some_array[3].test.number > 6
+    > search some_array[*].test.number < 4
     ```
 
     Filters can be combined with `and` and `or` and use parentheses.
     Example:
     ```shell
-    (cpu_count>=4 and name!="test") or (title in ["first", "second"] and name=="test")
+    > search (cpu_count>=4 and name!="test") or (title in ["first", "second"] and name=="test")
     ```
 
     ### Traversals
@@ -216,21 +220,24 @@ class QueryAllPart(QueryPart):
 
     Examples:
     ```shell
-    > query aggregate(kind: sum(1)): is(volume)
-    > query aggregate(kind as kind: sum(1) as count): is(volume)
-    > query aggregate(kind, volume_type: sum(1) as count): is(volume)
-    > query aggregate(kind: sum(volume_size) as summed, sum(1) as count): is(volume)
-    > query aggregate(sum(volume_size) as summed, sum(1) as count): is(volume)
+    > search aggregate(kind: sum(1)): is(volume)
+    > search aggregate(kind as kind: sum(1) as count): is(volume)
+    > search aggregate(kind, volume_type: sum(1) as count): is(volume)
+    > search aggregate(kind: sum(volume_size) as summed, sum(1) as count): is(volume)
+    > search aggregate(sum(volume_size) as summed, sum(1) as count): is(volume)
     ```
 
     ### Sort and Limit
 
-    The number of query results can be limited to a defined number by using limit <limit>
+    The number of search results can be limited to a defined number by using limit <limit>
     and sorted by using sort <sort_column> [asc, desc].
-    Limit and sort is allowed before a traversal and as last statement to the query result.
-    Example: query is(volume) sort volume_size desc limit 3 <-[2]- sort name limit 1
+    Limit and sort is allowed before a traversal and as last statement to the search result.
+    Example:
+    ```
+    > search is(volume) sort volume_size desc limit 3 <-[2]- sort name limit 1
+    ```
 
-    Use --explain to understand the cost of a query. A query explanation has this form (example):
+    Use --explain to understand the cost of a search. A search explanation has this form (example):
 
     ```json
     {
@@ -243,13 +250,13 @@ class QueryAllPart(QueryPart):
     ```
 
     - `available_nr_items` describe the number of all available nodes in the graph.
-    - `estimated_cost shows` the absolute cost of this query. See rating for an interpreted number.
-    - `estimated_nr_items` estimated number of items returned for this query.
-       It is computed based on query statistics and heuristics and does not reflect the real number.
+    - `estimated_cost shows` the absolute cost of this search. See rating for an interpreted number.
+    - `estimated_nr_items` estimated number of items returned for this search.
+       It is computed based on search statistics and heuristics and does not reflect the real number.
     - `full_collection_scan` indicates, if a full collection scan is required.
-       In case this is true, the query does not take advantage of any indexes.
-    - `rating` The more general rating of this query.
-       Simple: The estimated cost is fine - the query will most probably run smoothly.
+       In case this is true, the search does not take advantage of any indexes.
+    - `rating` The more general rating of this search.
+       Simple: The estimated cost is fine - the search will most probably run smoothly.
        Complex: The estimated cost is quite high. Check other properties. Maybe an index can be used?
        Bad: The estimated cost is very high. It will most probably run long and/or will take a lot of resources.
 
@@ -257,22 +264,22 @@ class QueryAllPart(QueryPart):
     ## Examples
 
     ```shell
-    # Query all volumes with state available
-    > query is(volume) and volume_status=available
+    # Search all volumes with state available
+    > search is(volume) and volume_status=available
     kind=gcp_disk, id=71, name=gke-1, volume_status=available, age=5mo26d, cloud=gcp, account=dev, region=us-central1
     kind=gcp_disk, id=12, name=pvc-2, volume_status=available, age=4mo15d, cloud=gcp, account=eng, region=us-west1
     kind=gcp_disk, id=17, name=pvc-2, volume_status=available, age=9mo29d, cloud=gcp, account=eng, region=us-west1
 
     # Other sections than reported, need to be defined from the root /
-    > query is(volume) and /desired.cleanup=true
+    > search is(volume) and /desired.cleanup=true
 
     # Sort and limit the number of results
-    > query is(volume) sort name asc limit 3
+    > search is(volume) sort name asc limit 3
     kind=aws_ec2_volume, id=vol-1, name=adf-image-1, age=2mo1d, cloud=aws, account=general-support, region=us-west-2
     kind=aws_ec2_volume, id=vol-2, name=adf-image-2, age=2mo1d, cloud=aws, account=general-support, region=us-west-2
 
     # Emit nodes together with the edges
-    > query --with-edges id(root) -[0:1]->
+    > search --with-edges id(root) -[0:1]->
     node_id=root, kind=graph_root, id=root, name=root
     node_id=L_tRxI2tn6iLZdK3e8EQ3w, kind=cloud, id=gcp, name=gcp, age=5d5h, cloud=gcp
     root -> L_tRxI2tn6iLZdK3e8EQ3w
@@ -280,7 +287,7 @@ class QueryAllPart(QueryPart):
     root -> WYcfqyMIkPAPoAHiEIIKOw
 
     # Aggregate resulting nodes
-    > query aggregate(kind as kind: sum(1) as count): is(volume)
+    > search aggregate(kind as kind: sum(1) as count): is(volume)
     group:
       kind: aws_ec2_volume
     count: 1799
@@ -289,8 +296,8 @@ class QueryAllPart(QueryPart):
       kind: gcp_disk
     count: 1100
 
-    # Do not execute the query, but show an explanation of the query cost.
-    > query --explain is(graph_root) -[0:1]->
+    # Do not execute the search, but show an explanation of the search cost.
+    > search --explain is(graph_root) -[0:1]->
     available_nr_items: 142670
     estimated_cost: 58569
     estimated_nr_items: 8
@@ -302,38 +309,37 @@ class QueryAllPart(QueryPart):
 
     - `graph` [default=resoto]: the name of the graph to operate on.
     - `section` [default=reported]: interpret all property paths with respect to this section.
-       With section `reported` set, the query `name=~"test"` would be interpreted as `reported.name=~"test"`.
+       With section `reported` set, the search `name=~"test"` would be interpreted as `reported.name=~"test"`.
        Note: the resotoshell sets the section to reported by default.
        If you want to quickly override the section on one command line, you can define env vars in from of the
-       command line (e.g.: `section=desired query clean==true`). It is possible to use absolute path using `/`,
-       so all paths have to be defined from root (e.g.: `query desired.clean==true`)
+       command line (e.g.: `section=desired search clean==true`). It is possible to use absolute path using `/`,
+       so all paths have to be defined from root (e.g.: `search desired.clean==true`)
 
-    See [https://resoto.com/docs/reference/cli/query/](https://resoto.com/docs/reference/cli/query/)
-    for a more detailed explanation of query.
+    See [https://resoto.com/docs](https://resoto.com/docs) for a more detailed explanation of search.
     """
 
     @property
     def name(self) -> str:
-        return "query"
+        return "search"
 
     def info(self) -> str:
-        return "Query the graph."
+        return "Search the graph."
 
 
-class PredecessorsPart(QueryPart):
+class PredecessorsPart(SearchCLIPart):
     """
     ```shell
     predecessors [--with-origin] [edge_type]
     ```
 
-    This command extends an already existing query.
-    It will select all predecessors of the currently selected nodes of the query.
+    This command extends an already existing search.
+    It will select all predecessors of the currently selected nodes of the search.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(C) | predecessors`
-    will select B, while `query id(A) | predecessors --with-origin` will select C and B.
+    Assume node A with descendant B with descendant C: A --> B --> C `search id(C) | predecessors`
+    will select B, while `search id(A) | predecessors --with-origin` will select C and B.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -348,7 +354,7 @@ class PredecessorsPart(QueryPart):
     ## Examples
 
     ```shell
-    > query is(volume) and volume_status=available | predecessors | query is(volume_type)
+    > search is(volume) and volume_status=available | predecessors | search is(volume_type)
     kind=gcp_disk_type, name=pd-standard, age=2yr1mo, cloud=gcp, account=eng, region=us-central1, zone=us-central1-a
     kind=gcp_disk_type, name=pd-standard, age=2yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
     kind=aws_ec2_volume_type, name=gp2, age=5d8h, cloud=aws, account=sales, region=us-west-2
@@ -377,20 +383,20 @@ class PredecessorsPart(QueryPart):
         return parsed.origin, parsed.edge
 
 
-class SuccessorsPart(QueryPart):
+class SuccessorsPart(SearchCLIPart):
     """
     ```shell
     successors [--with-origin] [edge_type]
     ```
 
-    This command extends an already existing query.
-    It will select all successors of the currently selected nodes of the query.
+    This command extends an already existing search.
+    It will select all successors of the currently selected nodes of the search.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | successors`
-    will select B, while `query id(A) | successors --with-origin` will select C and B.
+    Assume node A with descendant B with descendant C: A --> B --> C `search id(A) | successors`
+    will select B, while `search id(A) | successors --with-origin` will select C and B.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -406,7 +412,7 @@ class SuccessorsPart(QueryPart):
     ## Examples
 
     ```shell
-    > query is(volume_type) | successors | query is(volume)
+    > search is(volume_type) | successors | search is(volume)
     kind=gcp_disk, id=16, name=gke16, age=8mo29d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
     kind=gcp_disk, id=26, name=gke26, age=8mo29d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
     kind=aws_ec2_volume, id=vol1, name=vol1, age=2mo11d, cloud=aws, account=insights, region=us-west-2
@@ -421,20 +427,20 @@ class SuccessorsPart(QueryPart):
         return "Select all successor of this node in the graph."
 
 
-class AncestorsPart(QueryPart):
+class AncestorsPart(SearchCLIPart):
     """
     ```shell
     ancestors [--with-origin] [edge_type]
     ```
 
-    This command extends an already existing query.
-    It will select all ancestors of the currently selected nodes of the query.
+    This command extends an already existing search.
+    It will select all ancestors of the currently selected nodes of the search.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(C) | ancestors`
-    will select B and A, while `query id(C) | ancestors --with-origin` will select C and B and A.
+    Assume node A with descendant B with descendant C: A --> B --> C `search id(C) | ancestors`
+    will select B and A, while `search id(C) | ancestors --with-origin` will select C and B and A.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -449,7 +455,7 @@ class AncestorsPart(QueryPart):
     ## Examples
 
     ```shell
-    > query is(volume_type) limit 1 | ancestors
+    > search is(volume_type) limit 1 | ancestors
     kind=gcp_service_sku, id=D2, name=Storage PD Capacity, age=5d8h, cloud=gcp, account=sre
     kind=gcp_zone, id=2, name=us-central1-a, age=52yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
     kind=gcp_region, id=1000, name=us-central1, age=52yr1mo, cloud=gcp, account=sre, region=us-central1
@@ -468,20 +474,20 @@ class AncestorsPart(QueryPart):
         return "Select all ancestors of this node in the graph."
 
 
-class DescendantsPart(QueryPart):
+class DescendantsPart(SearchCLIPart):
     """
     ```shell
     descendants [--with-origin] [edge_type]
     ```
 
-    This command extends an already existing query.
-    It will select all descendants of the currently selected nodes of the query.
+    This command extends an already existing search.
+    It will select all descendants of the currently selected nodes of the search.
     The graph may contain different types of edges (e.g. the `default` graph or the `delete` graph).
     In order to define which graph to walk, the edge_type can be specified.
 
     If --with-origin is specified, the current element is included in the result set as well.
-    Assume node A with descendant B with descendant C: A --> B --> C `query id(A) | descendants`
-    will select B and A, while `query id(A) | descendants --with-origin` will select C and B and A.
+    Assume node A with descendant B with descendant C: A --> B --> C `search id(A) | descendants`
+    will select B and A, while `search id(A) | descendants --with-origin` will select C and B and A.
 
     ## Options
     - `--with-origin` [Optional, default to false]: includes the current element into the result set.
@@ -496,7 +502,7 @@ class DescendantsPart(QueryPart):
     ## Examples
 
     ```shell
-    > query is(volume_type) limit 1 | descendants --with-origin
+    > search is(volume_type) limit 1 | descendants --with-origin
     kind=gcp_disk_type, name=pd-standard, age=52yr1mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
     kind=gcp_disk, id=881, name=disk-1, age=1yr2mo, cloud=gcp, account=sre, region=us-central1, zone=us-central1-a
     ```
@@ -510,14 +516,14 @@ class DescendantsPart(QueryPart):
         return "Select all descendants of this node in the graph."
 
 
-class AggregatePart(QueryPart):
+class AggregatePart(SearchCLIPart):
     """
     ```shell
     aggregate [group_prop, .., group_prop]: [function(), .. , function()]
     ```
 
-    This command extends an already existing query.
-    Using the results of a query by aggregating over given properties and applying given aggregation functions.
+    This command extends an already existing search.
+    Using the results of a search by aggregating over given properties and applying given aggregation functions.
 
     Aggregate data by using on of the following functions: `sum`, `avg`, `min`, `max` and `count`.
     Multiple aggregation functions can be applied to the result set by separating them by comma.
@@ -543,7 +549,7 @@ class AggregatePart(QueryPart):
 
     ```shell
     # Count all volumes in the system based on the kind
-    > query is(volume) | aggregate kind as kind: sum(1) as count
+    > search is(volume) | aggregate kind as kind: sum(1) as count
     group:
       kind: aws_ec2_volume
     count: 1799
@@ -553,7 +559,7 @@ class AggregatePart(QueryPart):
     count: 1100
 
     # Count all volumes in the system together with the complete volume size based on the kind
-    > query is(volume) | aggregate kind: sum(volume_size) as summed, sum(1) as count
+    > search is(volume) | aggregate kind: sum(volume_size) as summed, sum(1) as count
     group:
       reported.kind: aws_ec2_volume
     summed: 130903
@@ -565,7 +571,7 @@ class AggregatePart(QueryPart):
     count: 1100
 
     # Sum the available volume size without any group
-    > query is(volume) | aggregate sum(volume_size) as summed, sum(1) as count
+    > search is(volume) | aggregate sum(volume_size) as summed, sum(1) as count
     summed: 154833
     count: 2899
     ```
@@ -576,10 +582,10 @@ class AggregatePart(QueryPart):
         return "aggregate"
 
     def info(self) -> str:
-        return "Aggregate this query by the provided specification"
+        return "Aggregate this search by the provided specification"
 
 
-class HeadCommand(QueryPart):
+class HeadCommand(SearchCLIPart):
     """
     ```shell
     head [-num]
@@ -588,7 +594,7 @@ class HeadCommand(QueryPart):
     Take [num] number of elements from the input stream and send them downstream.
     The rest of the stream is discarded.
 
-    Note: using a query, the same result can be achieved using `sort` and `limit`.
+    Note: using a search, the same result can be achieved using `sort` and `limit`.
 
     ## Options
     - `-num` [optional, defaults to 100]: the number of elements to take from the head.
@@ -601,8 +607,8 @@ class HeadCommand(QueryPart):
     1
     2
 
-    # A query is performed to select all volumes. Only the first 2 results are taken.
-    > query is(volume) | head -2
+    # A search is performed to select all volumes. Only the first 2 results are taken.
+    > search is(volume) | head -2
     kind=gcp_disk, id=12, name=gke-1, age=5mo26d, cloud=gcp, account=eng, region=us-central1, zone=us-central1-c
     kind=gcp_disk, id=34, name=pvc-2, age=4mo16d, cloud=gcp, account=dev, region=us-west1, zone=us-west1-a
     ```
@@ -627,7 +633,7 @@ class HeadCommand(QueryPart):
         return abs(int(arg)) if arg else 100
 
 
-class TailCommand(QueryPart):
+class TailCommand(SearchCLIPart):
     """
     ```shell
     tail [-num]
@@ -636,7 +642,7 @@ class TailCommand(QueryPart):
     Take the last [num] number of elements from the input stream and send them downstream.
     The beginning of the stream is consumed and discarded.
 
-    Note: using a query, the same result can be achieved using `sort` and `limit`.
+    Note: using a search, the same result can be achieved using `sort` and `limit`.
 
     ## Options
     - `-num` [optional, defaults to 100]: the number of elements to take from the head.
@@ -649,8 +655,8 @@ class TailCommand(QueryPart):
     4
     5
 
-    # A query is performed to select all volumes. Only the last 2 results are taken.
-    > query is(volume) | tail -2
+    # A search is performed to select all volumes. Only the last 2 results are taken.
+    > search is(volume) | tail -2
     kind=aws_ec2_volume, id=vol-0, name=vol-0, age=2mo1d, cloud=aws, account=dev, region=us-west-2
     kind=gcp_disk, id=123, name=gke-1, age=7mo22d, cloud=gcp, account=eng, region=us-west1, zone=us-west1-a
     ```
@@ -671,7 +677,7 @@ class TailCommand(QueryPart):
         return CLIFlow(lambda in_stream: stream.takelast(in_stream, size))
 
 
-class CountCommand(QueryPart):
+class CountCommand(SearchCLIPart):
     """
     ```shell
     count [arg]
@@ -680,8 +686,8 @@ class CountCommand(QueryPart):
     In case no arg is given, it counts the number of instances provided to count.
     In case of arg: it pulls the property with the name of arg and counts the occurrences of this property.
 
-    This command is part of a query.
-    `count` uses an aggregation query under the hood.
+    This command is part of a search.
+    `count` uses an aggregation search under the hood.
     In case you need more advances aggregations, please see `help aggregation`.
 
     ## Parameters
@@ -708,11 +714,11 @@ class CountCommand(QueryPart):
     total matched: 0
     total unmatched: 3
 
-    > query all | count
+    > search all | count
     total matched: 142670
     total unmatched: 0
 
-    > query all | count /ancestors.cloud.reported.name
+    > search all | count /ancestors.cloud.reported.name
     gcp: 42403
     aws: 93168
     total matched: 135571
@@ -910,7 +916,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
     aggregate_to_count
     ```
 
-    This command transforms the output of an aggregation query to the output of the count command.
+    This command transforms the output of an aggregation search to the output of the count command.
     ```
     { "group": { "name": "group_name" }, "count": 123 }  --> group_name: 123
     ```
@@ -918,7 +924,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
     Expected group key: `name`
     Expected function key: `count`
 
-    It is usually not invoked directly but automatically invoked when there is a query | count cli command.
+    It is usually not invoked directly but automatically invoked when there is a search | count cli command.
     """
 
     @property
@@ -926,7 +932,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
         return "aggregate_to_count"
 
     def info(self) -> str:
-        return "Convert the output of an aggregate query to the result of count."
+        return "Convert the output of an aggregate search to the result of count."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         name_path = ["group", "name"]
@@ -952,33 +958,33 @@ class AggregateToCountCommand(CLICommand, InternalPart):
         return CLIFlow(to_count)
 
 
-class ExecuteQueryCommand(CLICommand, InternalPart):
+class ExecuteSearchCommand(CLICommand, InternalPart):
     """
     ```shell
-    execute_query [--with-edges] [--explain] <query>
+    execute_search [--with-edges] [--explain] <search-statement>
     ```
 
-    This command is usually not invoked directly - use `query` instead.
+    This command is usually not invoked directly - use `search` instead.
 
     ## Options
 
     - `--with-edges`: Return edges in addition to nodes.
-    - `--explain`: Instead of executing the query, analyze its cost.
+    - `--explain`: Instead of executing the search, analyze its cost.
 
     ## Parameters
 
-    - `query` [mandatory]: The query to execute.
+    - `search-statement` [mandatory]: The search to execute.
 
     ## Related
-    - `query` - query the graph.
+    - `search` - search the graph.
     """
 
     @property
     def name(self) -> str:
-        return "execute_query"
+        return "execute_search"
 
     def info(self) -> str:
-        return "Query the database and pass the results to the output stream."
+        return "Search the database and pass the results to the output stream."
 
     @staticmethod
     def parse_known(arg: str) -> Tuple[Dict[str, Any], str]:
@@ -1000,7 +1006,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         # db name is coming from the env
         graph_name = ctx.env["graph"]
         if not arg:
-            raise CLIParseError("query command needs a query to execute, but nothing was given!")
+            raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
         # Read all argument flags / options
         parsed, rest = self.parse_known(arg)
@@ -1017,7 +1023,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
             await db.to_query(query_model)  # only here to validate the query itself (can throw)
             return query_model
 
-        async def explain_query() -> AsyncIterator[Json]:
+        async def explain_search() -> AsyncIterator[Json]:
             query_model = await load_query_model()
             explanation = await db.explain(query_model, with_edges)
             yield to_js(explanation)
@@ -1025,14 +1031,14 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
         async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
             query_model = await load_query_model()
             count = ctx.env.get("count", "true").lower() != "false"
-            timeout = if_set(ctx.env.get("query_timeout"), duration)
+            timeout = if_set(ctx.env.get("search_timeout"), duration)
             context = (
-                await db.query_aggregation(query_model)
+                await db.search_aggregation(query_model)
                 if query.aggregate
                 else (
-                    await db.query_graph_gen(query_model, with_count=count, timeout=timeout)
+                    await db.search_graph_gen(query_model, with_count=count, timeout=timeout)
                     if with_edges
-                    else await db.query_list(query_model, with_count=count, timeout=timeout)
+                    else await db.search_list(query_model, with_count=count, timeout=timeout)
                 )
             )
             cursor = context.cursor
@@ -1048,7 +1054,7 @@ class ExecuteQueryCommand(CLICommand, InternalPart):
 
             return cursor.count(), iterate_and_close()
 
-        return CLISource.single(explain_query) if explain else CLISource(prepare)
+        return CLISource.single(explain_search) if explain else CLISource(prepare)
 
 
 class EnvCommand(CLICommand):
@@ -1114,8 +1120,8 @@ class ChunkCommand(CLICommand):
     [1, 2, 3]
     [4, 5]
 
-    # The output of query can be chunked as well. The result is omitted here for brevity.
-    > query is(volume) limit 5 | chunk 3
+    # The output of search can be chunked as well. The result is omitted here for brevity.
+    > search is(volume) limit 5 | chunk 3
     ```
 
     ## Related
@@ -1252,13 +1258,13 @@ class JqCommand(CLICommand, OutputTransformer):
     ## Examples
 
     ```shell
-    # Query ec2 instances and extract only the name property
-    > query is(aws_ec2_instance) limit 2| jq .name
+    # Search ec2 instances and extract only the name property
+    > search is(aws_ec2_instance) limit 2| jq .name
     build-node-1
     prod-23
 
-    # Query ec2 instances and create a new json object for each entry with name and owner.
-    > query is(aws_ec2_instance) limit 2 | jq {name: .name, owner: .tags.owner}
+    # Search ec2 instances and create a new json object for each entry with name and owner.
+    > search is(aws_ec2_instance) limit 2 | jq {name: .name, owner: .tags.owner}
     name: build-node-1
     owner: frosty
     ---
@@ -1313,13 +1319,13 @@ class JqCommand(CLICommand, OutputTransformer):
         return CLIFlow(lambda in_stream: stream.map(in_stream, process))
 
 
-class KindCommand(CLICommand, PreserveOutputFormat):
+class KindsCommand(CLICommand, PreserveOutputFormat):
     """
     ```shell
-    kind [-p property_path] [name]
+    kinds [-p property_path] [name]
     ```
 
-    kind gives information about the available graph data kinds.
+    kinds gives information about the available graph data kinds.
 
     ## Options
 
@@ -1333,31 +1339,39 @@ class KindCommand(CLICommand, PreserveOutputFormat):
     ## Examples
 
     ```shell
-
     # Show all available kinds.
-    > kind
+    > kinds
     access_key
     .
     .
     zone
 
     # Show details about a specific kind.
-    > kind graph_root
-    name: graph_root
+    > kinds volume
+    name: volume
     bases:
-    - graph_root
+    - resource
     properties:
-    - description: The name of this node.
+      age: duration
+      atime: datetime
+      ctime: datetime
+      id: string
       kind: string
-      name: name
-      required: false
-    - description: All attached tags of this node.
-      kind: dictionary[string, string]
-      name: tags
-      required: false
+      last_access: duration
+      last_update: duration
+      mtime: datetime
+      name: string
+      snapshot_before_delete: boolean
+      tags: dictionary[string, string]
+      volume_encrypted: boolean
+      volume_iops: int64
+      volume_size: int64
+      volume_status: string
+      volume_throughput: int64
+      volume_type: string
 
     # Lookup the type of the given property path in the model.
-    > kind -p reported.tags.owner
+    > kinds -p reported.tags.owner
     name: string
     runtime_kind: string
     ```
@@ -1365,7 +1379,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
 
     @property
     def name(self) -> str:
-        return "kind"
+        return "kinds"
 
     def info(self) -> str:
         return "Retrieves information about the graph data kinds."
@@ -1389,8 +1403,18 @@ class KindCommand(CLICommand, PreserveOutputFormat):
             elif isinstance(kind, DictionaryKind):
                 return {"name": kind.fqn, "key": kind.key_kind.fqn, "value": kind.value_kind.fqn}
             elif isinstance(kind, ComplexKind):
+                synth = {k.prop.name: k for k in kind.synthetic_props() if len(k.path.path) == 1}
+
+                def kind_name(p: Property) -> str:
+                    # in case of synthetic property
+                    return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
+
                 props = sorted(kind.all_props, key=lambda k: k.name)
-                return {"name": kind.fqn, "bases": list(kind.kind_hierarchy()), "properties": to_json(props)}
+                return {
+                    "name": kind.fqn,
+                    "bases": list(kind.kind_hierarchy() - {kind.fqn}),
+                    "properties": {p.name: kind_name(p) for p in props},
+                }
             else:
                 return {"name": kind.fqn}
 
@@ -1403,7 +1427,7 @@ class KindCommand(CLICommand, PreserveOutputFormat):
                 result = kind_to_js(model.kind_by_path(Section.without_section(show_path)))
                 return 1, stream.just(result)
             else:
-                result = sorted(list(model.kinds.keys()))
+                result = sorted([model.fqn for model in model.kinds.values() if isinstance(model, ComplexKind)])
                 return len(model.kinds), stream.iterate(result)
 
         return CLISource(source)
@@ -1445,8 +1469,8 @@ class SetDesiredCommand(SetDesiredStateBase):
     The desired state of each node in the database is merged with this new desired state, so that
     existing desired state not defined in this command is not touched.
 
-    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `id`.
+    This command assumes, that all incoming elements are either objects coming from a search or are object ids.
+    All objects coming from a search will have a property `id`.
     The result of this command will emit the updated state.
 
     ## Parameters
@@ -1459,7 +1483,7 @@ class SetDesiredCommand(SetDesiredStateBase):
     ## Examples
 
     ```shell
-    > query is(instance) limit 1 | set_desired a=b b="c" num=2 | list /id, /desired
+    > search is(instance) limit 1 | set_desired a=b b="c" num=2 | list /id, /desired
     id=123, a=b, b=c, num=2
 
     > json ["id1", "id2"] | set_desired a=b | list /id /desired
@@ -1495,8 +1519,8 @@ class CleanCommand(SetDesiredStateBase):
     This reason is used to log each marked element, which can be useful to understand the reason
     a resource is cleaned later on.
 
-    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `id`.
+    This command assumes, that all incoming elements are either objects coming from a search or are object ids.
+    All objects coming from a search will have a property `id`.
 
     The result of this command will emit the updated object.
 
@@ -1505,9 +1529,9 @@ class CleanCommand(SetDesiredStateBase):
 
     ## Examples
     ```shell
-    # Query for volumes that have not been accessed in the last month
+    # Search for volumes that have not been accessed in the last month
     # Mark them for cleanup and show the id as well as the complete desired section.
-    > query is(volume) and last_access>1month | clean "Volume not accessed for longer than 1 month" | list id, /desired
+    > search is(volume) and last_access>1month | clean "Volume not accessed for longer than 1 month" | list id, /desired
     id=vol-123, clean=true
 
     # Manually mark a list of resources for cleanup.
@@ -1573,8 +1597,8 @@ class SetMetadataCommand(SetMetadataStateBase):
     The metadata state of each node in the database is merged with this new metadata state, so that
     existing metadata state not defined in this command is not touched.
 
-    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `id`.
+    This command assumes, that all incoming elements are either objects coming from a search or are object ids.
+    All objects coming from a search will have a property `id`.
     The result of this command will emit the updated state.
 
     ## Parameters
@@ -1588,7 +1612,7 @@ class SetMetadataCommand(SetMetadataStateBase):
     ## Examples
 
     ```shell
-    > query is(instance) limit 1 | set_metadata a=b b="c" num=2 | list /id, /metadata
+    > search is(instance) limit 1 | set_metadata a=b b="c" num=2 | list /id, /metadata
     id=123, a=b, b=c, num=2
 
     > json ["id1", "id2"] | set_metadata a=b | list /id /metadata
@@ -1620,15 +1644,15 @@ class ProtectCommand(SetMetadataStateBase):
     Mark incoming objects as protected.
     All objects marked as such will not be cleaned up, even if they are marked for cleanup.
 
-    This command assumes, that all incoming elements are either objects coming from a query or are object ids.
-    All objects coming from a query will have a property `id`.
+    This command assumes, that all incoming elements are either objects coming from a search or are object ids.
+    All objects coming from a search will have a property `id`.
     The result of this command will emit the updated object.
 
     ## Examples
 
     ```shell
-    # Query for instances that are tagged with "build node" - such nodes should never be clean up.
-    > query is(instance) and tags.job=="build node" | protect | list id, /metadata
+    # Search for instances that are tagged with "build node" - such nodes should never be clean up.
+    > search is(instance) and tags.job=="build node" | protect | list id, /metadata
     id=ins123, protected=true
 
     # Manually protect a list of resources.
@@ -1686,7 +1710,7 @@ class FormatCommand(CLICommand, OutputTransformer):
     > json {"b": {"c":[0,1,2,3]}} | format only select >{b.c[2]}<
     only select >2<
 
-    > query all | format --json | write out.json
+    > search all | format --json | write out.json
     Received a file out.json, which is stored to ./out.json.
     ```
     """
@@ -1761,7 +1785,7 @@ class DumpCommand(CLICommand, OutputTransformer):
     ## Example
 
     ```shell
-    > query is(volume) limit 1 | dump
+    > search is(volume) limit 1 | dump
     id: 0QcwZ5DHsS58A1tHEk5JRQ
     reported:
       kind: gcp_disk
@@ -1863,32 +1887,53 @@ class ListCommand(CLICommand, OutputTransformer):
 
       *Example*: `path.to.property as prop1`.
 
+
+    ## Options
+
+    - `--csv` [optional]: format the output as CSV. Can't be used together with `--markdown`.
+
+    - `--markdown` [optional]: format the output as Markdown table. Can't be used together with `--csv`.
+
     ## Examples
 
     ```shell
     # If all parameters are omitted, the predefined default list is taken.
-    > query is(aws_ec2_instance) limit 3 | list
+    > search is(aws_ec2_instance) limit 3 | list
     kind=aws_ec2_instance, id=1, name=sun, ctime=2020-09-10T13:24:45Z, cloud=aws, account=prod, region=us-west-2
     kind=aws_ec2_instance, id=2, name=moon, ctime=2021-09-21T01:08:11Z, cloud=aws, account=dev, region=us-west-2
     kind=aws_ec2_instance, id=3, name=star, ctime=2021-09-25T23:28:40Z, cloud=aws, account=int, region=us-east-1
 
     # Explicitly define the properties to show without renaming them.
-    > query is(aws_ec2_instance) limit 3 | list kind, name
+    > search is(aws_ec2_instance) limit 3 | list kind, name
     kind=aws_ec2_instance, name=sun
     kind=aws_ec2_instance, name=moon
     kind=aws_ec2_instance, name=star
 
-    # Same query and same result as before, with an explicit rename clause.
-    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b
+    # Same search and same result as before, with an explicit rename clause.
+    > search is(aws_ec2_instance) limit 3 | list kind as a, name as b
     a=aws_ec2_instance, b=sun
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
 
     # Properties that do not exist, are not printed.
-    > query is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
+    > search is(aws_ec2_instance) limit 3 | list kind as a, name as b, does_not_exist
     a=aws_ec2_instance, b=sun
     a=aws_ec2_instance, b=moon
     a=aws_ec2_instance, b=star
+
+    # Properties that do not exist will be printed as empty values when using csv or markdown output.
+    > search is(instance) limit 3 | list --csv instance_cores as cores, name, does_not_exist
+    cores,name,does_not_exist
+    2,node-1,
+    1,something_else,
+    4,very-long-instance-name-123,
+
+    > search is(instance) limit 3 | list --markdown instance_cores as cores, name, does_not_exist
+    |cores|name                       |does_not_exist|
+    |-----|---------------------------|--------------|
+    |2    |node-1                     |null          |
+    |1    |something_else             |null          |
+    |4    |very-long-instance-name-123|null          |
     ```
 
     ## Related
@@ -1921,9 +1966,16 @@ class ListCommand(CLICommand, OutputTransformer):
         return "list"
 
     def info(self) -> str:
-        return "Transform incoming objects as string with defined properties."
+        return "Format elements as property list, csv or markdown."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
+        parser = NoExitArgumentParser()
+        output_type = parser.add_mutually_exclusive_group()
+        output_type.add_argument("--csv", dest="csv", action="store_true")
+        output_type.add_argument("--markdown", dest="markdown", action="store_true")
+        parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
+        properties = " ".join(properties_list) if properties_list else None
+
         def default_props_to_show() -> List[Tuple[List[str], str]]:
             result = []
             # with the object id, if edges are requested
@@ -1965,7 +2017,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 props.append((path, as_name))
             return props
 
-        props_to_show = parse_props_to_show(arg) if arg is not None else default_props_to_show()
+        props_to_show = parse_props_to_show(properties) if properties is not None else default_props_to_show()
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):
@@ -1983,10 +2035,105 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        def fmt(elem: JsonElement) -> JsonElement:
-            return fmt_json(elem) if isinstance(elem, dict) else str(elem)
+        async def csv_stream(in_stream: Stream) -> JsGen:
+            output = io.StringIO()
+            dialect = csv.unix_dialect()
+            writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_MINIMAL)
 
-        return CLIFlow(lambda in_stream: stream.map(in_stream, fmt))
+            def to_csv_string(lst: List[Any]) -> str:
+                writer.writerow(lst)
+                csv_value = output.getvalue().rstrip()
+                output.truncate(0)
+                output.seek(0)
+                return csv_value
+
+            header_values = [name for _, name in props_to_show]
+            yield to_csv_string(header_values)
+
+            async with in_stream.stream() as s:
+                async for elem in s:
+                    if is_node(elem):
+                        result = []
+                        for prop_path, _ in props_to_show:
+                            value = value_in_path(elem, prop_path)
+                            result.append(value)
+                        yield to_csv_string(result)
+
+        def markdown_stream(in_stream: Stream) -> JsGen:
+
+            chunk_size = 500
+
+            columns_padding = [len(name) for _, name in props_to_show]
+            headers = [name for _, name in props_to_show]
+
+            def extract_values(elem: JsonElement) -> List[Any | None]:
+                result = []
+                for idx, prop_path in enumerate(props_to_show):
+                    value = value_in_path(elem, prop_path[0])
+                    columns_padding[idx] = max(columns_padding[idx], len(str(value)))
+                    result.append(value)
+                return result
+
+            async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
+                idx, rows = chunk
+
+                def to_str(elem: Any) -> str:
+                    if isinstance(elem, dict):
+                        return ", ".join(f"{str((k, v))}" for k, v in sorted(elem.items()))
+                    elif isinstance(elem, list):
+                        return "[" + ", ".join(to_str(e) for e in elem) + "]"
+                    elif elem is None:
+                        return "null"
+                    elif elem is True:
+                        return "true"
+                    elif elem is False:
+                        return "false"
+                    else:
+                        return str(elem)
+
+                if idx == 0:
+                    # render the header of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{header.ljust(padding)}"
+                    line += "|"
+                    yield line
+
+                    # render the separator of the table
+                    line = ""
+                    for header, padding in zip(headers, columns_padding):
+                        line += f"|{'-' * padding}"
+                    line += "|"
+                    yield line
+
+                for row in rows:
+                    line = ""
+                    for value, padding in zip(row, columns_padding):
+                        line += f"|{to_str(value).ljust(padding)}"
+                    line += "|"
+                    yield line
+
+            # noinspection PyUnresolvedReferences
+            markdown_chunks = (
+                in_stream
+                | pipe.filter(is_node)
+                | pipe.map(extract_values)
+                | pipe.chunks(chunk_size)
+                | pipe.enumerate()
+                | pipe.flatmap(generate_markdown)
+            )
+
+            return markdown_chunks
+
+        def fmt(in_stream: JsGen) -> JsGen:
+            if parsed.csv:
+                return csv_stream(in_stream)
+            elif parsed.markdown:
+                return markdown_stream(in_stream)
+            else:
+                return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
+
+        return CLIFlow(fmt)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -2129,7 +2276,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return {"id": job.id, "command": job.command.command, "active": job.active, **trigger, **wait}
 
         async def list_jobs() -> Tuple[int, AsyncIterator[JsonElement]]:
-            listed = await self.dependencies.job_handler.list_jobs()
+            listed = await self.dependencies.task_handler.list_jobs()
 
             async def iterate() -> AsyncIterator[JsonElement]:
                 for job in listed:
@@ -2138,7 +2285,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             return len(listed), iterate()
 
         async def show_job(job_id: str) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 yield job_to_json(matching[0])
             else:
@@ -2167,24 +2314,24 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 job = Job(uid, ExecuteCommand(command), timeout, trigger, environment=ctx.env)
             else:
                 job = Job(uid, ExecuteCommand(command), timeout, environment=ctx.env)
-            await self.dependencies.job_handler.add_job(job)
+            await self.dependencies.task_handler.add_job(job)
             yield f"Job {job.id} added."
 
         async def delete_job(job_id: str) -> AsyncIterator[str]:
-            job = await self.dependencies.job_handler.delete_job(job_id)
+            job = await self.dependencies.task_handler.delete_job(job_id)
             yield f"Job {job_id} deleted." if job else f"No job with this id: {job_id}"
 
         async def run_job(job_id: str) -> AsyncIterator[str]:
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(job_id)
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(job_id)
             yield f"Job {task.descriptor.id} started with id {task.id}." if task else f"No job with this id: {job_id}"
 
         async def activate_deactivate_job(job_id: str, active: bool) -> AsyncIterator[JsonElement]:
-            matching = [job for job in await self.dependencies.job_handler.list_jobs() if job.name == job_id]
+            matching = [job for job in await self.dependencies.task_handler.list_jobs() if job.name == job_id]
             if matching:
                 m = matching[0]
                 if m.trigger is not None:
                     job = Job(m.id, m.command, m.timeout, m.trigger, m.wait, m.environment, m.mutable, active)
-                    await self.dependencies.job_handler.add_job(job)
+                    await self.dependencies.task_handler.add_job(job)
                     yield job_to_json(job)
                 else:
                     yield f"Job {job_id} does not have any trigger that could be activated/deactivated."
@@ -2192,7 +2339,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
                 yield f"No job with this id: {job_id}"
 
         async def running_jobs() -> Tuple[int, Stream]:
-            tasks = await self.dependencies.job_handler.running_tasks()
+            tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
                 {
                     "job": t.descriptor.id,
@@ -2239,7 +2386,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         result_handler: Callable[[WorkerTask, Future[Json]], Awaitable[Json]],
         wait_for_result: bool,
     ) -> Stream:
-        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> Union[JsonElement]:
+        async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> JsonElement:
             future = asyncio.get_event_loop().create_future()
             task = WorkerTask(uuid_str(), task_name, task_args, data, future, self.timeout())
             # enqueue this task
@@ -2305,7 +2452,7 @@ class TagCommand(SendWorkerTaskCommand):
     Once the cli command returns, also the tag update/delete is finished.
     If the command should not wait for the result, the action can be performed in background via the `--nowait` flag.
 
-    The input of this command is either a query result or the identifier of the resource as string.
+    The input of this command is either a search result or the identifier of the resource as string.
 
     ## Options
     - `--nowait` if this flag is defined, the cli will send the tag command to the worker
@@ -2321,7 +2468,7 @@ class TagCommand(SendWorkerTaskCommand):
     ## Examples
     ```shell
     # Make sure there is no resource that is tagged with 'foo'
-    > query is(resource) and tags.foo!=null | tag delete foo
+    > search is(resource) and tags.foo!=null | tag delete foo
     kind=aws_ec2_keypair, id=key-0, name=default, age=1yr8mo, cloud=aws, account=eng-sre, region=us-west-2
 
     # Manually select the resources to tag by using the id.
@@ -2329,7 +2476,7 @@ class TagCommand(SendWorkerTaskCommand):
     kind=aws_ec2_keypair, id=key-0, name=default, age=1yr8mo, cloud=aws, account=eng-sre, region=us-west-2
 
     # Updating a tag by using a format template.
-    > query is(volume) and tags.owner == null limit 1 | tag update owner "gen_{/ancestors.account.reported.name}_{name}"
+    > search is(volume) and tags.owner==null limit 1 | tag update owner "gen_{/ancestors.account.reported.name}_{name}"
     kind=gcp_disk, id=123, name=gke-1, age=5mo27d, cloud=gcp, account=eng, region=us-central1, zone=us-central1-c
     ```
     """
@@ -2357,7 +2504,7 @@ class TagCommand(SendWorkerTaskCommand):
                 .merge_with("ancestors.zone", NavigateUntilRoot, IsTerm(["zone"]))
             ).rewrite_for_ancestors_descendants(variables)
             query_model = QueryModel(query, model)
-            async with await self.dependencies.db_access.get_graph_db(env["graph"]).query_list(query_model) as crs:
+            async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
                 async for a in crs:
                     yield a
 
@@ -2426,48 +2573,6 @@ class TagCommand(SendWorkerTaskCommand):
             return stream.flatmap(dependencies, with_dependencies)
 
         return CLIFlow(setup_stream)
-
-
-class StartTaskCommand(CLICommand, PreserveOutputFormat):
-    """
-    ```shell
-    start_task <name of task>
-    ```
-
-    Start a task with given task descriptor id.
-
-    The configured surpass behaviour of a task definition defines, if multiple tasks of the same task definition
-    are allowed to run in parallel.
-    In case parallel tasks are forbidden a new task can not be started.
-    If a task could be started or not is returned as result message of this command.
-
-    ## Parameters
-    - `task_name` [mandatory]:  The name of the related task definition.
-
-    ## Examples
-    ```shell
-    > start_task example_task
-    ```
-
-    See: add_job, delete_job, jobs
-    """
-
-    @property
-    def name(self) -> str:
-        return "start_task"
-
-    def info(self) -> str:
-        return "Start a task with the given name."
-
-    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        async def start_task() -> AsyncIterator[str]:
-            if not arg:
-                raise CLIParseError("Name of task is not provided")
-
-            task = await self.dependencies.job_handler.start_task_by_descriptor_id(arg)
-            yield f"Task {task.id} has been started" if task else "Task can not be started."
-
-        return CLISource.single(start_task)
 
 
 class FileCommand(CLICommand, InternalPart):
@@ -2608,6 +2713,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             process = await asyncio.create_subprocess_exec(
                 "arangodump",
                 "--progress", "false",  # do not show progress
+                "--include-system-collections", "true",  # graphs are considered a system collection
                 "--threads", "8",  # default is 2
                 "--log.level", "error",  # only print error messages
                 "--output-directory", temp_dir,  # directory to write to
@@ -2618,13 +2724,18 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
                 "--configuration", "none",
+                stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
-            _, stderr = await process.communicate()
+            stdout_b, stderr_b = await process.communicate()
             maybe_proc = process
             code = await process.wait()
+            stdout = stdout_b.decode() if stdout_b else ""
+            stderr = stderr_b.decode() if stderr_b else ""
+
             if code == 0:
+                log.debug(f"arangodump: out={stdout}, err={stderr}.")
                 files = os.listdir(temp_dir)
                 name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
                 backup = os.path.join(temp_dir, name)
@@ -2634,7 +2745,8 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                         await run_async(tar.add, os.path.join(temp_dir, file), file)
                 yield backup
             else:
-                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr.decode()}")
+                log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
+                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
         finally:
             if maybe_proc and maybe_proc.returncode is None:
                 with suppress(Exception):
@@ -2662,6 +2774,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
                 "--progress", "false",  # do not show progress
+                "--include-system-collections", "true",  # graphs are considered a system collection
                 "--threads", "8",  # default is 2
                 "--log.level", "error",  # only print error messages
                 "--input-directory", temp_dir,  # directory to write to
@@ -2672,34 +2785,41 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--server.username", args.graphdb_username,
                 "--server.password", args.graphdb_password,
                 "--configuration", "none",
+                stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             # fmt: on
-            _, stderr = await process.communicate()
+            stdout_b, stderr_b = await process.communicate()
             maybe_proc = process
             code = await process.wait()
+            stdout = stdout_b.decode() if stdout_b else ""
+            stderr = stderr_b.decode() if stderr_b else ""
+
             if code == 0:
+                log.debug(f"arangorestore: out={stdout}, err={stderr}.")
                 yield "Database has been restored successfully!"
             else:
-                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr.decode()}")
+                log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
+                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
         finally:
             if maybe_proc and maybe_proc.returncode is None:
                 with suppress(Exception):
                     maybe_proc.kill()
                     await asyncio.sleep(5)
             shutil.rmtree(temp_dir)
-            log.info("Restore process complete. Restart the service.")
-            yield "Since all data has changed in the database eventually, this service needs to be restarted!"
-            # for testing purposes, we can avoid sys exit
-            if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
 
-                async def wait_and_exit() -> None:
-                    log.info("Database was restored successfully - going to STOP the service!")
-                    await asyncio.sleep(1)
-                    shutdown_process(0)
+        log.info("Restore process complete. Restart the service.")
+        yield "Since all data has changed in the database eventually, this service needs to be restarted!"
+        # for testing purposes, we can avoid sys exit
+        if str(ctx.env.get("BACKUP_NO_SYS_EXIT", "false")).lower() != "true":
 
-                # create a background task, so that the current request can be executed completely
-                asyncio.create_task(wait_and_exit())
+            async def wait_and_exit() -> None:
+                log.info("Database was restored successfully - going to STOP the service!")
+                await asyncio.sleep(1)
+                shutdown_process(0)
+
+            # create a background task, so that the current request can be executed completely
+            asyncio.create_task(wait_and_exit())
 
     @staticmethod
     async def show_system_info() -> AsyncIterator[Json]:
@@ -2743,11 +2863,11 @@ class WriteCommand(CLICommand, NoTerminalOutput):
     ## Examples
     ```shell
     # Select 3 resources, format them as json and write it to the file out.json.
-    > query all limit 3 | format --json | write out.json
+    > search all limit 3 | format --json | write out.json
     Received a file out.json, which is stored to ./out.json.
 
     # Select the root node and traverse 2 levels deep. Format the result as dot graph and write it to out.dot.
-    > query --with-edges id(root) -[0:2]-> | format --dot | write out.dot
+    > search --with-edges id(root) -[0:2]-> | format --dot | write out.dot
     Received a file out.dot, which is stored to ./out.dot.
     ```
     """
@@ -2787,17 +2907,17 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
     ```shell
     templates
     templates <name_of_template>
-    templates add <name_of_template> <query_template>
-    templates update <name_of_template> <query_template>
+    templates add <name_of_template> <search_template>
+    templates update <name_of_template> <search_template>
     templates delete <name_of_template>
     templates test key1=value1, key2=value2, ..., keyN=valueN <template_to_expand>
     ```
 
     - `templates: get the list of all templates
     - `templates <name>`: get the current definition of the template defined by given template name
-    - `templates add <name> <template>`: add a query template to the query template library under given name.
-    - `templates update <name> <template>`: update a query template in the query template library.
-    - `templates delete <name>`: delete the query template with given name.
+    - `templates add <name> <template>`: add a search template to the search template library under given name.
+    - `templates update <name> <template>`: update a search template in the search template library.
+    - `templates delete <name>`: delete the search template with given name.
     - `templates test k=v <template_to_expand>`: test the defined template.
 
     Placeholders are defined in 2 double curly braces {{placeholder}}
@@ -2808,8 +2928,8 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
 
     ## Parameters
 
-    - `name_of_template`:  The name of the query template.
-    - `query_template`:  The query with template placeholders.
+    - `name_of_template`:  The name of the search template.
+    - `search_template`:  The search with template placeholders.
     - `key=value`: any number of key/value pairs separated by comma
 
     ## Examples
@@ -2818,12 +2938,12 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
     > templates test kind=volume is({{kind}})
     is(volume)
 
-    # Add a very simple template with name filter_kind to the query library
+    # Add a very simple template with name filter_kind to the search library
     > templates add filter_kind is({{kind}})
-    Template filter_kind added to the query library.
+    Template filter_kind added to the search library.
     is({{kind}})
 
-    # List all templates in the query library
+    # List all templates in the search library
     > templates
     filter_kind: is({{kind}})
 
@@ -2831,12 +2951,12 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
     > templates filter_kind
     is({{kind}})
 
-    # Use this template in a query
-    > query expand(filter_kind, kind=volume) and name=~dkl
+    # Use this template in a search
+    > search expand(filter_kind, kind=volume) and name=~dkl
     kind=aws_ec2_volume, id=vol-1, name=dkl-3, age=2mo2d, cloud=aws, account=eng, region=us-west-2
 
     > templates delete filter_kind
-    Template filter_kind deleted from the query library.
+    Template filter_kind deleted from the search library.
     ```
     """
 
@@ -2845,7 +2965,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
         return "templates"
 
     def info(self) -> str:
-        return "Access the query template library."
+        return "Access the search template library."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         def template_str(template: Template) -> str:
@@ -2861,18 +2981,18 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             return len(templates), stream.iterate(template_str(t) for t in templates)
 
         async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
-            # try to render_console the template with dummy values and see if the query can be parsed
+            # try to render_console the template with dummy values and see if the search can be parsed
             try:
                 rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
                 parse_query(rendered_query, **ctx.env)
             except Exception as ex:
-                raise CLIParseError(f"Given template does not define a valid query: {template_query}") from ex
+                raise CLIParseError(f"Given template does not define a valid search: {template_query}") from ex
             await self.dependencies.template_expander.put_template(Template(name, template_query))
-            yield f"Template {name} added to the query library.\n{template_query}"
+            yield f"Template {name} added to the search library.\n{template_query}"
 
         async def delete_template(name: str) -> AsyncIterator[str]:
             await self.dependencies.template_expander.delete_template(name)
-            yield f"Template {name} deleted from the query library."
+            yield f"Template {name} deleted from the search library."
 
         async def expand_template(spec: str) -> AsyncIterator[str]:
             maybe_dict, template = tpl_props_p.parse_partial(spec)
@@ -2921,7 +3041,7 @@ class HttpCommand(CLICommand):
     The payload of the request contains the object.
     The shape and format of the object can be adjusted with other commands like: list, format, jq, etc.
     Note: you can use the chunk command to send chunks of objects.
-          E.g.: query is(volume) limit 30 | chunk 10 | http test.foo.org
+          E.g.: search is(volume) limit 30 | chunk 10 | http test.foo.org
                 will perform up to 3 requests, where every request will contain up to 10 elements.
 
     ## Options
@@ -2941,7 +3061,7 @@ class HttpCommand(CLICommand):
     - `headers`: a list of http headers can be defined via <header_name>:<header_value>
       Example: HeaderA:test HeaderB:rest
       Note: You can use quotes to use whitespace chars: "HeaderC:this is the value"
-    - `query_params`: a list of query parameters can be defined via <param>==<param_value>.
+    - `query_params`: a list of search parameters can be defined via <param>==<param_value>.
       Example: param1==test param2==rest
       Note: You can use quotes to use whitespace chars: "param3==this is the value"
 
@@ -2949,15 +3069,15 @@ class HttpCommand(CLICommand):
     ## Examples
     ```shell
     # Look for unencrypted volumes and report them to the specified endpoint
-    > query is(volume) and reported.volume_encrypted==false | https my.node.org/handle_unencrypted
+    > search is(volume) and reported.volume_encrypted==false | https my.node.org/handle_unencrypted
     3 requests with status 200 sent.
 
-    # Query all volumes and send chunks of 50 volumes per request to the specified handler
-    > query is(volume) | chunk 50 | https --compress my.node.org/handle
+    # search all volumes and send chunks of 50 volumes per request to the specified handler
+    > search is(volume) | chunk 50 | https --compress my.node.org/handle
     2 requests with status 200 sent.
 
-    # Same query as before, but define special header values and query parameter
-    > query is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from resotocore" type==volume
+    # Same search as before, but define special header values and search parameter
+    > search is(volume) | chunk 50 | https my.node.org/handle "greeting:hello from resotocore" type==volume
     2 requests with status 200 sent.
     ```
     """
@@ -3098,6 +3218,153 @@ class HttpCommand(CLICommand):
         return CLIFlow(self.perform_requests(template))
 
 
+class WorkflowsCommand(CLICommand):
+    """
+    ```shell
+    workflows list
+    workflows show <id>
+    workflows run <id>
+    workflows running
+    ```
+
+    - `workflows list`: get the list of all workflows in the system
+    - `workflows show <id>`: show the current definition of the workflow defined by given identifier.
+    - `workflows run <id>`: run the workflow as if the trigger would be triggered.
+    - `workflows running`: show all currently running workflows.
+
+    The workflows that currently available are all hard-wired into resotocore.
+    We will support user defined workflows in the future.
+
+    *Note:*
+
+    If a workflow is triggered, while it is already running, the invocation will wait for the current run to finish.
+    This means that there will be no parallel execution of workflows with the same identifier at any moment in time.
+
+    ## Options
+    - `--id` <id> [optional]: The identifier of this workflow.
+
+    ## Examples
+
+    ```shell
+    # print all available workflows in the system
+    > workflows list
+    collect
+    cleanup
+    metrics
+    collect_and_cleanup
+
+    # show a specific workflows by identifier
+    > workflows show collect
+    id: collect
+    name: collect
+    steps:
+    - action:
+        message_type: pre_collect
+      name: pre_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: collect
+      name: collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_collect
+      name: post_collect
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: pre_generate_metrics
+      name: pre_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: generate_metrics
+      name: generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    - action:
+        message_type: post_generate_metrics
+      name: post_generate_metrics
+      on_error: Continue
+      timeout: 10.0
+    triggers:
+    - filter_data: null
+      message_type: start_collect_workflow
+    on_surpass: Wait
+
+    # run the workflow directly without waiting for a trigger
+    > workflows run collect
+    Workflow collect started with id cb1013a4-8e81-11ec-8fc0-dad780437c54.
+
+    # show all currently running workflows
+    > workflows running
+    workflow: collect
+    started_at: '2022-02-15T17:08:02Z'
+    task-id: d54f92b8-8e81-11ec-8fc0-dad780437c54
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "workflows"
+
+    def info(self) -> str:
+        return "Manage all workflows."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
+        async def list_workflows() -> Tuple[int, AsyncIterator[JsonElement]]:
+            listed = await self.dependencies.task_handler.list_workflows()
+
+            async def iterate() -> AsyncIterator[JsonElement]:
+                for wf in listed:
+                    yield wf.id
+
+            return len(listed), iterate()
+
+        async def show_workflow(wf_id: str) -> AsyncIterator[JsonElement]:
+            matching = [wf for wf in await self.dependencies.task_handler.list_workflows() if wf.id == wf_id]
+            if matching:
+                yield to_js(matching[0])
+            else:
+                yield f"No workflow with this id: {wf_id}"
+
+        async def run_workflow(wf_id: str) -> AsyncIterator[str]:
+            task = await self.dependencies.task_handler.start_task_by_descriptor_id(wf_id)
+            yield (
+                f"Workflow {task.descriptor.id} started with id {task.id}."
+                if task
+                else f"No workflow with this id: {wf_id}"
+            )
+
+        async def running_workflows() -> Tuple[int, Stream]:
+            tasks = await self.dependencies.task_handler.running_tasks()
+            return len(tasks), stream.iterate(
+                {
+                    "workflow": t.descriptor.id,
+                    "started_at": to_json(t.task_started_at),
+                    "task-id": t.id,
+                }
+                for t in tasks
+                if isinstance(t.descriptor, Workflow)
+            )
+
+        async def show_help() -> AsyncIterator[str]:
+            yield self.rendered_help(ctx)
+
+        args = re.split("\\s+", arg, maxsplit=1) if arg else []
+        if arg and len(args) == 2 and args[0] == "show":
+            return CLISource.single(partial(show_workflow, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "run":
+            return CLISource.single(partial(run_workflow, args[1].strip()))
+        elif arg and len(args) == 1 and args[0] == "running":
+            return CLISource(running_workflows)
+        elif arg and len(args) == 1 and args[0] == "list":
+            return CLISource(list_workflows)
+        else:
+            return CLISource.single(show_help)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregatePart(d),
@@ -3110,7 +3377,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         DumpCommand(d),
         EchoCommand(d),
         EnvCommand(d),
-        ExecuteQueryCommand(d),
+        ExecuteSearchCommand(d),
         FlattenCommand(d),
         FormatCommand(d),
         HeadCommand(d),
@@ -3118,21 +3385,21 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         JobsCommand(d),
         JqCommand(d),
         JsonCommand(d),
-        KindCommand(d),
+        KindsCommand(d),
         ListCommand(d),
         TemplatesCommand(d),
         PredecessorsPart(d),
         ProtectCommand(d),
-        QueryAllPart(d),
+        SearchPart(d),
         SetDesiredCommand(d),
         SetMetadataCommand(d),
         SleepCommand(d),
-        StartTaskCommand(d),
         SuccessorsPart(d),
         SystemCommand(d),
         TagCommand(d),
         TailCommand(d),
         UniqCommand(d),
+        WorkflowsCommand(d),
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
@@ -3144,4 +3411,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "query", "start_workflow": "start_task", "https": "http"}
+    return {"match": "search", "query": "search", "https": "http", "kind": "kinds"}
