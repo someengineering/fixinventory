@@ -166,6 +166,8 @@ class DigitalOceanTeamCollector:
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
             remove_nodes.clear()
 
+        # since regions API will return all available regions, we need to remove
+        # the regions that are not used by any resources
         rmnodes(DigitalOceanRegion)
 
 

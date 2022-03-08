@@ -6,10 +6,10 @@ log = resotolib.logging.getLogger("resoto." + __name__)
 
 
 def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
-    """Returns data from a GCP API call result dict.
+    """Returns data from a DO API call result dict.
 
     Args:
-        result: Dict containing the result or a GCP API execute() call.
+        result: Dict containing the result
         value: Either directly the name of a key found in result or
             a callable like a lambda that finds the relevant data withing
             result.
