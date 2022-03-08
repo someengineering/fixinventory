@@ -81,6 +81,8 @@ async def respond_dot(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, No
                 edge_type = value_in_path(item, NodePath.edge_type)
                 if from_node and to_node:
                     yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]'
+        else:
+            raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
     # All elements in the same account are rendered as dedicated subgraph
     for account, uids in in_account.items():
         yield f' subgraph "{account}" {{'
@@ -143,6 +145,8 @@ async def result_to_graph(gen: AsyncIterator[JsonElement], render_node: Callable
                 to_node = value_in_path(item, NodePath.to_node)
                 if from_node and to_node:
                     result.add_edge(from_node, to_node)
+        else:
+            raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
     return result
 
 

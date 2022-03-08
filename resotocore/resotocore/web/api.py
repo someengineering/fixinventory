@@ -219,13 +219,13 @@ class Api:
                 web.get("/metrics", self.metrics),
                 # config operations
                 web.get("/configs", self.list_configs),
-                web.put("/config/{config_id}", self.set_config),
+                web.put("/config/{config_id}", self.put_config),
                 web.get("/config/{config_id}", self.get_config),
                 web.patch("/config/{config_id}", self.patch_config),
                 web.delete("/config/{config_id}", self.delete_config),
                 # config model operations
                 web.get("/configs/model", self.list_config_models),
-                web.put("/config/{config_id}/model", self.set_config_model),
+                web.put("/config/{config_id}/model", self.put_config_model),
                 web.get("/config/{config_id}/model", self.get_config_model),
                 # ca operations
                 web.get("/ca/cert", self.certificate),
@@ -286,15 +286,15 @@ class Api:
     async def get_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         accept = request.headers.get("accept", "application/json")
-        not_fount = HTTPNotFound(text="No config with this id")
+        not_found = HTTPNotFound(text="No config with this id")
         if accept == "application/yaml":
             yml = await self.config_handler.config_yaml(config_id)
-            return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_fount
+            return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
         else:
             config = await self.config_handler.get_config(config_id)
-            return await single_result(request, config.config) if config else not_fount
+            return await single_result(request, config.config) if config else not_found
 
-    async def set_config(self, request: Request) -> StreamResponse:
+    async def put_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         config = await self.json_from_request(request)
         result = await self.config_handler.put_config(config_id, config)
@@ -323,9 +323,9 @@ class Api:
             else HTTPNotFound(text="No model for this config.")
         )
 
-    async def set_config_model(self, request: Request) -> StreamResponse:
+    async def put_config_model(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        js = await request.json()
+        js = await self.json_from_request(request)
         kinds = from_js(js, List[Kind])
         model = await self.config_handler.put_config_model(config_id, kinds)
         return await single_result(request, to_js(model.kinds))
@@ -365,7 +365,7 @@ class Api:
 
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
-        body = await request.json()
+        body = await self.json_from_request(request)
         subscriptions = from_js(body, List[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
         return await single_result(request, to_json(sub))
@@ -551,7 +551,7 @@ class Api:
         return web.json_response(to_js(md))
 
     async def update_model(self, request: Request) -> StreamResponse:
-        js = await request.json()
+        js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
         model = await self.model_handler.update_model(kinds)
         return await single_result(request, to_js(model))
@@ -572,7 +572,7 @@ class Api:
         node_id = request.match_info.get("node_id", "some_existing")
         parent_node_id = request.match_info.get("parent_node_id", "root")
         graph = self.db.get_graph_db(graph_id)
-        item = await request.json()
+        item = await self.json_from_request(request)
         md = await self.model_handler.load_model()
         node = await graph.create_node(md, node_id, item, parent_node_id)
         return await single_result(request, node)
@@ -582,7 +582,7 @@ class Api:
         node_id = request.match_info.get("node_id", "some_existing")
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
-        patch = await request.json()
+        patch = await self.json_from_request(request)
         md = await self.model_handler.load_model()
         node = await graph.update_node(md, node_id, patch, False, section)
         return await single_result(request, node)
@@ -845,7 +845,7 @@ class Api:
     async def json_from_request(cls, request: Request) -> Json:
         if request.content_type in ["application/json"]:
             return await request.json()  # type: ignore
-        elif request.content_type in ["application/yaml"]:
+        elif request.content_type in ["application/yaml", "text/yaml"]:
             text = await request.text()
             return yaml.safe_load(text)  # type: ignore
         else:

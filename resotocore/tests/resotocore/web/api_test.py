@@ -11,7 +11,7 @@ from arango.database import StandardDatabase
 from resotocore.__main__ import run
 from resotocore.db import EstimatedQueryCostRating
 from resotocore.db.model import GraphUpdate
-from resotocore.model.model import predefined_kinds, Kind
+from resotocore.model.model import predefined_kinds, Kind, StringKind, ComplexKind, Property
 from resotocore.model.typed_model import to_js
 from resotocore.task.model import Subscription
 from resotocore.util import rnd_str, AccessJson
@@ -90,13 +90,13 @@ async def test_model_api(core_client: ApiClient) -> None:
     assert len((await core_client.model()).kinds) >= len(predefined_kinds)
 
     # PATCH /model
-    # update = await core_client.update_model(
-    #     [
-    #         StringKind("only_three", min_length=3, max_length=3),
-    #         ComplexKind("test_cpl", [], [Property("ot", "only_three")]),
-    #     ]
-    # )
-    # assert isinstance(update.get("only_three"), StringKind)
+    update = await core_client.update_model(
+        [
+            StringKind("only_three", min_length=3, max_length=3),
+            ComplexKind("test_cpl", [], [Property("ot", "only_three")]),
+        ]
+    )
+    assert isinstance(update.get("only_three"), StringKind)
 
 
 @pytest.mark.asyncio

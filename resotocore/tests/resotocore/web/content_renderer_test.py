@@ -38,12 +38,6 @@ async def test_json(elements: List[JsonElement]) -> None:
 
 
 @given(json_array_gen)
-@pytest.mark.asyncio
-async def test_foo(elements: List[JsonElement]) -> None:
-    pass
-
-
-@given(json_array_gen)
 @settings(max_examples=20, suppress_health_check=HealthCheck.all())
 @pytest.mark.asyncio
 async def test_ndjson(elements: List[JsonElement]) -> None:
