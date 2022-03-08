@@ -1,20 +1,29 @@
-import resource
+from abc import ABC
 from dataclasses import InitVar, dataclass, field
 from typing import ClassVar, Dict, List, Optional
 
 import resotolib.logging
-from resotolib.baseresources import (BaseAccount, BaseDatabase, BaseInstance,
-                                     BaseIPAddress, BaseLoadBalancer,
-                                     BaseNetwork, BaseRegion, BaseResource,
-                                     BaseSnapshot, BaseVolume, InstanceStatus,
-                                     VolumeStatus)
+from resotolib.baseresources import (
+    BaseAccount,
+    BaseDatabase,
+    BaseInstance,
+    BaseIPAddress,
+    BaseLoadBalancer,
+    BaseNetwork,
+    BaseRegion,
+    BaseResource,
+    BaseSnapshot,
+    BaseVolume,
+    InstanceStatus,
+    VolumeStatus,
+)
 from resotolib.graph import Graph
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
 
 @dataclass(eq=False)
-class DigitalOceanResource:
+class DigitalOceanResource(BaseResource):
     """A class that implements the abstract method delete() as well as update_tag()
     and delete_tag().
 
@@ -48,7 +57,7 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
     kind: ClassVar[str] = "digitalocean_team"
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented # DO does not have a team API yet
+        return NotImplemented  # DO does not have a team API yet
 
 
 @dataclass(eq=False)
@@ -79,7 +88,6 @@ class DigitalOceanProject(DigitalOceanResource, BaseAccount):
     environment: str = field(default="")
     is_default: bool = field(default=False)
 
-
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
@@ -105,7 +113,6 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     features: List[str] = field(default_factory=list)
     image: str = field(default="")
 
-
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
 
@@ -125,6 +132,7 @@ DigitalOceanDroplet.instance_status = property(
     DigitalOceanDroplet._instance_status_getter,
     DigitalOceanDroplet._instance_status_setter,
 )
+
 
 @dataclass(eq=False)
 class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
@@ -173,6 +181,7 @@ DigitalOceanVolume.volume_status = property(
     DigitalOceanVolume._volume_status_getter, DigitalOceanVolume._volume_status_setter
 )
 
+
 @dataclass(eq=False)
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
@@ -189,7 +198,8 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     ip_range: str = field(default="")
     description: str = field(default="")
-    defalut: bool = field(default=False)
+    default: bool = field(default=False)
+
 
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
@@ -200,7 +210,6 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     size_gigabytes: float = field(default=0.0)
     resource_id: str = field(default="")
     resource_type: str = field(default="")
-    
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented

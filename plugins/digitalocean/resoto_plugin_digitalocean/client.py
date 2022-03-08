@@ -1,8 +1,9 @@
-import resotolib.logging
-import requests
-from typing import Dict, List, Any
 import json
+from typing import Dict, List, Any
 
+import requests
+
+import resotolib.logging
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -12,7 +13,6 @@ Json = Dict[str, Any]
 # todo: make it async
 # todo: stream the response
 class StreamingWrapper:
-
     def __init__(self, token: str) -> None:
         self.token = token
 
@@ -20,8 +20,8 @@ class StreamingWrapper:
         result = []
         do_api_endpoint = "https://api.digitalocean.com/v2"
         headers = {
-            'Authorization': f"Bearer {self.token}",
-            'Content-Type': 'application/json',
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
         }
 
         url = f"{do_api_endpoint}{path}?page=1&per_page=200"
@@ -38,12 +38,7 @@ class StreamingWrapper:
             json_response = requests.get(url, headers=headers).json()
             result = result + json_response.get(payload_object_name, [])
 
-        log.debug(
-            (
-                f"DO request {path}: "
-                f"{json.dumps(result)}"
-            )
-        )
+        log.debug(f"DO request {path}: " f"{json.dumps(result)}")
         return result
 
     def list_projects(self) -> List[Json]:
@@ -78,4 +73,3 @@ class StreamingWrapper:
 
     def list_floating_ips(self) -> List[Json]:
         return self._make_request("/floating_ips", "floating_ips")
-

@@ -1,6 +1,7 @@
-import resotolib.logging
-from typing import Iterable, List, Union, Callable, Any, Dict
 from datetime import datetime
+from typing import Union, Callable, Any, Dict
+
+import resotolib.logging
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -24,6 +25,7 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
         data = result[value]
     return data
 
+
 def iso2datetime(ts: str) -> datetime:
     if ts is None:
         return
@@ -32,32 +34,42 @@ def iso2datetime(ts: str) -> datetime:
     if ts is not None:
         return datetime.fromisoformat(ts)
 
+
 def region_id(slug: str) -> str:
     return f"do:region:{slug}"
+
 
 def project_id(value: str) -> str:
     return f"do:project:{value}"
 
+
 def droplet_id(value: int) -> str:
     return f"do:droplet:{value}"
+
 
 def kubernetes_id(value: str) -> str:
     return f"do:kubernetes:{value}"
 
+
 def volume_id(value: int) -> str:
     return f"do:volume:{value}"
+
 
 def vpc_id(value: str) -> str:
     return f"do:vpc:{value}"
 
+
 def snapshot_id(value: int) -> str:
     return f"do:snapshot:{value}"
+
 
 def loadbalancer_id(value: int) -> str:
     return f"do:loadbalancer:{value}"
 
+
 def floatingip_id(value: str) -> str:
     return f"do:floatingip:{value}"
+
 
 def database_id(value: str) -> str:
     return f"do:dbaas:{value}"

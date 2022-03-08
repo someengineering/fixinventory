@@ -1,19 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
+
 from resoto_plugin_digitalocean.client import StreamingWrapper
-from resotolib.logging import log, setup_logger
-import os
-from datetime import datetime
-from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.graph import Graph
 from resotolib.args import ArgumentParser
-from functools import reduce
-
-
-from resoto_digitalocean_openapi_client import Configuration, ApiClient
-
-from .resources import DigitalOceanTeam
-from .collector import DigitalOceanTeamCollector
-
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.logging import log
+from collector import DigitalOceanTeamCollector
+from resources import DigitalOceanTeam
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
@@ -36,11 +28,10 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             self.graph.merge(team_graph)
 
     def collect_team(self, client: StreamingWrapper) -> Optional[Dict]:
-        """Collects an individual team.
-        """
+        """Collects an individual team."""
         projects = client.list_projects()
-        team_id = str(projects[0]['owner_id'])
-        team = DigitalOceanTeam(id = team_id, tags={})
+        team_id = str(projects[0]["owner_id"])
+        team = DigitalOceanTeam(id=team_id, tags={})
 
         try:
             dopc = DigitalOceanTeamCollector(team, client)
@@ -51,7 +42,6 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             )
         else:
             return dopc.graph
-
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

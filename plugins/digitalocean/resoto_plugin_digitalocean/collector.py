@@ -1,12 +1,12 @@
-from resotolib.baseresources import BaseResource
+from pprint import pformat
+from typing import Tuple, Type, List, Dict, Union, Callable, Any
+
+from prometheus_client import Summary
+
 import resotolib.logging
-from retrying import retry
+from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.graph import Graph
 from .client import StreamingWrapper
-from resotolib.args import ArgumentParser
-from prometheus_client import Summary
-from typing import Tuple, Type, List, Dict, Union, Callable, Any
-from resotolib.baseresources import BaseResource, EdgeType
 from .resources import (
     DigitalOceanDroplet,
     DigitalOceanProject,
@@ -20,7 +20,6 @@ from .resources import (
     DigitalOceanLoadBalancer,
     DigitalOceanFloatingIP,
 )
-from pprint import pformat
 from .utils import (
     iso2datetime,
     get_result_data,
@@ -35,7 +34,6 @@ from .utils import (
     floatingip_id,
     database_id,
 )
-
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -125,7 +123,6 @@ class DigitalOceanTeamCollector:
         self.all_collectors.update(self.global_collectors)
         self.collector_set = set(self.all_collectors.keys())
 
-
     def collect(self) -> None:
         """Runs the actual resource collection across all resource collectors.
 
@@ -170,7 +167,6 @@ class DigitalOceanTeamCollector:
         # the regions that are not used by any resources
         rmnodes(DigitalOceanRegion)
 
-
     def default_attributes(
         self, result: Dict, attr_map: Dict = None, search_map: Dict = None
     ) -> Dict:
@@ -180,7 +176,7 @@ class DigitalOceanTeamCollector:
         def extract_tags(result: Dict) -> Dict[str, str]:
             raw_tags = result.get("tags", [])
             raw_tags = raw_tags if raw_tags else []
-            tags = [(tag,"") for tag in raw_tags if tag]
+            tags = [(tag, "") for tag in raw_tags if tag]
             return dict(tags) if tags else {}
 
         kwargs = {
@@ -274,7 +270,6 @@ class DigitalOceanTeamCollector:
             predecessors = {}
         parent_map = {True: predecessors, False: successors}
 
-
         for resource_json in resources:
             kwargs, search_results = self.default_attributes(
                 resource_json, attr_map=attr_map, search_map=search_map
@@ -287,7 +282,9 @@ class DigitalOceanTeamCollector:
 
             if isinstance(pr, str) and pr in search_results:
                 pr = search_results[parent_resource][0]
-                log.debug(f"Parent resource for {resource_instance.rtdname} set to {pr.rtdname}")
+                log.debug(
+                    f"Parent resource for {resource_instance.rtdname} set to {pr.rtdname}"
+                )
 
             if not isinstance(pr, BaseResource):
                 pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
@@ -296,7 +293,9 @@ class DigitalOceanTeamCollector:
                 )
             self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
 
-            def add_deferred_connection(search_map_key: str, is_parent: bool, edge_type: EdgeType) -> None:
+            def add_deferred_connection(
+                search_map_key: str, is_parent: bool, edge_type: EdgeType
+            ) -> None:
                 graph_search = search_map[search_map_key]
                 attr = graph_search[0]
                 value_name = graph_search[1]
@@ -334,7 +333,6 @@ class DigitalOceanTeamCollector:
                         dst = sr
                     self.graph.add_edge(src, dst, edge_type=edge_type)
 
-
             for is_parent, edge_sr_names in parent_map.items():
                 for edge_type, search_result_names in edge_sr_names.items():
                     for search_result_name in search_result_names:
@@ -342,14 +340,16 @@ class DigitalOceanTeamCollector:
                             add_edge(search_result_name, is_parent)
                         else:
                             if search_result_name in search_map:
-                                add_deferred_connection(search_result_name, is_parent, edge_type)
+                                add_deferred_connection(
+                                    search_result_name, is_parent, edge_type
+                                )
                             else:
-                                log.error(f"Key {search_result_name} is missing in search_map")
+                                log.error(
+                                    f"Key {search_result_name} is missing in search_map"
+                                )
             if callable(post_process):
                 post_process(resource_instance, self.graph)
 
-
-        
     @metrics_collect_intances.time()
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
@@ -367,9 +367,8 @@ class DigitalOceanTeamCollector:
                 "image": lambda d: d["image"]["slug"],
             },
             search_map={
-                "_region": ["id", lambda droplet: region_id(droplet['region']['slug'])],
-                "__vpcs": ["id", lambda droplet: vpc_id(droplet['vpc_uuid'])],
-
+                "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
+                "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
             },
             predecessors={EdgeType.default: ["__vpcs"]},
         )
@@ -386,11 +385,10 @@ class DigitalOceanTeamCollector:
                 "slug": "slug",
                 "features": "features",
                 "available": "available",
-                "sizes": "sizes", 
+                "sizes": "sizes",
             },
             search_map={},
         )
-
 
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
@@ -406,7 +404,12 @@ class DigitalOceanTeamCollector:
                 "filesystam_label": "filesystam_label",
             },
             search_map={
-                "__users": ["id", lambda vol: list(map(lambda id: droplet_id(id), vol["droplet_ids"]))],
+                "__users": [
+                    "id",
+                    lambda vol: list(
+                        map(lambda id: droplet_id(id), vol["droplet_ids"])
+                    ),
+                ],
             },
             predecessors={EdgeType.default: ["__users"]},
         )
@@ -448,7 +451,7 @@ class DigitalOceanTeamCollector:
                 "db_version": "version",
                 "db_endpoint": lambda db: db.get("connection", {}).get("host", ""),
                 "instance_type": "size",
-                "volume_size": lambda db: dbtype_to_size.get(db.get("size", "") , 0),
+                "volume_size": lambda db: dbtype_to_size.get(db.get("size", ""), 0),
             },
             search_map={
                 "_region": ["id", lambda db: region_id(db["region"])],
@@ -478,12 +481,15 @@ class DigitalOceanTeamCollector:
     def collect_projects(self) -> None:
         def get_resource_id(resource):
             return resource["urn"]
-        projects = self.client.list_projects()
-        project_resources = [list(map(get_resource_id, self.client.list_project_resources(p['id']))) for p in projects]
 
+        projects = self.client.list_projects()
+        project_resources = [
+            list(map(get_resource_id, self.client.list_project_resources(p["id"])))
+            for p in projects
+        ]
 
         for project, resource_ids in zip(projects, project_resources):
-            project['resource_ids'] = resource_ids
+            project["resource_ids"] = resource_ids
 
         self.collect_resource(
             projects,
@@ -524,7 +530,14 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": ["id", lambda c: region_id(c["region"])],
-                "__nodes" : ["id", lambda cluster: [droplet_id(node["droplet_id"]) for node_pool in cluster["node_pools"] for node in node_pool["nodes"]]],
+                "__nodes": [
+                    "id",
+                    lambda cluster: [
+                        droplet_id(node["droplet_id"])
+                        for node_pool in cluster["node_pools"]
+                        for node in node_pool["nodes"]
+                    ],
+                ],
             },
             successors={EdgeType.default: ["__nodes"]},
         )
@@ -549,7 +562,10 @@ class DigitalOceanTeamCollector:
                 "resource_type": "resource_type",
             },
             search_map={
-                "_region": ["id", lambda s: [region_id(region) for region in s["regions"]]],
+                "_region": [
+                    "id",
+                    lambda s: [region_id(region) for region in s["regions"]],
+                ],
                 "__resource": ["id", lambda s: get_resource_id(s)],
             },
             predecessors={EdgeType.default: ["__resource"]},
@@ -572,16 +588,15 @@ class DigitalOceanTeamCollector:
                 "disable_lets_encrypt_dns_records": "disable_lets_encrypt_dns_records",
             },
             search_map={
-                "_region": ["id", lambda lb: region_id(lb['region']['slug'])],
-                "__vpcs": ["id", lambda lb: vpc_id(lb['vpc_uuid'])],
-                "__droplets": ["id", lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"]))],
+                "_region": ["id", lambda lb: region_id(lb["region"]["slug"])],
+                "__vpcs": ["id", lambda lb: vpc_id(lb["vpc_uuid"])],
+                "__droplets": [
+                    "id",
+                    lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"])),
+                ],
             },
-            predecessors={
-                EdgeType.default: ["__vpcs"]
-            },
-            successors={
-                EdgeType.default: ["__droplets"]
-            }
+            predecessors={EdgeType.default: ["__vpcs"]},
+            successors={EdgeType.default: ["__droplets"]},
         )
 
     @metrics_collect_floating_ips.time()
@@ -597,10 +612,11 @@ class DigitalOceanTeamCollector:
                 "locked": "locked",
             },
             search_map={
-                "_region": ["id", lambda ip: region_id(ip['region']['slug'])],
-                "__droplet": ["id", lambda ip: droplet_id(ip.get("droplet", {}).get("id", ""))],
+                "_region": ["id", lambda ip: region_id(ip["region"]["slug"])],
+                "__droplet": [
+                    "id",
+                    lambda ip: droplet_id(ip.get("droplet", {}).get("id", "")),
+                ],
             },
-            predecessors={
-                EdgeType.default: ["__droplet"]
-            },
+            predecessors={EdgeType.default: ["__droplet"]},
         )
