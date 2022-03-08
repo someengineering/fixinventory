@@ -1,21 +1,14 @@
-import resotolib.logging
+import resource
+from dataclasses import InitVar, dataclass, field
 from typing import ClassVar, Dict, List, Optional
-from dataclasses import dataclass, field, InitVar
+
+import resotolib.logging
+from resotolib.baseresources import (BaseAccount, BaseDatabase, BaseInstance,
+                                     BaseIPAddress, BaseLoadBalancer,
+                                     BaseNetwork, BaseRegion, BaseResource,
+                                     BaseSnapshot, BaseVolume, InstanceStatus,
+                                     VolumeStatus)
 from resotolib.graph import Graph
-from resotolib.baseresources import (
-    BaseAccount,
-    BaseIPAddress,
-    BaseLoadBalancer,
-    BaseRegion,
-    BaseInstance,
-    BaseNetwork,
-    BaseResource,
-    BaseSnapshot,
-    BaseVolume,
-    InstanceStatus,
-    VolumeStatus,
-    BaseDatabase,
-)
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -203,6 +196,11 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean image"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
+
+    size_gigabytes: float = field(default=0.0)
+    resource_id: str = field(default="")
+    resource_type: str = field(default="")
+    
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented

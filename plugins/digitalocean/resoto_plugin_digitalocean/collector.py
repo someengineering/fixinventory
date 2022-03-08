@@ -32,6 +32,7 @@ from .utils import (
     droplet_id,
     volume_id,
     vpc_id,
+    snapshot_id,
 )
 
 
@@ -513,16 +514,28 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_snapshots.time()
     def collect_snapshots(self) -> None:
+        def get_resource_id(snapshot):
+            if snapshot["resource_type"] == "droplet":
+                return droplet_id(snapshot["resource_id"])
+            else:
+                return volume_id(snapshot["resource_id"])
+
         snapshots = self.client.list_snapshots()
+        for s in snapshots:
+            print(get_resource_id(s))
         self.collect_something(
             snapshots,
             resource_class=DigitalOceanSnapshot,
             attr_map={
+                "id": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
+                "size_gigabytes": "size_gigabytesl",
+                "resource_id": "resource_id",
+                "resource_type": "resource_type",
             },
             search_map={
                 "_region": ["id", lambda s: [region_id(region) for region in s["regions"]]],
-                "__resource": ["id", "resource_id"],
+                "__resource": ["id", lambda s: get_resource_id(s)],
             },
             predecessors={EdgeType.default: ["__resource"]},
         )
