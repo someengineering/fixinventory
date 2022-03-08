@@ -66,9 +66,9 @@ from resotocore.query.model import (
     AggregateVariable,
     AggregateVariableName,
     AggregateFunction,
-    SortOrder,
     PathRoot,
     Limit,
+    Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser
 from resotocore.util import utc_str, utc, from_utc
@@ -175,6 +175,8 @@ class HelpCommand(CLICommand):
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]
+# If no sort is defined in the part, we use this default sort order
+DefaultSort = [Sort("/reported.kind"), Sort("/reported.id")]
 
 
 class CLI:
@@ -322,15 +324,13 @@ class CLI:
                 elif first_head_tail_in_a_row and not head_tail_keep_order:
                     query = query.with_limit(Limit(limit.offset, min(limit.length, size)))
                 else:
-                    if query.current_part.sort:
-                        head_tail_keep_order = False
-                        p = query.current_part
-                        # reverse the sort order -> limit -> reverse the result
-                        query.parts[0] = replace(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
-                    else:
-                        # no sort order defined: use the global key in descending order
-                        query = query.add_sort("/_key", SortOrder.Desc)
+                    head_tail_keep_order = False
                     query = query.with_limit(size)
+                    p = query.current_part
+                    # the limit might have created a new part - make sure there is a sort order
+                    p = p if p.sort else replace(p, sort=DefaultSort)
+                    # reverse the sort order -> limit -> reverse the result
+                    query.parts[0] = replace(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
@@ -342,7 +342,16 @@ class CLI:
                 first_head_tail_in_a_row = None
                 head_tail_keep_order = True
 
-        final_query = query.on_section(ctx.env.get("section", PathRoot))
+            # Define default sort order, if not already defined
+            # A sort order is required to always return the result in a deterministic way to the user.
+            # Deterministic order is required for head/tail to work
+            parts = [pt if pt.sort else replace(pt, sort=DefaultSort) for pt in query.parts]
+            query = replace(query, parts=parts)
+
+        # If the last part is a navigation, we need to add sort which will ingest a new part.
+        with_sort = query.set_sort(DefaultSort) if query.current_part.navigation else query
+        # When all parts are combined, interpret the result on defined section.
+        final_query = with_sort.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)
         query_string = str(final_query)
         execute_search = self.command("execute_search", options + query_string, ctx)

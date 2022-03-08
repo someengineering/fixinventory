@@ -815,7 +815,7 @@ class ArangoGraphDB(GraphDB):
         db = self.db
 
         # Edge Definition dependency was renamed to default in 2.0.0a13
-        # This method can be removed before 2.0 is released
+        # TODO: This method can be removed before 2.0 is released
         def rename_edge_dependency_to_default(graph_name: str, vertex_name: str, edge_name: str) -> None:
             ddb = db.db
             gdb = ddb.graph(graph_name)
@@ -834,7 +834,7 @@ class ArangoGraphDB(GraphDB):
                 gdb.create_edge_definition(edge_name, [vertex_name], [vertex_name])
 
         # The view index was created using a default analyzer
-        # This method can be removed before 2.0 is released.
+        # TODO: This method can be removed before 2.0 is released.
         def delete_wrong_index_view() -> None:
             db.db.delete_view(f"search_{self.vertex_name}", ignore_missing=True)
 
@@ -865,8 +865,17 @@ class ArangoGraphDB(GraphDB):
                     sparse=False,
                     name="update_nodes_ref_id",
                 )
-            if "kinds" not in node_idxes:
-                nodes.add_persistent_index(["kinds[*]"], sparse=False, name="kinds")
+
+            # One index only for kinds was not sufficient and got extended.
+            # TODO: This statement can be removed before 2.0 is released.
+            if "kinds" in node_idxes:
+                nodes.delete_index("kinds")
+            if "kinds_id_name_ctime" not in node_idxes:
+                nodes.add_persistent_index(
+                    ["kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                    sparse=False,
+                    name="kinds_id_name_ctime",
+                )
             progress_idxes = {idx["name"]: idx for idx in progress.indexes()}
             if "parent_nodes" not in progress_idxes:
                 progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")

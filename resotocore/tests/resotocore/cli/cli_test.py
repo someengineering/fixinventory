@@ -206,47 +206,51 @@ def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command('search some_int==0 | search identifier=~"9_" | descendants')
+    sort = "sort reported.kind asc,reported.id asc"
     assert len(commands) == 1
     assert len(commands[0].commands) == 1
     assert commands[0].commands[0].name == "execute_search"
     assert (
         commands[0].executable_commands[0].arg
-        == '(reported.some_int == 0 and reported.identifier =~ "9_") -default[1:]->'
+        == f'(reported.some_int == 0 and reported.identifier =~ "9_") {sort} -default[1:]-> all {sort}'
     )
     commands = await cli.evaluate_cli_command("search some_int==0 | descendants")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[1:]->"
+    assert "-default[1:]->" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | ancestors | ancestors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2:]-"
+    assert "<-default[2:]-" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | predecessors | predecessors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-default[2]-"
+    assert "<-default[2]-" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | successors | successors | successors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default[3]->"
+    assert "-default[3]->" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | successors | predecessors")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -default-> all <-default-"
+    assert f"-default-> all {sort} <-default-" in commands[0].executable_commands[0].arg  # type: ignore
     # defining the edge type is supported as well
     commands = await cli.evaluate_cli_command("search some_int==0 | successors delete")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete->"
+    assert "-delete->" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | predecessors delete")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete-"
+    assert "<-delete-" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | descendants delete")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 -delete[1:]->"
+    assert "-delete[1:]->" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | ancestors delete")
-    assert commands[0].executable_commands[0].arg == "reported.some_int == 0 <-delete[1:]-"
+    assert "<-delete[1:]-" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar)")
     assert (
         commands[0].executable_commands[0].arg
-        == "aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0"
+        == f"aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0 {sort}"
     )
 
     # multiple head/tail commands are combined correctly
     commands = await cli.evaluate_cli_command("search is(volume) | head -10 | tail -5 | head -3")
-    assert commands[0].executable_commands[0].arg == 'is("volume") limit 5, 3'
+    assert commands[0].executable_commands[0].arg == f'is("volume") {sort} limit 5, 3'
     commands = await cli.evaluate_cli_command("search is(volume) sort name asc | head -10 | tail -5 | head -3")
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name asc limit 5, 3'
     commands = await cli.evaluate_cli_command("search is(volume) | head -10 | tail -5 | head -3 | tail 10 | head 100")
-    assert commands[0].executable_commands[0].arg == 'is("volume") limit 5, 3'
+    assert commands[0].executable_commands[0].arg == f'is("volume") {sort} limit 5, 3'
     commands = await cli.evaluate_cli_command("search is(volume) | tail -10")
-    assert commands[0].executable_commands[0].arg == 'is("volume") sort _key desc limit 10'
+    assert (
+        commands[0].executable_commands[0].arg
+        == f'is("volume") sort reported.kind desc,reported.id desc limit 10 reversed '
+    )
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5")
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 5, 5 reversed '
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5 | head 3 | tail 2")

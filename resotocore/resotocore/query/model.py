@@ -824,6 +824,9 @@ class Query:
         aggregate = Aggregate(variables, funcs)
         return replace(self, aggregate=aggregate)
 
+    def set_sort(self, sort: List[Sort]) -> Query:
+        return self.__change_current_part(lambda p: replace(p, sort=sort))
+
     def add_sort(self, name: str, order: str = SortOrder.Asc) -> Query:
         return self.__change_current_part(lambda p: replace(p, sort=[*p.sort, Sort(name, order)]))
 
