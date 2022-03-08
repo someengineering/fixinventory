@@ -1,5 +1,3 @@
-from doctest import FAIL_FAST
-from re import T
 from resotolib.baseresources import BaseResource
 import resotolib.logging
 from retrying import retry
@@ -177,9 +175,15 @@ class DigitalOceanTeamCollector:
         """See a similar method in the GCPCollectorPlugin"""
         # The following are default attributes that are passed to every
         # BaseResource() if found in `result`
+        def extract_tags(result: Dict) -> Dict[str, str]:
+            raw_tags = result.get("tags", [])
+            raw_tags = raw_tags if raw_tags else []
+            tags = [(tag,"") for tag in raw_tags if tag]
+            return dict(tags) if tags else {}
+
         kwargs = {
             "id": str(result.get("id")),
-            #"tags": dict([(tag,"") for tag in result.get("tags", [])]),
+            "tags": extract_tags(result),
             "name": result.get("name"),
             "ctime": iso2datetime(result.get("created_at")),
             "mtime": iso2datetime(result.get("updated_at")),
@@ -187,10 +191,10 @@ class DigitalOceanTeamCollector:
         }
 
         if attr_map is not None:
-            for map_to, map_from in attr_map.items():
-                data = get_result_data(result, map_from)
+            for map_to, attribute_selector in attr_map.items():
+                data = get_result_data(result, attribute_selector)
                 if data is None:
-                    log.debug(f"Attribute {map_from} not in result")
+                    log.debug(f"Attribute {attribute_selector} not in result")
                     continue
                 log.debug(f"Found attribute {map_to}: {pformat(data)}")
                 kwargs[map_to] = data
@@ -249,7 +253,7 @@ class DigitalOceanTeamCollector:
 
         return kwargs, search_results
 
-    def collect_something(
+    def collect_resource(
         self,
         resources: List[Dict[str, Any]],
         resource_class: Type[BaseResource],
@@ -269,78 +273,85 @@ class DigitalOceanTeamCollector:
         parent_map = {True: predecessors, False: successors}
 
 
-        for resource in resources:
+        for resource_json in resources:
             kwargs, search_results = self.default_attributes(
-                resource, attr_map=attr_map, search_map=search_map
+                resource_json, attr_map=attr_map, search_map=search_map
             )
-            r = resource_class(**kwargs)
+            resource_instance = resource_class(**kwargs)
             pr = parent_resource
-            log.debug(f"Adding {r.rtdname} to the graph")
+            log.debug(f"Adding {resource_instance.rtdname} to the graph")
             if dump_resource:
-                log.debug(f"Resource Dump: {pformat(resource)}")
+                log.debug(f"Resource Dump: {pformat(resource_json)}")
 
             if isinstance(pr, str) and pr in search_results:
                 pr = search_results[parent_resource][0]
-                log.debug(f"Parent resource for {r.rtdname} set to {pr.rtdname}")
+                log.debug(f"Parent resource for {resource_instance.rtdname} set to {pr.rtdname}")
 
             if not isinstance(pr, BaseResource):
                 pr = kwargs.get("_zone", kwargs.get("_region", self.graph.root))
                 log.debug(
-                    f"Parent resource for {r.rtdname} automatically set to {pr.rtdname}"
+                    f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}"
                 )
-            self.graph.add_resource(pr, r, edge_type=EdgeType.default)
+            self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
+
+            def add_deferred_connection(search_map_key: str, is_parent: bool, edge_type: EdgeType) -> None:
+                graph_search = search_map[search_map_key]
+                attr = graph_search[0]
+                value_name = graph_search[1]
+                if value_name in resource_json:
+                    value = resource_json[value_name]
+                    if isinstance(value, List):
+                        values = value
+                        for value in values:
+                            resource_instance.add_deferred_connection(
+                                attr,
+                                value,
+                                is_parent,
+                                edge_type=edge_type,
+                            )
+                    elif isinstance(value, str):
+                        resource_instance.add_deferred_connection(
+                            attr, value, is_parent, edge_type=edge_type
+                        )
+                    else:
+                        log.error(
+                            (
+                                "Unable to add deferred connection for"
+                                f" value {value} of type {type(value)}"
+                            )
+                        )
+
+            def add_edge(search_map_key: str, is_parent) -> None:
+                srs = search_results[search_map_key]
+                for sr in srs:
+                    if is_parent:
+                        src = sr
+                        dst = resource_instance
+                    else:
+                        src = resource_instance
+                        dst = sr
+                    self.graph.add_edge(src, dst, edge_type=edge_type)
+
 
             for is_parent, edge_sr_names in parent_map.items():
-                for edge_type, sr_names in edge_sr_names.items():
-                    for sr_name in sr_names:
-                        if sr_name in search_results:
-                            srs = search_results[sr_name]
-                            for sr in srs:
-                                if is_parent:
-                                    src = sr
-                                    dst = r
-                                else:
-                                    src = r
-                                    dst = sr
-                                self.graph.add_edge(src, dst, edge_type=edge_type)
+                for edge_type, search_result_names in edge_sr_names.items():
+                    for search_result_name in search_result_names:
+                        if search_result_name in search_results:
+                            add_edge(search_result_name, is_parent)
                         else:
-                            if sr_name in search_map:
-                                graph_search = search_map[sr_name]
-                                attr = graph_search[0]
-                                value_name = graph_search[1]
-                                if value_name in resource:
-                                    value = resource[value_name]
-                                    if isinstance(value, List):
-                                        values = value
-                                        for value in values:
-                                            r.add_deferred_connection(
-                                                attr,
-                                                value,
-                                                is_parent,
-                                                edge_type=edge_type,
-                                            )
-                                    elif isinstance(value, str):
-                                        r.add_deferred_connection(
-                                            attr, value, is_parent, edge_type=edge_type
-                                        )
-                                    else:
-                                        log.error(
-                                            (
-                                                "Unable to add deferred connection for"
-                                                f" value {value} of type {type(value)}"
-                                            )
-                                        )
+                            if search_result_name in search_map:
+                                add_deferred_connection(search_result_name, is_parent, edge_type)
                             else:
-                                log.error(f"Key {sr_name} is missing in search_map")
+                                log.error(f"Key {search_result_name} is missing in search_map")
             if callable(post_process):
-                post_process(r, self.graph)
+                post_process(resource_instance, self.graph)
 
 
         
     @metrics_collect_intances.time()
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
-        self.collect_something(
+        self.collect_resource(
             instances,
             resource_class=DigitalOceanDroplet,
             attr_map={
@@ -364,7 +375,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_regions.time()
     def collect_regions(self) -> None:
         regions = self.client.list_regions()
-        self.collect_something(
+        self.collect_resource(
             regions,
             resource_class=DigitalOceanRegion,
             attr_map={
@@ -382,7 +393,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
-        self.collect_something(
+        self.collect_resource(
             volumes,
             resource_class=DigitalOceanVolume,
             attr_map={
@@ -425,7 +436,7 @@ class DigitalOceanTeamCollector:
         }
 
         databases = self.client.list_databases()
-        self.collect_something(
+        self.collect_resource(
             databases,
             resource_class=DigitalOceanDatabase,
             attr_map={
@@ -447,7 +458,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_vpcs.time()
     def collect_vpcs(self) -> None:
         vpcs = self.client.list_vpcs()
-        self.collect_something(
+        self.collect_resource(
             vpcs,
             resource_class=DigitalOceanNetwork,
             attr_map={
@@ -472,7 +483,7 @@ class DigitalOceanTeamCollector:
         for project, resource_ids in zip(projects, project_resources):
             project['resource_ids'] = resource_ids
 
-        self.collect_something(
+        self.collect_resource(
             projects,
             resource_class=DigitalOceanProject,
             attr_map={
@@ -493,7 +504,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_k8s_clusters.time()
     def collect_k8s_clusters(self) -> None:
         clusters = self.client.list_kubernetes_clusters()
-        self.collect_something(
+        self.collect_resource(
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
             attr_map={
@@ -525,7 +536,7 @@ class DigitalOceanTeamCollector:
                 return volume_id(snapshot["resource_id"])
 
         snapshots = self.client.list_snapshots()
-        self.collect_something(
+        self.collect_resource(
             snapshots,
             resource_class=DigitalOceanSnapshot,
             attr_map={
@@ -545,7 +556,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_load_balancers.time()
     def collect_load_balancers(self) -> None:
         loadbalancers = self.client.list_load_balancers()
-        self.collect_something(
+        self.collect_resource(
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
             attr_map={
@@ -574,7 +585,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_floating_ips.time()
     def collect_floating_ips(self) -> None:
         floating_ips = self.client.list_floating_ips()
-        self.collect_something(
+        self.collect_resource(
             floating_ips,
             resource_class=DigitalOceanFloatingIP,
             attr_map={
