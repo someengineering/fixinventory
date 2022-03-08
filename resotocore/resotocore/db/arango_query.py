@@ -36,6 +36,7 @@ from resotocore.query.model import (
     Query,
     SortOrder,
     FulltextTerm,
+    Limit,
 )
 from resotocore.query.query_parser import merge_ancestors_parser
 from resotocore.util import first, set_value_in_path, exist
@@ -277,7 +278,7 @@ def query_string(
         query_part = ""
         filtered_out = ""
 
-        def filter_statement(current_cursor: str, part_term: Term, limit: Optional[int]) -> str:
+        def filter_statement(current_cursor: str, part_term: Term, limit: Optional[Limit]) -> str:
             if isinstance(part_term, AllTerm) and limit is None and not p.sort:
                 return current_cursor
             nonlocal query_part, filtered_out
@@ -285,11 +286,12 @@ def query_string(
             filtered_out = next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
-            limited = f" LIMIT {limit} " if limit else " "
+            limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
             sort_by = sort(crsr, p.sort) if p.sort else " "
             for_stmt = f"FOR {crsr} in {current_cursor} FILTER {term(crsr, part_term)}{sort_by}{limited}"
             return_stmt = f"RETURN {f_res}"
-            query_part += f"LET {filtered_out} = ({for_stmt}{return_stmt})"
+            reverse = "REVERSE" if p.reverse_result else ""
+            query_part += f"LET {filtered_out} = {reverse}({for_stmt}{return_stmt})"
             return filtered_out
 
         def with_clause(in_crsr: str, clause: WithClause) -> str:

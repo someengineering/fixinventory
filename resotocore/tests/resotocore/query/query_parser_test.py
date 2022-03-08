@@ -28,6 +28,7 @@ from resotocore.query.model import (
     FulltextTerm,
     CombinedTerm,
     Predicate,
+    Limit,
 )
 from resotocore.model.graph_access import EdgeType, Direction
 from parsy import Parser, ParseError
@@ -279,7 +280,8 @@ def test_sort_order() -> None:
 
 
 def test_limit() -> None:
-    assert limit_parser.parse("limit 23") == 23
+    assert limit_parser.parse("limit 23") == Limit(0, 23)
+    assert limit_parser.parse("limit 3, 23") == Limit(3, 23)
     assert_round_trip(query_parser, Query.by("test").with_limit(23))
 
 

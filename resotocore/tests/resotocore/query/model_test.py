@@ -17,6 +17,7 @@ from resotocore.query.model import (
     Predicate,
     NotTerm,
     FunctionTerm,
+    Limit,
 )
 from resotocore.query.query_parser import parse_query
 
@@ -103,7 +104,7 @@ def test_combine() -> None:
     )
     assert str(query3) == 'test == true -default-> is("boo") -default-> ((is("bar") and is("foo")) and is("bla"))'
     query4 = Query.by("a").with_limit(10).combine(Query.by("b").with_limit(2))
-    assert query4.current_part.limit == 2  # minimum is taken
+    assert query4.current_part.limit == Limit(0, 2)  # minimum is taken
     with pytest.raises(AttributeError):
         # can not combine 2 aggregations
         parse_query("aggregate(sum(1)): is(a)").combine(parse_query("aggregate(sum(1)): is(a)"))

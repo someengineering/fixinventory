@@ -66,8 +66,9 @@ from resotocore.query.model import (
     AggregateVariable,
     AggregateVariableName,
     AggregateFunction,
-    SortOrder,
     PathRoot,
+    Limit,
+    Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser
 from resotocore.util import utc_str, utc, from_utc
@@ -174,6 +175,8 @@ class HelpCommand(CLICommand):
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]
+# If no sort is defined in the part, we use this default sort order
+DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
 class CLI:
@@ -268,6 +271,9 @@ class CLI:
 
         query: Query = Query.by(AllTerm())
         additional_commands: List[ExecutableCommand] = []
+        # We need to remember the first head/tail, since tail will reverse the sort order
+        first_head_tail_in_a_row: Optional[CLICommand] = None
+        head_tail_keep_order = True
         for command in commands:
             part = command.command
             arg = command.arg if command.arg else ""
@@ -302,16 +308,50 @@ class CLI:
                 query = query.add_sort(f"{PathRoot}count")
             elif isinstance(part, HeadCommand):
                 size = HeadCommand.parse_size(arg)
-                query = query.with_limit(size)
+                limit = query.parts[0].limit or Limit(0, size)
+                if first_head_tail_in_a_row and head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset, min(limit.length, size)))
+                elif first_head_tail_in_a_row and not head_tail_keep_order:
+                    length = min(limit.length, size)
+                    query = query.with_limit(Limit(limit.offset + limit.length - length, length))
+                else:
+                    query = query.with_limit(size)
             elif isinstance(part, TailCommand):
                 size = HeadCommand.parse_size(arg)
-                if not query.current_part.sort:
-                    query = query.add_sort("_key", SortOrder.Desc)
-                query = query.with_limit(size)
+                limit = query.parts[0].limit or Limit(0, size)
+                if first_head_tail_in_a_row and head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset + max(0, limit.length - size), min(limit.length, size)))
+                elif first_head_tail_in_a_row and not head_tail_keep_order:
+                    query = query.with_limit(Limit(limit.offset, min(limit.length, size)))
+                else:
+                    head_tail_keep_order = False
+                    query = query.with_limit(size)
+                    p = query.current_part
+                    # the limit might have created a new part - make sure there is a sort order
+                    p = p if p.sort else replace(p, sort=DefaultSort)
+                    # reverse the sort order -> limit -> reverse the result
+                    query.parts[0] = replace(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
             else:
                 raise AttributeError(f"Do not understand: {part} of type: {class_fqn(part)}")
 
-        final_query = query.on_section(ctx.env.get("section", PathRoot))
+            # Remember the first head tail in a row of head tails
+            if isinstance(part, (HeadCommand, TailCommand)):
+                if not first_head_tail_in_a_row:
+                    first_head_tail_in_a_row = part
+            else:
+                first_head_tail_in_a_row = None
+                head_tail_keep_order = True
+
+            # Define default sort order, if not already defined
+            # A sort order is required to always return the result in a deterministic way to the user.
+            # Deterministic order is required for head/tail to work
+            parts = [pt if pt.sort else replace(pt, sort=DefaultSort) for pt in query.parts]
+            query = replace(query, parts=parts)
+
+        # If the last part is a navigation, we need to add sort which will ingest a new part.
+        with_sort = query.set_sort(DefaultSort) if query.current_part.navigation else query
+        # When all parts are combined, interpret the result on defined section.
+        final_query = with_sort.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)
         query_string = str(final_query)
         execute_search = self.command("execute_search", options + query_string, ctx)

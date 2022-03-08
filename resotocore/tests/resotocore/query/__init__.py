@@ -32,6 +32,7 @@ from resotocore.query.model import (
     AggregateVariableCombined,
     AggregateVariable,
     AggregateFunction,
+    Limit,
 )
 
 
@@ -49,6 +50,7 @@ preamble_props = lists(preamble_prop, min_size=0, max_size=1).map(dict)  # type:
 is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))
 predicate_term = builds(Predicate, query_property, query_operations, query_values, just({}))
 leaf_term: SearchStrategy[Term] = is_term | predicate_term
+limit_gen = builds(Limit, integers(min_value=0), integers(min_value=1))
 
 
 @composite
@@ -98,13 +100,11 @@ part = builds(
     optional(any_string),
     with_clause(),
     lists(sort, min_size=0, max_size=3),
-    optional(integers(min_value=1)),
+    optional(limit_gen),
     navigation(),
 )
 
-only_filter_part = builds(
-    Part, term, just(None), just(None), lists(sort, min_size=0, max_size=1), optional(integers(min_value=1))
-)
+only_filter_part = builds(Part, term, just(None), just(None), lists(sort, min_size=0, max_size=1), optional(limit_gen))
 
 
 @composite
