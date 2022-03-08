@@ -55,3 +55,9 @@ def snapshot_id(value: int) -> str:
 
 def loadbalancer_id(value: int) -> str:
     return f"do:loadbalancer:{value}"
+
+def floatingip_id(value: str) -> str:
+    return f"do:floatingip:{value}"
+
+def database_id(value: str) -> str:
+    return f"do:dbaas:{value}"

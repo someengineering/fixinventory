@@ -33,7 +33,9 @@ from .utils import (
     volume_id,
     vpc_id,
     snapshot_id,
-    loadbalancer_id
+    loadbalancer_id,
+    floatingip_id,
+    database_id,
 )
 
 
@@ -427,6 +429,7 @@ class DigitalOceanTeamCollector:
             databases,
             resource_class=DigitalOceanDatabase,
             attr_map={
+                "id": lambda r: database_id(r["id"]),
                 "db_type": "engine",
                 "db_status": "status",
                 "db_version": "version",
@@ -575,7 +578,10 @@ class DigitalOceanTeamCollector:
             floating_ips,
             resource_class=DigitalOceanFloatingIP,
             attr_map={
+                "id": lambda ip: floatingip_id(ip["ip"]),
                 "ip_address": "ip",
+                "ip_address_family": lambda ip: "ipv4",
+                "locked": "locked",
             },
             search_map={
                 "_region": ["id", lambda ip: region_id(ip['region']['slug'])],

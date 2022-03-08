@@ -230,6 +230,8 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
 
+    locked: bool = field(default=False)
+
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
