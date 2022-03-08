@@ -90,11 +90,11 @@ class KubernetesResource:
                                     values = value
                                     for value in values:
                                         resource.add_deferred_connection(
-                                            attr, value, is_parent
+                                            {attr: value}, is_parent
                                         )
                                 elif isinstance(value, str):
                                     resource.add_deferred_connection(
-                                        attr, value, is_parent
+                                        {attr: value}, is_parent
                                     )
                                 else:
                                     log.error(

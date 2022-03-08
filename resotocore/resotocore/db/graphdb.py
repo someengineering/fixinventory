@@ -8,13 +8,15 @@ from functools import partial
 from numbers import Number
 from typing import Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, cast
 
+from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
 from arango.typings import Json
 from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
-from resotocore.db import arango_query, EstimatedQueryCost
+from resotocore.db import arango_query, EstimatedSearchCost
+from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import (
     AsyncArangoDB,
     AsyncArangoTransactionDB,
@@ -74,10 +76,6 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def search(self, model: Model, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        yield {}  # only here for mypy type check (detects coroutine otherwise)
-
-    @abstractmethod
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
@@ -96,27 +94,27 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         pass
 
     @abstractmethod
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         pass
 
     @abstractmethod
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         pass
 
     @abstractmethod
@@ -147,15 +145,6 @@ class ArangoGraphDB(GraphDB):
 
     def edge_collection(self, edge_type: str) -> str:
         return f"{self.name}_{edge_type}"
-
-    async def search(  # noqa: E501 pylint: disable=invalid-overridden-method
-        self, model: Model, tokens: str, limit: int
-    ) -> AsyncGenerator[Json, None]:
-        bind = {"tokens": tokens, "limit": limit}
-        trafo = self.document_to_instance_fn(model)
-        with await self.db.aql(query=self.query_search_token(), bind_vars=bind) as cursor:
-            for element in cursor:
-                yield trafo(element)
 
     async def get_node(self, model: Model, node_id: str) -> Optional[Json]:
         node = await self.by_id(node_id)
@@ -218,7 +207,7 @@ class ArangoGraphDB(GraphDB):
 
         # call adjuster on resulting node
         ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
-        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, recompute=True), ctime)
+        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime)
         update = {
             "_key": node["_key"],
             "hash": adjusted["hash"],
@@ -336,7 +325,7 @@ class ArangoGraphDB(GraphDB):
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
 
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
@@ -350,7 +339,7 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
@@ -364,8 +353,8 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
-        async with await self.query_graph_gen(query) as cursor:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
+        async with await self.search_graph_gen(query) as cursor:
             graph = MultiDiGraph()
             async for item in cursor:
                 if "from" in item and "to" in item and "edge_type" in item:
@@ -375,12 +364,12 @@ class ArangoGraphDB(GraphDB):
                     graph.add_node(item["id"], **item)
             return graph
 
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         q_string, bind = await self.to_query(query)
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(query=q_string, bind_vars=bind)
 
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         return await arango_query.query_cost(self, query, with_edges)
 
     async def wipe(self) -> None:
@@ -844,6 +833,11 @@ class ArangoGraphDB(GraphDB):
                 # add edge definition to the graph
                 gdb.create_edge_definition(edge_name, [vertex_name], [vertex_name])
 
+        # The view index was created using a default analyzer
+        # This method can be removed before 2.0 is released.
+        def delete_wrong_index_view() -> None:
+            db.db.delete_view(f"search_{self.vertex_name}", ignore_missing=True)
+
         async def create_update_graph(
             graph_name: str, vertex_name: str, edge_name: str
         ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
@@ -898,15 +892,35 @@ class ArangoGraphDB(GraphDB):
         async def create_update_views(nodes: VertexCollection) -> None:
             name = f"search_{nodes.name}"
             prop = "flat"  # only the flat property is indexes
+
+            # make sure the delimited analyzer exists
+            try:
+                db.db.analyzer("delimited")
+            except AnalyzerGetError:
+                delete_wrong_index_view()
+                db.db.create_analyzer(
+                    "delimited",
+                    "pipeline",
+                    {
+                        "pipeline": [
+                            # lower case (leaving accents as is)
+                            {"type": "norm", "properties": {"locale": "en_US.utf-8", "accent": True, "case": "lower"}},
+                            # split the input
+                            *[{"type": "delimiter", "properties": {"delimiter": a}} for a in fulltext_delimiter],
+                            # remove empty strings
+                            {"type": "stopwords", "properties": {"stopwords": [""], "hex": False}},
+                        ]
+                    },
+                    ["frequency", "norm", "position"],
+                )
+
             views = {view["name"]: view for view in await db.views()}
             if name not in views:
                 await db.create_view(
                     name,
                     "arangosearch",
                     {
-                        "links": {
-                            nodes.name: {"analyzers": ["identity"], "fields": {prop: {"analyzers": ["text_en"]}}}
-                        },
+                        "links": {nodes.name: {"fields": {prop: {"analyzers": ["delimited"]}}}},
                         "primarySort": [{"field": prop, "direction": "desc"}],
                         "inBackground": True,  # note: this setting only applies when the view is created
                     },
@@ -931,15 +945,6 @@ class ArangoGraphDB(GraphDB):
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{from_node}:{to_node}"))
-
-    def query_search_token(self) -> str:
-        return f"""
-        FOR doc IN search_{self.vertex_name}
-        SEARCH ANALYZER(doc.flat IN TOKENS(@tokens, 'text_en'), 'text_en')
-        SORT BM25(doc) DESC
-        LIMIT @limit
-        RETURN doc
-        """
 
     # parameter: rid
     # return: the complete document
@@ -1085,9 +1090,6 @@ class EventGraphDB(GraphDB):
         async for a in result:
             yield a
 
-    def search(self, model: Model, tokens: str, limit: int) -> AsyncGenerator[Json, None]:
-        return self.real.search(model, tokens, limit)
-
     async def merge_graph(
         self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
     ) -> Tuple[List[str], GraphUpdate]:
@@ -1133,31 +1135,31 @@ class EventGraphDB(GraphDB):
         await self.real.abort_update(batch_id)
         await self.event_sender.core_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
 
-    async def query_list(
+    async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_list(query, with_count, timeout, **kwargs)
+        return await self.real.search_list(query, with_count, timeout, **kwargs)
 
-    async def query_graph_gen(
+    async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_graph_gen(query, with_count, timeout)
+        return await self.real.search_graph_gen(query, with_count, timeout)
 
-    async def query_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_aggregation(query)
+        return await self.real.search_aggregation(query)
 
-    async def query_graph(self, query: QueryModel) -> MultiDiGraph:
+    async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.Query, context, **counters)
-        return await self.real.query_graph(query)
+        return await self.real.search_graph(query)
 
-    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedQueryCost:
+    async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         return await self.real.explain(query)
 
     async def wipe(self) -> None:

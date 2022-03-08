@@ -19,13 +19,13 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
-from resotocore.console_renderer import ConsoleRenderer
+from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.message_bus import MessageBus
 from resotocore.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander
-from resotocore.task.job_handler import JobHandler
+from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -74,6 +74,13 @@ class CLIContext:
             return str(element)
         else:
             return element
+
+    def supports_color(self) -> bool:
+        return (
+            self.console_renderer is not None
+            and self.console_renderer.color_system is not None
+            and self.console_renderer.color_system != ConsoleColorSystem.monochrome
+        )
 
     def formatter(self, format_string: str) -> Callable[[Json], str]:
         return self.formatter_with_variables(format_string, False)[0]
@@ -151,8 +158,8 @@ class CLIDependencies:
         return self.lookup["model_handler"]  # type:ignore
 
     @property
-    def job_handler(self) -> JobHandler:
-        return self.lookup["job_handler"]  # type:ignore
+    def task_handler(self) -> TaskHandler:
+        return self.lookup["task_handler"]  # type:ignore
 
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:

@@ -7,8 +7,8 @@ info:
     version: V1
     title: resotocore REST API
 tags:
-    -   name: graph_query
-        description: Endpoints to query all sections of the graph.
+    -   name: graph_search
+        description: Endpoints to search all sections of the graph.
     -   name: graph_management
         description: Create, update wipe or delete a complete graph.
     -   name: node_management
@@ -608,13 +608,13 @@ paths:
                                 $ref: "#/components/schemas/Node"
     # endregion
 
-    # region query graph
-    /graph/{graph_id}/query/raw:
+    # region search graph
+    /graph/{graph_id}/search/raw:
         post:
-            summary: "Transform the query into the raw database query"
+            summary: "Transform the search into the raw database search"
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
-                Show the underlying raw query.
+                Show the underlying raw search.
             tags:
                 - debug
             parameters:
@@ -636,7 +636,7 @@ paths:
                             - desired
                             - metadata
             requestBody:
-                description: "The query to perform"
+                description: "The search to perform"
                 content:
                     text/plain:
                         schema:
@@ -644,20 +644,20 @@ paths:
                             example: is(graph_root) and reported.name=="root" -->
             responses:
                 "200":
-                    description: "Returns the query as performed by the database."
+                    description: "Returns the search as performed by the database."
                     content:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/RawQuery"
-    /graph/{graph_id}/query/list:
+    /graph/{graph_id}/search/list:
         post:
-            summary: "Query the graph and return all nodes as list (this will not contain any edges)"
+            summary: "Search the graph and return all nodes as list (this will not contain any edges)"
             description: |
-                Query the graph and return the matching nodes as list.
+                Search the graph and return the matching nodes as list.
                 A section can be defined (defaults to `/` == root) to interpret relative property paths.
                 Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
-                - graph_query
+                - graph_search
             parameters:
                 -   name: graph_id
                     in: path
@@ -684,7 +684,7 @@ paths:
                         type: boolean
                         default: true
             requestBody:
-                description: "The query to perform"
+                description: "The search to perform"
                 content:
                     text/plain:
                         schema:
@@ -692,7 +692,7 @@ paths:
                             example: is(graph_root) and reported.name=="root" -->
             responses:
                 "200":
-                    description: "The result of this query in the defined format"
+                    description: "The result of this search in the defined format"
                     content:
                         application/json:
                             schema:
@@ -851,16 +851,16 @@ paths:
                                   }
                                 }
 
-    /graph/{graph_id}/query/graph:
+    /graph/{graph_id}/search/graph:
         post:
-            summary: "Query the graph and return the resulting graph."
+            summary: "Search the graph and return the resulting graph."
             description: |
-                Query the graph and return the matching nodes including the traversed edges.
+                Search the graph and return the matching nodes including the traversed edges.
                 The resulting data can be interpreted as a graph.
                 A section can be defined (defaults to `/` == root) to interpret relative property paths.
                 Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
-                - graph_query
+                - graph_search
             parameters:
                 -   name: graph_id
                     in: path
@@ -886,15 +886,15 @@ paths:
                     schema:
                         type: boolean
                         default: true
-                -   name: query_timeout
+                -   name: search_timeout
                     in: query
-                    description: "Optional duration the query is allowed to run."
+                    description: "Optional duration the search is allowed to run."
                     required: false
                     schema:
                         type: string
                         example: "30s"
             requestBody:
-                description: "The query to perform"
+                description: "The search to perform"
                 content:
                     text/plain:
                         schema:
@@ -902,7 +902,7 @@ paths:
                             example: is(graph_root) and reported.name=="root" -->
             responses:
                 "200":
-                    description: "The result of this query in the defined format"
+                    description: "The result of this search in the defined format"
                     content:
                         application/json:
                             schema:
@@ -1061,15 +1061,15 @@ paths:
                                   }
                                 }
 
-    /graph/{graph_id}/query/aggregate:
+    /graph/{graph_id}/search/aggregate:
         post:
-            summary: "Query the aggregate function on the specified graph and return the aggregation result."
+            summary: "Search the aggregate function on the specified graph and return the aggregation result."
             description: |
-                Query and aggregate the graph and return the resulting aggregated data.
+                Search and aggregate the graph and return the resulting aggregated data.
                 A section can be defined (defaults to `/` == root) to interpret relative property paths.
                 Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
             tags:
-                - graph_query
+                - graph_search
             parameters:
                 -   name: graph_id
                     in: path
@@ -1089,7 +1089,7 @@ paths:
                             - desired
                             - metadata
             requestBody:
-                description: "The aggregation query to perform"
+                description: "The aggregation search to perform"
                 content:
                     text/plain:
                         schema:
@@ -1098,7 +1098,7 @@ paths:
                                 aggregate(reported.kind: sum(1) as nodes): is(node)
             responses:
                 "200":
-                    description: "The result of this query in the defined format"
+                    description: "The result of this search in the defined format"
                     content:
                         application/json:
                             schema:
@@ -1106,16 +1106,16 @@ paths:
                         application/x-ndjson:
                             schema:
                                 $ref: "#/components/schemas/Aggregated"
-    /graph/{graph_id}/query/explain:
+    /graph/{graph_id}/search/explain:
         post:
-            summary: "Explain the query execution plan"
+            summary: "Explain the search execution plan"
             description: |
-                Explain the runtime characteristics of a query without performing the query.
+                Explain the runtime characteristics of a search without performing the search.
                 A section can be defined (defaults to `/` == root) to interpret relative property paths.
                 Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
 
             tags:
-                - graph_query
+                - graph_search
             parameters:
                 -   name: graph_id
                     in: path
@@ -1135,7 +1135,7 @@ paths:
                             - desired
                             - metadata
             requestBody:
-                description: "The query to perform"
+                description: "The search to perform"
                 content:
                     text/plain:
                         schema:
@@ -1147,51 +1147,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/EstimatedQueryCost"
-    /graph/{graph_id}/search:
-        get:
-            summary: "Search the graph"
-            description: |
-                **Experimental**: This API is not stable and might be subject of change.<br/>
-                Search the graph.
-            tags:
-                - graph_query
-            parameters:
-                -   name: graph_id
-                    in: path
-                    description: "The identifier of the graph"
-                    example: resoto
-                    required: true
-                    schema:
-                        type: string
-                -   name: section
-                    in: query
-                    description: "The name of the section used for all property paths. If not defined root is assumed."
-                    required: false
-                    schema:
-                        type: string
-                        enum:
-                            - reported
-                            - desired
-                            - metadata
-                -   name: term
-                    in: query
-                    description: "The term to search for"
-                    required: true
-                    schema:
-                        type: string
-            responses:
-                "200":
-                    description: "All matching documents"
-                    content:
-                        application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Node"
-                        application/x-ndjson:
-                            schema:
-                                $ref: "#/components/schemas/Node"
+                                $ref: "#/components/schemas/EstimatedSearchCost"
     # endregion
 
     # region events
@@ -1688,7 +1644,7 @@ paths:
                 When this method returns a 200 OK, the command can be parsed and evaluated.
             parameters:
                 -   name: env
-                    description: "All query parameter form the environment passed to the CLI interpreter."
+                    description: "All search parameter form the environment passed to the CLI interpreter."
                     in: query
                     schema:
                         type: object
@@ -1731,7 +1687,7 @@ paths:
                 Request and execution are synchronized: the request is done, when the command is done.
             parameters:
                 -   name: env
-                    description: "All query parameter form the environment passed to the CLI interpreter."
+                    description: "All search parameter form the environment passed to the CLI interpreter."
                     in: query
                     schema:
                         type: object
@@ -2310,18 +2266,18 @@ components:
                     description: "All binding variables for this query"
                     additionalProperties: true
 
-        EstimatedQueryCost:
+        EstimatedSearchCost:
             type: object
-            description: "The estimated cost of a query"
+            description: "The estimated cost of a search"
             properties:
                 estimated_cost:
                     type: integer
-                    description: Absolute number that shows the cost of this query. See rating for an interpreted number.
+                    description: Absolute number that shows the cost of this search. See rating for an interpreted number.
                 estimated_nr_items:
                     type: integer
                     description: |
-                        This is the estimated number of items returned for this query.
-                        Please note: it is computed based on query statistics and heuristics and does not reflect the real number.
+                        This is the estimated number of items returned for this search.
+                        Please note: it is computed based on search statistics and heuristics and does not reflect the real number.
                 available_nr_items:
                     type: integer
                     description: This is the number of available nodes in the graph.
@@ -2329,14 +2285,14 @@ components:
                     type: boolean
                     description: |
                         Indicates, if a full collection scan is required.
-                        This means, that the query does not take advantage of any indexes!
+                        This means, that the search does not take advantage of any indexes!
                 rating:
                     type: string
                     description: |
-                        The rating of this query.
-                        A simple query is usually fine.
-                        A complex query might be acceptable in certain cases. Maybe an index can be used to make this query simple?
-                        A bad query is usually something where an index is missing or the query has to be rewritten.
+                        The rating of this search.
+                        A simple search is usually fine.
+                        A complex search might be acceptable in certain cases. Maybe an index can be used to make this search simple?
+                        A bad search is usually something where an index is missing or the search has to be rewritten.
                     enum:
                         - simple
                         - complex

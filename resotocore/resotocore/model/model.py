@@ -57,7 +57,9 @@ def validate_fn(*fns: Optional[ValidationFn]) -> ValidationFn:
     return check_defined if defined else always_valid
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class SyntheticProperty:
+    path: List[str]
     """
     A synthetic property does not exist in the underlying data model.
     It is defined by a function on an existing other property.
@@ -65,31 +67,17 @@ class SyntheticProperty:
              the function is age=now-ctime.
     """
 
-    def __init__(self, path: List[str]):
-        self.path = path
 
-    def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, SyntheticProperty) else False
-
-
+@dataclass(order=True, unsafe_hash=True, frozen=True)
 class Property:
-    def __init__(
-        self,
-        name: str,
-        kind: str,
-        required: bool = False,
-        synthetic: Optional[SyntheticProperty] = None,
-        description: Optional[str] = None,
-    ):
-        self.name = name
-        self.kind = kind
-        self.required = required
-        self.synthetic = synthetic
-        self.description = description
-        assert synthetic is None or not required, "Synthetic properties can not be required!"
+    name: str
+    kind: str
+    required: bool = False
+    synthetic: Optional[SyntheticProperty] = None
+    description: Optional[str] = None
 
-    def __eq__(self, other: Any) -> bool:
-        return self.__dict__ == other.__dict__ if isinstance(other, Property) else False
+    def __post_init__(self) -> None:
+        assert self.synthetic is None or not self.required, "Synthetic properties can not be required!"
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
@@ -238,7 +226,7 @@ class Kind(ABC):
             else:
                 raise TypeError(f"Unhandled runtime kind: {rk}")
         elif js.get("fqn") == "any" and js.get("runtime_kind") == "any":
-            return AnyKind.any()
+            return AnyKind()
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
             bases: Optional[List[str]] = js.get("bases")
@@ -290,19 +278,18 @@ class SimpleKind(Kind, ABC):
 
 
 class AnyKind(SimpleKind):
-    def __init__(self, fqn: str):
-        super().__init__(fqn, "any")
+    def __init__(self) -> None:
+        super().__init__("any", "any")
+
+    def __new__(cls) -> AnyKind:
+        if cls.__singleton is None:
+            cls.__singleton = super(AnyKind, cls).__new__(cls)
+        return cls.__singleton
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         return None
 
     __singleton: Optional[AnyKind] = None
-
-    @classmethod
-    def any(cls) -> AnyKind:
-        if not cls.__singleton:
-            cls.__singleton = cls("any")
-        return cls.__singleton
 
 
 class StringKind(SimpleKind):
@@ -715,6 +702,13 @@ class ComplexKind(Kind):
     def __getitem__(self, name: str) -> Property:
         return self.__prop_by_name[name]
 
+    def property_kind_of(self, name: str, or_else: Kind) -> Kind:
+        maybe = self.__resolved_kinds.get(name)
+        return maybe[1] if maybe else or_else
+
+    def property_with_kind_of(self, name: str) -> Optional[Tuple[Property, Kind]]:
+        return self.__resolved_kinds.get(name)
+
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
@@ -771,6 +765,50 @@ class ComplexKind(Kind):
         else:
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
+    def create_yaml(self, elem: JsonElement) -> str:
+        def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
+            if isinstance(e, dict):
+                result = "\n" if cr_on_object else ""
+                prepend = "  " * indent
+                for prop, value in e.items():
+                    description = None
+                    sub: Kind = AnyKind()
+                    if isinstance(kind, ComplexKind):
+                        maybe_prop = kind.property_with_kind_of(prop)
+                        if maybe_prop:
+                            description = maybe_prop[0].description
+                            sub = maybe_prop[1]
+                    elif isinstance(kind, DictionaryKind):
+                        sub = kind.value_kind
+                    str_value = walk_element(value, sub, indent + 1)
+                    if description:
+                        for line in description.splitlines():
+                            result += f"{prepend}# {line}\n"
+                    result += f"{prepend}{prop}: {str_value}\n"
+                return result.rstrip()
+            elif isinstance(e, list) and e:
+                prepend = "  " * indent + "-"
+                sub = kind.inner if isinstance(kind, ArrayKind) else kind
+                result = "\n"
+                for item in e:
+                    item_str = walk_element(item, sub, indent + 1, False).lstrip()
+                    result += f"{prepend} {item_str}\n"
+                return result.rstrip()
+            elif isinstance(e, list):
+                return "[]"
+            elif isinstance(e, str):
+                return f'"{e}"'
+            elif e is None:
+                return "null"
+            elif e is True:
+                return "true"
+            elif e is False:
+                return "false"
+            else:
+                return str(e)
+
+        return walk_element(elem, self, 0)
+
     @staticmethod
     def resolve_properties(complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
         def path_for(
@@ -802,7 +840,7 @@ predefined_kinds = [
     NumberKind("int64", "int64"),
     NumberKind("float", "float"),
     NumberKind("double", "double"),
-    AnyKind.any(),
+    AnyKind(),
     BooleanKind("boolean"),
     DateKind("date"),
     DateTimeKind("datetime"),
@@ -886,7 +924,7 @@ class Model:
         path = PropertyPath.from_path(path_)
         found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
         # if the path is not known according to known model: it could be anything.
-        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind.any())
+        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
 
     def kind_by_path(self, path_: str) -> SimpleKind:
         return self.property_by_path(path_).kind

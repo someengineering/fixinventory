@@ -10,7 +10,7 @@ from pytest import fixture
 from typing import Optional
 
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeType, EdgeKey
-from resotocore.model.model import Model
+from resotocore.model.model import Model, AnyKind
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json
 from resotocore.util import AccessJson, AccessNone
@@ -57,7 +57,7 @@ def test_access_node() -> None:
     g.add_node("1", reported=to_json(FooTuple(a="1")))
     access: GraphAccess = GraphAccess(g)
     elem: Json = node(access, "1")  # type: ignore
-    assert elem["hash"] == "633781544ff25ffc337030eb710e8c4c600df76f50106d869becc977e43239b7"
+    assert elem["hash"] == "153c1a5c002f6213a95383f33b63aa18b8ed6939f57418fb0f27312576f0cea4"
     assert elem["reported"] == {
         "a": "1",
         "b": 0,
@@ -102,8 +102,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node("3")
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0]["hash"] == "9fdf6b3b3eafb912e3b4346bcf7554d221afe2e5089da7d11290bbd9684f7e19"
-    assert not_visited[1]["hash"] == "c97ac546c7ec22c2fea26ffd5c373181b42a3cc449382cae55bb175e3f5c15c1"
+    assert not_visited[0]["hash"] == "0546994698f57ed4a7a4463b0353397ebe4acc7196b9e9ca1dd7bc0b72245be6"
+    assert not_visited[1]["hash"] == "0fead7dd5aff45049878e4c1b108b78c5fab594ac503eaba2199b71725241fce"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
@@ -126,7 +126,7 @@ def test_metadata(graph_access: GraphAccess) -> None:
 
 def test_flatten() -> None:
     js = {"id": "blub", "d": "2021-06-18T10:31:34Z", "i": 0, "s": "hello", "a": [{"a": "one"}, {"b": "two"}], "c": True}
-    flat = GraphBuilder.flatten(js)
+    flat = GraphBuilder.flatten(js, AnyKind())
     assert flat == "blub 2021-06-18T10:31:34Z 0 hello one two"
 
 

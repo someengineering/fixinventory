@@ -14,8 +14,8 @@ from aiohttp.pytest_plugin import aiohttp_client
 
 
 @pytest.fixture
-def loop() -> Any:
-    return asyncio.get_event_loop()
+async def loop() -> Any:
+    return asyncio.get_running_loop()
 
 
 @pytest.fixture

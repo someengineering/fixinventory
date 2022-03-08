@@ -12,6 +12,11 @@ from resotocore.query.model import (
     Navigation,
     MergeTerm,
     NavigateUntilRoot,
+    IdTerm,
+    FulltextTerm,
+    Predicate,
+    NotTerm,
+    FunctionTerm,
 )
 from resotocore.query.query_parser import parse_query
 
@@ -137,6 +142,16 @@ def test_rewrite_ancestors_descendants() -> None:
         str(parse_query('a<1 and ancestors.cloud.reported.name=="test"').on_section())
         == '(a < 1 and ancestors.cloud.reported.name == "test")'
     )
+    # the merge name is interpreted relative to the section
+    assert (
+        str(parse_query("a<1 {test: <-[1:]- is(account)}").on_section("reported"))
+        == 'reported.a < 1 {reported.test: all <-default[1:]- is("account")}'
+    )
+    # the merge name is not interpreted relative to the section, when defined absolute
+    assert (
+        str(parse_query("a<1 {/test: <-[1:]- is(account)}").on_section("reported"))
+        == 'reported.a < 1 {test: all <-default[1:]- is("account")}'
+    )
     # a query with unknown ancestor creates a merge query
     assert (
         str(parse_query('a<1 and ancestors.cloud.reported.kind=="cloud"').on_section())
@@ -232,3 +247,13 @@ def test_merge_query_creation() -> None:
         )
         == 'is("test") {ancestors.kind: all <-default[1:]- is("kind"), ancestors.cloud: all <-default[1:]- is("cloud")}'
     )
+
+
+def test_term_contains() -> None:
+    term = parse_query('("test" or "fest") and (p>1 or p<2) {a: <-- is(foo)} not(a>23)').parts[0].term
+    assert term.contains_term_type(IdTerm) is False
+    assert term.contains_term_type(IsTerm) is True
+    assert term.contains_term_type(FulltextTerm) is True
+    assert term.contains_term_type(Predicate) is True
+    assert term.contains_term_type(NotTerm) is True
+    assert term.contains_term_type(FunctionTerm) is False
