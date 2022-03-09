@@ -3419,11 +3419,11 @@ class ConfigsCommand(CLICommand):
     resoto.worker.1
     resoto.worker.2
     resoto.metrics
-    ```
 
     # Delete the config with name
     > config delete config_test
     Config config_test has been deleted.
+    ```
     """
 
     @property
