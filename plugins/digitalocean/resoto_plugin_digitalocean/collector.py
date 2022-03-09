@@ -393,6 +393,13 @@ class DigitalOceanTeamCollector:
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
+        def extract_volume_status(volume):
+            in_use = len(volume.get("droplet_ids", []) or []) > 0
+            if in_use:
+                return "in-use"
+            else:
+                return "available"
+
         self.collect_resource(
             volumes,
             resource_class=DigitalOceanVolume,
@@ -401,7 +408,8 @@ class DigitalOceanTeamCollector:
                 "volume_size": "size_gigabytes",
                 "description": "description",
                 "filesystem_type": "filesystem_type",
-                "filesystam_label": "filesystam_label",
+                "filesystem_label": "filesystem_label",
+                "volume_status": extract_volume_status,
             },
             search_map={
                 "__users": [
