@@ -18,20 +18,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
-from typing import (
-    Dict,
-    List,
-    Tuple,
-    Optional,
-    Any,
-    AsyncIterator,
-    Hashable,
-    Iterable,
-    Callable,
-    Awaitable,
-    cast,
-    Set,
-)
+from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
@@ -2346,11 +2333,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         async def running_jobs() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
-                {
-                    "job": t.descriptor.id,
-                    "started_at": to_json(t.task_started_at),
-                    "task-id": t.id,
-                }
+                {"job": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
                 for t in tasks
                 if isinstance(t.descriptor, Job)
             )
@@ -3345,11 +3328,7 @@ class WorkflowsCommand(CLICommand):
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
-                {
-                    "workflow": t.descriptor.id,
-                    "started_at": to_json(t.task_started_at),
-                    "task-id": t.id,
-                }
+                {"workflow": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
                 for t in tasks
                 if isinstance(t.descriptor, Workflow)
             )
@@ -3495,11 +3474,12 @@ class ConfigsCommand(CLICommand):
             # A config with given id is changed by the content of uploaded file "config"
             try:
                 content = ""
-                async with aiofiles.open(ctx.uploaded_files["config"], "r") as f:
+                async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
                     content = await f.read()
                     updated = yaml.safe_load(content)
                 await self.dependencies.config_handler.put_config(cfg_id, updated)
             except Exception as ex:
+                log.debug(f"Could not update the config: {ex}.", exc_info=ex)
                 # Yaml file: add the error as comment on top
                 error = "\n".join(f"# {line}" for line in str(ex).splitlines())
                 message = f"# Update the config failed with this error message:\n# Please correct.\n\n{error}\n\n"
@@ -3519,24 +3499,19 @@ class ConfigsCommand(CLICommand):
             update = path_values_parser.parse(args[2])
             return CLISource.single(partial(set_config, args[1], update))
         elif arg and len(args) == 2 and args[0] == "edit":
+            config_id = args[1]
             return CLISource.single(
-                partial(edit_config, args[1]),
+                partial(edit_config, config_id),
                 produces=MediaType.FilePath,
-                envelope={
-                    "Resoto-Shell-Action": "edit",
-                    "Resoto-Shell-Command": "configs update",
-                },
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
             )
         elif arg and len(args) == 3 and args[0] == "update":
             config_id = args[1]
             return CLISource.single(
                 partial(update_config, config_id),
                 produces=MediaType.FilePath,
-                envelope={
-                    "Resoto-Shell-Action": "edit",
-                    "Resoto-Shell-Command": f"configs update {config_id}",
-                },
-                requires=[CLIFileRequirement("config", args[2])],
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
+                requires=[CLIFileRequirement("config.yaml", args[2])],
             )
         elif arg and len(args) == 1 and args[0] == "list":
             return CLISource(list_configs)
