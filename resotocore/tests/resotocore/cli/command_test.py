@@ -689,7 +689,7 @@ async def test_configs_command(cli: CLI, tmp_directory: str) -> None:
     update_doc = "a: '1'\nb: 2\nc: true\nd: null\n"
     with open(config_file, "w") as file:
         file.write(update_doc)
-    ctx = CLIContext(uploaded_files={"config": config_file})
+    ctx = CLIContext(uploaded_files={"config.yaml": config_file})
     update_result = await cli.execute_cli_command(f"configs update test_config {config_file}", stream.list, ctx)
     assert update_result == [[]]
     # show the entry - should be the same as the created one
