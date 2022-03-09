@@ -920,6 +920,16 @@ class Model:
     def complex_kinds(self) -> List[ComplexKind]:
         return [k for k in self.kinds.values() if isinstance(k, ComplexKind)]
 
+    @property
+    def complex_roots(self) -> List[ComplexKind]:
+        complexes = self.complex_kinds
+        property_kinds = {prop.kind for c in complexes for prop in c.all_props}
+        base_kinds = {base for c in complexes for base in c.bases}
+        predefined = {pre.fqn for pre in predefined_kinds}
+        return [
+            c for c in complexes if c.fqn not in property_kinds and c.fqn not in predefined and c.fqn not in base_kinds
+        ]
+
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
         found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)

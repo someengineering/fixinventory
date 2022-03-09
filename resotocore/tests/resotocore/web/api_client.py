@@ -4,7 +4,6 @@ from aiohttp import ClientSession
 from networkx import MultiDiGraph
 
 from resotocore.cli.model import ParsedCommands, ParsedCommand
-from resotocore.config import ConfigEntity
 from resotocore.db import EstimatedSearchCost
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model, Kind
@@ -261,10 +260,10 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
-    async def configs(self) -> List[ConfigEntity]:
+    async def configs(self) -> List[str]:
         async with self.session.get(self.base_path + f"/configs") as r:
             if r.status == 200:
-                return [ConfigEntity(cid, config) for cid, config in (await r.json()).items()]
+                return AccessJson.wrap_list(await r.json())  # type: ignore
             else:
                 raise AttributeError(await r.text())
 

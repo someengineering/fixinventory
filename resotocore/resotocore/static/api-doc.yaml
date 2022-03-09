@@ -17,6 +17,8 @@ tags:
         description: Endpoints to maintain the schema and model of the entities inside a graph.
     -   name: config
         description: Endpoints to maintain configuration data.
+    -   name: config_model
+        description: Endpoints to maintain the model of configuration data.
     -   name: cli
         description: Endpoints to evaluate and execute cli commands.
     -   name: subscriptions
@@ -1517,21 +1519,39 @@ paths:
 
     # region config
     /configs:
-
         get:
-            summary: "Get all configuration data"
+            summary: "Get all configuration keys"
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
-                Get all configuration data in the system.
+                Get all configuration keys in the system.
             tags:
                 - config
             responses:
                 "200":
-                    description: All configuration objects by key.
+                    description: All configuration keys.
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Config"
+                                type: array
+                                items:
+                                    type: string
+    /configs/model:
+        get:
+            summary: "Get all configuration keys that have a model defined."
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Get all configuration keys that have a model defined.
+            tags:
+                - config_model
+            responses:
+                "200":
+                    description: All configuration keys that have a model.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: string
 
     /config/{config_id}:
         get:
@@ -1633,6 +1653,60 @@ paths:
                 "204":
                     description: Signals success of this operation.
 
+    /config/{config_id}/model:
+        get:
+            summary: "Get a configuration by its id"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Fetch the model of a configuration by id.
+            tags:
+                - config_model
+            parameters:
+                -   name: config_id
+                    required: true
+                    in: path
+                    description: the identifier of the config.
+                    schema:
+                        type: string
+            responses:
+                "200":
+                    description: The configuration model.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+                        application/yaml:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+                "404":
+                    description: No configuration model for this key.
+
+        put:
+            summary: "Replace a configuration model with given id"
+            description: |
+                **Experimental**: This API is not stable and might be subject of change.<br/>
+                Replace a configuration model identified by id with provided value.
+            tags:
+                - config_model
+            parameters:
+                -   name: config_id
+                    required: true
+                    in: path
+                    description: the identifier of the config to get.
+                    schema:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Kind"
+            responses:
+                "200":
+                    description: The configuration model.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
     # endregion
 
     # region cli
@@ -2102,7 +2176,7 @@ components:
                           },
                           {
                               "name": "tags",
-                              "kind": "dictionary",
+                              "kind": "dictionary[string, string]",
                               "description": "Tags that describe the resource.",
                               "required": false
                           }
@@ -2110,6 +2184,7 @@ components:
                   },
                   {
                       "fqn": "test.person",
+                      "bases": ["test.base"],
                       "properties": [
                           {
                               "name": "fortune",

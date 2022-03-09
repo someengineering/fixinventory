@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable
 
 import yaml
-from aiohttp.web import Request
+from aiohttp.web import StreamResponse, Request, Response, json_response
 from networkx import DiGraph, cytoscape_data, generate_graphml
 
 from resotocore.cli import is_node
@@ -25,7 +25,7 @@ from resotocore.util import (
 log = logging.getLogger(__name__)
 
 
-async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_json(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     sep = ","
     yield "["
     first = True
@@ -38,13 +38,13 @@ async def respond_json(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     yield "]"
 
 
-async def respond_ndjson(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_ndjson(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     async for item in gen:
         js = json.dumps(to_json(item), check_circular=False)
         yield js
 
 
-async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_yaml(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     flag = False
     sep = "---"
     async for item in gen:
@@ -55,7 +55,7 @@ async def respond_yaml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
         flag = True
 
 
-async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_dot(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     # We use the paired12 color scheme: https://graphviz.org/doc/info/colors.html with color names as 1-12
     cit = count_iterator()
     colors: Dict[str, int] = defaultdict(lambda: (next(cit) % 12) + 1)
@@ -64,22 +64,25 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     yield f"digraph {{\nrankdir=LR\noverlap=false\nsplines=true\n{node}\n{edge}"
     in_account: Dict[str, List[str]] = defaultdict(list)
     async for item in gen:
-        type_name = item.get("type")
-        if type_name == "node":
-            uid = value_in_path(item, NodePath.node_id)
-            if uid:
-                name = re.sub("[^a-zA-Z0-9]", "", value_in_path_get(item, NodePath.reported_name, "n/a"))
-                kind = value_in_path_get(item, NodePath.reported_kind, "n/a")
-                account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
-                paired12 = colors[kind]
-                in_account[account].append(uid)
-                yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];'
-        elif type_name == "edge":
-            from_node = value_in_path(item, NodePath.from_node)
-            to_node = value_in_path(item, NodePath.to_node)
-            edge_type = value_in_path(item, NodePath.edge_type)
-            if from_node and to_node:
-                yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]'
+        if isinstance(item, dict):
+            type_name = item.get("type")
+            if type_name == "node":
+                uid = value_in_path(item, NodePath.node_id)
+                if uid:
+                    name = re.sub("[^a-zA-Z0-9]", "", value_in_path_get(item, NodePath.reported_name, "n/a"))
+                    kind = value_in_path_get(item, NodePath.reported_kind, "n/a")
+                    account = value_in_path_get(item, NodePath.ancestor_account_name, "graph_root")
+                    paired12 = colors[kind]
+                    in_account[account].append(uid)
+                    yield f' "{uid}" [label="{name}|{kind}", style=filled fillcolor={paired12}];'
+            elif type_name == "edge":
+                from_node = value_in_path(item, NodePath.from_node)
+                to_node = value_in_path(item, NodePath.to_node)
+                edge_type = value_in_path(item, NodePath.edge_type)
+                if from_node and to_node:
+                    yield f' "{from_node}" -> "{to_node}" [label="{edge_type}"]'
+        else:
+            raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
     # All elements in the same account are rendered as dedicated subgraph
     for account, uids in in_account.items():
         yield f' subgraph "{account}" {{'
@@ -90,7 +93,7 @@ async def respond_dot(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
     yield "}"
 
 
-async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_text(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     def filter_attrs(js: Json) -> Json:
         result: Json = js
         for path in plain_text_blacklist:
@@ -127,24 +130,27 @@ async def respond_text(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
         )
 
 
-async def result_to_graph(gen: AsyncIterator[Json], render_node: Callable[[Json], Json] = identity) -> DiGraph:
+async def result_to_graph(gen: AsyncIterator[JsonElement], render_node: Callable[[Json], Json] = identity) -> DiGraph:
     result = DiGraph()
     async for item in gen:
-        type_name = item.get("type")
-        if type_name == "node":
-            uid = value_in_path(item, NodePath.node_id)
-            json_result = render_node(item)
-            if uid:
-                result.add_node(uid, **json_result)
-        elif type_name == "edge":
-            from_node = value_in_path(item, NodePath.from_node)
-            to_node = value_in_path(item, NodePath.to_node)
-            if from_node and to_node:
-                result.add_edge(from_node, to_node)
+        if isinstance(item, dict):
+            type_name = item.get("type")
+            if type_name == "node":
+                uid = value_in_path(item, NodePath.node_id)
+                json_result = render_node(item)
+                if uid:
+                    result.add_node(uid, **json_result)
+            elif type_name == "edge":
+                from_node = value_in_path(item, NodePath.from_node)
+                to_node = value_in_path(item, NodePath.to_node)
+                if from_node and to_node:
+                    result.add_edge(from_node, to_node)
+        else:
+            raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
     return result
 
 
-async def respond_cytoscape(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_cytoscape(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
     # on the server side, so we can reuse the networkx code.
     # This functionality can be reimplemented is a streaming way.
@@ -152,7 +158,7 @@ async def respond_cytoscape(gen: AsyncIterator[Json]) -> AsyncGenerator[str, Non
     yield json.dumps(cytoscape_data(graph))
 
 
-async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]:
+async def respond_graphml(gen: AsyncIterator[JsonElement]) -> AsyncGenerator[str, None]:
     # Note: this is a very inefficient way of creating a response, since it creates the graph in memory
     # on the server side, so we can reuse the networkx code.
     # This functionality can be reimplemented is a streaming way.
@@ -166,7 +172,7 @@ async def respond_graphml(gen: AsyncIterator[Json]) -> AsyncGenerator[str, None]
         yield line
 
 
-async def result_string_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[str]]:
+async def result_string_gen(request: Request, gen: AsyncIterator[JsonElement]) -> Tuple[str, AsyncIterator[str]]:
     accept = request.headers.get("accept", "application/json")
     if accept in ["application/x-ndjson", "application/ndjson"]:
         return "application/x-ndjson", respond_ndjson(gen)
@@ -186,7 +192,7 @@ async def result_string_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple
         return "application/json", respond_json(gen)
 
 
-async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple[str, AsyncIterator[bytes]]:
+async def result_binary_gen(request: Request, gen: AsyncIterator[JsonElement]) -> Tuple[str, AsyncIterator[bytes]]:
     content_type, str_gen = await result_string_gen(request, gen)
 
     async def encode_utf8() -> AsyncIterator[bytes]:
@@ -194,3 +200,14 @@ async def result_binary_gen(request: Request, gen: AsyncIterator[Json]) -> Tuple
             yield elem.encode("utf-8")
 
     return content_type, encode_utf8()
+
+
+async def single_result(request: Request, js: JsonElement) -> StreamResponse:
+    accept = request.headers.get("accept", "application/json")
+    if accept == "application/json":
+        return json_response(js)
+    elif accept in ["application/yaml", "text/yaml"]:
+        yml = yaml.dump(js)
+        return Response(text=yml, content_type="application/yaml")
+    else:
+        return json_response(js)

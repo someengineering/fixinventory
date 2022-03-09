@@ -17,6 +17,7 @@ from random import SystemRandom
 from typing import AsyncGenerator, Any, Optional, Sequence, Union, List, Dict, AsyncIterator, Tuple, Callable, Awaitable
 
 import prometheus_client
+import yaml
 from aiohttp import (
     web,
     WSMsgType,
@@ -30,7 +31,7 @@ from aiohttp import (
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse
-from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk
+from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
@@ -47,7 +48,7 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
 )
-from resotocore.config import ConfigEntity
+from resotocore.config import ConfigHandler
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
@@ -62,7 +63,7 @@ from resotocore.query import QueryParser
 from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import (
     uuid_str,
     force_gen,
@@ -72,7 +73,7 @@ from resotocore.util import (
 )
 from resotocore.web import auth
 from resotocore.web.certificate_handler import CertificateHandler
-from resotocore.web.content_renderer import result_binary_gen
+from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
     metrics_handler,
     error_handler,
@@ -111,6 +112,7 @@ class Api:
         event_sender: AnalyticsEventSender,
         worker_task_queue: WorkerTaskQueue,
         cert_handler: CertificateHandler,
+        config_handler: ConfigHandler,
         cli: CLI,
         query_parser: QueryParser,
         args: Namespace,
@@ -123,6 +125,7 @@ class Api:
         self.event_sender = event_sender
         self.worker_task_queue = worker_task_queue
         self.cert_handler = cert_handler
+        self.config_handler = config_handler
         self.cli = cli
         self.query_parser = query_parser
         self.args = args
@@ -216,10 +219,14 @@ class Api:
                 web.get("/metrics", self.metrics),
                 # config operations
                 web.get("/configs", self.list_configs),
-                web.put("/config/{config_id}", self.set_config),
+                web.put("/config/{config_id}", self.put_config),
                 web.get("/config/{config_id}", self.get_config),
                 web.patch("/config/{config_id}", self.patch_config),
                 web.delete("/config/{config_id}", self.delete_config),
+                # config model operations
+                web.get("/configs/model", self.list_config_models),
+                web.put("/config/{config_id}/model", self.put_config_model),
+                web.get("/config/{config_id}/model", self.get_config_model),
                 # ca operations
                 web.get("/ca/cert", self.certificate),
                 web.post("/ca/sign", self.sign_certificate),
@@ -273,33 +280,55 @@ class Api:
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
 
-    async def list_configs(self, _: Request) -> StreamResponse:
-        configs = {config.id: config.config async for config in self.db.config_entity_db.all()}
-        return web.json_response(configs)
+    async def list_configs(self, request: Request) -> StreamResponse:
+        return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
 
     async def get_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        config = await self.db.config_entity_db.get(config_id)
-        return web.json_response(config.config) if config else HTTPNotFound(text="No config with this id")
+        accept = request.headers.get("accept", "application/json")
+        not_found = HTTPNotFound(text="No config with this id")
+        if accept == "application/yaml":
+            yml = await self.config_handler.config_yaml(config_id)
+            return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
+        else:
+            config = await self.config_handler.get_config(config_id)
+            return await single_result(request, config.config) if config else not_found
 
-    async def set_config(self, request: Request) -> StreamResponse:
+    async def put_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        config = await request.json()
-        result = await self.db.config_entity_db.update(ConfigEntity(config_id, config))
-        return web.json_response(result.config)
+        config = await self.json_from_request(request)
+        result = await self.config_handler.put_config(config_id, config)
+        return await single_result(request, result.config)
 
     async def patch_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        patch = await request.json()
-        current = await self.db.config_entity_db.get(config_id)
-        config = current.config if current else {}
-        updated = await self.db.config_entity_db.update(ConfigEntity(config_id, {**config, **patch}))
-        return web.json_response(updated.config)
+        patch = await self.json_from_request(request)
+        updated = await self.config_handler.patch_config(config_id, patch)
+        return await single_result(request, updated.config)
 
     async def delete_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        await self.db.config_entity_db.delete(config_id)
+        await self.config_handler.delete_config(config_id)
         return HTTPNoContent()
+
+    async def list_config_models(self, request: Request) -> StreamResponse:
+        return await self.stream_response_from_gen(request, self.config_handler.list_config_model_ids())
+
+    async def get_config_model(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        model = await self.config_handler.get_config_model(config_id)
+        return (
+            await single_result(request, to_js(model.kinds))
+            if model
+            else HTTPNotFound(text="No model for this config.")
+        )
+
+    async def put_config_model(self, request: Request) -> StreamResponse:
+        config_id = request.match_info["config_id"]
+        js = await self.json_from_request(request)
+        kinds = from_js(js, List[Kind])
+        model = await self.config_handler.put_config_model(config_id, kinds)
+        return await single_result(request, to_js(model.kinds))
 
     async def certificate(self, _: Request) -> StreamResponse:
         cert, fingerprint = self.cert_handler.authority_certificate
@@ -320,9 +349,9 @@ class Api:
         resp.content_type = prometheus_client.CONTENT_TYPE_LATEST
         return resp
 
-    async def list_all_subscriptions(self, _: Request) -> StreamResponse:
+    async def list_all_subscriptions(self, request: Request) -> StreamResponse:
         subscribers = await self.subscription_handler.all_subscribers()
-        return web.json_response(to_json(subscribers))
+        return await single_result(request, to_json(subscribers))
 
     async def get_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
@@ -332,14 +361,14 @@ class Api:
     async def list_subscription_for_event(self, request: Request) -> StreamResponse:
         event_type = request.match_info["event_type"]
         subscribers = await self.subscription_handler.list_subscriber_for(event_type)
-        return web.json_response(to_json(subscribers))
+        return await single_result(request, to_json(subscribers))
 
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
-        body = await request.json()
+        body = await self.json_from_request(request)
         subscriptions = from_js(body, List[Subscription])
         sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
-        return web.json_response(to_json(sub))
+        return await single_result(request, to_json(sub))
 
     async def delete_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
@@ -352,13 +381,13 @@ class Api:
         timeout = timedelta(seconds=int(request.query.get("timeout", "60")))
         wait_for_completion = request.query.get("wait_for_completion", "true").lower() != "false"
         sub = await self.subscription_handler.add_subscription(subscriber_id, event_type, wait_for_completion, timeout)
-        return web.json_response(to_js(sub))
+        return await single_result(request, to_js(sub))
 
     async def delete_subscription(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
         event_type = request.match_info["event_type"]
         sub = await self.subscription_handler.remove_subscription(subscriber_id, event_type)
-        return web.json_response(to_js(sub))
+        return await single_result(request, to_js(sub))
 
     async def handle_subscribed(self, request: Request) -> StreamResponse:
         subscriber_id = request.match_info["subscriber_id"]
@@ -517,15 +546,15 @@ class Api:
         await response.write_eof(result)
         return response
 
-    async def get_model(self, _: Request) -> StreamResponse:
+    async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
         return web.json_response(to_js(md))
 
     async def update_model(self, request: Request) -> StreamResponse:
-        js = await request.json()
+        js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
         model = await self.model_handler.update_model(kinds)
-        return web.json_response(to_js(model))
+        return await single_result(request, to_js(model))
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
@@ -536,27 +565,27 @@ class Api:
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
         else:
-            return web.json_response(node)
+            return await single_result(request, node)
 
     async def create_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "some_existing")
         parent_node_id = request.match_info.get("parent_node_id", "root")
         graph = self.db.get_graph_db(graph_id)
-        item = await request.json()
+        item = await self.json_from_request(request)
         md = await self.model_handler.load_model()
         node = await graph.create_node(md, node_id, item, parent_node_id)
-        return web.json_response(node)
+        return await single_result(request, node)
 
     async def update_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
         node_id = request.match_info.get("node_id", "some_existing")
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
-        patch = await request.json()
+        patch = await self.json_from_request(request)
         md = await self.model_handler.load_model()
         node = await graph.update_node(md, node_id, patch, False, section)
-        return web.json_response(node)
+        return await single_result(request, node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
@@ -585,8 +614,9 @@ class Api:
         result_gen = db.update_nodes(model, updates)
         return await self.stream_response_from_gen(request, result_gen)
 
-    async def list_graphs(self, _: Request) -> StreamResponse:
-        return web.json_response(await self.db.list_graphs())
+    async def list_graphs(self, request: Request) -> StreamResponse:
+        graphs = await self.db.list_graphs()
+        return await single_result(request, graphs)
 
     async def create_graph(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
@@ -725,7 +755,7 @@ class Api:
             if request.content_type.startswith("text"):
                 command = (await request.text()).strip()
             elif request.content_type.startswith("multipart"):
-                command = request.headers["Ck-Command"].strip()
+                command = request.headers["Resoto-Shell-Command"].strip()
                 temp = tempfile.mkdtemp()
                 temp_dir = temp
                 files = {}
@@ -812,6 +842,16 @@ class Api:
             raise AttributeError("No command could be parsed!")
 
     @classmethod
+    async def json_from_request(cls, request: Request) -> Json:
+        if request.content_type in ["application/json"]:
+            return await request.json()  # type: ignore
+        elif request.content_type in ["application/yaml", "text/yaml"]:
+            text = await request.text()
+            return yaml.safe_load(text)  # type: ignore
+        else:
+            raise HTTPNotAcceptable(text="Only support json")
+
+    @classmethod
     async def to_json_generator(cls, request: Request) -> AsyncGenerator[Json, None]:
         async for line in cls.to_line_generator(request):
             yield json.loads(line) if isinstance(line, bytes) else line
@@ -850,7 +890,7 @@ class Api:
 
     @staticmethod
     async def stream_response_from_gen(
-        request: Request, gen_in: AsyncIterator[Json], count: Optional[int] = None
+        request: Request, gen_in: AsyncIterator[JsonElement], count: Optional[int] = None
     ) -> StreamResponse:
         # force the async generator, to get an early exception in case of failure
         gen = await force_gen(gen_in)

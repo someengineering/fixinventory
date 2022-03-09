@@ -377,6 +377,10 @@ class AsyncArangoDBBase:
     async def all(self, collection: str, skip: Optional[int] = None, limit: Optional[int] = None) -> Cursor:
         return await run_async(self.db.collection(collection).all, skip, limit)
 
+    @timed("arango", "keys")
+    async def keys(self, collection: str) -> Cursor:
+        return await run_async(self.db.collection(collection).keys)
+
     async def count(self, collection: str) -> int:
         return await run_async(self.db.collection(collection).count)  # type: ignore
 
