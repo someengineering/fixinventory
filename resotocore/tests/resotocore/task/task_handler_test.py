@@ -58,6 +58,9 @@ from tests.resotocore.analytics import event_sender
 # noinspection PyUnresolvedReferences
 from tests.resotocore.query.template_expander_test import expander
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
+
 
 @fixture
 async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
@@ -215,9 +218,7 @@ async def test_recover_workflow(
 
 @pytest.mark.asyncio
 async def test_wait_for_running_job(
-    task_handler: TaskHandlerService,
-    test_workflow: Workflow,
-    all_events: List[Message],
+    task_handler: TaskHandlerService, test_workflow: Workflow, all_events: List[Message]
 ) -> None:
     test_workflow.on_surpass = TaskSurpassBehaviour.Wait
     task_handler.task_descriptions = [test_workflow]

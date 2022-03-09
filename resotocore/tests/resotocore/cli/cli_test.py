@@ -20,6 +20,7 @@ from resotocore.cli.command import (
     all_commands,
     PredecessorsPart,
 )
+from resotocore.config import ConfigHandler
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.dependencies import parse_args
@@ -55,6 +56,9 @@ from tests.resotocore.analytics import event_sender
 # noinspection PyUnresolvedReferences
 from tests.resotocore.query.template_expander_test import expander
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
+
 
 @fixture
 async def cli_deps(
@@ -65,6 +69,7 @@ async def cli_deps(
     task_queue: WorkerTaskQueue,
     worker: Tuple[WorkerTaskDescription, WorkerTaskDescription, WorkerTaskDescription],
     expander: TemplateExpander,
+    config_handler: ConfigHandler,
 ) -> AsyncIterator[CLIDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
     model_handler = ModelHandlerStatic(foo_model)
@@ -78,6 +83,7 @@ async def cli_deps(
         args=args,
         template_expander=expander,
         forked_tasks=Queue(),
+        config_handler=config_handler,
     )
     yield deps
     await deps.stop()

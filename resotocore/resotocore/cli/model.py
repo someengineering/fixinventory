@@ -17,6 +17,7 @@ from parsy import test_char, string
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
+from resotocore.config import ConfigHandler
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -121,10 +122,7 @@ EmptyContext = CLIContext()
 class CLIEngine(ABC):
     @abstractmethod
     async def evaluate_cli_command(
-        self,
-        cli_input: str,
-        context: CLIContext = EmptyContext,
-        replace_place_holder: bool = True,
+        self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
         pass
 
@@ -178,6 +176,10 @@ class CLIDependencies:
         return self.lookup["cli"]  # type:ignore
 
     @property
+    def config_handler(self) -> ConfigHandler:
+        return self.lookup["config_handler"]  # type:ignore
+
+    @property
     def http_session(self) -> ClientSession:
         session: Optional[ClientSession] = self.lookup.get("http_session")
         if not session:
@@ -202,9 +204,12 @@ class CLIFileRequirement(CLICommandRequirement):
 
 
 class CLIAction(ABC):
-    def __init__(self, produces: MediaType, requires: Optional[List[CLICommandRequirement]]) -> None:
+    def __init__(
+        self, produces: MediaType, requires: Optional[List[CLICommandRequirement]], envelope: Optional[Dict[str, str]]
+    ) -> None:
         self.produces = produces
-        self.required = requires if requires else []
+        self.required = requires or []
+        self.envelope: Dict[str, str] = envelope or {}
 
     @staticmethod
     def make_stream(in_stream: JsGen) -> Stream:
@@ -217,8 +222,9 @@ class CLISource(CLIAction):
         fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
     ) -> None:
-        super().__init__(produces, requires)
+        super().__init__(produces, requires, envelope)
         self._fn = fn
 
     async def source(self) -> Tuple[Optional[int], Stream]:
@@ -232,21 +238,23 @@ class CLISource(CLIAction):
         count: Optional[int],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
     ) -> CLISource:
         async def combine() -> Tuple[Optional[int], JsGen]:
             res = fn()
             gen = await res if iscoroutine(res) else res
             return count, gen
 
-        return CLISource(combine, produces, requires)
+        return CLISource(combine, produces, requires, envelope)
 
     @staticmethod
     def single(
         fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
     ) -> CLISource:
-        return CLISource.with_count(fn, 1, produces, requires)
+        return CLISource.with_count(fn, 1, produces, requires, envelope)
 
     @staticmethod
     def empty() -> CLISource:
@@ -259,8 +267,9 @@ class CLIFlow(CLIAction):
         fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
     ) -> None:
-        super().__init__(produces, requires)
+        super().__init__(produces, requires, envelope)
         self._fn = fn
 
     async def flow(self, in_stream: JsGen) -> Stream:
@@ -360,6 +369,7 @@ class ParsedCommandLine:
     parsed_commands: ParsedCommands
     executable_commands: List[ExecutableCommand]
     unmet_requirements: List[CLICommandRequirement]
+    envelope: Dict[str, str]
 
     def __post_init__(self) -> None:
         def expect_action(cmd: ExecutableCommand, expected: Type[T]) -> T:

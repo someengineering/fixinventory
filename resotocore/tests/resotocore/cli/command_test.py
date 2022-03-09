@@ -6,9 +6,10 @@ import tempfile
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, AsyncIterator, Tuple
+from typing import List, Dict, Optional, Any, AsyncIterator, Tuple, Generator
 
 import pytest
+import yaml
 from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientTimeout
 from aiohttp.hdrs import METH_ANY
@@ -74,11 +75,25 @@ from tests.resotocore.util_test import not_in_path
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
+
 
 @fixture
 def json_source() -> str:
     nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
+
+
+@fixture
+def tmp_directory() -> Generator[str, None, None]:
+    tmp_dir: Optional[str] = None
+    try:
+        tmp_dir = tempfile.mkdtemp()
+        yield tmp_dir
+    finally:
+        if tmp_dir:
+            shutil.rmtree(tmp_dir)
 
 
 @fixture
@@ -333,8 +348,7 @@ async def test_format(cli: CLI) -> None:
     assert result[0] == ["a:true:false:null:12:1.234"]
     # access deeply nested properties with dict and array
     result = await cli.execute_cli_command(
-        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<',
-        stream.list,
+        'json {"a":{"b":{"c":{"d":[0,1,2, {"e":"f"}]}}}} | format will be an >{a.b.c.d[3].e}<', stream.list
     )
     assert result[0] == ["will be an >f<"]
     # make sure any path that is not available leads to the null value
@@ -595,27 +609,13 @@ async def test_jq_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command("search all | count kind", stream.list)
-    assert set(r[0]) == {
-        "graph_root: 1",
-        "cloud: 1",
-        "foo: 11",
-        "bla: 100",
-        "total matched: 113",
-        "total unmatched: 0",
-    }
+    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
     # exactly the same command as above (above search would be rewritten as this)
     r = await cli.execute_cli_command(
         "execute_search aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
     )
-    assert set(r[0]) == {
-        "graph_root: 1",
-        "cloud: 1",
-        "foo: 11",
-        "bla: 100",
-        "total matched: 113",
-        "total unmatched: 0",
-    }
+    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
 
 
 @pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
@@ -643,36 +643,58 @@ async def test_system_info_command(cli: CLI) -> None:
     assert info.cpus > 0
 
 
-@pytest.mark.skipif(
-    not_in_path("arangodump", "arangorestore"),
-    reason="requires arangodump and arangorestore",
-)
+@pytest.mark.skipif(not_in_path("arangodump", "arangorestore"), reason="requires arangodump and arangorestore")
 @pytest.mark.asyncio
-async def test_system_restore_command(cli: CLI) -> None:
-    tmp_dir: Optional[str] = None
-    try:
-        tmp_dir = tempfile.mkdtemp()
-        backup = os.path.join(tmp_dir, "backup")
+async def test_system_restore_command(cli: CLI, tmp_directory: str) -> None:
+    backup = os.path.join(tmp_directory, "backup")
 
-        async def move_backup(res: Stream) -> None:
-            async with res.stream() as streamer:
-                async for s in streamer:
-                    os.rename(s, backup)
+    async def move_backup(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                os.rename(s, backup)
 
-        await cli.execute_cli_command("system backup create", move_backup)
-        ctx = CLIContext(uploaded_files={"backup": backup})
-        restore = await cli.execute_cli_command(
-            f"BACKUP_NO_SYS_EXIT=true system backup restore {backup}", stream.list, ctx
-        )
-        assert restore == [
-            [
-                "Database has been restored successfully!",
-                "Since all data has changed in the database eventually, this service needs to be restarted!",
-            ]
+    await cli.execute_cli_command("system backup create", move_backup)
+    ctx = CLIContext(uploaded_files={"backup": backup})
+    restore = await cli.execute_cli_command(f"BACKUP_NO_SYS_EXIT=true system backup restore {backup}", stream.list, ctx)
+    assert restore == [
+        [
+            "Database has been restored successfully!",
+            "Since all data has changed in the database eventually, this service needs to be restarted!",
         ]
-    finally:
-        if tmp_dir:
-            shutil.rmtree(tmp_dir)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_configs_command(cli: CLI, tmp_directory: str) -> None:
+    config_file = os.path.join(tmp_directory, "config.yml")
+
+    async def check_file_is_yaml(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                with open(s, "r") as file:
+                    yaml.safe_load(file.read())
+
+    # create a new config entry
+    create_result = await cli.execute_cli_command("configs set test_config t1=1, t2=2, t3=3 ", stream.list)
+    assert create_result[0][0] == "t1: 1\nt2: 2\nt3: 3\n"
+    # show the entry - should be the same as the created one
+    show_result = await cli.execute_cli_command("configs show test_config", stream.list)
+    assert show_result[0][0] == "t1: 1\nt2: 2\nt3: 3\n"
+    # list all configs: only one is defined
+    list_result = await cli.execute_cli_command("configs list", stream.list)
+    assert list_result[0] == ["test_config"]
+    # edit the config: will make the config available as file
+    await cli.execute_cli_command("configs edit test_config", check_file_is_yaml)
+    # update the config
+    update_doc = "a: '1'\nb: 2\nc: true\nd: null\n"
+    with open(config_file, "w") as file:
+        file.write(update_doc)
+    ctx = CLIContext(uploaded_files={"config": config_file})
+    update_result = await cli.execute_cli_command(f"configs update test_config {config_file}", stream.list, ctx)
+    assert update_result == [[]]
+    # show the entry - should be the same as the created one
+    show_updated_result = await cli.execute_cli_command("configs show test_config", stream.list)
+    assert show_updated_result[0][0] == update_doc
 
 
 @pytest.mark.asyncio

@@ -385,7 +385,8 @@ class CLI:
             ctx = adjust_context(parsed)
             ctx, commands = await combine_query_parts([self.command(c.cmd, c.args, ctx) for c in parsed.commands], ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
-            return ParsedCommandLine(ctx, parsed, commands, not_met)
+            envelope = {k: v for cmd in commands for k, v in cmd.action.envelope.items()}
+            return ParsedCommandLine(ctx, parsed, commands, not_met, envelope)
 
         async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
