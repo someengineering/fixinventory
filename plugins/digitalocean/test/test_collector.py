@@ -2,7 +2,7 @@ from importlib import resources
 from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs, databases, k8s
+from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -22,11 +22,14 @@ class ClientMock(object):
         return wrapper
 
 
-def prepare_graph(team_graph: Graph) -> Graph:
+def prepare_graph(do_client) -> Graph:
     cloud = Cloud('do')
+    team = DigitalOceanTeam(id="do:team:test_team")
+    plugin_instance = DigitalOceanTeamCollector(team, do_client)
+    plugin_instance.collect()
     cloud_graph = Graph(root=cloud)
     graph = Graph(root=GraphRoot("root", {}))
-    cloud_graph.merge(team_graph)
+    cloud_graph.merge(plugin_instance.graph)
     graph.merge(cloud_graph)
     sanitize(graph)
     return graph
@@ -39,28 +42,23 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def _test_api_call():
+def test_api_call():
 
 
     access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_droplets()
+    resources = client.list_snapshots()
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
 
 
 def test_collect_teams():
-    team = DigitalOceanTeam(id="do:team:test_team")
 
     do_client = ClientMock({})
-
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
 
     check_edges(graph, "do", "do:team:test_team")
     team_node = graph.search_first("id", "do:team:test_team")
@@ -70,17 +68,12 @@ def test_collect_teams():
 
 def test_collect_regions():
 
-    team = DigitalOceanTeam(id="do:team:test_team")
-
     do_client = ClientMock({
         "list_regions": regions,
         "list_droplets": droplets
     })
 
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
 
     check_edges(graph, "do", "do:team:test_team")
     check_edges(graph, "do:team:test_team", "do:region:fra1")
@@ -99,14 +92,12 @@ def test_collect_regions():
 
 
 def test_collect_vpcs():
-    team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
         "list_vpcs": vpcs,
     })
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
+
     check_edges(graph, "do:region:fra1", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
     vpc = graph.search_first("id", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
     assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
@@ -118,15 +109,12 @@ def test_collect_vpcs():
 
 def test_collect_droplets():
 
-    team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
         "list_droplets": droplets,
         "list_vpcs": vpcs,
     })
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
 
     check_edges(graph, "do:region:fra1", "do:droplet:289110074")
     check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074")
@@ -145,15 +133,13 @@ def test_collect_droplets():
 
 def test_collect_volumes():
 
-    team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
         "list_droplets": droplets,
         "list_volumes": volumes,
     })
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
+
 
     check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
@@ -166,15 +152,13 @@ def test_collect_volumes():
     assert volume.volume_status == "in-use"
 
 def test_collect_database():
-    team = DigitalOceanTeam(id="do:team:test_team")
+
     do_client = ClientMock({
         "list_regions": regions,
         "list_databases": databases,
         "list_vpcs": vpcs,
     })
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
 
     check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
@@ -189,16 +173,13 @@ def test_collect_database():
 
 
 def test_collect_k8s_clusters():
-    team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
         "list_vpcs": vpcs,
         "list_droplets": droplets,
         "list_kubernetes_clusters": k8s,
     })
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
-    plugin_instance.collect()
-    graph = prepare_graph(plugin_instance.graph)
+    graph = prepare_graph(do_client)
 
     check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
     check_edges(graph, "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26", "do:droplet:290075243")
@@ -218,5 +199,19 @@ def test_collect_k8s_clusters():
     assert cluster.registry_enabled is False
     assert cluster.ha is False
 
+def test_collect_snapshots():
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_droplets": droplets,
+        "list_snapshots": snapshots,
+    })
+    graph = prepare_graph(do_client)
 
+    check_edges(graph, "do:droplet:289110074", "do:snapshot:103198134")
+    snapshot = graph.search_first("id", "do:snapshot:103198134")
+    assert snapshot.id == "do:snapshot:103198134"
+    assert snapshot.volume_size == 25
+    assert snapshot.size_gigabytes == 2
+    assert snapshot.resource_id == "289110074"
+    assert snapshot.resource_type == "droplet"
 

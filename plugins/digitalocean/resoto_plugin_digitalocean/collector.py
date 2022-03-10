@@ -1,3 +1,4 @@
+import math
 from pprint import pformat
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 
@@ -567,7 +568,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "size_gigabytes": "size_gigabytesl",
+                "size_gigabytes": lambda vol: math.ceil(vol.get("size_gigabytes")),
                 "resource_id": "resource_id",
                 "resource_type": "resource_type",
             },
