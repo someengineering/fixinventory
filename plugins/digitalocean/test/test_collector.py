@@ -2,7 +2,7 @@ from importlib import resources
 from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs
+from fixtures import droplets, regions, volumes, vpcs, databases
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -47,7 +47,7 @@ def test_api_call():
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_vpcs()
+    resources = client.list_databases()
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
@@ -103,14 +103,12 @@ def test_collect_vpcs():
     team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
-        "list_droplets": droplets,
         "list_vpcs": vpcs,
     })
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
     plugin_instance.collect()
     graph = prepare_graph(plugin_instance.graph)
     check_edges(graph, "do:region:fra1", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
-    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074")
     vpc = graph.search_first("id", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
     assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
     assert vpc.name == "default-fra1"
@@ -124,13 +122,15 @@ def test_collect_droplets():
     team = DigitalOceanTeam(id="do:team:test_team")
     do_client = ClientMock({
         "list_regions": regions,
-        "list_droplets": droplets
+        "list_droplets": droplets,
+        "list_vpcs": vpcs,
     })
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
     plugin_instance.collect()
     graph = prepare_graph(plugin_instance.graph)
 
     check_edges(graph, "do:region:fra1", "do:droplet:289110074")
+    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074")
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
@@ -156,10 +156,6 @@ def test_collect_volumes():
     plugin_instance.collect()
     graph = prepare_graph(plugin_instance.graph)
 
-    for edge in graph.edges:
-        print
-        print(edge[2])
-
     check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
@@ -169,3 +165,25 @@ def test_collect_volumes():
     assert volume.filesystem_label == ""
     assert volume.volume_size == 1
     assert volume.volume_status == "in-use"
+
+def test_collect_database():
+    team = DigitalOceanTeam(id="do:team:test_team")
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_databases": databases,
+        "list_vpcs": vpcs,
+    })
+    plugin_instance = DigitalOceanTeamCollector(team, do_client)
+    plugin_instance.collect()
+    graph = prepare_graph(plugin_instance.graph)
+
+    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
+    database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
+    assert database.id == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
+    assert database.name == "db-postgresql-fra1-82725"
+    assert database.db_type == "pg"
+    assert database.db_status == "online"
+    assert database.db_version == "14"
+    assert database.db_endpoint == "host.b.db.ondigitalocean.com"
+    assert database.region().id == "do:region:fra1"
+    assert database.instance_type == "db-s-1vcpu-1gb"
