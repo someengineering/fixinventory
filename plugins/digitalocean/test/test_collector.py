@@ -1,8 +1,6 @@
-from importlib import resources
-from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots, load_balancers
+from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots, load_balancers, floating_ips
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -49,7 +47,7 @@ def test_api_call():
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_load_balancers()
+    resources = client.list_floating_ips()
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
@@ -107,7 +105,6 @@ def test_collect_vpcs():
 
 
 def test_collect_droplets():
-
     do_client = ClientMock({
         "list_regions": regions,
         "list_droplets": droplets,
@@ -131,14 +128,12 @@ def test_collect_droplets():
 
 
 def test_collect_volumes():
-
     do_client = ClientMock({
         "list_regions": regions,
         "list_droplets": droplets,
         "list_volumes": volumes,
     })
     graph = prepare_graph(do_client)
-
 
     check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
@@ -152,7 +147,6 @@ def test_collect_volumes():
 
 
 def test_collect_database():
-
     do_client = ClientMock({
         "list_regions": regions,
         "list_databases": databases,
@@ -225,6 +219,7 @@ def test_collect_loadbalancers():
         "list_vpcs": vpcs,
     })
     graph = prepare_graph(do_client)
+
     check_edges(
         graph,
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
@@ -242,4 +237,19 @@ def test_collect_loadbalancers():
     assert lb.enable_proxy_protocol is False
     assert lb.enable_backend_keepalive is False
     assert lb.disable_lets_encrypt_dns_records is False
+
+
+def test_collect_floating_ips():
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_floating_ips": floating_ips,
+        "list_droplets": droplets,
+    })
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:droplet:289110074", "do:floatingip:127.0.0.1")
+    floating_ip = graph.search_first("id", "do:floatingip:127.0.0.1")
+    assert floating_ip.id == "do:floatingip:127.0.0.1"
+    assert floating_ip.ip_address == "127.0.0.1"
+    assert floating_ip.ip_address_family == "ipv4"
+    assert floating_ip.locked is False
 
