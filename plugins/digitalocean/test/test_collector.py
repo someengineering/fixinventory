@@ -53,18 +53,6 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def _test_api_call():
-
-    access_token = os.environ["RESOTO_DIGITALOCEAN_API_TOKENS"].split(" ")[0]
-
-    client = StreamingWrapper(access_token)
-
-    resources = client.list_project_resources("75088298-73bd-4c8f-ba4b-91fc220d0ac7")
-    print()
-    print(re.sub("'", '"', str(resources)))
-    assert False
-
-
 def test_collect_teams():
 
     do_client = ClientMock({})
