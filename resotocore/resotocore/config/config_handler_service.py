@@ -1,35 +1,41 @@
 import asyncio
 from datetime import timedelta
-from typing import Optional, AsyncIterator, List
+from typing import Optional, AsyncIterator
 
 import yaml
 
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigModel
-from resotocore.db.configdb import ConfigEntityDb, ConfigModelEntityDb
-from resotocore.model.model import Kind, Model
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
+from resotocore.model.model import Model
 from resotocore.types import Json
 from resotocore.util import uuid_str
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 
 
 class ConfigHandlerService(ConfigHandler):
-    def __init__(self, cfg_db: ConfigEntityDb, model_db: ConfigModelEntityDb, task_queue: WorkerTaskQueue) -> None:
+    def __init__(
+        self, cfg_db: ConfigEntityDb, validation_db: ConfigValidationEntityDb, task_queue: WorkerTaskQueue
+    ) -> None:
         self.cfg_db = cfg_db
-        self.model_db = model_db
+        self.validation_db = validation_db
         self.task_queue = task_queue
 
     async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
-        model = await self.model_db.get(cfg_id)
-        kind = model.complex_root if model else None
+        validation = await self.validation_db.get(cfg_id)
+        kind = validation.complex_root() if validation else None
+        # If model is given, check and coerce the existing model.
+        # In case the config is invalid, this method will throw.
         if kind:
-            # throws if config is not valid according to schema
             coerced = kind.check_valid(config)
-            coerced = coerced or config
-            # throws if config is not valid according to external approval
+            config = coerced or config
+
+        # If an external entity needs to approve this change.
+        # Method throws if config is not valid according to external approval.
+        if validation.external_validation:
             await self.acknowledge_config_change(cfg_id, config)
-            return coerced
-        else:
-            return config
+
+        # If we come here, everything is fine
+        return config
 
     def list_config_ids(self) -> AsyncIterator[str]:
         return self.cfg_db.keys()
@@ -49,28 +55,29 @@ class ConfigHandlerService(ConfigHandler):
 
     async def delete_config(self, cfg_id: str) -> None:
         await self.cfg_db.delete(cfg_id)
-        await self.model_db.delete(cfg_id)
+        await self.validation_db.delete(cfg_id)
 
-    def list_config_model_ids(self) -> AsyncIterator[str]:
-        return self.model_db.keys()
+    def list_config_validation_ids(self) -> AsyncIterator[str]:
+        return self.validation_db.keys()
 
-    async def get_config_model(self, cfg_id: str) -> Optional[ConfigModel]:
-        return await self.model_db.get(cfg_id)
+    async def get_config_validation(self, cfg_id: str) -> Optional[ConfigValidation]:
+        return await self.validation_db.get(cfg_id)
 
-    async def put_config_model(self, cfg_id: str, kinds: List[Kind]) -> ConfigModel:
+    async def put_config_validation(self, validation: ConfigValidation) -> ConfigValidation:
         # make sure there is a complex kind with name "config"
-        model = Model.from_kinds(kinds)
-        roots = model.complex_roots
-        if len(roots) != 1:
-            root_names = ", ".join(r.fqn for r in roots)
-            raise AttributeError(f"Require exactly one config root kind, but got: {root_names}")
-        return await self.model_db.update(ConfigModel(cfg_id, kinds))
+        if validation.kinds:
+            model = Model.from_kinds(validation.kinds)
+            roots = model.complex_roots
+            if len(roots) != 1:
+                root_names = ", ".join(r.fqn for r in roots)
+                raise AttributeError(f"Require exactly one config root kind, but got: {root_names}")
+        return await self.validation_db.update(validation)
 
     async def config_yaml(self, cfg_id: str) -> Optional[str]:
         config = await self.get_config(cfg_id)
         if config:
-            model = await self.model_db.get(cfg_id)
-            kind = model.complex_root if model else None
+            validation = await self.validation_db.get(cfg_id)
+            kind = validation.complex_root() if validation else None
             return kind.create_yaml(config.config) if kind else yaml.dump(config.config, default_flow_style=False)
         else:
             return None

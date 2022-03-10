@@ -4,7 +4,7 @@ from typing import List, Any
 import pytest
 from pytest import fixture
 
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigModel
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -18,7 +18,7 @@ from tests.resotocore.worker_task_queue_test import worker, task_queue, performe
 def config_handler(task_queue: WorkerTaskQueue, worker: Any) -> ConfigHandler:
     # Note: the worker fixture is required, since it starts worker tasks
     cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
-    model_db = InMemoryDb(ConfigModel, lambda c: c.id)
+    model_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     return ConfigHandlerService(cfg_db, model_db, task_queue)
 
 
@@ -74,13 +74,13 @@ async def test_config(config_handler: ConfigHandler) -> None:
 @pytest.mark.asyncio
 async def test_config_model(config_handler: ConfigHandler, config_model: List[Kind]) -> None:
     # define the model
-    await config_handler.put_config_model("test", config_model)
+    await config_handler.put_config_validation(ConfigValidation("test", config_model, True))
 
     # list all available models
-    assert [a async for a in config_handler.list_config_model_ids()] == ["test"]
+    assert [a async for a in config_handler.list_config_validation_ids()] == ["test"]
 
     # get the model
-    model = await config_handler.get_config_model("test")
+    model = await config_handler.get_config_validation("test")
     assert model.kinds == config_model  # type: ignore
 
     # valid
@@ -92,22 +92,27 @@ async def test_config_model(config_handler: ConfigHandler, config_model: List[Ki
         await config_handler.put_config("test", {"some_number": 32, "some_string": 32})
     assert "Property:some_string is not valid: Expected type string but got int" in str(reason)
 
-    # A config with name "invalid_config" is rejected by the configured worker
-    await config_handler.put_config_model("invalid_config", config_model)
+    # External validation turned on: config with name "invalid_config" is rejected by the configured worker
+    await config_handler.put_config_validation(ConfigValidation("invalid_config", config_model, True))
     with pytest.raises(AttributeError) as reason:
         # The config is actually valid, but the external validation will fail
         await config_handler.put_config("invalid_config", valid_config)
     assert "Error executing task: Invalid Config ;)" in str(reason)
 
+    # If external validation is turned off, the configuration can be updated
+    await config_handler.put_config_validation(ConfigValidation("invalid_config", config_model, False))
+    await config_handler.put_config("invalid_config", valid_config)
+
     # A config model with more than one complex root is rejected
     with pytest.raises(AttributeError) as reason:
-        await config_handler.put_config_model("test", [ComplexKind("a", [], []), ComplexKind("b", [], [])])
+        validation = ConfigValidation("test", [ComplexKind("a", [], []), ComplexKind("b", [], [])], True)
+        await config_handler.put_config_validation(validation)
     assert "Require exactly one config root kind, but got: a, b" in str(reason)
 
 
 @pytest.mark.asyncio
 async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kind]) -> None:
-    await config_handler.put_config_model("test", config_model)
+    await config_handler.put_config_validation(ConfigValidation("test", config_model, True))
     config = {"some_number": 32, "some_string": "test", "some_sub": {"num": 32}}
     await config_handler.put_config("test", config)
     assert await config_handler.config_yaml("test") == dedent(

@@ -199,7 +199,7 @@ class Kind(ABC):
         if "inner" in js:
             inner = Kind.from_json(js["inner"])
             return ArrayKind(inner)
-        elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in SimpleKind.Kind_to_type:
+        elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in simple_kind_to_type:
             fqn = js["fqn"]
             rk = js["runtime_kind"]
             if "source_fqn" in js and "converter" in js and "reverse_order" in js:
@@ -236,23 +236,24 @@ class Kind(ABC):
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
 
+simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
+    "string": str,
+    "int32": int,
+    "int64": int,
+    "float": float,
+    "double": float,
+    "boolean": bool,
+    "date": str,
+    "datetime": str,
+    "duration": str,
+}
+
+
 class SimpleKind(Kind, ABC):
     def __init__(self, fqn: str, runtime_kind: str, reverse_order: bool = False):
         super().__init__(fqn)
         self.runtime_kind = runtime_kind
         self.reverse_order = reverse_order
-
-    Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
-        "string": str,
-        "int32": int,
-        "int64": int,
-        "float": float,
-        "double": float,
-        "boolean": bool,
-        "date": str,
-        "datetime": str,
-        "duration": str,
-    }
 
     # noinspection PyMethodMayBeStatic
     def coerce(self, value: object) -> Any:

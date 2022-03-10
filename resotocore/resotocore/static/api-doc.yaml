@@ -17,8 +17,8 @@ tags:
         description: Endpoints to maintain the schema and model of the entities inside a graph.
     -   name: config
         description: Endpoints to maintain configuration data.
-    -   name: config_model
-        description: Endpoints to maintain the model of configuration data.
+    -   name: config_validation
+        description: Endpoints to define how configs should be validated.
     -   name: cli
         description: Endpoints to evaluate and execute cli commands.
     -   name: subscriptions
@@ -1535,14 +1535,14 @@ paths:
                                 type: array
                                 items:
                                     type: string
-    /configs/model:
+    /configs/validation:
         get:
             summary: "Get all configuration keys that have a model defined."
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Get all configuration keys that have a model defined.
             tags:
-                - config_model
+                - config_validation
             responses:
                 "200":
                     description: All configuration keys that have a model.
@@ -1653,14 +1653,14 @@ paths:
                 "204":
                     description: Signals success of this operation.
 
-    /config/{config_id}/model:
+    /config/{config_id}/validation:
         get:
             summary: "Get a configuration by its id"
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Fetch the model of a configuration by id.
             tags:
-                - config_model
+                - config_validation
             parameters:
                 -   name: config_id
                     required: true
@@ -1674,10 +1674,10 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
                         application/yaml:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
                 "404":
                     description: No configuration model for this key.
 
@@ -1687,7 +1687,7 @@ paths:
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Replace a configuration model identified by id with provided value.
             tags:
-                - config_model
+                - config_validation
             parameters:
                 -   name: config_id
                     required: true
@@ -1699,14 +1699,14 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: "#/components/schemas/Kind"
+                            $ref: "#/components/schemas/ConfigValidation"
             responses:
                 "200":
                     description: The configuration model.
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
     # endregion
 
     # region cli
@@ -2130,7 +2130,21 @@ components:
                 edges_deleted:
                     description: "The number of edges that have been deleted."
                     type: integer
-
+        ConfigValidation:
+            description: "The validation for this configuration value."
+            type: object
+            properties:
+                id:
+                    description: The identifier of the related configuration.
+                    type: string
+                kinds:
+                    $ref: "#/components/schemas/Kind"
+                external_validation:
+                    description: |
+                        True, if an external entity should validate a config change.
+                        In this case resotocore is emitting a task on the task queue of type validate_config.
+                        It expectes a listener to pickup this task and report back, if the configuration is valid or not.
+                    type: boolean
         Kind:
             description: "Definition of a kind"
             type: array

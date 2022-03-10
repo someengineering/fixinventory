@@ -2,10 +2,10 @@ import pytest
 from arango.database import StandardDatabase
 from typing import List
 
-from resotocore.config import ConfigEntity, ConfigModel
+from resotocore.config import ConfigEntity, ConfigValidation
 from resotocore.db import configdb
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.configdb import ConfigEntityDb, ConfigModelEntityDb
+from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 
 # noinspection PyUnresolvedReferences
 from resotocore.model.model import ComplexKind, Property
@@ -27,9 +27,9 @@ async def config_db(test_db: StandardDatabase) -> ConfigEntityDb:
 
 
 @pytest.fixture
-async def model_db(test_db: StandardDatabase) -> ConfigModelEntityDb:
+async def validation_db(test_db: StandardDatabase) -> ConfigValidationEntityDb:
     async_db = AsyncArangoDB(test_db)
-    cfg_db = configdb.config_model_entity_db(async_db, "config_models")
+    cfg_db = configdb.config_validation_entity_db(async_db, "config_models")
     await cfg_db.create_update_schema()
     await cfg_db.wipe()
     return cfg_db
@@ -41,9 +41,9 @@ def configs() -> List[ConfigEntity]:
 
 
 @pytest.fixture
-def config_models() -> List[ConfigModel]:
+def config_models() -> List[ConfigValidation]:
     kind = ComplexKind("test", [], [Property("foo", "string")])
-    return [ConfigModel(f"id_{a}", [kind]) for a in range(0, 10)]
+    return [ConfigValidation(f"id_{a}", [kind], True) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio
@@ -83,36 +83,36 @@ async def test_keys(config_db: ConfigEntityDb, configs: List[ConfigEntity]) -> N
 
 
 @pytest.mark.asyncio
-async def test_load_model(model_db: ConfigModelEntityDb, config_models: List[ConfigModel]) -> None:
-    await model_db.update_many(config_models)
-    loaded = [sub async for sub in model_db.all()]
+async def test_load_model(validation_db: ConfigValidationEntityDb, config_models: List[ConfigValidation]) -> None:
+    await validation_db.update_many(config_models)
+    loaded = [sub async for sub in validation_db.all()]
     assert config_models.sort() == loaded.sort()
 
 
 @pytest.mark.asyncio
-async def test_update_model(model_db: ConfigModelEntityDb, config_models: List[ConfigModel]) -> None:
+async def test_update_model(validation_db: ConfigValidationEntityDb, config_models: List[ConfigValidation]) -> None:
     # multiple updates should work as expected
-    await model_db.update_many(config_models)
-    await model_db.update_many(config_models)
-    await model_db.update_many(config_models)
-    loaded = [sub async for sub in model_db.all()]
+    await validation_db.update_many(config_models)
+    await validation_db.update_many(config_models)
+    await validation_db.update_many(config_models)
+    loaded = [sub async for sub in validation_db.all()]
     assert config_models.sort() == loaded.sort()
 
 
 @pytest.mark.asyncio
-async def test_delete_model(model_db: ConfigModelEntityDb, config_models: List[ConfigModel]) -> None:
-    await model_db.update_many(config_models)
+async def test_delete_model(validation_db: ConfigValidationEntityDb, config_models: List[ConfigValidation]) -> None:
+    await validation_db.update_many(config_models)
     remaining = list(config_models)
     for _ in config_models:
         sub = remaining.pop()
-        await model_db.delete(sub)
-        loaded = [sub async for sub in model_db.all()]
+        await validation_db.delete(sub)
+        loaded = [sub async for sub in validation_db.all()]
         assert remaining.sort() == loaded.sort()
-    assert len([sub async for sub in model_db.all()]) == 0
+    assert len([sub async for sub in validation_db.all()]) == 0
 
 
 @pytest.mark.asyncio
-async def test_keys_model(model_db: ConfigModelEntityDb, config_models: List[ConfigModel]) -> None:
-    assert [key async for key in model_db.keys()] == []
-    await model_db.update_many(config_models)
-    assert [key async for key in model_db.keys()] == [a.id for a in config_models]
+async def test_keys_model(validation_db: ConfigValidationEntityDb, config_models: List[ConfigValidation]) -> None:
+    assert [key async for key in validation_db.keys()] == []
+    await validation_db.update_many(config_models)
+    assert [key async for key in validation_db.keys()] == [a.id for a in config_models]

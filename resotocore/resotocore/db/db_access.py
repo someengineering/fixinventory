@@ -14,7 +14,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.configdb import config_entity_db, config_model_entity_db
+from resotocore.db.configdb import config_entity_db, config_validation_entity_db
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
@@ -41,7 +41,7 @@ class DbAccess(ABC):
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
         config_entity: str = "configs",
-        config_model_entity: str = "config_models",
+        config_validation_entity: str = "config_validation",
         template_entity: str = "templates",
         update_outdated: timedelta = timedelta(hours=4),
     ):
@@ -54,7 +54,7 @@ class DbAccess(ABC):
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
-        self.config_model_entity_db = config_model_entity_db(self.db, config_model_entity)
+        self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.update_outdated = update_outdated
@@ -66,7 +66,7 @@ class DbAccess(ABC):
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
         await self.config_entity_db.create_update_schema()
-        await self.config_model_entity_db.create_update_schema()
+        await self.config_validation_entity_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')

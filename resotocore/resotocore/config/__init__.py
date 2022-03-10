@@ -14,13 +14,13 @@ class ConfigEntity:
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
-class ConfigModel:
+class ConfigValidation:
     id: str
-    kinds: List[Kind]
+    kinds: Optional[List[Kind]] = None
+    external_validation: bool = False
 
-    @property
     def complex_root(self) -> Optional[ComplexKind]:
-        md = Model.from_kinds(self.kinds)
+        md = Model.from_kinds(self.kinds or [])
         return md.complex_roots[0] if len(md.complex_roots) == 1 else None
 
 
@@ -46,15 +46,15 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    def list_config_model_ids(self) -> AsyncIterator[str]:
+    def list_config_validation_ids(self) -> AsyncIterator[str]:
         pass
 
     @abstractmethod
-    async def get_config_model(self, cfg_id: str) -> Optional[ConfigModel]:
+    async def get_config_validation(self, cfg_id: str) -> Optional[ConfigValidation]:
         pass
 
     @abstractmethod
-    async def put_config_model(self, cfg_id: str, kinds: List[Kind]) -> ConfigModel:
+    async def put_config_validation(self, validation: ConfigValidation) -> ConfigValidation:
         pass
 
     @abstractmethod

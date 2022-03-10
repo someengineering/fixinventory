@@ -48,7 +48,7 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
 )
-from resotocore.config import ConfigHandler
+from resotocore.config import ConfigHandler, ConfigValidation
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
@@ -218,9 +218,9 @@ class Api:
                 web.patch("/config/{config_id}", self.patch_config),
                 web.delete("/config/{config_id}", self.delete_config),
                 # config model operations
-                web.get("/configs/model", self.list_config_models),
-                web.put("/config/{config_id}/model", self.put_config_model),
-                web.get("/config/{config_id}/model", self.get_config_model),
+                web.get("/configs/validation", self.list_config_models),
+                web.put("/config/{config_id}/validation", self.put_config_model),
+                web.get("/config/{config_id}/validation", self.get_config_model),
                 # ca operations
                 web.get("/ca/cert", self.certificate),
                 web.post("/ca/sign", self.sign_certificate),
@@ -306,23 +306,20 @@ class Api:
         return HTTPNoContent()
 
     async def list_config_models(self, request: Request) -> StreamResponse:
-        return await self.stream_response_from_gen(request, self.config_handler.list_config_model_ids())
+        return await self.stream_response_from_gen(request, self.config_handler.list_config_validation_ids())
 
     async def get_config_model(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        model = await self.config_handler.get_config_model(config_id)
-        return (
-            await single_result(request, to_js(model.kinds))
-            if model
-            else HTTPNotFound(text="No model for this config.")
-        )
+        model = await self.config_handler.get_config_validation(config_id)
+        return await single_result(request, to_js(model)) if model else HTTPNotFound(text="No model for this config.")
 
     async def put_config_model(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         js = await self.json_from_request(request)
-        kinds = from_js(js, List[Kind])
-        model = await self.config_handler.put_config_model(config_id, kinds)
-        return await single_result(request, to_js(model.kinds))
+        js["id"] = config_id
+        config_model = from_js(js, ConfigValidation)
+        model = await self.config_handler.put_config_validation(config_model)
+        return await single_result(request, to_js(model))
 
     async def certificate(self, _: Request) -> StreamResponse:
         cert, fingerprint = self.cert_handler.authority_certificate
