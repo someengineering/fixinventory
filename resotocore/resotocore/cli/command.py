@@ -58,6 +58,7 @@ from resotocore.cli.model import (
     ParsedCommand,
     NoTerminalOutput,
 )
+from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
@@ -3458,14 +3459,14 @@ class ConfigsCommand(CLICommand):
             updated = cfg.config if cfg else {}
             for prop, js in updates:
                 updated = set_value_in_path(js, prop, updated)
-            await self.dependencies.config_handler.put_config(cfg_id, updated)
+            await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated))
             yield await self.dependencies.config_handler.config_yaml(cfg_id)
 
         async def edit_config(cfg_id: str) -> AsyncIterator[str]:
             # Editing a config is a two-step process:
             # 1) download the config and make it available to edit
             # 2) upload the config file and update the config from content --> update_config
-            yml = await self.dependencies.config_handler.config_yaml(cfg_id)
+            yml = await self.dependencies.config_handler.config_yaml(cfg_id, revision=True)
             if not yml:
                 raise AttributeError(f"No config with this id: {cfg_id}")
             return send_file(yml)
@@ -3477,8 +3478,9 @@ class ConfigsCommand(CLICommand):
                 content = ""
                 async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
                     content = await f.read()
-                    updated = yaml.safe_load(content)
-                await self.dependencies.config_handler.put_config(cfg_id, updated)
+                    updated: Json = yaml.safe_load(content)
+                    revision = updated.pop("_revision", None)
+                await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated, revision))
             except Exception as ex:
                 log.debug(f"Could not update the config: {ex}.", exc_info=ex)
                 # Yaml file: add the error as comment on top

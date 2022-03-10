@@ -48,7 +48,7 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
 )
-from resotocore.config import ConfigHandler, ConfigValidation
+from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
@@ -291,13 +291,13 @@ class Api:
     async def put_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         config = await self.json_from_request(request)
-        result = await self.config_handler.put_config(config_id, config)
+        result = await self.config_handler.put_config(ConfigEntity(config_id, config))
         return await single_result(request, result.config)
 
     async def patch_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         patch = await self.json_from_request(request)
-        updated = await self.config_handler.patch_config(config_id, patch)
+        updated = await self.config_handler.patch_config(ConfigEntity(config_id, patch))
         return await single_result(request, updated.config)
 
     async def delete_config(self, request: Request) -> StreamResponse:

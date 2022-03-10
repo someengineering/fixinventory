@@ -184,7 +184,7 @@ class ArangoGraphDB(GraphDB):
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
         if "revision" in patch_or_replace and patch_or_replace["revision"] != node["_rev"]:
-            raise OptimisticLockingFailed(node_id, node["_rev"], patch_or_replace["revision"])
+            raise OptimisticLockingFailed(node_id)
 
         updated = node.copy()
         if section:

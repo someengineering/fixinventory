@@ -7,6 +7,7 @@ from pytest import fixture
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.model.model import Kind, ComplexKind, Property
+from resotocore.model.typed_model import to_js, from_js
 from resotocore.worker_task_queue import WorkerTaskQueue
 from tests.resotocore.db.entitydb import InMemoryDb
 
@@ -51,13 +52,13 @@ async def test_config(config_handler: ConfigHandler) -> None:
     assert [a async for a in config_handler.list_config_ids()] == []
 
     # add one entry
-    assert await config_handler.put_config("test", {"test": True}) == ConfigEntity("test", {"test": True})
+    assert await config_handler.put_config(ConfigEntity("test", {"test": True})) == ConfigEntity("test", {"test": True})
 
     # get one entry
     assert await config_handler.get_config("test") == ConfigEntity("test", {"test": True})
 
     # patch the config
-    assert await config_handler.patch_config("test", {"rest": False}) == ConfigEntity(
+    assert await config_handler.patch_config(ConfigEntity("test", {"rest": False})) == ConfigEntity(
         "test", {"test": True, "rest": False}
     )
 
@@ -85,23 +86,23 @@ async def test_config_model(config_handler: ConfigHandler, config_model: List[Ki
 
     # valid
     valid_config = {"some_number": 32, "some_string": "test", "some_sub": {"num": 32}}
-    await config_handler.put_config("test", valid_config)
+    await config_handler.put_config(ConfigEntity("test", valid_config))
 
     # invalid
     with pytest.raises(AttributeError) as reason:
-        await config_handler.put_config("test", {"some_number": 32, "some_string": 32})
+        await config_handler.put_config(ConfigEntity("test", {"some_number": 32, "some_string": 32}))
     assert "Property:some_string is not valid: Expected type string but got int" in str(reason)
 
     # External validation turned on: config with name "invalid_config" is rejected by the configured worker
     await config_handler.put_config_validation(ConfigValidation("invalid_config", config_model, True))
     with pytest.raises(AttributeError) as reason:
         # The config is actually valid, but the external validation will fail
-        await config_handler.put_config("invalid_config", valid_config)
+        await config_handler.put_config(ConfigEntity("invalid_config", valid_config))
     assert "Error executing task: Invalid Config ;)" in str(reason)
 
     # If external validation is turned off, the configuration can be updated
     await config_handler.put_config_validation(ConfigValidation("invalid_config", config_model, False))
-    await config_handler.put_config("invalid_config", valid_config)
+    await config_handler.put_config(ConfigEntity("invalid_config", valid_config))
 
     # A config model with more than one complex root is rejected
     with pytest.raises(AttributeError) as reason:
@@ -114,7 +115,7 @@ async def test_config_model(config_handler: ConfigHandler, config_model: List[Ki
 async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kind]) -> None:
     await config_handler.put_config_validation(ConfigValidation("test", config_model, True))
     config = {"some_number": 32, "some_string": "test", "some_sub": {"num": 32}}
-    await config_handler.put_config("test", config)
+    await config_handler.put_config(ConfigEntity("test", config))
     assert await config_handler.config_yaml("test") == dedent(
         """
         # Some number.
@@ -130,7 +131,7 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
           num: 32"""
     )
     # same config values, but no attached model
-    await config_handler.put_config("no_model", config)
+    await config_handler.put_config(ConfigEntity("no_model", config))
     assert (
         await config_handler.config_yaml("no_model")
         == dedent(
@@ -142,3 +143,9 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
             """
         ).lstrip()
     )
+
+
+def test_config_entity_roundtrip() -> None:
+    entity = ConfigEntity("test", {"test": 1}, "test")
+    again = from_js(to_js(entity), ConfigEntity)
+    assert entity == again

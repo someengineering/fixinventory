@@ -48,14 +48,9 @@ class ConflictingChangeInProgress(CoreException, ClientError):
 
 
 class OptimisticLockingFailed(CoreException, ClientError):
-    def __init__(self, uid: str, current_revision: str, read_revision: str) -> None:
-        super().__init__(
-            f"Node {uid}: The record to update has been changed since it was read!"
-            + f"Current revision: {current_revision} Read revision: {read_revision}"
-        )
+    def __init__(self, uid: str) -> None:
+        super().__init__(f"Node {uid}: The record to update has been changed since it was read.")
         self.uid = uid
-        self.current_revision = current_revision
-        self.read_revision = read_revision
 
 
 class NoSuchGraph(CoreException, NotFoundError):

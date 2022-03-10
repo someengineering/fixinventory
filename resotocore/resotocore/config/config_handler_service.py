@@ -22,17 +22,18 @@ class ConfigHandlerService(ConfigHandler):
 
     async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
         validation = await self.validation_db.get(cfg_id)
-        kind = validation.complex_root() if validation else None
-        # If model is given, check and coerce the existing model.
-        # In case the config is invalid, this method will throw.
-        if kind:
-            coerced = kind.check_valid(config)
-            config = coerced or config
+        if validation:
+            kind = validation.complex_root()
+            # If model is given, check and coerce the existing model.
+            # In case the config is invalid, this method will throw.
+            if kind:
+                coerced = kind.check_valid(config)
+                config = coerced or config
 
-        # If an external entity needs to approve this change.
-        # Method throws if config is not valid according to external approval.
-        if validation.external_validation:
-            await self.acknowledge_config_change(cfg_id, config)
+            # If an external entity needs to approve this change.
+            # Method throws if config is not valid according to external approval.
+            if validation.external_validation:
+                await self.acknowledge_config_change(cfg_id, config)
 
         # If we come here, everything is fine
         return config
@@ -43,15 +44,15 @@ class ConfigHandlerService(ConfigHandler):
     async def get_config(self, cfg_id: str) -> Optional[ConfigEntity]:
         return await self.cfg_db.get(cfg_id)
 
-    async def put_config(self, cfg_id: str, config: Json) -> ConfigEntity:
-        coerced = await self.coerce_and_check_model(cfg_id, config)
-        return await self.cfg_db.update(ConfigEntity(cfg_id, coerced))
+    async def put_config(self, cfg: ConfigEntity) -> ConfigEntity:
+        coerced = await self.coerce_and_check_model(cfg.id, cfg.config)
+        return await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
 
-    async def patch_config(self, cfg_id: str, config: Json) -> ConfigEntity:
-        current = await self.cfg_db.get(cfg_id)
+    async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
+        current = await self.cfg_db.get(cfg.id)
         current_config = current.config if current else {}
-        coerced = await self.coerce_and_check_model(cfg_id, {**current_config, **config})
-        return await self.cfg_db.update(ConfigEntity(cfg_id, coerced))
+        coerced = await self.coerce_and_check_model(cfg.id, {**current_config, **cfg.config})
+        return await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
 
     async def delete_config(self, cfg_id: str) -> None:
         await self.cfg_db.delete(cfg_id)
@@ -73,12 +74,24 @@ class ConfigHandlerService(ConfigHandler):
                 raise AttributeError(f"Require exactly one config root kind, but got: {root_names}")
         return await self.validation_db.update(validation)
 
-    async def config_yaml(self, cfg_id: str) -> Optional[str]:
+    async def config_yaml(self, cfg_id: str, revision: bool = False) -> Optional[str]:
         config = await self.get_config(cfg_id)
         if config:
             validation = await self.validation_db.get(cfg_id)
             kind = validation.complex_root() if validation else None
-            return kind.create_yaml(config.config) if kind else yaml.dump(config.config, default_flow_style=False)
+            yaml_str: str = (
+                kind.create_yaml(config.config) if kind else yaml.dump(config.config, default_flow_style=False)
+            )
+            # mix the revision into the yaml document
+            if revision and config.revision:
+                yaml_str += (
+                    "\n\n# This property is not part of the configuration but defines the revision "
+                    "of this document.\n# Please leave it here to avoid conflicting writes.\n"
+                    f'_revision: "{config.revision}"'
+                )
+
+            return yaml_str
+
         else:
             return None
 
