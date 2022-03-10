@@ -184,6 +184,6 @@ droplets = [
         "tags": [
             "test_droplet_tag"
         ],
-        "vpc_uuid": "5cdd8e25-ce3c-4fb6-9577-4ca074179361"
+        "vpc_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959"
     }
 ]

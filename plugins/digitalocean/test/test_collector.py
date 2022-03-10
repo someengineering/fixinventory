@@ -2,7 +2,7 @@ from importlib import resources
 from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes
+from fixtures import droplets, regions, volumes, vpcs
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -40,14 +40,15 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def _test_api_call():
+def test_api_call():
 
 
     access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_volumes()
+    resources = client.list_vpcs()
+    print()
     print(re.sub("'", '"', str(resources)))
     assert False
 
@@ -56,7 +57,7 @@ def test_collect_teams():
     team = DigitalOceanTeam(id="do:team:test_team")
 
     do_client = ClientMock({})
-    
+
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
     plugin_instance.collect()
 
@@ -97,6 +98,27 @@ def test_collect_regions():
     assert region.available is True
 
 
+
+def test_collect_vpcs():
+    team = DigitalOceanTeam(id="do:team:test_team")
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_droplets": droplets,
+        "list_vpcs": vpcs,
+    })
+    plugin_instance = DigitalOceanTeamCollector(team, do_client)
+    plugin_instance.collect()
+    graph = prepare_graph(plugin_instance.graph)
+    check_edges(graph, "do:region:fra1", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
+    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074")
+    vpc = graph.search_first("id", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
+    assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
+    assert vpc.name == "default-fra1"
+    assert vpc.description == ""
+    assert vpc.ip_range == "127.0.0.1/20"
+    assert vpc.default is True
+
+
 def test_collect_droplets():
 
     team = DigitalOceanTeam(id="do:team:test_team")
@@ -112,15 +134,16 @@ def test_collect_droplets():
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
-    assert droplet.instance_memory == 1024 
+    assert droplet.instance_memory == 1024
     assert droplet.instance_cores == 1
     assert droplet.instance_status == "running"
     assert droplet.region().id == "do:region:fra1"
     assert droplet.image == "ubuntu-20-04-x64"
     assert droplet.locked is False
-    assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc) 
+    assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {'test_droplet_tag': ''}
-    
+
+
 def test_collect_volumes():
 
     team = DigitalOceanTeam(id="do:team:test_team")
