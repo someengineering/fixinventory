@@ -5,7 +5,7 @@ project_resources = [
         "links": {
             "self": "https://api.digitalocean.com/v2/load_balancers/9625f517-75f0-4af8-a336-62374e68dc0d"
         },
-        "status": "ok"
+        "status": "ok",
     },
     {
         "urn": "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
@@ -13,7 +13,7 @@ project_resources = [
         "links": {
             "self": "https://api.digitalocean.com/v2/kubernetes/clusters/e1c48631-b382-4001-2168-c47c54795a26"
         },
-        "status": "ok"
+        "status": "ok",
     },
     {
         "urn": "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
@@ -21,7 +21,7 @@ project_resources = [
         "links": {
             "self": "https://api.digitalocean.com/v2/databases/2848a998-e151-4d5a-9813-0904a44c2397"
         },
-        "status": "ok"
+        "status": "ok",
     },
     {
         "urn": "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197",
@@ -29,30 +29,24 @@ project_resources = [
         "links": {
             "self": "https://api.digitalocean.com/v2/volumes/631f81d2-9fc1-11ec-800c-0a58ac14d197"
         },
-        "status": "ok"
+        "status": "ok",
     },
     {
         "urn": "do:floatingip:127.0.0.1",
         "assigned_at": "2022-03-03T22:06:30.0352Z",
-        "links": {
-            "self": "https://api.digitalocean.com/v2/floating_ips/127.0.0.1"
-        },
-        "status": "ok"
+        "links": {"self": "https://api.digitalocean.com/v2/floating_ips/127.0.0.1"},
+        "status": "ok",
     },
     {
         "urn": "do:droplet:289110074",
         "assigned_at": "2022-03-03T16:26:58.243032Z",
-        "links": {
-            "self": "https://api.digitalocean.com/v2/droplets/289110074"
-        },
-        "status": "ok"
+        "links": {"self": "https://api.digitalocean.com/v2/droplets/289110074"},
+        "status": "ok",
     },
     {
         "urn": "do:space:api-test-space.resoto",
         "assigned_at": "2022-02-23T13:42:22.636219Z",
-        "links": {
-            "self": "https://api-test-space.resoto.fra1.digitaloceanspaces.com"
-        },
-        "status": "ok"
-    }
+        "links": {"self": "https://api-test-space.resoto.fra1.digitaloceanspaces.com"},
+        "status": "ok",
+    },
 ]

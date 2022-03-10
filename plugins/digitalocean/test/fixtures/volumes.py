@@ -4,9 +4,7 @@ volumes = [
         "name": "volume-fra1-01",
         "created_at": "2022-03-09T15:55:48Z",
         "description": "Test volume",
-        "droplet_ids": [
-            289110074
-        ],
+        "droplet_ids": [289110074],
         "region": {
             "features": [
                 "backups",
@@ -14,7 +12,7 @@ volumes = [
                 "metadata",
                 "install_agent",
                 "storage",
-                "image_transfer"
+                "image_transfer",
             ],
             "name": "Frankfurt 1",
             "slug": "fra1",
@@ -88,13 +86,13 @@ volumes = [
                 "so1_5-24vcpu-192gb",
                 "so-32vcpu-256gb",
                 "m6-32vcpu-256gb",
-                "so1_5-32vcpu-256gb"
+                "so1_5-32vcpu-256gb",
             ],
-            "available": True
+            "available": True,
         },
         "size_gigabytes": 1,
         "filesystem_type": "ext4",
         "filesystem_label": "",
-        "tags": []
+        "tags": [],
     }
 ]

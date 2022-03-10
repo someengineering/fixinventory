@@ -12,7 +12,7 @@ databases = [
             "port": 25060,
             "user": "doadmin",
             "password": "password",
-            "ssl": True
+            "ssl": True,
         },
         "private_connection": {
             "protocol": "postgresql",
@@ -22,29 +22,17 @@ databases = [
             "port": 25060,
             "user": "doadmin",
             "password": "password",
-            "ssl": True
+            "ssl": True,
         },
-        "users": [
-            {
-                "name": "doadmin",
-                "role": "primary",
-                "password": "password"
-            }
-        ],
-        "db_names": [
-            "defaultdb"
-        ],
+        "users": [{"name": "doadmin", "role": "primary", "password": "password"}],
+        "db_names": ["defaultdb"],
         "num_nodes": 1,
         "region": "fra1",
         "status": "online",
         "created_at": "2022-03-10T11:40:04Z",
-        "maintenance_window": {
-            "day": "thursday",
-            "hour": "21:16:36",
-            "pending": False
-        },
+        "maintenance_window": {"day": "thursday", "hour": "21:16:36", "pending": False},
         "size": "db-s-1vcpu-1gb",
         "tags": None,
-        "private_network_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959"
+        "private_network_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959",
     }
 ]

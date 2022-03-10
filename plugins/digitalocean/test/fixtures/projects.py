@@ -9,6 +9,6 @@ projects = [
         "environment": "",
         "is_default": False,
         "created_at": "2022-02-22T11:21:30Z",
-        "updated_at": "2022-02-22T11:21:30Z"
+        "updated_at": "2022-02-22T11:21:30Z",
     },
 ]

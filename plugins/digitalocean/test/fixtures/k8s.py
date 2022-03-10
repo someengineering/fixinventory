@@ -9,10 +9,7 @@ k8s = [
         "vpc_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959",
         "ipv4": "127.0.0.1",
         "endpoint": "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com",
-        "tags": [
-            "k8s",
-            "k8s:e1c48631-b382-4001-2168-c47c54795a26"
-        ],
+        "tags": ["k8s", "k8s:e1c48631-b382-4001-2168-c47c54795a26"],
         "node_pools": [
             {
                 "id": "486ac4dd-6672-4364-9138-8d7f26d131aa",
@@ -22,7 +19,7 @@ k8s = [
                 "tags": [
                     "k8s",
                     "k8s:e1c48631-b382-4001-2168-c47c54795a26",
-                    "k8s:worker"
+                    "k8s:worker",
                 ],
                 "labels": None,
                 "taints": [],
@@ -33,25 +30,21 @@ k8s = [
                     {
                         "id": "cad9fd5a-c64e-464f-8711-e66eadb5bd44",
                         "name": "pool-1g2g56zow-u9fs4",
-                        "status": {
-                            "state": "running"
-                        },
+                        "status": {"state": "running"},
                         "droplet_id": "290075243",
                         "created_at": "2022-03-10T13:07:00Z",
-                        "updated_at": "2022-03-10T13:11:29Z"
+                        "updated_at": "2022-03-10T13:11:29Z",
                     }
-                ]
+                ],
             }
         ],
         "maintenance_policy": {
             "start_time": "20:00",
             "duration": "4h0m0s",
-            "day": "any"
+            "day": "any",
         },
         "auto_upgrade": False,
-        "status": {
-            "state": "running"
-        },
+        "status": {"state": "running"},
         "created_at": "2022-03-10T13:07:00Z",
         "updated_at": "2022-03-10T13:13:29Z",
         "surge_upgrade": True,
@@ -60,7 +53,7 @@ k8s = [
         "supported_features": [
             "cluster-autoscaler",
             "docr-integration",
-            "token-authentication"
-        ]
+            "token-authentication",
+        ],
     },
 ]

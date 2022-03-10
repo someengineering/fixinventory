@@ -15,7 +15,7 @@ load_balancers = [
                 "target_protocol": "http",
                 "target_port": 80,
                 "certificate_id": "",
-                "tls_passthrough": False
+                "tls_passthrough": False,
             }
         ],
         "health_check": {
@@ -25,11 +25,9 @@ load_balancers = [
             "check_interval_seconds": 10,
             "response_timeout_seconds": 5,
             "healthy_threshold": 5,
-            "unhealthy_threshold": 3
+            "unhealthy_threshold": 3,
         },
-        "sticky_sessions": {
-            "type": "none"
-        },
+        "sticky_sessions": {"type": "none"},
         "region": {
             "name": "Frankfurt 1",
             "slug": "fra1",
@@ -39,7 +37,7 @@ load_balancers = [
                 "metadata",
                 "install_agent",
                 "storage",
-                "image_transfer"
+                "image_transfer",
             ],
             "available": True,
             "sizes": [
@@ -112,17 +110,15 @@ load_balancers = [
                 "so1_5-24vcpu-192gb",
                 "so-32vcpu-256gb",
                 "m6-32vcpu-256gb",
-                "so1_5-32vcpu-256gb"
-            ]
+                "so1_5-32vcpu-256gb",
+            ],
         },
         "tag": "",
-        "droplet_ids": [
-            289110074
-        ],
+        "droplet_ids": [289110074],
         "redirect_http_to_https": False,
         "enable_proxy_protocol": False,
         "enable_backend_keepalive": False,
         "vpc_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959",
-        "disable_lets_encrypt_dns_records": False
+        "disable_lets_encrypt_dns_records": False,
     }
 ]

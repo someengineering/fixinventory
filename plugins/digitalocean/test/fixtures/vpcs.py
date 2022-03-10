@@ -7,6 +7,6 @@ vpcs = [
         "region": "fra1",
         "ip_range": "127.0.0.1/20",
         "created_at": "2021-11-13T10:52:21Z",
-        "default": True
+        "default": True,
     }
 ]

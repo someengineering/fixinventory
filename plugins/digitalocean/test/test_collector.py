@@ -11,7 +11,7 @@ from fixtures import (
     load_balancers,
     floating_ips,
     projects,
-    project_resources
+    project_resources,
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -23,7 +23,6 @@ import re
 
 
 class ClientMock(object):
-
     def __init__(self, responses):
         self.responses = responses
 
@@ -35,7 +34,7 @@ class ClientMock(object):
 
 
 def prepare_graph(do_client) -> Graph:
-    cloud = Cloud('do')
+    cloud = Cloud("do")
     team = DigitalOceanTeam(id="do:team:test_team")
     plugin_instance = DigitalOceanTeamCollector(team, do_client)
     plugin_instance.collect()
@@ -56,7 +55,7 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
 
 def _test_api_call():
 
-    access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
+    access_token = os.environ["RESOTO_DIGITALOCEAN_API_TOKENS"].split(" ")[0]
 
     client = StreamingWrapper(access_token)
 
@@ -79,10 +78,7 @@ def test_collect_teams():
 
 def test_collect_regions():
 
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_droplets": droplets
-    })
+    do_client = ClientMock({"list_regions": regions, "list_droplets": droplets})
 
     graph = prepare_graph(do_client)
 
@@ -97,15 +93,24 @@ def test_collect_regions():
     assert region.name == "Frankfurt 1"
     assert region.kind == "digitalocean_region"
     assert region.slug == "fra1"
-    assert region.features == ['backups', 'ipv6', 'metadata', 'install_agent', 'storage', 'image_transfer']
+    assert region.features == [
+        "backups",
+        "ipv6",
+        "metadata",
+        "install_agent",
+        "storage",
+        "image_transfer",
+    ]
     assert region.available is True
 
 
 def test_collect_vpcs():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_vpcs": vpcs,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_vpcs": vpcs,
+        }
+    )
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:region:fra1", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
@@ -118,15 +123,19 @@ def test_collect_vpcs():
 
 
 def test_collect_droplets():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_droplets": droplets,
-        "list_vpcs": vpcs,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_droplets": droplets,
+            "list_vpcs": vpcs,
+        }
+    )
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:region:fra1", "do:droplet:289110074")
-    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074")
+    check_edges(
+        graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074"
+    )
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
@@ -136,19 +145,25 @@ def test_collect_droplets():
     assert droplet.region().id == "do:region:fra1"
     assert droplet.image == "ubuntu-20-04-x64"
     assert droplet.locked is False
-    assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
+    assert droplet.ctime == datetime.datetime(
+        2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
+    )
     assert droplet.tags == {}
 
 
 def test_collect_volumes():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_droplets": droplets,
-        "list_volumes": volumes,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_droplets": droplets,
+            "list_volumes": volumes,
+        }
+    )
     graph = prepare_graph(do_client)
 
-    check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
+    check_edges(
+        graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
+    )
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
@@ -160,14 +175,20 @@ def test_collect_volumes():
 
 
 def test_collect_database():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_databases": databases,
-        "list_vpcs": vpcs,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_databases": databases,
+            "list_vpcs": vpcs,
+        }
+    )
     graph = prepare_graph(do_client)
 
-    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
+    )
     database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     assert database.id == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "db-postgresql-fra1-82725"
@@ -180,22 +201,30 @@ def test_collect_database():
 
 
 def test_collect_k8s_clusters():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_vpcs": vpcs,
-        "list_droplets": droplets,
-        "list_kubernetes_clusters": k8s,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_vpcs": vpcs,
+            "list_droplets": droplets,
+            "list_kubernetes_clusters": k8s,
+        }
+    )
     graph = prepare_graph(do_client)
 
     check_edges(
         graph,
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
-        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
     )
-    check_edges(graph, "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26", "do:droplet:290075243")
+    check_edges(
+        graph,
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
+        "do:droplet:290075243",
+    )
 
-    cluster = graph.search_first("id", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
+    cluster = graph.search_first(
+        "id", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+    )
     assert cluster.id == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
     assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
     assert cluster.version == "1.22.7-do.0"
@@ -203,7 +232,10 @@ def test_collect_k8s_clusters():
     assert cluster.cluster_subnet == "10.244.0.0/16"
     assert cluster.service_subnet == "10.245.0.0/16"
     assert cluster.ipv4 == "127.0.0.1"
-    assert cluster.endpoint == "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com"
+    assert (
+        cluster.endpoint
+        == "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com"
+    )
     assert cluster.auto_upgrade is False
     assert cluster.status == "running"
     assert cluster.surge_upgrade is True
@@ -212,11 +244,13 @@ def test_collect_k8s_clusters():
 
 
 def test_collect_snapshots():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_droplets": droplets,
-        "list_snapshots": snapshots,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_droplets": droplets,
+            "list_snapshots": snapshots,
+        }
+    )
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:droplet:289110074", "do:snapshot:103198134")
@@ -229,21 +263,29 @@ def test_collect_snapshots():
 
 
 def test_collect_loadbalancers():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_load_balancers": load_balancers,
-        "list_droplets": droplets,
-        "list_vpcs": vpcs,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_load_balancers": load_balancers,
+            "list_droplets": droplets,
+            "list_vpcs": vpcs,
+        }
+    )
     graph = prepare_graph(do_client)
 
     check_edges(
         graph,
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
-        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
     )
-    check_edges(graph, "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d", "do:droplet:289110074")
-    lb = graph.search_first("id", "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d")
+    check_edges(
+        graph,
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
+        "do:droplet:289110074",
+    )
+    lb = graph.search_first(
+        "id", "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+    )
     assert lb.id == "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
     assert lb.name == "fra1-load-balancer-01"
     assert lb.ip == "127.0.0.1"
@@ -257,11 +299,13 @@ def test_collect_loadbalancers():
 
 
 def test_collect_floating_ips():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_floating_ips": floating_ips,
-        "list_droplets": droplets,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_floating_ips": floating_ips,
+            "list_droplets": droplets,
+        }
+    )
     graph = prepare_graph(do_client)
     check_edges(graph, "do:droplet:289110074", "do:floatingip:127.0.0.1")
     floating_ip = graph.search_first("id", "do:floatingip:127.0.0.1")
@@ -272,46 +316,45 @@ def test_collect_floating_ips():
 
 
 def test_collect_projects():
-    do_client = ClientMock({
-        "list_regions": regions,
-        "list_projects": projects,
-        "list_project_resources": project_resources,
-        "list_droplets": droplets,
-        "list_load_balancers": load_balancers,
-        "list_floating_ips": floating_ips,
-        "list_kubernetes_clusters": k8s,
-        "list_databases": databases,
-        "list_volumes": volumes,
-    })
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_projects": projects,
+            "list_project_resources": project_resources,
+            "list_droplets": droplets,
+            "list_load_balancers": load_balancers,
+            "list_floating_ips": floating_ips,
+            "list_kubernetes_clusters": k8s,
+            "list_databases": databases,
+            "list_volumes": volumes,
+        }
+    )
     graph = prepare_graph(do_client)
     check_edges(
-        graph,
-        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:droplet:289110074"
+        graph, "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7", "do:droplet:289110074"
     )
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
     )
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:floatingip:127.0.0.1"
+        "do:floatingip:127.0.0.1",
     )
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
     )
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
+        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
     )
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
+        "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197",
     )
-

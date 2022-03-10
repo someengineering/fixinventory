@@ -11,15 +11,10 @@ floating_ips = [
             "status": "active",
             "kernel": None,
             "created_at": "2022-03-03T16:26:55Z",
-            "features": [
-                "droplet_agent",
-                "private_networking"
-            ],
+            "features": ["droplet_agent", "private_networking"],
             "backup_ids": [],
             "next_backup_window": None,
-            "snapshot_ids": [
-                103198134
-            ],
+            "snapshot_ids": [103198134],
             "image": {
                 "id": 101111514,
                 "name": "20.04 (LTS) x64",
@@ -39,7 +34,7 @@ floating_ips = [
                     "tor1",
                     "sfo2",
                     "blr1",
-                    "sfo3"
+                    "sfo3",
                 ],
                 "created_at": "2022-02-01T16:53:57Z",
                 "min_disk_size": 15,
@@ -47,11 +42,9 @@ floating_ips = [
                 "size_gigabytes": 0.61,
                 "description": "Ubuntu 20.04 x86",
                 "tags": [],
-                "status": "available"
+                "status": "available",
             },
-            "volume_ids": [
-                "631f81d2-9fc1-11ec-800c-0a58ac14d197"
-            ],
+            "volume_ids": ["631f81d2-9fc1-11ec-800c-0a58ac14d197"],
             "size": {
                 "slug": "s-1vcpu-1gb",
                 "memory": 1024,
@@ -69,10 +62,10 @@ floating_ips = [
                     "nyc3",
                     "sfo3",
                     "sgp1",
-                    "tor1"
+                    "tor1",
                 ],
                 "available": True,
-                "description": "Basic"
+                "description": "Basic",
             },
             "size_slug": "s-1vcpu-1gb",
             "networks": {
@@ -81,22 +74,22 @@ floating_ips = [
                         "ip_address": "127.0.0.1",
                         "netmask": "255.255.240.0",
                         "gateway": "127.0.0.1",
-                        "type": "public"
+                        "type": "public",
                     },
                     {
                         "ip_address": "127.0.0.1",
                         "netmask": "255.255.240.0",
                         "gateway": "127.0.0.1",
-                        "type": "private"
+                        "type": "private",
                     },
                     {
                         "ip_address": "127.0.0.1",
                         "netmask": "255.255.252.0",
                         "gateway": "127.0.0.1",
-                        "type": "public"
-                    }
+                        "type": "public",
+                    },
                 ],
-                "v6": []
+                "v6": [],
             },
             "region": {
                 "name": "Frankfurt 1",
@@ -107,7 +100,7 @@ floating_ips = [
                     "metadata",
                     "install_agent",
                     "storage",
-                    "image_transfer"
+                    "image_transfer",
                 ],
                 "available": True,
                 "sizes": [
@@ -180,11 +173,11 @@ floating_ips = [
                     "so1_5-24vcpu-192gb",
                     "so-32vcpu-256gb",
                     "m6-32vcpu-256gb",
-                    "so1_5-32vcpu-256gb"
-                ]
+                    "so1_5-32vcpu-256gb",
+                ],
             },
             "tags": [],
-            "vpc_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959"
+            "vpc_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959",
         },
         "region": {
             "name": "Frankfurt 1",
@@ -195,7 +188,7 @@ floating_ips = [
                 "metadata",
                 "install_agent",
                 "storage",
-                "image_transfer"
+                "image_transfer",
             ],
             "available": True,
             "sizes": [
@@ -268,9 +261,9 @@ floating_ips = [
                 "so1_5-24vcpu-192gb",
                 "so-32vcpu-256gb",
                 "m6-32vcpu-256gb",
-                "so1_5-32vcpu-256gb"
-            ]
+                "so1_5-32vcpu-256gb",
+            ],
         },
-        "locked": False
+        "locked": False,
     }
 ]
