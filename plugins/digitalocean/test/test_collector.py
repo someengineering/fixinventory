@@ -1,12 +1,26 @@
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots, load_balancers, floating_ips
+from fixtures import (
+    droplets,
+    regions,
+    volumes,
+    vpcs,
+    databases,
+    k8s,
+    snapshots,
+    load_balancers,
+    floating_ips,
+    projects,
+    project_resources
+)
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
 import datetime
 from resoto_plugin_digitalocean.client import StreamingWrapper
-import os, re
+import os
+import re
+
 
 class ClientMock(object):
 
@@ -40,14 +54,13 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def test_api_call():
-
+def _test_api_call():
 
     access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_floating_ips()
+    resources = client.list_project_resources("75088298-73bd-4c8f-ba4b-91fc220d0ac7")
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
@@ -175,7 +188,11 @@ def test_collect_k8s_clusters():
     })
     graph = prepare_graph(do_client)
 
-    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+    )
     check_edges(graph, "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26", "do:droplet:290075243")
 
     cluster = graph.search_first("id", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
@@ -252,4 +269,49 @@ def test_collect_floating_ips():
     assert floating_ip.ip_address == "127.0.0.1"
     assert floating_ip.ip_address_family == "ipv4"
     assert floating_ip.locked is False
+
+
+def test_collect_projects():
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_projects": projects,
+        "list_project_resources": project_resources,
+        "list_droplets": droplets,
+        "list_load_balancers": load_balancers,
+        "list_floating_ips": floating_ips,
+        "list_kubernetes_clusters": k8s,
+        "list_databases": databases,
+        "list_volumes": volumes,
+    })
+    graph = prepare_graph(do_client)
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:droplet:289110074"
+    )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+    )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:floatingip:127.0.0.1"
+    )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+    )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
+    )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
+    )
 

@@ -394,6 +394,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
+
         def extract_volume_status(volume):
             in_use = len(volume.get("droplet_ids", []) or []) > 0
             if in_use:
