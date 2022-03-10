@@ -525,7 +525,7 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanKubernetesCluster,
             attr_map={
                 "id": lambda c: kubernetes_id(c["id"]),
-                "verson": "verson",
+                "version": "version",
                 "cluster_subnet": "cluster_subnet",
                 "service_subnet": "service_subnet",
                 "ipv4": "ipv4",
@@ -546,8 +546,10 @@ class DigitalOceanTeamCollector:
                         for node in node_pool["nodes"]
                     ],
                 ],
+                "__vpcs": ["id", lambda c: vpc_id(c["vpc_uuid"])],
             },
             successors={EdgeType.default: ["__nodes"]},
+            predecessors={EdgeType.default: ["__vpcs"]},
         )
 
     @metrics_collect_snapshots.time()

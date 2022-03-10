@@ -139,7 +139,7 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
-    verson: str = field(default="")
+    version: str = field(default="")
     cluster_subnet: str = field(default="")
     service_subnet: str = field(default="")
     ipv4: str = field(default="")

@@ -2,7 +2,7 @@ from importlib import resources
 from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs, databases
+from fixtures import droplets, regions, volumes, vpcs, databases, k8s
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -17,7 +17,6 @@ class ClientMock(object):
 
     def __getattr__(self, name):
         def wrapper(*args, **kwargs):
-            print("'%s' was called" % name)
             return self.responses.get(name, [])
 
         return wrapper
@@ -40,14 +39,14 @@ def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     assert False, f"Edge {from_id} -> {to_id} not found"
 
 
-def test_api_call():
+def _test_api_call():
 
 
     access_token = os.environ['RESOTO_DIGITALOCEAN_API_TOKENS'].split(" ")[0]
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_databases()
+    resources = client.list_droplets()
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
@@ -141,7 +140,7 @@ def test_collect_droplets():
     assert droplet.image == "ubuntu-20-04-x64"
     assert droplet.locked is False
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
-    assert droplet.tags == {'test_droplet_tag': ''}
+    assert droplet.tags == {}
 
 
 def test_collect_volumes():
@@ -187,3 +186,37 @@ def test_collect_database():
     assert database.db_endpoint == "host.b.db.ondigitalocean.com"
     assert database.region().id == "do:region:fra1"
     assert database.instance_type == "db-s-1vcpu-1gb"
+
+
+def test_collect_k8s_clusters():
+    team = DigitalOceanTeam(id="do:team:test_team")
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_vpcs": vpcs,
+        "list_droplets": droplets,
+        "list_kubernetes_clusters": k8s,
+    })
+    plugin_instance = DigitalOceanTeamCollector(team, do_client)
+    plugin_instance.collect()
+    graph = prepare_graph(plugin_instance.graph)
+
+    check_edges(graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
+    check_edges(graph, "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26", "do:droplet:290075243")
+
+    cluster = graph.search_first("id", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")
+    assert cluster.id == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
+    assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
+    assert cluster.version == "1.22.7-do.0"
+    assert cluster.region().id == "do:region:fra1"
+    assert cluster.cluster_subnet == "10.244.0.0/16"
+    assert cluster.service_subnet == "10.245.0.0/16"
+    assert cluster.ipv4 == "127.0.0.1"
+    assert cluster.endpoint == "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com"
+    assert cluster.auto_upgrade is False
+    assert cluster.status == "running"
+    assert cluster.surge_upgrade is True
+    assert cluster.registry_enabled is False
+    assert cluster.ha is False
+
+
+
