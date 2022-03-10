@@ -5,3 +5,4 @@ from .vpcs import vpcs as vpcs
 from .databases import databases as databases
 from .k8s import k8s as k8s
 from .snapshots import snapshots as snapshots
+from .loadbalancers import load_balancers as load_balancers

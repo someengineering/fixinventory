@@ -2,7 +2,7 @@ from importlib import resources
 from re import template
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanTeam
-from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots
+from fixtures import droplets, regions, volumes, vpcs, databases, k8s, snapshots, load_balancers
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
@@ -49,7 +49,7 @@ def test_api_call():
 
     client = StreamingWrapper(access_token)
 
-    resources = client.list_snapshots()
+    resources = client.list_load_balancers()
     print()
     print(re.sub("'", '"', str(resources)))
     assert False
@@ -88,7 +88,6 @@ def test_collect_regions():
     assert region.slug == "fra1"
     assert region.features == ['backups', 'ipv6', 'metadata', 'install_agent', 'storage', 'image_transfer']
     assert region.available is True
-
 
 
 def test_collect_vpcs():
@@ -151,6 +150,7 @@ def test_collect_volumes():
     assert volume.volume_size == 1
     assert volume.volume_status == "in-use"
 
+
 def test_collect_database():
 
     do_client = ClientMock({
@@ -199,6 +199,7 @@ def test_collect_k8s_clusters():
     assert cluster.registry_enabled is False
     assert cluster.ha is False
 
+
 def test_collect_snapshots():
     do_client = ClientMock({
         "list_regions": regions,
@@ -214,4 +215,31 @@ def test_collect_snapshots():
     assert snapshot.size_gigabytes == 2
     assert snapshot.resource_id == "289110074"
     assert snapshot.resource_type == "droplet"
+
+
+def test_collect_loadbalancers():
+    do_client = ClientMock({
+        "list_regions": regions,
+        "list_load_balancers": load_balancers,
+        "list_droplets": droplets,
+        "list_vpcs": vpcs,
+    })
+    graph = prepare_graph(do_client)
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+    )
+    check_edges(graph, "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d", "do:droplet:289110074")
+    lb = graph.search_first("id", "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d")
+    assert lb.id == "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
+    assert lb.name == "fra1-load-balancer-01"
+    assert lb.ip == "127.0.0.1"
+    assert lb.size == "lb-small"
+    assert lb.size_unit == 1
+    assert lb.status == "new"
+    assert lb.redirect_http_to_https is False
+    assert lb.enable_proxy_protocol is False
+    assert lb.enable_backend_keepalive is False
+    assert lb.disable_lets_encrypt_dns_records is False
 

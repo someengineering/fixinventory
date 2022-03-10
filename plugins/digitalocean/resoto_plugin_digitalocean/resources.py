@@ -222,6 +222,7 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     ip: str = field(default="")
     size_unit: int = field(default=1)
+    size: str = field(default="")
     status: str = field(default="")
     redirect_http_to_https: bool = field(default=False)
     enable_proxy_protocol: bool = field(default=False)

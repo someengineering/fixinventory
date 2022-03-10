@@ -591,6 +591,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda lb: loadbalancer_id(lb["id"]),
                 "ip": "ip",
+                "size": "size",
                 "size_unit": "size_unit",
                 "status": "status",
                 "redirect_http_to_https": "redirect_http_to_https",
