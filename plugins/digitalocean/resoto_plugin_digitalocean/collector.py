@@ -397,10 +397,7 @@ class DigitalOceanTeamCollector:
 
         def extract_volume_status(volume):
             in_use = len(volume.get("droplet_ids", []) or []) > 0
-            if in_use:
-                return "in-use"
-            else:
-                return "available"
+            return "in_use" if in_use else "available"
 
         self.collect_resource(
             volumes,

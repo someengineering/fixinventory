@@ -154,7 +154,7 @@ def test_collect_volumes():
     assert volume.name == "volume-fra1-01"
     assert volume.description == "Test volume"
     assert volume.filesystem_type == "ext4"
-    assert volume.filesystem_label == ""
+    assert volume.filesystem_label == "label"
     assert volume.volume_size == 1
     assert volume.volume_status == "in-use"
 
