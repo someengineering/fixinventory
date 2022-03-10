@@ -3,7 +3,7 @@ from typing import Optional, AsyncIterator, List
 
 from dataclasses import dataclass
 
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, ComplexKind, Model
 from resotocore.types import Json
 
 
@@ -17,6 +17,11 @@ class ConfigEntity:
 class ConfigModel:
     id: str
     kinds: List[Kind]
+
+    @property
+    def complex_root(self) -> Optional[ComplexKind]:
+        md = Model.from_kinds(self.kinds)
+        return md.complex_roots[0] if len(md.complex_roots) == 1 else None
 
 
 class ConfigHandler(ABC):

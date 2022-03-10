@@ -18,6 +18,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
+from itertools import dropwhile
 from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
 
@@ -101,7 +102,7 @@ from resotocore.web.content_renderer import (
     respond_yaml,
     respond_cytoscape,
 )
-from resotocore.worker_task_queue import WorkerTask
+from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
 
 log = logging.getLogger(__name__)
 
@@ -2535,7 +2536,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         if arg_tokens[0] == "delete" and len(rest) == 2:
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
-                "tag",
+                WorkerTaskName.tag,
                 self.carz_from_node(item),
                 {"delete": [rest[1]], "node": item},
             )  # noqa: E731
@@ -2543,7 +2544,7 @@ class TagCommand(SendWorkerTaskCommand):
             _, tag, vin = rest
             formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
-                "tag",
+                WorkerTaskName.tag,
                 self.carz_from_node(item),
                 {"update": {tag: formatter(item)}, "node": item},
             )
@@ -3481,9 +3482,11 @@ class ConfigsCommand(CLICommand):
             except Exception as ex:
                 log.debug(f"Could not update the config: {ex}.", exc_info=ex)
                 # Yaml file: add the error as comment on top
-                error = "\n".join(f"# {line}" for line in str(ex).splitlines())
-                message = f"# Update the config failed with this error message:\n# Please correct.\n\n{error}\n\n"
-                async for file in send_file(message + content):
+                error = "\n".join(f"## {line}" for line in str(ex).splitlines())
+                message = f"## Update the config failed. Please correct.\n{error}\n\n"
+                # Remove error message from previous check
+                config = "\n".join(dropwhile(lambda l: l.startswith("##") or len(l.strip()) == 0, content.splitlines()))
+                async for file in send_file(message + config):
                     yield file
 
         async def list_configs() -> Tuple[int, Stream]:

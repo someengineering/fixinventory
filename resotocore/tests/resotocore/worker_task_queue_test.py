@@ -8,7 +8,7 @@ from pytest import fixture, mark
 from resotocore.model.graph_access import Section
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath
 from resotocore.util import group_by, identity, value_in_path
-from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask
+from resotocore.worker_task_queue import WorkerTaskDescription, WorkerTaskQueue, WorkerTask, WorkerTaskName
 
 
 @fixture
@@ -33,7 +33,8 @@ async def worker(
     success = WorkerTaskDescription("success_task")
     fail = WorkerTaskDescription("fail_task")
     wait = WorkerTaskDescription("wait_task")
-    tag = WorkerTaskDescription("tag")
+    tag = WorkerTaskDescription(WorkerTaskName.tag)
+    validate_config = WorkerTaskDescription(WorkerTaskName.validate_config)
 
     async def do_work(worker_id: str, task_descriptions: List[WorkerTaskDescription]) -> None:
         async with task_queue.attach(worker_id, task_descriptions) as tasks:
@@ -48,7 +49,13 @@ async def worker(
                 elif task.name == wait.name:
                     # if we come here, neither success nor failure was given, ignore the task
                     pass
-                elif task.name == "tag":
+                elif task.name == WorkerTaskName.validate_config:
+                    cfg_id = task.attrs["config_id"]
+                    if cfg_id == "invalid_config":
+                        await task_queue.error_task(worker_id, task.id, "Invalid Config ;)")
+                    else:
+                        await task_queue.acknowledge_task(worker_id, task.id, None)
+                elif task.name == WorkerTaskName.tag:
                     node = task.data["node"]
                     for key in GraphResolver.resolved_ancestors.keys():
                         for section in Section.content:
@@ -62,11 +69,9 @@ async def worker(
                     if task.data.get("delete"):
                         for a in task.data.get("delete"):  # type: ignore
                             node["tags"].pop(a, None)
-                            continue
                     elif task.data.get("update"):
                         for k, v in task.data.get("update").items():  # type: ignore
                             node["tags"][k] = v
-                            continue
 
                     # for testing purposes: change revision number
                     kind: str = value_in_path(node, NodePath.reported_kind)  # type: ignore
@@ -75,7 +80,7 @@ async def worker(
 
                     await task_queue.acknowledge_task(worker_id, task.id, node)
 
-    workers = [asyncio.create_task(do_work(f"w{a}", [success, fail, wait, tag])) for a in range(0, 4)]
+    workers = [asyncio.create_task(do_work(f"w{a}", [success, fail, wait, tag, validate_config])) for a in range(0, 4)]
     await asyncio.sleep(0)
 
     yield success, fail, wait

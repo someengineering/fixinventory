@@ -17,6 +17,11 @@ from resotocore.util import utc, Periodic, set_future_result
 log = logging.getLogger(__name__)
 
 
+class WorkerTaskName:
+    tag = "tag"
+    validate_config = "validate_config"
+
+
 @dataclass(eq=False, frozen=True)
 class WorkerTask:
     id: str  # the unique id of the task
@@ -125,7 +130,7 @@ class WorkerTaskQueue:
                 open_tasks = [task for task in self.outstanding_tasks.values() if task.worker.worker_id == worker_id]
                 await self.__retry_tasks(open_tasks)
 
-    async def add_task(self, task: WorkerTask, retry_count: int = 0) -> None:
+    async def add_task(self, task: WorkerTask, retry_count: int = 3) -> None:
         async with self.lock:
             await self.__add_task(task, retry_count)
 
@@ -152,7 +157,7 @@ class WorkerTaskQueue:
                 if await self.__add_task(ns.task, ns.retry_counter):
                     self.unassigned_tasks.pop(ns.task.id, None)
 
-    async def __add_task(self, task: WorkerTask, retry_count: int = 0) -> bool:
+    async def __add_task(self, task: WorkerTask, retry_count: int) -> bool:
         def outstanding_tasks(subscription: WorkerTaskSubscription) -> int:
             return self.work_count[subscription.worker_id]
 
@@ -204,19 +209,19 @@ class WorkerTaskQueue:
             if in_progress.worker.worker_id == worker_id:
                 self.outstanding_tasks.pop(task_id, None)
                 self.work_count[worker_id] = self.work_count[worker_id] - 1
-                set_future_result(in_progress.task.callback, Exception(f"Error executing task: {message}"))
+                set_future_result(in_progress.task.callback, AttributeError(f"Error executing task: {message}"))
                 # todo: remove task from database
             else:
                 log.info(f"Got error for task {task_id} from wrong worker {worker_id}. outdated?")
 
     async def __retry_tasks(self, tasks: List[WorkerTaskInProgress]) -> None:
         for task in tasks:
-            if task.retry_counter < 3:
+            if task.retry_counter > 0:
                 # todo: maybe it still in the queue of the worker?
                 # reschedule
-                await self.__add_task(task.task, task.retry_counter + 1)
+                await self.__add_task(task.task, task.retry_counter - 1)
             else:
                 log.warning(f"Too many retried executing task {task.task.id}. Give up.")
                 self.outstanding_tasks.pop(task.task.id, None)
                 self.work_count[task.worker.worker_id] = self.work_count[task.worker.worker_id] - 1
-                set_future_result(task.task.callback, Exception("Could not finish the task."))
+                set_future_result(task.task.callback, TimeoutError("Could not finish the task."))
