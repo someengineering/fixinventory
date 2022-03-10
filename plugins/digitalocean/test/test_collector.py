@@ -17,9 +17,6 @@ from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
 from resotolib.graph import Graph, GraphRoot
 import datetime
-from resoto_plugin_digitalocean.client import StreamingWrapper
-import os
-import re
 
 
 class ClientMock(object):
