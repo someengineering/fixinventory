@@ -36,10 +36,12 @@ def create_graph(resotocore_base_uri: str, resotocore_graph: str):
 
     log.debug(f"Creating graph {resotocore_graph} via {graph_uri}")
 
-    headers = {"accept": "application/json"}
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-
     r = requests.post(graph_uri, data="", headers=headers)
     if r.status_code != 200:
         log.error(r.content)
@@ -66,7 +68,9 @@ def update_model(
             log.info(f"Writing model json to file {model_outfile.name}")
             model_outfile.write(model_json.encode())
 
-    headers = {}
+    headers = {
+        "Content-Type": "application/json",
+    }
     if getattr(ArgumentParser.args, "psk", None):
         encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
