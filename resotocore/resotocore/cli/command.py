@@ -18,24 +18,12 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
-from typing import (
-    Dict,
-    List,
-    Tuple,
-    Optional,
-    Any,
-    AsyncIterator,
-    Hashable,
-    Iterable,
-    Callable,
-    Awaitable,
-    cast,
-    Set,
-)
+from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
+import yaml
 from aiohttp import ClientTimeout, JsonPayload
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
@@ -81,8 +69,11 @@ from resotocore.parse_util import (
     space_dp,
     make_parser,
     variable_dp,
+    variable_p,
     literal_dp,
     comma_p,
+    json_value_p,
+    equals_p,
 )
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
@@ -99,6 +90,7 @@ from resotocore.util import (
     duration,
     identity,
     rnd_str,
+    set_value_in_path,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -2341,11 +2333,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         async def running_jobs() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
-                {
-                    "job": t.descriptor.id,
-                    "started_at": to_json(t.task_started_at),
-                    "task-id": t.id,
-                }
+                {"job": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
                 for t in tasks
                 if isinstance(t.descriptor, Job)
             )
@@ -3340,17 +3328,10 @@ class WorkflowsCommand(CLICommand):
         async def running_workflows() -> Tuple[int, Stream]:
             tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
-                {
-                    "workflow": t.descriptor.id,
-                    "started_at": to_json(t.task_started_at),
-                    "task-id": t.id,
-                }
+                {"workflow": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
                 for t in tasks
                 if isinstance(t.descriptor, Workflow)
             )
-
-        async def show_help() -> AsyncIterator[str]:
-            yield self.rendered_help(ctx)
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
@@ -3362,7 +3343,180 @@ class WorkflowsCommand(CLICommand):
         elif arg and len(args) == 1 and args[0] == "list":
             return CLISource(list_workflows)
         else:
-            return CLISource.single(show_help)
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
+@make_parser
+def path_value_parser() -> Parser:
+    key = yield variable_p
+    yield equals_p
+    value = yield json_value_p
+    return key, value
+
+
+path_values_parser = path_value_parser.sep_by(comma_p)
+
+
+class ConfigsCommand(CLICommand):
+    """
+    ```shell
+    configs list
+    configs show <cfg_id>
+    configs set <cfg_id> <prop>=<value> [, <prop>=<value>]
+    configs edit <cfg_id>
+    configs update <cfg_id> <path>
+    configs delete <cfg_id>
+    ```
+
+    - `configs list`: get the list of all config ids in the system.
+    - `configs show <cfg_id>`: show the configuration with provided identifier.
+    - `configs set <cfg_id> <prop>=<value>`: set one or more property values in the configuration with provided id.
+    - `configs edit <cfg_id>`: edit the complete configuration with provided id as file
+    - `configs update <cfg_id> <path>`: update or create the configuration with provided id with content of given file.
+    - `configs delete <cfg_id>`: delete the configuration with given identifier.
+
+    ## Parameters
+    - cfg_id [mandatory]: The identifier of the configuration.
+    - prop: the path of the property to set. Nested properties can be accessed via `.`.
+    - value: the value of the property path to set. It can be any json conform element.
+    - path: the path of the file that holds the configuration to upate.
+
+    ## Examples
+
+    ```shell
+    # Set properties of the configuration "test".
+    # Note: if the configuration does not exist, it is created automatically.
+    > config set test prop_a=test, prop_b=2, array_prop=[1,2,3,4]
+    array_prop:
+    - 1
+    - 2
+    - 3
+    - 4
+    prop_a: test
+    prop_b: 2
+
+    # Update the same configuration by setting only one property.
+    > config set test prop_a="some other value"
+    array_prop:
+    - 1
+    - 2
+    - 3
+    - 4
+    prop_a: some other value
+    prop_b: 2
+
+    # This will open the configuration in your local editor.
+    # Once the editor is closed, the configuration is updated.
+    > config edit test
+
+    # Update the configuration test by loading the provided config file.
+    > config update test /path/to/my/local/config.yaml
+
+    # Get the list of all configuration keys.
+    > config list
+    config_test
+    resoto.core
+    resoto.worker.1
+    resoto.worker.2
+    resoto.metrics
+
+    # Delete the config with name
+    > config delete config_test
+    Config config_test has been deleted.
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "configs"
+
+    def info(self) -> str:
+        return "Manage configuration settings."
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def show_config(cfg_id: str) -> AsyncIterator[JsonElement]:
+            cfg = await self.dependencies.config_handler.config_yaml(cfg_id)
+            yield cfg if cfg else f"No config with this id: {cfg_id}"
+
+        async def delete_config(cfg_id: str) -> AsyncIterator[str]:
+            await self.dependencies.config_handler.delete_config(cfg_id)
+            yield f"Config {cfg_id} has been deleted."
+
+        async def send_file(content: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, "config.yaml")
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    await f.write(content)
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def set_config(cfg_id: str, updates: List[Tuple[str, JsonElement]]) -> AsyncIterator[JsonElement]:
+            cfg = await self.dependencies.config_handler.get_config(cfg_id)
+            updated = cfg.config if cfg else {}
+            for prop, js in updates:
+                updated = set_value_in_path(js, prop, updated)
+            await self.dependencies.config_handler.put_config(cfg_id, updated)
+            yield await self.dependencies.config_handler.config_yaml(cfg_id)
+
+        async def edit_config(cfg_id: str) -> AsyncIterator[str]:
+            # Editing a config is a two-step process:
+            # 1) download the config and make it available to edit
+            # 2) upload the config file and update the config from content --> update_config
+            yml = await self.dependencies.config_handler.config_yaml(cfg_id)
+            if not yml:
+                raise AttributeError(f"No config with this id: {cfg_id}")
+            return send_file(yml)
+
+        async def update_config(cfg_id: str) -> AsyncIterator[str]:
+            # Usually invoked by resh automatically via edit_config, but can also be triggered manually.
+            # A config with given id is changed by the content of uploaded file "config"
+            try:
+                content = ""
+                async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
+                    content = await f.read()
+                    updated = yaml.safe_load(content)
+                await self.dependencies.config_handler.put_config(cfg_id, updated)
+            except Exception as ex:
+                log.debug(f"Could not update the config: {ex}.", exc_info=ex)
+                # Yaml file: add the error as comment on top
+                error = "\n".join(f"# {line}" for line in str(ex).splitlines())
+                message = f"# Update the config failed with this error message:\n# Please correct.\n\n{error}\n\n"
+                async for file in send_file(message + content):
+                    yield file
+
+        async def list_configs() -> Tuple[int, Stream]:
+            ids = [i async for i in self.dependencies.config_handler.list_config_ids()]
+            return len(ids), stream.iterate(ids)
+
+        args = re.split("\\s+", arg, maxsplit=2) if arg else []
+        if arg and len(args) == 2 and (args[0] == "show" or args[0] == "get"):
+            return CLISource.single(partial(show_config, args[1]))
+        elif arg and len(args) == 2 and args[0] == "delete":
+            return CLISource.single(partial(delete_config, args[1]))
+        elif arg and len(args) == 3 and args[0] == "set":
+            update = path_values_parser.parse(args[2])
+            return CLISource.single(partial(set_config, args[1], update))
+        elif arg and len(args) == 2 and args[0] == "edit":
+            config_id = args[1]
+            return CLISource.single(
+                partial(edit_config, config_id),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
+            )
+        elif arg and len(args) == 3 and args[0] == "update":
+            config_id = args[1]
+            return CLISource.single(
+                partial(update_config, config_id),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
+                requires=[CLIFileRequirement("config.yaml", args[2])],
+            )
+        elif arg and len(args) == 1 and args[0] == "list":
+            return CLISource(list_configs)
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
@@ -3372,6 +3526,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         AncestorsPart(d),
         ChunkCommand(d),
         CleanCommand(d),
+        ConfigsCommand(d),
         CountCommand(d),
         DescendantsPart(d),
         DumpCommand(d),
@@ -3411,4 +3566,4 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "search", "query": "search", "https": "http", "kind": "kinds"}
+    return {"match": "search", "query": "search", "https": "http", "kind": "kinds", "config": "configs"}

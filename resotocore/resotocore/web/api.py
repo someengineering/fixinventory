@@ -64,13 +64,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import (
-    uuid_str,
-    force_gen,
-    rnd_str,
-    if_set,
-    duration,
-)
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, count_iterator
 from resotocore.web import auth
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
@@ -463,10 +457,7 @@ class Api:
         await to_wait
         return ws
 
-    async def handle_work_tasks(
-        self,
-        request: Request,
-    ) -> web.WebSocketResponse:
+    async def handle_work_tasks(self, request: Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
@@ -787,9 +778,7 @@ class Api:
         # only required for multipart requests
         boundary = "----cli"
         mp_response = web.StreamResponse(
-            status=200,
-            reason="OK",
-            headers={"Content-Type": f"multipart/mixed;boundary={boundary}"},
+            status=200, reason="OK", headers={"Content-Type": f"multipart/mixed;boundary={boundary}"}
         )
 
         async def list_or_gen(current: ParsedCommandLine) -> Tuple[Optional[int], Stream]:
@@ -817,7 +806,7 @@ class Api:
                     return await self.stream_response_from_gen(request, gen, count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
-                    await Api.multi_file_response(gen, boundary, mp_response)
+                    await Api.multi_file_response(parsed, gen, boundary, mp_response)
                     return mp_response
                 else:
                     raise AttributeError(f"Can not handle type: {first_result.produces}")
@@ -830,10 +819,12 @@ class Api:
                     if single.produces.json:
                         with MultipartWriter(repr(single.produces), boundary) as mp:
                             content_type, result_stream = await result_binary_gen(request, gen)
-                            mp.append_payload(AsyncIterablePayload(result_stream, content_type=content_type))
+                            mp.append_payload(
+                                AsyncIterablePayload(result_stream, content_type=content_type, headers=single.envelope)
+                            )
                             await mp.write(mp_response, close_boundary=True)
                     elif single.produces.file_path:
-                        await Api.multi_file_response(gen, boundary, mp_response)
+                        await Api.multi_file_response(parsed, gen, boundary, mp_response)
                     else:
                         raise AttributeError(f"Can not handle type: {single.produces}")
             await mp_response.write_eof()
@@ -890,13 +881,17 @@ class Api:
 
     @staticmethod
     async def stream_response_from_gen(
-        request: Request, gen_in: AsyncIterator[JsonElement], count: Optional[int] = None
+        request: Request,
+        gen_in: AsyncIterator[JsonElement],
+        count: Optional[int] = None,
+        additional_header: Optional[Dict[str, str]] = None,
     ) -> StreamResponse:
         # force the async generator, to get an early exception in case of failure
         gen = await force_gen(gen_in)
         content_type, result_gen = await result_binary_gen(request, gen)
-        count_header = {"Ck-Element-Count": str(count)} if count else {}
-        response = web.StreamResponse(status=200, headers={"Content-Type": content_type, **count_header})
+        count_header = {"Resoto-Shell-Element-Count": str(count)} if count else {}
+        hdr = additional_header or {}
+        response = web.StreamResponse(status=200, headers={**hdr, "Content-Type": content_type, **count_header})
         enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
         cr = "\n".encode("utf-8")
@@ -906,13 +901,19 @@ class Api:
         return response
 
     @staticmethod
-    async def multi_file_response(results: AsyncIterator[str], boundary: str, response: StreamResponse) -> None:
+    async def multi_file_response(
+        parsed: List[ParsedCommandLine], results: AsyncIterator[str], boundary: str, response: StreamResponse
+    ) -> None:
+        it = count_iterator()
         async for file_path in results:
+            cmd_line = parsed[next(it)]
             path = Path(file_path)
             if not (path.exists() and path.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
             with open(path.absolute(), "rb") as content:
                 with MultipartWriter(boundary=boundary) as mp:
-                    pl = BufferedReaderPayload(content, content_type="application/octet-stream", filename=path.name)
+                    pl = BufferedReaderPayload(
+                        content, content_type="application/octet-stream", filename=path.name, headers=cmd_line.envelope
+                    )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=True)

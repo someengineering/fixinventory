@@ -86,6 +86,7 @@ def run(arguments: List[str]) -> None:
         worker_task_queue=worker_task_queue,
         args=args,
         template_expander=template_expander,
+        config_handler=config_handler,
     )
     default_env = {"graph": args.cli_default_graph, "section": args.cli_default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, aliases())

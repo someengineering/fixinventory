@@ -76,7 +76,7 @@ class ArangoEntityDb(EntityDb[T], ABC):
         return from_js(result, self.t_type) if result else None
 
     async def update(self, t: T) -> T:
-        await self.db.insert(self.collection_name, self.to_doc(t), overwrite=True)
+        await self.db.insert(self.collection_name, self.to_doc(t), overwrite=True, overwrite_mode="replace")
         return t
 
     async def delete(self, key_or_object: Union[str, T]) -> None:
