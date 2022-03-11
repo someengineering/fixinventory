@@ -20,6 +20,7 @@ from .resources import (
     DigitalOceanSnapshot,
     DigitalOceanLoadBalancer,
     DigitalOceanFloatingIP,
+    DigitalOceanImage,
 )
 from .utils import (
     iso2datetime,
@@ -34,6 +35,7 @@ from .utils import (
     loadbalancer_id,
     floatingip_id,
     database_id,
+    image_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -354,6 +356,31 @@ class DigitalOceanTeamCollector:
     @metrics_collect_intances.time()
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
+
+        def get_image(droplet: Dict) -> Dict:
+            image = droplet["image"]
+            image["region"] = droplet["region"]["slug"]
+            return image
+
+        images = [get_image(instance) for instance in instances]
+        self.collect_resource(
+            images,
+            resource_class=DigitalOceanImage,
+            attr_map={
+                "id": lambda i: image_id(i["id"]),
+                "distribution": "distribution",
+                "slug": "slug",
+                "public": "public",
+                "min_disk_size": "min_disk_size",
+                "image_type": "type",
+                "size_gigabytes": lambda image: math.ceil(image.get("size_gigabytes")),
+                "description": "description",
+                "status": "status",
+            },
+            search_map={
+                "_region": ["id", lambda image: region_id(image["region"])],
+            },
+        )
         self.collect_resource(
             instances,
             resource_class=DigitalOceanDroplet,
@@ -370,8 +397,11 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
                 "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
+                "__images": ["id", lambda droplet: image_id(droplet["image"]["id"])],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={
+                EdgeType.default: ["__vpcs", "__images"],
+            },
         )
 
     @metrics_collect_regions.time()

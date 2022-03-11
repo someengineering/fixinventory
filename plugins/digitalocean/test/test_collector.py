@@ -121,6 +121,18 @@ def test_collect_droplets():
     check_edges(
         graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074"
     )
+    check_edges(graph, "do:image:101111514", "do:droplet:289110074")
+    image = graph.search_first("id", "do:image:101111514")
+    assert image.id == "do:image:101111514"
+    assert image.name == "20.04 (LTS) x64"
+    assert image.distribution == "Ubuntu"
+    assert image.slug == "ubuntu-20-04-x64"
+    assert image.public is True
+    assert image.image_type == "base"
+    assert image.size_gigabytes == 1
+    assert image.min_disk_size == 15
+    assert image.status == "available"
+
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"

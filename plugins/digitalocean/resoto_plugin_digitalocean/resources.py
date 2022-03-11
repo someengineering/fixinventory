@@ -202,7 +202,7 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
-    """DigitalOcean image"""
+    """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
 
@@ -246,8 +246,24 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
 
 @dataclass(eq=False)
+class DigitalOceanImage(DigitalOceanResource, BaseResource):
+    """DigitalOcean image"""
+
+    kind: ClassVar[str] = "digitalocean_image"
+
+    distribution: str = field(default="")
+    slug: str = field(default="")
+    public: bool = field(default=False)
+    min_disk_size: int = field(default=0)
+    image_type: str = field(default="")
+    size_gigabytes: int = field(default=0)
+    description: str = field(default="")
+    status: str = field(default="")
+
+
+@dataclass(eq=False)
 class DigitalOceanCustomResource(DigitalOceanResource, BaseResource):
-    """An digitalocean custom resource that only inherits the collectors
+    """A digitalocean custom resource that only inherits the collectors
     DigitalOceanResource class as well as the BaseResource base class.
 
     This is mainly an digitalocean of how to use typed Python dataclasses

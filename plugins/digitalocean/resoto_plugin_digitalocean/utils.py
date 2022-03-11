@@ -73,3 +73,6 @@ def floatingip_id(value: str) -> str:
 
 def database_id(value: str) -> str:
     return f"do:dbaas:{value}"
+
+def image_id(value: str) -> str:
+    return f"do:image:{value}"
