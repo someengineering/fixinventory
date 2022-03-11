@@ -18,6 +18,8 @@ log = logging.getLogger(__name__)
 class CoreMessage:
     Connected = "message-listener-connected"
     Disconnected = "message-listener-disconnected"
+    ConfigUpdated = "config-updated"
+    ConfigDeleted = "config-deleted"
 
 
 class Message(ABC):

@@ -7,6 +7,7 @@ import yaml
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
+from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.util import uuid_str
@@ -20,11 +21,13 @@ class ConfigHandlerService(ConfigHandler):
         validation_db: ConfigValidationEntityDb,
         model_db: ModelDb,
         task_queue: WorkerTaskQueue,
+        message_bus: MessageBus,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
         self.model_db = model_db
         self.task_queue = task_queue
+        self.message_bus = message_bus
 
     async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
         model = await self.get_configs_model()
@@ -56,17 +59,22 @@ class ConfigHandlerService(ConfigHandler):
 
     async def put_config(self, cfg: ConfigEntity) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config)
-        return await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
+        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
+        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+        return result
 
     async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
         current = await self.cfg_db.get(cfg.id)
         current_config = current.config if current else {}
         coerced = await self.coerce_and_check_model(cfg.id, {**current_config, **cfg.config})
-        return await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
+        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
+        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+        return result
 
     async def delete_config(self, cfg_id: str) -> None:
         await self.cfg_db.delete(cfg_id)
         await self.validation_db.delete(cfg_id)
+        await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
 
     def list_config_validation_ids(self) -> AsyncIterator[str]:
         return self.validation_db.keys()

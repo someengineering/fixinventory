@@ -6,6 +6,7 @@ from pytest import fixture
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.config.config_handler_service import ConfigHandlerService
+from resotocore.message_bus import MessageBus, CoreMessage, Event, Message
 from resotocore.model.model import Kind, ComplexKind, Property
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -14,14 +15,17 @@ from tests.resotocore.db.entitydb import InMemoryDb
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
+# noinspection PyUnresolvedReferences
+from tests.resotocore.message_bus_test import message_bus, wait_for_message, all_events
+
 
 @fixture
-def config_handler(task_queue: WorkerTaskQueue, worker: Any) -> ConfigHandler:
+def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: MessageBus) -> ConfigHandler:
     # Note: the worker fixture is required, since it starts worker tasks
     cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
-    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue)
+    return ConfigHandlerService(cfg_db, validation_db, model_db, task_queue, message_bus)
 
 
 @fixture
@@ -141,6 +145,30 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
     # different section with no attached model
     await config_handler.put_config(ConfigEntity("no_model", {"another_section": config}))
     assert expect_no_comment in (await config_handler.config_yaml("no_model") or "")
+
+
+@pytest.mark.asyncio
+async def test_config_change_emits_event(config_handler: ConfigHandler, all_events: List[Message]) -> None:
+    # Put a config
+    all_events.clear()
+    cfg = await config_handler.put_config(ConfigEntity("foo", dict(test=1)))
+    message = await wait_for_message(all_events, CoreMessage.ConfigUpdated, Event)
+    assert message.data["id"] == cfg.id
+    assert message.data["revision"] == cfg.revision
+
+    # Patch a config
+    all_events.clear()
+    cfg = await config_handler.patch_config(ConfigEntity("foo", dict(foo=2)))
+    message = await wait_for_message(all_events, CoreMessage.ConfigUpdated, Event)
+    assert message.data["id"] == cfg.id
+    assert message.data["revision"] == cfg.revision
+
+    # Delete a config
+    all_events.clear()
+    await config_handler.delete_config("foo")
+    message = await wait_for_message(all_events, CoreMessage.ConfigDeleted, Event)
+    assert message.data["id"] == "foo"
+    assert "revision" not in message.data
 
 
 def test_config_entity_roundtrip() -> None:

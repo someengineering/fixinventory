@@ -82,6 +82,7 @@ def run(arguments: List[str]) -> None:
         db.config_validation_entity_db,
         db.configs_model_db,
         worker_task_queue,
+        message_bus,
     )
     cli_deps = CLIDependencies(
         message_bus=message_bus,
