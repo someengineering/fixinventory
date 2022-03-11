@@ -219,8 +219,10 @@ class Api:
                 web.delete("/config/{config_id}", self.delete_config),
                 # config model operations
                 web.get("/configs/validation", self.list_config_models),
-                web.put("/config/{config_id}/validation", self.put_config_model),
-                web.get("/config/{config_id}/validation", self.get_config_model),
+                web.get("/configs/model", self.get_configs_model),
+                web.patch("/configs/model", self.update_configs_model),
+                web.put("/config/{config_id}/validation", self.put_config_validation),
+                web.get("/config/{config_id}/validation", self.get_config_validation),
                 # ca operations
                 web.get("/ca/cert", self.certificate),
                 web.post("/ca/sign", self.sign_certificate),
@@ -308,12 +310,22 @@ class Api:
     async def list_config_models(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_validation_ids())
 
-    async def get_config_model(self, request: Request) -> StreamResponse:
+    async def get_config_validation(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         model = await self.config_handler.get_config_validation(config_id)
         return await single_result(request, to_js(model)) if model else HTTPNotFound(text="No model for this config.")
 
-    async def put_config_model(self, request: Request) -> StreamResponse:
+    async def get_configs_model(self, request: Request) -> StreamResponse:
+        model = await self.config_handler.get_configs_model()
+        return await single_result(request, to_js(model))
+
+    async def update_configs_model(self, request: Request) -> StreamResponse:
+        js = await self.json_from_request(request)
+        kinds: List[Kind] = from_js(js, List[Kind])
+        model = await self.config_handler.update_configs_model(kinds)
+        return await single_result(request, to_js(model))
+
+    async def put_config_validation(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         js = await self.json_from_request(request)
         js["id"] = config_id
@@ -536,7 +548,7 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         md = await self.model_handler.load_model()
-        return web.json_response(to_js(md))
+        return await single_result(request, to_js(md))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)

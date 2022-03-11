@@ -9,6 +9,7 @@ from aiohttp import ClientSession
 from arango.database import StandardDatabase
 
 from resotocore.__main__ import run
+from resotocore.config import ConfigValidation
 from resotocore.db import EstimatedQueryCostRating
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import predefined_kinds, Kind, StringKind, ComplexKind, Property
@@ -267,10 +268,26 @@ async def test_cli(core_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_config(core_client: ApiClient) -> None:
+async def test_config(core_client: ApiClient, foo_kinds: List[Kind]) -> None:
     # make sure we have a clean slate
     for config in await core_client.configs():
         await core_client.delete_config(config)
+
+    # define a config model
+    model = await core_client.update_configs_model(foo_kinds)
+    assert "foo" in model
+    assert "bla" in model
+
+    # get the config model again
+    get_model = await core_client.get_configs_model()
+    assert len(model) == len(get_model)
+
+    # define config validation
+    validation = ConfigValidation("external.validated.config", external_validation=True)
+    assert await core_client.put_config_validation(validation) == validation
+
+    # get the config validation
+    assert await core_client.get_config_validation(validation.id) == validation
 
     # add/update config
     cfg_id = rnd_str()

@@ -4,6 +4,7 @@ from aiohttp import ClientSession
 from networkx import MultiDiGraph
 
 from resotocore.cli.model import ParsedCommands, ParsedCommand
+from resotocore.config import ConfigValidation
 from resotocore.db import EstimatedSearchCost
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model, Kind
@@ -287,6 +288,33 @@ class ApiClient:
                 return None
             else:
                 raise AttributeError(await r.text())
+
+    async def get_configs_model(self) -> Model:
+        async with self.session.get(self.base_path + f"/configs/model") as r:
+            if r.status == 200:
+                model_json = await r.json()
+                model = Model.from_kinds([from_js(kind, Kind) for kind in model_json["kinds"].values()])  # type: ignore
+                return model
+            else:
+                raise AttributeError(await r.text())
+
+    async def update_configs_model(self, update: List[Kind]) -> Model:
+        async with self.session.patch(self.base_path + "/configs/model", json=to_js(update)) as response:
+            model_json = await response.json()
+            model = Model.from_kinds([from_js(kind, Kind) for kind in model_json["kinds"].values()])  # type: ignore
+            return model
+
+    async def list_configs_validation(self) -> List[str]:
+        async with self.session.get(self.base_path + "/configs/validation") as response:
+            return await response.json()  # type: ignore
+
+    async def get_config_validation(self, cfg_id: str) -> Optional[ConfigValidation]:
+        async with self.session.get(self.base_path + f"/config/{cfg_id}/validation") as response:
+            return from_js(await response.json(), ConfigValidation)
+
+    async def put_config_validation(self, cfg: ConfigValidation) -> ConfigValidation:
+        async with self.session.put(self.base_path + f"/config/{cfg.id}/validation", json=to_js(cfg)) as response:
+            return from_js(await response.json(), ConfigValidation)
 
     async def ping(self) -> str:
         async with self.session.get(self.base_path + f"/system/ping") as r:

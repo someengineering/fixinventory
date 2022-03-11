@@ -77,7 +77,12 @@ def run(arguments: List[str]) -> None:
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
-    config_handler = ConfigHandlerService(db.config_entity_db, db.config_validation_entity_db, worker_task_queue)
+    config_handler = ConfigHandlerService(
+        db.config_entity_db,
+        db.config_validation_entity_db,
+        db.configs_model_db,
+        worker_task_queue,
+    )
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,

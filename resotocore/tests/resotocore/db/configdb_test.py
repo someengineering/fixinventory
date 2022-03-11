@@ -42,8 +42,7 @@ def configs() -> List[ConfigEntity]:
 
 @pytest.fixture
 def config_models() -> List[ConfigValidation]:
-    kind = ComplexKind("test", [], [Property("foo", "string")])
-    return [ConfigValidation(f"id_{a}", [kind], True) for a in range(0, 10)]
+    return [ConfigValidation(f"id_{a}", True) for a in range(0, 10)]
 
 
 @pytest.mark.asyncio

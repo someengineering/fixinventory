@@ -1535,6 +1535,42 @@ paths:
                                 type: array
                                 items:
                                     type: string
+    /configs/model:
+        get:
+            summary: "Get the currently defined configuration model."
+            tags:
+                - config_validation
+            responses:
+                "200":
+                    description: "The list of all kinds."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+        patch:
+            summary: "Add or update the current defined configuration model."
+            tags:
+                - config_validation
+            requestBody:
+                description: "Complete model or part of the model."
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Kind"
+            responses:
+                "200":
+                    description: "OK if the model is updated successfully"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+                "400":
+                    description: "Message that explains the error"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+
     /configs/validation:
         get:
             summary: "Get all configuration keys that have a model defined."
@@ -2137,8 +2173,6 @@ components:
                 id:
                     description: The identifier of the related configuration.
                     type: string
-                kinds:
-                    $ref: "#/components/schemas/Kind"
                 external_validation:
                     description: |
                         True, if an external entity should validate a config change.

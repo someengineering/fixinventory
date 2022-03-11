@@ -1403,7 +1403,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     # in case of synthetic property
                     return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
 
-                props = sorted(kind.all_props, key=lambda k: k.name)
+                props = sorted(kind.all_props(), key=lambda k: k.name)
                 return {
                     "name": kind.fqn,
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),

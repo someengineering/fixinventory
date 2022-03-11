@@ -1,12 +1,13 @@
 import asyncio
 from datetime import timedelta
-from typing import Optional, AsyncIterator
+from typing import Optional, AsyncIterator, List
 
 import yaml
 
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
-from resotocore.model.model import Model
+from resotocore.db.modeldb import ModelDb
+from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.util import uuid_str
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
@@ -14,22 +15,31 @@ from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTask
 
 class ConfigHandlerService(ConfigHandler):
     def __init__(
-        self, cfg_db: ConfigEntityDb, validation_db: ConfigValidationEntityDb, task_queue: WorkerTaskQueue
+        self,
+        cfg_db: ConfigEntityDb,
+        validation_db: ConfigValidationEntityDb,
+        model_db: ModelDb,
+        task_queue: WorkerTaskQueue,
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
+        self.model_db = model_db
         self.task_queue = task_queue
 
     async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
+        model = await self.get_configs_model()
+
+        final_config = {}
+        for key, value in config.items():
+            if key in model:
+                try:
+                    coerced = model[key].check_valid(value)
+                    final_config[key] = coerced or value
+                except Exception as ex:
+                    raise AttributeError(f"Error validating section {key}: {ex}") from ex
+
         validation = await self.validation_db.get(cfg_id)
         if validation:
-            kind = validation.complex_root()
-            # If model is given, check and coerce the existing model.
-            # In case the config is invalid, this method will throw.
-            if kind:
-                coerced = kind.check_valid(config)
-                config = coerced or config
-
             # If an external entity needs to approve this change.
             # Method throws if config is not valid according to external approval.
             if validation.external_validation:
@@ -65,23 +75,35 @@ class ConfigHandlerService(ConfigHandler):
         return await self.validation_db.get(cfg_id)
 
     async def put_config_validation(self, validation: ConfigValidation) -> ConfigValidation:
-        # make sure there is a complex kind with name "config"
-        if validation.kinds:
-            model = Model.from_kinds(validation.kinds)
-            roots = model.complex_roots
-            if len(roots) != 1:
-                root_names = ", ".join(r.fqn for r in roots)
-                raise AttributeError(f"Require exactly one config root kind, but got: {root_names}")
         return await self.validation_db.update(validation)
+
+    async def get_configs_model(self) -> Model:
+        kinds = [kind async for kind in self.model_db.all()]
+        return Model.from_kinds(list(kinds))
+
+    async def update_configs_model(self, kinds: List[Kind]) -> Model:
+        # load existing model
+        model = await self.get_configs_model()
+        # make sure the update is valid
+        updated = model.update_kinds(kinds)
+        # store all updated kinds
+        await self.model_db.update_many(kinds)
+        return updated
 
     async def config_yaml(self, cfg_id: str, revision: bool = False) -> Optional[str]:
         config = await self.get_config(cfg_id)
         if config:
-            validation = await self.validation_db.get(cfg_id)
-            kind = validation.complex_root() if validation else None
-            yaml_str: str = (
-                kind.create_yaml(config.config) if kind else yaml.dump(config.config, default_flow_style=False)
-            )
+            model = await self.get_configs_model()
+
+            yaml_str = ""
+            for key, value in config.config.items():
+                maybe_kind = model.get(key)
+                if isinstance(maybe_kind, ComplexKind):
+                    part = maybe_kind.create_yaml(value, initial_level=1)
+                    yaml_str += key + ":" + part
+                else:
+                    yaml_str += yaml.dump({key: value})
+
             # mix the revision into the yaml document
             if revision and config.revision:
                 yaml_str += (
@@ -91,7 +113,6 @@ class ConfigHandlerService(ConfigHandler):
                 )
 
             return yaml_str
-
         else:
             return None
 

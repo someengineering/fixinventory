@@ -1,12 +1,12 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from typing import Optional, AsyncIterator, List
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional, AsyncIterator, List
 
 from jsons import set_deserializer, set_serializer
 
-from resotocore.model.model import Kind, ComplexKind, Model
+from resotocore.model.model import Model, Kind
 from resotocore.types import Json
 
 
@@ -33,12 +33,7 @@ class ConfigEntity:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class ConfigValidation:
     id: str
-    kinds: Optional[List[Kind]] = None
     external_validation: bool = False
-
-    def complex_root(self) -> Optional[ComplexKind]:
-        md = Model.from_kinds(self.kinds or [])
-        return md.complex_roots[0] if len(md.complex_roots) == 1 else None
 
 
 class ConfigHandler(ABC):
@@ -60,6 +55,14 @@ class ConfigHandler(ABC):
 
     @abstractmethod
     async def delete_config(self, cfg_id: str) -> None:
+        pass
+
+    @abstractmethod
+    async def get_configs_model(self) -> Model:
+        pass
+
+    @abstractmethod
+    async def update_configs_model(self, kinds: List[Kind]) -> Model:
         pass
 
     @abstractmethod

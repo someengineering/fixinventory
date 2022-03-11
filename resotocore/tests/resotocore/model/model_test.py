@@ -263,7 +263,7 @@ def test_property_path() -> None:
 def test_property_path_on_model(person_model: Model) -> None:
     # complex based property path
     person: ComplexKind = cast(ComplexKind, person_model["Person"])
-    person_path = {p.path: p for p in person.resolved_properties}
+    person_path = {p.path: p for p in person.resolved_properties()}
     assert len(person_path) == 13
     assert person_path[PropertyPath(["name"])].kind == person_model["string"]
     assert person_path[PropertyPath(["name"])].prop.name == "name"
@@ -327,13 +327,6 @@ def test_load(model_json: str) -> None:
     assert ec2.kind_hierarchy() == {"test.Compound", "test.BaseResource", "test.Base", "test.EC2"}
     assert ec2.allow_unknown_props is True
     assert base.allow_unknown_props is False
-
-
-def test_complex_roots(person_model: Model) -> None:
-    complex_roots = {k.fqn for k in person_model.complex_roots}
-    assert "Person" in complex_roots
-    # address is used in person
-    assert "Address" not in complex_roots
 
 
 def test_graph(person_model: Model) -> None:

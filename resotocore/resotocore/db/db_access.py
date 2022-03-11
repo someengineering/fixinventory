@@ -42,6 +42,7 @@ class DbAccess(ABC):
         job_name: str = "jobs",
         config_entity: str = "configs",
         config_validation_entity: str = "config_validation",
+        configs_model: str = "configs_model",
         template_entity: str = "templates",
         update_outdated: timedelta = timedelta(hours=4),
     ):
@@ -55,6 +56,7 @@ class DbAccess(ABC):
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
+        self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.update_outdated = update_outdated
@@ -67,6 +69,7 @@ class DbAccess(ABC):
         await self.job_db.create_update_schema()
         await self.config_entity_db.create_update_schema()
         await self.config_validation_entity_db.create_update_schema()
+        await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         for graph in self.database.graphs():
             log.info(f'Found graph: {graph["name"]}')
