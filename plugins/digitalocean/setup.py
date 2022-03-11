@@ -17,9 +17,9 @@ setup(
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        "resoto.plugins": [
-            "digitalocean_collector = resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
-        ]
+        # "resoto.plugins": [
+        #     "digitalocean_collector = resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
+        # ]
     },
     include_package_data=True,
     zip_safe=False,
