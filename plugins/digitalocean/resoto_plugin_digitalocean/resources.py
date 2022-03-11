@@ -139,7 +139,7 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
-    verson: str = field(default="")
+    version: str = field(default="")
     cluster_subnet: str = field(default="")
     service_subnet: str = field(default="")
     ipv4: str = field(default="")
@@ -170,7 +170,7 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
 
     description: str = field(default="")
     filesystem_type: str = field(default="")
-    filesystam_label: str = field(default="")
+    filesystem_label: str = field(default="")
 
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
@@ -222,6 +222,7 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     ip: str = field(default="")
     size_unit: int = field(default=1)
+    size: str = field(default="")
     status: str = field(default="")
     redirect_http_to_https: bool = field(default=False)
     enable_proxy_protocol: bool = field(default=False)

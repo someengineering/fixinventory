@@ -1,3 +1,4 @@
+import math
 from pprint import pformat
 from typing import Tuple, Type, List, Dict, Union, Callable, Any
 
@@ -393,6 +394,11 @@ class DigitalOceanTeamCollector:
     @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
         volumes = self.client.list_volumes()
+
+        def extract_volume_status(volume):
+            in_use = len(volume.get("droplet_ids", []) or []) > 0
+            return "in-use" if in_use else "available"
+
         self.collect_resource(
             volumes,
             resource_class=DigitalOceanVolume,
@@ -401,7 +407,8 @@ class DigitalOceanTeamCollector:
                 "volume_size": "size_gigabytes",
                 "description": "description",
                 "filesystem_type": "filesystem_type",
-                "filesystam_label": "filesystam_label",
+                "filesystem_label": "filesystem_label",
+                "volume_status": extract_volume_status,
             },
             search_map={
                 "__users": [
@@ -517,7 +524,7 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanKubernetesCluster,
             attr_map={
                 "id": lambda c: kubernetes_id(c["id"]),
-                "verson": "verson",
+                "version": "version",
                 "cluster_subnet": "cluster_subnet",
                 "service_subnet": "service_subnet",
                 "ipv4": "ipv4",
@@ -538,8 +545,10 @@ class DigitalOceanTeamCollector:
                         for node in node_pool["nodes"]
                     ],
                 ],
+                "__vpcs": ["id", lambda c: vpc_id(c["vpc_uuid"])],
             },
             successors={EdgeType.default: ["__nodes"]},
+            predecessors={EdgeType.default: ["__vpcs"]},
         )
 
     @metrics_collect_snapshots.time()
@@ -557,7 +566,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "size_gigabytes": "size_gigabytesl",
+                "size_gigabytes": lambda vol: math.ceil(vol.get("size_gigabytes")),
                 "resource_id": "resource_id",
                 "resource_type": "resource_type",
             },
@@ -580,6 +589,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda lb: loadbalancer_id(lb["id"]),
                 "ip": "ip",
+                "size": "size",
                 "size_unit": "size_unit",
                 "status": "status",
                 "redirect_http_to_https": "redirect_http_to_https",
