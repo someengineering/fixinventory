@@ -292,8 +292,10 @@ class Api:
 
     async def put_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
+        validate = request.query.get("validate", "true").lower() != "false"
+        print(f">>>>> validate is {validate}")
         config = await self.json_from_request(request)
-        result = await self.config_handler.put_config(ConfigEntity(config_id, config))
+        result = await self.config_handler.put_config(ConfigEntity(config_id, config), validate)
         return await single_result(request, result.config)
 
     async def patch_config(self, request: Request) -> StreamResponse:

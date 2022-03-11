@@ -76,36 +76,36 @@ paths:
             tags:
                 - model
             parameters:
-                - name: show
-                  description: comma separated list of resources to show. Entries can be regexps.
-                  in: query
-                  schema:
-                      type: string
-                  required: false
-                  explode: false
-                  example: aws_ec2_instance,gcp.*
-                - name: hide
-                  description: |
-                      comma separated list of resources to hide. Entries can be regexps.
-                      hide takes precedence over show.
-                  in: query
-                  schema:
-                      type: string
-                  required: false
-                  explode: false
-                  example: aws_ec2_instance,gcp.*
-                - name: with_bases
-                  description: Include all base classes of visible entries
-                  in: query
-                  schema:
-                      type: boolean
-                      default: true
-                - name: with_descendants
-                  description: Include all descendant classes of visible entries
-                  in: query
-                  schema:
-                      type: boolean
-                      default: false
+                -   name: show
+                    description: comma separated list of resources to show. Entries can be regexps.
+                    in: query
+                    schema:
+                        type: string
+                    required: false
+                    explode: false
+                    example: aws_ec2_instance,gcp.*
+                -   name: hide
+                    description: |
+                        comma separated list of resources to hide. Entries can be regexps.
+                        hide takes precedence over show.
+                    in: query
+                    schema:
+                        type: string
+                    required: false
+                    explode: false
+                    example: aws_ec2_instance,gcp.*
+                -   name: with_bases
+                    description: Include all base classes of visible entries
+                    in: query
+                    schema:
+                        type: boolean
+                        default: true
+                -   name: with_descendants
+                    description: Include all descendant classes of visible entries
+                    in: query
+                    schema:
+                        type: boolean
+                        default: false
             responses:
                 "200":
                     description: "Returns the model as uml diagram in svg format"
@@ -1629,6 +1629,14 @@ paths:
                     description: the identifier of the config to get.
                     schema:
                         type: string
+                -   name: validate
+                    required: false
+                    in: query
+                    description: |
+                        This parameter can be used to turn off config validation.
+                        In case it is not defined or not set to false, every configuaration value is validated.
+                    schema:
+                        type: boolean
             requestBody:
                 content:
                     application/json:
@@ -2232,7 +2240,7 @@ components:
                   },
                   {
                       "fqn": "test.person",
-                      "bases": ["test.base"],
+                      "bases": [ "test.base" ],
                       "properties": [
                           {
                               "name": "fortune",

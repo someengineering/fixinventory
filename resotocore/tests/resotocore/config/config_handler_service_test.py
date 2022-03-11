@@ -57,10 +57,11 @@ async def test_config(config_handler: ConfigHandler) -> None:
     assert [a async for a in config_handler.list_config_ids()] == []
 
     # add one entry
-    assert await config_handler.put_config(ConfigEntity("test", {"test": True})) == ConfigEntity("test", {"test": True})
+    entity = ConfigEntity("test", {"test": True})
+    assert await config_handler.put_config(entity) == entity
 
     # get one entry
-    assert await config_handler.get_config("test") == ConfigEntity("test", {"test": True})
+    assert await config_handler.get_config("test") == entity
 
     # patch the config
     assert await config_handler.patch_config(ConfigEntity("test", {"rest": False})) == ConfigEntity(

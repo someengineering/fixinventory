@@ -277,7 +277,6 @@ async def test_config(core_client: ApiClient, foo_kinds: List[Kind]) -> None:
     model = await core_client.update_configs_model(foo_kinds)
     assert "foo" in model
     assert "bla" in model
-
     # get the config model again
     get_model = await core_client.get_configs_model()
     assert len(model) == len(get_model)
@@ -289,8 +288,21 @@ async def test_config(core_client: ApiClient, foo_kinds: List[Kind]) -> None:
     # get the config validation
     assert await core_client.get_config_validation(validation.id) == validation
 
-    # add/update config
+    # put config
     cfg_id = rnd_str()
+
+    # put a config with schema that is violated
+    with pytest.raises(AttributeError) as ex:
+        await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}})
+    assert "Expected number but got abc" in str(ex.value)
+
+    # put a config with schema that is violated, but turn validation off
+    await core_client.put_config(cfg_id, {"foo": {"some_int": "abc"}}, validate=False)
+
+    # set a simple state
+    assert await core_client.put_config(cfg_id, {"a": 1}) == {"a": 1}
+
+    # patch config
     assert await core_client.patch_config(cfg_id, {"a": 1}) == {"a": 1}
     assert await core_client.patch_config(cfg_id, {"b": 2}) == {"a": 1, "b": 2}
     assert await core_client.patch_config(cfg_id, {"c": 3}) == {"a": 1, "b": 2, "c": 3}

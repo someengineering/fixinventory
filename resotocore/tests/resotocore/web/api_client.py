@@ -275,6 +275,14 @@ class ApiClient:
             else:
                 raise AttributeError(await r.text())
 
+    async def put_config(self, config_id: str, json: Json, validate: bool = True) -> AccessJson:
+        params = {"validate": "true" if validate else "false"}
+        async with self.session.put(self.base_path + f"/config/{config_id}", json=json, params=params) as r:
+            if r.status == 200:
+                return AccessJson.wrap_object(await r.json())
+            else:
+                raise AttributeError(await r.text())
+
     async def patch_config(self, config_id: str, json: Json) -> AccessJson:
         async with self.session.patch(self.base_path + f"/config/{config_id}", json=json) as r:
             if r.status == 200:

@@ -46,7 +46,7 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
-    async def put_config(self, cfg: ConfigEntity) -> ConfigEntity:
+    async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
         pass
 
     @abstractmethod

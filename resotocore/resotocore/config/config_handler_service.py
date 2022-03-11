@@ -29,27 +29,31 @@ class ConfigHandlerService(ConfigHandler):
         self.task_queue = task_queue
         self.message_bus = message_bus
 
-    async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
+    async def coerce_and_check_model(self, cfg_id: str, config: Json, validate: bool = True) -> Json:
         model = await self.get_configs_model()
 
         final_config = {}
-        for key, value in config.items():
-            if key in model:
-                try:
-                    coerced = model[key].check_valid(value)
-                    final_config[key] = coerced or value
-                except Exception as ex:
-                    raise AttributeError(f"Error validating section {key}: {ex}") from ex
+        if validate:
+            for key, value in config.items():
+                if key in model:
+                    try:
+                        coerced = model[key].check_valid(value)
+                        final_config[key] = coerced or value
+                    except Exception as ex:
+                        raise AttributeError(f"Error validating section {key}: {ex}") from ex
+                else:
+                    final_config[key] = value
+        else:
+            final_config = config
 
+        # If an external entity needs to approve this change.
+        # Method throws if config is not valid according to external approval.
         validation = await self.validation_db.get(cfg_id)
-        if validation:
-            # If an external entity needs to approve this change.
-            # Method throws if config is not valid according to external approval.
-            if validation.external_validation:
-                await self.acknowledge_config_change(cfg_id, config)
+        if validation and validation.external_validation and validate:
+            await self.acknowledge_config_change(cfg_id, final_config)
 
         # If we come here, everything is fine
-        return config
+        return final_config
 
     def list_config_ids(self) -> AsyncIterator[str]:
         return self.cfg_db.keys()
@@ -57,8 +61,8 @@ class ConfigHandlerService(ConfigHandler):
     async def get_config(self, cfg_id: str) -> Optional[ConfigEntity]:
         return await self.cfg_db.get(cfg_id)
 
-    async def put_config(self, cfg: ConfigEntity) -> ConfigEntity:
-        coerced = await self.coerce_and_check_model(cfg.id, cfg.config)
+    async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
+        coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
         result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
         await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
         return result
