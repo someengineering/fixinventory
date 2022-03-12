@@ -65,10 +65,10 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
-    slug: str = field(default="")
-    features: List[str] = field(default_factory=list)
-    available: bool = field(default=True)
-    sizes: List[str] = field(default_factory=list)
+    do_region_slug: str = field(default="")
+    do_region_features: List[str] = field(default_factory=list)
+    is_available: bool = field(default=True)
+    do_region_sizes: List[str] = field(default_factory=list)
 
     def delete(self, graph: Graph) -> bool:
         """Regions can usually not be deleted so we return NotImplemented"""
@@ -80,11 +80,11 @@ class DigitalOceanProject(DigitalOceanResource, BaseAccount):
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
-    owner_uuid: str = field(default="")
-    owner_id: str = field(default="")
-    description: str = field(default="")
-    purpose: str = field(default="")
-    environment: str = field(default="")
+    do_project_owner_uuid: str = field(default="")
+    do_project_owner_id: str = field(default="")
+    do_project_description: str = field(default="")
+    do_project_purpose: str = field(default="")
+    do_project_environment: str = field(default="")
     is_default: bool = field(default=False)
 
     def delete(self, graph: Graph) -> bool:
@@ -107,10 +107,10 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         "off": InstanceStatus.TERMINATED,
         "archive": InstanceStatus.TERMINATED,
     }
-    backup_ids: List[str] = field(default_factory=list)
-    locked: bool = field(default=False)
-    features: List[str] = field(default_factory=list)
-    image: str = field(default="")
+    do_droplet_backup_ids: List[str] = field(default_factory=list)
+    is_locked: bool = field(default=False)
+    do_droplet_features: List[str] = field(default_factory=list)
+    do_droplet_image: str = field(default="")
 
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
@@ -139,16 +139,16 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
-    version: str = field(default="")
-    cluster_subnet: str = field(default="")
-    service_subnet: str = field(default="")
-    ipv4: str = field(default="")
-    endpoint: str = field(default="")
-    auto_upgrade: bool = field(default=False)
-    status: str = field(default="")
-    surge_upgrade: bool = field(default=False)
-    registry_enabled: bool = field(default=False)
-    ha: bool = field(default=False)
+    do_k8s_version: str = field(default="")
+    do_k8s_cluster_subnet: str = field(default="")
+    do_k8s_service_subnet: str = field(default="")
+    do_k8s_ipv4: str = field(default="")
+    do_k8s_endpoint: str = field(default="")
+    do_k8s_auto_upgrade: bool = field(default=False)
+    do_k8s_status: str = field(default="")
+    do_k8s_surge_upgrade: bool = field(default=False)
+    do_k8s_registry_enabled: bool = field(default=False)
+    do_k8s_ha: bool = field(default=False)
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -168,9 +168,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
         "busy": VolumeStatus.BUSY,
     }
 
-    description: str = field(default="")
-    filesystem_type: str = field(default="")
-    filesystem_label: str = field(default="")
+    do_volume_description: str = field(default="")
+    do_volume_filesystem_type: str = field(default="")
+    do_volume_filesystem_label: str = field(default="")
 
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
@@ -195,9 +195,9 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
-    ip_range: str = field(default="")
-    description: str = field(default="")
-    default: bool = field(default=False)
+    do_vpc_ip_range: str = field(default="")
+    do_vpc_description: str = field(default="")
+    is_default: bool = field(default=False)
 
 
 @dataclass(eq=False)
@@ -206,9 +206,9 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
 
     kind: ClassVar[str] = "digitalocean_snapshot"
 
-    size_gigabytes: float = field(default=0.0)
-    resource_id: str = field(default="")
-    resource_type: str = field(default="")
+    do_snapshot_size_gigabytes: float = field(default=0.0)
+    do_snapshot_resource_id: str = field(default="")
+    do_snapshot_resource_type: str = field(default="")
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -220,14 +220,14 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
 
-    ip: str = field(default="")
-    size_unit: int = field(default=1)
-    size: str = field(default="")
-    status: str = field(default="")
-    redirect_http_to_https: bool = field(default=False)
-    enable_proxy_protocol: bool = field(default=False)
-    enable_backend_keepalive: bool = field(default=False)
-    disable_lets_encrypt_dns_records: bool = field(default=False)
+    do_lb_ip: str = field(default="")
+    do_lb_size_unit: int = field(default=1)
+    do_lb_size: str = field(default="")
+    do_lb_status: str = field(default="")
+    do_lb_redirect_http_to_https: bool = field(default=False)
+    do_lb_enable_proxy_protocol: bool = field(default=False)
+    do_lb_enable_backend_keepalive: bool = field(default=False)
+    do_lb_disable_lets_encrypt_dns_records: bool = field(default=False)
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -239,7 +239,7 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
 
-    locked: bool = field(default=False)
+    is_locked: bool = field(default=False)
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -251,35 +251,11 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_image"
 
-    distribution: str = field(default="")
-    slug: str = field(default="")
-    public: bool = field(default=False)
-    min_disk_size: int = field(default=0)
-    image_type: str = field(default="")
-    size_gigabytes: int = field(default=0)
-    description: str = field(default="")
-    status: str = field(default="")
-
-
-@dataclass(eq=False)
-class DigitalOceanCustomResource(DigitalOceanResource, BaseResource):
-    """A digitalocean custom resource that only inherits the collectors
-    DigitalOceanResource class as well as the BaseResource base class.
-
-    This is mainly an digitalocean of how to use typed Python dataclasses
-    from which the resoto data model is being generated.
-    """
-
-    kind: ClassVar[str] = "digitalocean_custom_resource"
-
-    custom_string_attribute: str = ""
-    custom_int_attribute: int = 0
-    custom_optional_float_attribute: Optional[float] = None
-    custom_dict_attribute: Dict[str, str] = field(default_factory=dict)
-    custom_list_attribute: List[str] = field(default_factory=list)
-    init_only_attribute: InitVar[Optional[str]] = None
-
-    def __post_init__(self, init_only_attribute: str) -> None:
-        super().__post_init__()
-        if init_only_attribute is not None:
-            self.some_other_var = init_only_attribute
+    do_image_distribution: str = field(default="")
+    do_image_slug: str = field(default="")
+    do_image_public: bool = field(default=False)
+    do_image_min_disk_size: int = field(default=0)
+    do_image_type: str = field(default="")
+    do_image_size_gigabytes: int = field(default=0)
+    do_image_description: str = field(default="")
+    do_image_status: str = field(default="")

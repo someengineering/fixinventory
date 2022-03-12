@@ -77,8 +77,8 @@ def test_collect_regions():
     region = graph.search_first("id", "do:region:fra1")
     assert region.name == "Frankfurt 1"
     assert region.kind == "digitalocean_region"
-    assert region.slug == "fra1"
-    assert region.features == [
+    assert region.do_region_slug == "fra1"
+    assert region.do_region_features == [
         "backups",
         "ipv6",
         "metadata",
@@ -86,7 +86,7 @@ def test_collect_regions():
         "storage",
         "image_transfer",
     ]
-    assert region.available is True
+    assert region.is_available is True
 
 
 def test_collect_vpcs():
@@ -102,9 +102,9 @@ def test_collect_vpcs():
     vpc = graph.search_first("id", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
     assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
     assert vpc.name == "default-fra1"
-    assert vpc.description == ""
-    assert vpc.ip_range == "127.0.0.1/20"
-    assert vpc.default is True
+    assert vpc.do_vpc_description == ""
+    assert vpc.do_vpc_ip_range == "127.0.0.1/20"
+    assert vpc.is_default is True
 
 
 def test_collect_droplets():
@@ -125,13 +125,13 @@ def test_collect_droplets():
     image = graph.search_first("id", "do:image:101111514")
     assert image.id == "do:image:101111514"
     assert image.name == "20.04 (LTS) x64"
-    assert image.distribution == "Ubuntu"
-    assert image.slug == "ubuntu-20-04-x64"
-    assert image.public is True
-    assert image.image_type == "base"
-    assert image.size_gigabytes == 1
-    assert image.min_disk_size == 15
-    assert image.status == "available"
+    assert image.do_image_distribution == "Ubuntu"
+    assert image.do_image_slug == "ubuntu-20-04-x64"
+    assert image.do_image_public is True
+    assert image.do_image_type == "base"
+    assert image.do_image_size_gigabytes == 1
+    assert image.do_image_min_disk_size == 15
+    assert image.do_image_status == "available"
 
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
@@ -140,8 +140,8 @@ def test_collect_droplets():
     assert droplet.instance_cores == 1
     assert droplet.instance_status == "running"
     assert droplet.region().id == "do:region:fra1"
-    assert droplet.image == "ubuntu-20-04-x64"
-    assert droplet.locked is False
+    assert droplet.do_droplet_image == "ubuntu-20-04-x64"
+    assert droplet.is_locked is False
     assert droplet.ctime == datetime.datetime(
         2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
     )
@@ -164,9 +164,9 @@ def test_collect_volumes():
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
-    assert volume.description == "Test volume"
-    assert volume.filesystem_type == "ext4"
-    assert volume.filesystem_label == "label"
+    assert volume.do_volume_description == "Test volume"
+    assert volume.do_volume_filesystem_type == "ext4"
+    assert volume.do_volume_filesystem_label == "label"
     assert volume.volume_size == 1
     assert volume.volume_status == "in-use"
 
@@ -224,20 +224,20 @@ def test_collect_k8s_clusters():
     )
     assert cluster.id == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
     assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
-    assert cluster.version == "1.22.7-do.0"
+    assert cluster.do_k8s_version == "1.22.7-do.0"
     assert cluster.region().id == "do:region:fra1"
-    assert cluster.cluster_subnet == "10.244.0.0/16"
-    assert cluster.service_subnet == "10.245.0.0/16"
-    assert cluster.ipv4 == "127.0.0.1"
+    assert cluster.do_k8s_cluster_subnet == "10.244.0.0/16"
+    assert cluster.do_k8s_service_subnet == "10.245.0.0/16"
+    assert cluster.do_k8s_ipv4 == "127.0.0.1"
     assert (
-        cluster.endpoint
+        cluster.do_k8s_endpoint
         == "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com"
     )
-    assert cluster.auto_upgrade is False
-    assert cluster.status == "running"
-    assert cluster.surge_upgrade is True
-    assert cluster.registry_enabled is False
-    assert cluster.ha is False
+    assert cluster.do_k8s_auto_upgrade is False
+    assert cluster.do_k8s_status == "running"
+    assert cluster.do_k8s_surge_upgrade is True
+    assert cluster.do_k8s_registry_enabled is False
+    assert cluster.do_k8s_ha is False
 
 
 def test_collect_snapshots():
@@ -254,9 +254,9 @@ def test_collect_snapshots():
     snapshot = graph.search_first("id", "do:snapshot:103198134")
     assert snapshot.id == "do:snapshot:103198134"
     assert snapshot.volume_size == 25
-    assert snapshot.size_gigabytes == 2
-    assert snapshot.resource_id == "289110074"
-    assert snapshot.resource_type == "droplet"
+    assert snapshot.do_snapshot_size_gigabytes == 2
+    assert snapshot.do_snapshot_resource_id == "289110074"
+    assert snapshot.do_snapshot_resource_type == "droplet"
 
 
 def test_collect_loadbalancers():
@@ -285,14 +285,14 @@ def test_collect_loadbalancers():
     )
     assert lb.id == "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
     assert lb.name == "fra1-load-balancer-01"
-    assert lb.ip == "127.0.0.1"
-    assert lb.size == "lb-small"
-    assert lb.size_unit == 1
-    assert lb.status == "new"
-    assert lb.redirect_http_to_https is False
-    assert lb.enable_proxy_protocol is False
-    assert lb.enable_backend_keepalive is False
-    assert lb.disable_lets_encrypt_dns_records is False
+    assert lb.do_lb_ip == "127.0.0.1"
+    assert lb.do_lb_size == "lb-small"
+    assert lb.do_lb_size_unit == 1
+    assert lb.do_lb_status == "new"
+    assert lb.do_lb_redirect_http_to_https is False
+    assert lb.do_lb_enable_proxy_protocol is False
+    assert lb.do_lb_enable_backend_keepalive is False
+    assert lb.do_lb_disable_lets_encrypt_dns_records is False
 
 
 def test_collect_floating_ips():
@@ -309,7 +309,7 @@ def test_collect_floating_ips():
     assert floating_ip.id == "do:floatingip:127.0.0.1"
     assert floating_ip.ip_address == "127.0.0.1"
     assert floating_ip.ip_address_family == "ipv4"
-    assert floating_ip.locked is False
+    assert floating_ip.is_locked is False
 
 
 def test_collect_projects():
