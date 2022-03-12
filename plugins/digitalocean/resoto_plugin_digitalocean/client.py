@@ -1,7 +1,8 @@
 import json
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 import requests
+import boto3
 
 import resotolib.logging
 
@@ -13,8 +14,14 @@ Json = Dict[str, Any]
 # todo: make it async
 # todo: stream the response
 class StreamingWrapper:
-    def __init__(self, token: str) -> None:
+    def __init__(self, token: str, spaces_access_key: Optional[str], spaces_secret_key: Optional[str]) -> None:
         self.token = token
+        self.spaces_access_key = spaces_access_key
+        self.spaces_secret_key = spaces_secret_key
+        if spaces_access_key and spaces_secret_key:
+            self.session = boto3.session.Session()
+        else:
+            self.session = None
 
     def _make_request(self, path: str, payload_object_name: str) -> List[Json]:
         result = []
@@ -73,3 +80,17 @@ class StreamingWrapper:
 
     def list_floating_ips(self) -> List[Json]:
         return self._make_request("/floating_ips", "floating_ips")
+
+    def list_spaces(self, region_slug: str) -> List[Json]:
+        if self.session is not None:
+            client = self.session.client('s3',
+                        endpoint_url=f'https://{region_slug}.digitaloceanspaces.com',
+                        # Find your endpoint in the control panel, under Settings. Prepend "https://".
+                        region_name=region_slug,  # Use the region in your endpoint.
+                        aws_access_key_id=self.spaces_access_key,
+                        # Access key pair. You can create access key pairs using the control panel or API.
+                        aws_secret_access_key=self.spaces_secret_key)
+
+            return client.list_buckets().get('Buckets', [])
+        else:
+            return []

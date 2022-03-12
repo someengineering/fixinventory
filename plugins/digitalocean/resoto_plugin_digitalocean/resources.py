@@ -15,6 +15,7 @@ from resotolib.baseresources import (
     BaseVolume,
     InstanceStatus,
     VolumeStatus,
+    BaseBucket
 )
 from resotolib.graph import Graph
 
@@ -259,3 +260,8 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     do_image_size_gigabytes: int = field(default=0)
     do_image_description: str = field(default="")
     do_image_status: str = field(default="")
+
+@dataclass(eq=False)
+class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
+    """DigitalOcean space"""
+    kind: ClassVar[str] = "digitalocean_space"

@@ -21,6 +21,7 @@ from .resources import (
     DigitalOceanLoadBalancer,
     DigitalOceanFloatingIP,
     DigitalOceanImage,
+    DigitalOceanSpace,
 )
 from .utils import (
     iso2datetime,
@@ -36,6 +37,7 @@ from .utils import (
     floatingip_id,
     database_id,
     image_id,
+    space_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -122,7 +124,13 @@ class DigitalOceanTeamCollector:
             ("floating_ips", self.collect_floating_ips),
             ("project", self.collect_projects),
         ]
+
+        self.region_collectors = [
+            ("spaces", self.collect_spaces),
+        ]
+
         self.all_collectors = dict(self.mandatory_collectors)
+        self.all_collectors.update(self.region_collectors)
         self.all_collectors.update(self.global_collectors)
         self.collector_set = set(self.all_collectors.keys())
 
@@ -147,6 +155,19 @@ class DigitalOceanTeamCollector:
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.team.rtdname}")
                 collector()
+
+        regions = [r for r in self.graph.nodes if isinstance(r, DigitalOceanRegion)]
+
+        for region in regions:
+            for collector_name, collector in self.region_collectors:
+                if collector_name in collectors:
+                    log.info(
+                        (
+                            f"Collecting {collector_name} in {region.rtdname}"
+                            f" {self.team.rtdname}"
+                        )
+                    )
+                    collector(region=region)
 
         for collector_name, collector in self.global_collectors:
             if collector_name in collectors:
@@ -660,3 +681,20 @@ class DigitalOceanTeamCollector:
             },
             predecessors={EdgeType.default: ["__droplet"]},
         )
+
+    @metrics_collect_spaces.time()
+    def collect_spaces(self, region: DigitalOceanRegion) -> None:
+        spaces = self.client.list_spaces(region.do_region_slug)
+        self.collect_resource(
+            spaces,
+            resource_class=DigitalOceanSpace,
+            attr_map={
+                "id": lambda space: space_id(space["Name"]),
+                "name": "Name",
+                "ctime": "CreationDate",
+            },
+            search_map={
+                "_region": ["id", lambda space: region_id(region.do_region_slug)],
+            },
+        )
+

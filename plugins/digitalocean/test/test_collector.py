@@ -12,6 +12,7 @@ from fixtures import (
     floating_ips,
     projects,
     project_resources,
+    spaces
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -324,6 +325,7 @@ def test_collect_projects():
             "list_kubernetes_clusters": k8s,
             "list_databases": databases,
             "list_volumes": volumes,
+            "list_spaces": spaces,
         }
     )
     graph = prepare_graph(do_client)
@@ -355,3 +357,22 @@ def test_collect_projects():
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
         "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197",
     )
+    check_edges(
+        graph,
+        "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
+        "do:space:api-test-space.resoto",
+    )
+
+def test_collect_space():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_spaces": spaces,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:region:fra1", "do:space:api-test-space.resoto")
+    space = graph.search_first("id", "do:space:api-test-space.resoto")
+    assert space.id == "do:space:api-test-space.resoto"
+    assert space.name == "api-test-space.resoto"
+    assert space.ctime == datetime.datetime(2022, 2, 23, 13, 42, 21, 455000, datetime.timezone.utc)

@@ -76,3 +76,6 @@ def database_id(value: str) -> str:
 
 def image_id(value: str) -> str:
     return f"do:image:{value}"
+
+def space_id(value: str) -> str:
+    return f"do:space:{value}"
