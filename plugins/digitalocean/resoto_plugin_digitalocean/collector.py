@@ -22,7 +22,8 @@ from .resources import (
     DigitalOceanFloatingIP,
     DigitalOceanImage,
     DigitalOceanSpace,
-    DigitalOceanApp
+    DigitalOceanApp,
+    DigitalOceanCdnEndpoint
 )
 from .utils import (
     iso2datetime,
@@ -40,6 +41,7 @@ from .utils import (
     image_id,
     space_id,
     app_id,
+    cdn_endpoint_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -92,6 +94,10 @@ metrics_collect_apps = Summary(
     "resoto_plugin_digitalocean_collect_apps_seconds",
     "Time it took the collect_apps() method",
 )
+metrics_collect_cdn_endpoints = Summary(
+    "resoto_plugin_digitalocean_collect_cdn_endpoints_seconds",
+    "Time it took the collect_cdn_endpoints() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -130,6 +136,7 @@ class DigitalOceanTeamCollector:
             ("floating_ips", self.collect_floating_ips),
             ("project", self.collect_projects),
             ("apps", self.collect_apps),
+            ("cdn_endpoints", self.collect_cdn_endpoints),
         ]
 
         self.region_collectors = [
@@ -739,4 +746,22 @@ class DigitalOceanTeamCollector:
                 "__databases": ["name", extract_databases],
             },
             predecessors={EdgeType.default: ["__databases"]},
+        )
+
+
+    @metrics_collect_cdn_endpoints.time()
+    def collect_cdn_endpoints(self) -> None:
+        endpoints = self.client.list_cdn_endpoints()
+        self.collect_resource(
+            endpoints,
+            resource_class=DigitalOceanCdnEndpoint,
+            attr_map={
+                "id": lambda endpoint: cdn_endpoint_id(endpoint["id"]),
+                "do_cdn_origin": "origin",
+                "do_cdn_endpoint": "endpoint",
+                "do_cdn_created_at": "created_at",
+                "do_cdn_certificate_id": "certificate_id",
+                "do_cdn_custom_domain": "custom_domain",
+                "do_cdn_ttl": "ttl",
+            },
         )

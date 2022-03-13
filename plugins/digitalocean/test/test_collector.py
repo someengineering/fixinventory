@@ -13,7 +13,8 @@ from fixtures import (
     projects,
     project_resources,
     spaces,
-    apps
+    apps,
+    cdn_endpoints
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -397,3 +398,23 @@ def test_collect_apps():
     assert app.do_app_live_url == "https://resoto_test_app.ondigitalocean.app"
     assert app.do_app_live_url_base == "https://resoto_test_app.ondigitalocean.app"
     assert app.do_app_live_domain == "resoto_test_apps.ondigitalocean.app"
+
+
+def test_cdn_endpoints():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_cdn_endpoints": cdn_endpoints,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:team:test_team", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")
+    endpoint = graph.search_first("id", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")
+    assert endpoint.id == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
+    assert endpoint.do_cdn_origin == "resoto_test.ams3.digitaloceanspaces.com"
+    assert endpoint.do_cdn_endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
+    assert endpoint.do_cdn_created_at == "2021-11-16T16:00:44Z"
+    assert endpoint.do_cdn_certificate_id == "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8"
+    assert endpoint.do_cdn_custom_domain == "test.domain.resoto"
+    assert endpoint.do_cdn_ttl == 3600
+

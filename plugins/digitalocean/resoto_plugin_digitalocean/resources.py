@@ -15,7 +15,8 @@ from resotolib.baseresources import (
     BaseVolume,
     InstanceStatus,
     VolumeStatus,
-    BaseBucket
+    BaseBucket,
+    BaseEndpoint
 )
 from resotolib.graph import Graph
 
@@ -261,10 +262,12 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     do_image_description: str = field(default="")
     do_image_status: str = field(default="")
 
+
 @dataclass(eq=False)
 class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
     """DigitalOcean space"""
     kind: ClassVar[str] = "digitalocean_space"
+
 
 @dataclass(eq=False)
 class DigitalOceanApp(DigitalOceanResource, BaseResource):
@@ -278,3 +281,17 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
     do_app_live_url: Optional[str] = None
     do_app_live_url_base: Optional[str] = None
     do_app_live_domain: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
+    """DigitalOcean CDN endpoint"""
+
+    kind = "digitalocean_cdn_endpoint"
+
+    do_cdn_origin: Optional[str] = None
+    do_cdn_endpoint: Optional[str] = None
+    do_cdn_created_at: Optional[str] = None
+    do_cdn_certificate_id: Optional[str] = None
+    do_cdn_custom_domain: Optional[str] = None
+    do_cdn_ttl: Optional[int] = None

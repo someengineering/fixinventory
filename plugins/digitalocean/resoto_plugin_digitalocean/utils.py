@@ -85,3 +85,7 @@ def space_id(value: str) -> str:
 
 def app_id(value: str) -> str:
     return f"do:app:{value}"
+
+
+def cdn_endpoint_id(value: str) -> str:
+    return f"do:cdn_endpoint:{value}"
