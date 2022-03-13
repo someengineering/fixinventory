@@ -1,6 +1,6 @@
 import math
 from pprint import pformat
-from typing import Tuple, Type, List, Dict, Union, Callable, Any
+from typing import Tuple, Type, List, Dict, Union, Callable, Any, Optional
 
 from prometheus_client import Summary
 
@@ -22,6 +22,7 @@ from .resources import (
     DigitalOceanFloatingIP,
     DigitalOceanImage,
     DigitalOceanSpace,
+    DigitalOceanApp
 )
 from .utils import (
     iso2datetime,
@@ -38,6 +39,7 @@ from .utils import (
     database_id,
     image_id,
     space_id,
+    app_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -86,6 +88,10 @@ metrics_collect_floating_ips = Summary(
     "resoto_plugin_digitalocean_collect_floating_ips_seconds",
     "Time it took the collect_floating_ips() method",
 )
+metrics_collect_apps = Summary(
+    "resoto_plugin_digitalocean_collect_apps_seconds",
+    "Time it took the collect_apps() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -123,6 +129,7 @@ class DigitalOceanTeamCollector:
             ("load_balancers", self.collect_load_balancers),
             ("floating_ips", self.collect_floating_ips),
             ("project", self.collect_projects),
+            ("apps", self.collect_apps),
         ]
 
         self.region_collectors = [
@@ -503,7 +510,8 @@ class DigitalOceanTeamCollector:
             databases,
             resource_class=DigitalOceanDatabase,
             attr_map={
-                "id": lambda r: database_id(r["id"]),
+                "id": lambda db: database_id(db["id"]),
+                "name": lambda db: database_id(db["name"]),
                 "db_type": "engine",
                 "db_status": "status",
                 "db_version": "version",
@@ -698,3 +706,37 @@ class DigitalOceanTeamCollector:
             },
         )
 
+    @metrics_collect_apps.time()
+    def collect_apps(self) -> None:
+        apps = self.client.list_apps()
+        def extract_region(app: Dict) -> Optional[str]:
+            region_slug = next(iter(app.get("region", {}).get("data_centers", [])), None)
+            if region_slug is None:
+                return None
+            return region_id(region_slug)
+
+        def extract_databases(app: Dict) -> List[str]:
+            databases = app.get("spec", {}).get("databases", [])
+            names = [database_id(database["name"]) for database in databases]
+            return names
+
+        self.collect_resource(
+            apps,
+            resource_class=DigitalOceanApp,
+            attr_map={
+                "id": lambda app: app_id(app["id"]),
+                "do_app_service_names": lambda app: map(lambda s: s["name"], app.get("spec", {}).get("services", [])),
+                "do_app_service_ports": lambda app: map(lambda s: s["http_port"], app.get("spec", {}).get("services", [])),
+                "do_app_tier_slug": "tier_slug",
+                "do_app_default_ingress": "default_ingress",
+                "do_app_live_url": "live_url",
+                "do_app_live_url_base": "live_url_base",
+                "do_app_live_domain": "live_domain",
+
+            },
+            search_map={
+                "_region": ["id", extract_region],
+                "__databases": ["name", extract_databases],
+            },
+            predecessors={EdgeType.default: ["__databases"]},
+        )

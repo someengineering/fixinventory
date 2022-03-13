@@ -94,3 +94,6 @@ class StreamingWrapper:
             return client.list_buckets().get('Buckets', [])
         else:
             return []
+
+    def list_apps(self) -> List[Json]:
+        return self._make_request("/apps", "apps")

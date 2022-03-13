@@ -11,3 +11,4 @@ from .floatingip import floating_ips as floating_ips
 from .projects import projects as projects
 from .projectresources import project_resources as project_resources
 from .spaces import spaces as spaces
+from .apps import apps as apps

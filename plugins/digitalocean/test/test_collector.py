@@ -12,7 +12,8 @@ from fixtures import (
     floating_ips,
     projects,
     project_resources,
-    spaces
+    spaces,
+    apps
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -363,6 +364,7 @@ def test_collect_projects():
         "do:space:api-test-space.resoto",
     )
 
+
 def test_collect_space():
     do_client = ClientMock(
         {
@@ -376,3 +378,22 @@ def test_collect_space():
     assert space.id == "do:space:api-test-space.resoto"
     assert space.name == "api-test-space.resoto"
     assert space.ctime == datetime.datetime(2022, 2, 23, 13, 42, 21, 455000, datetime.timezone.utc)
+
+
+def test_collect_apps():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_apps": apps,
+            "list_databases": databases,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:region:fra1", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
+    check_edges(graph, "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
+    app = graph.search_first("id", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
+    assert app.id == "do:app:5dc41512-7523-4eeb-9932-426aa570234b"
+    assert app.do_app_default_ingress == "https://resoto_test_app.ondigitalocean.app"
+    assert app.do_app_live_url == "https://resoto_test_app.ondigitalocean.app"
+    assert app.do_app_live_url_base == "https://resoto_test_app.ondigitalocean.app"
+    assert app.do_app_live_domain == "resoto_test_apps.ondigitalocean.app"
