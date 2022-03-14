@@ -19,6 +19,7 @@ from fixtures import (
     registry,
     registry_repositories,
     registry_repository_tags,
+    ssh_keys
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -475,3 +476,20 @@ def test_collect_container_registries():
     assert tag.do_cr_compressed_size_bytes == 5164
     assert tag.do_cr_size_bytes == 12660
     assert tag.mtime == datetime.datetime(2022, 3, 14, 13, 32, 40, 0, datetime.timezone.utc)
+
+
+def test_collect_ssh_keys():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_ssh_keys": ssh_keys,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:team:test_team", "do:ssh_key:289794")
+    ssh_key = graph.search_first("id", "do:ssh_key:289794")
+    assert ssh_key.id == "do:ssh_key:289794"
+    assert ssh_key.fingerprint == "3b:16:e4:bf:8b:00:8b:b8:59:8c:a9:d3:f0:19:fa:45"
+    assert ssh_key.name == "Other Public Key"
+    assert ssh_key.do_ssh_public_key == "ssh-rsa publickey keycomment"
+

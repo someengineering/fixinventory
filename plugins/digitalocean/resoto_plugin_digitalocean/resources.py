@@ -17,7 +17,8 @@ from resotolib.baseresources import (
     VolumeStatus,
     BaseBucket,
     BaseEndpoint,
-    BaseCertificate
+    BaseCertificate,
+    BaseKeyPair,
 )
 from resotolib.graph import Graph
 
@@ -340,3 +341,12 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
     do_cr_manifest_digest: Optional[str] = None
     do_cr_compressed_size_bytes: Optional[int] = None
     do_cr_size_bytes: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
+    """DigitalOcean ssh key"""
+
+    kind = "digitalocean_ssh_key"
+
+    do_ssh_public_key: Optional[str] = None

@@ -105,3 +105,7 @@ def container_registry_repository_id(registry_id: str, repository_id: str) -> st
 
 def container_registry_repository_tag_id(registry_id: str, repository_id: str, tag: str) -> str:
     return f"do:crrt:{registry_id}/{repository_id}:{tag}"
+
+
+def ssh_key_id(value: str) -> str:
+    return f"do:ssh_key:{value}"

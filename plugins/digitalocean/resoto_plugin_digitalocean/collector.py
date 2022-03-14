@@ -28,6 +28,7 @@ from .resources import (
     DigitalOceanContainerRegistry,
     DigitalOceanContainerRegistryRepository,
     DigitalOceanContainerRegistryRepositoryTag,
+    DigitalOceanSSHKey
 )
 from .utils import (
     iso2datetime,
@@ -50,6 +51,7 @@ from .utils import (
     container_registry_id,
     container_registry_repository_id,
     container_registry_repository_tag_id,
+    ssh_key_id
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -114,6 +116,10 @@ metrics_collect_container_registry = Summary(
     "resoto_plugin_digitalocean_collect_container_registry_seconds",
     "Time it took the collect_container_registry() method",
 )
+metrics_collect_ssh_keys = Summary(
+    "resoto_plugin_digitalocean_collect_ssh_keys_seconds",
+    "Time it took the collect_ssh_keys() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -155,6 +161,7 @@ class DigitalOceanTeamCollector:
             ("cdn_endpoints", self.collect_cdn_endpoints),
             ("certificates", self.collect_certificates),
             ("container_registry", self.collect_container_registry),
+            ("ssh_keys", self.collect_ssh_keys),
         ]
 
         self.region_collectors = [
@@ -858,3 +865,15 @@ class DigitalOceanTeamCollector:
                 },
             )
 
+    @metrics_collect_ssh_keys.time()
+    def collect_ssh_keys(self) -> None:
+        ssh_keys = self.client.list_ssh_keys()
+        self.collect_resource(
+            ssh_keys,
+            resource_class=DigitalOceanSSHKey,
+            attr_map={
+                "id": lambda k: ssh_key_id(k["id"]),
+                "do_ssh_public_key": "public_key",
+                "fingerprint": "fingerprint",
+            }
+        )

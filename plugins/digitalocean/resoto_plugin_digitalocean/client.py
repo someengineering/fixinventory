@@ -114,3 +114,6 @@ class StreamingWrapper:
 
     def list_registry_repository_tags(self, registry_id: str, repository_name: str) -> List[Json]:
         return self._make_request(f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags")
+
+    def list_ssh_keys(self) -> List[Json]:
+        return self._make_request("/account/keys", "ssh_keys")
