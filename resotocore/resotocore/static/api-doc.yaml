@@ -17,8 +17,8 @@ tags:
         description: Endpoints to maintain the schema and model of the entities inside a graph.
     -   name: config
         description: Endpoints to maintain configuration data.
-    -   name: config_model
-        description: Endpoints to maintain the model of configuration data.
+    -   name: config_validation
+        description: Endpoints to define how configs should be validated.
     -   name: cli
         description: Endpoints to evaluate and execute cli commands.
     -   name: subscriptions
@@ -76,36 +76,36 @@ paths:
             tags:
                 - model
             parameters:
-                - name: show
-                  description: comma separated list of resources to show. Entries can be regexps.
-                  in: query
-                  schema:
-                      type: string
-                  required: false
-                  explode: false
-                  example: aws_ec2_instance,gcp.*
-                - name: hide
-                  description: |
-                      comma separated list of resources to hide. Entries can be regexps.
-                      hide takes precedence over show.
-                  in: query
-                  schema:
-                      type: string
-                  required: false
-                  explode: false
-                  example: aws_ec2_instance,gcp.*
-                - name: with_bases
-                  description: Include all base classes of visible entries
-                  in: query
-                  schema:
-                      type: boolean
-                      default: true
-                - name: with_descendants
-                  description: Include all descendant classes of visible entries
-                  in: query
-                  schema:
-                      type: boolean
-                      default: false
+                -   name: show
+                    description: comma separated list of resources to show. Entries can be regexps.
+                    in: query
+                    schema:
+                        type: string
+                    required: false
+                    explode: false
+                    example: aws_ec2_instance,gcp.*
+                -   name: hide
+                    description: |
+                        comma separated list of resources to hide. Entries can be regexps.
+                        hide takes precedence over show.
+                    in: query
+                    schema:
+                        type: string
+                    required: false
+                    explode: false
+                    example: aws_ec2_instance,gcp.*
+                -   name: with_bases
+                    description: Include all base classes of visible entries
+                    in: query
+                    schema:
+                        type: boolean
+                        default: true
+                -   name: with_descendants
+                    description: Include all descendant classes of visible entries
+                    in: query
+                    schema:
+                        type: boolean
+                        default: false
             responses:
                 "200":
                     description: "Returns the model as uml diagram in svg format"
@@ -1537,12 +1537,48 @@ paths:
                                     type: string
     /configs/model:
         get:
+            summary: "Get the currently defined configuration model."
+            tags:
+                - config_validation
+            responses:
+                "200":
+                    description: "The list of all kinds."
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+        patch:
+            summary: "Add or update the current defined configuration model."
+            tags:
+                - config_validation
+            requestBody:
+                description: "Complete model or part of the model."
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/Kind"
+            responses:
+                "200":
+                    description: "OK if the model is updated successfully"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Kind"
+                "400":
+                    description: "Message that explains the error"
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
+
+    /configs/validation:
+        get:
             summary: "Get all configuration keys that have a model defined."
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Get all configuration keys that have a model defined.
             tags:
-                - config_model
+                - config_validation
             responses:
                 "200":
                     description: All configuration keys that have a model.
@@ -1593,6 +1629,14 @@ paths:
                     description: the identifier of the config to get.
                     schema:
                         type: string
+                -   name: validate
+                    required: false
+                    in: query
+                    description: |
+                        This parameter can be used to turn off config validation.
+                        In case it is not defined or not set to false, every configuaration value is validated.
+                    schema:
+                        type: boolean
             requestBody:
                 content:
                     application/json:
@@ -1653,14 +1697,14 @@ paths:
                 "204":
                     description: Signals success of this operation.
 
-    /config/{config_id}/model:
+    /config/{config_id}/validation:
         get:
             summary: "Get a configuration by its id"
             description: |
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Fetch the model of a configuration by id.
             tags:
-                - config_model
+                - config_validation
             parameters:
                 -   name: config_id
                     required: true
@@ -1674,10 +1718,10 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
                         application/yaml:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
                 "404":
                     description: No configuration model for this key.
 
@@ -1687,7 +1731,7 @@ paths:
                 **Experimental**: This API is not stable and might be subject of change.<br/>
                 Replace a configuration model identified by id with provided value.
             tags:
-                - config_model
+                - config_validation
             parameters:
                 -   name: config_id
                     required: true
@@ -1699,14 +1743,14 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: "#/components/schemas/Kind"
+                            $ref: "#/components/schemas/ConfigValidation"
             responses:
                 "200":
                     description: The configuration model.
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/Kind"
+                                $ref: "#/components/schemas/ConfigValidation"
     # endregion
 
     # region cli
@@ -2130,7 +2174,19 @@ components:
                 edges_deleted:
                     description: "The number of edges that have been deleted."
                     type: integer
-
+        ConfigValidation:
+            description: "The validation for this configuration value."
+            type: object
+            properties:
+                id:
+                    description: The identifier of the related configuration.
+                    type: string
+                external_validation:
+                    description: |
+                        True, if an external entity should validate a config change.
+                        In this case resotocore is emitting a task on the task queue of type validate_config.
+                        It expectes a listener to pickup this task and report back, if the configuration is valid or not.
+                    type: boolean
         Kind:
             description: "Definition of a kind"
             type: array
@@ -2184,7 +2240,7 @@ components:
                   },
                   {
                       "fqn": "test.person",
-                      "bases": ["test.base"],
+                      "bases": [ "test.base" ],
                       "properties": [
                           {
                               "name": "fortune",

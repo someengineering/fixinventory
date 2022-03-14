@@ -1,4 +1,4 @@
-from resotocore.config import ConfigEntity, ConfigModel
+from resotocore.config import ConfigEntity, ConfigValidation
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.entitydb import EntityDb, EventEntityDb, ArangoEntityDb
 
@@ -13,9 +13,9 @@ def config_entity_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[Confi
 
 
 # Database to store config entity models
-ConfigModelEntityDb = EntityDb[ConfigModel]
-EventConfigModelEntityDb = EventEntityDb[ConfigModel]
+ConfigValidationEntityDb = EntityDb[ConfigValidation]
+EventConfigValidationEntityDb = EventEntityDb[ConfigValidation]
 
 
-def config_model_entity_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[ConfigModel]:
-    return ArangoEntityDb(db, collection, ConfigModel, lambda k: k.id)
+def config_validation_entity_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[ConfigValidation]:
+    return ArangoEntityDb(db, collection, ConfigValidation, lambda k: k.id)
