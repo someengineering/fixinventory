@@ -117,3 +117,6 @@ class StreamingWrapper:
 
     def list_ssh_keys(self) -> List[Json]:
         return self._make_request("/account/keys", "ssh_keys")
+
+    def list_tags(self) -> List[Json]:
+        return self._make_request("/tags", "tags")

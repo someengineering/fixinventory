@@ -19,7 +19,8 @@ from fixtures import (
     registry,
     registry_repositories,
     registry_repository_tags,
-    ssh_keys
+    ssh_keys,
+    tags
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -121,6 +122,7 @@ def test_collect_droplets():
             "list_regions": regions,
             "list_droplets": droplets,
             "list_vpcs": vpcs,
+            "list_tags": tags,
         }
     )
     graph = prepare_graph(do_client)
@@ -130,6 +132,8 @@ def test_collect_droplets():
         graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074"
     )
     check_edges(graph, "do:image:101111514", "do:droplet:289110074")
+    check_edges(graph, "do:tag:image_tag", "do:image:101111514")
+    check_edges(graph, "do:tag:droplet_tag", "do:droplet:289110074")
     image = graph.search_first("id", "do:image:101111514")
     assert image.id == "do:image:101111514"
     assert image.name == "20.04 (LTS) x64"
@@ -140,6 +144,7 @@ def test_collect_droplets():
     assert image.do_image_size_gigabytes == 1
     assert image.do_image_min_disk_size == 15
     assert image.do_image_status == "available"
+    assert image.tags == {"image_tag": ""}
 
     droplet = graph.search_first("id", "do:droplet:289110074")
     assert droplet.id == "do:droplet:289110074"
@@ -153,7 +158,7 @@ def test_collect_droplets():
     assert droplet.ctime == datetime.datetime(
         2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
     )
-    assert droplet.tags == {}
+    assert droplet.tags == {"droplet_tag":""}
 
 
 def test_collect_volumes():
@@ -162,13 +167,13 @@ def test_collect_volumes():
             "list_regions": regions,
             "list_droplets": droplets,
             "list_volumes": volumes,
+            "list_tags": tags,
         }
     )
     graph = prepare_graph(do_client)
 
-    check_edges(
-        graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
-    )
+    check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
+    check_edges(graph, "do:tag:volume_tag", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
@@ -185,6 +190,7 @@ def test_collect_database():
             "list_regions": regions,
             "list_databases": databases,
             "list_vpcs": vpcs,
+            "list_tags": tags,
         }
     )
     graph = prepare_graph(do_client)
@@ -194,6 +200,7 @@ def test_collect_database():
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
         "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
     )
+    check_edges(graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     assert database.id == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
@@ -254,11 +261,13 @@ def test_collect_snapshots():
             "list_regions": regions,
             "list_droplets": droplets,
             "list_snapshots": snapshots,
+            "list_tags": tags,
         }
     )
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:droplet:289110074", "do:snapshot:103198134")
+    check_edges(graph, "do:tag:snapshot_tag", "do:snapshot:103198134")
     snapshot = graph.search_first("id", "do:snapshot:103198134")
     assert snapshot.id == "do:snapshot:103198134"
     assert snapshot.volume_size == 25
@@ -492,4 +501,16 @@ def test_collect_ssh_keys():
     assert ssh_key.fingerprint == "3b:16:e4:bf:8b:00:8b:b8:59:8c:a9:d3:f0:19:fa:45"
     assert ssh_key.name == "Other Public Key"
     assert ssh_key.do_ssh_public_key == "ssh-rsa publickey keycomment"
+
+
+def test_collect_tags():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_tags": tags,
+        }
+    )
+    graph = prepare_graph(do_client)
+    tag = graph.search_first("id", "do:tag:droplet_tag")
+    assert tag.id == "do:tag:droplet_tag"
 

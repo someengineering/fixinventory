@@ -93,6 +93,6 @@ volumes = [
         "size_gigabytes": 1,
         "filesystem_type": "ext4",
         "filesystem_label": "label",
-        "tags": [],
+        "tags": ["volume_tag"],
     }
 ]

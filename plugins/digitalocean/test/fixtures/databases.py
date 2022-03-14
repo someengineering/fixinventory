@@ -32,7 +32,7 @@ databases = [
         "created_at": "2022-03-10T11:40:04Z",
         "maintenance_window": {"day": "thursday", "hour": "21:16:36", "pending": False},
         "size": "db-s-1vcpu-1gb",
-        "tags": None,
+        "tags": ["database_tag"],
         "private_network_uuid": "0d3176ad-41e0-4021-b831-0c5c45c60959",
     }
 ]

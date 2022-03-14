@@ -350,3 +350,9 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
     kind = "digitalocean_ssh_key"
 
     do_ssh_public_key: Optional[str] = None
+
+@dataclass(eq=False)
+class DigitalOceanTag(DigitalOceanResource, BaseResource):
+    """DigitalOcean tag"""
+
+    kind = "digitalocean_tag"

@@ -28,7 +28,8 @@ from .resources import (
     DigitalOceanContainerRegistry,
     DigitalOceanContainerRegistryRepository,
     DigitalOceanContainerRegistryRepositoryTag,
-    DigitalOceanSSHKey
+    DigitalOceanSSHKey,
+    DigitalOceanTag
 )
 from .utils import (
     iso2datetime,
@@ -51,7 +52,8 @@ from .utils import (
     container_registry_id,
     container_registry_repository_id,
     container_registry_repository_tag_id,
-    ssh_key_id
+    ssh_key_id,
+    tag_id
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -120,6 +122,10 @@ metrics_collect_ssh_keys = Summary(
     "resoto_plugin_digitalocean_collect_ssh_keys_seconds",
     "Time it took the collect_ssh_keys() method",
 )
+metrics_collect_tags = Summary(
+    "resoto_plugin_digitalocean_collect_tags_seconds",
+    "Time it took the collect_tags() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -148,6 +154,7 @@ class DigitalOceanTeamCollector:
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
         self.global_collectors: List[Tuple[str, Callable]] = [
+            ("tags", self.collect_tags),
             ("vpcs", self.collect_vpcs),
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
@@ -439,6 +446,10 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": ["id", lambda image: region_id(image["region"])],
+                "__tags": ["id", lambda image: list(map(lambda tag: tag_id(tag), image["tags"]))],
+            },
+            predecessors={
+                EdgeType.default: ["__tags"],
             },
         )
         self.collect_resource(
@@ -458,9 +469,10 @@ class DigitalOceanTeamCollector:
                 "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
                 "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
                 "__images": ["id", lambda droplet: image_id(droplet["image"]["id"])],
+                "__tags": ["id", lambda d: list(map(lambda tag: tag_id(tag), d["tags"]))],
             },
             predecessors={
-                EdgeType.default: ["__vpcs", "__images"],
+                EdgeType.default: ["__vpcs", "__images", "__tags"],
             },
         )
 
@@ -507,8 +519,10 @@ class DigitalOceanTeamCollector:
                         map(lambda id: droplet_id(id), vol["droplet_ids"])
                     ),
                 ],
+                "__tags": ["id", lambda v: list(map(lambda tag: tag_id(tag), v["tags"]))],
+
             },
-            predecessors={EdgeType.default: ["__users"]},
+            predecessors={EdgeType.default: ["__users", "__tags"]},
         )
 
     @metrics_collect_databases.time()
@@ -554,8 +568,9 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["id", lambda db: region_id(db["region"])],
                 "__vpcs": ["id", lambda db: vpc_id(db["private_network_uuid"])],
+                "__tags": ["id", lambda db: list(map(lambda tag: tag_id(tag), db["tags"]))],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={EdgeType.default: ["__vpcs", "__tags"]},
         )
 
     @metrics_collect_vpcs.time()
@@ -667,8 +682,9 @@ class DigitalOceanTeamCollector:
                     lambda s: [region_id(region) for region in s["regions"]],
                 ],
                 "__resource": ["id", lambda s: get_resource_id(s)],
+                "__tags": ["id", lambda s: list(map(lambda tag: tag_id(tag), s["tags"]))],
             },
-            predecessors={EdgeType.default: ["__resource"]},
+            predecessors={EdgeType.default: ["__resource", "__tags"]},
         )
 
     @metrics_collect_load_balancers.time()
@@ -877,3 +893,15 @@ class DigitalOceanTeamCollector:
                 "fingerprint": "fingerprint",
             }
         )
+
+    @metrics_collect_tags.time()
+    def collect_tags(self) -> None:
+        tags = self.client.list_tags()
+        self.collect_resource(
+            tags,
+            resource_class=DigitalOceanTag,
+            attr_map={
+                "id": lambda t: tag_id(t["name"]),
+            },
+        )
+
