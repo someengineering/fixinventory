@@ -15,7 +15,10 @@ from fixtures import (
     spaces,
     apps,
     cdn_endpoints,
-    certificates
+    certificates,
+    registry,
+    registry_repositories,
+    registry_repository_tags,
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -436,3 +439,39 @@ def test_collect_certificates():
     assert cert.do_cert_dns_names == ["*.resoto.test", "resoto.test"]
     assert cert.do_cert_state == "verified"
     assert cert.do_cert_type == "custom"
+
+
+def test_collect_container_registries():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "get_registry_info": registry,
+            "list_registry_repositories": registry_repositories,
+            "list_registry_repository_tags": registry_repository_tags,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:region:fra1", "do:cr:resoto-do-plugin-test")
+    container_registry = graph.search_first("id", "do:cr:resoto-do-plugin-test")
+    assert container_registry.id == "do:cr:resoto-do-plugin-test"
+    assert container_registry.name == "resoto-do-plugin-test"
+    assert container_registry.storage_usage_bytes == 6144
+    assert container_registry.is_read_only is False
+
+    check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crr:resoto-do-plugin-test/hw")
+    container_registry_repository = graph.search_first("id", "do:crr:resoto-do-plugin-test/hw")
+    assert container_registry_repository.id == "do:crr:resoto-do-plugin-test/hw"
+    assert container_registry_repository.name == "hw"
+    assert container_registry_repository.tag_count == 1
+    assert container_registry_repository.manifest_count == 1
+
+    check_edges(graph, "do:crr:resoto-do-plugin-test/hw", "do:crrt:resoto-do-plugin-test/hw:latest")
+    check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crrt:resoto-do-plugin-test/hw:latest")
+    tag = graph.search_first("id", "do:crrt:resoto-do-plugin-test/hw:latest")
+    assert tag.id == "do:crrt:resoto-do-plugin-test/hw:latest"
+    assert tag.name == "latest"
+    assert tag.do_cr_tag == "latest"
+    assert tag.do_cr_manifest_digest == "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e"
+    assert tag.do_cr_compressed_size_bytes == 5164
+    assert tag.do_cr_size_bytes == 12660
+    assert tag.mtime == datetime.datetime(2022, 3, 14, 13, 32, 40, 0, datetime.timezone.utc)

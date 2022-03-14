@@ -308,3 +308,35 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
     do_cert_dns_names: Optional[List[str]] = None
     do_cert_state: Optional[str] = None
     do_cert_type: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry"""
+
+    kind = "digitalocean_container_registry"
+
+    storage_usage_bytes: Optional[int] = None
+    is_read_only: Optional[bool] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry repository"""
+
+    kind = "digitalocean_container_registry_repository"
+
+    tag_count: Optional[int] = None
+    manifest_count: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry repository tag"""
+
+    kind = "digitalocean_container_registry_repository_tag"
+
+    do_cr_tag: Optional[str] = None
+    do_cr_manifest_digest: Optional[str] = None
+    do_cr_compressed_size_bytes: Optional[int] = None
+    do_cr_size_bytes: Optional[int] = None

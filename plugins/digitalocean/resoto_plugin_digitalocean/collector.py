@@ -25,6 +25,9 @@ from .resources import (
     DigitalOceanApp,
     DigitalOceanCdnEndpoint,
     DigitalOceanCertificate,
+    DigitalOceanContainerRegistry,
+    DigitalOceanContainerRegistryRepository,
+    DigitalOceanContainerRegistryRepositoryTag,
 )
 from .utils import (
     iso2datetime,
@@ -44,6 +47,9 @@ from .utils import (
     app_id,
     cdn_endpoint_id,
     certificate_id,
+    container_registry_id,
+    container_registry_repository_id,
+    container_registry_repository_tag_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -104,6 +110,10 @@ metrics_collect_certificates = Summary(
     "resoto_plugin_digitalocean_collect_certificates_seconds",
     "Time it took the collect_certificates() method",
 )
+metrics_collect_container_registry = Summary(
+    "resoto_plugin_digitalocean_collect_container_registry_seconds",
+    "Time it took the collect_container_registry() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -144,6 +154,7 @@ class DigitalOceanTeamCollector:
             ("apps", self.collect_apps),
             ("cdn_endpoints", self.collect_cdn_endpoints),
             ("certificates", self.collect_certificates),
+            ("container_registry", self.collect_container_registry),
         ]
 
         self.region_collectors = [
@@ -788,3 +799,62 @@ class DigitalOceanTeamCollector:
                 "do_cert_type": "type",
             },
         )
+
+    @metrics_collect_container_registry.time()
+    def collect_container_registry(self) -> None:
+        registries = self.client.get_registry_info()
+        for registry in registries:
+            registry["updated_at"] = registry["storage_usage_updated_at"]
+            self.collect_resource(
+                [registry],
+                resource_class=DigitalOceanContainerRegistry,
+                attr_map={
+                    "id": lambda r: container_registry_id(r["name"]),
+                    "storage_usage_bytes": "storage_usage_bytes",
+                    "is_read_only": "read_only"
+                },
+                search_map={
+                    "_region": ["id", lambda registry: region_id(registry["region"])],
+                }
+            )
+            repositories = self.client.list_registry_repositories(registry["name"])
+            self.collect_resource(
+                repositories,
+                resource_class=DigitalOceanContainerRegistryRepository,
+                attr_map={
+                    "id": lambda r: container_registry_repository_id(r["registry_name"], r["name"]),
+                    "name": "name",
+                    "tag_count": "tag_count",
+                    "manifest_count": "manifest_count",
+                },
+                search_map={
+                    "__registry": ["id", lambda r: container_registry_id(r["registry_name"])],
+                },
+                predecessors={
+                    EdgeType.default: ["__registry"]
+                },
+            )
+
+            tags = [tag for repository in repositories for tag in
+                    self.client.list_registry_repository_tags(registry["name"], repository["name"])]
+
+            self.collect_resource(
+                tags,
+                resource_class=DigitalOceanContainerRegistryRepositoryTag,
+                attr_map={
+                    "id": lambda t: container_registry_repository_tag_id(t["registry_name"], t["repository"], t["tag"]),
+                    "name": "tag",
+                    "do_cr_tag": "tag",
+                    "do_cr_manifest_digest": "manifest_digest",
+                    "do_cr_compressed_size_bytes": "compressed_size_bytes",
+                    "do_cr_size_bytes": "size_bytes",
+                },
+                search_map={
+                    "__repository": ["id", lambda t: container_registry_repository_id(t["registry_name"], t["repository"])],
+                    "__registry": ["id", lambda t: container_registry_id(t["registry_name"])],
+                },
+                predecessors={
+                    EdgeType.default: ["__repository", "__registry"]
+                },
+            )
+

@@ -35,7 +35,8 @@ class StreamingWrapper:
         log.debug(f"fetching {url}")
 
         json_response = requests.get(url, headers=headers).json()
-        result.extend(json_response.get(payload_object_name, []))
+        payload = json_response.get(payload_object_name, [])
+        result.extend(payload if isinstance(payload, list) else [payload])
 
         while json_response.get("links", {}).get("pages", {}).get("last", "") != url:
             url = json_response.get("links", {}).get("pages", {}).get("next", "")
@@ -43,7 +44,8 @@ class StreamingWrapper:
                 break
             log.debug(f"fetching {url}")
             json_response = requests.get(url, headers=headers).json()
-            result.extend(json_response.get(payload_object_name, []))
+            payload = json_response.get(payload_object_name, [])
+            result.extend(payload if isinstance(payload, list) else [payload])
 
         log.debug(f"DO request {path}: " f"{json.dumps(result)}")
         return result
@@ -103,3 +105,12 @@ class StreamingWrapper:
 
     def list_certificates(self) -> List[Json]:
         return self._make_request("/certificates", "certificates")
+
+    def get_registry_info(self) -> List[Json]:
+        return self._make_request("/registry", "registry")
+
+    def list_registry_repositories(self, registry_id: str) -> List[Json]:
+        return self._make_request(f"/registry/{registry_id}/repositoriesV2", "repositories")
+
+    def list_registry_repository_tags(self, registry_id: str, repository_name: str) -> List[Json]:
+        return self._make_request(f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags")
