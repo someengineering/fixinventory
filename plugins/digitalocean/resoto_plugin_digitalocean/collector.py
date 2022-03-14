@@ -23,7 +23,8 @@ from .resources import (
     DigitalOceanImage,
     DigitalOceanSpace,
     DigitalOceanApp,
-    DigitalOceanCdnEndpoint
+    DigitalOceanCdnEndpoint,
+    DigitalOceanCertificate,
 )
 from .utils import (
     iso2datetime,
@@ -42,6 +43,7 @@ from .utils import (
     space_id,
     app_id,
     cdn_endpoint_id,
+    certificate_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -98,6 +100,10 @@ metrics_collect_cdn_endpoints = Summary(
     "resoto_plugin_digitalocean_collect_cdn_endpoints_seconds",
     "Time it took the collect_cdn_endpoints() method",
 )
+metrics_collect_certificates = Summary(
+    "resoto_plugin_digitalocean_collect_certificates_seconds",
+    "Time it took the collect_certificates() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -137,6 +143,7 @@ class DigitalOceanTeamCollector:
             ("project", self.collect_projects),
             ("apps", self.collect_apps),
             ("cdn_endpoints", self.collect_cdn_endpoints),
+            ("certificates", self.collect_certificates),
         ]
 
         self.region_collectors = [
@@ -763,5 +770,21 @@ class DigitalOceanTeamCollector:
                 "do_cdn_certificate_id": "certificate_id",
                 "do_cdn_custom_domain": "custom_domain",
                 "do_cdn_ttl": "ttl",
+            },
+        )
+
+    @metrics_collect_certificates.time()
+    def collect_certificates(self) -> None:
+        certificates = self.client.list_certificates()
+        self.collect_resource(
+            certificates,
+            resource_class=DigitalOceanCertificate,
+            attr_map={
+                "id": lambda c: certificate_id(c["id"]),
+                "expires": lambda c: iso2datetime(c.get("not_after")),
+                "do_cert_sha1_fingerprint": "sha1_fingerprint",
+                "do_cert_dns_names": "dns_names",
+                "do_cert_state": "state",
+                "do_cert_type": "type",
             },
         )

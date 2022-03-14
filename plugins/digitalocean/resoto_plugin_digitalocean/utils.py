@@ -89,3 +89,7 @@ def app_id(value: str) -> str:
 
 def cdn_endpoint_id(value: str) -> str:
     return f"do:cdn_endpoint:{value}"
+
+
+def certificate_id(value: str) -> str:
+    return f"do:certificate:{value}"

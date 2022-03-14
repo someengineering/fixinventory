@@ -100,3 +100,6 @@ class StreamingWrapper:
 
     def list_cdn_endpoints(self) -> List[Json]:
         return self._make_request("/cdn/endpoints", "endpoints")
+
+    def list_certificates(self) -> List[Json]:
+        return self._make_request("/certificates", "certificates")

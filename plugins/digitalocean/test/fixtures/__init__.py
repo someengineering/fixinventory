@@ -13,3 +13,4 @@ from .projectresources import project_resources as project_resources
 from .spaces import spaces as spaces
 from .apps import apps as apps
 from .cdns import cdn_endpoints as cdn_endpoints
+from .certificates import certificates as certificates

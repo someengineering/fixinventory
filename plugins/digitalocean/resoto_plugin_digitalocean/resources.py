@@ -16,7 +16,8 @@ from resotolib.baseresources import (
     InstanceStatus,
     VolumeStatus,
     BaseBucket,
-    BaseEndpoint
+    BaseEndpoint,
+    BaseCertificate
 )
 from resotolib.graph import Graph
 
@@ -295,3 +296,15 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
     do_cdn_certificate_id: Optional[str] = None
     do_cdn_custom_domain: Optional[str] = None
     do_cdn_ttl: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
+    """DigitalOcean certificate"""
+
+    kind = "digitalocean_certificate"
+
+    do_cert_sha1_fingerprint: Optional[str] = None
+    do_cert_dns_names: Optional[List[str]] = None
+    do_cert_state: Optional[str] = None
+    do_cert_type: Optional[str] = None

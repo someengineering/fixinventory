@@ -14,7 +14,8 @@ from fixtures import (
     project_resources,
     spaces,
     apps,
-    cdn_endpoints
+    cdn_endpoints,
+    certificates
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -191,7 +192,7 @@ def test_collect_database():
     )
     database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     assert database.id == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
-    assert database.name == "db-postgresql-fra1-82725"
+    assert database.name == "do:dbaas:db-postgresql-fra1-82725"
     assert database.db_type == "pg"
     assert database.db_status == "online"
     assert database.db_version == "14"
@@ -418,3 +419,20 @@ def test_cdn_endpoints():
     assert endpoint.do_cdn_custom_domain == "test.domain.resoto"
     assert endpoint.do_cdn_ttl == 3600
 
+
+def test_collect_certificates():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_certificates": certificates
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:team:test_team", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")
+    cert = graph.search_first("id", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")
+    assert cert.id == "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
+    assert cert.name == "cdn.resoto.test"
+    assert cert.do_cert_sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
+    assert cert.do_cert_dns_names == ["*.resoto.test", "resoto.test"]
+    assert cert.do_cert_state == "verified"
+    assert cert.do_cert_type == "custom"
