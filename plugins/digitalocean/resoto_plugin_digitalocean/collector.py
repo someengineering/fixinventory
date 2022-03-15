@@ -449,7 +449,18 @@ class DigitalOceanTeamCollector:
             image["region"] = droplet["region"]["slug"]
             return image
 
+        def remove_duplicates(images):
+            seen_ids = set()
+            unique_images = []
+            for image in images:
+                if image["id"] not in seen_ids:
+                    unique_images.append(image)
+                    seen_ids.add(image["id"])
+            return unique_images
+
         images = [get_image(instance) for instance in instances]
+        images = remove_duplicates(images)
+
         self.collect_resource(
             images,
             resource_class=DigitalOceanImage,
@@ -814,12 +825,6 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanApp,
             attr_map={
                 "id": lambda app: app_id(app["id"]),
-                "do_app_service_names": lambda app: map(
-                    lambda s: s["name"], app.get("spec", {}).get("services", [])
-                ),
-                "do_app_service_ports": lambda app: map(
-                    lambda s: s["http_port"], app.get("spec", {}).get("services", [])
-                ),
                 "do_app_tier_slug": "tier_slug",
                 "do_app_default_ingress": "default_ingress",
                 "do_app_live_url": "live_url",

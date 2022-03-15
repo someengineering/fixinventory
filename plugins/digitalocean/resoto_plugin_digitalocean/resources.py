@@ -278,8 +278,6 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_app"
 
-    do_app_service_names: List[str] = field(default_factory=list)
-    do_app_service_ports: List[int] = field(default_factory=list)
     do_app_tier_slug: str = field(default="")
     do_app_default_ingress: Optional[str] = None
     do_app_live_url: Optional[str] = None
