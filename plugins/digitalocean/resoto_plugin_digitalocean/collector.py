@@ -29,7 +29,8 @@ from .resources import (
     DigitalOceanContainerRegistryRepository,
     DigitalOceanContainerRegistryRepositoryTag,
     DigitalOceanSSHKey,
-    DigitalOceanTag
+    DigitalOceanTag,
+    DigitalOceanDomain
 )
 from .utils import (
     iso2datetime,
@@ -53,7 +54,8 @@ from .utils import (
     container_registry_repository_id,
     container_registry_repository_tag_id,
     ssh_key_id,
-    tag_id
+    tag_id,
+    domain_id
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -126,6 +128,10 @@ metrics_collect_tags = Summary(
     "resoto_plugin_digitalocean_collect_tags_seconds",
     "Time it took the collect_tags() method",
 )
+metrics_collect_domains = Summary(
+    "resoto_plugin_digitalocean_collect_domains_seconds",
+    "Time it took the collect_domains() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -169,6 +175,7 @@ class DigitalOceanTeamCollector:
             ("certificates", self.collect_certificates),
             ("container_registry", self.collect_container_registry),
             ("ssh_keys", self.collect_ssh_keys),
+            ("domains", self.collect_domains),
         ]
 
         self.region_collectors = [
@@ -903,5 +910,19 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda t: tag_id(t["name"]),
             },
+        )
+
+
+    @metrics_collect_domains.time()
+    def collect_domains(self) -> None:
+        domains = self.client.list_domains()
+        self.collect_resource(
+            domains,
+            resource_class=DigitalOceanDomain,
+            attr_map={
+                "id": lambda d: domain_id(d["name"]),
+                "ttl": "ttl",
+                "zone_file": "zone_file",
+            }
         )
 

@@ -120,3 +120,6 @@ class StreamingWrapper:
 
     def list_tags(self) -> List[Json]:
         return self._make_request("/tags", "tags")
+
+    def list_domains(self) -> List[Json]:
+        return self._make_request("/domains", "domains")

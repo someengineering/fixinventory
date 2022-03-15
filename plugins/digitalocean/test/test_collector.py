@@ -20,7 +20,8 @@ from fixtures import (
     registry_repositories,
     registry_repository_tags,
     ssh_keys,
-    tags
+    tags,
+    domains
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -514,3 +515,16 @@ def test_collect_tags():
     tag = graph.search_first("id", "do:tag:droplet_tag")
     assert tag.id == "do:tag:droplet_tag"
 
+
+def test_collect_domains():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_domains": domains,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:team:test_team", "do:domain:example.com")
+    domain = graph.search_first("id", "do:domain:example.com")
+    assert domain.ttl == 1800
+    assert domain.zone_file == "$ORIGIN example.com.S"

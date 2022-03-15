@@ -19,3 +19,4 @@ from .registry_repositories import registry_repositories as registry_repositorie
 from .registry_repository_tags import registry_repository_tags as registry_repository_tags
 from .ssh_keys import ssh_keys as ssh_keys
 from .tags import tags as tags
+from .domains import domains as domains

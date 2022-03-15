@@ -113,3 +113,7 @@ def ssh_key_id(value: str) -> str:
 
 def tag_id(value: str) -> str:
     return f"do:tag:{value}"
+
+
+def domain_id(value: str) -> str:
+    return f"do:domain:{value}"

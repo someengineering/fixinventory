@@ -351,8 +351,19 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
     do_ssh_public_key: Optional[str] = None
 
+
 @dataclass(eq=False)
 class DigitalOceanTag(DigitalOceanResource, BaseResource):
     """DigitalOcean tag"""
 
     kind = "digitalocean_tag"
+
+
+@dataclass(eq=False)
+class DigitalOceanDomain(DigitalOceanResource, BaseResource):
+    """DigitalOcean domain"""
+
+    kind = "digitalocean_domain"
+
+    ttl: Optional[int] = None
+    zone_file: Optional[str] = None
