@@ -117,8 +117,8 @@ metrics_collect_cdn_endpoints = Summary(
     "Time it took the collect_cdn_endpoints() method",
 )
 metrics_collect_certificates = Summary(
-    "resoto_plugin_digitalocean_collect_certificates_seconds",
-    "Time it took the collect_certificates() method",
+    "resoto_plugin_digitalocean_collect_certificate_info_seconds",
+    "Time it took the collect_certificate_info() method",
 )
 metrics_collect_container_registry = Summary(
     "resoto_plugin_digitalocean_collect_container_registry_seconds",
@@ -184,7 +184,7 @@ class DigitalOceanTeamCollector:
             ("project", self.collect_projects),
             ("apps", self.collect_apps),
             ("cdn_endpoints", self.collect_cdn_endpoints),
-            ("certificates", self.collect_certificates),
+            ("certificates", self.collect_certificate_info),
             ("container_registry", self.collect_container_registry),
             ("ssh_keys", self.collect_ssh_keys),
             ("domains", self.collect_domains),
@@ -851,7 +851,7 @@ class DigitalOceanTeamCollector:
         )
 
     @metrics_collect_certificates.time()
-    def collect_certificates(self) -> None:
+    def collect_certificate_info(self) -> None:
         certificates = self.client.list_certificates()
         self.collect_resource(
             certificates,

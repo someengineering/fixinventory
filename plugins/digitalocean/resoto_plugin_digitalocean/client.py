@@ -52,7 +52,7 @@ class StreamingWrapper:
             payload = json_response.get(payload_object_name, [])
             result.extend(payload if isinstance(payload, list) else [payload])
 
-        log.debug(f"DO request {path}: " f"{json.dumps(result)}")
+        log.debug(f"DO request {path} returned {len(result)} items")
         return result
 
     def list_projects(self) -> List[Json]:
