@@ -460,13 +460,18 @@ class DigitalOceanTeamCollector:
                 "do_image_public": "public",
                 "do_image_min_disk_size": "min_disk_size",
                 "do_image_type": "type",
-                "do_image_size_gigabytes": lambda image: math.ceil(image.get("size_gigabytes")),
+                "do_image_size_gigabytes": lambda image: math.ceil(
+                    image.get("size_gigabytes")
+                ),
                 "do_image_description": "description",
                 "do_image_status": "status",
             },
             search_map={
                 "_region": ["id", lambda image: region_id(image["region"])],
-                "__tags": ["id", lambda image: list(map(lambda tag: tag_id(tag), image["tags"]))],
+                "__tags": [
+                    "id",
+                    lambda image: list(map(lambda tag: tag_id(tag), image["tags"])),
+                ],
             },
             predecessors={
                 EdgeType.default: ["__tags"],
@@ -489,7 +494,10 @@ class DigitalOceanTeamCollector:
                 "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
                 "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
                 "__images": ["id", lambda droplet: image_id(droplet["image"]["id"])],
-                "__tags": ["id", lambda d: list(map(lambda tag: tag_id(tag), d["tags"]))],
+                "__tags": [
+                    "id",
+                    lambda d: list(map(lambda tag: tag_id(tag), d["tags"])),
+                ],
             },
             predecessors={
                 EdgeType.default: ["__vpcs", "__images", "__tags"],
@@ -539,8 +547,10 @@ class DigitalOceanTeamCollector:
                         map(lambda id: droplet_id(id), vol["droplet_ids"])
                     ),
                 ],
-                "__tags": ["id", lambda v: list(map(lambda tag: tag_id(tag), v["tags"]))],
-
+                "__tags": [
+                    "id",
+                    lambda v: list(map(lambda tag: tag_id(tag), v["tags"])),
+                ],
             },
             predecessors={EdgeType.default: ["__users", "__tags"]},
         )
@@ -588,7 +598,10 @@ class DigitalOceanTeamCollector:
             search_map={
                 "_region": ["id", lambda db: region_id(db["region"])],
                 "__vpcs": ["id", lambda db: vpc_id(db["private_network_uuid"])],
-                "__tags": ["id", lambda db: list(map(lambda tag: tag_id(tag), db["tags"]))],
+                "__tags": [
+                    "id",
+                    lambda db: list(map(lambda tag: tag_id(tag), db["tags"])),
+                ],
             },
             predecessors={EdgeType.default: ["__vpcs", "__tags"]},
         )
@@ -692,7 +705,9 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "do_snapshot_size_gigabytes": lambda vol: math.ceil(vol.get("size_gigabytes")),
+                "do_snapshot_size_gigabytes": lambda vol: math.ceil(
+                    vol.get("size_gigabytes")
+                ),
                 "do_snapshot_resource_id": "resource_id",
                 "do_snapshot_resource_type": "resource_type",
             },
@@ -702,7 +717,10 @@ class DigitalOceanTeamCollector:
                     lambda s: [region_id(region) for region in s["regions"]],
                 ],
                 "__resource": ["id", lambda s: get_resource_id(s)],
-                "__tags": ["id", lambda s: list(map(lambda tag: tag_id(tag), s["tags"]))],
+                "__tags": [
+                    "id",
+                    lambda s: list(map(lambda tag: tag_id(tag), s["tags"])),
+                ],
             },
             predecessors={EdgeType.default: ["__resource", "__tags"]},
         )
@@ -777,8 +795,11 @@ class DigitalOceanTeamCollector:
     @metrics_collect_apps.time()
     def collect_apps(self) -> None:
         apps = self.client.list_apps()
+
         def extract_region(app: Dict) -> Optional[str]:
-            region_slug = next(iter(app.get("region", {}).get("data_centers", [])), None)
+            region_slug = next(
+                iter(app.get("region", {}).get("data_centers", [])), None
+            )
             if region_slug is None:
                 return None
             return region_id(region_slug)
@@ -793,14 +814,17 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanApp,
             attr_map={
                 "id": lambda app: app_id(app["id"]),
-                "do_app_service_names": lambda app: map(lambda s: s["name"], app.get("spec", {}).get("services", [])),
-                "do_app_service_ports": lambda app: map(lambda s: s["http_port"], app.get("spec", {}).get("services", [])),
+                "do_app_service_names": lambda app: map(
+                    lambda s: s["name"], app.get("spec", {}).get("services", [])
+                ),
+                "do_app_service_ports": lambda app: map(
+                    lambda s: s["http_port"], app.get("spec", {}).get("services", [])
+                ),
                 "do_app_tier_slug": "tier_slug",
                 "do_app_default_ingress": "default_ingress",
                 "do_app_live_url": "live_url",
                 "do_app_live_url_base": "live_url_base",
                 "do_app_live_domain": "live_domain",
-
             },
             search_map={
                 "_region": ["id", extract_region],
@@ -808,7 +832,6 @@ class DigitalOceanTeamCollector:
             },
             predecessors={EdgeType.default: ["__databases"]},
         )
-
 
     @metrics_collect_cdn_endpoints.time()
     def collect_cdn_endpoints(self) -> None:
@@ -854,38 +877,48 @@ class DigitalOceanTeamCollector:
                 attr_map={
                     "id": lambda r: container_registry_id(r["name"]),
                     "storage_usage_bytes": "storage_usage_bytes",
-                    "is_read_only": "read_only"
+                    "is_read_only": "read_only",
                 },
                 search_map={
                     "_region": ["id", lambda registry: region_id(registry["region"])],
-                }
+                },
             )
             repositories = self.client.list_registry_repositories(registry["name"])
             self.collect_resource(
                 repositories,
                 resource_class=DigitalOceanContainerRegistryRepository,
                 attr_map={
-                    "id": lambda r: container_registry_repository_id(r["registry_name"], r["name"]),
+                    "id": lambda r: container_registry_repository_id(
+                        r["registry_name"], r["name"]
+                    ),
                     "name": "name",
                     "tag_count": "tag_count",
                     "manifest_count": "manifest_count",
                 },
                 search_map={
-                    "__registry": ["id", lambda r: container_registry_id(r["registry_name"])],
+                    "__registry": [
+                        "id",
+                        lambda r: container_registry_id(r["registry_name"]),
+                    ],
                 },
-                predecessors={
-                    EdgeType.default: ["__registry"]
-                },
+                predecessors={EdgeType.default: ["__registry"]},
             )
 
-            tags = [tag for repository in repositories for tag in
-                    self.client.list_registry_repository_tags(registry["name"], repository["name"])]
+            tags = [
+                tag
+                for repository in repositories
+                for tag in self.client.list_registry_repository_tags(
+                    registry["name"], repository["name"]
+                )
+            ]
 
             self.collect_resource(
                 tags,
                 resource_class=DigitalOceanContainerRegistryRepositoryTag,
                 attr_map={
-                    "id": lambda t: container_registry_repository_tag_id(t["registry_name"], t["repository"], t["tag"]),
+                    "id": lambda t: container_registry_repository_tag_id(
+                        t["registry_name"], t["repository"], t["tag"]
+                    ),
                     "name": "tag",
                     "do_cr_tag": "tag",
                     "do_cr_manifest_digest": "manifest_digest",
@@ -893,12 +926,18 @@ class DigitalOceanTeamCollector:
                     "do_cr_size_bytes": "size_bytes",
                 },
                 search_map={
-                    "__repository": ["id", lambda t: container_registry_repository_id(t["registry_name"], t["repository"])],
-                    "__registry": ["id", lambda t: container_registry_id(t["registry_name"])],
+                    "__repository": [
+                        "id",
+                        lambda t: container_registry_repository_id(
+                            t["registry_name"], t["repository"]
+                        ),
+                    ],
+                    "__registry": [
+                        "id",
+                        lambda t: container_registry_id(t["registry_name"]),
+                    ],
                 },
-                predecessors={
-                    EdgeType.default: ["__repository", "__registry"]
-                },
+                predecessors={EdgeType.default: ["__repository", "__registry"]},
             )
 
     @metrics_collect_ssh_keys.time()
@@ -911,7 +950,7 @@ class DigitalOceanTeamCollector:
                 "id": lambda k: ssh_key_id(k["id"]),
                 "do_ssh_public_key": "public_key",
                 "fingerprint": "fingerprint",
-            }
+            },
         )
 
     @metrics_collect_tags.time()
@@ -935,12 +974,18 @@ class DigitalOceanTeamCollector:
                 "id": lambda d: domain_id(d["name"]),
                 "ttl": "ttl",
                 "zone_file": "zone_file",
-            }
+            },
         )
+
         def update_record(record, domain):
             record["domain_name"] = domain["name"]
             return record
-        domain_records = [update_record(record, domain) for domain in domains for record in self.client.list_domain_records(domain["name"])]
+
+        domain_records = [
+            update_record(record, domain)
+            for domain in domains
+            for record in self.client.list_domain_records(domain["name"])
+        ]
         self.collect_resource(
             domain_records,
             resource_class=DigitalOceanDomainRecord,
@@ -973,7 +1018,10 @@ class DigitalOceanTeamCollector:
                 "do_firewall_status": "status",
             },
             search_map={
-                "__droplets": ["id", lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"]))],
+                "__droplets": [
+                    "id",
+                    lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"])),
+                ],
                 "__tags": ["id", lambda f: list(map(lambda id: tag_id(id), f["tags"]))],
             },
             predecessors={
@@ -981,5 +1029,5 @@ class DigitalOceanTeamCollector:
             },
             successors={
                 EdgeType.default: ["__droplets"],
-            }
+            },
         )

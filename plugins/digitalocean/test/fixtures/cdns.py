@@ -6,6 +6,6 @@ cdn_endpoints = [
         "created_at": "2021-11-16T16:00:44Z",
         "certificate_id": "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8",
         "custom_domain": "test.domain.resoto",
-        "ttl": 3600
+        "ttl": 3600,
     }
 ]

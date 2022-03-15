@@ -268,12 +268,14 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 @dataclass(eq=False)
 class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
     """DigitalOcean space"""
+
     kind: ClassVar[str] = "digitalocean_space"
 
 
 @dataclass(eq=False)
 class DigitalOceanApp(DigitalOceanResource, BaseResource):
     """DigitalOcean app"""
+
     kind: ClassVar[str] = "digitalocean_app"
 
     do_app_service_names: List[str] = field(default_factory=list)

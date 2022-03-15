@@ -21,7 +21,9 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         A region can contain arbitrary resources.
         """
         tokens = ArgumentParser.args.digitalocean_api_tokens
-        spaces_access_keys: List[str] = ArgumentParser.args.digitalocean_spaces_access_keys
+        spaces_access_keys: List[
+            str
+        ] = ArgumentParser.args.digitalocean_spaces_access_keys
         spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
 
         if len(spaces_access_keys) % 2 == 0:
@@ -34,10 +36,10 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
 
         if len(tokens) != len(spaces_access_keys):
             log.warn(
-                "The number of DigitalOcean API tokens and DigitalOcean Spaces access keys must be equal." +
-                "Missing or extra spaces access keys will be ignored."
+                "The number of DigitalOcean API tokens and DigitalOcean Spaces access keys must be equal."
+                + "Missing or extra spaces access keys will be ignored."
             )
-            spaces_keys = spaces_keys[:len(tokens)]
+            spaces_keys = spaces_keys[: len(tokens)]
             spaces_keys.extend([(None, None)] * (len(tokens) - len(spaces_keys)))
 
         log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")

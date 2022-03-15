@@ -9,7 +9,7 @@ domain_records = [
         "ttl": 1800,
         "weight": None,
         "flags": None,
-        "tag": None
+        "tag": None,
     },
     {
         "id": 300035871,
@@ -21,7 +21,7 @@ domain_records = [
         "ttl": 1800,
         "weight": None,
         "flags": None,
-        "tag": None
+        "tag": None,
     },
     {
         "id": 300035872,
@@ -33,7 +33,7 @@ domain_records = [
         "ttl": 1800,
         "weight": None,
         "flags": None,
-        "tag": None
+        "tag": None,
     },
     {
         "id": 300035874,
@@ -45,7 +45,7 @@ domain_records = [
         "ttl": 1800,
         "weight": None,
         "flags": None,
-        "tag": None
+        "tag": None,
     },
     {
         "id": 300036132,
@@ -57,6 +57,6 @@ domain_records = [
         "ttl": 1800,
         "weight": None,
         "flags": None,
-        "tag": None
-    }
+        "tag": None,
+    },
 ]

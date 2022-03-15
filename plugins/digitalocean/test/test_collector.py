@@ -23,7 +23,7 @@ from fixtures import (
     tags,
     domains,
     domain_records,
-    firewalls
+    firewalls,
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -161,7 +161,7 @@ def test_collect_droplets():
     assert droplet.ctime == datetime.datetime(
         2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
     )
-    assert droplet.tags == {"droplet_tag":""}
+    assert droplet.tags == {"droplet_tag": ""}
 
 
 def test_collect_volumes():
@@ -175,8 +175,12 @@ def test_collect_volumes():
     )
     graph = prepare_graph(do_client)
 
-    check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
-    check_edges(graph, "do:tag:volume_tag", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
+    check_edges(
+        graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
+    )
+    check_edges(
+        graph, "do:tag:volume_tag", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
+    )
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
@@ -203,7 +207,9 @@ def test_collect_database():
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
         "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
     )
-    check_edges(graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
+    check_edges(
+        graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
+    )
     database = graph.search_first("id", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     assert database.id == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
@@ -395,7 +401,9 @@ def test_collect_space():
     space = graph.search_first("id", "do:space:api-test-space.resoto")
     assert space.id == "do:space:api-test-space.resoto"
     assert space.name == "api-test-space.resoto"
-    assert space.ctime == datetime.datetime(2022, 2, 23, 13, 42, 21, 455000, datetime.timezone.utc)
+    assert space.ctime == datetime.datetime(
+        2022, 2, 23, 13, 42, 21, 455000, datetime.timezone.utc
+    )
 
 
 def test_collect_apps():
@@ -408,7 +416,11 @@ def test_collect_apps():
     )
     graph = prepare_graph(do_client)
     check_edges(graph, "do:region:fra1", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
-    check_edges(graph, "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
+    check_edges(
+        graph,
+        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
+        "do:app:5dc41512-7523-4eeb-9932-426aa570234b",
+    )
     app = graph.search_first("id", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
     assert app.id == "do:app:5dc41512-7523-4eeb-9932-426aa570234b"
     assert app.do_app_default_ingress == "https://resoto_test_app.ondigitalocean.app"
@@ -425,8 +437,14 @@ def test_cdn_endpoints():
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:team:test_team", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")
-    endpoint = graph.search_first("id", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")
+    check_edges(
+        graph,
+        "do:team:test_team",
+        "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c",
+    )
+    endpoint = graph.search_first(
+        "id", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
+    )
     assert endpoint.id == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
     assert endpoint.do_cdn_origin == "resoto_test.ams3.digitaloceanspaces.com"
     assert endpoint.do_cdn_endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
@@ -437,15 +455,16 @@ def test_cdn_endpoints():
 
 
 def test_collect_certificates():
-    do_client = ClientMock(
-        {
-            "list_regions": regions,
-            "list_certificates": certificates
-        }
-    )
+    do_client = ClientMock({"list_regions": regions, "list_certificates": certificates})
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:team:test_team", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")
-    cert = graph.search_first("id", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")
+    check_edges(
+        graph,
+        "do:team:test_team",
+        "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c",
+    )
+    cert = graph.search_first(
+        "id", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
+    )
     assert cert.id == "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
     assert cert.name == "cdn.resoto.test"
     assert cert.do_cert_sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
@@ -472,22 +491,35 @@ def test_collect_container_registries():
     assert container_registry.is_read_only is False
 
     check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crr:resoto-do-plugin-test/hw")
-    container_registry_repository = graph.search_first("id", "do:crr:resoto-do-plugin-test/hw")
+    container_registry_repository = graph.search_first(
+        "id", "do:crr:resoto-do-plugin-test/hw"
+    )
     assert container_registry_repository.id == "do:crr:resoto-do-plugin-test/hw"
     assert container_registry_repository.name == "hw"
     assert container_registry_repository.tag_count == 1
     assert container_registry_repository.manifest_count == 1
 
-    check_edges(graph, "do:crr:resoto-do-plugin-test/hw", "do:crrt:resoto-do-plugin-test/hw:latest")
-    check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crrt:resoto-do-plugin-test/hw:latest")
+    check_edges(
+        graph,
+        "do:crr:resoto-do-plugin-test/hw",
+        "do:crrt:resoto-do-plugin-test/hw:latest",
+    )
+    check_edges(
+        graph, "do:cr:resoto-do-plugin-test", "do:crrt:resoto-do-plugin-test/hw:latest"
+    )
     tag = graph.search_first("id", "do:crrt:resoto-do-plugin-test/hw:latest")
     assert tag.id == "do:crrt:resoto-do-plugin-test/hw:latest"
     assert tag.name == "latest"
     assert tag.do_cr_tag == "latest"
-    assert tag.do_cr_manifest_digest == "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e"
+    assert (
+        tag.do_cr_manifest_digest
+        == "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e"
+    )
     assert tag.do_cr_compressed_size_bytes == 5164
     assert tag.do_cr_size_bytes == 12660
-    assert tag.mtime == datetime.datetime(2022, 3, 14, 13, 32, 40, 0, datetime.timezone.utc)
+    assert tag.mtime == datetime.datetime(
+        2022, 3, 14, 13, 32, 40, 0, datetime.timezone.utc
+    )
 
 
 def test_collect_ssh_keys():
@@ -549,8 +581,18 @@ def test_collect_firewalls():
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:tag:firewall_tag", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")
-    check_edges(graph, "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711", "do:droplet:289110074")
-    firewall = graph.search_first("id", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")
+    check_edges(
+        graph, "do:tag:firewall_tag", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711"
+    )
+    check_edges(
+        graph,
+        "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711",
+        "do:droplet:289110074",
+    )
+    firewall = graph.search_first(
+        "id", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711"
+    )
     assert firewall.do_firewall_status == "succeeded"
-    assert firewall.ctime == datetime.datetime(2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc)
+    assert firewall.ctime == datetime.datetime(
+        2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc
+    )

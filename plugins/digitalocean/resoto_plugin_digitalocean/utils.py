@@ -103,7 +103,9 @@ def container_registry_repository_id(registry_id: str, repository_id: str) -> st
     return f"do:crr:{registry_id}/{repository_id}"
 
 
-def container_registry_repository_tag_id(registry_id: str, repository_id: str, tag: str) -> str:
+def container_registry_repository_tag_id(
+    registry_id: str, repository_id: str, tag: str
+) -> str:
     return f"do:crrt:{registry_id}/{repository_id}:{tag}"
 
 

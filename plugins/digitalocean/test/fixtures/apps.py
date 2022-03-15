@@ -15,24 +15,20 @@ apps = [
                         "registry_type": "DOCKER_HUB",
                         "registry": "grafana",
                         "repository": "alpine",
-                        "tag": "3.15.0"
+                        "tag": "3.15.0",
                     },
                     "source_dir": "/",
                     "envs": [
                         {
                             "key": "DATABASE_URL",
                             "value": "${db-postgresql-fra1-82725.DATABASE_URL}",
-                            "scope": "RUN_TIME"
+                            "scope": "RUN_TIME",
                         }
                     ],
                     "instance_size_slug": "basic-xxs",
                     "instance_count": 1,
                     "http_port": 8080,
-                    "routes": [
-                        {
-                            "path": "/"
-                        }
-                    ]
+                    "routes": [{"path": "/"}],
                 }
             ],
             "databases": [
@@ -43,18 +39,11 @@ apps = [
                     "production": True,
                     "cluster_name": "db-postgresql-fra1-82725",
                     "db_name": "defaultdb",
-                    "db_user": "doadmin"
+                    "db_user": "doadmin",
                 }
             ],
             "region": "fra",
-            "alerts": [
-                {
-                    "rule": "DEPLOYMENT_FAILED"
-                },
-                {
-                    "rule": "DOMAIN_FAILED"
-                }
-            ]
+            "alerts": [{"rule": "DEPLOYMENT_FAILED"}, {"rule": "DOMAIN_FAILED"}],
         },
         "last_deployment_active_at": "2022-03-13T13:02:38Z",
         "created_at": "2022-03-13T12:53:13Z",
@@ -65,10 +54,8 @@ apps = [
             "label": "Frankfurt",
             "flag": "germany",
             "continent": "Europe",
-            "data_centers": [
-                "fra1"
-            ]
+            "data_centers": ["fra1"],
         },
-        "tier_slug": "basic"
+        "tier_slug": "basic",
     },
 ]

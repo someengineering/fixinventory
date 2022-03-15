@@ -14,7 +14,12 @@ Json = Dict[str, Any]
 # todo: make it async
 # todo: stream the response
 class StreamingWrapper:
-    def __init__(self, token: str, spaces_access_key: Optional[str], spaces_secret_key: Optional[str]) -> None:
+    def __init__(
+        self,
+        token: str,
+        spaces_access_key: Optional[str],
+        spaces_secret_key: Optional[str],
+    ) -> None:
         self.token = token
         self.spaces_access_key = spaces_access_key
         self.spaces_secret_key = spaces_secret_key
@@ -85,15 +90,17 @@ class StreamingWrapper:
 
     def list_spaces(self, region_slug: str) -> List[Json]:
         if self.session is not None:
-            client = self.session.client('s3',
-                        endpoint_url=f'https://{region_slug}.digitaloceanspaces.com',
-                        # Find your endpoint in the control panel, under Settings. Prepend "https://".
-                        region_name=region_slug,  # Use the region in your endpoint.
-                        aws_access_key_id=self.spaces_access_key,
-                        # Access key pair. You can create access key pairs using the control panel or API.
-                        aws_secret_access_key=self.spaces_secret_key)
+            client = self.session.client(
+                "s3",
+                endpoint_url=f"https://{region_slug}.digitaloceanspaces.com",
+                # Find your endpoint in the control panel, under Settings. Prepend "https://".
+                region_name=region_slug,  # Use the region in your endpoint.
+                aws_access_key_id=self.spaces_access_key,
+                # Access key pair. You can create access key pairs using the control panel or API.
+                aws_secret_access_key=self.spaces_secret_key,
+            )
 
-            return client.list_buckets().get('Buckets', [])
+            return client.list_buckets().get("Buckets", [])
         else:
             return []
 
@@ -110,10 +117,16 @@ class StreamingWrapper:
         return self._make_request("/registry", "registry")
 
     def list_registry_repositories(self, registry_id: str) -> List[Json]:
-        return self._make_request(f"/registry/{registry_id}/repositoriesV2", "repositories")
+        return self._make_request(
+            f"/registry/{registry_id}/repositoriesV2", "repositories"
+        )
 
-    def list_registry_repository_tags(self, registry_id: str, repository_name: str) -> List[Json]:
-        return self._make_request(f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags")
+    def list_registry_repository_tags(
+        self, registry_id: str, repository_name: str
+    ) -> List[Json]:
+        return self._make_request(
+            f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags"
+        )
 
     def list_ssh_keys(self) -> List[Json]:
         return self._make_request("/account/keys", "ssh_keys")
