@@ -23,6 +23,7 @@ from fixtures import (
     tags,
     domains,
     domain_records,
+    firewalls
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -536,3 +537,20 @@ def test_collect_domains():
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035872")
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035874")
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300036132")
+
+
+def test_collect_firewalls():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_firewalls": firewalls,
+            "list_droplets": droplets,
+            "list_tags": tags,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(graph, "do:tag:firewall_tag", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")
+    check_edges(graph, "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711", "do:droplet:289110074")
+    firewall = graph.search_first("id", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")
+    assert firewall.do_firewall_status == "succeeded"
+    assert firewall.ctime == datetime.datetime(2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc)

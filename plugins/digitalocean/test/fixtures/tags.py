@@ -109,5 +109,27 @@ tags = [
                 "count": 0
             }
         }
+    },
+    {
+        "name": "firewall_tag",
+        "resources": {
+            "count": 1,
+            "last_tagged_uri": "https://api.digitalocean.com/v2/load_balancers/ce34912e-07e3-4bde-97ca-246753544f3e",
+            "droplets": {
+                "count": 0
+            },
+            "images": {
+                "count": 0
+            },
+            "volumes": {
+                "count": 0
+            },
+            "volume_snapshots": {
+                "count": 0
+            },
+            "databases": {
+                "count": 0
+            }
+        }
     }
 ]

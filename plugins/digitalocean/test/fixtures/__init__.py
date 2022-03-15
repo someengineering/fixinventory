@@ -21,3 +21,4 @@ from .ssh_keys import ssh_keys as ssh_keys
 from .tags import tags as tags
 from .domains import domains as domains
 from .domain_records import domain_records as domain_records
+from .firewalls import firewalls as firewalls

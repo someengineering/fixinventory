@@ -126,3 +126,6 @@ class StreamingWrapper:
 
     def list_domain_records(self, domain_name: str) -> List[Json]:
         return self._make_request(f"/domains/{domain_name}/records", "domain_records")
+
+    def list_firewalls(self) -> List[Json]:
+        return self._make_request("/firewalls", "firewalls")

@@ -121,3 +121,7 @@ def domain_id(value: str) -> str:
 
 def domain_record_id(value: str) -> str:
     return f"do:domain_record:{value}"
+
+
+def firewall_id(value: str) -> str:
+    return f"do:firewall:{value}"

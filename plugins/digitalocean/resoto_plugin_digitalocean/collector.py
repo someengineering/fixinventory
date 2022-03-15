@@ -31,7 +31,8 @@ from .resources import (
     DigitalOceanSSHKey,
     DigitalOceanTag,
     DigitalOceanDomain,
-    DigitalOceanDomainRecord
+    DigitalOceanDomainRecord,
+    DigitalOceanFirewall,
 )
 from .utils import (
     iso2datetime,
@@ -57,7 +58,8 @@ from .utils import (
     ssh_key_id,
     tag_id,
     domain_id,
-    domain_record_id
+    domain_record_id,
+    firewall_id,
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -138,6 +140,10 @@ metrics_collect_domains_records = Summary(
     "resoto_plugin_digitalocean_collect_domains_records_seconds",
     "Time it took the collect_domains_records() method",
 )
+metrics_collect_firewalls = Summary(
+    "resoto_plugin_digitalocean_collect_firewalls_seconds",
+    "Time it took the collect_firewalls() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -182,6 +188,7 @@ class DigitalOceanTeamCollector:
             ("container_registry", self.collect_container_registry),
             ("ssh_keys", self.collect_ssh_keys),
             ("domains", self.collect_domains),
+            ("firewalls", self.collect_firewalls),
         ]
 
         self.region_collectors = [
@@ -918,7 +925,6 @@ class DigitalOceanTeamCollector:
             },
         )
 
-
     @metrics_collect_domains.time()
     def collect_domains(self) -> None:
         domains = self.client.list_domains()
@@ -956,4 +962,24 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__domain"]},
         )
 
-
+    @metrics_collect_firewalls.time()
+    def collect_firewalls(self) -> None:
+        firewalls = self.client.list_firewalls()
+        self.collect_resource(
+            firewalls,
+            resource_class=DigitalOceanFirewall,
+            attr_map={
+                "id": lambda f: firewall_id(f["id"]),
+                "do_firewall_status": "status",
+            },
+            search_map={
+                "__droplets": ["id", lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"]))],
+                "__tags": ["id", lambda f: list(map(lambda id: tag_id(id), f["tags"]))],
+            },
+            predecessors={
+                EdgeType.default: ["__tags"],
+            },
+            successors={
+                EdgeType.default: ["__droplets"],
+            }
+        )

@@ -384,3 +384,12 @@ class DigitalOceanDomainRecord(DigitalOceanResource, BaseResource):
     do_domain_record_weight: Optional[int] = None
     do_domain_record_flags: Optional[int] = None
     do_domain_record_tag: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
+    """DigitalOcean firewall"""
+
+    kind = "digitalocean_firewall"
+
+    do_firewall_status: Optional[str] = None
