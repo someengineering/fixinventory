@@ -40,7 +40,13 @@ def to_json(node: Any, **kwargs: Any) -> JsonElement:
     # shortcut: assume a dict is already a json value
     if isinstance(node, dict):
         return node
-    return jsons.dump(node, strip_privates=True, strip_microseconds=True, **kwargs)  # type: ignore
+    return jsons.dump(  # type: ignore
+        node,
+        strip_privates=True,
+        strip_microseconds=True,
+        # strip_class_variables=True,
+        **kwargs,
+    )
 
 
 def to_js_str(node: Any) -> str:

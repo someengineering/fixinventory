@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from argparse import Namespace
 from asyncio import Task, CancelledError
 from contextlib import suppress
 from copy import copy
@@ -19,6 +18,7 @@ from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.cli import strip_quotes
 from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIContext
+from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
 from resotocore.error import ParseError, CLIParseError
@@ -63,7 +63,7 @@ class TaskHandlerService(TaskHandler):
         subscription_handler: SubscriptionHandler,
         scheduler: Scheduler,
         cli: CLI,
-        args: Namespace,
+        config: CoreConfig,
     ):
         self.running_task_db = running_task_db
         self.job_db = job_db
@@ -73,7 +73,7 @@ class TaskHandlerService(TaskHandler):
         self.scheduler = scheduler
         self.cli = cli
         self.cli_context = CLIContext()
-        self.args = args
+        self.config = config
         # note: the waiting queue is kept in memory and lost when the service is restarted.
         self.start_when_done: Dict[str, TaskDescription] = {}
 
@@ -217,7 +217,7 @@ class TaskHandlerService(TaskHandler):
         log.info("TaskHandlerService is starting up!")
 
         # load job descriptions from configuration files
-        file_jobs = [await self.parse_job_file(file) for file in self.args.jobs] if self.args.jobs else []
+        file_jobs = [await self.parse_job_file(file) for file in self.config.args.jobs] if self.config.args.jobs else []
         jobs: List[Job] = reduce(lambda r, l: r + l, file_jobs, [])
 
         # load job descriptions from database
@@ -232,7 +232,7 @@ class TaskHandlerService(TaskHandler):
         for descriptor in self.task_descriptions:
             await self.update_trigger(descriptor)
 
-        if self.args.start_collect_on_subscriber_connect:
+        if self.config.runtime.start_collect_on_subscriber_connect:
             filtered = [wf for wf in self.known_workflows() if wf.id == "collect_and_cleanup"]
             self.initial_start_workflow_task = wait_and_start(filtered, self, self.message_bus)
 

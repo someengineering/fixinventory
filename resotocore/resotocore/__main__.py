@@ -17,6 +17,8 @@ from resotocore.cli.cli import CLI
 from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import aliases, all_commands
 from resotocore.config.config_handler_service import ConfigHandlerService
+from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.core_config import config_from_db
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info
 from resotocore.message_bus import MessageBus
@@ -69,13 +71,14 @@ def run(arguments: List[str]) -> None:
 
     # wait here for an initial connection to the database before we continue. blocking!
     created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
-    event_sender = NoEventSender() if args.analytics_opt_out else PostHogEventSender(system_data)
-    db = db_access(args, sdb, event_sender)
-    cert_handler = CertificateHandler.lookup(args, sdb)
+    config = config_from_db(args, sdb)
+    event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
+    db = db_access(config, sdb, event_sender)
+    cert_handler = CertificateHandler.lookup(config, sdb)
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
-    model = ModelHandlerDB(db.get_model_db(), args.plantuml_server)
+    model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
     template_expander = DBTemplateExpander(db.template_entity_db)
     config_handler = ConfigHandlerService(
         db.config_entity_db,
@@ -90,16 +93,17 @@ def run(arguments: List[str]) -> None:
         db_access=db,
         model_handler=model,
         worker_task_queue=worker_task_queue,
-        args=args,
+        config=config,
         template_expander=template_expander,
         config_handler=config_handler,
     )
-    default_env = {"graph": args.cli_default_graph, "section": args.cli_default_section}
+    default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = CLI(cli_deps, all_commands(cli_deps), default_env, aliases())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandlerService(
-        db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, args
+        db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
+    core_config_handler = CoreConfigHandler(config, message_bus, config_handler)
     cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,
@@ -113,7 +117,7 @@ def run(arguments: List[str]) -> None:
         config_handler,
         cli,
         template_expander,
-        args,
+        config,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
@@ -130,6 +134,7 @@ def run(arguments: List[str]) -> None:
         await event_emitter.start()
         await cli.start()
         await task_handler.start()
+        await core_config_handler.start()
         await api.start()
         if created:
             await event_sender.core_event(CoreEvent.SystemInstalled)
@@ -150,6 +155,7 @@ def run(arguments: List[str]) -> None:
     async def on_stop() -> None:
         duration = utc() - info.started_at
         await api.stop()
+        await core_config_handler.stop()
         await task_handler.stop()
         await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
@@ -176,7 +182,7 @@ def run(arguments: List[str]) -> None:
         tls_context = SSLContext(ssl.PROTOCOL_TLS)
         tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
 
-    runner.run_app(async_initializer(), api.stop, host=args.host, port=args.port, ssl_context=tls_context)
+    runner.run_app(async_initializer(), api.stop, host=config.api.hosts, port=config.api.port, ssl_context=tls_context)
 
 
 if __name__ == "__main__":

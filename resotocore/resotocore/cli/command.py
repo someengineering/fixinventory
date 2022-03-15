@@ -2696,7 +2696,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
-            args = self.dependencies.args
+            db_config = self.dependencies.config.db
             if not shutil.which("arangodump"):
                 raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
             # fmt: off
@@ -2708,11 +2708,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--log.level", "error",  # only print error messages
                 "--output-directory", temp_dir,  # directory to write to
                 "--overwrite", "true",  # required for existing directories
-                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
-                "--server.database", args.graphdb_database,
-                "--server.username", args.graphdb_username,
-                "--server.password", args.graphdb_password,
+                "--server.endpoint", db_config.server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if db_config.no_ssl_verify else "true",
+                "--server.database", db_config.database,
+                "--server.username", db_config.username,
+                "--server.password", db_config.password,
                 "--configuration", "none",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -2760,7 +2760,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 tar.extractall(temp_dir)
 
             # fmt: off
-            args = self.dependencies.args
+            db_conf = self.dependencies.config.db
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
                 "--progress", "false",  # do not show progress
@@ -2769,11 +2769,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--log.level", "error",  # only print error messages
                 "--input-directory", temp_dir,  # directory to write to
                 "--overwrite", "true",  # required for existing db collections
-                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
-                "--server.database", args.graphdb_database,
-                "--server.username", args.graphdb_username,
-                "--server.password", args.graphdb_password,
+                "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
+                "--server.database", db_conf.database,
+                "--server.username", db_conf.username,
+                "--server.password", db_conf.password,
                 "--configuration", "none",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -3563,7 +3563,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
-    if d.args.debug:
+    if d.config.runtime.debug:
         commands.extend([FileCommand(d), UploadCommand(d)])
 
     return commands

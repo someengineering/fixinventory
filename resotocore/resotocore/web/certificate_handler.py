@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from argparse import Namespace
 from typing import Tuple, Optional
 
 from arango.database import StandardDatabase
@@ -21,12 +20,14 @@ from resotolib.x509 import (
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.x509 import Certificate
 
+from resotocore.core_config import CoreConfig
+
 log = logging.getLogger(__name__)
 
 
 class CertificateHandler:
-    def __init__(self, args: Namespace, ca_key: RSAPrivateKey, ca_cert: Certificate) -> None:
-        self.args = args
+    def __init__(self, config: CoreConfig, ca_key: RSAPrivateKey, ca_cert: Certificate) -> None:
+        self.config = config
         self._ca_key = ca_key
         self._ca_cert = ca_cert
         self._ca_cert_bytes = cert_to_bytes(ca_cert)
@@ -48,22 +49,22 @@ class CertificateHandler:
 
     def create_host_certificate(self, ca_key: RSAPrivateKey, ca_cert: Certificate) -> Tuple[RSAPrivateKey, Certificate]:
         key = gen_rsa_key()
-        host_names = get_local_hostnames(args=self.args)
-        host_ips = get_local_ip_addresses(args=self.args)
+        host_names = get_local_hostnames(args=self.config.args)
+        host_ips = get_local_ip_addresses(args=self.config.args)
         log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
         csr = gen_csr(key, san_dns_names=list(host_names), san_ip_addresses=list(host_ips))
         cert = sign_csr(csr, ca_key, ca_cert)
         return key, cert
 
     @staticmethod
-    def lookup(args: Namespace, db: StandardDatabase, passphrase: Optional[str] = None) -> CertificateHandler:
+    def lookup(config: CoreConfig, db: StandardDatabase, passphrase: Optional[str] = None) -> CertificateHandler:
         sd = db.collection("system_data")
         maybe_ca = sd.get("ca")
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
-            return CertificateHandler(args, key, certificate)
+            return CertificateHandler(config, key, certificate)
         else:
             wo = "with" if passphrase else "without"
             log.info(f"No ca certificate found - create a new one {wo} passphrase.")
@@ -71,4 +72,4 @@ class CertificateHandler:
             key_string = key_to_bytes(key, passphrase).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
-            return CertificateHandler(args, key, certificate)
+            return CertificateHandler(config, key, certificate)

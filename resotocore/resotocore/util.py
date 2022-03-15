@@ -189,6 +189,21 @@ def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> 
     return at_idx(element, 0)
 
 
+def deep_merge(left: Json, right: Json) -> Json:
+    def merge(key: str) -> JsonElement:
+        left_value = left.get(key)
+        right_value = right.get(key)
+        if isinstance(right_value, dict):
+            left_value = left_value if isinstance(left_value, dict) or left_value is None else {}
+            return deep_merge(left_value, right_value)  # type: ignore
+        elif right_value:
+            return right_value  # type: ignore
+        else:
+            return left_value
+
+    return {k: merge(k) for k in set(left.keys()).union(right.keys())}
+
+
 def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str], js: Optional[Json] = None) -> Json:
     path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path) - 1

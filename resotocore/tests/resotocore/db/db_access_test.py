@@ -5,7 +5,7 @@ from arango.database import StandardDatabase
 
 from resotocore.analytics import NoEventSender
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import parse_args
+from resotocore.dependencies import parse_args, empty_config
 from resotocore.model.adjust_node import NoAdjust
 
 # noinspection PyUnresolvedReferences
@@ -13,7 +13,7 @@ from tests.resotocore.db.graphdb_test import test_db, system_db, local_client
 
 
 def test_already_existing(test_db: StandardDatabase) -> None:
-    access = DbAccess(test_db, NoEventSender(), NoAdjust())
+    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
 
     # test db and user already exist
     testdb = ["--graphdb-username", "test", "--graphdb-password", "test", "--graphdb-database", "test"]
@@ -21,7 +21,7 @@ def test_already_existing(test_db: StandardDatabase) -> None:
 
 
 def test_not_existing(system_db: StandardDatabase, test_db: StandardDatabase) -> None:
-    access = DbAccess(test_db, NoEventSender(), NoAdjust())
+    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
 
     # foo db and pass does not exist
     foodb = ["--graphdb-username", "foo", "--graphdb-password", "test", "--graphdb-database", "foo"]
@@ -35,7 +35,7 @@ def test_not_existing(system_db: StandardDatabase, test_db: StandardDatabase) ->
 def test_not_existing_and_default_root_account(
     local_client: ArangoClient, system_db: StandardDatabase, test_db: StandardDatabase
 ) -> None:
-    access = DbAccess(test_db, NoEventSender(), NoAdjust())
+    access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
     # foo db and pass does not exist
     foodb = ["--graphdb-username", "foo", "--graphdb-password", "bombproof", "--graphdb-database", "foo"]
     system_db.delete_user("foo", ignore_missing=True)

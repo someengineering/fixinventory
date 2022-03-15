@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 from abc import ABC
-from argparse import Namespace
 from asyncio import Task
 from contextlib import suppress
 from dataclasses import dataclass
@@ -16,6 +15,7 @@ from aiostream.core import Stream
 
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, AnalyticsEvent
 from resotocore.async_extensions import run_async
+from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
@@ -110,11 +110,11 @@ class DbUpdaterProcess(Process):
     The result is either an exception in case of failure or a graph update in success case.
     """
 
-    def __init__(self, read_queue: Queue, write_queue: Queue, args: Namespace) -> None:  # type: ignore
+    def __init__(self, read_queue: Queue, write_queue: Queue, config: CoreConfig) -> None:  # type: ignore
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
-        self.args = args
+        self.config = config
 
     def next_action(self) -> ProcessAction:
         try:
@@ -145,8 +145,8 @@ class DbUpdaterProcess(Process):
 
     async def setup_and_merge(self) -> GraphUpdate:
         sender = InMemoryEventSender()
-        _, _, sdb = DbAccess.connect(self.args, timedelta(seconds=3))
-        db = db_access(self.args, sdb, sender)
+        _, _, sdb = DbAccess.connect(self.config.args, timedelta(seconds=3))
+        db = db_access(self.config, sdb, sender)
         result = await self.merge_graph(db)
         for event in sender.events:
             self.write_queue.put(EmitAnalyticsEvent(event))
@@ -155,7 +155,7 @@ class DbUpdaterProcess(Process):
     def run(self) -> None:
         try:
             # Entrypoint of the new service
-            setup_process(self.args, f"merge_update_{self.pid}")
+            setup_process(self.config.args, f"merge_update_{self.pid}")
             log.info(f"Import process started: {self.pid}")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))
@@ -171,7 +171,7 @@ class DbUpdaterProcess(Process):
 async def merge_graph_process(
     db: GraphDB,
     event_sender: AnalyticsEventSender,
-    args: Namespace,
+    config: CoreConfig,
     content: AsyncGenerator[Union[bytes, Json], None],
     max_wait: timedelta,
     maybe_batch: Optional[str],
@@ -179,7 +179,7 @@ async def merge_graph_process(
     change_id = maybe_batch if maybe_batch else uuid_str()
     write = Queue()  # type: ignore
     read = Queue()  # type: ignore
-    updater = DbUpdaterProcess(write, read, args)  # the process reads from our write queue and vice versa
+    updater = DbUpdaterProcess(write, read, config)  # the process reads from our write queue and vice versa
     stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
     deadline = utc() + max_wait
     dead_adjusted = False

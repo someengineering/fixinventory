@@ -7,7 +7,6 @@ import shutil
 import string
 import tempfile
 import uuid
-from argparse import Namespace
 from asyncio import Future
 from contextlib import suppress
 from dataclasses import replace
@@ -50,6 +49,7 @@ from resotocore.cli.model import (
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
+from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
@@ -109,7 +109,7 @@ class Api:
         config_handler: ConfigHandler,
         cli: CLI,
         query_parser: QueryParser,
-        args: Namespace,
+        config: CoreConfig,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -122,19 +122,18 @@ class Api:
         self.config_handler = config_handler
         self.cli = cli
         self.query_parser = query_parser
-        self.args = args
+        self.config = config
         self.app = web.Application(
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth.auth_handler(args),
+                auth.auth_handler(config),
                 cors_handler,
-                error_handler(args, event_sender),
+                error_handler(config, event_sender),
                 default_middleware(self),
             ]
         )
         self.app.on_response_prepare.append(on_response_prepare)
-        self.merge_max_wait_time = timedelta(seconds=args.merge_max_wait_time_seconds)
         self.session: Optional[ClientSession] = None
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
@@ -143,12 +142,12 @@ class Api:
             [
                 web.get("/ui", self.forward("/ui/index.html")),
                 web.get("/ui/", self.forward("/ui/index.html")),
-                web.static("/ui/", self.args.ui_path),
+                web.static("/ui/", self.config.api.ui_path),
             ]
-            if self.args.ui_path
+            if self.config.api.ui_path
             else []
         )
-        tsdb_route = [web.route(METH_ANY, "/tsdb/{tail:.+}", tsdb(self))] if self.args.tsdb_proxy_url else []
+        tsdb_route = [web.route(METH_ANY, "/tsdb/{tail:.+}", tsdb(self))] if self.config.api.tsdb_proxy_url else []
         self.app.add_routes(
             [
                 # Model operations
@@ -337,8 +336,8 @@ class Api:
     async def certificate(self, _: Request) -> StreamResponse:
         cert, fingerprint = self.cert_handler.authority_certificate
         headers = {"SHA256-Fingerprint": fingerprint}
-        if self.args.psk:
-            headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.args.psk)
+        if self.config.api.psk:
+            headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.config.api.psk)
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
 
     async def sign_certificate(self, request: Request) -> StreamResponse:
@@ -633,7 +632,9 @@ class Api:
         graph_id = request.match_info.get("graph_id", "resoto")
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, None)
+        info = await merge_graph_process(
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None
+        )
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -643,7 +644,9 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(db, self.event_sender, self.args, it, self.merge_max_wait_time, batch_id)
+        info = await merge_graph_process(
+            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id
+        )
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

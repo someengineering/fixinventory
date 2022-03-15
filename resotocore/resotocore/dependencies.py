@@ -16,6 +16,7 @@ from resotolib.utils import iec_size_format
 
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
+from resotocore.core_config import CoreConfig, parse_config
 from resotocore.db.db_access import DbAccess
 from resotocore.durations import parse_duration
 from resotocore.model.adjust_node import DirectAdjuster
@@ -23,7 +24,10 @@ from resotocore.util import utc
 
 log = logging.getLogger(__name__)
 
-SystemInfo = namedtuple("SystemInfo", ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"])
+SystemInfo = namedtuple(
+    "SystemInfo",
+    ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
+)
 started_at = utc()
 
 
@@ -76,7 +80,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     jwt_add_args(parser)
     parser.add_argument(
         "--log-level",
-        default="info",
+        default="INFO",
         help="Log level (default: info)",
     )
     parser.add_argument(
@@ -135,53 +139,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    parser.add_argument(
-        "--plantuml-server",
-        default="http://plantuml.resoto.org:8080",
-        help="PlantUML server URI for UML image rendering.",
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="localhost",
-        nargs="+",
-        help="TCP host(s) to bind on (default: localhost)",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8900,
-        help="TCP port to bind on (default: 8900)",
-    )
-    parser.add_argument(
-        "--merge_max_wait_time_seconds",
-        type=int,
-        default=3600,
-        help="Max waiting time to complete a merge graph action.",
-    )
-    parser.add_argument("--debug", default=False, action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument(
-        "--analytics-opt-out",
-        default=False,
-        action="store_true",
-        help="Stop collecting analytics data.",
-    )
-    parser.add_argument(
-        "--ui-path",
-        type=is_dir("can not parse --ui-dir"),
-        help="The directory where the UI is installed. This directory will be served under /ui/.",
-    )
-    parser.add_argument(
-        "--tsdb-proxy-url",
-        type=is_url("can not parse --tsdb-proxy-url"),
-        help="The url to the time series database. This path will be served under /tsdb/.",
-    )
-    parser.add_argument(
-        "--tls-cert",
-        type=is_file("can not parse --tls-cert"),
-        help="Path to a single file in PEM format containing the certificate as well as any number "
-        "of CA certificates needed to establish the certificate’s authenticity.",
-    )
+    # TODO: TLS handling via config file (separate change)
     parser.add_argument(
         "--tls-key",
         type=is_file("can not parse --tls-key"),
@@ -194,40 +152,40 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Optional password to decrypt the private key file.",
     )
     parser.add_argument(
-        "--cli-default-graph",
-        type=str,
-        default="resoto",
-        dest="cli_default_graph",
-        help="Use this graph for CLI actions, if no graph is specified explicitly.",
-    )
-    parser.add_argument(
-        "--cli-default-section",
-        type=str,
-        default="reported",
-        dest="cli_default_section",
-        help="Use this graph section by default, if no section is specified."
-        "Relative paths will be interpreted with respect to this section.",
-    )
-    parser.add_argument("--version", action="store_true", help="Print the version of resotocore and exit.")
-    parser.add_argument(
-        "--jobs",
-        nargs="*",
-        type=argparse.FileType("r"),
-        help="Read job definitions from given file.",
-    )
-    parser.add_argument(
-        "--start-collect-on-subscriber-connect",
-        default=False,
+        "--version",
         action="store_true",
-        help="Start the collect workflow, when the first handling actor connects to the system.",
+        help="Print the version of resotocore and exit.",
+    )
+
+    # All suppressed properties are only here for backward compatibility.
+    # TODO: remove properties once the docker setup is done.
+    parser.add_argument("--plantuml-server", default="http://plantuml.resoto.org:8080", help=argparse.SUPPRESS)
+    parser.add_argument("--host", type=str, default=["localhost"], nargs="+", help=argparse.SUPPRESS)
+    parser.add_argument("--port", type=int, default=8900, help=argparse.SUPPRESS)
+    parser.add_argument("--merge_max_wait_time_seconds", type=int, default=3600, help=argparse.SUPPRESS)
+    parser.add_argument("--debug", default=False, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--analytics-opt-out", default=False, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--ui-path", type=is_dir("can not parse --ui-dir"), help=argparse.SUPPRESS)
+    parser.add_argument("--tsdb-proxy-url", type=is_url("can not parse --tsdb-proxy-url"), help=argparse.SUPPRESS)
+    parser.add_argument("--tls-cert", type=is_file("can not parse --tls-cert"), help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--cli-default-graph", type=str, default="resoto", dest="cli_default_graph", help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--cli-default-section", type=str, default="reported", dest="cli_default_section", help=argparse.SUPPRESS
+    )
+    parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"), help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--start-collect-on-subscriber-connect", default=False, action="store_true", help=argparse.SUPPRESS
     )
     parser.add_argument(
         "---graph-update-abort-after",
         dest="graph_updates_abort_after",
         default="4h",
         type=parse_duration,
-        help="If a graph update takes longer than this duration, the update is aborted.",
+        help=argparse.SUPPRESS,
     )
+
     parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
     if parsed.version:
@@ -236,6 +194,10 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         sys.exit(0)
 
     return parsed
+
+
+def empty_config(args: Optional[List[str]] = None) -> CoreConfig:
+    return parse_config(parse_args(args or []), {})
 
 
 # Note: this method should be called from every started process as early as possible
@@ -278,6 +240,6 @@ def reset_process_start_method() -> None:
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
-def db_access(config: Namespace, db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
+def db_access(config: CoreConfig, db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
     adjuster = DirectAdjuster()
-    return DbAccess(db, event_sender, adjuster, update_outdated=config.graph_updates_abort_after)
+    return DbAccess(db, event_sender, adjuster, config)

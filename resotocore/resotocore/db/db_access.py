@@ -11,6 +11,7 @@ from dateutil.parser import parse
 from requests.exceptions import ConnectionError as ArangoConnectionError
 
 from resotocore.analytics import AnalyticsEventSender
+from resotocore.core_config import CoreConfig
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
@@ -36,6 +37,7 @@ class DbAccess(ABC):
         arango_database: StandardDatabase,
         event_sender: AnalyticsEventSender,
         adjust_node: AdjustNode,
+        config: CoreConfig,
         model_name: str = "model",
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
@@ -44,7 +46,6 @@ class DbAccess(ABC):
         config_validation_entity: str = "config_validation",
         configs_model: str = "configs_model",
         template_entity: str = "templates",
-        update_outdated: timedelta = timedelta(hours=4),
     ):
         self.event_sender = event_sender
         self.database = arango_database
@@ -59,7 +60,7 @@ class DbAccess(ABC):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.graph_dbs: Dict[str, GraphDB] = {}
-        self.update_outdated = update_outdated
+        self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
@@ -119,7 +120,7 @@ class DbAccess(ABC):
         for db in self.graph_dbs.values():
             for update in await db.list_in_progress_updates():
                 created = datetime.fromtimestamp(parse(update["created"]).timestamp(), timezone.utc)
-                if (now - created) > self.update_outdated:
+                if (now - created) > self.config.graph_update.abort_after():
                     batch_id = update["id"]
                     log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
                     await db.abort_update(batch_id)
