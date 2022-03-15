@@ -83,7 +83,7 @@ class ModelHandlerDB(ModelHandler):
             return f"{to_node} <|--- {from_node}"
 
         def descendants(fqn: str) -> Set[str]:
-            return {kind.fqn for kind in model.complex_kinds if fqn in kind.kind_hierarchy()}
+            return {kind.fqn for kind in model.complex_kinds() if fqn in kind.kind_hierarchy()}
 
         visible_kinds = [node["data"] for nid, node in graph.nodes(data=True) if node_visible(nid)]
         visible = {v.fqn for v in visible_kinds}

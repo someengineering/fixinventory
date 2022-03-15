@@ -1,11 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import is_dataclass, replace
 from typing import AsyncGenerator, Generic, TypeVar, Optional, Type, Union, Callable, List
 
+from arango import DocumentUpdateError, DocumentRevisionError
 from jsons import JsonsError
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.db.async_arangodb import AsyncArangoDB
+from resotocore.error import OptimisticLockingFailed
 from resotocore.model.typed_model import from_js, type_fqn, to_js
 from resotocore.types import Json
 
@@ -76,7 +79,21 @@ class ArangoEntityDb(EntityDb[T], ABC):
         return from_js(result, self.t_type) if result else None
 
     async def update(self, t: T) -> T:
-        await self.db.insert(self.collection_name, self.to_doc(t), overwrite=True, overwrite_mode="replace")
+        doc = self.to_doc(t)
+        try:
+            result = await self.db.update(self.collection_name, doc, merge=False)
+        except DocumentRevisionError as ex:
+            raise OptimisticLockingFailed(self.key_of(t)) from ex
+        except DocumentUpdateError as ex:
+            if ex.error_code == 1202:  # document not found
+                result = await self.db.insert(self.collection_name, doc)
+            else:
+                raise ex
+        if hasattr(t, "revision") and "_rev" in result:
+            if is_dataclass(t):
+                t = replace(t, revision=result["_rev"])
+            else:
+                setattr(t, "revision", result["_rev"])
         return t
 
     async def delete(self, key_or_object: Union[str, T]) -> None:

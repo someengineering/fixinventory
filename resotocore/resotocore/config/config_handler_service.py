@@ -1,30 +1,59 @@
+import asyncio
+from datetime import timedelta
 from typing import Optional, AsyncIterator, List
 
 import yaml
 
-from resotocore.config import ConfigHandler, ConfigEntity, ConfigModel
-from resotocore.db.configdb import ConfigEntityDb, ConfigModelEntityDb
-from resotocore.model.model import Kind, Model, ComplexKind
+from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation
+from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
+from resotocore.db.modeldb import ModelDb
+from resotocore.message_bus import MessageBus, CoreMessage
+from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json
+from resotocore.util import uuid_str
+from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
 
 
 class ConfigHandlerService(ConfigHandler):
-    def __init__(self, cfg_db: ConfigEntityDb, model_db: ConfigModelEntityDb) -> None:
+    def __init__(
+        self,
+        cfg_db: ConfigEntityDb,
+        validation_db: ConfigValidationEntityDb,
+        model_db: ModelDb,
+        task_queue: WorkerTaskQueue,
+        message_bus: MessageBus,
+    ) -> None:
         self.cfg_db = cfg_db
+        self.validation_db = validation_db
         self.model_db = model_db
+        self.task_queue = task_queue
+        self.message_bus = message_bus
 
-    async def config_kind(self, cfg_id: str) -> Optional[ComplexKind]:
-        config_model = await self.model_db.get(cfg_id)
-        if config_model:
-            model = Model.from_kinds(config_model.kinds)
-            if model.complex_roots:
-                return model.complex_roots[0]
-        return None
+    async def coerce_and_check_model(self, cfg_id: str, config: Json, validate: bool = True) -> Json:
+        model = await self.get_configs_model()
 
-    async def coerce_and_check_model(self, cfg_id: str, config: Json) -> Json:
-        kind = await self.config_kind(cfg_id)
-        # throws if config is not valid
-        return kind.check_valid(config) or config if kind else config
+        final_config = {}
+        if validate:
+            for key, value in config.items():
+                if key in model:
+                    try:
+                        coerced = model[key].check_valid(value)
+                        final_config[key] = coerced or value
+                    except Exception as ex:
+                        raise AttributeError(f"Error validating section {key}: {ex}") from ex
+                else:
+                    final_config[key] = value
+        else:
+            final_config = config
+
+        # If an external entity needs to approve this change.
+        # Method throws if config is not valid according to external approval.
+        validation = await self.validation_db.get(cfg_id)
+        if validation and validation.external_validation and validate:
+            await self.acknowledge_config_change(cfg_id, final_config)
+
+        # If we come here, everything is fine
+        return final_config
 
     def list_config_ids(self) -> AsyncIterator[str]:
         return self.cfg_db.keys()
@@ -32,39 +61,90 @@ class ConfigHandlerService(ConfigHandler):
     async def get_config(self, cfg_id: str) -> Optional[ConfigEntity]:
         return await self.cfg_db.get(cfg_id)
 
-    async def put_config(self, cfg_id: str, config: Json) -> ConfigEntity:
-        coerced = await self.coerce_and_check_model(cfg_id, config)
-        return await self.cfg_db.update(ConfigEntity(cfg_id, coerced))
+    async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
+        coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
+        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
+        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+        return result
 
-    async def patch_config(self, cfg_id: str, config: Json) -> ConfigEntity:
-        current = await self.cfg_db.get(cfg_id)
+    async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
+        current = await self.cfg_db.get(cfg.id)
         current_config = current.config if current else {}
-        coerced = await self.coerce_and_check_model(cfg_id, {**current_config, **config})
-        return await self.cfg_db.update(ConfigEntity(cfg_id, coerced))
+        coerced = await self.coerce_and_check_model(cfg.id, {**current_config, **cfg.config})
+        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, current.revision if current else None))
+        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+        return result
 
     async def delete_config(self, cfg_id: str) -> None:
         await self.cfg_db.delete(cfg_id)
-        await self.model_db.delete(cfg_id)
+        await self.validation_db.delete(cfg_id)
+        await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
 
-    def list_config_model_ids(self) -> AsyncIterator[str]:
-        return self.model_db.keys()
+    def list_config_validation_ids(self) -> AsyncIterator[str]:
+        return self.validation_db.keys()
 
-    async def get_config_model(self, cfg_id: str) -> Optional[ConfigModel]:
-        return await self.model_db.get(cfg_id)
+    async def get_config_validation(self, cfg_id: str) -> Optional[ConfigValidation]:
+        return await self.validation_db.get(cfg_id)
 
-    async def put_config_model(self, cfg_id: str, kinds: List[Kind]) -> ConfigModel:
-        # make sure there is a complex kind with name "config"
-        model = Model.from_kinds(kinds)
-        roots = model.complex_roots
-        if len(roots) != 1:
-            root_names = ", ".join(r.fqn for r in roots)
-            raise AttributeError(f"Require exactly one config root kind, but got: {root_names}")
-        return await self.model_db.update(ConfigModel(cfg_id, kinds))
+    async def put_config_validation(self, validation: ConfigValidation) -> ConfigValidation:
+        return await self.validation_db.update(validation)
 
-    async def config_yaml(self, cfg_id: str) -> Optional[str]:
+    async def get_configs_model(self) -> Model:
+        kinds = [kind async for kind in self.model_db.all()]
+        return Model.from_kinds(list(kinds))
+
+    async def update_configs_model(self, kinds: List[Kind]) -> Model:
+        # load existing model
+        model = await self.get_configs_model()
+        # make sure the update is valid
+        updated = model.update_kinds(kinds)
+        # store all updated kinds
+        await self.model_db.update_many(kinds)
+        return updated
+
+    async def config_yaml(self, cfg_id: str, revision: bool = False) -> Optional[str]:
         config = await self.get_config(cfg_id)
         if config:
-            kind = await self.config_kind(cfg_id)
-            return kind.create_yaml(config.config) if kind else yaml.dump(config.config, default_flow_style=False)
+            model = await self.get_configs_model()
+
+            yaml_str = ""
+            for key, value in config.config.items():
+                maybe_kind = model.get(key)
+                if isinstance(maybe_kind, ComplexKind):
+                    part = maybe_kind.create_yaml(value, initial_level=1)
+                    yaml_str += key + ":" + part
+                else:
+                    yaml_str += yaml.dump({key: value})
+
+            # mix the revision into the yaml document
+            if revision and config.revision:
+                yaml_str += (
+                    "\n\n# This property is not part of the configuration but defines the revision "
+                    "of this document.\n# Please leave it here to avoid conflicting writes.\n"
+                    f'_revision: "{config.revision}"'
+                )
+
+            return yaml_str
         else:
             return None
+
+    async def acknowledge_config_change(self, cfg_id: str, config: Json) -> None:
+        """
+        In case an external entity should acknowledge this config change.
+        This method either return, which signals success or throws an exception.
+        """
+        future = asyncio.get_event_loop().create_future()
+        task = WorkerTask(
+            uuid_str(),
+            WorkerTaskName.validate_config,
+            {"config_id": cfg_id},
+            {"task": WorkerTaskName.validate_config, "config": config},
+            future,
+            timedelta(seconds=30),
+        )
+        # add task to queue - do not retry
+        await self.task_queue.add_task(task)
+        # In case the config is not valid or no worker is available
+        # this future will throw an exception.
+        # Do not handle it here and let the error bubble up.
+        await future

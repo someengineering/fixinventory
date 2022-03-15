@@ -18,6 +18,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
+from itertools import dropwhile
 from typing import Dict, List, Tuple, Optional, Any, AsyncIterator, Hashable, Iterable, Callable, Awaitable, cast, Set
 from urllib.parse import urlparse, urlunparse
 
@@ -57,6 +58,7 @@ from resotocore.cli.model import (
     ParsedCommand,
     NoTerminalOutput,
 )
+from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
@@ -101,7 +103,7 @@ from resotocore.web.content_renderer import (
     respond_yaml,
     respond_cytoscape,
 )
-from resotocore.worker_task_queue import WorkerTask
+from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
 
 log = logging.getLogger(__name__)
 
@@ -1401,7 +1403,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                     # in case of synthetic property
                     return (synth[p.name].kind.runtime_kind if p.name in synth else p.kind) if p.synthetic else p.kind
 
-                props = sorted(kind.all_props, key=lambda k: k.name)
+                props = sorted(kind.all_props(), key=lambda k: k.name)
                 return {
                     "name": kind.fqn,
                     "bases": list(kind.kind_hierarchy() - {kind.fqn}),
@@ -2535,7 +2537,7 @@ class TagCommand(SendWorkerTaskCommand):
 
         if arg_tokens[0] == "delete" and len(rest) == 2:
             fn: Callable[[Json], Tuple[str, Dict[str, str], Json]] = lambda item: (
-                "tag",
+                WorkerTaskName.tag,
                 self.carz_from_node(item),
                 {"delete": [rest[1]], "node": item},
             )  # noqa: E731
@@ -2543,7 +2545,7 @@ class TagCommand(SendWorkerTaskCommand):
             _, tag, vin = rest
             formatter, variables = ctx.formatter_with_variables(double_quoted_or_simple_string_dp.parse(vin))
             fn = lambda item: (  # noqa: E731
-                "tag",
+                WorkerTaskName.tag,
                 self.carz_from_node(item),
                 {"update": {tag: formatter(item)}, "node": item},
             )
@@ -3457,14 +3459,14 @@ class ConfigsCommand(CLICommand):
             updated = cfg.config if cfg else {}
             for prop, js in updates:
                 updated = set_value_in_path(js, prop, updated)
-            await self.dependencies.config_handler.put_config(cfg_id, updated)
+            await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated))
             yield await self.dependencies.config_handler.config_yaml(cfg_id)
 
         async def edit_config(cfg_id: str) -> AsyncIterator[str]:
             # Editing a config is a two-step process:
             # 1) download the config and make it available to edit
             # 2) upload the config file and update the config from content --> update_config
-            yml = await self.dependencies.config_handler.config_yaml(cfg_id)
+            yml = await self.dependencies.config_handler.config_yaml(cfg_id, revision=True)
             if not yml:
                 raise AttributeError(f"No config with this id: {cfg_id}")
             return send_file(yml)
@@ -3476,14 +3478,17 @@ class ConfigsCommand(CLICommand):
                 content = ""
                 async with aiofiles.open(ctx.uploaded_files["config.yaml"], "r") as f:
                     content = await f.read()
-                    updated = yaml.safe_load(content)
-                await self.dependencies.config_handler.put_config(cfg_id, updated)
+                    updated: Json = yaml.safe_load(content)
+                    revision = updated.pop("_revision", None)
+                await self.dependencies.config_handler.put_config(ConfigEntity(cfg_id, updated, revision))
             except Exception as ex:
                 log.debug(f"Could not update the config: {ex}.", exc_info=ex)
                 # Yaml file: add the error as comment on top
-                error = "\n".join(f"# {line}" for line in str(ex).splitlines())
-                message = f"# Update the config failed with this error message:\n# Please correct.\n\n{error}\n\n"
-                async for file in send_file(message + content):
+                error = "\n".join(f"## {line}" for line in str(ex).splitlines())
+                message = f"## Update the config failed. Please correct.\n{error}\n\n"
+                # Remove error message from previous check
+                config = "\n".join(dropwhile(lambda l: l.startswith("##") or len(l.strip()) == 0, content.splitlines()))
+                async for file in send_file(message + config):
                     yield file
 
         async def list_configs() -> Tuple[int, Stream]:

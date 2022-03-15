@@ -199,7 +199,7 @@ class Kind(ABC):
         if "inner" in js:
             inner = Kind.from_json(js["inner"])
             return ArrayKind(inner)
-        elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in SimpleKind.Kind_to_type:
+        elif "fqn" in js and "runtime_kind" in js and js["runtime_kind"] in simple_kind_to_type:
             fqn = js["fqn"]
             rk = js["runtime_kind"]
             if "source_fqn" in js and "converter" in js and "reverse_order" in js:
@@ -236,23 +236,24 @@ class Kind(ABC):
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
 
+simple_kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
+    "string": str,
+    "int32": int,
+    "int64": int,
+    "float": float,
+    "double": float,
+    "boolean": bool,
+    "date": str,
+    "datetime": str,
+    "duration": str,
+}
+
+
 class SimpleKind(Kind, ABC):
     def __init__(self, fqn: str, runtime_kind: str, reverse_order: bool = False):
         super().__init__(fqn)
         self.runtime_kind = runtime_kind
         self.reverse_order = reverse_order
-
-    Kind_to_type: Dict[str, Type[Union[str, int, float, bool]]] = {
-        "string": str,
-        "int32": int,
-        "int64": int,
-        "float": float,
-        "double": float,
-        "boolean": bool,
-        "date": str,
-        "datetime": str,
-        "duration": str,
-    }
 
     # noinspection PyMethodMayBeStatic
     def coerce(self, value: object) -> Any:
@@ -715,11 +716,9 @@ class ComplexKind(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    @property
     def resolved_properties(self) -> List[ResolvedProperty]:
         return self.__property_by_path
 
-    @property
     def all_props(self) -> List[Property]:
         return self.__all_props
 
@@ -765,7 +764,7 @@ class ComplexKind(Kind):
         else:
             raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
 
-    def create_yaml(self, elem: JsonElement) -> str:
+    def create_yaml(self, elem: JsonElement, initial_level: int = 0) -> str:
         def walk_element(e: JsonElement, kind: Kind, indent: int, cr_on_object: bool = True) -> str:
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
@@ -807,7 +806,7 @@ class ComplexKind(Kind):
             else:
                 return str(e)
 
-        return walk_element(elem, self, 0)
+        return walk_element(elem, self, initial_level)
 
     @staticmethod
     def resolve_properties(complex_kind: ComplexKind, from_path: PropertyPath = EmptyPath) -> List[ResolvedProperty]:
@@ -889,7 +888,7 @@ class Model:
         self.__property_kind_by_path: List[ResolvedProperty] = list(
             # several complex kinds might have the same property
             # reduce the list by hash over the path.
-            {r.path: r for c in kinds.values() if isinstance(c, ComplexKind) for r in c.resolved_properties}.values()
+            {r.path: r for c in kinds.values() if isinstance(c, ComplexKind) for r in c.resolved_properties()}.values()
         )
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
@@ -908,6 +907,9 @@ class Model:
         else:
             raise KeyError(f"Expected string or json with a 'kind' property as key but got: {name_or_object}")
 
+    def __len__(self) -> int:
+        return len(self.kinds)
+
     def get(self, name_or_object: Union[str, Json]) -> Optional[Kind]:
         if isinstance(name_or_object, str):
             return self.kinds.get(name_or_object)
@@ -916,19 +918,8 @@ class Model:
         else:
             return None
 
-    @property
     def complex_kinds(self) -> List[ComplexKind]:
         return [k for k in self.kinds.values() if isinstance(k, ComplexKind)]
-
-    @property
-    def complex_roots(self) -> List[ComplexKind]:
-        complexes = self.complex_kinds
-        property_kinds = {prop.kind for c in complexes for prop in c.all_props}
-        base_kinds = {base for c in complexes for base in c.bases}
-        predefined = {pre.fqn for pre in predefined_kinds}
-        return [
-            c for c in complexes if c.fqn not in property_kinds and c.fqn not in predefined and c.fqn not in base_kinds
-        ]
 
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
@@ -1003,8 +994,8 @@ class Model:
         def check_no_overlap() -> None:
             existing_complex = [c for c in self.kinds.values() if isinstance(c, ComplexKind)]
             update_complex = [c for c in to_update if isinstance(c, ComplexKind)]
-            ex = {p.path: p for k in existing_complex for p in k.resolved_properties}
-            up = {p.path: p for k in update_complex for p in k.resolved_properties}
+            ex = {p.path: p for k in existing_complex for p in k.resolved_properties()}
+            up = {p.path: p for k in update_complex for p in k.resolved_properties()}
 
             def simple_kind_incompatible(p: PropertyPath) -> bool:
                 left = ex[p].kind
@@ -1015,7 +1006,7 @@ class Model:
             non_unique = [a for a in ex.keys() & up.keys() if simple_kind_incompatible(a)]
             if non_unique:
                 # PropertyPath -> str
-                name_by_kind = {p.path: k.fqn for k in update_complex for p in k.resolved_properties}
+                name_by_kind = {p.path: k.fqn for k in update_complex for p in k.resolved_properties()}
                 message = ", ".join(f"{name_by_kind[a]}.{a} ({ex[a].kind.fqn} -> {up[a].kind.fqn})" for a in non_unique)
                 raise AttributeError(
                     f"Update not possible: following properties would be non unique having "
