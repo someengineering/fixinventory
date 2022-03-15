@@ -30,7 +30,8 @@ from .resources import (
     DigitalOceanContainerRegistryRepositoryTag,
     DigitalOceanSSHKey,
     DigitalOceanTag,
-    DigitalOceanDomain
+    DigitalOceanDomain,
+    DigitalOceanDomainRecord
 )
 from .utils import (
     iso2datetime,
@@ -55,7 +56,8 @@ from .utils import (
     container_registry_repository_tag_id,
     ssh_key_id,
     tag_id,
-    domain_id
+    domain_id,
+    domain_record_id
 )
 
 log = resotolib.logging.getLogger("resoto." + __name__)
@@ -131,6 +133,10 @@ metrics_collect_tags = Summary(
 metrics_collect_domains = Summary(
     "resoto_plugin_digitalocean_collect_domains_seconds",
     "Time it took the collect_domains() method",
+)
+metrics_collect_domains_records = Summary(
+    "resoto_plugin_digitalocean_collect_domains_records_seconds",
+    "Time it took the collect_domains_records() method",
 )
 
 
@@ -925,4 +931,29 @@ class DigitalOceanTeamCollector:
                 "zone_file": "zone_file",
             }
         )
+        def update_record(record, domain):
+            record["domain_name"] = domain["name"]
+            return record
+        domain_records = [update_record(record, domain) for domain in domains for record in self.client.list_domain_records(domain["name"])]
+        self.collect_resource(
+            domain_records,
+            resource_class=DigitalOceanDomainRecord,
+            attr_map={
+                "id": lambda r: domain_record_id(r["id"]),
+                "do_domain_record_type": "type",
+                "do_domain_record_name": "name",
+                "do_domain_record_data": "data",
+                "do_domain_record_priority": "priority",
+                "do_domain_record_port": "port",
+                "do_domain_record_ttl": "ttl",
+                "do_domain_record_weight": "weight",
+                "do_domain_record_flags": "flags",
+                "do_domain_record_tag": "tag",
+            },
+            search_map={
+                "__domain": ["id", lambda r: domain_id(r["domain_name"])],
+            },
+            predecessors={EdgeType.default: ["__domain"]},
+        )
+
 

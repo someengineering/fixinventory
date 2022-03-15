@@ -1,7 +1,7 @@
 domains = [
     {
-        "name": "example.com",
+        "name": "do-plugin-test.resoto",
         "ttl": 1800,
-        "zone_file": "$ORIGIN example.com.S"
+        "zone_file": "$ORIGIN do-plugin-test.resoto."
     }
 ]

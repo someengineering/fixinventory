@@ -117,3 +117,7 @@ def tag_id(value: str) -> str:
 
 def domain_id(value: str) -> str:
     return f"do:domain:{value}"
+
+
+def domain_record_id(value: str) -> str:
+    return f"do:domain_record:{value}"

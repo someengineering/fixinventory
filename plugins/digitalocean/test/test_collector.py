@@ -21,7 +21,8 @@ from fixtures import (
     registry_repository_tags,
     ssh_keys,
     tags,
-    domains
+    domains,
+    domain_records,
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud
@@ -521,10 +522,17 @@ def test_collect_domains():
         {
             "list_regions": regions,
             "list_domains": domains,
+            "list_domain_records": domain_records,
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:team:test_team", "do:domain:example.com")
-    domain = graph.search_first("id", "do:domain:example.com")
+    check_edges(graph, "do:team:test_team", "do:domain:do-plugin-test.resoto")
+    domain = graph.search_first("id", "do:domain:do-plugin-test.resoto")
     assert domain.ttl == 1800
-    assert domain.zone_file == "$ORIGIN example.com.S"
+    assert domain.zone_file == "$ORIGIN do-plugin-test.resoto."
+
+    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035870")
+    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035871")
+    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035872")
+    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035874")
+    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300036132")

@@ -367,3 +367,20 @@ class DigitalOceanDomain(DigitalOceanResource, BaseResource):
 
     ttl: Optional[int] = None
     zone_file: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseResource):
+    """DigitalOcean domain record"""
+
+    kind = "digitalocean_domain_record"
+
+    do_domain_record_type: Optional[str] = None
+    do_domain_record_name: Optional[str] = None
+    do_domain_record_data: Optional[str] = None
+    do_domain_record_priority: Optional[int] = None
+    do_domain_record_port: Optional[int] = None
+    do_domain_record_ttl: Optional[int] = None
+    do_domain_record_weight: Optional[int] = None
+    do_domain_record_flags: Optional[int] = None
+    do_domain_record_tag: Optional[str] = None
