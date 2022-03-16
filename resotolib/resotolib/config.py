@@ -45,11 +45,16 @@ class Config:
         if not self.config_added.is_set():
             raise RuntimeError("No config added")
         try:
-            config, self._config_revision = get_config(self.config_name, self.resotocore_uri)
+            config, self._config_revision = get_config(
+                self.config_name, self.resotocore_uri
+            )
         except ConfigNotFoundError:
             for config_id, config_data in self._config_classes.items():
                 self._config[config_id] = config_data()
         else:
+            log.debug(
+                f"Loaded config {self.config_name} revision {self._config_revision}"
+            )
             for config_id, config_data in config.items():
                 if config_id in self._config_classes:
                     self._config[config_id] = jsons.loads(
@@ -62,17 +67,19 @@ class Config:
 
     def save_config(self) -> None:
         config = jsons.dump(self._config, strip_attr="kind", strip_properties=True)
-        self._config_revision = set_config(self.config_name, config, self.resotocore_uri)
+        self._config_revision = set_config(
+            self.config_name, config, self.resotocore_uri
+        )
+        log.debug(f"Saved config {self.config_name} revision {self._config_revision}")
 
     def on_config_event(self, message: Dict[str, Any]) -> None:
-        log.debug(f"Received MESSAGE {message}")
         if (
             message.get("message_type") == "config-updated"
             and message.get("data", {}).get("id") == self.config_name
             and message.get("data", {}).get("revision") != self._config_revision
         ):
             try:
-                log.debug("RELOADING")
+                log.debug(f"Config {self.config_name} has changed - reloading")
                 self.load_config()
             except Exception:
                 pass

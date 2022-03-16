@@ -33,7 +33,9 @@ def get_configs(resotocore_uri: str = None, psk: str = None) -> List:
     raise RuntimeError(f"Error getting configs: {r.content.decode('utf-8')}")
 
 
-def get_config(config_id: str, resotocore_uri: str = None, psk: str = None) -> Tuple[Dict, str]:
+def get_config(
+    config_id: str, resotocore_uri: str = None, psk: str = None
+) -> Tuple[Dict, str]:
     resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
 
     log.debug(f"Getting config {config_id}")
