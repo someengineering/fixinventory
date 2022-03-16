@@ -11,6 +11,7 @@ from typing import Dict, Any
 
 class Config:
     _config: Dict[str, Any] = {}
+    _config_revision: str = ""
     _config_classes: Dict[str, object] = {}
 
     def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
@@ -44,7 +45,7 @@ class Config:
         if not self.config_added.is_set():
             raise RuntimeError("No config added")
         try:
-            config = get_config(self.config_name, self.resotocore_uri)
+            config, self._config_revision = get_config(self.config_name, self.resotocore_uri)
         except ConfigNotFoundError:
             for config_id, config_data in self._config_classes.items():
                 self._config[config_id] = config_data()
@@ -57,17 +58,21 @@ class Config:
                 else:
                     log.error(f"Unknown config {config_id}")
         self.save_config()
+        self.ce.start()
 
     def save_config(self) -> None:
         config = jsons.dump(self._config, strip_attr="kind", strip_properties=True)
-        set_config(self.config_name, config, self.resotocore_uri)
+        self._config_revision = set_config(self.config_name, config, self.resotocore_uri)
 
     def on_config_event(self, message: Dict[str, Any]) -> None:
+        log.debug(f"Received MESSAGE {message}")
         if (
             message.get("message_type") == "config-updated"
             and message.get("data", {}).get("id") == self.config_name
+            and message.get("data", {}).get("revision") != self._config_revision
         ):
             try:
+                log.debug("RELOADING")
                 self.load_config()
             except Exception:
                 pass
