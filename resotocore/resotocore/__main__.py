@@ -1,6 +1,7 @@
 import logging
 import platform
 import ssl
+from argparse import Namespace
 from asyncio import Queue
 from datetime import timedelta
 from ssl import SSLContext
@@ -8,6 +9,7 @@ from typing import AsyncIterator, Optional, List
 
 import sys
 from aiohttp.web_app import Application
+from arango.database import StandardDatabase
 
 from resotocore import version
 from resotocore.analytics import CoreEvent, NoEventSender
@@ -18,9 +20,11 @@ from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import aliases, all_commands
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import config_from_db
+from resotocore.core_config import config_from_db, CoreConfig
+from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
+from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
@@ -58,7 +62,6 @@ def run(arguments: List[str]) -> None:
     :param arguments: the arguments provided to this process.
                  Note: this method is used in tests to specify arbitrary arguments.
     """
-
     args = parse_args(arguments)
     setup_process(args)
 
@@ -69,10 +72,27 @@ def run(arguments: List[str]) -> None:
         f"available_mem={info.mem_available}, total_mem={info.mem_total}"
     )
 
+    # The loop is here to restart the process in case of RestartService exceptions.
+    while True:
+        try:
+            run_process(args)
+            break  # This line should never be reached. In case it does, break the loop.
+        except RestartService as ex:
+            message = f"Restarting Service. Reason: {ex.reason}"
+            line = "-" * len(message)
+            print(f"\n{line}\n{message}\n{line}\n")
+
+
+def run_process(args: Namespace) -> None:
     # wait here for an initial connection to the database before we continue. blocking!
     created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
     config = config_from_db(args, sdb)
-    reconfigure_logging(config)  # based on the config, logging might change
+    with_config(created, system_data, sdb, config)
+
+
+def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, config: CoreConfig) -> None:
+    reconfigure_logging(config)  # based on the config, logging might have changed
+    info = system_info()
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
     cert_handler = CertificateHandler.lookup(config, sdb)
@@ -179,9 +199,9 @@ def run(arguments: List[str]) -> None:
         return api.app
 
     tls_context: Optional[SSLContext] = None
-    if args.tls_cert:
+    if config.args.tls_cert:
         tls_context = SSLContext(ssl.PROTOCOL_TLS)
-        tls_context.load_cert_chain(args.tls_cert, args.tls_key, args.tls_password)
+        tls_context.load_cert_chain(config.args.tls_cert, config.args.tls_key, config.args.tls_password)
 
     runner.run_app(async_initializer(), api.stop, host=config.api.hosts, port=config.api.port, ssl_context=tls_context)
 

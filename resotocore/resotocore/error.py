@@ -85,3 +85,11 @@ class NoSuchTemplateError(CoreException, NotFoundError):
     def __init__(self, template: str):
         super().__init__(f"Template {template} does not exist.")
         self.template = template
+
+
+class RestartService(SystemExit):
+    code = 1
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"RestartService due to: {reason}")
+        self.reason = reason

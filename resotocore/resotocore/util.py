@@ -32,6 +32,7 @@ import sys
 from dateutil.parser import isoparse
 
 from resotocore.durations import parse_duration
+from resotocore.error import RestartService
 from resotocore.types import JsonElement, Json
 
 log = logging.getLogger(__name__)
@@ -269,14 +270,25 @@ def set_future_result(future: Future, result: Any) -> None:  # type: ignore # py
             future.set_result(result)
 
 
-def shutdown_process(exit_code: int) -> None:
+def __mute_async_exception_reporting_on_current_loop() -> None:
     # Exceptions happening in the async loop during shutdown.
     def exception_handler(_: Any, context: Any) -> None:
         log.debug(f"Error from async loop during shutdown: {context}")
 
     log.info("Shutdown initiated for current process.")
     with suppress(Exception):
-        asyncio.get_running_loop().set_exception_handler(exception_handler)
+        loop = asyncio.get_running_loop()
+        if loop:
+            loop.set_exception_handler(exception_handler)
+
+
+def restart_service(reason: str) -> None:
+    __mute_async_exception_reporting_on_current_loop()
+    raise RestartService(reason)
+
+
+def shutdown_process(exit_code: int) -> None:
+    __mute_async_exception_reporting_on_current_loop()
     sys.exit(exit_code)
 
 

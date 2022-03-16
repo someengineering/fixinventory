@@ -17,8 +17,9 @@ from aiohttp.web_log import AccessLogger
 from aiohttp.web_runner import GracefulExit
 
 
-# This method is copied from aiohttp.web.run_app with one additional step:
-# it allows a callable that is executed on shutdown.
+# This method is copied from aiohttp.web.run_app with one 2 additional steps:
+# - it allows a callable that is executed on shutdown.
+# - it does not swallow terminal exceptions
 def run_app(
     app: Union[Application, Awaitable[Application]],
     on_shutdown: Callable[[], Awaitable[None]],
@@ -75,8 +76,8 @@ def run_app(
     try:
         asyncio.set_event_loop(loop)
         loop.run_until_complete(main_task)
-    except (GracefulExit, KeyboardInterrupt):  # pragma: no cover
-        pass
+    except (GracefulExit, KeyboardInterrupt) as ex:  # pragma: no cover
+        raise ex
     finally:
         loop.run_until_complete(on_shutdown())
         _cancel_tasks({main_task}, loop)

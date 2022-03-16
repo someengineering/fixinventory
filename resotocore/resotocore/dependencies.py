@@ -237,16 +237,24 @@ def configure_logging(log_level: str, debug: bool) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
     log_format = "%(asctime)s|resotocore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+    level = log_level.upper()
     logging.basicConfig(
         format=log_format,
         datefmt="%y-%m-%d %H:%M:%S",
-        level=logging.getLevelName(log_level.upper()),
+        level=logging.getLevelName(level),
         force=True,
     )
     # adjust log levels for specific loggers
     if debug:
         logging.getLogger("resotocore").setLevel(logging.DEBUG)
+        # in case of restart: reset the original level
+        logging.getLogger("posthog").setLevel(level)
+        logging.getLogger("backoff").setLevel(level)
+        logging.getLogger("transitions.core").setLevel(level)
+        logging.getLogger("apscheduler.executors").setLevel(level)
     else:
+        # in case of restart: reset the original level
+        logging.getLogger("resotocore").setLevel(level)
         # mute analytics transmission errors unless debug is enabled
         logging.getLogger("posthog").setLevel(logging.FATAL)
         logging.getLogger("backoff").setLevel(logging.FATAL)

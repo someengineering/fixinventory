@@ -192,7 +192,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
     config_entity = db.collection("configs").get(ResotoCoreConfigId) if db.has_collection(collection_name) else None
-    config = config_entity.get("config")  # ConfigEntity.config
+    config = config_entity.get("config") if config_entity else None  # ConfigEntity.config
     if config:
         return parse_config(args, config)
     else:

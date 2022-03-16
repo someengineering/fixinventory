@@ -59,8 +59,8 @@ from resotocore.cli.model import (
     NoTerminalOutput,
 )
 from resotocore.config import ConfigEntity
-from resotocore.dependencies import path_values_parser
 from resotocore.db.model import QueryModel
+from resotocore.dependencies import path_values_parser
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeType
@@ -85,12 +85,12 @@ from resotocore.util import (
     value_in_path_get,
     value_in_path,
     utc,
-    shutdown_process,
     if_set,
     duration,
     identity,
     rnd_str,
     set_value_in_path,
+    restart_service,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -2804,7 +2804,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             async def wait_and_exit() -> None:
                 log.info("Database was restored successfully - going to STOP the service!")
                 await asyncio.sleep(1)
-                shutdown_process(0)
+                restart_service("database backup restored.")
 
             # create a background task, so that the current request can be executed completely
             asyncio.create_task(wait_and_exit())

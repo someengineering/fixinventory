@@ -74,7 +74,7 @@ def default_config() -> CoreConfig:
         runtime=RuntimeConfig(
             analytics_opt_out=True,
             debug=False,
-            log_level="INFO",
+            log_level="info",
             plantuml_server="http://plantuml.resoto.org:8080",
             start_collect_on_subscriber_connect=False,
         ),

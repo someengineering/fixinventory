@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import sys
 from asyncio import Task
 from functools import partial
 from typing import Optional, List, Callable
@@ -11,7 +10,7 @@ from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
-from resotocore.util import deep_merge
+from resotocore.util import deep_merge, restart_service
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class CoreConfigHandler:
         config: CoreConfig,
         message_bus: MessageBus,
         config_handler: ConfigHandler,
-        exit_fn: Callable[[], None] = partial(sys.exit, 1),
+        exit_fn: Callable[[], None] = partial(restart_service, "resotocore config changed."),
     ):
         self.message_bus = message_bus
         self.config_updated_listener: Optional[Task[None]] = None
