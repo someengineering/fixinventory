@@ -155,7 +155,7 @@ class DbUpdaterProcess(Process):
     def run(self) -> None:
         try:
             # Entrypoint of the new service
-            setup_process(self.config.args, f"merge_update_{self.pid}")
+            setup_process(self.config.args, self.config)
             log.info(f"Import process started: {self.pid}")
             result = asyncio.run(self.setup_and_merge())
             self.write_queue.put(Result(result))

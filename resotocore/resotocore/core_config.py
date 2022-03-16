@@ -95,7 +95,7 @@ class RuntimeConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
     analytics_opt_out: bool = field(default=False, metadata={"description": "Stop collecting analytics data."})
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
-    log_level: str = field(default="INFO", metadata={"description": "Log level (default: INFO)"})
+    log_level: str = field(default="info", metadata={"description": "Log level (default: info)"})
     plantuml_server: str = field(
         default="http://plantuml.resoto.org:8080",
         metadata={"description": "PlantUML server URI for UML image rendering."},
@@ -168,7 +168,9 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         "api.ui_path": args.ui_path,
         "cli.default_graph": args.cli_default_graph,
         "cli.default_section": args.cli_default_section,
-        "graph_update.abort_after_seconds": args.graph_updates_abort_after.total_seconds(),
+        "graph_update.abort_after_seconds": args.graph_update_abort_after.total_seconds()
+        if args.graph_update_abort_after
+        else None,
         "graph_update.merge_max_wait_time_seconds": args.merge_max_wait_time_seconds,
         "runtime.analytics_opt_out": args.analytics_opt_out,
         "runtime.debug": args.debug,
@@ -189,9 +191,9 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
 
 
 def config_from_db(args: Namespace, db: StandardDatabase, collection_name: str = "configs") -> CoreConfig:
-    config = db.collection("configs").get(ResotoCoreConfigId) if db.has_collection(collection_name) else None
+    config_entity = db.collection("configs").get(ResotoCoreConfigId) if db.has_collection(collection_name) else None
+    config = config_entity.get("config")  # ConfigEntity.config
     if config:
-        # The whole config is under synthetic property 'core'
         return parse_config(args, config)
     else:
         return parse_config(args, {})

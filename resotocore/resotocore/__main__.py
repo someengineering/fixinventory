@@ -20,7 +20,7 @@ from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import config_from_db
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import db_access, setup_process, parse_args, system_info
+from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
@@ -72,6 +72,7 @@ def run(arguments: List[str]) -> None:
     # wait here for an initial connection to the database before we continue. blocking!
     created, system_data, sdb = DbAccess.connect(args, timedelta(seconds=60))
     config = config_from_db(args, sdb)
+    reconfigure_logging(config)  # based on the config, logging might change
     event_sender = NoEventSender() if config.runtime.analytics_opt_out else PostHogEventSender(system_data)
     db = db_access(config, sdb, event_sender)
     cert_handler = CertificateHandler.lookup(config, sdb)
