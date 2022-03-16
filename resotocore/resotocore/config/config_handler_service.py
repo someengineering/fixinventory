@@ -63,9 +63,13 @@ class ConfigHandlerService(ConfigHandler):
 
     async def put_config(self, cfg: ConfigEntity, validate: bool = True) -> ConfigEntity:
         coerced = await self.coerce_and_check_model(cfg.id, cfg.config, validate)
-        result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
-        await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
-        return result
+        existing = await self.cfg_db.get(cfg.id)
+        if not existing or existing.config != cfg.config:
+            result = await self.cfg_db.update(ConfigEntity(cfg.id, coerced, cfg.revision))
+            await self.message_bus.emit_event(CoreMessage.ConfigUpdated, dict(id=result.id, revision=result.revision))
+            return result
+        else:
+            return existing
 
     async def patch_config(self, cfg: ConfigEntity) -> ConfigEntity:
         current = await self.cfg_db.get(cfg.id)
