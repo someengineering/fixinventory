@@ -288,7 +288,6 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
 
     kind = "digitalocean_certificate"
 
-    dns_names: Optional[List[str]] = None
     certificate_state: Optional[str] = None
     certificate_type: Optional[str] = None
 

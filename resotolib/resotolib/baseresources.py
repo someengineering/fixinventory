@@ -1028,6 +1028,7 @@ class BaseAccessKey(BaseResource):
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
     expires: Optional[datetime] = None
+    dns_names: Optional[List[str]] = None
     sha1_fingerprint: Optional[str] = None
 
 
