@@ -190,14 +190,22 @@ def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> 
 
 
 def deep_merge(left: Json, right: Json) -> Json:
+    """
+    Merge the right json into the left json.
+    All values in right will be set on the left side.
+    All values not existing in right will be preserved on the left side.
+    :return: the deeply merged json object.
+    """
+
     def merge(key: str) -> JsonElement:
-        left_value = left.get(key)
-        right_value = right.get(key)
+        left_value: JsonElement = left.get(key)
+        right_value: JsonElement = right.get(key)
         if isinstance(right_value, dict):
-            left_value = left_value if isinstance(left_value, dict) or left_value is None else {}
-            return deep_merge(left_value, right_value)  # type: ignore
+            left_value = left_value if isinstance(left_value, dict) else {}
+            # noinspection PyTypeChecker
+            return deep_merge(left_value, right_value)
         elif right_value:
-            return right_value  # type: ignore
+            return right_value
         else:
             return left_value
 

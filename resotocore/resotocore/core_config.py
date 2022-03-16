@@ -11,12 +11,12 @@ from resotocore.types import Json
 from resotocore.util import set_value_in_path
 
 ResotoCoreConfigId = "resoto.core"
-ResotoCoreRoot = "core"
+ResotoCoreRoot = "resotocore"
 
 
 @dataclass()
 class ApiConfig:
-    kind: ClassVar[str] = "core_api_config"
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_api_config"
 
     hosts: List[str] = field(
         default_factory=lambda: ["localhost"], metadata={"description": "TCP host(s) to bind on (default: localhost)"}
@@ -35,7 +35,7 @@ class ApiConfig:
 
 @dataclass()
 class DatabaseConfig:
-    kind: ClassVar[str] = "core_database_config"
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_database_config"
     server: str = field(
         default="http://localhost:8529",
         metadata={"description": "Graph database server (default: http://localhost:8529)"},
@@ -58,7 +58,7 @@ class DatabaseConfig:
 
 @dataclass()
 class CLIConfig:
-    kind: ClassVar[str] = "core_cli_config"
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_config"
     default_graph: str = field(
         default="resoto",
         metadata={"description": "Use this graph for CLI actions, if no graph is specified explicitly."},
@@ -74,7 +74,7 @@ class CLIConfig:
 
 @dataclass()
 class GraphUpdateConfig:
-    kind: ClassVar[str] = "core_graph_update_config"
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_graph_update_config"
     merge_max_wait_time_seconds: int = field(
         default=3600, metadata={"description": "Max waiting time to complete a merge graph action."}
     )
@@ -92,7 +92,7 @@ class GraphUpdateConfig:
 
 @dataclass()
 class RuntimeConfig:
-    kind: ClassVar[str] = "core_runtime_config"
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
     analytics_opt_out: bool = field(default=False, metadata={"description": "Stop collecting analytics data."})
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
     log_level: str = field(default="INFO", metadata={"description": "Log level (default: INFO)"})
@@ -159,6 +159,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         no_ssl_verify=args.graphdb_no_ssl_verify,
         request_timeout=args.graphdb_request_timeout,
     )
+    # take command line options and translate it to the config model
     set_from_cmd_line = {
         "api.hosts": args.host,
         "api.port": args.port,
@@ -174,6 +175,11 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
         "runtime.log_level": args.log_level,
         "runtime.start_collect_on_subscriber_connect": args.start_collect_on_subscriber_connect,
     }
+
+    # take config overrides and adjust the configuration
+    for key, value in args.config_override:
+        set_from_cmd_line[key] = value
+
     adjusted = json_config.get(ResotoCoreRoot)
     for path, value in set_from_cmd_line.items():
         if value is not None:

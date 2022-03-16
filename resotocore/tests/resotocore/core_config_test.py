@@ -20,7 +20,7 @@ def test_parse_empty(default_config: CoreConfig) -> None:
 
 def test_read_config() -> None:
     config = {
-        "core": {
+        "resotocore": {
             "api": {"hosts": ["1.2.3.4"], "port": 1234, "psk": "test", "tsdb_proxy_url": "test", "ui_path": "fest"},
             "cli": {"default_graph": "foo", "default_section": "bla"},
             "graph_update": {"abort_after_seconds": 1234, "merge_max_wait_time_seconds": 4321},
@@ -47,11 +47,11 @@ def test_override_via_cmd_line(default_config: CoreConfig) -> None:
 def test_model() -> None:
     model = config_model()
     assert {m["fqn"] for m in model} == {
-        "core",
-        "core_api_config",
-        "core_cli_config",
-        "core_graph_update_config",
-        "core_runtime_config",
+        "resotocore",
+        "resotocore_api_config",
+        "resotocore_cli_config",
+        "resotocore_graph_update_config",
+        "resotocore_runtime_config",
     }
 
 

@@ -5,11 +5,12 @@ import os.path
 import sys
 from argparse import Namespace
 from collections import namedtuple
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Tuple
 from urllib.parse import urlparse
 
 import psutil
 from arango.database import StandardDatabase
+from parsy import Parser
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.utils import iec_size_format
@@ -20,6 +21,7 @@ from resotocore.core_config import CoreConfig, parse_config
 from resotocore.db.db_access import DbAccess
 from resotocore.durations import parse_duration
 from resotocore.model.adjust_node import DirectAdjuster
+from resotocore.parse_util import make_parser, variable_p, equals_p, json_value_p, comma_p
 from resotocore.util import utc
 
 log = logging.getLogger(__name__)
@@ -29,6 +31,17 @@ SystemInfo = namedtuple(
     ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
 )
 started_at = utc()
+
+
+@make_parser
+def path_value_parser() -> Parser:
+    key = yield variable_p
+    yield equals_p
+    value = yield json_value_p
+    return key, value
+
+
+path_values_parser = path_value_parser.sep_by(comma_p)
 
 
 def system_info() -> SystemInfo:
@@ -71,6 +84,12 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
                 raise AttributeError(f"{message}: url {url} can not be parsed!") from ex
 
         return check_url
+
+    def key_value(kv: str) -> Tuple[str, str]:
+        try:
+            return path_value_parser.parse(kv)  # type: ignore
+        except Exception as ex:
+            raise AttributeError(f"Can not parse config option: {kv}. Reason: {ex}") from ex
 
     parser = ArgumentParser(
         env_args_prefix="RESOTOCORE_",
@@ -155,6 +174,16 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         "--version",
         action="store_true",
         help="Print the version of resotocore and exit.",
+    )
+    parser.add_argument(
+        "--config-override",
+        nargs="+",
+        type=key_value,
+        dest="config_override",
+        default=[],
+        help="Override configuration parameters. Format: path.to.property=value. "
+        "Note: the value can be any json value - proper escaping from the shell is required."
+        "Example: --config-override api.hosts='[localhost, some.domain]' api.port=12345",
     )
 
     # All suppressed properties are only here for backward compatibility.
