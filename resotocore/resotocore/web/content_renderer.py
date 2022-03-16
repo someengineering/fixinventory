@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable
+from typing import AsyncGenerator, List, Dict, AsyncIterator, Tuple, Callable, Optional
 
 import yaml
 from aiohttp.web import StreamResponse, Request, Response, json_response
@@ -202,12 +202,13 @@ async def result_binary_gen(request: Request, gen: AsyncIterator[JsonElement]) -
     return content_type, encode_utf8()
 
 
-async def single_result(request: Request, js: JsonElement) -> StreamResponse:
+async def single_result(
+    request: Request, js: JsonElement, headers: Optional[Dict[str, Optional[str]]] = None
+) -> StreamResponse:
+    non_empty = {k: v for k, v in headers.items() if isinstance(v, str)} if headers else None
     accept = request.headers.get("accept", "application/json")
-    if accept == "application/json":
-        return json_response(js)
-    elif accept in ["application/yaml", "text/yaml"]:
+    if accept in ["application/yaml", "text/yaml"]:
         yml = yaml.dump(js)
-        return Response(text=yml, content_type="application/yaml")
+        return Response(text=yml, content_type="application/yaml", headers=non_empty)
     else:
-        return json_response(js)
+        return json_response(js, headers=non_empty)

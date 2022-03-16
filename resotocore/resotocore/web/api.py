@@ -288,20 +288,26 @@ class Api:
             return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
         else:
             config = await self.config_handler.get_config(config_id)
-            return await single_result(request, config.config) if config else not_found
+            if config:
+                headers = {"Resoto-Config-Revision": config.revision}
+                return await single_result(request, config.config, headers)
+            else:
+                return not_found
 
     async def put_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         validate = request.query.get("validate", "true").lower() != "false"
         config = await self.json_from_request(request)
         result = await self.config_handler.put_config(ConfigEntity(config_id, config), validate)
-        return await single_result(request, result.config)
+        headers = {"Resoto-Config-Revision": result.revision}
+        return await single_result(request, result.config, headers)
 
     async def patch_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
         patch = await self.json_from_request(request)
         updated = await self.config_handler.patch_config(ConfigEntity(config_id, patch))
-        return await single_result(request, updated.config)
+        headers = {"Resoto-Config-Revision": updated.revision}
+        return await single_result(request, updated.config, headers)
 
     async def delete_config(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
