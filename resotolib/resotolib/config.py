@@ -30,7 +30,7 @@ class Config:
         if resotocore_uri is None:
             raise ValueError("resotocore_uri is required")
         self.resotocore_uri = f"http://{urlparse(resotocore_uri).netloc}"
-        self.ce = CoreEvents(
+        self._ce = CoreEvents(
             f"ws://{urlparse(self.resotocore_uri).netloc}",
             events={"config-updated"},
             message_processor=self.on_config_event,
@@ -77,9 +77,9 @@ class Config:
             if self._initial_load:
                 self.save_config()
             self._initial_load = False
-            if not self.ce.is_alive():
+            if not self._ce.is_alive():
                 log.debug(f"Starting config event listener")
-                self.ce.start()
+                self._ce.start()
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri)
