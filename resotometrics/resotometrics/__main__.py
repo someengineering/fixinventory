@@ -145,11 +145,11 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
         if shutdown_event.is_set():
             return
 
-        metrics_query = data.get("query")
+        metrics_search = data.get("search")
         metric_type = data.get("type")
         metric_help = data.get("help", "")
 
-        if metrics_query is None:
+        if metrics_search is None:
             continue
 
         if metric_type not in ("gauge", "counter"):
@@ -157,7 +157,7 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             continue
 
         try:
-            for result in query(metrics_query, query_uri):
+            for result in query(metrics_search, query_uri):
                 labels = get_labels_from_result(result)
                 label_values = get_label_values_from_result(result, labels)
 
