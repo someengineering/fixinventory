@@ -1091,6 +1091,7 @@ class BaseDomainRecord(BaseResource):
     record_flags: Optional[int] = None
     record_tag: Optional[str] = None
 
+
 @dataclass(eq=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
