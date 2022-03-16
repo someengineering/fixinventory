@@ -182,7 +182,7 @@ def parse_config(args: Namespace, json_config: Json) -> CoreConfig:
     for key, value in args.config_override:
         set_from_cmd_line[key] = value
 
-    adjusted = json_config.get(ResotoCoreRoot)
+    adjusted = json_config.get(ResotoCoreRoot) or {}
     for path, value in set_from_cmd_line.items():
         if value is not None:
             adjusted = set_value_in_path(value, path, adjusted)
