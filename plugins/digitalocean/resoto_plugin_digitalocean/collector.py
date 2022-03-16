@@ -62,6 +62,8 @@ from .utils import (
     firewall_id,
 )
 
+Json = Dict[str, Any]
+
 log = resotolib.logging.getLogger("resoto." + __name__)
 
 metrics_collect_projects = Summary(
@@ -444,7 +446,7 @@ class DigitalOceanTeamCollector:
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
 
-        def get_image(droplet: Dict) -> Dict:
+        def get_image(droplet: Json) -> Json:
             image = droplet["image"]
             image["region"] = droplet["region"]["slug"]
             return image
