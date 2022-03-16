@@ -98,6 +98,7 @@ def test_collect_regions():
         "storage",
         "image_transfer",
     ]
+    assert set(region.do_region_droplet_sizes) == set(regions[1]["sizes"])
     assert region.is_available is True
 
 
@@ -114,8 +115,8 @@ def test_collect_vpcs():
     vpc = graph.search_first("id", "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959")
     assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
     assert vpc.name == "default-fra1"
-    assert vpc.do_vpc_description == ""
-    assert vpc.do_vpc_ip_range == "127.0.0.1/20"
+    assert vpc.description == ""
+    assert vpc.subnet == "127.0.0.1/20"
     assert vpc.is_default is True
 
 
@@ -140,13 +141,13 @@ def test_collect_droplets():
     image = graph.search_first("id", "do:image:101111514")
     assert image.id == "do:image:101111514"
     assert image.name == "20.04 (LTS) x64"
-    assert image.do_image_distribution == "Ubuntu"
-    assert image.do_image_slug == "ubuntu-20-04-x64"
-    assert image.do_image_public is True
-    assert image.do_image_type == "base"
-    assert image.do_image_size_gigabytes == 1
-    assert image.do_image_min_disk_size == 15
-    assert image.do_image_status == "available"
+    assert image.distribution == "Ubuntu"
+    assert image.image_slug == "ubuntu-20-04-x64"
+    assert image.is_public is True
+    assert image.image_type == "base"
+    assert image.size_gigabytes == 1
+    assert image.min_disk_size == 15
+    assert image.image_status == "available"
     assert image.tags == {"image_tag": ""}
 
     droplet = graph.search_first("id", "do:droplet:289110074")
@@ -156,7 +157,8 @@ def test_collect_droplets():
     assert droplet.instance_cores == 1
     assert droplet.instance_status == "running"
     assert droplet.region().id == "do:region:fra1"
-    assert droplet.do_droplet_image == "ubuntu-20-04-x64"
+    assert droplet.droplet_image == "ubuntu-20-04-x64"
+    assert droplet.droplet_backup_ids == ["42"]
     assert droplet.is_locked is False
     assert droplet.ctime == datetime.datetime(
         2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc
@@ -184,9 +186,9 @@ def test_collect_volumes():
     volume = graph.search_first("id", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     assert volume.id == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
-    assert volume.do_volume_description == "Test volume"
-    assert volume.do_volume_filesystem_type == "ext4"
-    assert volume.do_volume_filesystem_label == "label"
+    assert volume.description == "Test volume"
+    assert volume.filesystem_type == "ext4"
+    assert volume.filesystem_label == "label"
     assert volume.volume_size == 1
     assert volume.volume_status == "in-use"
 
@@ -248,20 +250,20 @@ def test_collect_k8s_clusters():
     )
     assert cluster.id == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
     assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
-    assert cluster.do_k8s_version == "1.22.7-do.0"
+    assert cluster.k8s_version == "1.22.7-do.0"
     assert cluster.region().id == "do:region:fra1"
-    assert cluster.do_k8s_cluster_subnet == "10.244.0.0/16"
-    assert cluster.do_k8s_service_subnet == "10.245.0.0/16"
-    assert cluster.do_k8s_ipv4 == "127.0.0.1"
+    assert cluster.k8s_cluster_subnet == "10.244.0.0/16"
+    assert cluster.k8s_service_subnet == "10.245.0.0/16"
+    assert cluster.ipv4_address == "127.0.0.1"
     assert (
-        cluster.do_k8s_endpoint
+        cluster.endpoint
         == "https://e1c48631-b382-4001-2168-c47c54795a26.k8s.ondigitalocean.com"
     )
-    assert cluster.do_k8s_auto_upgrade is False
-    assert cluster.do_k8s_status == "running"
-    assert cluster.do_k8s_surge_upgrade is True
-    assert cluster.do_k8s_registry_enabled is False
-    assert cluster.do_k8s_ha is False
+    assert cluster.auto_upgrade_enabled is False
+    assert cluster.cluster_status == "running"
+    assert cluster.surge_upgrade_enabled is True
+    assert cluster.registry_enabled is False
+    assert cluster.ha_enabled is False
 
 
 def test_collect_snapshots():
@@ -280,9 +282,9 @@ def test_collect_snapshots():
     snapshot = graph.search_first("id", "do:snapshot:103198134")
     assert snapshot.id == "do:snapshot:103198134"
     assert snapshot.volume_size == 25
-    assert snapshot.do_snapshot_size_gigabytes == 2
-    assert snapshot.do_snapshot_resource_id == "289110074"
-    assert snapshot.do_snapshot_resource_type == "droplet"
+    assert snapshot.snapshot_size_gigabytes == 2
+    assert snapshot.resource_id == "289110074"
+    assert snapshot.resource_type == "droplet"
 
 
 def test_collect_loadbalancers():
@@ -311,14 +313,13 @@ def test_collect_loadbalancers():
     )
     assert lb.id == "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
     assert lb.name == "fra1-load-balancer-01"
-    assert lb.do_lb_ip == "127.0.0.1"
-    assert lb.do_lb_size == "lb-small"
-    assert lb.do_lb_size_unit == 1
-    assert lb.do_lb_status == "new"
-    assert lb.do_lb_redirect_http_to_https is False
-    assert lb.do_lb_enable_proxy_protocol is False
-    assert lb.do_lb_enable_backend_keepalive is False
-    assert lb.do_lb_disable_lets_encrypt_dns_records is False
+    assert lb.public_ip_address == "127.0.0.1"
+    assert lb.nr_nodes == 1
+    assert lb.loadbalancer_status == "new"
+    assert lb.redirect_http_to_https is False
+    assert lb.enable_proxy_protocol is False
+    assert lb.enable_backend_keepalive is False
+    assert lb.disable_lets_encrypt_dns_records is False
 
 
 def test_collect_floating_ips():
@@ -387,6 +388,17 @@ def test_collect_projects():
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
         "do:space:api-test-space.resoto",
     )
+    project = graph.search_first("id", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7")
+    assert project.owner_uuid == "d63ae7cb6500140c46fdb3585b0c1a874e195760"
+    assert project.owner_id == "10225075"
+    assert project.name == "Resoto DO plugin test project"
+    assert project.description == "A project to validate assumptions about how API works"
+    assert project.purpose == "Just trying out DigitalOcean"
+    assert project.environment == "development"
+    assert project.is_default is False
+    assert project.ctime == datetime.datetime(
+        2022, 2, 22, 11, 21, 30, 0, datetime.timezone.utc
+    )
 
 
 def test_collect_space():
@@ -423,10 +435,10 @@ def test_collect_apps():
     )
     app = graph.search_first("id", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")
     assert app.id == "do:app:5dc41512-7523-4eeb-9932-426aa570234b"
-    assert app.do_app_default_ingress == "https://resoto_test_app.ondigitalocean.app"
-    assert app.do_app_live_url == "https://resoto_test_app.ondigitalocean.app"
-    assert app.do_app_live_url_base == "https://resoto_test_app.ondigitalocean.app"
-    assert app.do_app_live_domain == "resoto_test_apps.ondigitalocean.app"
+    assert app.default_ingress == "https://resoto_test_app.ondigitalocean.app"
+    assert app.live_url == "https://resoto_test_app.ondigitalocean.app"
+    assert app.live_url_base == "https://resoto_test_app.ondigitalocean.app"
+    assert app.live_domain == "resoto_test_apps.ondigitalocean.app"
 
 
 def test_cdn_endpoints():
@@ -446,12 +458,12 @@ def test_cdn_endpoints():
         "id", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
     )
     assert endpoint.id == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
-    assert endpoint.do_cdn_origin == "resoto_test.ams3.digitaloceanspaces.com"
-    assert endpoint.do_cdn_endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
-    assert endpoint.do_cdn_created_at == "2021-11-16T16:00:44Z"
-    assert endpoint.do_cdn_certificate_id == "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8"
-    assert endpoint.do_cdn_custom_domain == "test.domain.resoto"
-    assert endpoint.do_cdn_ttl == 3600
+    assert endpoint.origin == "resoto_test.ams3.digitaloceanspaces.com"
+    assert endpoint.endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
+    assert endpoint.ctime == datetime.datetime(2021, 11, 16, 16, 00, 44, 0, datetime.timezone.utc)
+    assert endpoint.certificate_id == "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8"
+    assert endpoint.custom_domain == "test.domain.resoto"
+    assert endpoint.ttl == 3600
 
 
 def test_collect_certificates():
@@ -467,10 +479,10 @@ def test_collect_certificates():
     )
     assert cert.id == "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
     assert cert.name == "cdn.resoto.test"
-    assert cert.do_cert_sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
-    assert cert.do_cert_dns_names == ["*.resoto.test", "resoto.test"]
-    assert cert.do_cert_state == "verified"
-    assert cert.do_cert_type == "custom"
+    assert cert.sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
+    assert cert.dns_names == ["*.resoto.test", "resoto.test"]
+    assert cert.certificate_state == "verified"
+    assert cert.certificate_type == "custom"
 
 
 def test_collect_container_registries():
@@ -510,13 +522,12 @@ def test_collect_container_registries():
     tag = graph.search_first("id", "do:crrt:resoto-do-plugin-test/hw:latest")
     assert tag.id == "do:crrt:resoto-do-plugin-test/hw:latest"
     assert tag.name == "latest"
-    assert tag.do_cr_tag == "latest"
     assert (
-        tag.do_cr_manifest_digest
+        tag.manifest_digest
         == "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e"
     )
-    assert tag.do_cr_compressed_size_bytes == 5164
-    assert tag.do_cr_size_bytes == 12660
+    assert tag.compressed_size_bytes == 5164
+    assert tag.size_bytes == 12660
     assert tag.mtime == datetime.datetime(
         2022, 3, 14, 13, 32, 40, 0, datetime.timezone.utc
     )
@@ -535,7 +546,7 @@ def test_collect_ssh_keys():
     assert ssh_key.id == "do:ssh_key:289794"
     assert ssh_key.fingerprint == "3b:16:e4:bf:8b:00:8b:b8:59:8c:a9:d3:f0:19:fa:45"
     assert ssh_key.name == "Other Public Key"
-    assert ssh_key.do_ssh_public_key == "ssh-rsa publickey keycomment"
+    assert ssh_key.public_key == "ssh-rsa publickey keycomment"
 
 
 def test_collect_tags():
@@ -569,6 +580,17 @@ def test_collect_domains():
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035872")
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035874")
     check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300036132")
+    domain_record = graph.search_first("id", "do:domain_record:300035870")
+    assert domain_record.id == "do:domain_record:300035870"
+    assert domain_record.record_type == "SOA"
+    assert domain_record.record_name == "@"
+    assert domain_record.record_data == "1800"
+    assert domain_record.record_priority == None
+    assert domain_record.record_port == None
+    assert domain_record.record_ttl == 1800
+    assert domain_record.record_weight == None
+    assert domain_record.record_flags == None
+    assert domain_record.record_tag == None
 
 
 def test_collect_firewalls():
@@ -592,7 +614,7 @@ def test_collect_firewalls():
     firewall = graph.search_first(
         "id", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711"
     )
-    assert firewall.do_firewall_status == "succeeded"
+    assert firewall.firewall_status == "succeeded"
     assert firewall.ctime == datetime.datetime(
         2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc
     )

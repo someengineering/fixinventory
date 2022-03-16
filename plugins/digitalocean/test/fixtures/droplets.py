@@ -10,7 +10,7 @@ droplets = [
         "kernel": None,
         "created_at": "2022-03-03T16:26:55Z",
         "features": ["droplet_agent", "private_networking"],
-        "backup_ids": [],
+        "backup_ids": [42],
         "next_backup_window": None,
         "snapshot_ids": [103198134],
         "image": {

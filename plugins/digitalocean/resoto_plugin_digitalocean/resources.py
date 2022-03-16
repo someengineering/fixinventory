@@ -59,9 +59,6 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
 
     kind: ClassVar[str] = "digitalocean_team"
 
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented  # DO does not have a team API yet
-
 
 @dataclass(eq=False)
 class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
@@ -69,30 +66,23 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
-    do_region_slug: str = field(default="")
-    do_region_features: List[str] = field(default_factory=list)
-    is_available: bool = field(default=True)
-    do_region_sizes: List[str] = field(default_factory=list)
-
-    def delete(self, graph: Graph) -> bool:
-        """Regions can usually not be deleted so we return NotImplemented"""
-        return NotImplemented
+    do_region_slug: Optional[str] = None
+    do_region_features: Optional[List[str]] = None
+    is_available: Optional[bool] = None
+    do_region_droplet_sizes: Optional[List[str]] = None
 
 
 @dataclass(eq=False)
-class DigitalOceanProject(DigitalOceanResource, BaseAccount):
+class DigitalOceanProject(DigitalOceanResource, BaseResource):
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
-    do_project_owner_uuid: str = field(default="")
-    do_project_owner_id: str = field(default="")
-    do_project_description: str = field(default="")
-    do_project_purpose: str = field(default="")
-    do_project_environment: str = field(default="")
-    is_default: bool = field(default=False)
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    owner_uuid: Optional[str] = None
+    owner_id: Optional[str] = None
+    description: Optional[str] = None
+    purpose: Optional[str] = None
+    environment: Optional[str] = None
+    is_default: Optional[bool] = None
 
 
 @dataclass(eq=False)
@@ -111,10 +101,10 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         "off": InstanceStatus.TERMINATED,
         "archive": InstanceStatus.TERMINATED,
     }
-    do_droplet_backup_ids: List[str] = field(default_factory=list)
-    is_locked: bool = field(default=False)
-    do_droplet_features: List[str] = field(default_factory=list)
-    do_droplet_image: str = field(default="")
+    droplet_backup_ids: Optional[List[str]] = None
+    is_locked: Optional[bool] = None
+    droplet_features: Optional[List[str]] = None
+    droplet_image: Optional[str] = None
 
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
@@ -143,19 +133,16 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
-    do_k8s_version: str = field(default="")
-    do_k8s_cluster_subnet: str = field(default="")
-    do_k8s_service_subnet: str = field(default="")
-    do_k8s_ipv4: str = field(default="")
-    do_k8s_endpoint: str = field(default="")
-    do_k8s_auto_upgrade: bool = field(default=False)
-    do_k8s_status: str = field(default="")
-    do_k8s_surge_upgrade: bool = field(default=False)
-    do_k8s_registry_enabled: bool = field(default=False)
-    do_k8s_ha: bool = field(default=False)
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    k8s_version: Optional[str] = None
+    k8s_cluster_subnet: Optional[str] = None
+    k8s_service_subnet: Optional[str] = None
+    ipv4_address: Optional[str] = None
+    endpoint: Optional[str] = None
+    auto_upgrade_enabled: Optional[bool] = None
+    cluster_status: Optional[str] = None
+    surge_upgrade_enabled: Optional[bool] = None
+    registry_enabled: Optional[bool] = None
+    ha_enabled: Optional[bool] = None
 
 
 @dataclass(eq=False)
@@ -172,9 +159,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
         "busy": VolumeStatus.BUSY,
     }
 
-    do_volume_description: str = field(default="")
-    do_volume_filesystem_type: str = field(default="")
-    do_volume_filesystem_label: str = field(default="")
+    description: Optional[str] = None
+    filesystem_type: Optional[str] = None
+    filesystem_label: Optional[str] = None
 
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
@@ -199,9 +186,9 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
-    do_vpc_ip_range: str = field(default="")
-    do_vpc_description: str = field(default="")
-    is_default: bool = field(default=False)
+    subnet: Optional[str] = None
+    description: Optional[str] = None
+    is_default: Optional[bool] = None
 
 
 @dataclass(eq=False)
@@ -210,12 +197,9 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
 
     kind: ClassVar[str] = "digitalocean_snapshot"
 
-    do_snapshot_size_gigabytes: float = field(default=0.0)
-    do_snapshot_resource_id: str = field(default="")
-    do_snapshot_resource_type: str = field(default="")
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    snapshot_size_gigabytes: Optional[int] = None
+    resource_id: Optional[str] = None
+    resource_type: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -224,14 +208,12 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
 
-    do_lb_ip: str = field(default="")
-    do_lb_size_unit: int = field(default=1)
-    do_lb_size: str = field(default="")
-    do_lb_status: str = field(default="")
-    do_lb_redirect_http_to_https: bool = field(default=False)
-    do_lb_enable_proxy_protocol: bool = field(default=False)
-    do_lb_enable_backend_keepalive: bool = field(default=False)
-    do_lb_disable_lets_encrypt_dns_records: bool = field(default=False)
+    nr_nodes: Optional[int] = None
+    loadbalancer_status: Optional[str] = None
+    redirect_http_to_https: Optional[bool] = None
+    enable_proxy_protocol: Optional[bool] = None
+    enable_backend_keepalive: Optional[bool] = None
+    disable_lets_encrypt_dns_records: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -243,7 +225,7 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
 
-    is_locked: bool = field(default=False)
+    is_locked: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -255,14 +237,14 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_image"
 
-    do_image_distribution: str = field(default="")
-    do_image_slug: str = field(default="")
-    do_image_public: bool = field(default=False)
-    do_image_min_disk_size: int = field(default=0)
-    do_image_type: str = field(default="")
-    do_image_size_gigabytes: int = field(default=0)
-    do_image_description: str = field(default="")
-    do_image_status: str = field(default="")
+    distribution: Optional[str] = None
+    image_slug: Optional[str] = None
+    is_public: Optional[bool] = None
+    min_disk_size: Optional[int] = None
+    image_type: Optional[str] = None
+    size_gigabytes: Optional[int] = None
+    description: Optional[str] = None
+    image_status: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -278,11 +260,11 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_app"
 
-    do_app_tier_slug: str = field(default="")
-    do_app_default_ingress: Optional[str] = None
-    do_app_live_url: Optional[str] = None
-    do_app_live_url_base: Optional[str] = None
-    do_app_live_domain: Optional[str] = None
+    tier_slug: Optional[str] = None
+    default_ingress: Optional[str] = None
+    live_url: Optional[str] = None
+    live_url_base: Optional[str] = None
+    live_domain: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -291,12 +273,11 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
 
     kind = "digitalocean_cdn_endpoint"
 
-    do_cdn_origin: Optional[str] = None
-    do_cdn_endpoint: Optional[str] = None
-    do_cdn_created_at: Optional[str] = None
-    do_cdn_certificate_id: Optional[str] = None
-    do_cdn_custom_domain: Optional[str] = None
-    do_cdn_ttl: Optional[int] = None
+    origin: Optional[str] = None
+    endpoint: Optional[str] = None
+    certificate_id: Optional[str] = None
+    custom_domain: Optional[str] = None
+    ttl: Optional[int] = None
 
 
 @dataclass(eq=False)
@@ -305,10 +286,9 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
 
     kind = "digitalocean_certificate"
 
-    do_cert_sha1_fingerprint: Optional[str] = None
-    do_cert_dns_names: Optional[List[str]] = None
-    do_cert_state: Optional[str] = None
-    do_cert_type: Optional[str] = None
+    dns_names: Optional[List[str]] = None
+    certificate_state: Optional[str] = None
+    certificate_type: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -337,10 +317,9 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
 
     kind = "digitalocean_container_registry_repository_tag"
 
-    do_cr_tag: Optional[str] = None
-    do_cr_manifest_digest: Optional[str] = None
-    do_cr_compressed_size_bytes: Optional[int] = None
-    do_cr_size_bytes: Optional[int] = None
+    manifest_digest: Optional[str] = None
+    compressed_size_bytes: Optional[int] = None
+    size_bytes: Optional[int] = None
 
 
 @dataclass(eq=False)
@@ -349,7 +328,7 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
     kind = "digitalocean_ssh_key"
 
-    do_ssh_public_key: Optional[str] = None
+    public_key: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -375,15 +354,15 @@ class DigitalOceanDomainRecord(DigitalOceanResource, BaseResource):
 
     kind = "digitalocean_domain_record"
 
-    do_domain_record_type: Optional[str] = None
-    do_domain_record_name: Optional[str] = None
-    do_domain_record_data: Optional[str] = None
-    do_domain_record_priority: Optional[int] = None
-    do_domain_record_port: Optional[int] = None
-    do_domain_record_ttl: Optional[int] = None
-    do_domain_record_weight: Optional[int] = None
-    do_domain_record_flags: Optional[int] = None
-    do_domain_record_tag: Optional[str] = None
+    record_type: Optional[str] = None
+    record_name: Optional[str] = None
+    record_data: Optional[str] = None
+    record_priority: Optional[int] = None
+    record_port: Optional[int] = None
+    record_ttl: Optional[int] = None
+    record_weight: Optional[int] = None
+    record_flags: Optional[int] = None
+    record_tag: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -392,4 +371,4 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
 
     kind = "digitalocean_firewall"
 
-    do_firewall_status: Optional[str] = None
+    firewall_status: Optional[str] = None

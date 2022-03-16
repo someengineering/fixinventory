@@ -927,6 +927,7 @@ class BaseDatabase(BaseResource):
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
     lb_type: str = ""
+    public_ip_address: str = None
     backends: List[str] = field(default_factory=list)
 
 
@@ -1027,6 +1028,7 @@ class BaseAccessKey(BaseResource):
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
     expires: Optional[datetime] = None
+    sha1_fingerprint: Optional[str] = None
 
 
 @dataclass(eq=False)
