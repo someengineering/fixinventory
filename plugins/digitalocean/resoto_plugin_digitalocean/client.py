@@ -2,6 +2,8 @@ from typing import Dict, List, Any, Optional
 
 import requests
 import boto3
+from botocore.exceptions import EndpointConnectionError
+
 
 import resotolib.logging
 
@@ -89,17 +91,20 @@ class StreamingWrapper:
 
     def list_spaces(self, region_slug: str) -> List[Json]:
         if self.session is not None:
-            client = self.session.client(
-                "s3",
-                endpoint_url=f"https://{region_slug}.digitaloceanspaces.com",
-                # Find your endpoint in the control panel, under Settings. Prepend "https://".
-                region_name=region_slug,  # Use the region in your endpoint.
-                aws_access_key_id=self.spaces_access_key,
-                # Access key pair. You can create access key pairs using the control panel or API.
-                aws_secret_access_key=self.spaces_secret_key,
-            )
+            try:
+                client = self.session.client(
+                    "s3",
+                    endpoint_url=f"https://{region_slug}.digitaloceanspaces.com",
+                    # Find your endpoint in the control panel, under Settings. Prepend "https://".
+                    region_name=region_slug,  # Use the region in your endpoint.
+                    aws_access_key_id=self.spaces_access_key,
+                    # Access key pair. You can create access key pairs using the control panel or API.
+                    aws_secret_access_key=self.spaces_secret_key,
+                )
 
-            return client.list_buckets().get("Buckets", [])
+                return client.list_buckets().get("Buckets", [])
+            except EndpointConnectionError:
+                return []
         else:
             return []
 

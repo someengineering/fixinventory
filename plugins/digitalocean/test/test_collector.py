@@ -585,12 +585,12 @@ def test_collect_domains():
     assert domain_record.record_type == "SOA"
     assert domain_record.record_name == "@"
     assert domain_record.record_data == "1800"
-    assert domain_record.record_priority == None
-    assert domain_record.record_port == None
+    assert domain_record.record_priority is None
+    assert domain_record.record_port is None
     assert domain_record.record_ttl == 1800
-    assert domain_record.record_weight == None
-    assert domain_record.record_flags == None
-    assert domain_record.record_tag == None
+    assert domain_record.record_weight is None
+    assert domain_record.record_flags is None
+    assert domain_record.record_tag is None
 
 
 def test_collect_firewalls():

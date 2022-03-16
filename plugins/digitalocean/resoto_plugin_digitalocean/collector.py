@@ -739,6 +739,7 @@ class DigitalOceanTeamCollector:
     @metrics_collect_load_balancers.time()
     def collect_load_balancers(self) -> None:
         loadbalancers = self.client.list_load_balancers()
+
         def get_nr_nodes(lb):
             size_to_nr_nodes = {
                 "lb-small": 1,
@@ -749,7 +750,6 @@ class DigitalOceanTeamCollector:
                 return lb["size_unit"]
             else:
                 return size_to_nr_nodes.get(lb["size"], 1)
-
 
         self.collect_resource(
             loadbalancers,
