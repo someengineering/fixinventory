@@ -388,11 +388,15 @@ def test_collect_projects():
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
         "do:space:api-test-space.resoto",
     )
-    project = graph.search_first("id", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7")
+    project = graph.search_first(
+        "id", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7"
+    )
     assert project.owner_uuid == "d63ae7cb6500140c46fdb3585b0c1a874e195760"
     assert project.owner_id == "10225075"
     assert project.name == "Resoto DO plugin test project"
-    assert project.description == "A project to validate assumptions about how API works"
+    assert (
+        project.description == "A project to validate assumptions about how API works"
+    )
     assert project.purpose == "Just trying out DigitalOcean"
     assert project.environment == "development"
     assert project.is_default is False
@@ -460,7 +464,9 @@ def test_cdn_endpoints():
     assert endpoint.id == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
     assert endpoint.origin == "resoto_test.ams3.digitaloceanspaces.com"
     assert endpoint.endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
-    assert endpoint.ctime == datetime.datetime(2021, 11, 16, 16, 00, 44, 0, datetime.timezone.utc)
+    assert endpoint.ctime == datetime.datetime(
+        2021, 11, 16, 16, 00, 44, 0, datetime.timezone.utc
+    )
     assert endpoint.certificate_id == "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8"
     assert endpoint.custom_domain == "test.domain.resoto"
     assert endpoint.ttl == 3600

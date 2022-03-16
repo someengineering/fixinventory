@@ -471,9 +471,9 @@ class DigitalOceanTeamCollector:
                 "is_public": "public",
                 "min_disk_size": "min_disk_size",
                 "image_type": "type",
-                "size_gigabytes": lambda image: int(math.ceil(
-                    image.get("size_gigabytes")
-                )),
+                "size_gigabytes": lambda image: int(
+                    math.ceil(image.get("size_gigabytes"))
+                ),
                 "description": "description",
                 "image_status": "status",
             },
@@ -716,9 +716,9 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "snapshot_size_gigabytes": lambda vol: int(math.ceil(
-                    vol.get("size_gigabytes")
-                )),
+                "snapshot_size_gigabytes": lambda vol: int(
+                    math.ceil(vol.get("size_gigabytes"))
+                ),
                 "resource_id": "resource_id",
                 "resource_type": "resource_type",
             },
