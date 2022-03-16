@@ -1069,6 +1069,28 @@ class BaseHealthCheck(BaseResource):
 
 
 @dataclass(eq=False)
+class BaseDomain(BaseResource):
+    kind: ClassVar[str] = "domain"
+
+    ttl: Optional[int] = None
+    zone_file: Optional[str] = None
+
+
+@dataclass(eq=False)
+class BaseDomainRecord(BaseResource):
+    kind: ClassVar[str] = "domain_record"
+
+    record_type: Optional[str] = None
+    record_name: Optional[str] = None
+    record_data: Optional[str] = None
+    record_priority: Optional[int] = None
+    record_port: Optional[int] = None
+    record_ttl: Optional[int] = None
+    record_weight: Optional[int] = None
+    record_flags: Optional[int] = None
+    record_tag: Optional[str] = None
+
+@dataclass(eq=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
 

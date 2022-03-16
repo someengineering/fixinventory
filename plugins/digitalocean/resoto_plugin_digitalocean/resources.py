@@ -19,6 +19,8 @@ from resotolib.baseresources import (
     BaseEndpoint,
     BaseCertificate,
     BaseKeyPair,
+    BaseDomain,
+    BaseDomainRecord,
 )
 from resotolib.graph import Graph
 
@@ -339,30 +341,17 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
 
 
 @dataclass(eq=False)
-class DigitalOceanDomain(DigitalOceanResource, BaseResource):
+class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
     """DigitalOcean domain"""
 
     kind = "digitalocean_domain"
 
-    ttl: Optional[int] = None
-    zone_file: Optional[str] = None
-
 
 @dataclass(eq=False)
-class DigitalOceanDomainRecord(DigitalOceanResource, BaseResource):
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
     """DigitalOcean domain record"""
 
     kind = "digitalocean_domain_record"
-
-    record_type: Optional[str] = None
-    record_name: Optional[str] = None
-    record_data: Optional[str] = None
-    record_priority: Optional[int] = None
-    record_port: Optional[int] = None
-    record_ttl: Optional[int] = None
-    record_weight: Optional[int] = None
-    record_flags: Optional[int] = None
-    record_tag: Optional[str] = None
 
 
 @dataclass(eq=False)
