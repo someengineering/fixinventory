@@ -1,13 +1,15 @@
+import asyncio
 import logging
 import platform
 import ssl
+import sys
 from argparse import Namespace
 from asyncio import Queue
+from contextlib import suppress
 from datetime import timedelta
 from ssl import SSLContext
 from typing import AsyncIterator, Optional, List
 
-import sys
 from aiohttp.web_app import Application
 from arango.database import StandardDatabase
 
@@ -16,8 +18,8 @@ from resotocore.analytics import CoreEvent, NoEventSender
 from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLI
-from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import aliases, all_commands
+from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import config_from_db, CoreConfig
@@ -188,12 +190,22 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
         await event_sender.stop()
 
     async def async_initializer() -> Application:
+        async def clean_all_tasks() -> None:
+            log.info("Clean up all running tasks.")
+            loop = asyncio.get_event_loop()
+            for task in asyncio.all_tasks():
+                with suppress(asyncio.CancelledError):
+                    if not task.done() or not task.cancelled():
+                        task.cancel()
+                    loop.run_until_complete(task)
+
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
             await on_start()
             log.info("Initialization done. Starting API.")
             yield
             log.info("Shutdown initiated. Stop all tasks.")
             await on_stop()
+            await clean_all_tasks()
 
         api.app.cleanup_ctx.append(on_start_stop)
         return api.app

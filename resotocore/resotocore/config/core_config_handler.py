@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from asyncio import Task
+from contextlib import suppress
 from functools import partial
 from typing import Optional, List, Callable
 
@@ -66,4 +67,5 @@ class CoreConfigHandler:
     async def stop(self) -> None:
         # wait for the spawned task to complete
         if self.config_updated_listener:
-            self.config_updated_listener.cancel()
+            with suppress(Exception):
+                self.config_updated_listener.cancel()

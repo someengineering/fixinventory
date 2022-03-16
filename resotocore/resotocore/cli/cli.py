@@ -5,6 +5,7 @@ import calendar
 import logging
 import os
 from asyncio import Task
+from contextlib import suppress
 from dataclasses import replace
 from datetime import timedelta
 from functools import reduce
@@ -208,7 +209,11 @@ class CLI:
 
         while not self.dependencies.forked_tasks.empty():
             task, _ = self.dependencies.forked_tasks.get_nowait()
-            task.cancel()
+            loop = asyncio.get_event_loop()
+            with suppress(asyncio.CancelledError):
+                if not task.done() or not task.cancelled():
+                    task.cancel()
+                loop.run_until_complete(task)
 
         await self.dependencies.stop()
 
