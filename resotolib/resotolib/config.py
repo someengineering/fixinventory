@@ -1,72 +1,73 @@
-from typing import ClassVar, Dict, Any
+import jsons
+import json
+import threading
+from urllib.parse import urlparse
+from resotolib.logging import log
+from resotolib.args import ArgumentParser
+from resotolib.core.config import get_config, set_config, ConfigNotFoundError
+from resotolib.core.events import CoreEvents
+from typing import Dict, Any
 
 
 class Config:
-    """
-    This class is used to store all the configuration variables.
-    """
+    _config: Dict[str, Any] = {}
+    _config_classes: Dict[str, object] = {}
 
-    __config: ClassVar[Dict[str, Any]] = {}
-
-    def __init__(self, name: str):
-        self.name = name
-
-    def __getitem__(self, key):
-        print("__getitem__")
-        return self.__config[key]
-
-    def __setitem__(self, key, value):
-        print("__setitem__")
-        self.__config[key] = value
-
-    def __delitem__(self, key):
-        print("__delitem__")
-        del self.__config[key]
-
-    def __iter__(self):
-        print("__iter__")
-        return iter(self.__config)
-
-    def __len__(self):
-        print("__len__")
-        return len(self.__config)
-
-    def __contains__(self, key):
-        print("__contains__")
-        return key in self.__config
-
-    def __str__(self):
-        print("__str__")
-        return str(self.__config)
-
-    def __repr__(self):
-        print("__repr__")
-        return repr(self.__config)
+    def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
+        self.config_added = threading.Event()
+        self.config_name = config_name
+        if resotocore_uri is None:
+            resotocore_uri = getattr(ArgumentParser.args, "resotocore_uri", None)
+        if resotocore_uri is None:
+            raise ValueError("resotocore_uri is required")
+        self.resotocore_uri = f"http://{urlparse(resotocore_uri).netloc}"
+        self.ce = CoreEvents(
+            f"ws://{urlparse(self.resotocore_uri).netloc}",
+            events={"config-updated"},
+            message_processor=self.on_config_event,
+        )
 
     def __getattr__(self, name):
-        print("__getattr__")
-        if name not in self.__config:
-            self.__config[name] = {}
-        return self.__config[name]
+        if name in self._config:
+            return self._config[name]
+        else:
+            raise ConfigNotFoundError(f"No such config {name}")
 
-    def __setattr__(self, name, value):
-        print("__setattr__")
-        self.__config[name] = value
+    def add_config(self, config: object) -> None:
+        if hasattr(config, "kind"):
+            self._config_classes[config.kind] = config
+            self.config_added.set()
+        else:
+            raise RuntimeError("Config must have a 'kind' attribute")
 
-    def __delattr__(self, name):
-        print("__delattr__")
-        del self.__config[name]
+    def load_config(self) -> None:
+        if not self.config_added.is_set():
+            raise RuntimeError("No config added")
+        try:
+            config = get_config(self.config_name, self.resotocore_uri)
+        except ConfigNotFoundError:
+            for config_id, config_data in self._config_classes.items():
+                self._config[config_id] = config_data()
+        else:
+            for config_id, config_data in config.items():
+                if config_id in self._config_classes:
+                    self._config[config_id] = jsons.loads(
+                        json.dumps(config_data), self._config_classes[config_id]
+                    )
+                else:
+                    log.error(f"Unknown config {config_id}")
+        self.save_config()
 
-    def __getstate__(self):
-        print("__getstate__")
-        return self.__config
+    def save_config(self) -> None:
+        config = jsons.dump(self._config, strip_attr="kind", strip_properties=True)
+        set_config(self.config_name, config, self.resotocore_uri)
 
-    def __setstate__(self, state):
-        print("__setstate__")
-        self.__config = state
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
+    def on_config_event(self, message: Dict[str, Any]) -> None:
+        if (
+            message.get("message_type") == "config-updated"
+            and message.get("data", {}).get("id") == self.config_name
+        ):
+            try:
+                self.load_config()
+            except Exception:
+                pass

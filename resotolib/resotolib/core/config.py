@@ -19,7 +19,7 @@ def default_args(
     return resotocore_uri, psk, headers
 
 
-class ConfigNotFoundError(Exception):
+class ConfigNotFoundError(AttributeError):
     pass
 
 

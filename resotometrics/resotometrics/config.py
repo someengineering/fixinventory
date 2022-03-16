@@ -10,7 +10,15 @@ except ImportError:
     from yaml import Loader
 
 
-def _load_default_metrics():
+@dataclass
+class Metric:
+    kind: ClassVar[str] = "metric"
+    help: str = field(metadata={"description": "Metric help text"})
+    search: str = field(metadata={"description": "Aggregation search to run"})
+    type: str = field(metadata={"description": "Type of metric"})
+
+
+def _load_default_metrics() -> Dict[str, Metric]:
     default_metrics = {}
     local_path = os.path.abspath(os.path.dirname(__file__))
     default_metrics_file = f"{local_path}/default_metrics.yaml"
@@ -20,15 +28,10 @@ def _load_default_metrics():
         )
     with open(default_metrics_file, "r") as f:
         default_metrics = load(f, Loader=Loader)
-    return default_metrics
-
-
-@dataclass
-class Metric:
-    kind: ClassVar[str] = "metric"
-    help: str = field(metadata={"description": "Metric help text"})
-    search: str = field(metadata={"description": "Aggregation search to run"})
-    type: str = field(metadata={"description": "Type of metric"})
+    return {
+        metric_name: Metric(**metric_data)
+        for metric_name, metric_data in default_metrics.items()
+    }
 
 
 @dataclass
