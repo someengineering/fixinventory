@@ -1,4 +1,5 @@
 import requests
+import json
 from typing import Dict, Tuple, List
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
@@ -73,3 +74,20 @@ def delete_config(config_id: str, resotocore_uri: str = None, psk: str = None) -
     raise RuntimeError(
         f"Error deleting config {config_id}: {r.content.decode('utf-8')}"
     )
+
+
+def update_config_model(
+    model: List, resotocore_uri: str = None, psk: str = None
+) -> bool:
+    resotocore_uri, psk, headers = default_args(resotocore_uri, psk)
+    headers = {
+        "Content-Type": "application/json",
+    }
+    model_uri = f"{resotocore_uri}/configs/model"
+    model_json = json.dumps(model, indent=4)
+
+    log.debug(f"Updating config model")
+    r = requests.patch(model_uri, data=model_json, headers=headers)
+    if r.status_code != 200:
+        log.error(r.content)
+        raise RuntimeError(f"Failed to update model: {r.content}")
