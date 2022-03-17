@@ -124,7 +124,7 @@ class Config(metaclass=MetaConfig):
                 target_type = _config.types[config_id][config_attr]
                 config_value = convert(config_value, target_type)
                 log.debug(
-                    f"Overriding attr {config_attr} of {config_id} with {config_value} of type {target_type}"
+                    f"Overriding attr {config_attr} of {config_id} with value of type {target_type}"
                 )
                 setattr(_config.data[config_id], config_attr, config_value)
 
