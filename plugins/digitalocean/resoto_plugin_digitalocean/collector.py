@@ -1,6 +1,6 @@
 import math
 from pprint import pformat
-from typing import Tuple, Type, List, Dict, Union, Callable, Any
+from typing import Tuple, Type, List, Dict, Union, Callable, Any, Optional
 
 from prometheus_client import Summary
 
@@ -20,6 +20,19 @@ from .resources import (
     DigitalOceanSnapshot,
     DigitalOceanLoadBalancer,
     DigitalOceanFloatingIP,
+    DigitalOceanImage,
+    DigitalOceanSpace,
+    DigitalOceanApp,
+    DigitalOceanCdnEndpoint,
+    DigitalOceanCertificate,
+    DigitalOceanContainerRegistry,
+    DigitalOceanContainerRegistryRepository,
+    DigitalOceanContainerRegistryRepositoryTag,
+    DigitalOceanSSHKey,
+    DigitalOceanTag,
+    DigitalOceanDomain,
+    DigitalOceanDomainRecord,
+    DigitalOceanFirewall,
 )
 from .utils import (
     iso2datetime,
@@ -34,7 +47,22 @@ from .utils import (
     loadbalancer_id,
     floatingip_id,
     database_id,
+    image_id,
+    space_id,
+    app_id,
+    cdn_endpoint_id,
+    certificate_id,
+    container_registry_id,
+    container_registry_repository_id,
+    container_registry_repository_tag_id,
+    ssh_key_id,
+    tag_id,
+    domain_id,
+    domain_record_id,
+    firewall_id,
 )
+
+Json = Dict[str, Any]
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -82,6 +110,42 @@ metrics_collect_floating_ips = Summary(
     "resoto_plugin_digitalocean_collect_floating_ips_seconds",
     "Time it took the collect_floating_ips() method",
 )
+metrics_collect_apps = Summary(
+    "resoto_plugin_digitalocean_collect_apps_seconds",
+    "Time it took the collect_apps() method",
+)
+metrics_collect_cdn_endpoints = Summary(
+    "resoto_plugin_digitalocean_collect_cdn_endpoints_seconds",
+    "Time it took the collect_cdn_endpoints() method",
+)
+metrics_collect_certificates = Summary(
+    "resoto_plugin_digitalocean_collect_certificates_seconds",
+    "Time it took the collect_certificates() method",
+)
+metrics_collect_container_registry = Summary(
+    "resoto_plugin_digitalocean_collect_container_registry_seconds",
+    "Time it took the collect_container_registry() method",
+)
+metrics_collect_ssh_keys = Summary(
+    "resoto_plugin_digitalocean_collect_ssh_keys_seconds",
+    "Time it took the collect_ssh_keys() method",
+)
+metrics_collect_tags = Summary(
+    "resoto_plugin_digitalocean_collect_tags_seconds",
+    "Time it took the collect_tags() method",
+)
+metrics_collect_domains = Summary(
+    "resoto_plugin_digitalocean_collect_domains_seconds",
+    "Time it took the collect_domains() method",
+)
+metrics_collect_domains_records = Summary(
+    "resoto_plugin_digitalocean_collect_domains_records_seconds",
+    "Time it took the collect_domains_records() method",
+)
+metrics_collect_firewalls = Summary(
+    "resoto_plugin_digitalocean_collect_firewalls_seconds",
+    "Time it took the collect_firewalls() method",
+)
 
 
 class DigitalOceanTeamCollector:
@@ -110,6 +174,7 @@ class DigitalOceanTeamCollector:
         # resources that provide a aggregatedList() function returning all resources
         # for all zones/regions.
         self.global_collectors: List[Tuple[str, Callable]] = [
+            ("tags", self.collect_tags),
             ("vpcs", self.collect_vpcs),
             ("instances", self.collect_instances),
             ("volumes", self.collect_volumes),
@@ -119,8 +184,21 @@ class DigitalOceanTeamCollector:
             ("load_balancers", self.collect_load_balancers),
             ("floating_ips", self.collect_floating_ips),
             ("project", self.collect_projects),
+            ("apps", self.collect_apps),
+            ("cdn_endpoints", self.collect_cdn_endpoints),
+            ("certificates", self.collect_certificates),
+            ("container_registry", self.collect_container_registry),
+            ("ssh_keys", self.collect_ssh_keys),
+            ("domains", self.collect_domains),
+            ("firewalls", self.collect_firewalls),
         ]
+
+        self.region_collectors = [
+            ("spaces", self.collect_spaces),
+        ]
+
         self.all_collectors = dict(self.mandatory_collectors)
+        self.all_collectors.update(self.region_collectors)
         self.all_collectors.update(self.global_collectors)
         self.collector_set = set(self.all_collectors.keys())
 
@@ -145,6 +223,19 @@ class DigitalOceanTeamCollector:
             if collector_name in collectors:
                 log.info(f"Collecting {collector_name} in {self.team.rtdname}")
                 collector()
+
+        regions = [r for r in self.graph.nodes if isinstance(r, DigitalOceanRegion)]
+
+        for region in regions:
+            for collector_name, collector in self.region_collectors:
+                if collector_name in collectors:
+                    log.info(
+                        (
+                            f"Collecting {collector_name} in {region.rtdname}"
+                            f" {self.team.rtdname}"
+                        )
+                    )
+                    collector(region=region)
 
         for collector_name, collector in self.global_collectors:
             if collector_name in collectors:
@@ -354,24 +445,81 @@ class DigitalOceanTeamCollector:
     @metrics_collect_intances.time()
     def collect_instances(self) -> None:
         instances = self.client.list_droplets()
+
+        def get_image(droplet: Json) -> Json:
+            image = droplet["image"]
+            image["region"] = droplet["region"]["slug"]
+            return image
+
+        def remove_duplicates(images):
+            seen_ids = set()
+            unique_images = []
+            for image in images:
+                if image["id"] not in seen_ids:
+                    unique_images.append(image)
+                    seen_ids.add(image["id"])
+            return unique_images
+
+        images = [get_image(instance) for instance in instances]
+        images = remove_duplicates(images)
+
+        self.collect_resource(
+            images,
+            resource_class=DigitalOceanImage,
+            attr_map={
+                "id": lambda i: str(i["id"]),
+                "urn": lambda i: image_id(i["id"]),
+                "distribution": "distribution",
+                "image_slug": "slug",
+                "is_public": "public",
+                "min_disk_size": "min_disk_size",
+                "image_type": "type",
+                "size_gigabytes": lambda image: int(
+                    math.ceil(image.get("size_gigabytes"))
+                ),
+                "description": "description",
+                "image_status": "status",
+            },
+            search_map={
+                "_region": ["urn", lambda image: region_id(image["region"])],
+                "__tags": [
+                    "urn",
+                    lambda image: list(map(lambda tag: tag_id(tag), image["tags"])),
+                ],
+            },
+            predecessors={
+                EdgeType.default: ["__tags"],
+            },
+        )
         self.collect_resource(
             instances,
             resource_class=DigitalOceanDroplet,
             attr_map={
-                "id": lambda d: droplet_id(d["id"]),
+                "id": lambda i: str(i["id"]),
+                "urn": lambda d: droplet_id(d["id"]),
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
-                "backup_ids": "backup_ids",
-                "locked": "locked",
-                "features": "features",
-                "image": lambda d: d["image"]["slug"],
+                "droplet_backup_ids": lambda d: list(map(str, d["backup_ids"])),
+                "is_locked": "locked",
+                "droplet_features": "features",
+                "droplet_image": lambda d: d["image"]["slug"],
             },
             search_map={
-                "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
-                "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
+                "_region": [
+                    "urn",
+                    lambda droplet: region_id(droplet["region"]["slug"]),
+                ],
+                "__vpcs": ["urn", lambda droplet: vpc_id(droplet["vpc_uuid"])],
+                "__images": ["urn", lambda droplet: image_id(droplet["image"]["id"])],
+                "__tags": [
+                    "urn",
+                    lambda d: list(map(lambda tag: tag_id(tag), d["tags"])),
+                ],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={
+                EdgeType.default: ["__vpcs", "__images", "__tags"],
+            },
         )
 
     @metrics_collect_regions.time()
@@ -381,12 +529,13 @@ class DigitalOceanTeamCollector:
             regions,
             resource_class=DigitalOceanRegion,
             attr_map={
-                "id": lambda r: region_id(r["slug"]),
+                "id": "slug",
+                "urn": lambda r: region_id(r["slug"]),
                 "name": "name",
-                "slug": "slug",
-                "features": "features",
-                "available": "available",
-                "sizes": "sizes",
+                "do_region_slug": "slug",
+                "do_region_features": "features",
+                "is_available": "available",
+                "do_region_droplet_sizes": "sizes",
             },
             search_map={},
         )
@@ -403,7 +552,8 @@ class DigitalOceanTeamCollector:
             volumes,
             resource_class=DigitalOceanVolume,
             attr_map={
-                "id": lambda r: volume_id(r["id"]),
+                "id": "id",
+                "urn": lambda r: volume_id(r["id"]),
                 "volume_size": "size_gigabytes",
                 "description": "description",
                 "filesystem_type": "filesystem_type",
@@ -412,13 +562,17 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "__users": [
-                    "id",
+                    "urn",
                     lambda vol: list(
                         map(lambda id: droplet_id(id), vol["droplet_ids"])
                     ),
                 ],
+                "__tags": [
+                    "urn",
+                    lambda v: list(map(lambda tag: tag_id(tag), v["tags"])),
+                ],
             },
-            predecessors={EdgeType.default: ["__users"]},
+            predecessors={EdgeType.default: ["__users", "__tags"]},
         )
 
     @metrics_collect_databases.time()
@@ -452,7 +606,9 @@ class DigitalOceanTeamCollector:
             databases,
             resource_class=DigitalOceanDatabase,
             attr_map={
-                "id": lambda r: database_id(r["id"]),
+                "id": "id",
+                "urn": lambda db: database_id(db["id"]),
+                "name": lambda db: database_id(db["name"]),
                 "db_type": "engine",
                 "db_status": "status",
                 "db_version": "version",
@@ -461,10 +617,14 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda db: dbtype_to_size.get(db.get("size", ""), 0),
             },
             search_map={
-                "_region": ["id", lambda db: region_id(db["region"])],
-                "__vpcs": ["id", lambda db: vpc_id(db["private_network_uuid"])],
+                "_region": ["urn", lambda db: region_id(db["region"])],
+                "__vpcs": ["urn", lambda db: vpc_id(db["private_network_uuid"])],
+                "__tags": [
+                    "urn",
+                    lambda db: list(map(lambda tag: tag_id(tag), db["tags"])),
+                ],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={EdgeType.default: ["__vpcs", "__tags"]},
         )
 
     @metrics_collect_vpcs.time()
@@ -474,13 +634,14 @@ class DigitalOceanTeamCollector:
             vpcs,
             resource_class=DigitalOceanNetwork,
             attr_map={
-                "id": "urn",
+                "id": "id",
+                "urn": "urn",
                 "ip_range": "ip_range",
                 "description": "description",
-                "default": "default",
+                "is_default": "default",
             },
             search_map={
-                "_region": ["id", lambda vpc: region_id(vpc["region"])],
+                "_region": ["urn", lambda vpc: region_id(vpc["region"])],
             },
         )
 
@@ -502,7 +663,8 @@ class DigitalOceanTeamCollector:
             projects,
             resource_class=DigitalOceanProject,
             attr_map={
-                "id": lambda p: project_id(p["id"]),
+                "id": "id",
+                "urn": lambda p: project_id(p["id"]),
                 "owner_uuid": "owner_uuid",
                 "owner_id": lambda p: str(p["owner_id"]),
                 "description": "description",
@@ -511,7 +673,7 @@ class DigitalOceanTeamCollector:
                 "is_default": "is_default",
             },
             search_map={
-                "__resources": ["id", lambda p: p["resource_ids"]],
+                "__resources": ["urn", lambda p: p["resource_ids"]],
             },
             successors={EdgeType.default: ["__resources"]},
         )
@@ -523,29 +685,30 @@ class DigitalOceanTeamCollector:
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
             attr_map={
-                "id": lambda c: kubernetes_id(c["id"]),
-                "version": "version",
-                "cluster_subnet": "cluster_subnet",
-                "service_subnet": "service_subnet",
-                "ipv4": "ipv4",
+                "id": "id",
+                "urn": lambda c: kubernetes_id(c["id"]),
+                "k8s_version": "version",
+                "k8s_cluster_subnet": "cluster_subnet",
+                "k8s_service_subnet": "service_subnet",
+                "ipv4_address": "ipv4",
                 "endpoint": "endpoint",
-                "auto_upgrade": "auto_upgrade",
-                "status": lambda c: c["status"]["state"],
-                "surge_upgrade": "surge_upgrade",
+                "auto_upgrade_enabled": "auto_upgrade",
+                "cluster_status": lambda c: c["status"]["state"],
+                "surge_upgrade_enabled": "surge_upgrade",
                 "registry_enabled": "registry_enabled",
-                "ha": "ha",
+                "ha_enabled": "ha",
             },
             search_map={
-                "_region": ["id", lambda c: region_id(c["region"])],
+                "_region": ["urn", lambda c: region_id(c["region"])],
                 "__nodes": [
-                    "id",
+                    "urn",
                     lambda cluster: [
                         droplet_id(node["droplet_id"])
                         for node_pool in cluster["node_pools"]
                         for node in node_pool["nodes"]
                     ],
                 ],
-                "__vpcs": ["id", lambda c: vpc_id(c["vpc_uuid"])],
+                "__vpcs": ["urn", lambda c: vpc_id(c["vpc_uuid"])],
             },
             successors={EdgeType.default: ["__nodes"]},
             predecessors={EdgeType.default: ["__vpcs"]},
@@ -564,44 +727,63 @@ class DigitalOceanTeamCollector:
             snapshots,
             resource_class=DigitalOceanSnapshot,
             attr_map={
-                "id": lambda s: snapshot_id(s["id"]),
+                "id": lambda s: str(s["id"]),
+                "urn": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
-                "size_gigabytes": lambda vol: math.ceil(vol.get("size_gigabytes")),
+                "snapshot_size_gigabytes": lambda vol: int(
+                    math.ceil(vol.get("size_gigabytes"))
+                ),
                 "resource_id": "resource_id",
                 "resource_type": "resource_type",
             },
             search_map={
                 "_region": [
-                    "id",
+                    "urn",
                     lambda s: [region_id(region) for region in s["regions"]],
                 ],
-                "__resource": ["id", lambda s: get_resource_id(s)],
+                "__resource": ["urn", lambda s: get_resource_id(s)],
+                "__tags": [
+                    "urn",
+                    lambda s: list(map(lambda tag: tag_id(tag), s["tags"])),
+                ],
             },
-            predecessors={EdgeType.default: ["__resource"]},
+            predecessors={EdgeType.default: ["__resource", "__tags"]},
         )
 
     @metrics_collect_load_balancers.time()
     def collect_load_balancers(self) -> None:
         loadbalancers = self.client.list_load_balancers()
+
+        def get_nr_nodes(lb):
+            size_to_nr_nodes = {
+                "lb-small": 1,
+                "lb-medium": 3,
+                "lb-large": 3,
+            }
+            if lb["size_unit"]:
+                return lb["size_unit"]
+            else:
+                return size_to_nr_nodes.get(lb["size"], 1)
+
         self.collect_resource(
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
             attr_map={
-                "id": lambda lb: loadbalancer_id(lb["id"]),
-                "ip": "ip",
-                "size": "size",
-                "size_unit": "size_unit",
-                "status": "status",
+                "id": "id",
+                "urn": lambda lb: loadbalancer_id(lb["id"]),
+                "public_ip_address": "ip",
+                "nr_nodes": get_nr_nodes,
+                "loadbalancer_status": "status",
                 "redirect_http_to_https": "redirect_http_to_https",
                 "enable_proxy_protocol": "enable_proxy_protocol",
                 "enable_backend_keepalive": "enable_backend_keepalive",
                 "disable_lets_encrypt_dns_records": "disable_lets_encrypt_dns_records",
             },
             search_map={
-                "_region": ["id", lambda lb: region_id(lb["region"]["slug"])],
-                "__vpcs": ["id", lambda lb: vpc_id(lb["vpc_uuid"])],
+                "_region": ["urn", lambda lb: region_id(lb["region"]["slug"])],
+                "__vpcs": ["urn", lambda lb: vpc_id(lb["vpc_uuid"])],
                 "__droplets": [
-                    "id",
+                    "urn",
                     lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"])),
                 ],
             },
@@ -616,17 +798,281 @@ class DigitalOceanTeamCollector:
             floating_ips,
             resource_class=DigitalOceanFloatingIP,
             attr_map={
-                "id": lambda ip: floatingip_id(ip["ip"]),
+                "id": "ip",
+                "urn": lambda ip: floatingip_id(ip["ip"]),
                 "ip_address": "ip",
                 "ip_address_family": lambda ip: "ipv4",
-                "locked": "locked",
+                "is_locked": "locked",
             },
             search_map={
-                "_region": ["id", lambda ip: region_id(ip["region"]["slug"])],
+                "_region": ["urn", lambda ip: region_id(ip["region"]["slug"])],
                 "__droplet": [
-                    "id",
+                    "urn",
                     lambda ip: droplet_id(ip.get("droplet", {}).get("id", "")),
                 ],
             },
             predecessors={EdgeType.default: ["__droplet"]},
+        )
+
+    @metrics_collect_spaces.time()
+    def collect_spaces(self, region: DigitalOceanRegion) -> None:
+        spaces = self.client.list_spaces(region.do_region_slug)
+        self.collect_resource(
+            spaces,
+            resource_class=DigitalOceanSpace,
+            attr_map={
+                "id": "Name",
+                "urn": lambda space: space_id(space["Name"]),
+                "name": "Name",
+                "ctime": "CreationDate",
+            },
+            search_map={
+                "_region": ["urn", lambda space: region_id(region.do_region_slug)],
+            },
+        )
+
+    @metrics_collect_apps.time()
+    def collect_apps(self) -> None:
+        apps = self.client.list_apps()
+
+        def extract_region(app: Dict) -> Optional[str]:
+            region_slug = next(
+                iter(app.get("region", {}).get("data_centers", [])), None
+            )
+            if region_slug is None:
+                return None
+            return region_id(region_slug)
+
+        def extract_databases(app: Dict) -> List[str]:
+            databases = app.get("spec", {}).get("databases", [])
+            names = [database_id(database["name"]) for database in databases]
+            return names
+
+        self.collect_resource(
+            apps,
+            resource_class=DigitalOceanApp,
+            attr_map={
+                "id": "id",
+                "urn": lambda app: app_id(app["id"]),
+                "tier_slug": "tier_slug",
+                "default_ingress": "default_ingress",
+                "live_url": "live_url",
+                "live_url_base": "live_url_base",
+                "live_domain": "live_domain",
+            },
+            search_map={
+                "_region": ["urn", extract_region],
+                "__databases": ["name", extract_databases],
+            },
+            predecessors={EdgeType.default: ["__databases"]},
+        )
+
+    @metrics_collect_cdn_endpoints.time()
+    def collect_cdn_endpoints(self) -> None:
+        endpoints = self.client.list_cdn_endpoints()
+        self.collect_resource(
+            endpoints,
+            resource_class=DigitalOceanCdnEndpoint,
+            attr_map={
+                "id": "id",
+                "urn": lambda endpoint: cdn_endpoint_id(endpoint["id"]),
+                "origin": "origin",
+                "endpoint": "endpoint",
+                "certificate_id": "certificate_id",
+                "custom_domain": "custom_domain",
+                "ttl": "ttl",
+            },
+        )
+
+    @metrics_collect_certificates.time()
+    def collect_certificates(self) -> None:
+        certificates = self.client.list_certificates()
+        self.collect_resource(
+            certificates,
+            resource_class=DigitalOceanCertificate,
+            attr_map={
+                "id": "id",
+                "urn": lambda c: certificate_id(c["id"]),
+                "expires": lambda c: iso2datetime(c.get("not_after")),
+                "sha1_fingerprint": "sha1_fingerprint",
+                "dns_names": "dns_names",
+                "certificate_state": "state",
+                "certificate_type": "type",
+            },
+        )
+
+    @metrics_collect_container_registry.time()
+    def collect_container_registry(self) -> None:
+        registries = self.client.get_registry_info()
+        for registry in registries:
+            registry["updated_at"] = registry["storage_usage_updated_at"]
+            self.collect_resource(
+                [registry],
+                resource_class=DigitalOceanContainerRegistry,
+                attr_map={
+                    "id": "name",
+                    "urn": lambda r: container_registry_id(r["name"]),
+                    "storage_usage_bytes": "storage_usage_bytes",
+                    "is_read_only": "read_only",
+                },
+                search_map={
+                    "_region": ["urn", lambda registry: region_id(registry["region"])],
+                },
+            )
+            repositories = self.client.list_registry_repositories(registry["name"])
+            self.collect_resource(
+                repositories,
+                resource_class=DigitalOceanContainerRegistryRepository,
+                attr_map={
+                    "id": "name",
+                    "urn": lambda r: container_registry_repository_id(
+                        r["registry_name"], r["name"]
+                    ),
+                    "name": "name",
+                    "tag_count": "tag_count",
+                    "manifest_count": "manifest_count",
+                },
+                search_map={
+                    "__registry": [
+                        "urn",
+                        lambda r: container_registry_id(r["registry_name"]),
+                    ],
+                },
+                predecessors={EdgeType.default: ["__registry"]},
+            )
+
+            tags = [
+                tag
+                for repository in repositories
+                for tag in self.client.list_registry_repository_tags(
+                    registry["name"], repository["name"]
+                )
+            ]
+
+            self.collect_resource(
+                tags,
+                resource_class=DigitalOceanContainerRegistryRepositoryTag,
+                attr_map={
+                    "id": "tag",
+                    "urn": lambda t: container_registry_repository_tag_id(
+                        t["registry_name"], t["repository"], t["tag"]
+                    ),
+                    "name": "tag",
+                    "manifest_digest": "manifest_digest",
+                    "compressed_size_bytes": "compressed_size_bytes",
+                    "size_bytes": "size_bytes",
+                },
+                search_map={
+                    "__repository": [
+                        "urn",
+                        lambda t: container_registry_repository_id(
+                            t["registry_name"], t["repository"]
+                        ),
+                    ],
+                    "__registry": [
+                        "urn",
+                        lambda t: container_registry_id(t["registry_name"]),
+                    ],
+                },
+                predecessors={EdgeType.default: ["__repository", "__registry"]},
+            )
+
+    @metrics_collect_ssh_keys.time()
+    def collect_ssh_keys(self) -> None:
+        ssh_keys = self.client.list_ssh_keys()
+        self.collect_resource(
+            ssh_keys,
+            resource_class=DigitalOceanSSHKey,
+            attr_map={
+                "id": lambda k: str(k["id"]),
+                "urn": lambda k: ssh_key_id(k["id"]),
+                "public_key": "public_key",
+                "fingerprint": "fingerprint",
+            },
+        )
+
+    @metrics_collect_tags.time()
+    def collect_tags(self) -> None:
+        tags = self.client.list_tags()
+        self.collect_resource(
+            tags,
+            resource_class=DigitalOceanTag,
+            attr_map={
+                "id": "name",
+                "urn": lambda t: tag_id(t["name"]),
+            },
+        )
+
+    @metrics_collect_domains.time()
+    def collect_domains(self) -> None:
+        domains = self.client.list_domains()
+        self.collect_resource(
+            domains,
+            resource_class=DigitalOceanDomain,
+            attr_map={
+                "id": "name",
+                "urn": lambda d: domain_id(d["name"]),
+                "ttl": "ttl",
+                "zone_file": "zone_file",
+            },
+        )
+
+        def update_record(record, domain):
+            record["domain_name"] = domain["name"]
+            return record
+
+        domain_records = [
+            update_record(record, domain)
+            for domain in domains
+            for record in self.client.list_domain_records(domain["name"])
+        ]
+        self.collect_resource(
+            domain_records,
+            resource_class=DigitalOceanDomainRecord,
+            attr_map={
+                "id": lambda r: str(r["id"]),
+                "urn": lambda r: domain_record_id(r["id"]),
+                "record_type": "type",
+                "record_name": "name",
+                "record_data": "data",
+                "record_priority": "priority",
+                "record_port": "port",
+                "record_ttl": "ttl",
+                "record_weight": "weight",
+                "record_flags": "flags",
+                "record_tag": "tag",
+            },
+            search_map={
+                "__domain": ["urn", lambda r: domain_id(r["domain_name"])],
+            },
+            predecessors={EdgeType.default: ["__domain"]},
+        )
+
+    @metrics_collect_firewalls.time()
+    def collect_firewalls(self) -> None:
+        firewalls = self.client.list_firewalls()
+        self.collect_resource(
+            firewalls,
+            resource_class=DigitalOceanFirewall,
+            attr_map={
+                "id": "id",
+                "urn": lambda f: firewall_id(f["id"]),
+                "firewall_status": "status",
+            },
+            search_map={
+                "__droplets": [
+                    "urn",
+                    lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"])),
+                ],
+                "__tags": [
+                    "urn",
+                    lambda f: list(map(lambda id: tag_id(id), f["tags"])),
+                ],
+            },
+            predecessors={
+                EdgeType.default: ["__tags"],
+            },
+            successors={
+                EdgeType.default: ["__droplets"],
+            },
         )

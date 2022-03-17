@@ -1,4 +1,4 @@
-from dataclasses import InitVar, dataclass, field
+from dataclasses import dataclass
 from typing import ClassVar, Dict, List, Optional
 
 import resotolib.logging
@@ -15,6 +15,12 @@ from resotolib.baseresources import (
     BaseVolume,
     InstanceStatus,
     VolumeStatus,
+    BaseBucket,
+    BaseEndpoint,
+    BaseCertificate,
+    BaseKeyPair,
+    BaseDomain,
+    BaseDomainRecord,
 )
 from resotolib.graph import Graph
 
@@ -30,6 +36,8 @@ class DigitalOceanResource(BaseResource):
     """
 
     kind: ClassVar[str] = "digitalocean_resource"
+
+    urn: str = ""
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
@@ -55,9 +63,6 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
 
     kind: ClassVar[str] = "digitalocean_team"
 
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented  # DO does not have a team API yet
-
 
 @dataclass(eq=False)
 class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
@@ -65,30 +70,23 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
 
-    slug: str = field(default="")
-    features: List[str] = field(default_factory=list)
-    available: bool = field(default=True)
-    sizes: List[str] = field(default_factory=list)
-
-    def delete(self, graph: Graph) -> bool:
-        """Regions can usually not be deleted so we return NotImplemented"""
-        return NotImplemented
+    do_region_slug: Optional[str] = None
+    do_region_features: Optional[List[str]] = None
+    is_available: Optional[bool] = None
+    do_region_droplet_sizes: Optional[List[str]] = None
 
 
 @dataclass(eq=False)
-class DigitalOceanProject(DigitalOceanResource, BaseAccount):
+class DigitalOceanProject(DigitalOceanResource, BaseResource):
     """DigitalOcean project"""
 
     kind: ClassVar[str] = "digitalocean_project"
-    owner_uuid: str = field(default="")
-    owner_id: str = field(default="")
-    description: str = field(default="")
-    purpose: str = field(default="")
-    environment: str = field(default="")
-    is_default: bool = field(default=False)
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    owner_uuid: Optional[str] = None
+    owner_id: Optional[str] = None
+    description: Optional[str] = None
+    purpose: Optional[str] = None
+    environment: Optional[str] = None
+    is_default: Optional[bool] = None
 
 
 @dataclass(eq=False)
@@ -107,10 +105,10 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
         "off": InstanceStatus.TERMINATED,
         "archive": InstanceStatus.TERMINATED,
     }
-    backup_ids: List[str] = field(default_factory=list)
-    locked: bool = field(default=False)
-    features: List[str] = field(default_factory=list)
-    image: str = field(default="")
+    droplet_backup_ids: Optional[List[str]] = None
+    is_locked: Optional[bool] = None
+    droplet_features: Optional[List[str]] = None
+    droplet_image: Optional[str] = None
 
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
@@ -139,19 +137,16 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
 
-    version: str = field(default="")
-    cluster_subnet: str = field(default="")
-    service_subnet: str = field(default="")
-    ipv4: str = field(default="")
-    endpoint: str = field(default="")
-    auto_upgrade: bool = field(default=False)
-    status: str = field(default="")
-    surge_upgrade: bool = field(default=False)
-    registry_enabled: bool = field(default=False)
-    ha: bool = field(default=False)
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    k8s_version: Optional[str] = None
+    k8s_cluster_subnet: Optional[str] = None
+    k8s_service_subnet: Optional[str] = None
+    ipv4_address: Optional[str] = None
+    endpoint: Optional[str] = None
+    auto_upgrade_enabled: Optional[bool] = None
+    cluster_status: Optional[str] = None
+    surge_upgrade_enabled: Optional[bool] = None
+    registry_enabled: Optional[bool] = None
+    ha_enabled: Optional[bool] = None
 
 
 @dataclass(eq=False)
@@ -168,9 +163,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
         "busy": VolumeStatus.BUSY,
     }
 
-    description: str = field(default="")
-    filesystem_type: str = field(default="")
-    filesystem_label: str = field(default="")
+    description: Optional[str] = None
+    filesystem_type: Optional[str] = None
+    filesystem_label: Optional[str] = None
 
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
@@ -195,23 +190,20 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
-    ip_range: str = field(default="")
-    description: str = field(default="")
-    default: bool = field(default=False)
+    ip_range: Optional[str] = None
+    description: Optional[str] = None
+    is_default: Optional[bool] = None
 
 
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
-    """DigitalOcean image"""
+    """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
 
-    size_gigabytes: float = field(default=0.0)
-    resource_id: str = field(default="")
-    resource_type: str = field(default="")
-
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    snapshot_size_gigabytes: Optional[int] = None
+    resource_id: Optional[str] = None
+    resource_type: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -220,14 +212,12 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
 
-    ip: str = field(default="")
-    size_unit: int = field(default=1)
-    size: str = field(default="")
-    status: str = field(default="")
-    redirect_http_to_https: bool = field(default=False)
-    enable_proxy_protocol: bool = field(default=False)
-    enable_backend_keepalive: bool = field(default=False)
-    disable_lets_encrypt_dns_records: bool = field(default=False)
+    nr_nodes: Optional[int] = None
+    loadbalancer_status: Optional[str] = None
+    redirect_http_to_https: Optional[bool] = None
+    enable_proxy_protocol: Optional[bool] = None
+    enable_backend_keepalive: Optional[bool] = None
+    disable_lets_encrypt_dns_records: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -239,31 +229,136 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
 
-    locked: bool = field(default=False)
+    is_locked: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
 
 
 @dataclass(eq=False)
-class DigitalOceanCustomResource(DigitalOceanResource, BaseResource):
-    """An digitalocean custom resource that only inherits the collectors
-    DigitalOceanResource class as well as the BaseResource base class.
+class DigitalOceanImage(DigitalOceanResource, BaseResource):
+    """DigitalOcean image"""
 
-    This is mainly an digitalocean of how to use typed Python dataclasses
-    from which the resoto data model is being generated.
-    """
+    kind: ClassVar[str] = "digitalocean_image"
 
-    kind: ClassVar[str] = "digitalocean_custom_resource"
+    distribution: Optional[str] = None
+    image_slug: Optional[str] = None
+    is_public: Optional[bool] = None
+    min_disk_size: Optional[int] = None
+    image_type: Optional[str] = None
+    size_gigabytes: Optional[int] = None
+    description: Optional[str] = None
+    image_status: Optional[str] = None
 
-    custom_string_attribute: str = ""
-    custom_int_attribute: int = 0
-    custom_optional_float_attribute: Optional[float] = None
-    custom_dict_attribute: Dict[str, str] = field(default_factory=dict)
-    custom_list_attribute: List[str] = field(default_factory=list)
-    init_only_attribute: InitVar[Optional[str]] = None
 
-    def __post_init__(self, init_only_attribute: str) -> None:
-        super().__post_init__()
-        if init_only_attribute is not None:
-            self.some_other_var = init_only_attribute
+@dataclass(eq=False)
+class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
+    """DigitalOcean space"""
+
+    kind: ClassVar[str] = "digitalocean_space"
+
+
+@dataclass(eq=False)
+class DigitalOceanApp(DigitalOceanResource, BaseResource):
+    """DigitalOcean app"""
+
+    kind: ClassVar[str] = "digitalocean_app"
+
+    tier_slug: Optional[str] = None
+    default_ingress: Optional[str] = None
+    live_url: Optional[str] = None
+    live_url_base: Optional[str] = None
+    live_domain: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
+    """DigitalOcean CDN endpoint"""
+
+    kind = "digitalocean_cdn_endpoint"
+
+    origin: Optional[str] = None
+    endpoint: Optional[str] = None
+    certificate_id: Optional[str] = None
+    custom_domain: Optional[str] = None
+    ttl: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
+    """DigitalOcean certificate"""
+
+    kind = "digitalocean_certificate"
+
+    certificate_state: Optional[str] = None
+    certificate_type: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry"""
+
+    kind = "digitalocean_container_registry"
+
+    storage_usage_bytes: Optional[int] = None
+    is_read_only: Optional[bool] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistryRepository(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry repository"""
+
+    kind = "digitalocean_container_registry_repository"
+
+    tag_count: Optional[int] = None
+    manifest_count: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResource):
+    """DigitalOcean container registry repository tag"""
+
+    kind = "digitalocean_container_registry_repository_tag"
+
+    manifest_digest: Optional[str] = None
+    compressed_size_bytes: Optional[int] = None
+    size_bytes: Optional[int] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
+    """DigitalOcean ssh key"""
+
+    kind = "digitalocean_ssh_key"
+
+    public_key: Optional[str] = None
+
+
+@dataclass(eq=False)
+class DigitalOceanTag(DigitalOceanResource, BaseResource):
+    """DigitalOcean tag"""
+
+    kind = "digitalocean_tag"
+
+
+@dataclass(eq=False)
+class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
+    """DigitalOcean domain"""
+
+    kind = "digitalocean_domain"
+
+
+@dataclass(eq=False)
+class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
+    """DigitalOcean domain record"""
+
+    kind = "digitalocean_domain_record"
+
+
+@dataclass(eq=False)
+class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
+    """DigitalOcean firewall"""
+
+    kind = "digitalocean_firewall"
+
+    firewall_status: Optional[str] = None

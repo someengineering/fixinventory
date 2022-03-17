@@ -11,15 +11,15 @@ def read(fname):
 
 setup(
     name="resoto-plugin-digitalocean",
-    version="2.0.0a17",
+    version="2.0.0a18",
     description="Resoto DigitalOcean Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
     long_description=read("README.md"),
     entry_points={
-        # "resoto.plugins": [
-        #     "digitalocean_collector = resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
-        # ]
+        "resoto.plugins": [
+            "digitalocean_collector = resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
+        ]
     },
     include_package_data=True,
     zip_safe=False,

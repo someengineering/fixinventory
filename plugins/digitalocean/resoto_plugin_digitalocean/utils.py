@@ -73,3 +73,57 @@ def floatingip_id(value: str) -> str:
 
 def database_id(value: str) -> str:
     return f"do:dbaas:{value}"
+
+
+def image_id(value: str) -> str:
+    return f"do:image:{value}"
+
+
+def space_id(value: str) -> str:
+    return f"do:space:{value}"
+
+
+def app_id(value: str) -> str:
+    return f"do:app:{value}"
+
+
+def cdn_endpoint_id(value: str) -> str:
+    return f"do:cdn_endpoint:{value}"
+
+
+def certificate_id(value: str) -> str:
+    return f"do:certificate:{value}"
+
+
+def container_registry_id(value: str) -> str:
+    return f"do:cr:{value}"
+
+
+def container_registry_repository_id(registry_id: str, repository_id: str) -> str:
+    return f"do:crr:{registry_id}/{repository_id}"
+
+
+def container_registry_repository_tag_id(
+    registry_id: str, repository_id: str, tag: str
+) -> str:
+    return f"do:crrt:{registry_id}/{repository_id}:{tag}"
+
+
+def ssh_key_id(value: str) -> str:
+    return f"do:ssh_key:{value}"
+
+
+def tag_id(value: str) -> str:
+    return f"do:tag:{value}"
+
+
+def domain_id(value: str) -> str:
+    return f"do:domain:{value}"
+
+
+def domain_record_id(value: str) -> str:
+    return f"do:domain_record:{value}"
+
+
+def firewall_id(value: str) -> str:
+    return f"do:firewall:{value}"

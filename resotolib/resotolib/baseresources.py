@@ -927,6 +927,7 @@ class BaseDatabase(BaseResource):
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
     lb_type: str = ""
+    public_ip_address: str = None
     backends: List[str] = field(default_factory=list)
 
 
@@ -1027,6 +1028,8 @@ class BaseAccessKey(BaseResource):
 class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
     expires: Optional[datetime] = None
+    dns_names: Optional[List[str]] = None
+    sha1_fingerprint: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -1064,6 +1067,29 @@ class BaseHealthCheck(BaseResource):
     unhealthy_threshold: int = -1
     timeout: int = -1
     health_check_type: str = ""
+
+
+@dataclass(eq=False)
+class BaseDomain(BaseResource):
+    kind: ClassVar[str] = "domain"
+
+    ttl: Optional[int] = None
+    zone_file: Optional[str] = None
+
+
+@dataclass(eq=False)
+class BaseDomainRecord(BaseResource):
+    kind: ClassVar[str] = "domain_record"
+
+    record_type: Optional[str] = None
+    record_name: Optional[str] = None
+    record_data: Optional[str] = None
+    record_priority: Optional[int] = None
+    record_port: Optional[int] = None
+    record_ttl: Optional[int] = None
+    record_weight: Optional[int] = None
+    record_flags: Optional[int] = None
+    record_tag: Optional[str] = None
 
 
 @dataclass(eq=False)

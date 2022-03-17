@@ -8,6 +8,6 @@ snapshots = [
         "resource_type": "droplet",
         "min_disk_size": 25,
         "size_gigabytes": 1.56,
-        "tags": [],
+        "tags": ["snapshot_tag"],
     }
 ]

@@ -6,7 +6,7 @@ projects = [
         "name": "Resoto DO plugin test project",
         "description": "A project to validate assumptions about how API works",
         "purpose": "Just trying out DigitalOcean",
-        "environment": "",
+        "environment": "development",
         "is_default": False,
         "created_at": "2022-02-22T11:21:30Z",
         "updated_at": "2022-02-22T11:21:30Z",
