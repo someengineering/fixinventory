@@ -51,7 +51,6 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
 
         log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
         for token, space_key_tuple in zip(tokens, spaces_keys):
-            print(f"token: {token}, space_key_tuple: {space_key_tuple}")
             client = StreamingWrapper(token, space_key_tuple[0], space_key_tuple[1])
             team_graph = self.collect_team(client)
             self.graph.merge(team_graph)
@@ -60,7 +59,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         """Collects an individual team."""
         projects = client.list_projects()
         team_id = str(projects[0]["owner_id"])
-        team = DigitalOceanTeam(id=team_id, tags={})
+        team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
 
         try:
             dopc = DigitalOceanTeamCollector(team, client)

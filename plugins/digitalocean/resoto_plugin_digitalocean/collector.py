@@ -467,7 +467,8 @@ class DigitalOceanTeamCollector:
             images,
             resource_class=DigitalOceanImage,
             attr_map={
-                "id": lambda i: image_id(i["id"]),
+                "id": lambda i: str(i["id"]),
+                "urn": lambda i: image_id(i["id"]),
                 "distribution": "distribution",
                 "image_slug": "slug",
                 "is_public": "public",
@@ -480,9 +481,9 @@ class DigitalOceanTeamCollector:
                 "image_status": "status",
             },
             search_map={
-                "_region": ["id", lambda image: region_id(image["region"])],
+                "_region": ["urn", lambda image: region_id(image["region"])],
                 "__tags": [
-                    "id",
+                    "urn",
                     lambda image: list(map(lambda tag: tag_id(tag), image["tags"])),
                 ],
             },
@@ -494,7 +495,8 @@ class DigitalOceanTeamCollector:
             instances,
             resource_class=DigitalOceanDroplet,
             attr_map={
-                "id": lambda d: droplet_id(d["id"]),
+                "id": lambda i: str(i["id"]),
+                "urn": lambda d: droplet_id(d["id"]),
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
@@ -504,11 +506,11 @@ class DigitalOceanTeamCollector:
                 "droplet_image": lambda d: d["image"]["slug"],
             },
             search_map={
-                "_region": ["id", lambda droplet: region_id(droplet["region"]["slug"])],
-                "__vpcs": ["id", lambda droplet: vpc_id(droplet["vpc_uuid"])],
-                "__images": ["id", lambda droplet: image_id(droplet["image"]["id"])],
+                "_region": ["urn", lambda droplet: region_id(droplet["region"]["slug"])],
+                "__vpcs": ["urn", lambda droplet: vpc_id(droplet["vpc_uuid"])],
+                "__images": ["urn", lambda droplet: image_id(droplet["image"]["id"])],
                 "__tags": [
-                    "id",
+                    "urn",
                     lambda d: list(map(lambda tag: tag_id(tag), d["tags"])),
                 ],
             },
@@ -524,7 +526,8 @@ class DigitalOceanTeamCollector:
             regions,
             resource_class=DigitalOceanRegion,
             attr_map={
-                "id": lambda r: region_id(r["slug"]),
+                "id": "slug",
+                "urn": lambda r: region_id(r["slug"]),
                 "name": "name",
                 "do_region_slug": "slug",
                 "do_region_features": "features",
@@ -546,7 +549,8 @@ class DigitalOceanTeamCollector:
             volumes,
             resource_class=DigitalOceanVolume,
             attr_map={
-                "id": lambda r: volume_id(r["id"]),
+                "id": "id",
+                "urn": lambda r: volume_id(r["id"]),
                 "volume_size": "size_gigabytes",
                 "description": "description",
                 "filesystem_type": "filesystem_type",
@@ -555,13 +559,13 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "__users": [
-                    "id",
+                    "urn",
                     lambda vol: list(
                         map(lambda id: droplet_id(id), vol["droplet_ids"])
                     ),
                 ],
                 "__tags": [
-                    "id",
+                    "urn",
                     lambda v: list(map(lambda tag: tag_id(tag), v["tags"])),
                 ],
             },
@@ -599,7 +603,8 @@ class DigitalOceanTeamCollector:
             databases,
             resource_class=DigitalOceanDatabase,
             attr_map={
-                "id": lambda db: database_id(db["id"]),
+                "id": "id",
+                "urn": lambda db: database_id(db["id"]),
                 "name": lambda db: database_id(db["name"]),
                 "db_type": "engine",
                 "db_status": "status",
@@ -609,10 +614,10 @@ class DigitalOceanTeamCollector:
                 "volume_size": lambda db: dbtype_to_size.get(db.get("size", ""), 0),
             },
             search_map={
-                "_region": ["id", lambda db: region_id(db["region"])],
-                "__vpcs": ["id", lambda db: vpc_id(db["private_network_uuid"])],
+                "_region": ["urn", lambda db: region_id(db["region"])],
+                "__vpcs": ["urn", lambda db: vpc_id(db["private_network_uuid"])],
                 "__tags": [
-                    "id",
+                    "urn",
                     lambda db: list(map(lambda tag: tag_id(tag), db["tags"])),
                 ],
             },
@@ -626,13 +631,14 @@ class DigitalOceanTeamCollector:
             vpcs,
             resource_class=DigitalOceanNetwork,
             attr_map={
-                "id": "urn",
+                "id": "id",
+                "urn": "urn",
                 "ip_range": "ip_range",
                 "description": "description",
                 "is_default": "default",
             },
             search_map={
-                "_region": ["id", lambda vpc: region_id(vpc["region"])],
+                "_region": ["urn", lambda vpc: region_id(vpc["region"])],
             },
         )
 
@@ -654,7 +660,8 @@ class DigitalOceanTeamCollector:
             projects,
             resource_class=DigitalOceanProject,
             attr_map={
-                "id": lambda p: project_id(p["id"]),
+                "id": "id",
+                "urn": lambda p: project_id(p["id"]),
                 "owner_uuid": "owner_uuid",
                 "owner_id": lambda p: str(p["owner_id"]),
                 "description": "description",
@@ -663,7 +670,7 @@ class DigitalOceanTeamCollector:
                 "is_default": "is_default",
             },
             search_map={
-                "__resources": ["id", lambda p: p["resource_ids"]],
+                "__resources": ["urn", lambda p: p["resource_ids"]],
             },
             successors={EdgeType.default: ["__resources"]},
         )
@@ -675,7 +682,8 @@ class DigitalOceanTeamCollector:
             clusters,
             resource_class=DigitalOceanKubernetesCluster,
             attr_map={
-                "id": lambda c: kubernetes_id(c["id"]),
+                "id": "id",
+                "urn": lambda c: kubernetes_id(c["id"]),
                 "k8s_version": "version",
                 "k8s_cluster_subnet": "cluster_subnet",
                 "k8s_service_subnet": "service_subnet",
@@ -688,16 +696,16 @@ class DigitalOceanTeamCollector:
                 "ha_enabled": "ha",
             },
             search_map={
-                "_region": ["id", lambda c: region_id(c["region"])],
+                "_region": ["urn", lambda c: region_id(c["region"])],
                 "__nodes": [
-                    "id",
+                    "urn",
                     lambda cluster: [
                         droplet_id(node["droplet_id"])
                         for node_pool in cluster["node_pools"]
                         for node in node_pool["nodes"]
                     ],
                 ],
-                "__vpcs": ["id", lambda c: vpc_id(c["vpc_uuid"])],
+                "__vpcs": ["urn", lambda c: vpc_id(c["vpc_uuid"])],
             },
             successors={EdgeType.default: ["__nodes"]},
             predecessors={EdgeType.default: ["__vpcs"]},
@@ -716,7 +724,8 @@ class DigitalOceanTeamCollector:
             snapshots,
             resource_class=DigitalOceanSnapshot,
             attr_map={
-                "id": lambda s: snapshot_id(s["id"]),
+                "id": lambda s: str(s["id"]),
+                "urn": lambda s: snapshot_id(s["id"]),
                 "volume_size": lambda vol: vol["min_disk_size"],
                 "snapshot_size_gigabytes": lambda vol: int(
                     math.ceil(vol.get("size_gigabytes"))
@@ -726,12 +735,12 @@ class DigitalOceanTeamCollector:
             },
             search_map={
                 "_region": [
-                    "id",
+                    "urn",
                     lambda s: [region_id(region) for region in s["regions"]],
                 ],
-                "__resource": ["id", lambda s: get_resource_id(s)],
+                "__resource": ["urn", lambda s: get_resource_id(s)],
                 "__tags": [
-                    "id",
+                    "urn",
                     lambda s: list(map(lambda tag: tag_id(tag), s["tags"])),
                 ],
             },
@@ -757,7 +766,8 @@ class DigitalOceanTeamCollector:
             loadbalancers,
             resource_class=DigitalOceanLoadBalancer,
             attr_map={
-                "id": lambda lb: loadbalancer_id(lb["id"]),
+                "id": "id",
+                "urn": lambda lb: loadbalancer_id(lb["id"]),
                 "public_ip_address": "ip",
                 "nr_nodes": get_nr_nodes,
                 "loadbalancer_status": "status",
@@ -767,10 +777,10 @@ class DigitalOceanTeamCollector:
                 "disable_lets_encrypt_dns_records": "disable_lets_encrypt_dns_records",
             },
             search_map={
-                "_region": ["id", lambda lb: region_id(lb["region"]["slug"])],
-                "__vpcs": ["id", lambda lb: vpc_id(lb["vpc_uuid"])],
+                "_region": ["urn", lambda lb: region_id(lb["region"]["slug"])],
+                "__vpcs": ["urn", lambda lb: vpc_id(lb["vpc_uuid"])],
                 "__droplets": [
-                    "id",
+                    "urn",
                     lambda lb: list(map(lambda id: droplet_id(id), lb["droplet_ids"])),
                 ],
             },
@@ -785,15 +795,16 @@ class DigitalOceanTeamCollector:
             floating_ips,
             resource_class=DigitalOceanFloatingIP,
             attr_map={
-                "id": lambda ip: floatingip_id(ip["ip"]),
+                "id": "ip",
+                "urn": lambda ip: floatingip_id(ip["ip"]),
                 "ip_address": "ip",
                 "ip_address_family": lambda ip: "ipv4",
                 "is_locked": "locked",
             },
             search_map={
-                "_region": ["id", lambda ip: region_id(ip["region"]["slug"])],
+                "_region": ["urn", lambda ip: region_id(ip["region"]["slug"])],
                 "__droplet": [
-                    "id",
+                    "urn",
                     lambda ip: droplet_id(ip.get("droplet", {}).get("id", "")),
                 ],
             },
@@ -807,12 +818,13 @@ class DigitalOceanTeamCollector:
             spaces,
             resource_class=DigitalOceanSpace,
             attr_map={
-                "id": lambda space: space_id(space["Name"]),
+                "id": "Name",
+                "urn": lambda space: space_id(space["Name"]),
                 "name": "Name",
                 "ctime": "CreationDate",
             },
             search_map={
-                "_region": ["id", lambda space: region_id(region.do_region_slug)],
+                "_region": ["urn", lambda space: region_id(region.do_region_slug)],
             },
         )
 
@@ -837,7 +849,8 @@ class DigitalOceanTeamCollector:
             apps,
             resource_class=DigitalOceanApp,
             attr_map={
-                "id": lambda app: app_id(app["id"]),
+                "id": "id",
+                "urn": lambda app: app_id(app["id"]),
                 "tier_slug": "tier_slug",
                 "default_ingress": "default_ingress",
                 "live_url": "live_url",
@@ -845,7 +858,7 @@ class DigitalOceanTeamCollector:
                 "live_domain": "live_domain",
             },
             search_map={
-                "_region": ["id", extract_region],
+                "_region": ["urn", extract_region],
                 "__databases": ["name", extract_databases],
             },
             predecessors={EdgeType.default: ["__databases"]},
@@ -858,7 +871,8 @@ class DigitalOceanTeamCollector:
             endpoints,
             resource_class=DigitalOceanCdnEndpoint,
             attr_map={
-                "id": lambda endpoint: cdn_endpoint_id(endpoint["id"]),
+                "id": "id",
+                "urn": lambda endpoint: cdn_endpoint_id(endpoint["id"]),
                 "origin": "origin",
                 "endpoint": "endpoint",
                 "certificate_id": "certificate_id",
@@ -874,7 +888,8 @@ class DigitalOceanTeamCollector:
             certificates,
             resource_class=DigitalOceanCertificate,
             attr_map={
-                "id": lambda c: certificate_id(c["id"]),
+                "id": "id",
+                "urn": lambda c: certificate_id(c["id"]),
                 "expires": lambda c: iso2datetime(c.get("not_after")),
                 "sha1_fingerprint": "sha1_fingerprint",
                 "dns_names": "dns_names",
@@ -892,12 +907,13 @@ class DigitalOceanTeamCollector:
                 [registry],
                 resource_class=DigitalOceanContainerRegistry,
                 attr_map={
-                    "id": lambda r: container_registry_id(r["name"]),
+                    "id": "name",
+                    "urn": lambda r: container_registry_id(r["name"]),
                     "storage_usage_bytes": "storage_usage_bytes",
                     "is_read_only": "read_only",
                 },
                 search_map={
-                    "_region": ["id", lambda registry: region_id(registry["region"])],
+                    "_region": ["urn", lambda registry: region_id(registry["region"])],
                 },
             )
             repositories = self.client.list_registry_repositories(registry["name"])
@@ -905,7 +921,8 @@ class DigitalOceanTeamCollector:
                 repositories,
                 resource_class=DigitalOceanContainerRegistryRepository,
                 attr_map={
-                    "id": lambda r: container_registry_repository_id(
+                    "id": "name",
+                    "urn": lambda r: container_registry_repository_id(
                         r["registry_name"], r["name"]
                     ),
                     "name": "name",
@@ -914,7 +931,7 @@ class DigitalOceanTeamCollector:
                 },
                 search_map={
                     "__registry": [
-                        "id",
+                        "urn",
                         lambda r: container_registry_id(r["registry_name"]),
                     ],
                 },
@@ -933,7 +950,8 @@ class DigitalOceanTeamCollector:
                 tags,
                 resource_class=DigitalOceanContainerRegistryRepositoryTag,
                 attr_map={
-                    "id": lambda t: container_registry_repository_tag_id(
+                    "id": "tag",
+                    "urn": lambda t: container_registry_repository_tag_id(
                         t["registry_name"], t["repository"], t["tag"]
                     ),
                     "name": "tag",
@@ -943,13 +961,13 @@ class DigitalOceanTeamCollector:
                 },
                 search_map={
                     "__repository": [
-                        "id",
+                        "urn",
                         lambda t: container_registry_repository_id(
                             t["registry_name"], t["repository"]
                         ),
                     ],
                     "__registry": [
-                        "id",
+                        "urn",
                         lambda t: container_registry_id(t["registry_name"]),
                     ],
                 },
@@ -963,7 +981,8 @@ class DigitalOceanTeamCollector:
             ssh_keys,
             resource_class=DigitalOceanSSHKey,
             attr_map={
-                "id": lambda k: ssh_key_id(k["id"]),
+                "id": lambda k: str(k["id"]),
+                "urn": lambda k: ssh_key_id(k["id"]),
                 "public_key": "public_key",
                 "fingerprint": "fingerprint",
             },
@@ -976,7 +995,8 @@ class DigitalOceanTeamCollector:
             tags,
             resource_class=DigitalOceanTag,
             attr_map={
-                "id": lambda t: tag_id(t["name"]),
+                "id": "name",
+                "urn": lambda t: tag_id(t["name"]),
             },
         )
 
@@ -987,7 +1007,8 @@ class DigitalOceanTeamCollector:
             domains,
             resource_class=DigitalOceanDomain,
             attr_map={
-                "id": lambda d: domain_id(d["name"]),
+                "id": "name",
+                "urn": lambda d: domain_id(d["name"]),
                 "ttl": "ttl",
                 "zone_file": "zone_file",
             },
@@ -1006,7 +1027,8 @@ class DigitalOceanTeamCollector:
             domain_records,
             resource_class=DigitalOceanDomainRecord,
             attr_map={
-                "id": lambda r: domain_record_id(r["id"]),
+                "id": lambda r: str(r["id"]),
+                "urn": lambda r: domain_record_id(r["id"]),
                 "record_type": "type",
                 "record_name": "name",
                 "record_data": "data",
@@ -1018,7 +1040,7 @@ class DigitalOceanTeamCollector:
                 "record_tag": "tag",
             },
             search_map={
-                "__domain": ["id", lambda r: domain_id(r["domain_name"])],
+                "__domain": ["urn", lambda r: domain_id(r["domain_name"])],
             },
             predecessors={EdgeType.default: ["__domain"]},
         )
@@ -1030,15 +1052,16 @@ class DigitalOceanTeamCollector:
             firewalls,
             resource_class=DigitalOceanFirewall,
             attr_map={
-                "id": lambda f: firewall_id(f["id"]),
+                "id": "id",
+                "urn": lambda f: firewall_id(f["id"]),
                 "firewall_status": "status",
             },
             search_map={
                 "__droplets": [
-                    "id",
+                    "urn",
                     lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"])),
                 ],
-                "__tags": ["id", lambda f: list(map(lambda id: tag_id(id), f["tags"]))],
+                "__tags": ["urn", lambda f: list(map(lambda id: tag_id(id), f["tags"]))],
             },
             predecessors={
                 EdgeType.default: ["__tags"],

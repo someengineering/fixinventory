@@ -37,6 +37,8 @@ class DigitalOceanResource(BaseResource):
 
     kind: ClassVar[str] = "digitalocean_resource"
 
+    urn: str = ""
+
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
         log.debug(
