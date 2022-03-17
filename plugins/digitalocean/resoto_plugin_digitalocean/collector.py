@@ -506,7 +506,10 @@ class DigitalOceanTeamCollector:
                 "droplet_image": lambda d: d["image"]["slug"],
             },
             search_map={
-                "_region": ["urn", lambda droplet: region_id(droplet["region"]["slug"])],
+                "_region": [
+                    "urn",
+                    lambda droplet: region_id(droplet["region"]["slug"]),
+                ],
                 "__vpcs": ["urn", lambda droplet: vpc_id(droplet["vpc_uuid"])],
                 "__images": ["urn", lambda droplet: image_id(droplet["image"]["id"])],
                 "__tags": [
@@ -1061,7 +1064,10 @@ class DigitalOceanTeamCollector:
                     "urn",
                     lambda f: list(map(lambda id: droplet_id(id), f["droplet_ids"])),
                 ],
-                "__tags": ["urn", lambda f: list(map(lambda id: tag_id(id), f["tags"]))],
+                "__tags": [
+                    "urn",
+                    lambda f: list(map(lambda id: tag_id(id), f["tags"])),
+                ],
             },
             predecessors={
                 EdgeType.default: ["__tags"],

@@ -57,7 +57,12 @@ def prepare_graph(do_client) -> Graph:
 
 def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
     for (node_from, node_to, edge) in graph.edges:
-        if hasattr(node_from, "urn") and hasattr(node_to, "urn") and node_from.urn == from_id and node_to.urn == to_id:
+        if (
+            hasattr(node_from, "urn")
+            and hasattr(node_to, "urn")
+            and node_from.urn == from_id
+            and node_to.urn == to_id
+        ):
             return
     assert False, f"Edge {from_id} -> {to_id} not found"
 
@@ -212,7 +217,9 @@ def test_collect_database():
     check_edges(
         graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     )
-    database = graph.search_first("urn", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
+    database = graph.search_first(
+        "urn", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
+    )
     assert database.urn == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
     assert database.db_type == "pg"
