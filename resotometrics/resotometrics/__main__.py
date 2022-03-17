@@ -132,10 +132,9 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return
-
-        metrics_search = data.get("search")
-        metric_type = data.get("type")
-        metric_help = data.get("help", "")
+        metrics_search = data.search
+        metric_type = data.type
+        metric_help = data.help
 
         if metrics_search is None:
             continue

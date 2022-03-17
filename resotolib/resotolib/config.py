@@ -127,3 +127,14 @@ class Config(metaclass=MetaConfig):
         """Return the config dataclass model in resotocore format"""
         classes = set(_config.classes.values())
         return dataclasses_to_resotocore_model(classes)
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument(
+            "--set",
+            help="Set config attribute(s)",
+            dest="config_set",
+            type=str,
+            default=None,
+            nargs="+",
+        )
