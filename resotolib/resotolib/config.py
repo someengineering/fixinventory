@@ -15,13 +15,27 @@ from resotolib.core.events import CoreEvents
 from typing import Dict, Any, List
 
 
-class Config:
-    _config: Dict[str, Any] = {}
-    _config_revision: str = ""
-    _config_classes: Dict[str, object] = {}
+class RunningConfig:
+    def __init__(self) -> None:
+        self.data: Dict[str, Any] = {}
+        self.revision: str = ""
+        self.classes: Dict[str, object] = {}
+        self.added = threading.Event()
 
+
+_config = RunningConfig()
+
+
+class MetaConfig(type):
+    def __getattr__(cls, name):
+        if name in _config.data:
+            return _config.data[name]
+        else:
+            raise ConfigNotFoundError(f"No such config {name}")
+
+
+class Config(metaclass=MetaConfig):
     def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
-        self.config_added = threading.Event()
         self._config_lock = threading.Lock()
         self.config_name = config_name
         self._initial_load = True
@@ -37,20 +51,23 @@ class Config:
         )
 
     def __getattr__(self, name):
-        if name in self._config:
-            return self._config[name]
+        if name in _config.data:
+            return _config.data[name]
         else:
             raise ConfigNotFoundError(f"No such config {name}")
 
+    def shutdown(self) -> None:
+        self._ce.stop()
+
     def add_config(self, config: object) -> None:
         if hasattr(config, "kind"):
-            self._config_classes[config.kind] = config
-            self.config_added.set()
+            _config.classes[config.kind] = config
+            _config.added.set()
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
     def load_config(self) -> None:
-        if not self.config_added.is_set():
+        if not _config.added.is_set():
             raise RuntimeError("No config added")
         with self._config_lock:
             try:
@@ -58,22 +75,22 @@ class Config:
                     self.config_name, self.resotocore_uri
                 )
             except ConfigNotFoundError:
-                for config_id, config_data in self._config_classes.items():
-                    self._config[config_id] = config_data()
+                for config_id, config_data in _config.classes.items():
+                    _config.data[config_id] = config_data()
             else:
                 log.debug(
                     f"Loaded config {self.config_name} revision {new_config_revision}"
                 )
                 new_config = {}
                 for config_id, config_data in config.items():
-                    if config_id in self._config_classes:
+                    if config_id in _config.classes:
                         new_config[config_id] = jsons.loads(
-                            json.dumps(config_data), self._config_classes[config_id]
+                            json.dumps(config_data), _config.classes[config_id]
                         )
                     else:
                         log.warning(f"Unknown config {config_id}")
-                self._config = new_config
-                self._config_revision = new_config_revision
+                _config.data = new_config
+                _config.revision = new_config_revision
             if self._initial_load:
                 self.save_config()
             self._initial_load = False
@@ -83,15 +100,13 @@ class Config:
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri)
-        config = jsons.dump(self._config, strip_attr="kind", strip_properties=True)
+        config = jsons.dump(_config.data, strip_attr="kind", strip_properties=True)
         stored_config_revision = set_config(
             self.config_name, config, self.resotocore_uri
         )
-        if stored_config_revision != self._config_revision:
-            self._config_revision = stored_config_revision
-            log.debug(
-                f"Saved config {self.config_name} revision {self._config_revision}"
-            )
+        if stored_config_revision != _config.revision:
+            _config.revision = stored_config_revision
+            log.debug(f"Saved config {self.config_name} revision {_config.revision}")
         else:
             log.debug(f"Config {self.config_name} unchanged")
 
@@ -99,7 +114,7 @@ class Config:
         if (
             message.get("message_type") == "config-updated"
             and message.get("data", {}).get("id") == self.config_name
-            and message.get("data", {}).get("revision") != self._config_revision
+            and message.get("data", {}).get("revision") != _config.revision
         ):
             try:
                 log.debug(f"Config {self.config_name} has changed - reloading")
@@ -110,5 +125,5 @@ class Config:
     @property
     def model(self) -> List:
         """Return the config dataclass model in resotocore format"""
-        classes = set(self._config_classes.values())
+        classes = set(_config.classes.values())
         return dataclasses_to_resotocore_model(classes)
