@@ -188,7 +188,7 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_network"
 
-    subnet: Optional[str] = None
+    ip_range: Optional[str] = None
     description: Optional[str] = None
     is_default: Optional[bool] = None
 

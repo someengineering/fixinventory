@@ -627,7 +627,7 @@ class DigitalOceanTeamCollector:
             resource_class=DigitalOceanNetwork,
             attr_map={
                 "id": "urn",
-                "subnet": "ip_range",
+                "ip_range": "ip_range",
                 "description": "description",
                 "is_default": "default",
             },

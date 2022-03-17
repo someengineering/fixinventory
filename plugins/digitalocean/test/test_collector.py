@@ -116,7 +116,7 @@ def test_collect_vpcs():
     assert vpc.id == "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959"
     assert vpc.name == "default-fra1"
     assert vpc.description == ""
-    assert vpc.subnet == "127.0.0.1/20"
+    assert vpc.ip_range == "127.0.0.1/20"
     assert vpc.is_default is True
 
 
