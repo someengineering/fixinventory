@@ -80,7 +80,7 @@ class CoreEvents(threading.Thread):
         log.error(f"Event bus error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.debug(f"Disconnected from resotocore event bus")
+        log.debug("Disconnected from resotocore event bus")
 
     def on_open(self, ws):
-        log.debug(f"Connected to resotocore event bus")
+        log.debug("Connected to resotocore event bus")

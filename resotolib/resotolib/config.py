@@ -78,7 +78,7 @@ class Config:
                 self.save_config()
             self._initial_load = False
             if not self._ce.is_alive():
-                log.debug(f"Starting config event listener")
+                log.debug("Starting config event listener")
                 self._ce.start()
 
     def save_config(self) -> None:

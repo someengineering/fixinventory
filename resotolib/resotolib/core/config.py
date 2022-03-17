@@ -86,7 +86,7 @@ def update_config_model(
     model_uri = f"{resotocore_uri}/configs/model"
     model_json = json.dumps(model, indent=4)
 
-    log.debug(f"Updating config model")
+    log.debug("Updating config model")
     r = requests.patch(model_uri, data=model_json, headers=headers)
     if r.status_code != 200:
         log.error(r.content)
