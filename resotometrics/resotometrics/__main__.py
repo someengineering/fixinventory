@@ -1,9 +1,11 @@
 import os
 import sys
 import time
+import resotolib.signal
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.core.config import get_config, set_config, ConfigNotFoundError
+from resotolib.config import Config
+from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
 from resotometrics.metrics import Metrics, GraphCollector
@@ -44,12 +46,12 @@ def handler(sig, frame) -> None:
 def main() -> None:
     setup_logger("resotometrics")
 
-    signal(SIGINT, handler)
-    signal(SIGTERM, handler)
+    resotolib.signal.initializer()
 
     arg_parser = ArgumentParser(
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
+    Config.add_args(arg_parser)
     add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
@@ -57,12 +59,16 @@ def main() -> None:
     WebApp.add_args(arg_parser)
     arg_parser.parse_args()
 
+    config = Config("resoto.metrics", resotocore_uri=ArgumentParser.args.resotocore_uri)
+    config.add_config(ResotoMetricsConfig)
+    config.load_config()
+
     metrics = Metrics()
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
     base_uri = ArgumentParser.args.resotocore_uri.strip("/")
-    resotocore_graph = ArgumentParser.args.resotocore_graph
+    resotocore_graph = Config.resotometrics.resotocore_graph
     graph_uri = f"{base_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
@@ -73,7 +79,7 @@ def main() -> None:
         resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
         actions={
             "generate_metrics": {
-                "timeout": ArgumentParser.args.timeout,
+                "timeout": Config.resotometrics.timeout,
                 "wait_for_completion": True,
             },
         },
@@ -120,27 +126,9 @@ def core_actions_processor(metrics: Metrics, query_uri: str, message: dict) -> N
         return reply_message
 
 
-def find_metrics():
-    log.debug("Finding metrics")
-    try:
-        metrics_descriptions = get_config("resotometrics")
-    except ConfigNotFoundError:
-        log.debug("Metrics config not found in resotocore - loading default metrics")
-        local_path = os.path.abspath(os.path.dirname(__file__))
-        default_metrics_file = f"{local_path}/default_metrics.yaml"
-        if not os.path.isfile(default_metrics_file):
-            raise RuntimeError(
-                f"Could not find default metrics file {default_metrics_file}"
-            )
-        with open(default_metrics_file, "r") as f:
-            metrics_descriptions = load(f, Loader=Loader)
-        set_config("resotometrics", metrics_descriptions)
-    return metrics_descriptions
-
-
 @metrics_update_metrics.time()
 def update_metrics(metrics: Metrics, query_uri: str) -> None:
-    metrics_descriptions = find_metrics()
+    metrics_descriptions = Config.resotometrics.metrics
     for _, data in metrics_descriptions.items():
         if shutdown_event.is_set():
             return
