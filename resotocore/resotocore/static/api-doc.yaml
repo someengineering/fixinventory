@@ -1607,6 +1607,11 @@ paths:
             responses:
                 "200":
                     description: The configuration
+                    headers:
+                        Resoto-Config-Revision:
+                            description: The revision of this config
+                            schema:
+                                type: string
                     content:
                         application/json:
                             schema:
@@ -1646,6 +1651,11 @@ paths:
             responses:
                 "200":
                     description: The configuration
+                    headers:
+                        Resoto-Config-Revision:
+                            description: The revision of this config
+                            schema:
+                                type: string
                     content:
                         application/json:
                             schema:
@@ -1674,6 +1684,11 @@ paths:
             responses:
                 "200":
                     description: The configuration
+                    headers:
+                        Resoto-Config-Revision:
+                            description: The revision of this config
+                            schema:
+                                type: string
                     content:
                         application/json:
                             schema:

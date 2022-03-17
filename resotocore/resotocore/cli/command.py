@@ -3558,4 +3558,19 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
 
 def aliases() -> Dict[str, str]:
     # command alias -> command name
-    return {"match": "search", "query": "search", "https": "http", "kind": "kinds", "config": "configs"}
+    return {
+        "match": "search",
+        "query": "search",
+        "https": "http",
+        "kind": "kinds",
+        "config": "configs",
+        "tags": "tag",
+        "predecessor": "predecessors",
+        "successor": "successors",
+        "descendant": "descendants",
+        "ancestor": "ancestors",
+        "job": "jobs",
+        "lists": "list",
+        "template": "templates",
+        "workflow": "workflows",
+    }
