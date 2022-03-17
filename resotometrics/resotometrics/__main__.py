@@ -1,4 +1,3 @@
-import os
 import sys
 import time
 import resotolib.signal
@@ -21,13 +20,6 @@ from prometheus_client import Summary, REGISTRY
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 from threading import Event
 from resotolib.args import ArgumentParser
-from signal import signal, SIGTERM, SIGINT
-from yaml import load
-
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
 
 
 shutdown_event = Event()

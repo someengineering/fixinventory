@@ -3,8 +3,8 @@ import json
 import threading
 from urllib.parse import urlparse
 from resotolib.logging import log
-from resotolib.args import ArgumentParser
-from resotolib.graph.export import dataclasses_to_resotocore_model
+from resotolib.args import ArgumentParser, convert
+from resotolib.graph.export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core.config import (
     get_config,
     set_config,
@@ -13,6 +13,7 @@ from resotolib.core.config import (
 )
 from resotolib.core.events import CoreEvents
 from typing import Dict, Any, List
+from dataclasses import fields
 
 
 class RunningConfig:
@@ -21,6 +22,7 @@ class RunningConfig:
         self.revision: str = ""
         self.classes: Dict[str, object] = {}
         self.added = threading.Event()
+        self.types: Dict[str, Dict[str, type]] = {}
 
 
 _config = RunningConfig()
@@ -62,6 +64,10 @@ class Config(metaclass=MetaConfig):
     def add_config(self, config: object) -> None:
         if hasattr(config, "kind"):
             _config.classes[config.kind] = config
+            _config.types[config.kind] = {}
+            for field in fields(config):
+                if hasattr(field, "type"):
+                    _config.types[config.kind][field.name] = optional_origin(field.type)
             _config.added.set()
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
@@ -93,10 +99,37 @@ class Config(metaclass=MetaConfig):
                 _config.revision = new_config_revision
             if self._initial_load:
                 self.save_config()
+            self.override_config()
             self._initial_load = False
             if not self._ce.is_alive():
                 log.debug("Starting config event listener")
                 self._ce.start()
+
+    def override_config(self) -> None:
+        for override in getattr(ArgumentParser.args, "config_override", []):
+            try:
+                config_key, config_value = override.split("=", 1)
+                if "." not in config_key:
+                    log.error(f"Invalid config override {config_key}")
+                    continue
+                config_id, config_attr = config_key.split(".", 1)
+                if config_id not in _config.types:
+                    log.error(f"Override unknown config id {config_id}")
+                    continue
+                if config_attr not in _config.types[config_id]:
+                    log.error(
+                        f"Override unknown config attr {config_attr} for {config_id}"
+                    )
+                    continue
+                target_type = _config.types[config_id][config_attr]
+                config_value = convert(config_value, target_type)
+                log.debug(
+                    f"Overriding attr {config_attr} of {config_id} with {config_value} of type {target_type}"
+                )
+                setattr(_config.data[config_id], config_attr, config_value)
+
+            except Exception:
+                log.exception(f"Failed to override config {override}")
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri)
@@ -131,9 +164,9 @@ class Config(metaclass=MetaConfig):
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         arg_parser.add_argument(
-            "--set",
-            help="Set config attribute(s)",
-            dest="config_set",
+            "--override",
+            help="Override config attribute(s)",
+            dest="config_override",
             type=str,
             default=None,
             nargs="+",
