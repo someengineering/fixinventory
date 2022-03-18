@@ -192,12 +192,12 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     async def async_initializer() -> Application:
         async def clean_all_tasks() -> None:
             log.info("Clean up all running tasks.")
-            loop = asyncio.get_event_loop()
             for task in asyncio.all_tasks():
                 with suppress(asyncio.CancelledError):
                     if not task.done() or not task.cancelled():
                         task.cancel()
-                    loop.run_until_complete(task)
+                    log.debug(f"Wait for task: {task}")
+                    await task
 
         async def on_start_stop(_: Application) -> AsyncIterator[None]:
             await on_start()
