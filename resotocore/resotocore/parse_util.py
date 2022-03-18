@@ -68,7 +68,7 @@ variable_dp = optional_slash + (variable_dp_part + variable_dp_part_extra).at_le
 variable_no_array_dp = optional_slash + (variable_dp_part + variable_dp_part_plain).at_least(1).map("".join)
 
 
-unquoted_allowed_characters = re.compile("[A-Za-z0-9_\\-:/]")
+unquoted_allowed_characters = re.compile("[A-Za-z0-9_\\-:/.]")
 unquoted_end_of_unquoted_str = re.compile("[,\\[\\])(}{\\s]")
 
 
@@ -81,11 +81,17 @@ def unquoted_string_parser(*stop_words: str) -> Parser:
         start = index
         found_no_number = False
         valid_string_chars = True
+        number_found_dot = False
 
-        # valid numbers are: digits or a minus at the start: 123, -321
+        # valid numbers are: digits or a minus at the start: 123, -321, -123.321
         def is_no_number() -> bool:
+            nonlocal number_found_dot
             char = stream[index]
-            return not str.isdigit(char) and not (start == index and char == "-")
+            is_dot = char == "."
+            is_num = str.isdigit(char) or (start == index and char == "-") or (is_dot and not number_found_dot)
+            if not number_found_dot and is_dot:
+                number_found_dot = True
+            return not is_num
 
         # look ahead to next delimiter
         while index < len(stream) and valid_string_chars and not unquoted_end_of_unquoted_str.match(stream[index]):

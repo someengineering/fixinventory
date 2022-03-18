@@ -769,7 +769,7 @@ class ComplexKind(Kind):
             if isinstance(e, dict):
                 result = "\n" if cr_on_object else ""
                 prepend = "  " * indent
-                for prop, value in e.items():
+                for prop, value in sorted(e.items()):
                     description = None
                     sub: Kind = AnyKind()
                     if isinstance(kind, ComplexKind):
@@ -783,7 +783,8 @@ class ComplexKind(Kind):
                     if description:
                         for line in description.splitlines():
                             result += f"{prepend}# {line}\n"
-                    result += f"{prepend}{prop}: {str_value}\n"
+                    maybe_space = "" if str_value.startswith("\n") else " "
+                    result += f"{prepend}{prop}:{maybe_space}{str_value}\n"
                 return result.rstrip()
             elif isinstance(e, list) and e:
                 prepend = "  " * indent + "-"

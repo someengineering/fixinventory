@@ -52,6 +52,7 @@ from tests.resotocore.db.graphdb_test import (
     foo_model,
     foo_kinds,
 )
+from tests.resotocore.util_test import not_in_path
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.runningtaskdb_test import running_task_db
@@ -63,14 +64,7 @@ from tests.resotocore.message_bus_test import message_bus
 from tests.resotocore.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.task.task_handler_test import (
-    task_handler,
-    job_db,
-    subscription_handler,
-    test_workflow,
-    task_handler_args,
-)
-from tests.resotocore.util_test import not_in_path
+from tests.resotocore.task.task_handler_test import task_handler, job_db, subscription_handler, test_workflow
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks

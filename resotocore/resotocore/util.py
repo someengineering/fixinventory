@@ -32,6 +32,7 @@ import sys
 from dateutil.parser import isoparse
 
 from resotocore.durations import parse_duration
+from resotocore.error import RestartService
 from resotocore.types import JsonElement, Json
 
 log = logging.getLogger(__name__)
@@ -189,6 +190,29 @@ def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> 
     return at_idx(element, 0)
 
 
+def deep_merge(left: Json, right: Json) -> Json:
+    """
+    Merge the right json into the left json.
+    All values in right will be set on the left side.
+    All values not existing in right will be preserved on the left side.
+    :return: the deeply merged json object.
+    """
+
+    def merge(key: str) -> JsonElement:
+        left_value: JsonElement = left.get(key)
+        right_value: JsonElement = right.get(key)
+        if isinstance(right_value, dict):
+            left_value = left_value if isinstance(left_value, dict) else {}
+            # noinspection PyTypeChecker
+            return deep_merge(left_value, right_value)
+        elif right_value:
+            return right_value
+        else:
+            return left_value
+
+    return {k: merge(k) for k in set(left.keys()).union(right.keys())}
+
+
 def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str], js: Optional[Json] = None) -> Json:
     path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path) - 1
@@ -246,14 +270,25 @@ def set_future_result(future: Future, result: Any) -> None:  # type: ignore # py
             future.set_result(result)
 
 
-def shutdown_process(exit_code: int) -> None:
+def __mute_async_exception_reporting_on_current_loop() -> None:
     # Exceptions happening in the async loop during shutdown.
     def exception_handler(_: Any, context: Any) -> None:
         log.debug(f"Error from async loop during shutdown: {context}")
 
     log.info("Shutdown initiated for current process.")
     with suppress(Exception):
-        asyncio.get_running_loop().set_exception_handler(exception_handler)
+        loop = asyncio.get_running_loop()
+        if loop:
+            loop.set_exception_handler(exception_handler)
+
+
+def restart_service(reason: str) -> None:
+    __mute_async_exception_reporting_on_current_loop()
+    raise RestartService(reason)
+
+
+def shutdown_process(exit_code: int) -> None:
+    __mute_async_exception_reporting_on_current_loop()
     sys.exit(exit_code)
 
 

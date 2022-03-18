@@ -60,6 +60,7 @@ from resotocore.cli.model import (
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
+from resotocore.dependencies import path_values_parser
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.model.graph_access import Section, EdgeType
@@ -71,11 +72,8 @@ from resotocore.parse_util import (
     space_dp,
     make_parser,
     variable_dp,
-    variable_p,
     literal_dp,
     comma_p,
-    json_value_p,
-    equals_p,
 )
 from resotocore.query.model import Query, P, Template, NavigateUntilRoot, IsTerm
 from resotocore.query.query_parser import parse_query
@@ -87,12 +85,12 @@ from resotocore.util import (
     value_in_path_get,
     value_in_path,
     utc,
-    shutdown_process,
     if_set,
     duration,
     identity,
     rnd_str,
     set_value_in_path,
+    restart_service,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -2696,7 +2694,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
-            args = self.dependencies.args
+            db_config = self.dependencies.config.db
             if not shutil.which("arangodump"):
                 raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
             # fmt: off
@@ -2708,11 +2706,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--log.level", "error",  # only print error messages
                 "--output-directory", temp_dir,  # directory to write to
                 "--overwrite", "true",  # required for existing directories
-                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
-                "--server.database", args.graphdb_database,
-                "--server.username", args.graphdb_username,
-                "--server.password", args.graphdb_password,
+                "--server.endpoint", db_config.server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if db_config.no_ssl_verify else "true",
+                "--server.database", db_config.database,
+                "--server.username", db_config.username,
+                "--server.password", db_config.password,
                 "--configuration", "none",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -2760,7 +2758,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 tar.extractall(temp_dir)
 
             # fmt: off
-            args = self.dependencies.args
+            db_conf = self.dependencies.config.db
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
                 "--progress", "false",  # do not show progress
@@ -2769,11 +2767,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 "--log.level", "error",  # only print error messages
                 "--input-directory", temp_dir,  # directory to write to
                 "--overwrite", "true",  # required for existing db collections
-                "--server.endpoint", args.graphdb_server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if args.graphdb_no_ssl_verify else "true",
-                "--server.database", args.graphdb_database,
-                "--server.username", args.graphdb_username,
-                "--server.password", args.graphdb_password,
+                "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
+                "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
+                "--server.database", db_conf.database,
+                "--server.username", db_conf.username,
+                "--server.password", db_conf.password,
                 "--configuration", "none",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -2806,7 +2804,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             async def wait_and_exit() -> None:
                 log.info("Database was restored successfully - going to STOP the service!")
                 await asyncio.sleep(1)
-                shutdown_process(0)
+                restart_service("database backup restored.")
 
             # create a background task, so that the current request can be executed completely
             asyncio.create_task(wait_and_exit())
@@ -3348,17 +3346,6 @@ class WorkflowsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-@make_parser
-def path_value_parser() -> Parser:
-    key = yield variable_p
-    yield equals_p
-    value = yield json_value_p
-    return key, value
-
-
-path_values_parser = path_value_parser.sep_by(comma_p)
-
-
 class ConfigsCommand(CLICommand):
     """
     ```shell
@@ -3563,7 +3550,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         WriteCommand(d),
     ]
     # commands that are only available when the system is started in debug mode
-    if d.args.debug:
+    if d.config.runtime.debug:
         commands.extend([FileCommand(d), UploadCommand(d)])
 
     return commands

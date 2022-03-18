@@ -1,14 +1,12 @@
 from asyncio import Queue
+from typing import Tuple, List, AsyncIterator
 
 import pytest
 from aiostream import stream
 from pytest import fixture
-from typing import Tuple, List, AsyncIterator
 
 from resotocore.analytics import InMemoryEventSender
-from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from resotocore.cli.cli import CLI, multi_command_parser
-from resotocore.cli.model import CLIDependencies
 from resotocore.cli.command import (
     ExecuteSearchCommand,
     ChunkCommand,
@@ -20,10 +18,12 @@ from resotocore.cli.command import (
     all_commands,
     PredecessorsPart,
 )
+from resotocore.cli.model import CLIDependencies
+from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
 from resotocore.config import ConfigHandler
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import ArangoGraphDB
-from resotocore.dependencies import parse_args
+from resotocore.dependencies import empty_config
 from resotocore.error import CLIParseError
 from resotocore.message_bus import MessageBus
 from resotocore.model.adjust_node import NoAdjust
@@ -31,7 +31,12 @@ from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
-from tests.resotocore.model import ModelHandlerStatic
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.analytics import event_sender
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.db.graphdb_test import (
@@ -46,18 +51,13 @@ from tests.resotocore.db.graphdb_test import (
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.message_bus_test import message_bus
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
+from tests.resotocore.model import ModelHandlerStatic
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
+from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
 
 @fixture
@@ -71,16 +71,16 @@ async def cli_deps(
     expander: TemplateExpander,
     config_handler: ConfigHandler,
 ) -> AsyncIterator[CLIDependencies]:
-    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust())
+    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
-    args = parse_args(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
+    config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
         db_access=db_access,
         model_handler=model_handler,
         worker_task_queue=task_queue,
-        args=args,
+        config=config,
         template_expander=expander,
         forked_tasks=Queue(),
         config_handler=config_handler,

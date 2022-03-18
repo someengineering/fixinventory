@@ -3,7 +3,6 @@ from __future__ import annotations
 import inspect
 import json
 from abc import ABC, abstractmethod
-from argparse import Namespace
 from asyncio import Queue, Task, iscoroutine
 from dataclasses import dataclass, field
 from enum import Enum
@@ -18,6 +17,7 @@ from parsy import test_char, string
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.config import ConfigHandler
+from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -136,8 +136,8 @@ class CLIDependencies:
         return self
 
     @property
-    def args(self) -> Namespace:
-        return self.lookup["args"]  # type: ignore
+    def config(self) -> CoreConfig:
+        return self.lookup["config"]  # type: ignore
 
     @property
     def message_bus(self) -> MessageBus:

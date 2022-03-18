@@ -5,26 +5,43 @@ import os.path
 import sys
 from argparse import Namespace
 from collections import namedtuple
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Tuple
 from urllib.parse import urlparse
 
 import psutil
 from arango.database import StandardDatabase
+from parsy import Parser
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.utils import iec_size_format
 
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
+from resotocore.core_config import CoreConfig, parse_config
 from resotocore.db.db_access import DbAccess
 from resotocore.durations import parse_duration
 from resotocore.model.adjust_node import DirectAdjuster
+from resotocore.parse_util import make_parser, variable_p, equals_p, json_value_p, comma_p
 from resotocore.util import utc
 
 log = logging.getLogger(__name__)
 
-SystemInfo = namedtuple("SystemInfo", ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"])
+SystemInfo = namedtuple(
+    "SystemInfo",
+    ["version", "cpus", "mem_available", "mem_total", "inside_docker", "started_at"],
+)
 started_at = utc()
+
+
+@make_parser
+def path_value_parser() -> Parser:
+    key = yield variable_p
+    yield equals_p
+    value = yield json_value_p
+    return key, value
+
+
+path_values_parser = path_value_parser.sep_by(comma_p)
 
 
 def system_info() -> SystemInfo:
@@ -68,17 +85,20 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
 
         return check_url
 
+    def key_value(kv: str) -> Tuple[str, str]:
+        try:
+            return path_value_parser.parse(kv)  # type: ignore
+        except Exception as ex:
+            raise AttributeError(f"Can not parse config option: {kv}. Reason: {ex}") from ex
+
     parser = ArgumentParser(
         env_args_prefix="RESOTOCORE_",
         description="Maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
     jwt_add_args(parser)
-    parser.add_argument(
-        "--log-level",
-        default="info",
-        help="Log level (default: info)",
-    )
+    # No default here on purpose: it can be reconfigured!
+    parser.add_argument("--log-level", help="Log level (e.g.: info)")
     parser.add_argument(
         "--graphdb-server",
         default="http://localhost:8529",
@@ -135,53 +155,7 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    parser.add_argument(
-        "--plantuml-server",
-        default="http://plantuml.resoto.org:8080",
-        help="PlantUML server URI for UML image rendering.",
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="localhost",
-        nargs="+",
-        help="TCP host(s) to bind on (default: localhost)",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8900,
-        help="TCP port to bind on (default: 8900)",
-    )
-    parser.add_argument(
-        "--merge_max_wait_time_seconds",
-        type=int,
-        default=3600,
-        help="Max waiting time to complete a merge graph action.",
-    )
-    parser.add_argument("--debug", default=False, action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument(
-        "--analytics-opt-out",
-        default=False,
-        action="store_true",
-        help="Stop collecting analytics data.",
-    )
-    parser.add_argument(
-        "--ui-path",
-        type=is_dir("can not parse --ui-dir"),
-        help="The directory where the UI is installed. This directory will be served under /ui/.",
-    )
-    parser.add_argument(
-        "--tsdb-proxy-url",
-        type=is_url("can not parse --tsdb-proxy-url"),
-        help="The url to the time series database. This path will be served under /tsdb/.",
-    )
-    parser.add_argument(
-        "--tls-cert",
-        type=is_file("can not parse --tls-cert"),
-        help="Path to a single file in PEM format containing the certificate as well as any number "
-        "of CA certificates needed to establish the certificate’s authenticity.",
-    )
+    # TODO: TLS handling via config file (separate change)
     parser.add_argument(
         "--tls-key",
         type=is_file("can not parse --tls-key"),
@@ -194,40 +168,41 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
         help="Optional password to decrypt the private key file.",
     )
     parser.add_argument(
-        "--cli-default-graph",
-        type=str,
-        default="resoto",
-        dest="cli_default_graph",
-        help="Use this graph for CLI actions, if no graph is specified explicitly.",
-    )
-    parser.add_argument(
-        "--cli-default-section",
-        type=str,
-        default="reported",
-        dest="cli_default_section",
-        help="Use this graph section by default, if no section is specified."
-        "Relative paths will be interpreted with respect to this section.",
-    )
-    parser.add_argument("--version", action="store_true", help="Print the version of resotocore and exit.")
-    parser.add_argument(
-        "--jobs",
-        nargs="*",
-        type=argparse.FileType("r"),
-        help="Read job definitions from given file.",
-    )
-    parser.add_argument(
-        "--start-collect-on-subscriber-connect",
-        default=False,
+        "--version",
         action="store_true",
-        help="Start the collect workflow, when the first handling actor connects to the system.",
+        help="Print the version of resotocore and exit.",
     )
     parser.add_argument(
-        "---graph-update-abort-after",
-        dest="graph_updates_abort_after",
-        default="4h",
-        type=parse_duration,
-        help="If a graph update takes longer than this duration, the update is aborted.",
+        "--config-override",
+        nargs="+",
+        type=key_value,
+        dest="config_override",
+        default=[],
+        help="Override configuration parameters. Format: path.to.property=value. "
+        "Note: the value can be any json value - proper escaping from the shell is required."
+        "Example: --config-override api.hosts='[localhost, some.domain]' api.port=12345",
     )
+
+    # All suppressed properties are only here for backward compatibility.
+    # TODO: remove properties once the docker setup is done.
+    # No default here on purpose: it can be reconfigured!
+    parser.add_argument("--plantuml-server", help=argparse.SUPPRESS)
+    parser.add_argument("--host", type=str, nargs="+", help=argparse.SUPPRESS)
+    parser.add_argument("--port", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--merge_max_wait_time_seconds", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--debug", default=None, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--ui-path", type=is_dir("can not parse --ui-dir"), help=argparse.SUPPRESS)
+    parser.add_argument("--tsdb-proxy-url", type=is_url("can not parse --tsdb-proxy-url"), help=argparse.SUPPRESS)
+    parser.add_argument("--tls-cert", type=is_file("can not parse --tls-cert"), help=argparse.SUPPRESS)
+    parser.add_argument("--cli-default-graph", type=str, dest="cli_default_graph", help=argparse.SUPPRESS)
+    parser.add_argument("--cli-default-section", type=str, dest="cli_default_section", help=argparse.SUPPRESS)
+    parser.add_argument("--jobs", nargs="*", type=argparse.FileType("r"), help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--start-collect-on-subscriber-connect", default=None, action="store_true", help=argparse.SUPPRESS
+    )
+    parser.add_argument("--graph-update-abort-after", type=parse_duration, help=argparse.SUPPRESS)
+
     parsed: Namespace = parser.parse_args(args if args else [], namespace)
 
     if parsed.version:
@@ -238,21 +213,48 @@ def parse_args(args: Optional[List[str]] = None, namespace: Optional[str] = None
     return parsed
 
 
+def empty_config(args: Optional[List[str]] = None) -> CoreConfig:
+    return parse_config(parse_args(args or []), {})
+
+
 # Note: this method should be called from every started process as early as possible
-def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
+def setup_process(args: Namespace, config: Optional[CoreConfig] = None) -> None:
+    if config:
+        configure_logging(config.runtime.log_level, config.runtime.debug)
+    else:
+        configure_logging(args.log_level or "info", args.debug or False)
+    # set/reset process creation method
+    reset_process_start_method()
+    # reset global async thread pool (forked processes need to create a fresh pool)
+    async_extensions.GlobalAsyncPool = None
+
+
+def reconfigure_logging(config: CoreConfig) -> None:
+    configure_logging(config.runtime.log_level, config.runtime.debug)
+
+
+def configure_logging(log_level: str, debug: bool) -> None:
     # Note: if another appender than the log appender is used, proper multiprocess logging needs to be enabled.
     # See https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
     log_format = "%(asctime)s|resotocore|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
+    level = log_level.upper()
     logging.basicConfig(
         format=log_format,
         datefmt="%y-%m-%d %H:%M:%S",
-        level=logging.getLevelName(args.log_level.upper()),
+        level=logging.getLevelName(level),
         force=True,
     )
     # adjust log levels for specific loggers
-    if args.debug:
+    if debug:
         logging.getLogger("resotocore").setLevel(logging.DEBUG)
+        # in case of restart: reset the original level
+        logging.getLogger("posthog").setLevel(level)
+        logging.getLogger("backoff").setLevel(level)
+        logging.getLogger("transitions.core").setLevel(level)
+        logging.getLogger("apscheduler.executors").setLevel(level)
     else:
+        # in case of restart: reset the original level
+        logging.getLogger("resotocore").setLevel(level)
         # mute analytics transmission errors unless debug is enabled
         logging.getLogger("posthog").setLevel(logging.FATAL)
         logging.getLogger("backoff").setLevel(logging.FATAL)
@@ -260,11 +262,6 @@ def setup_process(args: Namespace, child_process: Optional[str] = None) -> None:
         logging.getLogger("transitions.core").setLevel(logging.WARNING)
         # apscheduler uses the term Job when it triggers, which confuses people.
         logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
-
-    # set/reset process creation method
-    reset_process_start_method()
-    # reset global async thread pool (forked processes need to create a fresh pool)
-    async_extensions.GlobalAsyncPool = None
 
 
 def reset_process_start_method() -> None:
@@ -278,6 +275,6 @@ def reset_process_start_method() -> None:
         log.warning(f"{preferred} method not available. Have {mp.get_all_start_methods()}. Use {current}")
 
 
-def db_access(config: Namespace, db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
+def db_access(config: CoreConfig, db: StandardDatabase, event_sender: AnalyticsEventSender) -> DbAccess:
     adjuster = DirectAdjuster()
-    return DbAccess(db, event_sender, adjuster, update_outdated=config.graph_updates_abort_after)
+    return DbAccess(db, event_sender, adjuster, config)

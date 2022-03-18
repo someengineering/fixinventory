@@ -54,6 +54,7 @@ def test_json_value_p() -> None:
     assert json_value_p.parse("123") == 123
     assert json_value_p.parse("123.23") == 123.23
     assert json_value_p.parse("-123.23") == -123.23
+    assert json_value_p.parse("127.0.0.1") == "127.0.0.1"
     assert json_value_p.parse('"-123"') == "-123"
     assert json_value_p.parse("2021-09-23T06:42:26Z") == "2021-09-23T06:42:26Z"
     assert json_value_p.parse('"2021-09-23T06:42:26Z"') == "2021-09-23T06:42:26Z"

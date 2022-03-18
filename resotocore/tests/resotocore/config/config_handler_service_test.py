@@ -126,7 +126,7 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
           some_string: "test"
           # Some sub.
           # And some description.
-          some_sub:\u0020
+          some_sub:
             # Some arbitrary number.
             num: 32
         """

@@ -461,52 +461,52 @@ def test_yaml(person_model: Model) -> None:
     }
     assert person_kind.create_yaml(person) == dedent(
         """
-        # The name of the person.
-        name: "batman"
         # The address of the person.
-        address:\u0020
-          # The zip code.
-          zip: "134"
+        address:
           # The name of the city.
           # And another line.
           city: "gotham"
-          number: 123
           float: 1.2345
+          number: 123
+          # The zip code.
+          zip: "134"
         # The list of addresses.
-        addresses:\u0020
-          - # The zip code.
-            zip: "134"
-            # The name of the city.
+        addresses:
+          - # The name of the city.
             # And another line.
             city: "gotham"
-            number: 123
             float: 1.2345
-          - # The zip code.
+            number: 123
+            # The zip code.
             zip: "134"
-            # The name of the city.
+          - # The name of the city.
             # And another line.
             city: "gotham"
-            number: 123
             float: 1.2345
+            number: 123
+            # The zip code.
+            zip: "134"
+        # The name of the person.
+        name: "batman"
         # Other addresses.
-        other_addresses:\u0020
-          home:\u0020
-            # The zip code.
-            zip: "134"
+        other_addresses:
+          home:
             # The name of the city.
             # And another line.
             city: "gotham"
-            number: 123
             float: 1.2345
-          work:\u0020
+            number: 123
             # The zip code.
             zip: "134"
+          work:
             # The name of the city.
             # And another line.
             city: "gotham"
-            number: 123
             float: 1.2345
-        simple:\u0020
+            number: 123
+            # The zip code.
+            zip: "134"
+        simple:
           - 1
           - 2
           - 3

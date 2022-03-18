@@ -1,6 +1,5 @@
 import logging
 import re
-from argparse import Namespace
 from contextvars import ContextVar
 from re import RegexFlag
 from typing import Any, Dict
@@ -12,6 +11,7 @@ from aiohttp.web import middleware
 from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
+from resotocore.core_config import CoreConfig
 from resotocore.web import RequestHandler, Middleware
 
 log = logging.getLogger(__name__)
@@ -61,10 +61,10 @@ def check_jwt(psk: str) -> Middleware:
     return valid_jwt_handler
 
 
-def auth_handler(args: Namespace) -> Middleware:
-    if args.psk:
+def auth_handler(config: CoreConfig) -> Middleware:
+    if config.api.psk:
         log.info("Use JWT authentication with a pre shared key")
-        return check_jwt(args.psk)
+        return check_jwt(config.api.psk)
     else:
         log.info("No authentication requested.")
         return no_check

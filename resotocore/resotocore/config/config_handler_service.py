@@ -112,10 +112,12 @@ class ConfigHandlerService(ConfigHandler):
             model = await self.get_configs_model()
 
             yaml_str = ""
-            for key, value in config.config.items():
+            for num, (key, value) in enumerate(config.config.items()):
                 maybe_kind = model.get(key)
                 if isinstance(maybe_kind, ComplexKind):
                     part = maybe_kind.create_yaml(value, initial_level=1)
+                    if num > 0:
+                        yaml_str += "\n"
                     yaml_str += key + ":" + part
                 else:
                     yaml_str += yaml.dump({key: value})

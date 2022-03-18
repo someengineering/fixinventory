@@ -1,17 +1,17 @@
 from datetime import timedelta
+from typing import AsyncGenerator, List
 
 import pytest
-from argparse import Namespace
 from pytest import fixture
-from typing import AsyncGenerator, List
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
-from resotocore.dependencies import parse_args
+from resotocore.dependencies import empty_config
 from resotocore.error import ParseError
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
+from resotocore.task import TaskHandler
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -25,8 +25,16 @@ from resotocore.task.task_description import (
     Job,
     TaskSurpassBehaviour,
 )
-from resotocore.task import TaskHandler
 from resotocore.task.task_handler import TaskHandlerService
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.analytics import event_sender
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.cli.cli_test import cli, cli_deps
+
+# noinspection PyUnresolvedReferences
+from tests.resotocore.config.config_handler_service_test import config_handler
 from tests.resotocore.db.entitydb import InMemoryDb
 
 # noinspection PyUnresolvedReferences
@@ -41,25 +49,16 @@ from tests.resotocore.db.graphdb_test import (
 )
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.cli.cli_test import cli, cli_deps
+from tests.resotocore.db.runningtaskdb_test import running_task_db
 
 # noinspection PyUnresolvedReferences
 from tests.resotocore.message_bus_test import message_bus, all_events, wait_for_message
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.db.runningtaskdb_test import running_task_db
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
-
-# noinspection PyUnresolvedReferences
-from tests.resotocore.analytics import event_sender
-
-# noinspection PyUnresolvedReferences
 from tests.resotocore.query.template_expander_test import expander
 
 # noinspection PyUnresolvedReferences
-from tests.resotocore.config.config_handler_service_test import config_handler
+from tests.resotocore.worker_task_queue_test import worker, task_queue, performed_by, incoming_tasks
 
 
 @fixture
@@ -75,11 +74,6 @@ def job_db() -> JobDb:
 
 
 @fixture
-def task_handler_args() -> Namespace:
-    return parse_args()
-
-
-@fixture
 async def task_handler(
     running_task_db: RunningTaskDb,
     job_db: JobDb,
@@ -88,10 +82,10 @@ async def task_handler(
     subscription_handler: SubscriptionHandler,
     cli: CLI,
     test_workflow: Workflow,
-    task_handler_args: Namespace,
 ) -> AsyncGenerator[TaskHandlerService, None]:
+    config = empty_config()
     task_handler = TaskHandlerService(
-        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, task_handler_args
+        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, config
     )
     task_handler.task_descriptions = [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler
@@ -160,7 +154,6 @@ async def test_recover_workflow(
     subscription_handler: SubscriptionHandler,
     all_events: List[Message],
     cli: CLI,
-    task_handler_args: Namespace,
     test_workflow: Workflow,
 ) -> None:
     def handler() -> TaskHandlerService:
@@ -172,7 +165,7 @@ async def test_recover_workflow(
             subscription_handler,
             Scheduler(),
             cli,
-            task_handler_args,
+            empty_config(),
         )
         th.task_descriptions = [test_workflow]
         return th

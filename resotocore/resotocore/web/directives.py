@@ -1,5 +1,4 @@
 import logging
-from argparse import Namespace
 from re import RegexFlag, fullmatch
 from typing import Optional, Callable, Awaitable
 
@@ -12,6 +11,7 @@ from aiohttp.web_response import StreamResponse
 
 from resotocore import version
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
+from resotocore.core_config import CoreConfig
 from resotocore.error import NotFoundError, ClientError
 from resotocore.metrics import RequestInProgress, RequestLatency, RequestCount, perf_now
 from resotocore.web import RequestHandler, api  # pylint: disable=unused-import # prevent circular import
@@ -74,9 +74,9 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
 
 
 def error_handler(
-    args: Namespace, event_sender: AnalyticsEventSender
+    config: CoreConfig, event_sender: AnalyticsEventSender
 ) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
-    is_debug = (logging.root.level < logging.INFO) or args.debug
+    is_debug = (logging.root.level < logging.INFO) or config.runtime.debug
 
     def exc_info(ex: Exception) -> Optional[Exception]:
         return ex if is_debug else None

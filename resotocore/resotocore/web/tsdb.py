@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 # Proxy request to configured tsdb endpoint
 def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse]]:
     async def proxy_request(request: Request) -> StreamResponse:
-        if api_handler.args.tsdb_proxy_url:
+        if api_handler.config.api.tsdb_proxy_url:
             if api_handler.session is None:
                 api_handler.session = ClientSession()
 
@@ -20,7 +20,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
             # since we stream the content (chunked), we are not allowed to set the content length.
             in_headers.popall("Content-Length", "none")
             in_headers.popall("Content-Encoding", "none")
-            url = f'{api_handler.args.tsdb_proxy_url}/{request.match_info["tail"]}'
+            url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
             async with api_handler.session.request(
                 request.method,
                 url,

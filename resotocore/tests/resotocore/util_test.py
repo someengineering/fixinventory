@@ -14,6 +14,7 @@ from resotocore.util import (
     set_value_in_path,
     rnd_str,
     del_value_in_path,
+    deep_merge,
 )
 
 
@@ -104,3 +105,9 @@ async def test_async_gen() -> None:
 
     async with stream.iterate(range(0, 100)).stream() as elems:
         assert [x async for x in await force_gen(elems)] == list(range(0, 100))
+
+
+def test_deep_merge() -> None:
+    l = {"a": {"b": 1, "d": 2}, "d": 2, "e": 4}
+    r = {"a": {"c": 1, "d": 3}, "d": 1}
+    assert deep_merge(l, r) == {"a": {"b": 1, "c": 1, "d": 3}, "d": 1, "e": 4}
