@@ -4,7 +4,7 @@ import resotolib.signal
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
-from resotolib.core import add_args as resotocore_add_args
+from resotolib.core import add_args as resotocore_add_args, resotocore
 from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
@@ -50,7 +50,7 @@ def main() -> None:
     jwt_add_args(arg_parser)
     arg_parser.parse_args()
 
-    config = Config("resoto.metrics", resotocore_uri=ArgumentParser.args.resotocore_uri)
+    config = Config("resoto.metrics", resotocore_uri=resotocore.http_uri)
     WebServer.add_config(config)
     WebApp.add_config(config)
     config.add_config(ResotoMetricsConfig)
@@ -60,16 +60,15 @@ def main() -> None:
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
-    base_uri = ArgumentParser.args.resotocore_uri.strip("/")
     resotocore_graph = Config.resotometrics.resotocore_graph
-    graph_uri = f"{base_uri}/graph/{resotocore_graph}"
+    graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
     message_processor = partial(core_actions_processor, metrics, query_uri)
     core_actions = CoreActions(
         identifier="resotometrics",
-        resotocore_uri=ArgumentParser.args.resotocore_uri,
-        resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
+        resotocore_uri=resotocore.http_uri,
+        resotocore_ws_uri=resotocore.ws_uri,
         actions={
             "generate_metrics": {
                 "timeout": Config.resotometrics.timeout,

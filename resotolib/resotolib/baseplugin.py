@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from resotolib.graph import Graph
+from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.args import ArgumentParser
 from resotolib.logging import log, setup_logger
@@ -147,8 +148,8 @@ class BaseActionPlugin(ABC, Process):
     def go(self) -> None:
         core_actions = CoreActions(
             identifier=f"{ArgumentParser.args.resotocore_subscriber_id}-actions-{self.action}-{self.name}",
-            resotocore_uri=ArgumentParser.args.resotocore_uri,
-            resotocore_ws_uri=ArgumentParser.args.resotocore_ws_uri,
+            resotocore_uri=resotocore.http_uri,
+            resotocore_ws_uri=resotocore.ws_uri,
             actions={
                 self.action: {
                     "timeout": self.timeout,
