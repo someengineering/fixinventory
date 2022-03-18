@@ -126,7 +126,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
     )
-    core_config_handler = CoreConfigHandler(config, message_bus, config_handler)
+    core_config_handler = CoreConfigHandler(config, message_bus, worker_task_queue, config_handler)
     cli_deps.extend(task_handler=task_handler)
     api = Api(
         db,

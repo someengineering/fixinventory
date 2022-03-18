@@ -9,6 +9,7 @@ from resotocore.core_config import (
     GraphUpdateConfig,
     RuntimeConfig,
     config_model,
+    EditableConfig,
 )
 from resotocore.dependencies import parse_args
 
@@ -42,6 +43,25 @@ def test_override_via_cmd_line(default_config: CoreConfig) -> None:
     parsed = parse_config(parse_args(["--host", "4.3.2.1", "--port", "4321"]), config)
     assert parsed.api.hosts == ["4.3.2.1"]
     assert parsed.api.port == 4321
+
+
+# noinspection PyTypeChecker
+def test_validate() -> None:
+    assert EditableConfig().validate() is None
+    assert EditableConfig(api=ApiConfig(ui_path=True)).validate() == {  # type: ignore
+        "api": [{"ui_path": ["must be of string type"]}]
+    }
+    assert EditableConfig(api=ApiConfig(ui_path="does not exist")).validate() == {
+        "api": [{"ui_path": ["Path does not exist: does not exist"]}]
+    }
+    assert EditableConfig(api=ApiConfig(ui_path="does not exist", tsdb_proxy_url="wrong")).validate() == {
+        "api": [
+            {
+                "tsdb_proxy_url": ["url is missing scheme", "url is missing host"],
+                "ui_path": ["Path does not exist: does not exist"],
+            }
+        ]
+    }
 
 
 def test_model() -> None:

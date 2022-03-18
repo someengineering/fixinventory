@@ -4,11 +4,13 @@ from datetime import timedelta
 from typing import Optional, List, ClassVar
 
 from arango.database import StandardDatabase
+from cerberus import schema_registry
 from resotolib.graph import dataclasses_to_resotocore_model
 
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 from resotocore.util import set_value_in_path
+from resotocore.validator import Validator, schema_name
 
 ResotoCoreConfigId = "resoto.core"
 ResotoCoreRoot = "resotocore"
@@ -31,6 +33,16 @@ class ApiConfig:
         metadata={"description": "The directory where the UI is installed. This directory will be served under "},
     )
     psk: Optional[str] = field(default=None, metadata={"description": "The pre-shared key to use."})
+
+
+# Define rules to validate this config
+schema_registry.add(
+    schema_name(ApiConfig),
+    dict(
+        tsdb_proxy_url={"type": "string", "nullable": True, "is_url": True},
+        ui_path={"type": "string", "nullable": True, "path_exists": True},
+    ),
+)
 
 
 @dataclass()
@@ -72,6 +84,10 @@ class CLIConfig:
     )
 
 
+# Define rules to validate this config
+schema_registry.add(schema_name(CLIConfig), {})
+
+
 @dataclass()
 class GraphUpdateConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_graph_update_config"
@@ -90,6 +106,16 @@ class GraphUpdateConfig:
         return timedelta(seconds=self.abort_after_seconds)
 
 
+# Define rules to validate this config
+schema_registry.add(
+    schema_name(GraphUpdateConfig),
+    dict(
+        merge_max_wait_time_seconds={"type": "integer", "min": 60},
+        abort_after_seconds={"type": "integer", "min": 60},
+    ),
+)
+
+
 @dataclass()
 class RuntimeConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_runtime_config"
@@ -104,6 +130,13 @@ class RuntimeConfig:
         default=False,
         metadata={"description": "Start the collect workflow, when the first handling actor connects to the system."},
     )
+
+
+# Define rules to validate this config
+schema_registry.add(
+    schema_name(RuntimeConfig),
+    dict(log_level={"type": "string", "allowed": ["critical", "fatal", "error", "warn", "warning", "info", "debug"]}),
+)
 
 
 @dataclass()
@@ -143,9 +176,31 @@ class EditableConfig:
         metadata={"description": "Runtime related properties."},
     )
 
+    def validate(self) -> Optional[Json]:
+        return self.validate_config(to_js(self))
+
+    @staticmethod
+    def validate_config(config: Json) -> Optional[Json]:
+        v = Validator(schema="EditableConfig", allow_unknown=True)
+        result = v.validate(config, normalize=False)
+        return None if result else v.errors
+
 
 def config_model() -> List[Json]:
     return dataclasses_to_resotocore_model({EditableConfig})  # type: ignore
+
+
+# Define rules to validate this config
+# Note: since validation rules do not cover all attributes, we allow unknown properties explicitly.
+schema_registry.add(
+    schema_name(EditableConfig),
+    dict(
+        api={"schema": schema_name(ApiConfig), "allow_unknown": True},
+        cli={"schema": schema_name(CLIConfig), "allow_unknown": True},
+        graph_update={"schema": schema_name(GraphUpdateConfig), "allow_unknown": True},
+        runtime={"schema": schema_name(RuntimeConfig), "allow_unknown": True},
+    ),
+)
 
 
 def parse_config(args: Namespace, json_config: Json) -> CoreConfig:

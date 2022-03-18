@@ -9,6 +9,8 @@ from resotocore.core_config import ResotoCoreConfigId
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 
+from resotocore.worker_task_queue import WorkerTaskQueue
+
 # noinspection PyUnresolvedReferences
 from tests.resotocore.message_bus_test import message_bus
 
@@ -22,12 +24,14 @@ config_handler_exits = []
 
 
 @fixture
-def core_config_handler(message_bus: MessageBus, config_handler: ConfigHandler) -> CoreConfigHandler:
+def core_config_handler(
+    message_bus: MessageBus, task_queue: WorkerTaskQueue, config_handler: ConfigHandler
+) -> CoreConfigHandler:
     def on_exit() -> None:
         config_handler_exits.append(True)
 
     config = empty_config()
-    return CoreConfigHandler(config, message_bus, config_handler, on_exit)
+    return CoreConfigHandler(config, message_bus, task_queue, config_handler, on_exit)
 
 
 @pytest.mark.asyncio
