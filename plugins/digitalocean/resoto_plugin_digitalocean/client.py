@@ -135,7 +135,9 @@ class StreamingWrapper:
             except EndpointConnectionError:
                 return []
             except Exception as e:
-                log.warning(f"Unknown exception when listing spaces, skipping. Exception: {e}")
+                log.warning(
+                    f"Unknown exception when listing spaces, skipping. Exception: {e}"
+                )
                 return []
         else:
             return []
