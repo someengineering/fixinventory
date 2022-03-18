@@ -375,9 +375,15 @@ jobs:
           file="resoto.com/news/$(date +'%Y-%m-%d')-v${tags[0]}.md"
           link="https://resoto.com/news/$(date +'%Y/%m/%d')/v${tags[0]}"
           python tools/release_notes.py ${tags[1]} ${tags[0]} > $file
+          cp resotocore/core/static/api-doc.yaml resoto.com/openapi/resotocore.yml
           echo ::set-output name=tag::${tags[0]}
           echo ::set-output name=file::$file
           echo ::set-output name=link::$link
+
+      - name: Modify resotocore API YAML
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v3
