@@ -139,13 +139,9 @@ class Api:
         self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
         ui_route = (
-            [
-                web.get("/ui", self.forward("/ui/index.html")),
-                web.get("/ui/", self.forward("/ui/index.html")),
-                web.static("/ui/", self.config.api.ui_path),
-            ]
-            if self.config.api.ui_path
-            else []
+            [web.static("/ui/", self.config.api.ui_path)]
+            if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
+            else [web.get("/ui/index.html", self.no_ui)]
         )
         tsdb_route = [web.route(METH_ANY, "/tsdb/{tail:.+}", tsdb(self))] if self.config.api.tsdb_proxy_url else []
         self.app.add_routes(
@@ -228,6 +224,10 @@ class Api:
                 # system operations
                 web.get("/system/ping", self.ping),
                 web.get("/system/ready", self.ready),
+                # forwards
+                web.get("/tsdb", self.forward("/tsdb/")),
+                web.get("/ui", self.forward("/ui/index.html")),
+                web.get("/ui/", self.forward("/ui/index.html")),
                 *ui_route,
                 *tsdb_route,
             ]
@@ -715,6 +715,14 @@ class Api:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         async with await graph_db.search_aggregation(query_model) as gen:
             return await self.stream_response_from_gen(request, gen)
+
+    @staticmethod
+    async def no_ui(_: Request) -> StreamResponse:
+        return HTTPNotFound(
+            text="The UI has not been configured and is not available. "
+            "Please revisit your configuration (e.g. using the CLI command `config edit resoto.core`) "
+            "and check the key: `api.ui_path`"
+        )
 
     async def wipe(self, request: Request) -> StreamResponse:
         graph_id = request.match_info.get("graph_id", "resoto")
