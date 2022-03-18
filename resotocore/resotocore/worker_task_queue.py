@@ -134,7 +134,7 @@ class WorkerTaskQueue:
         async with self.lock:
             await self.__add_task(task, retry_count)
 
-    async def acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json]) -> None:
+    async def acknowledge_task(self, worker_id: str, task_id: str, result: Optional[Json] = None) -> None:
         async with self.lock:
             await self.__acknowledge_task(worker_id, task_id, result)
 

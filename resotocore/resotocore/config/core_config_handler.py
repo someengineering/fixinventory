@@ -49,13 +49,12 @@ class CoreConfigHandler:
                         if errors:
                             message = "Validation Errors:\n" + yaml.safe_dump(errors)
                             await self.worker_task_queue.error_task(worker_id, task.id, message)
-                            continue
                         else:
                             await self.worker_task_queue.acknowledge_task(worker_id, task.id)
-                            continue
+                        continue
                 except Exception as ex:
                     log.warning("Error processing validate configuration task", exc_info=ex)
-                await self.worker_task_queue.error_task(worker_id, task.id, str(ex))
+                await self.worker_task_queue.error_task(worker_id, task.id, "Failing to process the task!")
 
     async def __handle_events(self) -> None:
         async with self.message_bus.subscribe("resotocore_config_update", [CoreMessage.ConfigUpdated]) as events:
