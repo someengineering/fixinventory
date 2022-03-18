@@ -37,9 +37,6 @@ def _load_default_metrics() -> Dict[str, Metric]:
 @dataclass
 class ResotoMetricsConfig:
     kind: ClassVar[str] = "resotometrics"
-    resotocore_uri: Optional[str] = field(
-        default="http://localhost:8900", metadata={"description": "Resotocore URI"}
-    )
     resotocore_graph: Optional[str] = field(
         default="resoto", metadata={"description": "Resotocore graph"}
     )
@@ -50,23 +47,3 @@ class ResotoMetricsConfig:
         default_factory=_load_default_metrics,
         metadata={"description": "Metrics config"},
     )
-
-    @property
-    def resotocore_http_uri(self) -> str:
-        o = urlparse(self.resotocore_uri)
-        return f"http://{o.netloc}"
-
-    @property
-    def resotocore_https_uri(self) -> str:
-        o = urlparse(self.resotocore_uri)
-        return f"https://{o.netloc}"
-
-    @property
-    def resotocore_ws_uri(self) -> str:
-        o = urlparse(self.resotocore_uri)
-        return f"ws://{o.netloc}"
-
-    @property
-    def resotocore_wss_uri(self) -> str:
-        o = urlparse(self.resotocore_uri)
-        return f"wss://{o.netloc}"

@@ -4,6 +4,7 @@ import resotolib.signal
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.config import Config
+from resotolib.core import add_args as resotocore_add_args
 from .config import ResotoMetricsConfig
 from functools import partial
 from resotolib.core.actions import CoreActions
@@ -44,14 +45,14 @@ def main() -> None:
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
     Config.add_args(arg_parser)
-    add_args(arg_parser)
+    resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
-    WebServer.add_args(arg_parser)
-    WebApp.add_args(arg_parser)
     arg_parser.parse_args()
 
     config = Config("resoto.metrics", resotocore_uri=ArgumentParser.args.resotocore_uri)
+    WebServer.add_config(config)
+    WebApp.add_config(config)
     config.add_config(ResotoMetricsConfig)
     config.load_config()
 
@@ -168,34 +169,6 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             log.error(e)
             continue
     metrics.swap()
-
-
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--resotocore-uri",
-        help="resotocore URI (default: http://localhost:8900)",
-        default="http://localhost:8900",
-        dest="resotocore_uri",
-    )
-    arg_parser.add_argument(
-        "--resotocore-ws-uri",
-        help="resotocore Websocket URI (default: ws://localhost:8900)",
-        default="ws://localhost:8900",
-        dest="resotocore_ws_uri",
-    )
-    arg_parser.add_argument(
-        "--resotocore-graph",
-        help="resotocore graph name (default: resoto)",
-        default="resoto",
-        dest="resotocore_graph",
-    )
-    arg_parser.add_argument(
-        "--timeout",
-        help="Metrics generation timeout in seconds (default: 300)",
-        default=300,
-        dest="timeout",
-        type=int,
-    )
 
 
 if __name__ == "__main__":

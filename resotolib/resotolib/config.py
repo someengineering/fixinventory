@@ -80,6 +80,13 @@ class Config(metaclass=MetaConfig):
                 config, new_config_revision = get_config(
                     self.config_name, self.resotocore_uri
                 )
+                if len(config) == 0:
+                    if self._initial_load:
+                        raise ConfigNotFoundError(
+                            "Empty config returned - loading defaults"
+                        )
+                    else:
+                        raise ValueError("Empty config returned")
             except ConfigNotFoundError:
                 for config_id, config_data in _config.classes.items():
                     _config.data[config_id] = config_data()
@@ -168,6 +175,6 @@ class Config(metaclass=MetaConfig):
             help="Override config attribute(s)",
             dest="config_override",
             type=str,
-            default=None,
+            default=[],
             nargs="+",
         )

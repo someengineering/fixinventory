@@ -1,6 +1,9 @@
+from dataclasses import dataclass, field
+from typing import ClassVar, Optional
 import threading
 import cherrypy
 from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.logging import log
 
 
@@ -39,8 +42,8 @@ class WebServer(threading.Thread):
             {
                 "global": {
                     "engine.autoreload.on": False,
-                    "server.socket_host": ArgumentParser.args.web_host,
-                    "server.socket_port": ArgumentParser.args.web_port,
+                    "server.socket_host": Config.webserver.web_host,
+                    "server.socket_port": Config.webserver.web_port,
                     "log.screen": False,
                     "log.access_file": "",
                     "log.error_file": "",
@@ -60,18 +63,14 @@ class WebServer(threading.Thread):
         cherrypy.engine.exit()
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--web-port",
-            help="Web Port (default 9955)",
-            default=9955,
-            dest="web_port",
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--web-host",
-            help="IP to bind to (default: ::)",
-            default="::",
-            dest="web_host",
-            type=str,
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(WebServerConfig)
+
+
+@dataclass
+class WebServerConfig:
+    kind: ClassVar[str] = "webserver"
+    web_host: Optional[str] = field(
+        default="::", metadata={"description": "IP to bind to"}
+    )
+    web_port: Optional[int] = field(default=9955, metadata={"description": "Web Port"})

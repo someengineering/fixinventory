@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+from typing import ClassVar, Optional
 import sys
 import os
 from logging import (
@@ -32,6 +34,21 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="quiet",
         action="store_true",
         default=False,
+    )
+
+
+def add_config(config) -> None:
+    config.add_config(LoggingConfig)
+
+
+@dataclass
+class LoggingConfig:
+    kind: ClassVar[str] = "logging"
+    verbose: Optional[bool] = field(
+        default=False, metadata={"description": "Verbose logging"}
+    )
+    quiet: Optional[bool] = field(
+        default=False, metadata={"description": "Only log errors"}
     )
 
 
