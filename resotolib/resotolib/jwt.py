@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import os
 import jwt
 import base64
