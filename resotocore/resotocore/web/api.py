@@ -31,6 +31,7 @@ from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
+from aiohttp.web_routedef import AbstractRouteDef
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream.core import Stream
 from networkx.readwrite import cytoscape_data
@@ -138,7 +139,7 @@ class Api:
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future, web.WebSocketResponse]] = {}  # type: ignore # pypy
         static_path = os.path.abspath(os.path.dirname(__file__) + "/../static")
-        ui_route = (
+        ui_route: List[AbstractRouteDef] = (
             [web.static("/ui/", self.config.api.ui_path)]
             if self.config.api.ui_path and Path(self.config.api.ui_path).exists()
             else [web.get("/ui/index.html", self.no_ui)]
