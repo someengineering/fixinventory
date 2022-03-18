@@ -131,7 +131,7 @@ class StreamingWrapper:
 
                 return client.list_buckets().get("Buckets", [])
             except HTTPClientError:
-                raise RetryableHttpError("Failed to list buckets")
+                raise RetryableHttpError("DO Spaces: Too many requests")
             except EndpointConnectionError:
                 return []
             except Exception as e:
