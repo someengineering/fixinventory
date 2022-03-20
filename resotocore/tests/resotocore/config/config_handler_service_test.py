@@ -97,7 +97,7 @@ async def test_config_validation(config_handler: ConfigHandler, config_model: Li
     invalid_config = {"section": {"some_number": "no number"}}
     with pytest.raises(AttributeError) as reason:
         await config_handler.put_config(ConfigEntity("invalid_config", invalid_config))
-    assert "some_number is not valid: Expected number but got no number" in str(reason.value)
+    assert "some_number is not valid: Expected int32 but got no number" in str(reason.value)
 
     # External validation turned on: config with name "invalid_config" is rejected by the configured worker
     await config_handler.put_config_validation(ConfigValidation("invalid_config", True))

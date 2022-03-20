@@ -182,7 +182,12 @@ class Kind(ABC):
 
     @abstractmethod
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        pass
+        """
+        Validate given object against definition:
+        - if obj is valid: return None
+        - if obj is not valid and can be coerced: return the coerced value.
+        - if obj is not valid and can not be coerced: raise an exception
+        """
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         pass
@@ -321,7 +326,16 @@ class StringKind(SimpleKind):
         )
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        return self.valid_fn(obj)
+        if obj is None:
+            return None
+        elif isinstance(obj, str):
+            return self.valid_fn(obj)
+        coerced = self.coerce(obj)
+        if coerced is not None:
+            self.valid_fn(coerced)
+            return coerced
+        else:
+            raise AttributeError(f"Expected type {self.runtime_kind} but got {type(obj).__name__}")
 
     def coerce(self, value: Any) -> Optional[str]:
         if value is None:
@@ -372,7 +386,16 @@ class NumberKind(SimpleKind):
             raise AttributeError(f"Expected number but got {obj}")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        return self.valid_fn(obj)
+        if obj is None:
+            return None
+        elif isinstance(obj, (int, float)):
+            return self.valid_fn(obj)
+        coerced = self.coerce(obj)
+        if coerced is not None:
+            self.valid_fn(coerced)
+            return coerced
+        else:
+            raise AttributeError(f"Expected type {self.runtime_kind} but got {type(obj).__name__}")
 
     def coerce(self, value: object) -> Optional[Union[int, float]]:
         if value is None:
@@ -380,7 +403,10 @@ class NumberKind(SimpleKind):
         elif isinstance(value, (int, float)):
             return value
         else:
-            return float(value)  # type: ignore
+            try:
+                return int(value) if self.runtime_kind in ("int32", "int64") else float(value)  # type: ignore
+            except ValueError as ex:
+                raise AttributeError(f"Expected {self.runtime_kind} but got {value}") from ex
 
     def as_json(self) -> Json:
         js = super().as_json()
@@ -399,15 +425,25 @@ class BooleanKind(SimpleKind):
         self.valid_fn = check_type_fn(bool, "boolean")
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
-        return self.valid_fn(obj)
+        if obj is True or obj is False or obj is None:
+            return None
+        coerced = self.coerce(obj)
+        if coerced is not None:
+            return coerced
+        else:
+            raise AttributeError(f"Expected type boolean but got {type(obj).__name__}")
 
     def coerce(self, value: Any) -> Optional[bool]:
         if value is None:
             return value
         elif isinstance(value, bool):
             return value
+        elif isinstance(value, str) and value.lower() in ("true", "yes", "on"):
+            return True
+        elif isinstance(value, str) and value.lower() in ("false", "no", "off"):
+            return False
         else:
-            return str(value).lower() == "true"
+            raise AttributeError(f"Expected boolean but got {value}")
 
 
 class DurationKind(SimpleKind):
@@ -612,7 +648,7 @@ class ArrayKind(Kind):
                 return item
             else:
                 has_coerced = True
-                return res.value
+                return res
 
         mapped = [check(elem) for elem in obj]
         return mapped if has_coerced else None
@@ -630,15 +666,20 @@ class DictionaryKind(Kind):
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
+            coerced = obj.copy()
+            has_coerced = False
             for prop, value in obj.items():
                 part = "key"
                 try:
-                    self.key_kind.check_valid(prop)
+                    ck = self.key_kind.check_valid(prop)
                     part = "value"
-                    self.value_kind.check_valid(value)
+                    cv = self.value_kind.check_valid(value)
+                    if ck is not None or cv is not None:
+                        has_coerced = True
+                        coerced[ck or prop] = cv or value
                 except Exception as at:
                     raise AttributeError(f"{part} of {self.fqn} is not valid: {at}") from at
-            return None
+            return coerced if has_coerced else None
         else:
             raise AttributeError(f"dictionary requires a json object, but got this: {obj}")
 

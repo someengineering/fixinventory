@@ -54,8 +54,12 @@ class Shell:
             # define content-type
             headers["Content-Type"] = content_type
             # sign request
+            headers.clear()
             if ArgumentParser.args.psk:
-                encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
+                encode_jwt_to_headers(
+                    headers, {}, ArgumentParser.args.psk, expire_in=604800
+                )
+                print(headers)
 
             body: Optional[Any] = None
             if isinstance(data, bytes):
