@@ -57,6 +57,8 @@ from resotocore.cli.model import (
     CLIDependencies,
     ParsedCommand,
     NoTerminalOutput,
+    AliasTemplate,
+    AliasTemplateParameter,
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
@@ -3556,7 +3558,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return commands
 
 
-def aliases() -> Dict[str, str]:
+def alias_names() -> Dict[str, str]:
     # command alias -> command name
     return {
         "match": "search",
@@ -3574,3 +3576,29 @@ def aliases() -> Dict[str, str]:
         "template": "templates",
         "workflow": "workflows",
     }
+
+
+def alias_templates() -> List[AliasTemplate]:
+    return [
+        AliasTemplate(
+            "discord",
+            "Send result of a search to discord",
+            # defines the fields to show in the message
+            "jq {name:{{key}}, value:{{value}}} | "
+            # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+            "chunk 25 | "
+            # define the discord webhook json
+            'jq {content: "{{message}}", embeds: [{title: "{{title}}", fields:.}]} | '
+            # call the api
+            "http POST {{discord_endpoint}}/{{webhook_id}}/{{access_token}}",
+            [
+                AliasTemplateParameter("key", "The field of the resource to show as key", ".kind"),
+                AliasTemplateParameter("value", "The field of the resource to show as value", ".name"),
+                AliasTemplateParameter("message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"),
+                AliasTemplateParameter("title", "The title of the post."),
+                AliasTemplateParameter("webhook_id", "The id of the discord webhook."),
+                AliasTemplateParameter("access_token", "The access token to call this webhook."),
+                AliasTemplateParameter("discord_endpoint", "The url to call.", "https://discord.com/api/webhooks"),
+            ],
+        )
+    ]

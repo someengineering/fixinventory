@@ -18,7 +18,7 @@ from resotocore.analytics import CoreEvent, NoEventSender
 from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import aliases, all_commands
+from resotocore.cli.command import alias_names, all_commands, alias_templates
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -121,7 +121,7 @@ def with_config(created: bool, system_data: SystemData, sdb: StandardDatabase, c
         config_handler=config_handler,
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
-    cli = CLI(cli_deps, all_commands(cli_deps), default_env, aliases())
+    cli = CLI(cli_deps, all_commands(cli_deps), default_env, alias_names(), alias_templates())
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandlerService(
         db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config

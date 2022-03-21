@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from asyncio import Queue, Task, iscoroutine
 from dataclasses import dataclass, field
 from enum import Enum
+from operator import attrgetter
+from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
 
 from aiohttp import ClientSession, TCPConnector
@@ -25,7 +27,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
-from resotocore.query.template_expander import TemplateExpander
+from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson
@@ -309,6 +311,60 @@ class CLICommand(ABC):
     @abstractmethod
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplateParameter:
+    name: str
+    description: str
+    default: Optional[JsonElement] = None
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplate:
+    name: str
+    info: str
+    template: str
+    args: List[AliasTemplateParameter] = field(default_factory=list)
+
+    def render(self, props: Json) -> str:
+        return render_template(self.template, props)
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        args = ", ".join(f"{arg.name}=<value>" for arg in self.args)
+
+        def param_info(p: AliasTemplateParameter) -> str:
+            default = f" [default: {p.default}]" if p.default else ""
+            return f"- `{p.name}`{default}: {p.description}"
+
+        indent = "                "
+        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.args, key=attrgetter("name")))
+        minimal = ", ".join(f"{p.name}=\"{p.default or 'test_'+p.name}\"" for p in self.args if p.default is None)
+        return ctx.render_console(
+            dedent(
+                f"""
+                {self.name}: {self.info}
+                ```shell
+                {self.name} {args}
+                ```
+                ## Parameters
+                {arg_info}
+
+                ## Template
+                ```shell
+                > {self.template}
+                ```
+
+                ## Example
+                ```shell
+                # Executing this alias template
+                > {self.name} {minimal}
+                # Will expand to this command
+                > {self.render({p.name: p.default or "test_"+p.name for p in self.args})}
+                ```
+                """
+            )
+        )
 
 
 class InternalPart(ABC):

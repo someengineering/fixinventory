@@ -39,7 +39,7 @@ from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, all_commands, aliases
+from resotocore.cli.command import ListCommand, all_commands, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -740,7 +740,7 @@ class Api:
 
         commands = [cmd_json(cmd) for cmd in all_commands(self.cli.dependencies) if not isinstance(cmd, InternalPart)]
         replacements = self.cli.replacements()
-        return web.json_response({"commands": commands, "replacements": replacements, "aliases": aliases()})
+        return web.json_response({"commands": commands, "replacements": replacements, "alias_names": alias_names()})
 
     @staticmethod
     def cli_context_from_request(request: Request) -> CLIContext:
