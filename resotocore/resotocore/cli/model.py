@@ -330,7 +330,7 @@ class AliasTemplate:
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
 
-    def rendered_help(self, ctx: CLIContext) -> str:
+    def help(self) -> str:
         args = ", ".join(f"{arg.name}=<value>" for arg in self.args)
 
         def param_info(p: AliasTemplateParameter) -> str:
@@ -340,9 +340,8 @@ class AliasTemplate:
         indent = "                "
         arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.args, key=attrgetter("name")))
         minimal = ", ".join(f"{p.name}=\"{p.default or 'test_'+p.name}\"" for p in self.args if p.default is None)
-        return ctx.render_console(
-            dedent(
-                f"""
+        return dedent(
+            f"""
                 {self.name}: {self.info}
                 ```shell
                 {self.name} {args}
@@ -363,8 +362,10 @@ class AliasTemplate:
                 > {self.render({p.name: p.default or "test_"+p.name for p in self.args})}
                 ```
                 """
-            )
         )
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        return ctx.render_console(self.help())
 
 
 class InternalPart(ABC):
