@@ -3590,15 +3590,13 @@ def alias_templates() -> List[AliasTemplate]:
             # define the discord webhook json
             'jq {content: "{{message}}", embeds: [{title: "{{title}}", fields:.}]} | '
             # call the api
-            "http POST {{discord_endpoint}}/{{webhook_id}}/{{access_token}}",
+            "http POST {{webhook}}",
             [
                 AliasTemplateParameter("key", "The field of the resource to show as key", ".kind"),
                 AliasTemplateParameter("value", "The field of the resource to show as value", ".name"),
                 AliasTemplateParameter("message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"),
                 AliasTemplateParameter("title", "The title of the post."),
-                AliasTemplateParameter("webhook_id", "The id of the discord webhook."),
-                AliasTemplateParameter("access_token", "The access token to call this webhook."),
-                AliasTemplateParameter("discord_endpoint", "The url to call.", "https://discord.com/api/webhooks"),
+                AliasTemplateParameter("webhook", "The complete webhook url."),
             ],
         )
     ]

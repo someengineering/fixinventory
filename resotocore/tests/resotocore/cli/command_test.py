@@ -800,7 +800,7 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
-        f'search is(bla) | discord discord_endpoint="http://localhost:{port}" title=test, webhook_id=a, access_token=b',
+        f'search is(bla) | discord webhook="http://localhost:{port}/success" title=test',
         stream.list,
     )
     # 100 times bla, discord allows 25 fields -> 4 requests
