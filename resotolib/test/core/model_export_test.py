@@ -17,14 +17,9 @@ from resotolib.core.model_export import (
 
 
 class ExampleEnum(Enum):
-    Moon = "moon"
-    Sun = "sun"
-    Earth = "earth"
-
-
-class IntEnum(Enum):
-    T1 = 1
-    T2 = "test"
+    moon = "moon"
+    sun = "sun"
+    earth = "earth"
 
 
 @dataclass
@@ -121,9 +116,6 @@ def test_enum_to_model() -> None:
             "enum": ["moon", "sun", "earth"],
         }
     ]
-    with raises(Exception) as ex:
-        dataclasses_to_resotocore_model({IntEnum})
-    assert str(ex.value) == "Enum should use string values! Got: 1"
 
 
 def test_dataclasses_to_resotocore_model() -> None:
