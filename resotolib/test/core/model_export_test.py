@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Union, ClassVar
-from pytest import raises
 
 from resotolib.core.model_export import (
     is_collection,
