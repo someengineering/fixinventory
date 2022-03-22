@@ -44,13 +44,16 @@ def main() -> None:
     arg_parser = ArgumentParser(
         description="resoto metrics exporter", env_args_prefix="RESOTOMETRICS_"
     )
+    add_args(arg_parser)
     Config.add_args(arg_parser)
     resotocore_add_args(arg_parser)
     logging_add_args(arg_parser)
     jwt_add_args(arg_parser)
     arg_parser.parse_args()
 
-    config = Config("resoto.metrics", resotocore_uri=resotocore.http_uri)
+    config = Config(
+        ArgumentParser.args.subscriber_id, resotocore_uri=resotocore.http_uri
+    )
     WebServer.add_config(config)
     WebApp.add_config(config)
     config.add_config(ResotoMetricsConfig)
@@ -60,13 +63,13 @@ def main() -> None:
     graph_collector = GraphCollector(metrics)
     REGISTRY.register(graph_collector)
 
-    resotocore_graph = Config.resotometrics.resotocore_graph
+    resotocore_graph = Config.resotometrics.graph
     graph_uri = f"{resotocore.http_uri}/graph/{resotocore_graph}"
     query_uri = f"{graph_uri}/query/aggregate?section=reported"
 
     message_processor = partial(core_actions_processor, metrics, query_uri)
     core_actions = CoreActions(
-        identifier="resotometrics",
+        identifier=ArgumentParser.args.subscriber_id,
         resotocore_uri=resotocore.http_uri,
         resotocore_ws_uri=resotocore.ws_uri,
         actions={
@@ -168,6 +171,16 @@ def update_metrics(metrics: Metrics, query_uri: str) -> None:
             log.error(e)
             continue
     metrics.swap()
+
+
+def add_args(arg_parser: ArgumentParser) -> None:
+    arg_parser.add_argument(
+        "--subscriber-id",
+        help="Unique subscriber ID (default: resotometrics)",
+        default="resotometrics",
+        dest="subscriber_id",
+        type=str,
+    )
 
 
 if __name__ == "__main__":

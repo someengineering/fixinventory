@@ -6,6 +6,8 @@ from resotolib.args import ArgumentParser
 from resotolib.logging import log
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.graph import Graph, GraphExportIterator
+from resotolib.config import Config
+from resotolib.core import resotocore
 
 
 def send_to_resotocore(graph: Graph):
@@ -14,16 +16,20 @@ def send_to_resotocore(graph: Graph):
 
     log.info("resotocore Event Handler called")
 
-    base_uri = ArgumentParser.args.resotocore_uri.strip("/")
-    resotocore_graph = ArgumentParser.args.resotocore_graph
-    dump_json = ArgumentParser.args.debug_dump_json
-    tempdir = ArgumentParser.args.tempdir
+    base_uri = resotocore.http_uri
+    resotocore_graph = Config.resotoworker.resotocore_graph
+    dump_json = Config.resotoworker.dump_json
+    tempdir = Config.resotoworker.tempdir
+    graph_merge_kind = Config.resotoworker.graph_merge_kind
 
     create_graph(base_uri, resotocore_graph)
     update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir)
 
     graph_export_iterator = GraphExportIterator(
-        graph, delete_tempfile=not dump_json, tempdir=tempdir
+        graph,
+        delete_tempfile=not dump_json,
+        tempdir=tempdir,
+        graph_merge_kind=graph_merge_kind,
     )
     #  The graph is not required any longer and can be released.
     del graph
@@ -107,19 +113,3 @@ def send_graph(
         raise RuntimeError(f"Failed to send graph: {r.content}")
     log.debug(f"resotocore reply: {r.content.decode()}")
     log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")
-
-
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--debug-dump-json",
-        help="Dump the generated json data (default: False)",
-        dest="debug_dump_json",
-        action="store_true",
-    )
-    arg_parser.add_argument(
-        "--tempdir",
-        help="Directory to create temporary files in (default: system default)",
-        default=None,
-        dest="tempdir",
-        type=str,
-    )

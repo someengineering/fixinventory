@@ -1,6 +1,8 @@
 import requests
 import json
 from urllib.parse import urlencode
+from resotolib.config import Config
+from resotolib.core import resotocore
 from resotolib.graph import Graph, sanitize
 from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.baseresources import EdgeType
@@ -13,11 +15,11 @@ from typing import Optional
 class CoreGraph:
     def __init__(self, base_uri: str = None, graph: str = None) -> None:
         if base_uri is None:
-            self.base_uri = ArgumentParser.args.resotocore_uri.strip("/")
+            self.base_uri = resotocore.http_uri
         else:
             self.base_uri = base_uri.strip("/")
         if graph is None:
-            self.graph_name = ArgumentParser.args.resotocore_graph
+            self.graph_name = Config.resotoworker.graph
         else:
             self.graph_name = graph
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"

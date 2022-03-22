@@ -1,7 +1,6 @@
 import os
 from dataclasses import dataclass, field
 from typing import Dict, ClassVar, Optional
-from urllib.parse import urlparse
 from yaml import load
 
 try:
@@ -37,8 +36,8 @@ def _load_default_metrics() -> Dict[str, Metric]:
 @dataclass
 class ResotoMetricsConfig:
     kind: ClassVar[str] = "resotometrics"
-    resotocore_graph: Optional[str] = field(
-        default="resoto", metadata={"description": "Resotocore graph"}
+    graph: Optional[str] = field(
+        default="resoto", metadata={"description": "Name of the graph to use"}
     )
     timeout: Optional[int] = field(
         default=300, metadata={"description": "Metrics generation timeout in seconds"}

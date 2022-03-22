@@ -369,9 +369,6 @@ class Graph(networkx.MultiDiGraph):
 
     @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self):
-        if getattr(ArgumentParser.args, "ignore_deferred_connections", False):
-            log.debug("Ignoring deferred graph connections")
-            return
         log.debug("Resolving deferred graph connections")
         for node in self.nodes:
             if isinstance(node, BaseResource):
@@ -707,24 +704,6 @@ def set_max_depth(graph: Graph, node: BaseResource, current_depth: int = 0) -> N
         set_max_depth(graph, child_node, current_depth + 1)
 
 
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--ignore-deferred-connections",
-        help="Do not try to resolve deferred edges",
-        dest="ignore_deferred_connections",
-        action="store_true",
-        default=False,
-    )
-    arg_parser.add_argument(
-        "--graph-merge-kind",
-        help="Resource kind to merge graph at (default: cloud)",
-        dest="graph_merge_kind",
-        type=str,
-        choices=["cloud", "account"],
-        default="cloud",
-    )
-
-
 def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     log.debug("Sanitizing Graph")
     plugin_roots = {}
@@ -789,7 +768,13 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
 
 
 class GraphExportIterator:
-    def __init__(self, graph: Graph, delete_tempfile: bool = True, tempdir: str = None):
+    def __init__(
+        self,
+        graph: Graph,
+        delete_tempfile: bool = True,
+        tempdir: str = None,
+        graph_merge_kind: str = "cloud",
+    ):
         self.graph = graph
         ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
         self.tempfile = tempfile.NamedTemporaryFile(
@@ -801,8 +786,7 @@ class GraphExportIterator:
         if not delete_tempfile:
             log.info(f"Writing graph json to file {self.tempfile.name}")
         self.graph_merge_kind = BaseCloud
-        gmk = getattr(ArgumentParser.args, "graph_merge_kind", "cloud")
-        if gmk == "account":
+        if graph_merge_kind == "account":
             self.graph_merge_kind = BaseAccount
         self.graph_exported = False
         self.export_lock = threading.Lock()

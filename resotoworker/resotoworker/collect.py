@@ -3,12 +3,14 @@ import resotolib.signal
 from time import time
 from concurrent import futures
 from resotoworker.resotocore import send_to_resotocore
-from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import GraphRoot
 from resotolib.graph import Graph, sanitize
 from resotolib.logging import log, setup_logger
+from resotolib.args import ArgumentParser
 from typing import List, Optional
+import resotolib.config
+from resotolib.config import Config
 
 
 def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
@@ -17,8 +19,8 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
 
         max_workers = (
             len(collectors)
-            if len(collectors) < ArgumentParser.args.pool_size
-            else ArgumentParser.args.pool_size
+            if len(collectors) < Config.resotoworker.pool_size
+            else Config.resotoworker.pool_size
         )
         if max_workers == 0:
             log.error(
@@ -26,11 +28,14 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
             )
             return
         pool_args = {"max_workers": max_workers}
-        if ArgumentParser.args.fork:
+        if Config.resotoworker.fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
-            collect_args = {"args": ArgumentParser.args}
+            collect_args = {
+                "args": ArgumentParser.args,
+                "config": resotolib.config._config,
+            }
         else:
             pool_executor = futures.ThreadPoolExecutor
             collect_args = {}
@@ -57,7 +62,7 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
 
 
 def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin, args=None
+    collector_plugin: BaseCollectorPlugin, args=None, config=None
 ) -> Optional[Graph]:
     collector: BaseCollectorPlugin = collector_plugin()
     collector_name = f"collector_{collector.cloud}"
@@ -66,11 +71,13 @@ def collect_plugin_graph(
     if args is not None:
         ArgumentParser.args = args
         setup_logger("resotoworker")
+    if config is not None:
+        resotolib.config._config.apply(config)
 
     log.debug(f"Starting new collect process for {collector.cloud}")
     start_time = time()
     collector.start()
-    collector.join(ArgumentParser.args.timeout)
+    collector.join(Config.resotoworker.timeout)
     elapsed = time() - start_time
     if not collector.is_alive():  # The plugin has finished its work
         if not collector.finished:
@@ -90,19 +97,3 @@ def collect_plugin_graph(
     else:
         log.error(f"Plugin {collector.cloud} timed out - discarding Plugin graph")
         return None
-
-
-def add_args(arg_parser: ArgumentParser) -> None:
-    arg_parser.add_argument(
-        "--fork",
-        help="Use forked process instead of threads (default: False)",
-        dest="fork",
-        action="store_true",
-    )
-    arg_parser.add_argument(
-        "--pool-size",
-        help="Collector thread/process pool size (default: 5)",
-        dest="pool_size",
-        default=5,
-        type=int,
-    )

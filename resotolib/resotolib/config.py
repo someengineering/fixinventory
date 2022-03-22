@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.graph.export import dataclasses_to_resotocore_model, optional_origin
+from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
     get_config,
     set_config,
@@ -18,11 +19,24 @@ from dataclasses import fields
 
 class RunningConfig:
     def __init__(self) -> None:
+        """Initialize the global config."""
         self.data: Dict[str, Any] = {}
         self.revision: str = ""
         self.classes: Dict[str, object] = {}
-        self.added = threading.Event()
         self.types: Dict[str, Dict[str, type]] = {}
+
+    def apply(self, other: "RunningConfig") -> None:
+        """Apply another config to this one.
+
+        Only updates references, does not create a copy of the data.
+        """
+        if isinstance(other, RunningConfig):
+            self.data = other.data
+            self.revision = other.revision
+            self.classes = other.classes
+            self.types = other.types
+        else:
+            raise TypeError(f"Cannot apply {type(other)} to RunningConfig")
 
 
 _config = RunningConfig()
@@ -41,13 +55,10 @@ class Config(metaclass=MetaConfig):
         self._config_lock = threading.Lock()
         self.config_name = config_name
         self._initial_load = True
-        if resotocore_uri is None:
-            resotocore_uri = getattr(ArgumentParser.args, "resotocore_uri", None)
-        if resotocore_uri is None:
-            raise ValueError("resotocore_uri is required")
-        self.resotocore_uri = f"http://{urlparse(resotocore_uri).netloc}"
+        resotocore = ResotocoreURI(resotocore_uri)
+        self.resotocore_uri = resotocore.http_uri
         self._ce = CoreEvents(
-            f"ws://{urlparse(self.resotocore_uri).netloc}",
+            resotocore.ws_uri,
             events={"config-updated"},
             message_processor=self.on_config_event,
         )
@@ -68,12 +79,11 @@ class Config(metaclass=MetaConfig):
             for field in fields(config):
                 if hasattr(field, "type"):
                     _config.types[config.kind][field.name] = optional_origin(field.type)
-            _config.added.set()
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
     def load_config(self) -> None:
-        if not _config.added.is_set():
+        if len(_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
             try:

@@ -4,11 +4,13 @@ from resotolib.graph import Graph
 from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.logging import log, setup_logger
 from resotolib.baseresources import Cloud
 from threading import Thread, current_thread
 from multiprocessing import Process
 from prometheus_client import Counter
+import resotolib.config
 import resotolib.signal
 import time
 from typing import Dict
@@ -68,9 +70,13 @@ class BasePlugin(ABC, Thread):
         pass
 
     @staticmethod
-    @abstractmethod
     def add_args(arg_parser: ArgumentParser) -> None:
         """Adds Plugin specific arguments to the global arg parser"""
+        pass
+
+    @staticmethod
+    def add_config(config: Config) -> None:
+        """Adds Plugin specific config options"""
         pass
 
 
@@ -81,10 +87,11 @@ class BaseActionPlugin(ABC, Process):
     def __init__(self) -> None:
         super().__init__()
         self.args = ArgumentParser.args
+        self.config = resotolib.config._config
         self.name = self.__class__.__name__
 
         self.finished = False
-        self.timeout = ArgumentParser.args.timeout
+        self.timeout = Config.resotoworker.timeout
         self.wait_for_completion = True
 
     @abstractmethod
@@ -126,6 +133,7 @@ class BaseActionPlugin(ABC, Process):
     def run(self) -> None:
         try:
             ArgumentParser.args = self.args
+            resotolib.config._config = self.config
             setup_logger("resotoworker")
             resotolib.signal.initializer()
             current_thread().name = self.name
@@ -147,7 +155,7 @@ class BaseActionPlugin(ABC, Process):
 
     def go(self) -> None:
         core_actions = CoreActions(
-            identifier=f"{ArgumentParser.args.resotocore_subscriber_id}-actions-{self.action}-{self.name}",
+            identifier=f"{ArgumentParser.args.subscriber_id}-actions-{self.action}-{self.name}",
             resotocore_uri=resotocore.http_uri,
             resotocore_ws_uri=resotocore.ws_uri,
             actions={
@@ -160,6 +168,16 @@ class BaseActionPlugin(ABC, Process):
         )
         core_actions.start()
         core_actions.join()
+
+    @staticmethod
+    def add_args(arg_parser: ArgumentParser) -> None:
+        """Adds Plugin specific arguments to the global arg parser"""
+        pass
+
+    @staticmethod
+    def add_config(config: Config) -> None:
+        """Adds Plugin specific config options"""
+        pass
 
 
 class BaseCollectorPlugin(BasePlugin):
@@ -191,50 +209,3 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
-
-
-class BaseCliPlugin(ABC):
-    """A resoto CLI plugin adds new commands to the built-in CLI.
-
-    The plugin has references to the current graph, scheduler and CLI clipboard.
-    Every function that is prefixed with the string 'cmd_' will become a new CLI
-    command.
-
-    Signature and example implementation is as follows:
-        def cmd_example(self, items: Iterable, args: str) -> Iterable:
-            '''Usage: | example <string>
-
-            Example command that lists all resources whose name starts with <string>.
-            '''
-            for item in items:
-                if isinstance(item, BaseResource) and item.name.startswith(args):
-                    yield item
-
-    items is usually a generator function being passed in from the previous command.
-    If this is the first command in the chain then items contains all of the graphs
-    resources.
-
-    Args is the string that the user input after the command.
-    For instance when calling `> example foo --bar` args of cmd_example would be
-    'foo --bar'.
-
-    The function has to take care of tokenizing the string if desired.
-    The functions docstring is being displayed when the user enters `help example`.
-
-    Like every plugin CLI plugins can specify resoto args by implementing
-    the add_args() method.
-    """
-
-    plugin_type = PluginType.CLI
-
-    def __init__(self, graph: Graph, scheduler, clipboard) -> None:
-        super().__init__()
-        self.graph = graph
-        self.scheduler = scheduler
-        self.clipboard = clipboard
-
-    @staticmethod
-    @abstractmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        """Adds Plugin specific arguments to the global arg parser"""
-        pass
