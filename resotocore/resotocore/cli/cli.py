@@ -438,8 +438,8 @@ class CLI:
 
             return ParsedCommands(result, line.env)
 
-        async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
-            command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
+        async def send_analytics(parsed: List[ParsedCommands]) -> None:
+            command_names = [cmd.cmd for line in parsed for cmd in line.commands]
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
@@ -452,9 +452,9 @@ class CLI:
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
         keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
         command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
+        await send_analytics(command_lines)  # send before the alias commands get expanded
         command_lines = [expand_aliases(cmd_line) for cmd_line in command_lines]
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
-        await send_analytics(res)
         return res
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
