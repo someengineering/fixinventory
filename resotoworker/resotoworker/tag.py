@@ -1,5 +1,5 @@
 from resotolib.logging import log
-from resotolib.graph.export import node_from_dict, node_to_dict
+from resotolib.core.model_export import node_from_dict, node_to_dict
 
 
 def core_tag_tasks_processor(message: dict) -> None:

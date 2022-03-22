@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Union, ClassVar
 
-from resotolib.graph.export import (
+from resotolib.core.model_export import (
     is_collection,
     type_arg,
     is_dict,

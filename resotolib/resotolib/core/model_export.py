@@ -1,4 +1,3 @@
-import sys
 from dataclasses import is_dataclass, fields, Field
 from datetime import datetime, date, timedelta, timezone
 from functools import lru_cache, reduce
@@ -6,12 +5,7 @@ from pydoc import locate
 from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
 from resotolib.baseresources import BaseResource
 from resotolib.utils import type_str, str2timedelta, str2timezone
-
-# load the correct function depending on the version
-if sys.version_info >= (3, 8):
-    from typing import get_args, get_origin
-else:
-    from typing_compat import get_args, get_origin
+from typing import get_args, get_origin
 
 
 Json = Dict[str, Any]

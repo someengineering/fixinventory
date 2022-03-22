@@ -2,7 +2,7 @@ from resotolib.logging import log
 import yaml
 from resotolib.core.query import CoreGraph
 from resotolib.baseplugin import BaseActionPlugin
-from resotolib.graph.export import node_from_dict
+from resotolib.core.model_export import node_from_dict
 from resotolib.args import ArgumentParser
 from typing import Dict
 

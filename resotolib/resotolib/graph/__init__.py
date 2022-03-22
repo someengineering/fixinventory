@@ -18,7 +18,7 @@ from resotolib.baseresources import (
 )
 from resotolib.utils import json_default, get_resource_attributes
 from resotolib.args import ArgumentParser
-from resotolib.graph.export import (
+from resotolib.core.model_export import (
     dataclasses_to_resotocore_model,
     node_to_dict,
 )
