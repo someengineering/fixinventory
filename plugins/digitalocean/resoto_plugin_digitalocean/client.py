@@ -94,8 +94,6 @@ class StreamingWrapper:
 
         response = requests.delete(url, headers=self.headers, allow_redirects=True)
 
-        print(response.request.headers)
-
         status_code = response.status_code
         if status_code == 429:
             raise RetryableHttpError(
@@ -246,7 +244,6 @@ def get_team_credentials(team_id: TeamId) -> Optional[TeamCredentials]:
         spaces_access_key, spaces_secret_key = splitted[0], splitted[1]
         client = StreamingWrapper(token, spaces_access_key, spaces_secret_key)
         token_team_id = client.get_team_id()
-        print(f"Token team id: {token_team_id}, team id {team_id}, token {token}")
         if token_team_id == team_id:
             return TeamCredentials(
                 token_team_id, token, spaces_access_key, spaces_secret_key

@@ -102,6 +102,9 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
     environment: Optional[str] = None
     is_default: Optional[bool] = None
 
+    def delete_uri_path(self):
+        return "/projects"
+
 
 @dataclass(eq=False)
 class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):

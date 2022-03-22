@@ -679,7 +679,10 @@ class DigitalOceanTeamCollector:
             search_map={
                 "__resources": ["urn", lambda p: p["resource_ids"]],
             },
-            successors={EdgeType.default: ["__resources"]},
+            successors={
+                EdgeType.default: ["__resources"],
+                EdgeType.delete: ["__resources"],
+            },
         )
 
     @metrics_collect_k8s_clusters.time()
