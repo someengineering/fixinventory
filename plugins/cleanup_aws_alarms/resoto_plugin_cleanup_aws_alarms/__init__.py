@@ -83,7 +83,6 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
 
     @staticmethod
     def add_config(config: Config) -> None:
-        log.debug(f"ADDING PLUGIN CONFIG FOR CLEANUP AWS ALARMS")
         config.add_config(CleanupAWSAlarmsConfig)
 
 

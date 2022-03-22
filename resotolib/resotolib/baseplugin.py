@@ -79,7 +79,7 @@ class BasePlugin(ABC, Thread):
         """Adds Plugin specific config options"""
         pass
 
-from resotolib.config import RunningConfig
+
 class BaseActionPlugin(ABC, Process):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
