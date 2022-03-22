@@ -6,7 +6,8 @@ from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar
 from resotolib.baseresources import BaseResource
 from resotolib.utils import type_str, str2timedelta, str2timezone
 from typing import get_args, get_origin
-
+from enum import Enum
+import re
 
 Json = Dict[str, Any]
 
@@ -34,6 +35,12 @@ def is_dict(clazz: type) -> bool:
     return optional_origin(clazz) in [dict]
 
 
+# either enum or optional enum
+def is_enum(clazz: type) -> bool:
+    origin = optional_origin(clazz)
+    return isinstance(origin, type) and issubclass(origin, Enum)
+
+
 # List[X] -> X, list -> object
 def type_arg(clazz: type) -> type:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
@@ -49,18 +56,20 @@ def dict_types(clazz: type) -> Tuple[type, type]:
 
 
 # walk class hierarchy, as well as all properties to find transitive data classes
-def transitive_dataclasses(classes: Set[type]) -> Set[type]:
+def transitive_classes(classes: Set[type]) -> Set[type]:
     all_classes: MutableSet[type] = set()
 
     def check(to_check: type) -> None:
         clazz = optional_origin(to_check)
-        if is_dict(clazz):
+        if clazz in all_classes:
+            pass
+        elif is_dict(clazz):
             key_type, value_type = dict_types(to_check)
             check(key_type)
             check(value_type)
         elif is_collection(clazz):
             check(type_arg(to_check))
-        elif clazz not in all_classes and is_dataclass(clazz):
+        elif is_dataclass(clazz):
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
@@ -68,6 +77,8 @@ def transitive_dataclasses(classes: Set[type]) -> Set[type]:
                 check(subclass)
             for field in fields(clazz):
                 check(field.type)
+        elif is_enum(clazz):
+            all_classes.add(clazz)
 
     for c in classes:
         check(c)
@@ -95,6 +106,9 @@ def model_name(clazz: type) -> str:
     elif is_dict(to_check):
         key_type, value_type = dict_types(to_check)
         return f"dictionary[{model_name(key_type)}, {model_name(value_type)}]"
+    elif is_enum(to_check):
+        # camel case to snake case
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", to_check.__name__).lower()
     elif get_origin(to_check) == Union:
         # this is a union of different types other than none.
         # since union types are not supported, we fallback to any here
@@ -169,7 +183,8 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
         return [json(name, kind, required, desc)] + synthetics
 
     model: List[Json] = []
-    for clazz in transitive_dataclasses(classes):
+
+    def export_data_class(clazz: type) -> None:
         bases = [base for base in clazz.__bases__ if is_dataclass(base)]
         base_names = [model_name(base) for base in bases]
         base_props: Set[Field] = reduce(
@@ -184,6 +199,23 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
         model.append(
             {"fqn": model_name(clazz), "bases": base_names, "properties": props}
         )
+
+    def export_enum(clazz: type) -> None:
+        enum_values = [literal.value for literal in clazz]
+        assert enum_values and isinstance(
+            enum_values[0], str
+        ), "Enum should use string values@"
+        model.append(
+            {"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values}
+        )
+
+    for cls in transitive_classes(classes):
+        if is_dataclass(cls):
+            export_data_class(cls)
+        elif is_enum(cls):
+            export_enum(cls)
+        else:
+            raise AttributeError(f"Don't know how to handle: {cls}")
     return model
 
 

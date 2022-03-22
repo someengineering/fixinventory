@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional, Dict, Union, ClassVar
 
 from resotolib.core.model_export import (
@@ -7,11 +8,17 @@ from resotolib.core.model_export import (
     type_arg,
     is_dict,
     dict_types,
-    transitive_dataclasses,
+    transitive_classes,
     dataclasses_to_resotocore_model,
     model_name,
     dynamic_object_to_resotocore_model,
 )
+
+
+class ExampleEnum(Enum):
+    Moon = "moon"
+    Sun = "sun"
+    Earth = "earth"
 
 
 @dataclass
@@ -45,6 +52,8 @@ class DataClassExample(DataClassBase):
     optionally_weird_dict: Optional[
         Optional[Dict[str, Dict[str, Dict[str, Dict[Union[str, int], DataClassProp]]]]]
     ]
+    some_enum: ExampleEnum
+    optional_enum: Optional[ExampleEnum]
 
 
 @dataclass
@@ -74,11 +83,12 @@ def test_dictionary() -> None:
 
 
 def test_transitive() -> None:
-    assert transitive_dataclasses({DataClassExample}) == {
+    assert transitive_classes({DataClassExample}) == {
         DataClassExample,
         DataClassProp,
         DataClassBase,
         DataClassOther,
+        ExampleEnum,
     }
 
 
@@ -97,11 +107,21 @@ def test_model_name() -> None:
     )
 
 
+def test_enum_to_model() -> None:
+    assert dataclasses_to_resotocore_model({ExampleEnum}) == [
+        {
+            "fqn": "example_enum",
+            "runtime_kind": "string",
+            "enum": ["moon", "sun", "earth"],
+        }
+    ]
+
+
 def test_dataclasses_to_resotocore_model() -> None:
     result = dataclasses_to_resotocore_model({DataClassExample})
-    assert len(result) == 4
+    assert len(result) == 5
     for r in result:
-        props = {p["name"]: p for p in r["properties"]}
+        props = {p["name"]: p for p in r.get("properties", [])}
         if r["fqn"] == "base":
             assert len(r["properties"]) == 3
             assert props["tags"]["kind"] == "dictionary[string, string]"
@@ -114,7 +134,7 @@ def test_dataclasses_to_resotocore_model() -> None:
             assert props["key"]["kind"] == "string"
             assert props["value"]["kind"] == "any"
         elif r["fqn"] == "example":
-            assert len(r["properties"]) == 8
+            assert len(r["properties"]) == 10
             assert props["list_of_string"]["kind"] == "string[]"
             assert props["optional_list_of_props"]["kind"] == "prop[]"
             assert props["props"]["kind"] == "prop[]"
@@ -132,6 +152,11 @@ def test_dataclasses_to_resotocore_model() -> None:
                 props["optionally_weird_dict"]["kind"]
                 == "dictionary[string, dictionary[string, dictionary[string, dictionary[any, prop]]]]"
             )
+            assert props["some_enum"]["kind"] == "example_enum"
+            assert props["optional_enum"]["kind"] == "example_enum"
+        elif r["fqn"] == "example_enum":
+            assert r["runtime_kind"] == "string"
+            assert r["enum"] == [e.value for e in ExampleEnum]
 
 
 @dataclass
