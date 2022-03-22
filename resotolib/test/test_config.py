@@ -22,7 +22,7 @@ def test_config():
     assert cfg.configtest.testvar2 == cfg2.configtest.testvar2
     Config.configtest.testvar2 += 1
     assert cfg.configtest.testvar2 == 12346
-    with pytest.raises(ConfigNotFoundError) as e:
+    with pytest.raises(ConfigNotFoundError):
         Config.does_not_exist.foo = "bar"
 
 

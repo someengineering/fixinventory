@@ -1,5 +1,4 @@
 import jsons
-import json
 import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
