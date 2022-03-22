@@ -202,9 +202,8 @@ def dataclasses_to_resotocore_model(classes: Set[type]) -> List[Json]:
 
     def export_enum(clazz: type) -> None:
         enum_values = [literal.value for literal in clazz]
-        assert enum_values and isinstance(
-            enum_values[0], str
-        ), "Enum should use string values@"
+        for ev in enum_values:
+            assert isinstance(ev, str), f"Enum should use string values! Got: {ev}"
         model.append(
             {"fqn": model_name(clazz), "runtime_kind": "string", "enum": enum_values}
         )
