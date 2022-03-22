@@ -43,20 +43,6 @@ def main() -> None:
 
     resotolib.signal.parent_pid = os.getpid()
 
-    # Add cli args
-    # The following double parsing of cli args is done so that when
-    # a user specifies e.g. `--collector aws --help`  they would
-    # no longer be shown cli args for other collectors like gcp.
-    collector_arg_parser = ArgumentParser(
-        description="resoto worker",
-        env_args_prefix="RESOTOWORKER_",
-        add_help=False,
-        add_machine_help=False,
-    )
-    PluginLoader.add_args(collector_arg_parser)
-    (args, _) = collector_arg_parser.parse_known_args()
-    ArgumentParser.args = args
-
     arg_parser = ArgumentParser(
         description="resoto worker",
         env_args_prefix="RESOTOWORKER_",
@@ -65,7 +51,6 @@ def main() -> None:
     jwt_add_args(arg_parser)
     logging_add_args(arg_parser)
     core_add_args(arg_parser)
-    PluginLoader.add_args(arg_parser)
     Config.add_args(arg_parser)
 
     # Find resoto Plugins in the resoto.plugins module
@@ -109,14 +94,12 @@ def main() -> None:
                 "wait_for_completion": True,
             },
         },
-        message_processor=partial(
-            core_actions_processor, plugin_loader.plugins(PluginType.COLLECTOR)
-        ),
+        message_processor=partial(core_actions_processor, plugin_loader),
     )
 
     task_queue_filter = {}
-    if ArgumentParser.args.collector and len(ArgumentParser.args.collector) > 0:
-        task_queue_filter = {"cloud": list(ArgumentParser.args.collector)}
+    if len(Config.resotoworker.collector) > 0:
+        task_queue_filter = {"cloud": list(Config.resotoworker.collector)}
     core_tasks = CoreTasks(
         identifier=f"{ArgumentParser.args.subscriber_id}-tagger",
         resotocore_ws_uri=resotocore.ws_uri,
@@ -145,9 +128,8 @@ def main() -> None:
     os._exit(0)
 
 
-def core_actions_processor(
-    collectors: List[BaseCollectorPlugin], message: Dict
-) -> None:
+def core_actions_processor(plugin_loader: PluginLoader, message: Dict) -> None:
+    collectors: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
         return

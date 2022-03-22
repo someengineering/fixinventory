@@ -17,8 +17,8 @@ def send_to_resotocore(graph: Graph):
     log.info("resotocore Event Handler called")
 
     base_uri = resotocore.http_uri
-    resotocore_graph = Config.resotoworker.resotocore_graph
-    dump_json = Config.resotoworker.dump_json
+    resotocore_graph = Config.resotoworker.graph
+    dump_json = Config.resotoworker.debug_dump_json
     tempdir = Config.resotoworker.tempdir
     graph_merge_kind = Config.resotoworker.graph_merge_kind
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import networkx
+from enum import Enum
 from networkx.algorithms.dag import is_directed_acyclic_graph
 from datetime import datetime
 import threading
@@ -767,13 +768,18 @@ def sanitize(graph: Graph, root: GraphRoot = None) -> None:
     validate_graph_dataclasses_and_nodes(graph)
 
 
+class GraphMergeKind(Enum):
+    cloud = BaseCloud
+    account = BaseAccount
+
+
 class GraphExportIterator:
     def __init__(
         self,
         graph: Graph,
         delete_tempfile: bool = True,
         tempdir: str = None,
-        graph_merge_kind: str = "cloud",
+        graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
     ):
         self.graph = graph
         ts = datetime.now().strftime("%Y-%m-%d-%H-%M")
@@ -785,9 +791,11 @@ class GraphExportIterator:
         )
         if not delete_tempfile:
             log.info(f"Writing graph json to file {self.tempfile.name}")
-        self.graph_merge_kind = BaseCloud
-        if graph_merge_kind == "account":
-            self.graph_merge_kind = BaseAccount
+        if isinstance(graph_merge_kind, GraphMergeKind):
+            self.graph_merge_kind = graph_merge_kind
+        else:
+            log.error(f"Graph merge kind is wrong type {type(graph_merge_kind)}")
+            self.graph_merge_kind = GraphMergeKind.cloud
         self.graph_exported = False
         self.export_lock = threading.Lock()
         self.total_lines = 0
@@ -832,7 +840,7 @@ class GraphExportIterator:
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
-                if isinstance(node, self.graph_merge_kind):
+                if isinstance(node, self.graph_merge_kind.value):
                     log.debug(f"Replacing sub graph below {node.rtdname}")
                     if "metadata" not in node_dict or not isinstance(
                         node_dict["metadata"], dict

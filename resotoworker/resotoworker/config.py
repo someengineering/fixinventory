@@ -1,6 +1,7 @@
+from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, List
 
 
 def add_config(config: Config) -> None:
@@ -11,6 +12,10 @@ def add_config(config: Config) -> None:
 @dataclass
 class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
+    collector: Optional[List[str]] = field(
+        default_factory=lambda: ["example"],
+        metadata={"description": "List of collectors to run"},
+    )
     graph: Optional[str] = field(
         default="resoto", metadata={"description": "Name of the graph to use"}
     )
@@ -23,8 +28,9 @@ class ResotoWorkerConfig:
     fork: Optional[bool] = field(
         default=False, metadata={"description": "Use forked process instead of threads"}
     )
-    graph_merge_kind: Optional[str] = field(
-        default="cloud", metadata={"description": "Resource kind to merge graph at"}
+    graph_merge_kind: Optional[GraphMergeKind] = field(
+        default=GraphMergeKind.cloud,
+        metadata={"description": "Resource kind to merge graph at"},
     )
     debug_dump_json: Optional[bool] = field(
         default=False, metadata={"description": "Dump the generated JSON data"}

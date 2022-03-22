@@ -112,8 +112,8 @@ class Config(metaclass=MetaConfig):
                 new_config = {}
                 for config_id, config_data in config.items():
                     if config_id in _config.classes:
-                        new_config[config_id] = jsons.loads(
-                            json.dumps(config_data), _config.classes[config_id]
+                        new_config[config_id] = jsons.load(
+                            config_data, _config.classes[config_id]
                         )
                     else:
                         log.warning(f"Unknown config {config_id}")
