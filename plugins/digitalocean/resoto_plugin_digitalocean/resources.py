@@ -23,6 +23,8 @@ from resotolib.baseresources import (
     BaseDomainRecord,
 )
 from resotolib.graph import Graph
+from resoto_plugin_digitalocean.client import get_team_credentials
+from resoto_plugin_digitalocean.client import StreamingWrapper
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -36,15 +38,27 @@ class DigitalOceanResource(BaseResource):
     """
 
     kind: ClassVar[str] = "digitalocean_resource"
-
     urn: str = ""
+
+    def delete_uri_path(self) -> Optional[str]:
+        return None
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
-        return True
+        if self.delete_uri_path():
+            log.debug(
+                f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+            )
+            team = self.account(graph)
+            credentials = get_team_credentials(team.id)
+            client = StreamingWrapper(
+                credentials.api_token,
+                credentials.spaces_access_key,
+                credentials.spaces_secret_key,
+            )
+            return client.delete(self.delete_uri_path(), self.id)
+
+        raise NotImplementedError
 
     def update_tag(self, key, value) -> bool:
         """Update a resource tag in the cloud"""
@@ -269,6 +283,9 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
     live_url: Optional[str] = None
     live_url_base: Optional[str] = None
     live_domain: Optional[str] = None
+
+    def delete_uri_path(self):
+        return "/apps"
 
 
 @dataclass(eq=False)

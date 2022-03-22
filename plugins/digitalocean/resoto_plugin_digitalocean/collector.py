@@ -623,7 +623,9 @@ class DigitalOceanTeamCollector:
                 "__vpcs": ["urn", lambda db: vpc_id(db["private_network_uuid"])],
                 "__tags": [
                     "urn",
-                    lambda db: list(map(lambda tag: tag_id(tag), db.get("tags", []))),
+                    lambda db: list(
+                        map(lambda tag: tag_id(tag), db.get("tags", []) or [])
+                    ),
                 ],
             },
             predecessors={EdgeType.default: ["__vpcs", "__tags"]},
@@ -1036,6 +1038,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda r: str(r["id"]),
                 "urn": lambda r: domain_record_id(r["id"]),
+                "domain_name": "domain_name",
                 "record_type": "type",
                 "record_name": "name",
                 "record_data": "data",

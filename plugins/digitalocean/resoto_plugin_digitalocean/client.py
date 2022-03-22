@@ -1,10 +1,11 @@
-from typing import Dict, List, Any, Optional
-
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass
+from functools import lru_cache
 import requests
 import boto3
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry
-
+from resotolib.args import ArgumentParser
 from resoto_plugin_digitalocean.utils import retry_on_error
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 
@@ -25,7 +26,12 @@ class StreamingWrapper:
         spaces_access_key: Optional[str],
         spaces_secret_key: Optional[str],
     ) -> None:
-        self.token = token
+        self.do_api_endpoint = "https://api.digitalocean.com/v2"
+
+        self.headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
         self.spaces_access_key = spaces_access_key
         self.spaces_secret_key = spaces_secret_key
         if spaces_access_key and spaces_secret_key:
@@ -39,15 +45,10 @@ class StreamingWrapper:
         wait_exponential_max=300000,
         retry_on_exception=retry_on_error,
     )
-    def _make_request(self, path: str, payload_object_name: str) -> List[Json]:
+    def _fetch(self, path: str, payload_object_name: str) -> List[Json]:
         result = []
-        do_api_endpoint = "https://api.digitalocean.com/v2"
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
 
-        url = f"{do_api_endpoint}{path}?page=1&per_page=200"
+        url = f"{self.do_api_endpoint}{path}?page=1&per_page=200"
         log.debug(f"fetching {url}")
 
         def validate_status(response: requests.Response) -> requests.Response:
@@ -61,7 +62,9 @@ class StreamingWrapper:
                 )
             return response
 
-        json_response = validate_status(requests.get(url, headers=headers)).json()
+        json_response = validate_status(
+            requests.get(url, headers=self.headers, allow_redirects=True)
+        ).json()
         payload = json_response.get(payload_object_name, [])
         result.extend(payload if isinstance(payload, list) else [payload])
 
@@ -70,45 +73,85 @@ class StreamingWrapper:
             if url == "":
                 break
             log.debug(f"fetching {url}")
-            json_response = validate_status(requests.get(url, headers=headers)).json()
+            json_response = validate_status(
+                requests.get(url, headers=self.headers, allow_redirects=True)
+            ).json()
             payload = json_response.get(payload_object_name, [])
             result.extend(payload if isinstance(payload, list) else [payload])
 
         log.debug(f"DO request {path} returned {len(result)} items")
         return result
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def delete(self, path: str, resource_id: str) -> bool:
+        url = f"{self.do_api_endpoint}{path}/{resource_id}"
+        log.debug(f"deleting {url}")
+
+        response = requests.delete(url, headers=self.headers, allow_redirects=True)
+
+        print(response.request.headers)
+
+        status_code = response.status_code
+        if status_code == 429:
+            raise RetryableHttpError(
+                f"Too many requests: {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 5:
+            raise RetryableHttpError(
+                f"Server error: {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 4:
+            log.warning(f"Client error: DELETE {url} {response.reason} {response.text}")
+            return False
+        if status_code // 100 == 2:
+            log.debug(f"deleted: {url}")
+            return True
+
+        log.warning(
+            f"unknown status code {status_code}: {url} {response.reason} {response.text}"
+        )
+        return False
+
+    def get_team_id(self) -> str:
+        return str(self._fetch("/projects", "projects")[0]["owner_id"])
+
     def list_projects(self) -> List[Json]:
-        return self._make_request("/projects", "projects")
+        return self._fetch("/projects", "projects")
 
     def list_project_resources(self, project_id: str) -> List[Json]:
-        return self._make_request(f"/projects/{project_id}/resources", "resources")
+        return self._fetch(f"/projects/{project_id}/resources", "resources")
 
     def list_droplets(self) -> List[Json]:
-        return self._make_request("/droplets", "droplets")
+        return self._fetch("/droplets", "droplets")
 
     def list_regions(self) -> List[Json]:
-        return self._make_request("/regions", "regions")
+        return self._fetch("/regions", "regions")
 
     def list_volumes(self) -> List[Json]:
-        return self._make_request("/volumes", "volumes")
+        return self._fetch("/volumes", "volumes")
 
     def list_databases(self) -> List[Json]:
-        return self._make_request("/databases", "databases")
+        return self._fetch("/databases", "databases")
 
     def list_vpcs(self) -> List[Json]:
-        return self._make_request("/vpcs", "vpcs")
+        return self._fetch("/vpcs", "vpcs")
 
     def list_kubernetes_clusters(self) -> List[Json]:
-        return self._make_request("/kubernetes/clusters", "kubernetes_clusters")
+        return self._fetch("/kubernetes/clusters", "kubernetes_clusters")
 
     def list_snapshots(self) -> List[Json]:
-        return self._make_request("/snapshots", "snapshots")
+        return self._fetch("/snapshots", "snapshots")
 
     def list_load_balancers(self) -> List[Json]:
-        return self._make_request("/load_balancers", "load_balancers")
+        return self._fetch("/load_balancers", "load_balancers")
 
     def list_floating_ips(self) -> List[Json]:
-        return self._make_request("/floating_ips", "floating_ips")
+        return self._fetch("/floating_ips", "floating_ips")
 
     @retry(
         stop_max_attempt_number=10,
@@ -143,40 +186,70 @@ class StreamingWrapper:
             return []
 
     def list_apps(self) -> List[Json]:
-        return self._make_request("/apps", "apps")
+        return self._fetch("/apps", "apps")
 
     def list_cdn_endpoints(self) -> List[Json]:
-        return self._make_request("/cdn/endpoints", "endpoints")
+        return self._fetch("/cdn/endpoints", "endpoints")
 
     def list_certificates(self) -> List[Json]:
-        return self._make_request("/certificates", "certificates")
+        return self._fetch("/certificates", "certificates")
 
     def get_registry_info(self) -> List[Json]:
-        return self._make_request("/registry", "registry")
+        return self._fetch("/registry", "registry")
 
     def list_registry_repositories(self, registry_id: str) -> List[Json]:
-        return self._make_request(
-            f"/registry/{registry_id}/repositoriesV2", "repositories"
-        )
+        return self._fetch(f"/registry/{registry_id}/repositoriesV2", "repositories")
 
     def list_registry_repository_tags(
         self, registry_id: str, repository_name: str
     ) -> List[Json]:
-        return self._make_request(
+        return self._fetch(
             f"/registry/{registry_id}/repositories/{repository_name}/tags", "tags"
         )
 
     def list_ssh_keys(self) -> List[Json]:
-        return self._make_request("/account/keys", "ssh_keys")
+        return self._fetch("/account/keys", "ssh_keys")
 
     def list_tags(self) -> List[Json]:
-        return self._make_request("/tags", "tags")
+        return self._fetch("/tags", "tags")
 
     def list_domains(self) -> List[Json]:
-        return self._make_request("/domains", "domains")
+        return self._fetch("/domains", "domains")
 
     def list_domain_records(self, domain_name: str) -> List[Json]:
-        return self._make_request(f"/domains/{domain_name}/records", "domain_records")
+        return self._fetch(f"/domains/{domain_name}/records", "domain_records")
 
     def list_firewalls(self) -> List[Json]:
-        return self._make_request("/firewalls", "firewalls")
+        return self._fetch("/firewalls", "firewalls")
+
+
+TeamId = str
+
+
+@dataclass()
+class TeamCredentials:
+    team_id: TeamId
+    api_token: str
+    spaces_access_key: str
+    spaces_secret_key: str
+
+
+@lru_cache()
+def get_team_credentials(team_id: TeamId) -> Optional[TeamCredentials]:
+    tokens = ArgumentParser.args.digitalocean_api_tokens
+    spaces_keys = ArgumentParser.args.digitalocean_spaces_access_keys
+
+    spaces_keys = spaces_keys[: len(tokens)]
+    spaces_keys.extend([":"] * (len(tokens) - len(spaces_keys)))
+    for token, space_keys in zip(tokens, spaces_keys):
+        splitted = space_keys.split(":")
+        spaces_access_key, spaces_secret_key = splitted[0], splitted[1]
+        client = StreamingWrapper(token, spaces_access_key, spaces_secret_key)
+        token_team_id = client.get_team_id()
+        print(f"Token team id: {token_team_id}, team id {team_id}, token {token}")
+        if token_team_id == team_id:
+            return TeamCredentials(
+                token_team_id, token, spaces_access_key, spaces_secret_key
+            )
+
+    return None
