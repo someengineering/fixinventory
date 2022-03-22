@@ -7,8 +7,9 @@ from resoto_plugin_aws.resources import (
     AWSEC2Instance,
 )
 from resotolib.logging import log
-from resotolib.args import ArgumentParser
-from typing import Dict
+from typing import Dict, ClassVar, Optional
+from resotolib.config import Config
+from dataclasses import dataclass, field
 
 
 class CleanupAWSAlarmsPlugin(BaseActionPlugin):
@@ -18,14 +19,14 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
         super().__init__()
 
         self.config = {}
-        if ArgumentParser.args.cleanup_aws_alarms_config:
+        if Config.plugin_cleanup_aws_alarms.config_file:
             self.config = CleanupAWSAlarmsConfig(
-                config_file=ArgumentParser.args.cleanup_aws_alarms_config
+                config_file=Config.plugin_cleanup_aws_alarms.config_file
             )
             self.config.read()  # initial read to ensure config format is valid
 
     def bootstrap(self) -> bool:
-        return ArgumentParser.args.cleanup_aws_alarms
+        return Config.plugin_cleanup_aws_alarms.enabled
 
     def do_action(self, data: Dict) -> None:
         cg = CoreGraph()
@@ -81,20 +82,9 @@ class CleanupAWSAlarmsPlugin(BaseActionPlugin):
             node.clean = True
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--cleanup-aws-alarms",
-            help="Cleanup AWS Cloudwatch Alarms (default: False)",
-            dest="cleanup_aws_alarms",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--cleanup-aws-alarms-config",
-            help="Path to Cleanup AWS Cloudwatch Alarms Plugin Config",
-            default=None,
-            dest="cleanup_aws_alarms_config",
-        )
+    def add_config(config: Config) -> None:
+        log.debug(f"ADDING PLUGIN CONFIG FOR CLEANUP AWS ALARMS")
+        config.add_config(CleanupAWSAlarmsConfig)
 
 
 class CleanupAWSAlarmsConfig(dict):
@@ -130,3 +120,15 @@ class CleanupAWSAlarmsConfig(dict):
                 if not isinstance(account_id, str):
                     raise ValueError(f"Account ID {account_id} is no string")
         return True
+
+
+@dataclass
+class CleanupAWSAlarmsConfig:
+    kind: ClassVar[str] = "plugin_cleanup_aws_alarms"
+    enabled: Optional[bool] = field(
+        default=False, metadata={"description": "Enable plugin?"}
+    )
+    config_file: Optional[str] = field(
+        default=None,
+        metadata={"description": "Path to Cleanup AWS Cloudwatch Alarms plugin config"},
+    )

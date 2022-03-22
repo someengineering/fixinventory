@@ -79,17 +79,16 @@ class BasePlugin(ABC, Thread):
         """Adds Plugin specific config options"""
         pass
 
-
+from resotolib.config import RunningConfig
 class BaseActionPlugin(ABC, Process):
     plugin_type = PluginType.ACTION
     action = NotImplemented  # Name of the action this plugin implements
 
     def __init__(self) -> None:
         super().__init__()
-        self.args = ArgumentParser.args
-        self.config = resotolib.config._config
+        self._args = ArgumentParser.args
+        self._config = resotolib.config._config
         self.name = self.__class__.__name__
-
         self.finished = False
         self.timeout = Config.resotoworker.timeout
         self.wait_for_completion = True
@@ -132,8 +131,8 @@ class BaseActionPlugin(ABC, Process):
 
     def run(self) -> None:
         try:
-            ArgumentParser.args = self.args
-            resotolib.config._config = self.config
+            ArgumentParser.args = self._args
+            resotolib.config._config = self._config
             setup_logger("resotoworker")
             resotolib.signal.initializer()
             current_thread().name = self.name
