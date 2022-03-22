@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import OP
 from resotolib.config import Config
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional

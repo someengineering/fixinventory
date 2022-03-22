@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import threading
 import cherrypy
-from resotolib.args import ArgumentParser
 from resotolib.config import Config
 from resotolib.logging import log
 

@@ -1,7 +1,6 @@
 import jsons
 import json
 import threading
-from urllib.parse import urlparse
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.graph.export import dataclasses_to_resotocore_model, optional_origin
@@ -72,7 +71,13 @@ class Config(metaclass=MetaConfig):
     def shutdown(self) -> None:
         self._ce.stop()
 
-    def add_config(self, config: object) -> None:
+    @staticmethod
+    def init_default_config() -> None:
+        for config_id, config_data in _config.classes.items():
+            _config.data[config_id] = config_data()
+
+    @staticmethod
+    def add_config(config: object) -> None:
         if hasattr(config, "kind"):
             _config.classes[config.kind] = config
             _config.types[config.kind] = {}
@@ -123,6 +128,8 @@ class Config(metaclass=MetaConfig):
                 self._ce.start()
 
     def override_config(self) -> None:
+        if getattr(ArgumentParser.args, "config_override", None) is None:
+            return
         for override in getattr(ArgumentParser.args, "config_override", []):
             try:
                 config_key, config_value = override.split("=", 1)

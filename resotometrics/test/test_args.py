@@ -1,6 +1,5 @@
 from resotolib.args import ArgumentParser
-from resotolib.core import resotocore
-from resotometrics.__main__ import add_args
+from resotolib.core import resotocore, add_args
 
 
 def test_args():
