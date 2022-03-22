@@ -21,6 +21,7 @@ from resotocore.model.typed_model import from_js
 from resotocore.parse_util import make_parser
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn
 from resotocore.util import if_set, utc, duration, first
+from resotocore.compat import remove_suffix
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -799,7 +800,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return yaml.dump(e, allow_unicode=True, width=sys.maxsize).removesuffix("\n...\n")  # type: ignore
+                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n")  # type: ignore
             elif e is None:
                 return "null"
             elif e is True:
