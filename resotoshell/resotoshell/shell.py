@@ -56,10 +56,7 @@ class Shell:
             # sign request
             headers.clear()
             if ArgumentParser.args.psk:
-                encode_jwt_to_headers(
-                    headers, {}, ArgumentParser.args.psk, expire_in=604800
-                )
-                print(headers)
+                encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
             body: Optional[Any] = None
             if isinstance(data, bytes):
