@@ -8,7 +8,6 @@ from .config import add_config
 from resotolib.config import Config
 from resotolib.logging import log, setup_logger, add_args as logging_add_args
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.pluginloader import PluginLoader
 from resotolib.baseplugin import BaseCollectorPlugin, PluginType
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
@@ -17,6 +16,7 @@ from resotolib.args import ArgumentParser
 from resotolib.core import add_args as core_add_args, resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.core.tasks import CoreTasks
+from resotoworker.pluginloader import PluginLoader
 from resotoworker.collect import collect_and_send
 from resotoworker.cleanup import cleanup
 from resotoworker.tag import core_tag_tasks_processor
