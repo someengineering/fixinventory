@@ -800,7 +800,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n")  # type: ignore
+                return remove_suffix(yaml.dump(e, allow_unicode=True, width=sys.maxsize), "\n...\n")
             elif e is None:
                 return "null"
             elif e is True:
