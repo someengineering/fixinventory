@@ -1,9 +1,10 @@
-from typing import Any, Optional, Callable, Union, Dict, Sequence, Mapping
+from typing import Any, Optional, Callable, Dict, Sequence, Union, Mapping
 
+JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
+JsonArray = Sequence[JsonElement]
+# See discussion here: https://github.com/python/typing/issues/182
 Json = Dict[str, Any]
 
-JsonArray = Sequence[Union[Mapping[str, Any], Sequence[Any], str, int, float, None]]
-JsonElement = Union[Mapping[str, Any], Sequence[Any], str, int, float, bool, None]
 
 ValidationResult = Optional[Any]
 ValidationFn = Callable[[Any], ValidationResult]

@@ -17,7 +17,6 @@ from resotocore.cli.command import (
     AggregateToCountCommand,
     all_commands,
     PredecessorsPart,
-    alias_templates,
 )
 from resotocore.cli.model import CLIDependencies
 from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
@@ -93,7 +92,7 @@ async def cli_deps(
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns", "section": "reported"}
-    return CLI(cli_deps, all_commands(cli_deps), env, alias_names(), alias_templates())
+    return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
 
 
 def test_command_line_parser() -> None:

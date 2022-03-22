@@ -39,7 +39,7 @@ from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, all_commands, alias_names, alias_templates
+from resotocore.cli.command import ListCommand, all_commands, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -749,7 +749,7 @@ class Api:
                 "commands": commands,
                 "replacements": replacements,
                 "alias_names": alias_names(),
-                "alias_templates": [alias_json(alias) for alias in alias_templates()],
+                "alias_templates": [alias_json(alias) for alias in self.cli.alias_templates.values()],
             }
         )
 

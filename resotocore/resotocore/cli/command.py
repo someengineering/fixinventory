@@ -57,8 +57,6 @@ from resotocore.cli.model import (
     CLIDependencies,
     ParsedCommand,
     NoTerminalOutput,
-    AliasTemplate,
-    AliasTemplateParameter,
 )
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
@@ -3576,27 +3574,3 @@ def alias_names() -> Dict[str, str]:
         "template": "templates",
         "workflow": "workflows",
     }
-
-
-def alias_templates() -> List[AliasTemplate]:
-    return [
-        AliasTemplate(
-            "discord",
-            "Send result of a search to discord",
-            # defines the fields to show in the message
-            "jq {name:{{key}}, value:{{value}}} | "
-            # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
-            "chunk 25 | "
-            # define the discord webhook json
-            'jq {content: "{{message}}", embeds: [{title: "{{title}}", fields:.}]} | '
-            # call the api
-            "http POST {{webhook}}",
-            [
-                AliasTemplateParameter("key", "The field of the resource to show as key", ".kind"),
-                AliasTemplateParameter("value", "The field of the resource to show as value", ".name"),
-                AliasTemplateParameter("message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"),
-                AliasTemplateParameter("title", "The title of the post."),
-                AliasTemplateParameter("webhook", "The complete webhook url."),
-            ],
-        )
-    ]

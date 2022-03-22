@@ -19,7 +19,7 @@ from parsy import test_char, string
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.config import ConfigHandler
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -318,6 +318,15 @@ class AliasTemplateParameter:
     name: str
     description: str
     default: Optional[JsonElement] = None
+    example: Optional[str] = None
+
+    def example_value(self) -> JsonElement:
+        if self.default:
+            return self.default
+        elif self.example:
+            return self.example
+        else:
+            return f"test_{self.name}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -339,7 +348,7 @@ class AliasTemplate:
 
         indent = "                "
         arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.args, key=attrgetter("name")))
-        minimal = ", ".join(f"{p.name}=\"{p.default or 'test_'+p.name}\"" for p in self.args if p.default is None)
+        minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.args if p.default is None)
         return dedent(
             f"""
                 {self.name}: {self.info}
@@ -359,13 +368,20 @@ class AliasTemplate:
                 # Executing this alias template
                 > {self.name} {minimal}
                 # Will expand to this command
-                > {self.render({p.name: p.default or "test_"+p.name for p in self.args})}
+                > {self.render({p.name: p.example_value() for p in self.args})}
                 ```
                 """
         )
 
     def rendered_help(self, ctx: CLIContext) -> str:
         return ctx.render_console(self.help())
+
+    @staticmethod
+    def from_config(cfg: AliasTemplateConfig) -> AliasTemplate:
+        def arg(p: AliasTemplateParameterConfig) -> AliasTemplateParameter:
+            return AliasTemplateParameter(p.name, p.description, p.default, p.example)
+
+        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.args])
 
 
 class InternalPart(ABC):

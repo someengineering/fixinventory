@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple
 
+import yaml
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
 from networkx import DiGraph
@@ -797,7 +799,7 @@ class ComplexKind(Kind):
             elif isinstance(e, list):
                 return "[]"
             elif isinstance(e, str):
-                return f'"{e}"'
+                return yaml.dump(e, allow_unicode=True, width=sys.maxsize).removesuffix("\n...\n")  # type: ignore
             elif e is None:
                 return "null"
             elif e is True:

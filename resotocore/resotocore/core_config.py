@@ -8,7 +8,7 @@ from cerberus import schema_registry
 from resotolib.graph import dataclasses_to_resotocore_model
 
 from resotocore.model.typed_model import from_js, to_js
-from resotocore.types import Json
+from resotocore.types import Json, JsonElement
 from resotocore.util import set_value_in_path
 from resotocore.validator import Validator, schema_name
 
@@ -68,6 +68,55 @@ class DatabaseConfig:
     request_timeout: int = field(default=900, metadata={"description": "Request timeout in seconds (default: 900)"})
 
 
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplateParameterConfig:
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template_parameter"
+    name: str
+    description: str
+    default: Optional[JsonElement] = None
+    example: Optional[str] = None
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplateConfig:
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template"
+    name: str
+    info: str
+    template: str
+    args: List[AliasTemplateParameterConfig] = field(default_factory=list)
+
+
+def alias_templates() -> List[AliasTemplateConfig]:
+    return [
+        AliasTemplateConfig(
+            "discord",
+            "Send result of a search to discord",
+            # defines the fields to show in the message
+            "jq {name:{{key}}, value:{{value}}} | "
+            # discord limit: https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+            "chunk 25 | "
+            # define the discord webhook json
+            'jq {content: "{{message}}", embeds: [{title: "{{title}}", fields:.}]} | '
+            # call the api
+            "http POST {{webhook}}",
+            [
+                AliasTemplateParameterConfig("key", "The field of the resource to show as key", ".kind"),
+                AliasTemplateParameterConfig("value", "The field of the resource to show as value", ".name"),
+                AliasTemplateParameterConfig(
+                    "message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"
+                ),
+                AliasTemplateParameterConfig("title", "The title of the post."),
+                AliasTemplateParameterConfig(
+                    "webhook",
+                    "The complete webhook url.",
+                    None,
+                    "https://discord.com/api/webhooks/id_of_webhook/token",
+                ),
+            ],
+        )
+    ]
+
+
 @dataclass()
 class CLIConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_config"
@@ -81,6 +130,10 @@ class CLIConfig:
             "description": "Use this graph section by default, if no section is specified.\n"
             "Relative paths will be interpreted with respect to this section."
         },
+    )
+    alias_templates: List[AliasTemplateConfig] = field(
+        default_factory=alias_templates,
+        metadata={"description": "Here you can define all alias templates for the CLI."},
     )
 
 
