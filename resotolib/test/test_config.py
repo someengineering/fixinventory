@@ -13,6 +13,9 @@ def test_config():
     cfg = Config("test")
     cfg.add_config(TestConfig)
     cfg.init_default_config()
+    assert Config.dict() == {
+        "configtest": {"testvar1": "testing123", "testvar2": 12345}
+    }
     cfg2 = Config("test2")
     assert cfg.configtest.testvar1 == cfg2.configtest.testvar1
     assert cfg.configtest.testvar1 == Config.configtest.testvar1

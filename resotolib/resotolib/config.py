@@ -155,11 +155,14 @@ class Config(metaclass=MetaConfig):
             except Exception:
                 log.exception(f"Failed to override config {override}")
 
+    @staticmethod
+    def dict() -> Dict:
+        return jsons.dump(_config.data, strip_attr="kind", strip_properties=True)
+
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri)
-        config = jsons.dump(_config.data, strip_attr="kind", strip_properties=True)
         stored_config_revision = set_config(
-            self.config_name, config, self.resotocore_uri
+            self.config_name, self.dict(), self.resotocore_uri
         )
         if stored_config_revision != _config.revision:
             _config.revision = stored_config_revision
