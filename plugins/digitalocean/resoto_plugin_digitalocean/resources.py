@@ -348,6 +348,9 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
     certificate_state: Optional[str] = None
     certificate_type: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/certificates"
+
 
 @dataclass(eq=False)
 class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
