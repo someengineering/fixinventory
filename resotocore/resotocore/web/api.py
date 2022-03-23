@@ -39,7 +39,7 @@ from resotolib.jwt import encode_jwt
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, all_commands, aliases
+from resotocore.cli.command import ListCommand, all_commands, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -47,6 +47,7 @@ from resotocore.cli.model import (
     PreserveOutputFormat,
     CLICommand,
     InternalPart,
+    AliasTemplate,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -738,9 +739,19 @@ class Api:
         def cmd_json(cmd: CLICommand) -> Json:
             return {"name": cmd.name, "info": cmd.info(), "help": cmd.help()}
 
+        def alias_json(cmd: AliasTemplate) -> Json:
+            return {"name": cmd.name, "info": cmd.info, "help": cmd.help()}
+
         commands = [cmd_json(cmd) for cmd in all_commands(self.cli.dependencies) if not isinstance(cmd, InternalPart)]
         replacements = self.cli.replacements()
-        return web.json_response({"commands": commands, "replacements": replacements, "aliases": aliases()})
+        return web.json_response(
+            {
+                "commands": commands,
+                "replacements": replacements,
+                "alias_names": alias_names(),
+                "alias_templates": [alias_json(alias) for alias in self.cli.alias_templates.values()],
+            }
+        )
 
     @staticmethod
     def cli_context_from_request(request: Request) -> CLIContext:

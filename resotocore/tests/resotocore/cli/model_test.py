@@ -1,4 +1,6 @@
-from resotocore.cli.model import CLIContext
+from textwrap import dedent
+
+from resotocore.cli.model import CLIContext, AliasTemplate, AliasTemplateParameter
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 
 
@@ -24,3 +26,33 @@ def test_supports_color() -> None:
     assert CLIContext(console_renderer=ConsoleRenderer(color_system=ConsoleColorSystem.standard)).supports_color()
     assert CLIContext(console_renderer=ConsoleRenderer(color_system=ConsoleColorSystem.eight_bit)).supports_color()
     assert CLIContext(console_renderer=ConsoleRenderer(color_system=ConsoleColorSystem.truecolor)).supports_color()
+
+
+def test_alias_template() -> None:
+    params = [AliasTemplateParameter("a", "some a"), AliasTemplateParameter("b", "some b", "bv")]
+    tpl = AliasTemplate("foo", "does foes", "{{a}} | {{b}}", params)
+    assert tpl.render({"a": "test", "b": "bla"}) == "test | bla"
+    assert tpl.rendered_help(CLIContext()) == dedent(
+        """
+        foo: does foes
+        ```shell
+        foo a=<value>, b=<value>
+        ```
+        ## Parameters
+        - `a`: some a
+        - `b` [default: bv]: some b
+
+        ## Template
+        ```shell
+        > {{a}} | {{b}}
+        ```
+
+        ## Example
+        ```shell
+        # Executing this alias template
+        > foo a="test_a"
+        # Will expand to this command
+        > test_a | bv
+        ```
+        """
+    )

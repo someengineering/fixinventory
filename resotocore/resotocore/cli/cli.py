@@ -10,6 +10,7 @@ from dataclasses import replace
 from datetime import timedelta
 from functools import reduce
 from itertools import takewhile
+from operator import attrgetter
 from textwrap import dedent
 from typing import Dict, List, Tuple
 from typing import Optional, Any
@@ -50,6 +51,7 @@ from resotocore.cli.model import (
     EmptyContext,
     CLISource,
     NoTerminalOutput,
+    AliasTemplate,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -85,10 +87,13 @@ def single_command_parser() -> Parser:
     return ParsedCommand(cmd, args)
 
 
+single_commands = single_command_parser.sep_by(pipe_p, min=1)
+
+
 @make_parser
 def command_line_parser() -> Parser:
     maybe_env = yield key_values_parser.optional()
-    commands = yield single_command_parser.sep_by(pipe_p, min=1)
+    commands = yield single_commands
     return ParsedCommands(commands, maybe_env if maybe_env else {})
 
 
@@ -109,11 +114,18 @@ class HelpCommand(CLICommand):
     with open(os.path.dirname(__file__) + "/../static/ck-unicode-truecolor.ans", "r", encoding="utf-8") as log_file:
         ck = Text.from_ansi(log_file.read())
 
-    def __init__(self, dependencies: CLIDependencies, parts: List[CLICommand], aliases: Dict[str, str]):
+    def __init__(
+        self,
+        dependencies: CLIDependencies,
+        parts: List[CLICommand],
+        alias_names: Dict[str, str],
+        alias_templates: List[AliasTemplate],
+    ):
         super().__init__(dependencies)
         self.all_parts = {p.name: p for p in parts + [self]}
         self.parts = {p.name: p for p in parts + [self] if not isinstance(p, InternalPart)}
-        self.aliases = {a: n for a, n in aliases.items() if n in self.parts and a not in self.parts}
+        self.alias_names = {a: n for a, n in alias_names.items() if n in self.parts and a not in self.parts}
+        self.alias_templates = {a.name: a for a in sorted(alias_templates, key=attrgetter("name"))}
 
     @property
     def name(self) -> str:
@@ -129,8 +141,9 @@ class HelpCommand(CLICommand):
             indent = "                 "  # required for dedent to work properly
             available = "\n".join(f"{indent}- `{part.name}` - {part.info()}" for part in parts)
             aliases = "\n".join(
-                f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.aliases.items()
+                f"{indent}- `{alias}` (`{cmd}`) - {self.parts[cmd].info()}" for alias, cmd in self.alias_names.items()
             )
+            alias_templates = "\n".join(f"{indent}- `{a.name}` - {a.info}" for a in self.alias_templates.values())
             replacements = "\n".join(
                 f"{indent}- `@{key}@` -> {value}" for key, value in CLI.replacements(**ctx.env).items()
             )
@@ -139,6 +152,8 @@ class HelpCommand(CLICommand):
                  ## Valid placeholder string: \n{replacements}
 
                  ## Available Aliases: \n{aliases}
+
+                 ## Available Templates: \n{alias_templates}
 
                  ## Available Commands: \n{available}
 
@@ -161,12 +176,14 @@ class HelpCommand(CLICommand):
         def help_command() -> Stream:
             if not arg:
                 result = overview()
-            elif arg and arg in self.all_parts:
+            elif arg in self.all_parts:
                 result = self.all_parts[arg].rendered_help(ctx)
-            elif arg and arg in self.aliases:
-                alias = self.aliases[arg]
+            elif arg in self.alias_names:
+                alias = self.alias_names[arg]
                 explain = f"{arg} is an alias for {alias}\n\n"
                 result = explain + self.all_parts[alias].rendered_help(ctx)
+            elif arg in self.alias_templates:
+                result = self.alias_templates[arg].rendered_help(ctx)
             else:
                 result = f"No command found with this name: {arg}"
 
@@ -187,16 +204,22 @@ class CLI:
     """
 
     def __init__(
-        self, dependencies: CLIDependencies, parts: List[CLICommand], env: Dict[str, Any], aliases: Dict[str, str]
+        self,
+        dependencies: CLIDependencies,
+        parts: List[CLICommand],
+        env: Dict[str, Any],
+        alias_names: Dict[str, str],
     ):
         dependencies.extend(cli=self)
-        help_cmd = HelpCommand(dependencies, parts, aliases)
+        alias_templates = [AliasTemplate.from_config(alias) for alias in dependencies.config.cli.alias_templates]
+        help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
         cmds = {p.name: p for p in parts + [help_cmd]}
-        alias_cmds = {alias: cmds[name] for alias, name in aliases.items() if name in cmds and alias not in cmds}
+        alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}
         self.commands: Dict[str, CLICommand] = {**cmds, **alias_cmds}
         self.cli_env = env
         self.dependencies = dependencies
-        self.aliases = aliases
+        self.alias_names = alias_names
+        self.alias_templates = {alias.name: alias for alias in alias_templates}
         self.reaper: Optional[Task[None]] = None
 
     async def start(self) -> None:
@@ -393,8 +416,30 @@ class CLI:
             envelope = {k: v for cmd in commands for k, v in cmd.action.envelope.items()}
             return ParsedCommandLine(ctx, parsed, commands, not_met, envelope)
 
-        async def send_analytics(parsed: List[ParsedCommandLine]) -> None:
-            command_names = [cmd.cmd for line in parsed for cmd in line.parsed_commands.commands]
+        def expand_aliases(line: ParsedCommands) -> ParsedCommands:
+            def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
+                alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
+                props = {p.name: p.default for p in alias.parameters}
+                props.update(key_values_parser.parse(alias_cmd.args or ""))
+                undefined = [k for k, v in props.items() if v is None]
+                if undefined:
+                    raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
+
+                rendered = alias.render(props)
+                log.debug(f"The rendered alias template is: {rendered}")
+                return single_commands.parse(rendered)  # type: ignore
+
+            result: List[ParsedCommand] = []
+            for cmd in line.commands:
+                if cmd.cmd in self.alias_templates:
+                    result.extend(expand_alias(cmd))
+                else:
+                    result.append(cmd)
+
+            return ParsedCommands(result, line.env)
+
+        async def send_analytics(parsed: List[ParsedCommands]) -> None:
+            command_names = [cmd.cmd for line in parsed for cmd in line.commands]
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
@@ -407,8 +452,9 @@ class CLI:
         command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
         keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
         command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
+        await send_analytics(command_lines)  # send before the alias commands get expanded
+        command_lines = [expand_aliases(cmd_line) for cmd_line in command_lines]
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
-        await send_analytics(res)
         return res
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:

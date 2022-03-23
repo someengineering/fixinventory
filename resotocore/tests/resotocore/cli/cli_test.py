@@ -13,7 +13,7 @@ from resotocore.cli.command import (
     FlattenCommand,
     UniqCommand,
     EchoCommand,
-    aliases,
+    alias_names,
     AggregateToCountCommand,
     all_commands,
     PredecessorsPart,
@@ -92,7 +92,7 @@ async def cli_deps(
 @fixture
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns", "section": "reported"}
-    return CLI(cli_deps, all_commands(cli_deps), env, aliases())
+    return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
 
 
 def test_command_line_parser() -> None:
@@ -186,7 +186,16 @@ async def test_help(cli: CLI) -> None:
     result = await cli.execute_cli_command("help", stream.list)
     assert len(result[0]) == 1
 
+    # help for command
     result = await cli.execute_cli_command("help count", stream.list)
+    assert len(result[0]) == 1
+
+    # help for alias
+    result = await cli.execute_cli_command("help kind", stream.list)
+    assert len(result[0]) == 1
+
+    # help for alias template
+    result = await cli.execute_cli_command("help discord", stream.list)
     assert len(result[0]) == 1
 
 

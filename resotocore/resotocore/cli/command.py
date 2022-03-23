@@ -3556,7 +3556,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     return commands
 
 
-def aliases() -> Dict[str, str]:
+def alias_names() -> Dict[str, str]:
     # command alias -> command name
     return {
         "match": "search",

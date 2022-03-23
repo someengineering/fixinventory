@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from asyncio import Queue, Task, iscoroutine
 from dataclasses import dataclass, field
 from enum import Enum
+from operator import attrgetter
+from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
 
 from aiohttp import ClientSession, TCPConnector
@@ -17,7 +19,7 @@ from parsy import test_char, string
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
 from resotocore.config import ConfigHandler
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.error import CLIParseError
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -25,7 +27,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.parse_util import l_curly_dp, r_curly_dp
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
-from resotocore.query.template_expander import TemplateExpander
+from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson
@@ -309,6 +311,71 @@ class CLICommand(ABC):
     @abstractmethod
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplateParameter:
+    name: str
+    description: str
+    default: Optional[JsonElement] = None
+
+    def example_value(self) -> JsonElement:
+        return self.default if self.default else f"test_{self.name}"
+
+
+@dataclass(order=True, unsafe_hash=True, frozen=True)
+class AliasTemplate:
+    name: str
+    info: str
+    template: str
+    parameters: List[AliasTemplateParameter] = field(default_factory=list)
+
+    def render(self, props: Json) -> str:
+        return render_template(self.template, props)
+
+    def help(self) -> str:
+        args = ", ".join(f"{arg.name}=<value>" for arg in self.parameters)
+
+        def param_info(p: AliasTemplateParameter) -> str:
+            default = f" [default: {p.default}]" if p.default else ""
+            return f"- `{p.name}`{default}: {p.description}"
+
+        indent = "                "
+        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
+        minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.parameters if p.default is None)
+        return dedent(
+            f"""
+                {self.name}: {self.info}
+                ```shell
+                {self.name} {args}
+                ```
+                ## Parameters
+                {arg_info}
+
+                ## Template
+                ```shell
+                > {self.template}
+                ```
+
+                ## Example
+                ```shell
+                # Executing this alias template
+                > {self.name} {minimal}
+                # Will expand to this command
+                > {self.render({p.name: p.example_value() for p in self.parameters})}
+                ```
+                """
+        )
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        return ctx.render_console(self.help())
+
+    @staticmethod
+    def from_config(cfg: AliasTemplateConfig) -> AliasTemplate:
+        def arg(p: AliasTemplateParameterConfig) -> AliasTemplateParameter:
+            return AliasTemplateParameter(p.name, p.description, p.default)
+
+        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.parameters])
 
 
 class InternalPart(ABC):

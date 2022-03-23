@@ -23,7 +23,18 @@ def test_read_config() -> None:
     config = {
         "resotocore": {
             "api": {"hosts": ["1.2.3.4"], "port": 1234, "psk": "test", "tsdb_proxy_url": "test", "ui_path": "fest"},
-            "cli": {"default_graph": "foo", "default_section": "bla"},
+            "cli": {
+                "default_graph": "foo",
+                "default_section": "bla",
+                "alias_templates": [
+                    {
+                        "info": "Test command",
+                        "name": "test",
+                        "parameters": [{"name": "test", "default": "test argument", "description": "easy"}],
+                        "template": "do something",
+                    }
+                ],
+            },
             "graph_update": {"abort_after_seconds": 1234, "merge_max_wait_time_seconds": 4321},
             "runtime": {
                 "analytics_opt_out": True,
@@ -70,6 +81,8 @@ def test_model() -> None:
         "resotocore",
         "resotocore_api_config",
         "resotocore_cli_config",
+        "resotocore_cli_alias_template",
+        "resotocore_cli_alias_template_parameter",
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
     }

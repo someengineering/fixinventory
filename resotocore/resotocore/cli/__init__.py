@@ -16,6 +16,7 @@ from resotocore.parse_util import (
     single_quoted_string_part_or_esc_dp,
     single_quote_dp,
     any_non_white_space_string,
+    comma_p,
 )
 from resotocore.types import JsonElement
 
@@ -36,7 +37,7 @@ def key_value_parser() -> Parser:
 
 
 # name=value test=true -> {name: value, test: true}
-key_values_parser: Parser = key_value_parser.sep_by(space_dp).map(dict)
+key_values_parser: Parser = key_value_parser.sep_by(comma_p | space_dp).map(dict)
 # anything that is not: | " ' ; \
 cmd_token = regex("[^|\"';\\\\]+")
 # single and double-quoted string are maintained with quotes: "foo"->"foo", 'foo'->'foo'

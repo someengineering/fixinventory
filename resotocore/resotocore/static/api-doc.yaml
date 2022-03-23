@@ -2457,11 +2457,16 @@ components:
                     type: object
                     additionalProperties:
                         type: string
-                aliases:
+                alias_names:
                     description: All available aliases
                     type: object
                     additionalProperties:
                         type: string
+                alias_templates:
+                    description: All available alias template name.
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CLICommand'
         CLICommand:
             type: object
             description: Information about a CLI command

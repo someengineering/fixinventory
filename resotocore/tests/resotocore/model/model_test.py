@@ -470,47 +470,47 @@ def test_yaml(person_model: Model) -> None:
         address:
           # The name of the city.
           # And another line.
-          city: "gotham"
+          city: gotham
           float: 1.2345
           number: 123
           # The zip code.
-          zip: "134"
+          zip: '134'
         # The list of addresses.
         addresses:
           - # The name of the city.
             # And another line.
-            city: "gotham"
+            city: gotham
             float: 1.2345
             number: 123
             # The zip code.
-            zip: "134"
+            zip: '134'
           - # The name of the city.
             # And another line.
-            city: "gotham"
+            city: gotham
             float: 1.2345
             number: 123
             # The zip code.
-            zip: "134"
+            zip: '134'
         # The name of the person.
-        name: "batman"
+        name: batman
         # Other addresses.
         other_addresses:
           home:
             # The name of the city.
             # And another line.
-            city: "gotham"
+            city: gotham
             float: 1.2345
             number: 123
             # The zip code.
-            zip: "134"
+            zip: '134'
           work:
             # The name of the city.
             # And another line.
-            city: "gotham"
+            city: gotham
             float: 1.2345
             number: 123
             # The zip code.
-            zip: "134"
+            zip: '134'
         simple:
           - 1
           - 2
