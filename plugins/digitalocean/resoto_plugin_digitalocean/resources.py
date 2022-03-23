@@ -206,6 +206,9 @@ DigitalOceanVolume.volume_status = property(
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/databases"
+
 
 @dataclass(eq=False)
 class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
