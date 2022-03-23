@@ -418,6 +418,9 @@ class DigitalOceanTag(DigitalOceanResource, BaseResource):
 
     kind = "digitalocean_tag"
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/tags"
+
 
 @dataclass(eq=False)
 class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
