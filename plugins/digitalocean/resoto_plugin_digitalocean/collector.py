@@ -971,6 +971,8 @@ class DigitalOceanTeamCollector:
                     "urn": lambda t: container_registry_repository_tag_id(
                         t["registry_name"], t["repository"], t["tag"]
                     ),
+                    "registry_name": "registry_name",
+                    "repository_name": "repository",
                     "name": "tag",
                     "manifest_digest": "manifest_digest",
                     "compressed_size_bytes": "compressed_size_bytes",

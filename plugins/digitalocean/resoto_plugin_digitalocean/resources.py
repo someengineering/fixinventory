@@ -388,10 +388,16 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
     """DigitalOcean container registry repository tag"""
 
     kind = "digitalocean_container_registry_repository_tag"
-
+    registry_name: Optional[str] = None
+    repository_name: Optional[str] = None
     manifest_digest: Optional[str] = None
     compressed_size_bytes: Optional[int] = None
     size_bytes: Optional[int] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return (
+            f"/registry/{self.registry_name}/repositories/{self.repository_name}/tags"
+        )
 
 
 @dataclass(eq=False)
