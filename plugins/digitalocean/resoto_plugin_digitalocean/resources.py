@@ -232,10 +232,12 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
-
     snapshot_size_gigabytes: Optional[int] = None
     resource_id: Optional[str] = None
     resource_type: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/snapshots"
 
 
 @dataclass(eq=False)
