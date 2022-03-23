@@ -296,6 +296,9 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     description: Optional[str] = None
     image_status: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/images"
+
 
 @dataclass(eq=False)
 class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
