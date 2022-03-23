@@ -2,7 +2,11 @@ from typing import Dict, List, Any, Optional
 
 import requests
 import boto3
-from botocore.exceptions import EndpointConnectionError
+from botocore.exceptions import EndpointConnectionError, HTTPClientError
+from retrying import retry
+
+from resoto_plugin_digitalocean.utils import retry_on_error
+from resoto_plugin_digitalocean.utils import RetryableHttpError
 
 
 import resotolib.logging
@@ -29,6 +33,12 @@ class StreamingWrapper:
         else:
             self.session = None
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
     def _make_request(self, path: str, payload_object_name: str) -> List[Json]:
         result = []
         do_api_endpoint = "https://api.digitalocean.com/v2"
@@ -40,7 +50,18 @@ class StreamingWrapper:
         url = f"{do_api_endpoint}{path}?page=1&per_page=200"
         log.debug(f"fetching {url}")
 
-        json_response = requests.get(url, headers=headers).json()
+        def validate_status(response: requests.Response) -> requests.Response:
+            if response.status_code == 429:
+                raise RetryableHttpError(
+                    f"Too many requests: {response.reason} {response.text}"
+                )
+            if response.status_code / 100 == 5:
+                raise RetryableHttpError(
+                    f"Server error: {response.reason} {response.text}"
+                )
+            return response
+
+        json_response = validate_status(requests.get(url, headers=headers)).json()
         payload = json_response.get(payload_object_name, [])
         result.extend(payload if isinstance(payload, list) else [payload])
 
@@ -49,7 +70,7 @@ class StreamingWrapper:
             if url == "":
                 break
             log.debug(f"fetching {url}")
-            json_response = requests.get(url, headers=headers).json()
+            json_response = validate_status(requests.get(url, headers=headers)).json()
             payload = json_response.get(payload_object_name, [])
             result.extend(payload if isinstance(payload, list) else [payload])
 
@@ -89,6 +110,12 @@ class StreamingWrapper:
     def list_floating_ips(self) -> List[Json]:
         return self._make_request("/floating_ips", "floating_ips")
 
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
     def list_spaces(self, region_slug: str) -> List[Json]:
         if self.session is not None:
             try:
@@ -103,7 +130,14 @@ class StreamingWrapper:
                 )
 
                 return client.list_buckets().get("Buckets", [])
+            except HTTPClientError:
+                raise RetryableHttpError("DO Spaces: Too many requests")
             except EndpointConnectionError:
+                return []
+            except Exception as e:
+                log.warning(
+                    f"Unknown exception when listing spaces, skipping. Exception: {e}"
+                )
                 return []
         else:
             return []

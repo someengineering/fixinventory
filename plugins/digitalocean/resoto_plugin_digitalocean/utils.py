@@ -26,6 +26,17 @@ def get_result_data(result: Dict, value: Union[str, Callable]) -> Any:
     return data
 
 
+class RetryableHttpError(Exception):
+    pass
+
+
+def retry_on_error(e):
+    if isinstance(e, RetryableHttpError):
+        log.info(f"Got a retryable error {e}  - retrying")
+        return True
+    return False
+
+
 def iso2datetime(ts: Optional[str]) -> Optional[datetime]:
     if ts is None:
         return
