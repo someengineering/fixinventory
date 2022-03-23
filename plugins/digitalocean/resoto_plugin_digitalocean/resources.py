@@ -332,6 +332,9 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
     custom_domain: Optional[str] = None
     ttl: Optional[int] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/cdn/endpoints"
+
 
 @dataclass(eq=False)
 class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
