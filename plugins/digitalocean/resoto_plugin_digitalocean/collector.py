@@ -485,7 +485,7 @@ class DigitalOceanTeamCollector:
                 "__tags": [
                     "urn",
                     lambda image: list(
-                        map(lambda tag: tag_id(tag), image.get("tags", []))
+                        map(lambda tag: tag_id(tag), image.get("tags", []) or [])
                     ),
                 ],
             },
@@ -502,7 +502,9 @@ class DigitalOceanTeamCollector:
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
-                "droplet_backup_ids": lambda d: list(map(str, d.get("backup_ids", []))),
+                "droplet_backup_ids": lambda d: list(
+                    map(str, d.get("backup_ids", []) or [])
+                ),
                 "is_locked": "locked",
                 "droplet_features": "features",
                 "droplet_image": lambda d: d["image"]["slug"],
@@ -756,7 +758,9 @@ class DigitalOceanTeamCollector:
                 "__resource": ["urn", lambda s: get_resource_id(s)],
                 "__tags": [
                     "urn",
-                    lambda s: list(map(lambda tag: tag_id(tag), s.get("tags", []))),
+                    lambda s: list(
+                        map(lambda tag: tag_id(tag), s.get("tags", []) or [])
+                    ),
                 ],
             },
             predecessors={EdgeType.default: ["__resource", "__tags"]},
@@ -797,7 +801,7 @@ class DigitalOceanTeamCollector:
                 "__droplets": [
                     "urn",
                     lambda lb: list(
-                        map(lambda id: droplet_id(id), lb.get("droplet_ids", []))
+                        map(lambda id: droplet_id(id), lb.get("droplet_ids", []) or [])
                     ),
                 ],
             },
@@ -1080,12 +1084,12 @@ class DigitalOceanTeamCollector:
                 "__droplets": [
                     "urn",
                     lambda f: list(
-                        map(lambda id: droplet_id(id), f.get("droplet_ids", []))
+                        map(lambda id: droplet_id(id), f.get("droplet_ids", []) or [])
                     ),
                 ],
                 "__tags": [
                     "urn",
-                    lambda f: list(map(lambda id: tag_id(id), f.get("tags", []))),
+                    lambda f: list(map(lambda id: tag_id(id), f.get("tags", []) or [])),
                 ],
             },
             predecessors={
