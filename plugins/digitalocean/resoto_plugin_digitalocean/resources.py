@@ -266,7 +266,19 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
     is_locked: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+        log.debug(
+            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+        )
+        team = self.account(graph)
+        credentials = get_team_credentials(team.id)
+        client = StreamingWrapper(
+            credentials.api_token,
+            credentials.spaces_access_key,
+            credentials.spaces_secret_key,
+        )
+        # un-assign the ip just in case it's still assigned to a droplet
+        client.unassign_floating_ip(self.id)
+        return client.delete("/floating_ips", self.id)
 
 
 @dataclass(eq=False)

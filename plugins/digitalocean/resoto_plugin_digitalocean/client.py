@@ -103,6 +103,12 @@ class StreamingWrapper:
             raise RetryableHttpError(
                 f"Server error: {url} {response.reason} {response.text}"
             )
+        if status_code == 422 and path == "/floating_ips":
+            is_being_unassighed = "The floating IP already has a pending event."
+            if response.json().get("message") == is_being_unassighed:
+                raise RetryableHttpError(
+                    f"floating_ip: {url} {response.reason} {response.text}"
+                )
         if status_code // 100 == 4:
             log.warning(f"Client error: DELETE {url} {response.reason} {response.text}")
             return False
@@ -150,6 +156,43 @@ class StreamingWrapper:
 
     def list_floating_ips(self) -> List[Json]:
         return self._fetch("/floating_ips", "floating_ips")
+
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def unassign_floating_ip(self, floating_ip_id: str) -> bool:
+        payload = '{"type":"unassign"}'
+        url = f"{self.do_api_endpoint}/floating_ips/{floating_ip_id}/actions"
+        response = requests.post(
+            url,
+            headers=self.headers,
+            data=payload,
+            allow_redirects=True,
+        )
+
+        status_code = response.status_code
+        if status_code == 429:
+            raise RetryableHttpError(
+                f"Too many requests: {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 5:
+            raise RetryableHttpError(
+                f"Server error: {url} {response.reason} {response.text}"
+            )
+        if status_code // 100 == 4:
+            log.warning(f"Client error: POST {url} {response.reason} {response.text}")
+            return False
+        if status_code // 100 == 2:
+            log.debug(f"unassigned: {url}")
+            return True
+
+        log.warning(
+            f"unknown status code {status_code}: {url} {response.reason} {response.text}"
+        )
+        return False
 
     @retry(
         stop_max_attempt_number=10,
