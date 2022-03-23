@@ -76,11 +76,16 @@ def test_string() -> None:
 
 
 def test_number() -> None:
-    a = NumberKind("cores", "int32", 1, 8)
-    assert a.check_valid(1) is None
-    assert a.check_valid(8) is None
-    assert expect_error(a, 0) == ">0< should be greater or equals than: 1"
-    assert expect_error(a, 9) == ">9< should be smaller or equals than: 8"
+    int32 = NumberKind("cores", "int32", 1, 8)
+    flot = NumberKind("test", "float", 1, 8)
+    assert int32.check_valid(1) is None
+    assert int32.check_valid(8) is None
+    assert int32.check_valid("8") is 8
+    assert expect_error(int32, "7.123") == "Expected int32 but got 7.123"
+    assert flot.check_valid("7.123") == 7.123
+    assert expect_error(int32, 0) == ">0< should be greater or equals than: 1"
+    assert expect_error(int32, 9) == ">9< should be smaller or equals than: 8"
+    assert expect_error(int32, "9") == ">9< should be smaller or equals than: 8"
     b = NumberKind("bin", "int32", enum={1, 2, 4})
     assert b.check_valid(1) is None
     assert expect_error(b, 3) == ">3< should be one of: {1, 2, 4}"
@@ -90,7 +95,10 @@ def test_boolean() -> None:
     a = BooleanKind("question")
     assert a.check_valid(True) is None
     assert a.check_valid(False) is None
-    assert expect_error(a, "test").startswith("Expected type boolean but got")
+    assert a.check_valid("true") is True
+    assert a.check_valid("false") is False
+    assert a.check_valid("FALSE") is False
+    assert expect_error(a, "test").startswith("Expected boolean but got")
 
 
 def test_duration() -> None:
@@ -173,8 +181,7 @@ def test_dictionary() -> None:
     )
     address_model = Model.from_kinds([address])
     assert address_model.check_valid({"kind": "Foo", "tags": {"a": "b", "b": "c"}}) is None
-    expected = 'Kind:Foo Property:tags is not valid: value of dictionary[string, string] is not valid: Expected type string but got int: {"kind": "Foo", "tags": {"a": 1, "b": "c"}}'
-    assert expect_error(address_model, {"kind": "Foo", "tags": {"a": 1, "b": "c"}}) == expected
+    assert address_model.check_valid({"kind": "Foo", "tags": {"a": 1, "b": "c"}}) is not None
     assert address_model.check_valid({"kind": "Foo", "anything": {"a": 1, "b": "c", "c": True}}) is None
     expected = 'Kind:Foo Property:anything is not valid: dictionary requires a json object, but got this: 1: {"kind": "Foo", "anything": 1}'
     assert expect_error(address_model, {"kind": "Foo", "anything": 1}) == expected
@@ -218,12 +225,10 @@ def test_array() -> None:
 def test_model_checking(person_model: Model) -> None:
     assert person_model.check_valid({"kind": "Base", "id": "32"}) is None
     assert person_model.check_valid({"kind": "Base", "id": "32", "list": ["one", "two"]}) is None
-    expected = 'Kind:Base Property:list is not valid: Expected type string but got int: {"kind": "Base", "id": "32", "list": [1, 2]}'
-    assert expect_error(person_model, {"kind": "Base", "id": "32", "list": [1, 2]}) == expected
+    assert person_model.check_valid({"kind": "Base", "id": "32", "list": [1, 2]})["list"] == ["1", "2"]  # type: ignore
     expected = 'Kind:Base Property:list is not valid: Expected property is not an array!: {"kind": "Base", "id": "32", "list": "not iterable"}'
     assert expect_error(person_model, {"kind": "Base", "id": "32", "list": "not iterable"}) == expected
-    expected = 'Kind:Base Property:id is not valid: Expected type string but got int: {"kind": "Base", "id": 32}'
-    assert expect_error(person_model, {"kind": "Base", "id": 32}) == expected
+    assert person_model.check_valid({"kind": "Base", "id": 32}) == {"kind": "Base", "id": "32"}
     expected = 'Kind:Base Property:id is required and missing in {"kind": "Base"}'
     assert expect_error(person_model, {"kind": "Base"}) == expected
     expected = "Kind:Base Property:unknown is not defined in model!"
@@ -346,7 +351,7 @@ def expect_error(kind: Union[Kind, Model], obj: Any) -> str:
     try:
         kind.check_valid(obj)
         raise Exception("Expected an error but got a result!")
-    except AttributeError as a:
+    except Exception as a:
         return str(a)
 
 
