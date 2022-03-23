@@ -351,12 +351,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Check out someengineering/resoto.com
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: someengineering/resoto.com
           path: resoto.com
@@ -385,8 +385,16 @@ jobs:
         with:
           cmd: yq e -i '.servers[0].url = "http://localhost:8900" | del(.servers[0].description)' resoto.com/openapi/resotocore.yml
 
+      - name: Format
+        working-directory: ./resoto.com
+        env:
+          HUSKY_SKIP_INSTALL: 1
+        run: |
+          yarn install --frozen-lockfile
+          yarn format
+
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           path: resoto.com
           commit-message: "feat: v${{ steps.release_notes.outputs.tag }} release notes"
