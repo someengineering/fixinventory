@@ -354,9 +354,23 @@ class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
-
     storage_usage_bytes: Optional[int] = None
     is_read_only: Optional[bool] = None
+
+    def delete(self, graph: Graph) -> bool:
+        """Delete the container registry from the cloud"""
+
+        log.debug(
+            f"Deleting registry {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+        )
+        team = self.account(graph)
+        credentials = get_team_credentials(team.id)
+        client = StreamingWrapper(
+            credentials.api_token,
+            credentials.spaces_access_key,
+            credentials.spaces_secret_key,
+        )
+        return client.delete("/registry", None)
 
 
 @dataclass(eq=False)

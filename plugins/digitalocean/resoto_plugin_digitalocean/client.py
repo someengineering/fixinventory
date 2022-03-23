@@ -88,8 +88,9 @@ class StreamingWrapper:
         wait_exponential_max=300000,
         retry_on_exception=retry_on_error,
     )
-    def delete(self, path: str, resource_id: str) -> bool:
-        url = f"{self.do_api_endpoint}{path}/{resource_id}"
+    def delete(self, path: str, resource_id: Optional[str]) -> bool:
+        resource_id_path = f"/{resource_id}" if resource_id else ""
+        url = f"{self.do_api_endpoint}{path}{resource_id_path}"
         log.debug(f"deleting {url}")
 
         response = requests.delete(url, headers=self.headers, allow_redirects=True)
