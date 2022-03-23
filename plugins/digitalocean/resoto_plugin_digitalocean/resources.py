@@ -428,6 +428,9 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
 
     kind = "digitalocean_domain"
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/domains"
+
 
 @dataclass(eq=False)
 class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
