@@ -3,9 +3,8 @@ servers:
     -   url: ../
         description: current system
 info:
-    description: API provided by resotocore
+    title: Resoto Core REST API
     version: V1
-    title: resotocore REST API
 tags:
     -   name: graph_search
         description: Endpoints to search all sections of the graph.
