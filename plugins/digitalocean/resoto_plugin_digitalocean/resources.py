@@ -127,6 +127,9 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     droplet_features: Optional[List[str]] = None
     droplet_image: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/droplets"
+
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
 
