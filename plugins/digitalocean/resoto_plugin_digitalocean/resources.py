@@ -190,6 +190,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     filesystem_type: Optional[str] = None
     filesystem_label: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/volumes"
+
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 

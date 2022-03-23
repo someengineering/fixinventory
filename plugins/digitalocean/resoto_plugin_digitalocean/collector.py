@@ -575,6 +575,7 @@ class DigitalOceanTeamCollector:
                 ],
             },
             predecessors={EdgeType.default: ["__users", "__tags"]},
+            successors={EdgeType.delete: ["__users"]},
         )
 
     @metrics_collect_databases.time()
