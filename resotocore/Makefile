@@ -1,6 +1,6 @@
 .PHONY: clean clean-test clean-pyc clean-build clean-env docs help setup
 .DEFAULT_GOAL := help
-.SILENT: clean clean-build clean-pyc clean-test setup venv
+.SILENT: clean clean-build clean-pyc clean-test setup
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
@@ -53,19 +53,18 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 clean-env: ## remove environment
-	rm -fr venv
 	rm -fr venv-pypy
 
-lint: venv ## check style with flake8
+lint: ## static code analysis
 	black --line-length 120 --check resotocore tests
 	flake8 resotocore
 	pylint resotocore
 	mypy --python-version 3.8 --strict resotocore tests
 
-test: venv ## run tests quickly with the default Python
+test: ## run tests quickly with the default Python
 	pytest
 
-test-all: venv ## run tests on every Python version with tox
+test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
@@ -75,17 +74,6 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-release: dist ## package and upload a release
-	twine upload dist/*
-
-dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
-	ls -l dist
-
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
-
 venv-pypy:
 	pypy3.8 -m venv venv-pypy
 	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
@@ -94,22 +82,10 @@ venv-pypy:
 	. ./venv-pypy/bin/activate && pip install -r requirements.txt
 
 
-venv:
-	python3 -m venv venv --prompt "resotocore env"
-	. ./venv/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv/bin/activate && pip install --upgrade --editable ../resotolib
-	. ./venv/bin/activate && pip install -r requirements-dev.txt
-	. ./venv/bin/activate && pip install -r requirements-test.txt
-	. ./venv/bin/activate && pip install -r requirements.txt
-	. ./venv/bin/activate && mypy --python-version 3.8 resotocore tests > /dev/null 2>&1 || true
-	echo "Run mypy once to collect all required types and packages..."
-	. ./venv/bin/activate && mypy --python-version 3.8 --install-types --non-interactive resotocore tests || true
-	printf "Consider to execute in your running shell:\n\nPYTHONPATH=`pwd`\nsource venv/bin/activate\n\n"
+setup: clean clean-env venv-pypy
 
-setup: clean clean-env venv
-
-list-outdated: venv
+list-outdated: 
 	pip list --outdated
 
-install-latest: venv
+install-latest: 
 	pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
