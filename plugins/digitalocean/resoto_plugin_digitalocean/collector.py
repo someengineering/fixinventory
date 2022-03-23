@@ -717,7 +717,7 @@ class DigitalOceanTeamCollector:
                 ],
                 "__vpcs": ["urn", lambda c: vpc_id(c["vpc_uuid"])],
             },
-            successors={EdgeType.default: ["__nodes"]},
+            successors={EdgeType.default: ["__nodes"], EdgeType.delete: ["__nodes"]},
             predecessors={EdgeType.default: ["__vpcs"]},
         )
 

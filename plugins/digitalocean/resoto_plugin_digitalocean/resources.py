@@ -168,6 +168,9 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
     registry_enabled: Optional[bool] = None
     ha_enabled: Optional[bool] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/kubernetes/clusters"
+
 
 @dataclass(eq=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
