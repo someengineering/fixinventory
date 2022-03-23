@@ -28,9 +28,9 @@ def test_read_config() -> None:
                 "default_section": "bla",
                 "alias_templates": [
                     {
-                        "args": [{"name": "test", "default": "test argument", "description": "easy", "example": None}],
                         "info": "Test command",
                         "name": "test",
+                        "parameters": [{"name": "test", "default": "test argument", "description": "easy"}],
                         "template": "do something",
                     }
                 ],
