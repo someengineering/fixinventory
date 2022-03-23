@@ -71,19 +71,26 @@ class DatabaseConfig:
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AliasTemplateParameterConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template_parameter"
-    name: str
-    description: str
-    default: Optional[JsonElement] = None
-    example: Optional[str] = None
+    name: str = field(metadata=dict(description="The name of the parameter."))
+    description: str = field(metadata=dict(description="The intent of this parameter."))
+    default: Optional[JsonElement] = field(
+        default=None,
+        metadata=dict(
+            description="The optional default value.\n"
+            "In case a default value exists, it does not need to be provided by the user."
+        ),
+    )
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
 class AliasTemplateConfig:
     kind: ClassVar[str] = f"{ResotoCoreRoot}_cli_alias_template"
-    name: str
-    info: str
-    template: str
-    args: List[AliasTemplateParameterConfig] = field(default_factory=list)
+    name: str = field(metadata=dict(description="The name of the alias to execute."))
+    info: str = field(metadata=dict(description="A one line sentence that describes the effect of this command."))
+    template: str = field(metadata=dict(description="The command to execute which can have template parameters."))
+    parameters: List[AliasTemplateParameterConfig] = field(
+        default_factory=list, metadata=dict(description="All template parameters.")
+    )
 
 
 def alias_templates() -> List[AliasTemplateConfig]:
@@ -106,12 +113,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                     "message", "User defined message of the post.", "🔥🔥🔥 Resoto found stuff! 🔥🔥🔥"
                 ),
                 AliasTemplateParameterConfig("title", "The title of the post."),
-                AliasTemplateParameterConfig(
-                    "webhook",
-                    "The complete webhook url.",
-                    None,
-                    "https://discord.com/api/webhooks/id_of_webhook/token",
-                ),
+                AliasTemplateParameterConfig("webhook", "The complete webhook url.", None),
             ],
         )
     ]

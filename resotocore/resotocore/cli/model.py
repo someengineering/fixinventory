@@ -318,15 +318,9 @@ class AliasTemplateParameter:
     name: str
     description: str
     default: Optional[JsonElement] = None
-    example: Optional[str] = None
 
     def example_value(self) -> JsonElement:
-        if self.default:
-            return self.default
-        elif self.example:
-            return self.example
-        else:
-            return f"test_{self.name}"
+        return self.default if self.default else f"test_{self.name}"
 
 
 @dataclass(order=True, unsafe_hash=True, frozen=True)
@@ -334,21 +328,21 @@ class AliasTemplate:
     name: str
     info: str
     template: str
-    args: List[AliasTemplateParameter] = field(default_factory=list)
+    parameters: List[AliasTemplateParameter] = field(default_factory=list)
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
 
     def help(self) -> str:
-        args = ", ".join(f"{arg.name}=<value>" for arg in self.args)
+        args = ", ".join(f"{arg.name}=<value>" for arg in self.parameters)
 
         def param_info(p: AliasTemplateParameter) -> str:
             default = f" [default: {p.default}]" if p.default else ""
             return f"- `{p.name}`{default}: {p.description}"
 
         indent = "                "
-        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.args, key=attrgetter("name")))
-        minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.args if p.default is None)
+        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
+        minimal = ", ".join(f'{p.name}="{p.example_value()}"' for p in self.parameters if p.default is None)
         return dedent(
             f"""
                 {self.name}: {self.info}
@@ -368,7 +362,7 @@ class AliasTemplate:
                 # Executing this alias template
                 > {self.name} {minimal}
                 # Will expand to this command
-                > {self.render({p.name: p.example_value() for p in self.args})}
+                > {self.render({p.name: p.example_value() for p in self.parameters})}
                 ```
                 """
         )
@@ -379,9 +373,9 @@ class AliasTemplate:
     @staticmethod
     def from_config(cfg: AliasTemplateConfig) -> AliasTemplate:
         def arg(p: AliasTemplateParameterConfig) -> AliasTemplateParameter:
-            return AliasTemplateParameter(p.name, p.description, p.default, p.example)
+            return AliasTemplateParameter(p.name, p.description, p.default)
 
-        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.args])
+        return AliasTemplate(cfg.name, cfg.info, cfg.template, [arg(a) for a in cfg.parameters])
 
 
 class InternalPart(ABC):

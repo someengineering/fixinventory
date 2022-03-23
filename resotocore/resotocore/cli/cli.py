@@ -419,7 +419,7 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
-                props = {p.name: p.default for p in alias.args}
+                props = {p.name: p.default for p in alias.parameters}
                 props.update(key_values_parser.parse(alias_cmd.args or ""))
                 undefined = [k for k, v in props.items() if v is None]
                 if undefined:

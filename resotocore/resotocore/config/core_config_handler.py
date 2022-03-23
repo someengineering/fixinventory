@@ -45,6 +45,8 @@ class CoreConfigHandler:
                 try:
                     config = value_in_path(task.data, ["config", ResotoCoreRoot])
                     if isinstance(config, dict):
+                        # try to read editable config, throws if there are errors
+                        from_js(config, EditableConfig)
                         errors = EditableConfig.validate_config(config)
                         if errors:
                             message = "Validation Errors:\n" + yaml.safe_dump(errors)
@@ -54,6 +56,9 @@ class CoreConfigHandler:
                         continue
                 except Exception as ex:
                     log.warning("Error processing validate configuration task", exc_info=ex)
+                    await self.worker_task_queue.error_task(worker_id, task.id, str(ex))
+                    continue
+                # safeguard, if we should ever come here
                 await self.worker_task_queue.error_task(worker_id, task.id, "Failing to process the task!")
 
     async def __handle_events(self) -> None:

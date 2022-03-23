@@ -14,5 +14,5 @@ if sys.version_info < (3, 9):
 
 else:
 
-    def remove_suffix(s: str) -> str:
-        return s.removesuffix(s)
+    def remove_suffix(s: str, suffix: str) -> str:
+        return s.removesuffix(suffix)
