@@ -5,7 +5,7 @@ from typing import Optional, List, ClassVar
 
 from arango.database import StandardDatabase
 from cerberus import schema_registry
-from resotolib.graph import dataclasses_to_resotocore_model
+from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json

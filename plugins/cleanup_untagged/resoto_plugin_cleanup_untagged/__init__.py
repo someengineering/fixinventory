@@ -2,7 +2,7 @@ import yaml
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logging import log
 from resotolib.core.query import CoreGraph
-from resotolib.graph.export import node_from_dict
+from resotolib.core.model_export import node_from_dict
 from resotolib.args import ArgumentParser
 from resotolib.utils import parse_delta, delta_to_str
 from typing import Dict

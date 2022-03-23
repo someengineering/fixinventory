@@ -2,7 +2,7 @@ import requests
 import json
 from urllib.parse import urlencode
 from resotolib.graph import Graph, sanitize
-from resotolib.graph.export import node_from_dict, node_to_dict
+from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.baseresources import EdgeType
 from resotolib.args import ArgumentParser
 from resotolib.logging import log
