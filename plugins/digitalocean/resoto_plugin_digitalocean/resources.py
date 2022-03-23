@@ -253,8 +253,8 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
     enable_backend_keepalive: Optional[bool] = None
     disable_lets_encrypt_dns_records: Optional[bool] = None
 
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    def delete_uri_path(self) -> Optional[str]:
+        return "/load_balancers"
 
 
 @dataclass(eq=False)
