@@ -521,6 +521,7 @@ class DigitalOceanTeamCollector:
             },
             predecessors={
                 EdgeType.default: ["__vpcs", "__images", "__tags"],
+                EdgeType.delete: ["__vpcs"],
             },
         )
 
@@ -629,7 +630,10 @@ class DigitalOceanTeamCollector:
                     ),
                 ],
             },
-            predecessors={EdgeType.default: ["__vpcs", "__tags"]},
+            predecessors={
+                EdgeType.default: ["__vpcs", "__tags"],
+                EdgeType.delete: ["__vpcs"],
+            },
         )
 
     @metrics_collect_vpcs.time()
@@ -719,7 +723,7 @@ class DigitalOceanTeamCollector:
                 "__vpcs": ["urn", lambda c: vpc_id(c["vpc_uuid"])],
             },
             successors={EdgeType.default: ["__nodes"], EdgeType.delete: ["__nodes"]},
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
 
     @metrics_collect_snapshots.time()
@@ -797,7 +801,7 @@ class DigitalOceanTeamCollector:
                     ),
                 ],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
             successors={EdgeType.default: ["__droplets"]},
         )
 

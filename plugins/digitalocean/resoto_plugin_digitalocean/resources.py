@@ -223,6 +223,9 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
     description: Optional[str] = None
     is_default: Optional[bool] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/vpcs"
+
 
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
