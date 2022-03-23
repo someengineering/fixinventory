@@ -408,6 +408,9 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
     public_key: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/account/keys"
+
 
 @dataclass(eq=False)
 class DigitalOceanTag(DigitalOceanResource, BaseResource):
