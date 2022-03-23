@@ -46,7 +46,11 @@ def k8s_config() -> Dict:
         log.error(e)
     else:
         if contexts:
-            if (
+            if ArgumentParser.args.k8s_all_contexts:
+                log.debug(
+                    "importing all contexts in configuration file since --k8s-all-contexts was specified"
+                )
+            elif (
                 len(ArgumentParser.args.k8s_context) == 0
                 and len(ArgumentParser.args.k8s_cluster) == 0
             ):
@@ -54,16 +58,19 @@ def k8s_config() -> Dict:
                 log.debug(
                     (
                         "no --k8s-context or --k8s-cluster specified, defaulting to"
-                        f" active context {active_context}"
+                        f" active context {active_context}. To import all contexts"
+                        " in configuration file, use --k8s-all-contexts"
                     )
                 )
             else:
                 active_context = None
 
             contexts = [context["name"] for context in contexts]
+
             for context in contexts:
                 if (
-                    context not in ArgumentParser.args.k8s_context
+                    not ArgumentParser.args.k8s_all_contexts
+                    and context not in ArgumentParser.args.k8s_context
                     and context != active_context
                 ):
                     log.debug(
