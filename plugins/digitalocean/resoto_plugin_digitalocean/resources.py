@@ -441,5 +441,7 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
-
     firewall_status: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/firewalls"
