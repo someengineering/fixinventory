@@ -24,6 +24,7 @@ from fixtures import (
     domains,
     domain_records,
     firewalls,
+    alerts,
 )
 from resotolib.graph import sanitize
 from resotolib.baseresources import Cloud, EdgeType
@@ -656,3 +657,24 @@ def test_collect_firewalls():
     assert firewall.ctime == datetime.datetime(
         2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc
     )
+
+
+def test_alert_policies():
+    do_client = ClientMock(
+        {
+            "list_regions": regions,
+            "list_alert_policies": alerts,
+        }
+    )
+    graph = prepare_graph(do_client)
+    check_edges(
+        graph,
+        "do:team:test_team",
+        "do:alert:d916cb34-6ee3-48c0-bca5-3f3cc08db5d3",
+    )
+    alert_policy = graph.search_first(
+        "urn", "do:alert:d916cb34-6ee3-48c0-bca5-3f3cc08db5d3"
+    )
+    assert alert_policy.policy_type == "v1/insights/droplet/cpu"
+    assert alert_policy.description == "CPU is running high"
+    assert alert_policy.is_enabled is True

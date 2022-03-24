@@ -527,3 +527,17 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/firewalls"
+
+
+@dataclass(eq=False)
+class DigitalOceanAlertPolicy(DigitalOceanResource, BaseResource):
+    """DigitalOcean alert policy"""
+
+    kind = "digitalocean_alert_policy"
+
+    policy_type: Optional[str] = None
+    description: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/monitoring/alerts"

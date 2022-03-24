@@ -138,3 +138,7 @@ def domain_record_id(value: str) -> str:
 
 def firewall_id(value: str) -> str:
     return f"do:firewall:{value}"
+
+
+def alert_policy_id(value: str) -> str:
+    return f"do:alert:{value}"

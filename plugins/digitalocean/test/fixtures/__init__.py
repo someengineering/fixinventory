@@ -24,3 +24,4 @@ from .tags import tags as tags
 from .domains import domains as domains
 from .domain_records import domain_records as domain_records
 from .firewalls import firewalls as firewalls
+from .alerts import alerts as alerts

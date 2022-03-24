@@ -401,6 +401,9 @@ class StreamingWrapper:
     def list_firewalls(self) -> List[Json]:
         return self._fetch("/firewalls", "firewalls")
 
+    def list_alert_policies(self) -> List[Json]:
+        return self._fetch("/monitoring/alerts", "policies")
+
 
 TeamId = str
 
