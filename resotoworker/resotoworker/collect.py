@@ -8,9 +8,9 @@ from resotolib.baseresources import GraphRoot
 from resotolib.graph import Graph, sanitize
 from resotolib.logging import log, setup_logger
 from resotolib.args import ArgumentParser
+from argparse import Namespace
 from typing import List, Optional
-import resotolib.config
-from resotolib.config import Config
+from resotolib.config import Config, RunningConfig
 
 
 def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
@@ -34,7 +34,7 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
-                "config": resotolib.config._config,
+                "running_config": Config.running_config,
             }
         else:
             pool_executor = futures.ThreadPoolExecutor
@@ -62,7 +62,9 @@ def collect_and_send(collectors: List[BaseCollectorPlugin]) -> None:
 
 
 def collect_plugin_graph(
-    collector_plugin: BaseCollectorPlugin, args=None, config=None
+    collector_plugin: BaseCollectorPlugin,
+    args: Namespace = None,
+    running_config: RunningConfig = None,
 ) -> Optional[Graph]:
     collector: BaseCollectorPlugin = collector_plugin()
     collector_name = f"collector_{collector.cloud}"
@@ -71,8 +73,8 @@ def collect_plugin_graph(
     if args is not None:
         ArgumentParser.args = args
         setup_logger("resotoworker")
-    if config is not None:
-        resotolib.config._config.apply(config)
+    if running_config is not None:
+        Config.running_config.apply(running_config)
 
     log.debug(f"Starting new collect process for {collector.cloud}")
     start_time = time()

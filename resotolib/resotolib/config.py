@@ -49,6 +49,8 @@ class MetaConfig(type):
 
 
 class Config(metaclass=MetaConfig):
+    running_config: RunningConfig = _config
+
     def __init__(self, config_name: str, resotocore_uri: str = None) -> None:
         self._config_lock = threading.Lock()
         self.config_name = config_name
@@ -62,8 +64,8 @@ class Config(metaclass=MetaConfig):
         )
 
     def __getattr__(self, name):
-        if name in _config.data:
-            return _config.data[name]
+        if name in self.running_config.data:
+            return self.running_config.data[name]
         else:
             raise ConfigNotFoundError(f"No such config {name}")
 
@@ -72,23 +74,25 @@ class Config(metaclass=MetaConfig):
 
     @staticmethod
     def init_default_config() -> None:
-        for config_id, config_data in _config.classes.items():
-            if config_id not in _config.data:
-                _config.data[config_id] = config_data()
+        for config_id, config_data in Config.running_config.classes.items():
+            if config_id not in Config.running_config.data:
+                Config.running_config.data[config_id] = config_data()
 
     @staticmethod
     def add_config(config: object) -> None:
         if hasattr(config, "kind"):
-            _config.classes[config.kind] = config
-            _config.types[config.kind] = {}
+            Config.running_config.classes[config.kind] = config
+            Config.running_config.types[config.kind] = {}
             for field in fields(config):
                 if hasattr(field, "type"):
-                    _config.types[config.kind][field.name] = optional_origin(field.type)
+                    Config.running_config.types[config.kind][
+                        field.name
+                    ] = optional_origin(field.type)
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 
     def load_config(self) -> None:
-        if len(_config.classes) == 0:
+        if len(Config.running_config.classes) == 0:
             raise RuntimeError("No config added")
         with self._config_lock:
             try:
@@ -110,14 +114,14 @@ class Config(metaclass=MetaConfig):
                 )
                 new_config = {}
                 for config_id, config_data in config.items():
-                    if config_id in _config.classes:
+                    if config_id in Config.running_config.classes:
                         new_config[config_id] = jsons.load(
-                            config_data, _config.classes[config_id]
+                            config_data, Config.running_config.classes[config_id]
                         )
                     else:
                         log.warning(f"Unknown config {config_id}")
-                _config.data = new_config
-                _config.revision = new_config_revision
+                Config.running_config.data = new_config
+                Config.running_config.revision = new_config_revision
             self.init_default_config()
             if self._initial_load:
                 self.save_config()
@@ -137,36 +141,42 @@ class Config(metaclass=MetaConfig):
                     log.error(f"Invalid config override {config_key}")
                     continue
                 config_id, config_attr = config_key.split(".", 1)
-                if config_id not in _config.types:
+                if config_id not in Config.running_config.types:
                     log.error(f"Override unknown config id {config_id}")
                     continue
-                if config_attr not in _config.types[config_id]:
+                if config_attr not in Config.running_config.types[config_id]:
                     log.error(
                         f"Override unknown config attr {config_attr} for {config_id}"
                     )
                     continue
-                target_type = _config.types[config_id][config_attr]
+                target_type = Config.running_config.types[config_id][config_attr]
                 config_value = convert(config_value, target_type)
                 log.debug(
                     f"Overriding attr {config_attr} of {config_id} with value of type {target_type}"
                 )
-                setattr(_config.data[config_id], config_attr, config_value)
+                setattr(
+                    Config.running_config.data[config_id], config_attr, config_value
+                )
 
             except Exception:
                 log.exception(f"Failed to override config {override}")
 
     @staticmethod
     def dict() -> Dict:
-        return jsons.dump(_config.data, strip_attr="kind", strip_properties=True)
+        return jsons.dump(
+            Config.running_config.data, strip_attr="kind", strip_properties=True
+        )
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri)
         stored_config_revision = set_config(
             self.config_name, self.dict(), self.resotocore_uri
         )
-        if stored_config_revision != _config.revision:
-            _config.revision = stored_config_revision
-            log.debug(f"Saved config {self.config_name} revision {_config.revision}")
+        if stored_config_revision != Config.running_config.revision:
+            Config.running_config.revision = stored_config_revision
+            log.debug(
+                f"Saved config {self.config_name} revision {Config.running_config.revision}"
+            )
         else:
             log.debug(f"Config {self.config_name} unchanged")
 
@@ -174,7 +184,8 @@ class Config(metaclass=MetaConfig):
         if (
             message.get("message_type") == "config-updated"
             and message.get("data", {}).get("id") == self.config_name
-            and message.get("data", {}).get("revision") != _config.revision
+            and message.get("data", {}).get("revision")
+            != Config.running_config.revision
         ):
             try:
                 log.debug(f"Config {self.config_name} has changed - reloading")

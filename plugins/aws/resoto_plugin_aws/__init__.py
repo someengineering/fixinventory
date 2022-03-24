@@ -5,9 +5,12 @@ import resotolib.logging
 from resotolib.logging import log, setup_logger
 from concurrent import futures
 from resotolib.args import ArgumentParser
+from argparse import Namespace
+from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from resotolib.utils import log_runtime
 from resotolib.baseplugin import BaseCollectorPlugin
+from .config import AwsConfig
 from .utils import aws_session
 from .resources import AWSAccount
 from .accountcollector import AWSAccountCollector
@@ -35,101 +38,8 @@ class AWSPlugin(BaseCollectorPlugin):
         self.__regions = []
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--aws-access-key-id", help="AWS Access Key ID", dest="aws_access_key_id"
-        )
-        arg_parser.add_argument(
-            "--aws-secret-access-key",
-            help="AWS Secret Access Key",
-            dest="aws_secret_access_key",
-        )
-        arg_parser.add_argument("--aws-role", help="AWS IAM Role", dest="aws_role")
-        arg_parser.add_argument(
-            "--aws-role-override",
-            help="Override any stored roles (e.g. from remote graphs) (default: False)",
-            dest="aws_role_override",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--aws-account",
-            help="AWS Account",
-            dest="aws_account",
-            type=str,
-            default=None,
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--aws-region",
-            help="AWS Region (default: all)",
-            dest="aws_region",
-            type=str,
-            default=None,
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--aws-scrape-org",
-            help="Scrape the entire AWS Org (default: False)",
-            dest="aws_scrape_org",
-            action="store_true",
-        )
-        arg_parser.add_argument(
-            "--aws-fork",
-            help="AWS use forked process instead of threads (default: False)",
-            dest="aws_fork",
-            action="store_true",
-        )
-        arg_parser.add_argument(
-            "--aws-scrape-exclude-account",
-            help="AWS exclude this Account when scraping the org",
-            dest="aws_scrape_exclude_account",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--aws-assume-current",
-            help="Assume role in current account (default: False)",
-            dest="aws_assume_current",
-            action="store_true",
-        )
-        arg_parser.add_argument(
-            "--aws-dont-scrape-current",
-            help="Don't scrape current account (default: False)",
-            dest="aws_dont_scrape_current",
-            action="store_true",
-        )
-        arg_parser.add_argument(
-            "--aws-account-pool-size",
-            help="AWS Account Thread Pool Size (default: 5)",
-            dest="aws_account_pool_size",
-            default=5,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--aws-region-pool-size",
-            help="AWS Region Thread Pool Size (default: 20)",
-            dest="aws_region_pool_size",
-            default=20,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--aws-collect",
-            help="AWS services to collect (default: all)",
-            dest="aws_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--aws-no-collect",
-            help="AWS services not to collect",
-            dest="aws_no_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(AwsConfig)
 
     @metrics_collect.time()
     def collect(self) -> None:
@@ -138,40 +48,37 @@ class AWSPlugin(BaseCollectorPlugin):
             log.error("Failed to authenticate - skipping collection")
             return
 
-        if (
-            ArgumentParser.args.aws_assume_current
-            and not ArgumentParser.args.aws_dont_scrape_current
-        ):
+        if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
             log.warning(
-                "You specified --aws-assume-current but not --aws-dont-scrape-current! "
+                "You specified assume_current but not do_not_scrape_current! "
                 "This will result in the same account being scraped twice and is likely not what you want."
             )
 
-        if ArgumentParser.args.aws_role and ArgumentParser.args.aws_scrape_org:
+        if Config.aws.role and Config.aws.scrape_org:
             accounts = [
-                AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
+                AWSAccount(aws_account_id, {}, role=Config.aws.role)
                 for aws_account_id in get_org_accounts(
-                    filter_current_account=not ArgumentParser.args.aws_assume_current
+                    filter_current_account=not Config.aws.assume_current
                 )
-                if aws_account_id not in ArgumentParser.args.aws_scrape_exclude_account
+                if aws_account_id not in Config.aws.scrape_exclude_account
             ]
-            if not ArgumentParser.args.aws_dont_scrape_current:
+            if not Config.aws.do_not_scrape_current:
                 accounts.append(AWSAccount(current_account_id(), {}))
-        elif ArgumentParser.args.aws_role and ArgumentParser.args.aws_account:
+        elif Config.aws.role and Config.aws.account:
             accounts = [
-                AWSAccount(aws_account_id, {}, role=ArgumentParser.args.aws_role)
-                for aws_account_id in ArgumentParser.args.aws_account
+                AWSAccount(aws_account_id, {}, role=Config.aws.role)
+                for aws_account_id in Config.aws.account
             ]
         else:
             accounts = [AWSAccount(current_account_id(), {})]
 
         max_workers = (
             len(accounts)
-            if len(accounts) < ArgumentParser.args.aws_account_pool_size
-            else ArgumentParser.args.aws_account_pool_size
+            if len(accounts) < Config.aws.account_pool_size
+            else Config.aws.account_pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if ArgumentParser.args.aws_fork:
+        if Config.aws.fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
@@ -181,7 +88,11 @@ class AWSPlugin(BaseCollectorPlugin):
         with pool_executor(**pool_args) as executor:
             wait_for = [
                 executor.submit(
-                    collect_account, account, self.regions, ArgumentParser.args
+                    collect_account,
+                    account,
+                    self.regions,
+                    ArgumentParser.args,
+                    Config.running_config,
                 )
                 for account in accounts
             ]
@@ -197,11 +108,11 @@ class AWSPlugin(BaseCollectorPlugin):
     @property
     def regions(self) -> List:
         if len(self.__regions) == 0:
-            if not ArgumentParser.args.aws_region:
+            if not Config.aws.region:
                 log.debug("AWS region not specified, assuming all regions")
                 self.__regions = all_regions()
             else:
-                self.__regions = ArgumentParser.args.aws_region
+                self.__regions = list(Config.aws.region)
         return self.__regions
 
     @property
@@ -264,13 +175,20 @@ def all_regions() -> List:
 
 
 @log_runtime
-def collect_account(account: AWSAccount, regions: List, args=None):
+def collect_account(
+    account: AWSAccount,
+    regions: List,
+    args: Namespace = None,
+    running_config: RunningConfig = None,
+) -> Graph:
     collector_name = f"aws_{account.id}"
     resotolib.signal.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args
         setup_logger("resotoworker-aws")
+    if running_config is not None:
+        Config.running_config.apply(running_config)
 
     log.debug(f"Starting new collect process for account {account.dname}")
 

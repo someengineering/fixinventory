@@ -2,7 +2,7 @@ import boto3
 import boto3.session
 import uuid
 from typing import Iterable
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.baseresources import BaseRegion, BaseResource
 from resotolib.graph import Graph
 from retrying import retry
@@ -30,13 +30,13 @@ def retry_on_session_error(e):
     retry_on_exception=retry_on_session_error,
 )
 def aws_session(aws_account=None, aws_role=None):
-    if ArgumentParser.args.aws_role_override:
-        aws_role = ArgumentParser.args.aws_role
+    if Config.aws.role_override:
+        aws_role = Config.aws.role
     if aws_role and aws_account:
         role_arn = f"arn:aws:iam::{aws_account}:role/{aws_role}"
         session = boto3.session.Session(
-            aws_access_key_id=ArgumentParser.args.aws_access_key_id,
-            aws_secret_access_key=ArgumentParser.args.aws_secret_access_key,
+            aws_access_key_id=Config.aws.access_key_id,
+            aws_secret_access_key=Config.aws.secret_access_key,
             region_name="us-east-1",
         )
         sts = session.client("sts")
@@ -51,8 +51,8 @@ def aws_session(aws_account=None, aws_role=None):
         )
     else:
         return boto3.session.Session(
-            aws_access_key_id=ArgumentParser.args.aws_access_key_id,
-            aws_secret_access_key=ArgumentParser.args.aws_secret_access_key,
+            aws_access_key_id=Config.aws.access_key_id,
+            aws_secret_access_key=Config.aws.secret_access_key,
         )
 
 
