@@ -2,12 +2,11 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Dict, Union, List
 from resotolib.utils import parse_delta
 
+
 default_config = {
-    "default": {"age": "2h"},
-    "tags": ["owner", "expiration"],
+    "default": {"expiration": "24h"},
     "kinds": [
         "aws_ec2_instance",
-        "aws_ec2_volume",
         "aws_vpc",
         "aws_cloudformation_stack",
         "aws_elb",
@@ -15,31 +14,29 @@ default_config = {
         "aws_alb_target_group",
         "aws_eks_cluster",
         "aws_eks_nodegroup",
-        "example_instance",
-        "example_network",
+        "aws_ec2_nat_gateway",
     ],
     "accounts": {
         "aws": {
-            "068564737731": {"name": "playground", "age": "7d"},
-            "575584959047": {
-                "name": "eng-sre",
-            },
-        },
-        "example": {
-            "Example Account": {
-                "name": "Example Account",
-            }
+            "123465706934": {"name": "eng-audit"},
+            "123479172032": {"name": "eng-devprod"},
+            "123453451782": {"name": "sales-lead-gen", "expiration": "12h"},
+            "123415487488": {"name": "sales-hosted-lead-gen", "expiration": "8d"},
         },
     },
 }
 
 
 @dataclass
-class CleanupUntaggedConfig:
-    kind: ClassVar[str] = "plugin_cleanup_untagged"
+class TagValidatorConfig:
+    kind: ClassVar[str] = "plugin_tagvalidator"
     enabled: bool = field(
         default=False,
         metadata={"description": "Enable plugin?"},
+    )
+    dry_run: bool = field(
+        default=False,
+        metadata={"description": "Dry run"},
     )
     config: Dict[str, Union[Dict, List]] = field(
         default_factory=lambda: default_config,
@@ -47,15 +44,13 @@ class CleanupUntaggedConfig:
     )
 
     @staticmethod
-    def validate(cfg: "CleanupUntaggedConfig") -> bool:
+    def validate(cfg: "TagValidatorConfig") -> bool:
+
         config = cfg.config
-        required_sections = ["tags", "kinds", "accounts"]
+        required_sections = ["kinds", "accounts"]
         for section in required_sections:
             if section not in config:
                 raise ValueError(f"Section '{section}' not found in config")
-
-        if not isinstance(config["tags"], list) or len(config["tags"]) == 0:
-            raise ValueError("Error in 'tags' section")
 
         if not isinstance(config["kinds"], list) or len(config["kinds"]) == 0:
             raise ValueError("Error in 'kinds' section")
@@ -63,9 +58,9 @@ class CleanupUntaggedConfig:
         if not isinstance(config["accounts"], dict) or len(config["accounts"]) == 0:
             raise ValueError("Error in 'accounts' section")
 
-        default_age = config.get("default", {}).get("age")
-        if default_age is not None:
-            default_age = parse_delta(default_age)
+        default_expiration = config.get("default", {}).get("expiration")
+        if default_expiration is not None:
+            default_expiration = parse_delta(default_expiration)
 
         for cloud_id, account in config["accounts"].items():
             for account_id, account_data in account.items():
@@ -73,12 +68,13 @@ class CleanupUntaggedConfig:
                     raise ValueError(
                         f"Missing 'name' for account '{cloud_id}/{account_id}"
                     )
-                if "age" in account_data:
-                    account_data["age"] = parse_delta(account_data["age"])
+                if "expiration" in account_data:
+                    account_data["expiration"] = parse_delta(account_data["expiration"])
                 else:
-                    if default_age is None:
+                    if default_expiration is None:
                         raise ValueError(
-                            f"Missing 'age' for account '{cloud_id}/{account_id}' and no default age defined'"
+                            f"Missing 'expiration' for account '{cloud_id}/{account_id}'"
+                            "and no default expiration defined"
                         )
-                    account_data["age"] = default_age
+                    account_data["expiration"] = default_expiration
         return True
