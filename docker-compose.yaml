@@ -23,7 +23,7 @@ services:
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
   resotocore:
-    image: somecr.io/someengineering/resotocore:2.0.0a18
+    image: somecr.io/someengineering/resotocore:2.0.0a19
     depends_on:
       - graphdb
     ports:
@@ -39,7 +39,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoworker: 
-    image: somecr.io/someengineering/resotoworker:2.0.0a18
+    image: somecr.io/someengineering/resotoworker:2.0.0a19
     depends_on:
       - resotocore
     ports:
@@ -51,7 +51,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotometrics: 
-    image: somecr.io/someengineering/resotometrics:2.0.0a18
+    image: somecr.io/someengineering/resotometrics:2.0.0a19
     depends_on:
       - resotocore
     ports:
@@ -63,7 +63,7 @@ services:
     restart: always
     stop_grace_period: 2m
   resotoshell: 
-    image: somecr.io/someengineering/resotoshell:2.0.0a18
+    image: somecr.io/someengineering/resotoshell:2.0.0a19
     depends_on:
       - resotocore
     environment:
