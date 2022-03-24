@@ -499,7 +499,7 @@ class CLI:
             n = ut
         return CIKeyDict(
             UTC=utc_str(ut),
-            NOW=utc_str(n),
+            NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
             TODAY=t.strftime("%Y-%m-%d"),
             TOMORROW=(t + timedelta(days=1)).isoformat(),
             YESTERDAY=(t + timedelta(days=-1)).isoformat(),
