@@ -270,7 +270,7 @@ class StreamingWrapper:
                 if bucket_versioning.status == "Enabled":
                     object_deletion_result = s3_bucket.object_versions.delete()
                 else:
-                    object_deletion_result = s3_bucket.objects.all().delete()
+                    object_deletion_result = s3_bucket.objects.delete()
 
                 handle_response_code(object_deletion_result)
 
