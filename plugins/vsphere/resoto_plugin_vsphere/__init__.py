@@ -1,12 +1,13 @@
 from datetime import datetime
 
 import resotolib.logging
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseResource
 
 from .vsphere_client import get_vsphere_client
 from .resources import VSphereCluster, VSphereInstance, VSphereDataCenter
+from .config import VSphereConfig
 
 from pyVmomi import vim
 
@@ -18,15 +19,15 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        if ArgumentParser.args.vsphere_host:
+        if Config.vsphere.host:
             self.vsphere_client = get_vsphere_client()
 
     def get_cluster(self) -> VSphereCluster:
         """
         use --vsphere-host as the clustername
         """
-        if ArgumentParser.args.vsphere_host:
-            return VSphereCluster(ArgumentParser.args.vsphere_host, {})
+        if Config.vsphere.host:
+            return VSphereCluster(Config.vsphere.host, {})
 
     def get_keymap_from_vmlist(self, list_vm) -> VSphereCluster:
         """
@@ -90,7 +91,7 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: collecting vsphere resources")
 
-        if not ArgumentParser.args.vsphere_host:
+        if not Config.vsphere.host:
             log.debug("no VSphere host given - skipping collection")
             return
 
@@ -103,42 +104,5 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
         self.add_instances(dc1)
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--vsphere-user",
-            help="VSphere user name",
-            dest="vsphere_user",
-            type=str,
-            default=None,
-        )
-
-        arg_parser.add_argument(
-            "--vsphere-password",
-            help="VSphere user password",
-            dest="vsphere_password",
-            type=str,
-            default=None,
-        )
-
-        arg_parser.add_argument(
-            "--vsphere-host",
-            help="VSphere Host address",
-            dest="vsphere_host",
-            type=str,
-            default=None,
-        )
-
-        arg_parser.add_argument(
-            "--vsphere-port",
-            help="VSphere Region",
-            dest="vsphere_port",
-            type=int,
-            default=443,
-        )
-
-        arg_parser.add_argument(
-            "--vsphere-insecure",
-            help="VSphere insecure connection. Do not verify certificates",
-            dest="vsphere_insecure",
-            action="store_true",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(VSphereConfig)
