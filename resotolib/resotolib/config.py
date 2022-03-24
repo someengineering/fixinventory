@@ -2,7 +2,7 @@ import jsons
 import threading
 from resotolib.logging import log
 from resotolib.args import ArgumentParser, convert
-from resotolib.graph.export import dataclasses_to_resotocore_model, optional_origin
+from resotolib.core.model_export import dataclasses_to_resotocore_model, optional_origin
 from resotolib.core import ResotocoreURI
 from resotolib.core.config import (
     get_config,
@@ -73,7 +73,8 @@ class Config(metaclass=MetaConfig):
     @staticmethod
     def init_default_config() -> None:
         for config_id, config_data in _config.classes.items():
-            _config.data[config_id] = config_data()
+            if config_id not in _config.data:
+                _config.data[config_id] = config_data()
 
     @staticmethod
     def add_config(config: object) -> None:
@@ -102,8 +103,7 @@ class Config(metaclass=MetaConfig):
                     else:
                         raise ValueError("Empty config returned")
             except ConfigNotFoundError:
-                for config_id, config_data in _config.classes.items():
-                    _config.data[config_id] = config_data()
+                pass
             else:
                 log.debug(
                     f"Loaded config {self.config_name} revision {new_config_revision}"
@@ -118,6 +118,7 @@ class Config(metaclass=MetaConfig):
                         log.warning(f"Unknown config {config_id}")
                 _config.data = new_config
                 _config.revision = new_config_revision
+            self.init_default_config()
             if self._initial_load:
                 self.save_config()
             self.override_config()
