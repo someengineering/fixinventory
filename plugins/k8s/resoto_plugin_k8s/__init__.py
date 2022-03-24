@@ -5,8 +5,11 @@ from concurrent import futures
 from typing import Optional, Dict
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.args import ArgumentParser
+from argparse import Namespace
+from resotolib.config import Config, RunningConfig
 from resotolib.graph import Graph
 from kubernetes import client
+from .config import K8sConfig
 from .utils import k8s_config
 from .collector import KubernetesCollector
 from .resources.cluster import KubernetesCluster
@@ -27,15 +30,18 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
 
         max_workers = (
             len(clusters)
-            if len(clusters) < ArgumentParser.args.k8s_pool_size
-            else ArgumentParser.args.k8s_pool_size
+            if len(clusters) < Config.k8s.pool_size
+            else Config.k8s.pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if ArgumentParser.args.k8s_fork:
+        if Config.k8s.fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
-            collect_args = {"args": ArgumentParser.args}
+            collect_args = {
+                "args": ArgumentParser.args,
+                "running_config": Config.running_config,
+            }
         else:
             pool_executor = futures.ThreadPoolExecutor
             collect_args = {}
@@ -59,7 +65,10 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def collect_cluster(
-        cluster_id: str, cluster_config: client.Configuration, args=None
+        cluster_id: str,
+        cluster_config: client.Configuration,
+        args: Namespace = None,
+        running_config: RunningConfig = None,
     ) -> Optional[Dict]:
         """Collects an individual Kubernetes Cluster.
 
@@ -76,6 +85,8 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
 
         if args is not None:
             ArgumentParser.args = args
+        if running_config is not None:
+            Config.running_config.apply(running_config)
 
         log.debug(f"Starting new collect process for {cluster.rtdname}")
 
@@ -97,86 +108,5 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             return kc.graph
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--k8s-context",
-            help="Kubernetes Context Name",
-            dest="k8s_context",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-config",
-            help="Kubernetes Config File",
-            dest="k8s_config",
-            type=str,
-            default=None,
-        )
-        arg_parser.add_argument(
-            "--k8s-cluster",
-            help="Kubernetes Cluster Name",
-            dest="k8s_cluster",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-apiserver",
-            help="Kubernetes API server",
-            dest="k8s_apiserver",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-token",
-            help="Kubernetes Token",
-            dest="k8s_token",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-cacert",
-            help="Kubernetes CA Certificate",
-            dest="k8s_cacert",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-collect",
-            help="Kubernetes objects to collect (default: all)",
-            dest="k8s_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-no-collect",
-            help="Kubernetes objects not to collect",
-            dest="k8s_no_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--k8s-pool-size",
-            help="Kubernetes Thread Pool Size (default: 5)",
-            dest="k8s_pool_size",
-            default=5,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--k8s-fork",
-            help="Kubernetes use forked process instead of threads (default: False)",
-            dest="k8s_fork",
-            action="store_true",
-        )
-        arg_parser.add_argument(
-            "--k8s-all-contexts",
-            help="Kubernetes collect all contexts in kubeconfig file without needed to specify --k8s-context",
-            dest="k8s_all_contexts",
-            action="store_true",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(K8sConfig)
