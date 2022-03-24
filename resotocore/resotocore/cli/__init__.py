@@ -65,11 +65,11 @@ args_parts_parser = (
 ).sep_by(space_dp, min=1)
 
 
-def strip_quotes(string: str, strip: str = "'\"") -> str:
+def strip_quotes(string: str) -> str:
     res = string.strip()
     if res:
         first = res[0]
-        if first in strip:
+        if first in "'\"":
             res = res[1 : len(res) - 1] if res.startswith(first) and res.endswith(first) else res  # noqa: E203
     return res
 
