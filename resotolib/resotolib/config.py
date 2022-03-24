@@ -80,6 +80,11 @@ class Config(metaclass=MetaConfig):
 
     @staticmethod
     def add_config(config: object) -> None:
+        """Add a config to the config manager.
+
+        Takes a dataclass as input and adds its fields to the config store.
+        Dataclass must have a kind ClassVar which specifies the top level config name.
+        """
         if hasattr(config, "kind"):
             Config.running_config.classes[config.kind] = config
             Config.running_config.types[config.kind] = {}

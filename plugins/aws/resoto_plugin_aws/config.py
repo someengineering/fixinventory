@@ -6,10 +6,12 @@ from typing import List, ClassVar, Optional
 class AwsConfig:
     kind: ClassVar[str] = "aws"
     access_key_id: Optional[str] = field(
-        default=None, metadata={"description": "AWS Access Key ID (null to load from env)"}
+        default=None,
+        metadata={"description": "AWS Access Key ID (null to load from env)"},
     )
     secret_access_key: Optional[str] = field(
-        default=None, metadata={"description": "AWS Secret Access Key (null to load from env)"}
+        default=None,
+        metadata={"description": "AWS Secret Access Key (null to load from env)"},
     )
     role: Optional[str] = field(default=None, metadata={"description": "AWS IAM Role"})
     role_override: bool = field(
@@ -17,7 +19,8 @@ class AwsConfig:
         metadata={"description": "Override any stored roles (e.g. from remote graphs)"},
     )
     account: Optional[List[str]] = field(
-        default=None, metadata={"description": "List of AWS Account ID(s) to collect (null for all)"}
+        default=None,
+        metadata={"description": "List of AWS Account ID(s) to collect (null for all)"},
     )
     region: Optional[List[str]] = field(
         default=None,

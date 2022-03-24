@@ -6,9 +6,12 @@ from typing import Dict, Optional
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.graph import Graph
 from resotolib.args import ArgumentParser
+from argparse import Namespace
+from resotolib.config import Config, RunningConfig
 from .resources import GCPProject
 from .utils import Credentials
 from .collector import GCPProjectCollector
+from .config import GcpConfig
 
 
 class GCPCollectorPlugin(BaseCollectorPlugin):
@@ -30,9 +33,9 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: GCP collecting resources")
 
         credentials = Credentials.all()
-        if len(ArgumentParser.args.gcp_project) > 0:
+        if len(Config.gcp.project) > 0:
             for project in list(credentials.keys()):
-                if project not in ArgumentParser.args.gcp_project:
+                if project not in Config.gcp.project:
                     del credentials[project]
 
         if len(credentials) == 0:
@@ -40,16 +43,17 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         max_workers = (
             len(credentials)
-            if len(credentials) < ArgumentParser.args.gcp_project_pool_size
-            else ArgumentParser.args.gcp_project_pool_size
+            if len(credentials) < Config.gcp.project_pool_size
+            else Config.gcp.project_pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if ArgumentParser.args.gcp_fork:
+        if Config.gcp.fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
+                "running_config": Config.running_config,
                 "credentials": credentials
                 if all(v is None for v in credentials.values())
                 else None,
@@ -75,7 +79,12 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 self.graph.merge(project_graph)
 
     @staticmethod
-    def collect_project(project_id: str, args=None, credentials=None) -> Optional[Dict]:
+    def collect_project(
+        project_id: str,
+        args: Namespace = None,
+        running_config: RunningConfig = None,
+        credentials=None,
+    ) -> Optional[Dict]:
         """Collects an individual project.
 
         Is being called in collect() and either run within a thread or a spawned
@@ -92,6 +101,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         if args is not None:
             ArgumentParser.args = args
             setup_logger("resotoworker-gcp")
+        if running_config is not None:
+            Config.running_config.apply(running_config)
 
         if credentials is not None:
             Credentials._credentials = credentials
@@ -110,50 +121,6 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             return gpc.graph
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        """Called by resoto upon startup to populate the ArgumentParser"""
-        arg_parser.add_argument(
-            "--gcp-service-account",
-            help="GCP Service Account File",
-            dest="gcp_service_account",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--gcp-project",
-            help="GCP Project",
-            dest="gcp_project",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--gcp-collect",
-            help="GCP services to collect (default: all)",
-            dest="gcp_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--gcp-no-collect",
-            help="GCP services not to collect",
-            dest="gcp_no_collect",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--gcp-project-pool-size",
-            help="GCP Project Thread Pool Size (default: 5)",
-            dest="gcp_project_pool_size",
-            default=5,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--gcp-fork",
-            help="GCP use forked process instead of threads (default: False)",
-            dest="gcp_fork",
-            action="store_true",
-        )
+    def add_config(config: Config) -> None:
+        """Called by resoto upon startup to populate the Config store"""
+        config.add_config(GcpConfig)
