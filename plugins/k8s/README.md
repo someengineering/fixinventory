@@ -6,6 +6,7 @@ It is meant as a starting point for K8S work but not intended for production use
 ## Usage
 When the collector is enabled (`--collector k8s`) it will automatically collect the current active context if any exists.
 Optionally a list of contexts to collect can be supplied using `--k8s-context contextA contextB contextC ...`.
+To collect all contexts in the config file without having to specify each, use `--k8s-all-contexts`
 If a config file (`--k8s-config`) is supplied it will be used instead of the default `~/.kube/config`.
 
 Alternatively or in addition Kubernetes Clusters can be specified entirely on the commandline using e.g.
@@ -41,4 +42,5 @@ For example if `clusterC` is provided in third place using `--k8s-cluster firstc
   --k8s-pool-size K8S_POOL_SIZE
                         Kubernetes Thread Pool Size (default: 5)
   --k8s-fork            Kubernetes use forked process instead of threads (default: False)
+  --k8s-all-contexts    Kubernetes collect all contexts in kubeconfig file without needed to specify --k8s-context (default: False)
 ```

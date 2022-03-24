@@ -174,3 +174,9 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             dest="k8s_fork",
             action="store_true",
         )
+        arg_parser.add_argument(
+            "--k8s-all-contexts",
+            help="Kubernetes collect all contexts in kubeconfig file without needed to specify --k8s-context",
+            dest="k8s_all_contexts",
+            action="store_true",
+        )

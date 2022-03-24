@@ -16,3 +16,4 @@ def test_args():
     assert len(ArgumentParser.args.k8s_no_collect) == 0
     assert ArgumentParser.args.k8s_pool_size == 5
     assert ArgumentParser.args.k8s_fork is False
+    assert ArgumentParser.args.k8s_all_contexts is False
