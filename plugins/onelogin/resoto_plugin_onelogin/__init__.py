@@ -1,5 +1,4 @@
 import resotolib.logging
-import os
 from datetime import datetime, timedelta, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User

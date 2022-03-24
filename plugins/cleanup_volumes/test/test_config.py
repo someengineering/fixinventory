@@ -7,4 +7,4 @@ def test_config():
     CleanupVolumesPlugin.add_config(config)
     Config.init_default_config()
     assert Config.plugin_cleanup_volumes.enabled is False
-    assert Config.plugin_cleanup_volumes.age == "14 days"
+    assert Config.plugin_cleanup_volumes.min_age == "14 days"

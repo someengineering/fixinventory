@@ -1,4 +1,3 @@
-import yaml
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.core.query import CoreGraph
 from resotolib.graph import Graph
