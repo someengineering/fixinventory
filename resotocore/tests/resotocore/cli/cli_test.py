@@ -7,6 +7,7 @@ from aiostream import stream
 from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
+from resotocore.cli import strip_quotes
 from resotocore.cli.cli import CLI, multi_command_parser
 from resotocore.cli.command import (
     ExecuteSearchCommand,
@@ -95,6 +96,11 @@ async def cli_deps(
 def cli(cli_deps: CLIDependencies) -> CLI:
     env = {"graph": "ns", "section": "reported"}
     return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
+
+
+def test_strip() -> None:
+    assert strip_quotes("'test'") == "test"
+    assert strip_quotes('"test"') == "test"
 
 
 def test_command_line_parser() -> None:
