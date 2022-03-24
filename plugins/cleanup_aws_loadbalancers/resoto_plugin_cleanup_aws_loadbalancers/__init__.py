@@ -41,7 +41,8 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
             log.debug(f"Cleanup AWS Load balancers minimum age is {self.age}")
         except ValueError:
             log.error(
-                f"Error while parsing Cleanup AWS Load balancers minimum age {Config.plugin_cleanup_aws_loadbalancers.min_age}"
+                "Error while parsing Cleanup AWS Load balancers minimum age"
+                f" {Config.plugin_cleanup_aws_loadbalancers.min_age}"
             )
             raise
 
