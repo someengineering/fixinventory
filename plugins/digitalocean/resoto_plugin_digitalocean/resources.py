@@ -23,6 +23,8 @@ from resotolib.baseresources import (
     BaseDomainRecord,
 )
 from resotolib.graph import Graph
+from resoto_plugin_digitalocean.client import get_team_credentials
+from resoto_plugin_digitalocean.client import StreamingWrapper
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -36,15 +38,27 @@ class DigitalOceanResource(BaseResource):
     """
 
     kind: ClassVar[str] = "digitalocean_resource"
-
     urn: str = ""
+
+    def delete_uri_path(self) -> Optional[str]:
+        return None
 
     def delete(self, graph: Graph) -> bool:
         """Delete a resource in the cloud"""
-        log.debug(
-            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
-        )
-        return True
+        if self.delete_uri_path():
+            log.debug(
+                f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+            )
+            team = self.account(graph)
+            credentials = get_team_credentials(team.id)
+            client = StreamingWrapper(
+                credentials.api_token,
+                credentials.spaces_access_key,
+                credentials.spaces_secret_key,
+            )
+            return client.delete(self.delete_uri_path(), self.id)
+
+        raise NotImplementedError
 
     def update_tag(self, key, value) -> bool:
         """Update a resource tag in the cloud"""
@@ -88,6 +102,9 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
     environment: Optional[str] = None
     is_default: Optional[bool] = None
 
+    def delete_uri_path(self):
+        return "/projects"
+
 
 @dataclass(eq=False)
 class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
@@ -109,6 +126,9 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
     is_locked: Optional[bool] = None
     droplet_features: Optional[List[str]] = None
     droplet_image: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/droplets"
 
     def _instance_status_setter(self, value: str) -> None:
         """Setter that looks up the instance status
@@ -148,6 +168,9 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
     registry_enabled: Optional[bool] = None
     ha_enabled: Optional[bool] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/kubernetes/clusters"
+
 
 @dataclass(eq=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
@@ -167,6 +190,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     filesystem_type: Optional[str] = None
     filesystem_label: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/volumes"
+
     def _volume_status_setter(self, value: str) -> None:
         self._volume_status = self.volume_status_map.get(value, VolumeStatus.UNKNOWN)
 
@@ -179,6 +205,9 @@ DigitalOceanVolume.volume_status = property(
 @dataclass(eq=False)
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/databases"
 
 
 @dataclass(eq=False)
@@ -194,16 +223,21 @@ class DigitalOceanNetwork(DigitalOceanResource, BaseNetwork):
     description: Optional[str] = None
     is_default: Optional[bool] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/vpcs"
+
 
 @dataclass(eq=False)
 class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
     """DigitalOcean snapshot"""
 
     kind: ClassVar[str] = "digitalocean_snapshot"
-
     snapshot_size_gigabytes: Optional[int] = None
     resource_id: Optional[str] = None
     resource_type: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/snapshots"
 
 
 @dataclass(eq=False)
@@ -219,8 +253,8 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
     enable_backend_keepalive: Optional[bool] = None
     disable_lets_encrypt_dns_records: Optional[bool] = None
 
-    def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+    def delete_uri_path(self) -> Optional[str]:
+        return "/load_balancers"
 
 
 @dataclass(eq=False)
@@ -232,7 +266,19 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
     is_locked: Optional[bool] = None
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+        log.debug(
+            f"Deleting resource {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+        )
+        team = self.account(graph)
+        credentials = get_team_credentials(team.id)
+        client = StreamingWrapper(
+            credentials.api_token,
+            credentials.spaces_access_key,
+            credentials.spaces_secret_key,
+        )
+        # un-assign the ip just in case it's still assigned to a droplet
+        client.unassign_floating_ip(self.id)
+        return client.delete("/floating_ips", self.id)
 
 
 @dataclass(eq=False)
@@ -249,6 +295,9 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
     size_gigabytes: Optional[int] = None
     description: Optional[str] = None
     image_status: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/images"
 
 
 @dataclass(eq=False)
@@ -270,6 +319,9 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
     live_url_base: Optional[str] = None
     live_domain: Optional[str] = None
 
+    def delete_uri_path(self):
+        return "/apps"
+
 
 @dataclass(eq=False)
 class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
@@ -283,6 +335,9 @@ class DigitalOceanCdnEndpoint(DigitalOceanResource, BaseEndpoint):
     custom_domain: Optional[str] = None
     ttl: Optional[int] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/cdn/endpoints"
+
 
 @dataclass(eq=False)
 class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
@@ -293,15 +348,32 @@ class DigitalOceanCertificate(DigitalOceanResource, BaseCertificate):
     certificate_state: Optional[str] = None
     certificate_type: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/certificates"
+
 
 @dataclass(eq=False)
 class DigitalOceanContainerRegistry(DigitalOceanResource, BaseResource):
     """DigitalOcean container registry"""
 
     kind = "digitalocean_container_registry"
-
     storage_usage_bytes: Optional[int] = None
     is_read_only: Optional[bool] = None
+
+    def delete(self, graph: Graph) -> bool:
+        """Delete the container registry from the cloud"""
+
+        log.debug(
+            f"Deleting registry {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+        )
+        team = self.account(graph)
+        credentials = get_team_credentials(team.id)
+        client = StreamingWrapper(
+            credentials.api_token,
+            credentials.spaces_access_key,
+            credentials.spaces_secret_key,
+        )
+        return client.delete("/registry", None)
 
 
 @dataclass(eq=False)
@@ -319,10 +391,16 @@ class DigitalOceanContainerRegistryRepositoryTag(DigitalOceanResource, BaseResou
     """DigitalOcean container registry repository tag"""
 
     kind = "digitalocean_container_registry_repository_tag"
-
+    registry_name: Optional[str] = None
+    repository_name: Optional[str] = None
     manifest_digest: Optional[str] = None
     compressed_size_bytes: Optional[int] = None
     size_bytes: Optional[int] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return (
+            f"/registry/{self.registry_name}/repositories/{self.repository_name}/tags"
+        )
 
 
 @dataclass(eq=False)
@@ -333,12 +411,18 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
     public_key: Optional[str] = None
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/account/keys"
+
 
 @dataclass(eq=False)
 class DigitalOceanTag(DigitalOceanResource, BaseResource):
     """DigitalOcean tag"""
 
     kind = "digitalocean_tag"
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/tags"
 
 
 @dataclass(eq=False)
@@ -347,12 +431,19 @@ class DigitalOceanDomain(DigitalOceanResource, BaseDomain):
 
     kind = "digitalocean_domain"
 
+    def delete_uri_path(self) -> Optional[str]:
+        return "/domains"
+
 
 @dataclass(eq=False)
 class DigitalOceanDomainRecord(DigitalOceanResource, BaseDomainRecord):
     """DigitalOcean domain record"""
 
     kind = "digitalocean_domain_record"
+    domain_name: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return f"/domains/{self.domain_name}/records"
 
 
 @dataclass(eq=False)
@@ -360,5 +451,7 @@ class DigitalOceanFirewall(DigitalOceanResource, BaseResource):
     """DigitalOcean firewall"""
 
     kind = "digitalocean_firewall"
-
     firewall_status: Optional[str] = None
+
+    def delete_uri_path(self) -> Optional[str]:
+        return "/firewalls"

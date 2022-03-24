@@ -485,7 +485,7 @@ class DigitalOceanTeamCollector:
                 "__tags": [
                     "urn",
                     lambda image: list(
-                        map(lambda tag: tag_id(tag), image.get("tags", []))
+                        map(lambda tag: tag_id(tag), image.get("tags", []) or [])
                     ),
                 ],
             },
@@ -502,7 +502,9 @@ class DigitalOceanTeamCollector:
                 "instance_status": "status",
                 "instance_cores": "vcpus",
                 "instance_memory": "memory",
-                "droplet_backup_ids": lambda d: list(map(str, d.get("backup_ids", []))),
+                "droplet_backup_ids": lambda d: list(
+                    map(str, d.get("backup_ids", []) or [])
+                ),
                 "is_locked": "locked",
                 "droplet_features": "features",
                 "droplet_image": lambda d: d["image"]["slug"],
@@ -521,6 +523,7 @@ class DigitalOceanTeamCollector:
             },
             predecessors={
                 EdgeType.default: ["__vpcs", "__images", "__tags"],
+                EdgeType.delete: ["__vpcs"],
             },
         )
 
@@ -575,6 +578,7 @@ class DigitalOceanTeamCollector:
                 ],
             },
             predecessors={EdgeType.default: ["__users", "__tags"]},
+            successors={EdgeType.delete: ["__users"]},
         )
 
     @metrics_collect_databases.time()
@@ -623,10 +627,15 @@ class DigitalOceanTeamCollector:
                 "__vpcs": ["urn", lambda db: vpc_id(db["private_network_uuid"])],
                 "__tags": [
                     "urn",
-                    lambda db: list(map(lambda tag: tag_id(tag), db.get("tags", []))),
+                    lambda db: list(
+                        map(lambda tag: tag_id(tag), db.get("tags", []) or [])
+                    ),
                 ],
             },
-            predecessors={EdgeType.default: ["__vpcs", "__tags"]},
+            predecessors={
+                EdgeType.default: ["__vpcs", "__tags"],
+                EdgeType.delete: ["__vpcs"],
+            },
         )
 
     @metrics_collect_vpcs.time()
@@ -677,7 +686,10 @@ class DigitalOceanTeamCollector:
             search_map={
                 "__resources": ["urn", lambda p: p["resource_ids"]],
             },
-            successors={EdgeType.default: ["__resources"]},
+            successors={
+                EdgeType.default: ["__resources"],
+                EdgeType.delete: ["__resources"],
+            },
         )
 
     @metrics_collect_k8s_clusters.time()
@@ -712,8 +724,8 @@ class DigitalOceanTeamCollector:
                 ],
                 "__vpcs": ["urn", lambda c: vpc_id(c["vpc_uuid"])],
             },
-            successors={EdgeType.default: ["__nodes"]},
-            predecessors={EdgeType.default: ["__vpcs"]},
+            successors={EdgeType.default: ["__nodes"], EdgeType.delete: ["__nodes"]},
+            predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
 
     @metrics_collect_snapshots.time()
@@ -746,7 +758,9 @@ class DigitalOceanTeamCollector:
                 "__resource": ["urn", lambda s: get_resource_id(s)],
                 "__tags": [
                     "urn",
-                    lambda s: list(map(lambda tag: tag_id(tag), s.get("tags", []))),
+                    lambda s: list(
+                        map(lambda tag: tag_id(tag), s.get("tags", []) or [])
+                    ),
                 ],
             },
             predecessors={EdgeType.default: ["__resource", "__tags"]},
@@ -787,11 +801,11 @@ class DigitalOceanTeamCollector:
                 "__droplets": [
                     "urn",
                     lambda lb: list(
-                        map(lambda id: droplet_id(id), lb.get("droplet_ids", []))
+                        map(lambda id: droplet_id(id), lb.get("droplet_ids", []) or [])
                     ),
                 ],
             },
-            predecessors={EdgeType.default: ["__vpcs"]},
+            predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
             successors={EdgeType.default: ["__droplets"]},
         )
 
@@ -961,6 +975,8 @@ class DigitalOceanTeamCollector:
                     "urn": lambda t: container_registry_repository_tag_id(
                         t["registry_name"], t["repository"], t["tag"]
                     ),
+                    "registry_name": "registry_name",
+                    "repository_name": "repository",
                     "name": "tag",
                     "manifest_digest": "manifest_digest",
                     "compressed_size_bytes": "compressed_size_bytes",
@@ -1036,6 +1052,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": lambda r: str(r["id"]),
                 "urn": lambda r: domain_record_id(r["id"]),
+                "domain_name": "domain_name",
                 "record_type": "type",
                 "record_name": "name",
                 "record_data": "data",
@@ -1067,12 +1084,12 @@ class DigitalOceanTeamCollector:
                 "__droplets": [
                     "urn",
                     lambda f: list(
-                        map(lambda id: droplet_id(id), f.get("droplet_ids", []))
+                        map(lambda id: droplet_id(id), f.get("droplet_ids", []) or [])
                     ),
                 ],
                 "__tags": [
                     "urn",
-                    lambda f: list(map(lambda id: tag_id(id), f.get("tags", []))),
+                    lambda f: list(map(lambda id: tag_id(id), f.get("tags", []) or [])),
                 ],
             },
             predecessors={

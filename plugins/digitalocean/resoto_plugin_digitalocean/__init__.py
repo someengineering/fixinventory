@@ -57,8 +57,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
 
     def collect_team(self, client: StreamingWrapper) -> Optional[Dict]:
         """Collects an individual team."""
-        projects = client.list_projects()
-        team_id = str(projects[0]["owner_id"])
+        team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
 
         try:

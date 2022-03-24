@@ -26,7 +26,7 @@ from fixtures import (
     firewalls,
 )
 from resotolib.graph import sanitize
-from resotolib.baseresources import Cloud
+from resotolib.baseresources import Cloud, EdgeType
 from resotolib.graph import Graph, GraphRoot
 import datetime
 
@@ -55,13 +55,14 @@ def prepare_graph(do_client) -> Graph:
     return graph
 
 
-def check_edges(graph: Graph, from_id: str, to_id: str) -> None:
+def check_edges(graph: Graph, from_id: str, to_id: str, delete: bool = False) -> None:
     for (node_from, node_to, edge) in graph.edges:
         if (
             hasattr(node_from, "urn")
             and hasattr(node_to, "urn")
             and node_from.urn == from_id
             and node_to.urn == to_id
+            and edge.edge_type == (EdgeType.delete if delete else EdgeType.default)
         ):
             return
     assert False, f"Edge {from_id} -> {to_id} not found"
@@ -140,6 +141,12 @@ def test_collect_droplets():
     check_edges(
         graph, "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959", "do:droplet:289110074"
     )
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:droplet:289110074",
+        delete=True,
+    )
     check_edges(graph, "do:image:101111514", "do:droplet:289110074")
     check_edges(graph, "do:tag:image_tag", "do:image:101111514")
     check_edges(graph, "do:tag:droplet_tag", "do:droplet:289110074")
@@ -215,6 +222,12 @@ def test_collect_database():
         "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
     )
     check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
+        delete=True,
+    )
+    check_edges(
         graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     )
     database = graph.search_first(
@@ -245,6 +258,12 @@ def test_collect_k8s_clusters():
         graph,
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
         "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
+    )
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26",
+        delete=True,
     )
     check_edges(
         graph,
@@ -309,6 +328,12 @@ def test_collect_loadbalancers():
         graph,
         "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
         "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
+    )
+    check_edges(
+        graph,
+        "do:vpc:0d3176ad-41e0-4021-b831-0c5c45c60959",
+        "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
+        delete=True,
     )
     check_edges(
         graph,
