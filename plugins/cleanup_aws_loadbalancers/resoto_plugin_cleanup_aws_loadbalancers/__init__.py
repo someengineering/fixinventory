@@ -9,7 +9,8 @@ from resoto_plugin_aws.resources import (
     AWSALBTargetGroup,
     AWSEC2Instance,
 )
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
+from .config import CleanupAWSLoadbalancersConfig
 from resotolib.utils import parse_delta
 from typing import Dict
 
@@ -19,30 +20,30 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
 
     def __init__(self):
         super().__init__()
+        self.age = None
+        if Config.plugin_cleanup_aws_loadbalancers.enabled:
+            self.update_age()
 
     def bootstrap(self) -> bool:
-        if ArgumentParser.args.cleanup_aws_loadbalancers:
-            try:
-                self.age = parse_delta(
-                    ArgumentParser.args.cleanup_aws_loadbalancers_age
-                )
-                log.debug(f"AWS Loadbalancer Cleanup Plugin Age {self.age}")
-            except ValueError:
-                log.exception(
-                    f"Error while parsing AWS Loadbalancer "
-                    f"Cleanup Age {ArgumentParser.args.cleanup_aws_loadbalancers_age}"
-                )
-            else:
-                return True
-        return False
+        return Config.plugin_cleanup_aws_loadbalancers.enabled
 
     def do_action(self, data: Dict) -> None:
+        self.update_age()
         cg = CoreGraph()
-
         query = 'is(["aws_elb", "aws_alb", "aws_alb_target_group"]) <-default,delete[0:]delete->'
         graph = cg.graph(query)
         self.loadbalancer_cleanup(graph)
         cg.patch_nodes(graph)
+
+    def update_age(self) -> None:
+        try:
+            self.age = parse_delta(Config.plugin_cleanup_aws_loadbalancers.min_age)
+            log.debug(f"Cleanup AWS Load balancers minimum age is {self.age}")
+        except ValueError:
+            log.error(
+                f"Error while parsing Cleanup AWS Load balancers minimum age {Config.plugin_cleanup_aws_loadbalancers.min_age}"
+            )
+            raise
 
     def loadbalancer_cleanup(self, graph: Graph):
         log.info("AWS Loadbalancers Cleanup called")
@@ -156,17 +157,5 @@ class CleanupAWSLoadbalancersPlugin(BaseActionPlugin):
                     node.clean = True
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--cleanup-aws-loadbalancers",
-            help="Cleanup unused AWS Loadbalancers (default: False)",
-            dest="cleanup_aws_loadbalancers",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--cleanup-aws-loadbalancers-age",
-            help="Cleanup unused AWS Loadbalancers Age (default: 7 days)",
-            default="7 days",
-            dest="cleanup_aws_loadbalancers_age",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(CleanupAWSLoadbalancersConfig)
