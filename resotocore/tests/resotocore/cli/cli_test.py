@@ -1,4 +1,5 @@
 from asyncio import Queue
+from datetime import timedelta
 from typing import Tuple, List, AsyncIterator
 
 import pytest
@@ -30,6 +31,7 @@ from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.graph_access import EdgeType
 from resotocore.model.model import Model
 from resotocore.query.template_expander import TemplateExpander
+from resotocore.util import utc, from_utc
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription
 
 # noinspection PyUnresolvedReferences
@@ -270,3 +272,21 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 5, 5 reversed '
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5 | head 3 | tail 2")
     assert commands[0].executable_commands[0].arg == 'is("volume") sort reported.name desc limit 7, 2 reversed '
+
+
+@pytest.mark.asyncio
+async def test_replacements(cli: CLI) -> None:
+    async def execute(template: str, replace_place_holder: bool = True) -> str:
+        result = await cli.evaluate_cli_command(f"echo {template}", replace_place_holder=replace_place_holder)
+        return result[0].parsed_commands.commands[0].args  # type: ignore
+
+    # lookup keys are not case-sensitive
+    today = utc().date().strftime("%Y-%m-%d")
+    assert await execute("@today@ and @TODAY@") == f"{today} and {today}"
+
+    # if the value is not provided, but a function is called
+    in_3_days = utc() + timedelta(days=3)
+    assert abs(from_utc(await execute("@3d.from_now@")) - in_3_days) < timedelta(seconds=1)
+
+    # replacement is not touched if flag is set
+    assert await execute("@today@", False) == "@today@"

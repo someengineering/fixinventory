@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Any, ByteString, Union, Iterable, Tuple, List, Optional, cast
 
 from parsy import string, Parser, regex, any_char
-from ustache import default_getter, default_virtuals, render, PropertyGetter
+from ustache import default_getter, default_virtuals, render, PropertyGetter, TagsTuple, default_tags
 
 from resotocore.db.templatedb import TemplateEntityDb
 from resotocore.error import NoSuchTemplateError
@@ -26,7 +26,7 @@ from resotocore.parse_util import (
 from resotocore.query import query_parser, QueryParser
 from resotocore.query.model import Query, Expandable, Template
 from resotocore.types import Json
-from resotocore.util import identity
+from resotocore.util import identity, duration, utc, utc_str
 
 
 class TemplateExpander(QueryParser):
@@ -183,6 +183,10 @@ class VirtualFunctions:
     def parens(result: Any) -> str:
         return f'"{result}"'
 
+    @staticmethod
+    def from_now(result: str) -> str:
+        return utc_str(utc() + duration(result))
+
 
 # noinspection PyTypeChecker
 getter: PropertyGetter = functools.partial(
@@ -191,16 +195,18 @@ getter: PropertyGetter = functools.partial(
         **default_virtuals,
         "with_index": VirtualFunctions.with_index,
         "parens": VirtualFunctions.parens,
+        "from_now": VirtualFunctions.from_now,
     },
 )
 
 
-def render_template(template: str, props: Json, more_props: Iterable[Json] = ()) -> str:
+def render_template(template: str, props: Json, more_props: Iterable[Json] = (), tags: TagsTuple = default_tags) -> str:
     """
     Render given provided template with given property values.
     :param template: the template string.
     :param props: the properties to populate.
     :param more_props: additional property maps
+    :param tags: the tags to identify the template
     :return: the rendered template string.
     """
 
@@ -214,7 +220,9 @@ def render_template(template: str, props: Json, more_props: Iterable[Json] = ())
         else:
             return f"{data}".encode()
 
-    rendered = render(template, props, scopes=more_props, escape=identity, stringify=json_stringify, getter=getter)
+    rendered = render(
+        template, props, scopes=more_props, escape=identity, stringify=json_stringify, getter=getter, tags=tags
+    )
     return cast(str, rendered)
 
 
@@ -226,7 +234,7 @@ def tpl_key_value_parser() -> Parser:
     return key, value
 
 
-# double quoted string is maintained with quotes: "foo" -> "foo"
+# double-quoted string is maintained with quotes: "foo" -> "foo"
 double_quoted_string = double_quote_dp + double_quoted_string_part_or_esc_dp + double_quote_dp
 # single quoted string is parsed without surrounding quotes: 'foo' -> 'foo'
 single_quoted_string = single_quote_dp + single_quoted_string_part_or_esc_dp + single_quote_dp
