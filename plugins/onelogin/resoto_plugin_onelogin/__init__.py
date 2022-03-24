@@ -4,12 +4,13 @@ from datetime import datetime, timedelta, timezone
 from onelogin.api.client import OneLoginClient
 from onelogin.api.models.user import User
 from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.utils import make_valid_timestamp
 from resotolib.baseresources import BaseAccount, BaseRegion, BaseUser
 from resotolib.graph import Graph
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, Dict, List
+from .config import OneloginConfig
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -131,17 +132,14 @@ class OneLoginPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: OneLogin collecting resources")
 
-        if (
-            not ArgumentParser.args.onelogin_client_id
-            or not ArgumentParser.args.onelogin_client_secret
-        ):
+        if not Config.onelogin.client_id or not Config.onelogin.client_secret:
             log.debug("OneLogin: no credentials given, skipping collection")
             return
 
-        account = OneLoginAccount(ArgumentParser.args.onelogin_client_id, {})
+        account = OneLoginAccount(Config.onelogin.client_id, {})
         self.graph.add_resource(self.root, account)
 
-        region = OneLoginRegion(ArgumentParser.args.onelogin_region, {})
+        region = OneLoginRegion(Config.onelogin.region, {})
         self.graph.add_resource(account, region)
 
         self.collect_users(region)
@@ -161,34 +159,14 @@ class OneLoginPlugin(BaseCollectorPlugin):
             self.graph.add_resource(region, user)
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--onelogin-region",
-            help="OneLogin Region",
-            dest="onelogin_region",
-            type=str,
-            default=os.environ.get("ONELOGIN_REGION", "us"),
-        )
-        arg_parser.add_argument(
-            "--onelogin-client-id",
-            help="OneLogin Client ID",
-            dest="onelogin_client_id",
-            type=str,
-            default=os.environ.get("ONELOGIN_CLIENT_ID"),
-        )
-        arg_parser.add_argument(
-            "--onelogin-client-secret",
-            help="OneLogin Client Secret",
-            dest="onelogin_client_secret",
-            type=str,
-            default=os.environ.get("ONELOGIN_CLIENT_SECRET"),
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(OneloginConfig)
 
 
 def onelogin_client() -> OneLoginClient:
     client = OneLoginClient(
-        ArgumentParser.args.onelogin_client_id,
-        ArgumentParser.args.onelogin_client_secret,
-        ArgumentParser.args.onelogin_region,
+        Config.onelogin.client_id,
+        Config.onelogin.client_secret,
+        Config.onelogin.region,
     )
     return client
