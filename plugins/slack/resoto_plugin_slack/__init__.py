@@ -1,6 +1,5 @@
 import resotolib.logging
 import threading
-import os
 import time
 import ssl
 import slack_sdk
@@ -15,7 +14,7 @@ from .resources import (
 )
 from resotolib.baseplugin import BasePlugin, BaseCollectorPlugin
 from resotolib.baseresources import BaseCloud, BaseAccount, BaseRegion, BaseResource
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
 from resotolib.event import (
     Event,
     EventType,
@@ -23,6 +22,7 @@ from resotolib.event import (
     remove_event_listener,
 )
 from resotolib.graph import Graph
+from .config import SlackConfig
 
 log = resotolib.logging.getLogger("resoto." + __name__)
 
@@ -50,16 +50,16 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         self.client = None
 
     def collect(self) -> None:
-        if not ArgumentParser.args.slack_bot_token:
+        if not Config.slack.bot_token:
             log.info("Slack Collector Plugin: plugin loaded but no bot token provided")
             return
 
         log.info("Slack Collector Plugin: collecting Slack resources")
 
         slack_client_args = {
-            "token": ArgumentParser.args.slack_bot_token,
+            "token": Config.slack.bot_token,
         }
-        if ArgumentParser.args.slack_do_not_verify_ssl:
+        if Config.slack.do_not_verify_ssl:
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
@@ -118,7 +118,7 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         log.debug("Fetching list of Slack Conversations")
         channel_types = "public_channel,private_channel"
         channel_limit = 100
-        exclude_archived = not ArgumentParser.args.slack_include_archived
+        exclude_archived = not Config.slack.include_archived
         response = self.client.conversations_list(
             exclude_archived=exclude_archived, types=channel_types, limit=channel_limit
         )
@@ -196,38 +196,18 @@ class SlackCollectorPlugin(BaseCollectorPlugin):
         return members
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--slack-bot-token",
-            help="Slack Bot Token (default env $SLACK_BOT_TOKEN)",
-            default=os.environ.get("SLACK_BOT_TOKEN"),
-            dest="slack_bot_token",
-            type=str,
-        )
-        arg_parser.add_argument(
-            "--slack-include-archived",
-            help="Include archived slack channels",
-            dest="slack_include_archived",
-            action="store_true",
-            default=False,
-        )
-        arg_parser.add_argument(
-            "--slack-do-not-verify-cert",
-            help="Do not verify the Slack API server TLS certificate",
-            dest="slack_do_not_verify_ssl",
-            action="store_true",
-            default=False,
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(SlackConfig)
 
 
 class SlackBotPlugin(BasePlugin):
     def __init__(self):
         super().__init__()
         self.name = "slack_bot"
-        if not hasattr(ArgumentParser.args, "slack_bot_token"):
+        if Config.slack.bot_token is None:
             return
 
-        self.client = slack_sdk.WebClient(token=ArgumentParser.args.slack_bot_token)
+        self.client = slack_sdk.WebClient(token=Config.slack.bot_token)
         self.exit = threading.Event()
         self.users2id = {}
         self.emails2id = {}
@@ -244,7 +224,7 @@ class SlackBotPlugin(BasePlugin):
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
 
     def go(self):
-        if not hasattr(ArgumentParser.args, "slack_bot_token"):
+        if Config.slack.bot_token is None:
             return
 
         self.exit.wait()
@@ -336,10 +316,6 @@ class SlackBotPlugin(BasePlugin):
         self.emails2id = tmp_emails
         self.usergroups2id = tmp_usergroups
         self.channels2id = tmp_channels
-
-    @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        pass
 
     def shutdown(self, event: Event):
         log.debug(f"Received event {event.event_type} - shutting down Slack plugin")
