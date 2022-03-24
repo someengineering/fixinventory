@@ -74,6 +74,7 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import aggregate_parameter_parser
 from resotocore.query.template_expander import render_template
+from resotocore.types import JsonElement
 from resotocore.util import utc_str, utc, from_utc
 
 log = logging.getLogger(__name__)
@@ -210,6 +211,9 @@ class CIKeyDict(Dict[str, Any]):
     def __getitem__(self, item: str) -> Any:
         key = item.lower()
         return super().__getitem__(key) if key in self else item
+
+    def __setitem__(self, key: str, value: Any) -> Any:
+        return super().__setitem__(key.lower(), value)
 
 
 class CLI:
@@ -403,6 +407,9 @@ class CLI:
     async def evaluate_cli_command(
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
+        # create them once for the evaluation phase
+        replacements = CLI.replacements()
+
         async def combine_query_parts(
             commands: List[ExecutableCommand], ctx: CLIContext
         ) -> Tuple[CLIContext, List[ExecutableCommand]]:
@@ -434,12 +441,13 @@ class CLI:
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
-                props = {p.name: p.default for p in alias.parameters}
+                props: Dict[str, JsonElement] = replacements.copy()  # type: ignore
+                for p in alias.parameters:
+                    props[p.name] = p.default
                 props.update(key_values_parser.parse(alias_cmd.args or ""))
                 undefined = [k for k, v in props.items() if v is None]
                 if undefined:
                     raise AttributeError(f"Alias {alias_cmd.cmd} missing attributes: {', '.join(undefined)}")
-
                 rendered = alias.render(props)
                 log.debug(f"The rendered alias template is: {rendered}")
                 return single_commands.parse(rendered)  # type: ignore
@@ -522,5 +530,6 @@ class CLI:
         )
 
     @staticmethod
-    def replace_placeholder(cli_input: str, **env: str) -> str:
-        return render_template(cli_input, CLI.replacements(**env), tags=("@", "@"))
+    def replace_placeholder(cli_input: str, replacements: Optional[Dict[str, Any]] = None, **env: str) -> str:
+        repls = replacements or CLI.replacements(**env)
+        return render_template(cli_input, repls, tags=("@", "@"))

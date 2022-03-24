@@ -8,7 +8,7 @@ from pytest import fixture
 
 from resotocore.analytics import InMemoryEventSender
 from resotocore.cli import strip_quotes
-from resotocore.cli.cli import CLI, multi_command_parser
+from resotocore.cli.cli import CLI, multi_command_parser, CIKeyDict
 from resotocore.cli.command import (
     ExecuteSearchCommand,
     ChunkCommand,
@@ -296,3 +296,13 @@ async def test_replacements(cli: CLI) -> None:
 
     # replacement is not touched if flag is set
     assert await execute("@today@", False) == "@today@"
+
+
+def test_ci_dict() -> None:
+    d = CIKeyDict(A=1, B=2)
+    # keys are lower case
+    assert d.keys() == {"a", "b"}
+    d["c"] = 3
+    d["C"] = 4
+    assert d["c"] == 4
+    assert d.keys() == {"a", "b", "c"}
