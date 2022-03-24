@@ -927,7 +927,7 @@ class BaseDatabase(BaseResource):
 class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
     lb_type: str = ""
-    public_ip_address: str = None
+    public_ip_address: Optional[str] = None
     backends: List[str] = field(default_factory=list)
 
 
