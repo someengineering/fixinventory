@@ -438,22 +438,33 @@ class CLI:
 
             return ParsedCommands(result, line.env)
 
-        async def send_analytics(parsed: List[ParsedCommands]) -> None:
+        async def send_analytics(parsed: List[ParsedCommands], raw: List[ParsedCommands]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.commands]
+            used_aliases = [cmd.cmd for line in raw for cmd in line.commands if cmd.cmd in self.alias_templates]
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
-                {"command_names": command_names, "session_id": resoto_session_id},
+                {"command_names": command_names, "used_aliases": used_aliases, "session_id": resoto_session_id},
                 command_lines=len(parsed),
                 commands=len(command_names),
             )
 
-        replaced = self.replace_placeholder(cli_input, **context.env)
-        command_lines: List[ParsedCommands] = multi_command_parser.parse(replaced)
+        def replace_placeholders(parsed: ParsedCommands) -> ParsedCommands:
+            def replace_command(cmd: ParsedCommand) -> ParsedCommand:
+                args = cmd.args if cmd.args is None else self.replace_placeholder(cmd.args, **parsed.env)
+                return ParsedCommand(cmd.cmd, args)
+
+            return ParsedCommands([replace_command(cmd) for cmd in parsed.commands], parsed.env)
+
+        # parse command lines (raw)
+        raw_parsed: List[ParsedCommands] = multi_command_parser.parse(cli_input)
+        # expand aliases
+        command_lines = [expand_aliases(cmd_line) for cmd_line in raw_parsed]
+        # send analytics
+        await send_analytics(command_lines, raw_parsed)
+        # decide, if placeholders should be replaced
         keep_raw = not replace_place_holder or JobsCommand.is_jobs_update(command_lines[0].commands[0])
-        command_lines = multi_command_parser.parse(cli_input) if keep_raw else command_lines
-        await send_analytics(command_lines)  # send before the alias commands get expanded
-        command_lines = [expand_aliases(cmd_line) for cmd_line in command_lines]
+        command_lines = command_lines if keep_raw else [replace_placeholders(cmd_line) for cmd_line in command_lines]
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         return res
 
