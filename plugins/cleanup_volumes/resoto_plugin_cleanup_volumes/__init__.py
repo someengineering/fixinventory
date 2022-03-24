@@ -30,11 +30,11 @@ class CleanupVolumesPlugin(BaseActionPlugin):
 
     def update_age(self) -> None:
         try:
-            self.age = parse_delta(Config.plugin_cleanup_volumes.age)
+            self.age = parse_delta(Config.plugin_cleanup_volumes.min_age)
             log.debug(f"Volume Cleanup Plugin Age {self.age}")
         except ValueError:
             log.exception(
-                f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.age}"
+                f"Error while parsing Volume Cleanup Age {Config.plugin_cleanup_volumes.min_age}"
             )
 
     def volumes_cleanup(self, graph: Graph):

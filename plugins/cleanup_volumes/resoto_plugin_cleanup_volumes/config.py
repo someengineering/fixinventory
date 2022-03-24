@@ -10,15 +10,15 @@ class CleanupVolumesConfig:
         default=False,
         metadata={"description": "Enable plugin?"},
     )
-    age: str = field(
+    min_age: str = field(
         default="14 days",
-        metadata={"description": "Minimum age of unused volumes to delete"},
+        metadata={"description": "Minimum age of unused volumes to cleanup"},
     )
 
     @staticmethod
     def validate(config: "CleanupVolumesConfig") -> bool:
         try:
-            parse_delta(config.age)
+            parse_delta(config.min_age)
         except ValueError:
             return False
         return True
