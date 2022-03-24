@@ -6,4 +6,4 @@ def test_args():
     arg_parser = get_arg_parser()
     ExampleCollectorPlugin.add_args(arg_parser)
     arg_parser.parse_args()
-    assert ArgumentParser.args.example_region is None
+    assert ArgumentParser.args.example_arg is None
