@@ -1,7 +1,8 @@
 from resotolib.baseplugin import BaseActionPlugin
 from resotolib.logging import log
 from resotolib.core.query import CoreGraph
-from resotolib.args import ArgumentParser
+from resotolib.config import Config
+from .config import CleanupExpiredConfig
 from typing import Dict
 
 
@@ -9,7 +10,7 @@ class CleanupExpiredPlugin(BaseActionPlugin):
     action = "cleanup_plan"
 
     def bootstrap(self):
-        return ArgumentParser.args.cleanup_expired
+        return Config.plugin_cleanup_expired.enabled
 
     def do_action(self, data: Dict) -> None:
         log.debug("Cleanup Expired called")
@@ -40,11 +41,5 @@ class CleanupExpiredPlugin(BaseActionPlugin):
                 log.debug(f"Response: {response}")
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--cleanup-expired",
-            help="Cleanup expired resources (default: False)",
-            dest="cleanup_expired",
-            action="store_true",
-            default=False,
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(CleanupExpiredConfig)

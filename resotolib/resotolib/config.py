@@ -76,6 +76,7 @@ class Config(metaclass=MetaConfig):
     def init_default_config() -> None:
         for config_id, config_data in Config.running_config.classes.items():
             if config_id not in Config.running_config.data:
+                log.debug(f"Initializing defaults for config section {config_id}")
                 Config.running_config.data[config_id] = config_data()
 
     @staticmethod
@@ -120,11 +121,12 @@ class Config(metaclass=MetaConfig):
                 new_config = {}
                 for config_id, config_data in config.items():
                     if config_id in Config.running_config.classes:
+                        log.debug(f"Loading config section {config_id}")
                         new_config[config_id] = jsons.load(
                             config_data, Config.running_config.classes[config_id]
                         )
                     else:
-                        log.warning(f"Unknown config {config_id}")
+                        log.warning(f"Unknown config section {config_id}")
                 Config.running_config.data = new_config
                 Config.running_config.revision = new_config_revision
             self.init_default_config()
