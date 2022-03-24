@@ -7,4 +7,6 @@ def test_config():
     CleanupUntaggedPlugin.add_config(config)
     Config.init_default_config()
     assert Config.plugin_cleanup_untagged.enabled is False
-    assert Config.plugin_cleanup_untagged.validate(Config.plugin_cleanup_untagged) is True
+    assert (
+        Config.plugin_cleanup_untagged.validate(Config.plugin_cleanup_untagged) is True
+    )
