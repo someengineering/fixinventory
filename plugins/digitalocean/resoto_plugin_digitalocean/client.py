@@ -204,17 +204,15 @@ class StreamingWrapper:
     def list_spaces(self, region_slug: str) -> List[Json]:
         if self.session is not None:
             try:
-                client = self.session.client(
+                resource = self.session.resource(
                     "s3",
                     endpoint_url=f"https://{region_slug}.digitaloceanspaces.com",
-                    # Find your endpoint in the control panel, under Settings. Prepend "https://".
-                    region_name=region_slug,  # Use the region in your endpoint.
+                    region_name=region_slug,
                     aws_access_key_id=self.spaces_access_key,
-                    # Access key pair. You can create access key pairs using the control panel or API.
                     aws_secret_access_key=self.spaces_secret_key,
                 )
 
-                return client.list_buckets().get("Buckets", [])
+                return resource.meta.client.list_buckets().get("Buckets", [])
             except HTTPClientError:
                 raise RetryableHttpError("DO Spaces: Too many requests")
             except EndpointConnectionError:
@@ -226,6 +224,69 @@ class StreamingWrapper:
                 return []
         else:
             return []
+
+    @retry(
+        stop_max_attempt_number=10,
+        wait_exponential_multiplier=3000,
+        wait_exponential_max=300000,
+        retry_on_exception=retry_on_error,
+    )
+    def delete_space(self, region_slug: str, bucket_name: str) -> bool:
+        if self.session is not None:
+            try:
+                s3 = self.session.resource(
+                    "s3",
+                    endpoint_url=f"https://{region_slug}.digitaloceanspaces.com",
+                    region_name=region_slug,
+                    aws_access_key_id=self.spaces_access_key,
+                    aws_secret_access_key=self.spaces_secret_key,
+                )
+
+                def handle_response_code(result):
+                    if not isinstance(result, list):
+                        result = [result]
+                    for message in result:
+                        status_code = message.get("ResponseMetadata", {}).get(
+                            "HTTPStatusCode"
+                        )
+                        if status_code // 100 == 5:
+                            raise RetryableHttpError(
+                                f"Server error: region: {region_slug}, bucket: {bucket_name}, msg: {message}"
+                            )
+                        if status_code == 429:
+                            raise RetryableHttpError(
+                                f"Too many requests: {region_slug}, bucket: {bucket_name}, msg: {message}"
+                            )
+                        if status_code // 100 == 4:
+                            log.warning(
+                                f"Client error: region: {region_slug}, bucket: {bucket_name}, msg: {message}"
+                            )
+                            return False
+                    return True
+
+                s3_bucket = s3.Bucket(bucket_name)
+                bucket_versioning = s3.BucketVersioning(bucket_name)
+                object_deletion_result = None
+                if bucket_versioning.status == "Enabled":
+                    object_deletion_result = s3_bucket.object_versions.delete()
+                else:
+                    object_deletion_result = s3_bucket.objects.delete()
+
+                handle_response_code(object_deletion_result)
+
+                bucket_deletion_result = s3_bucket.delete()
+
+                return handle_response_code(bucket_deletion_result)
+
+            except RetryableHttpError as e:
+                raise e
+            except Exception as e:
+                log.warning(
+                    f"Unknown exception when deleting space, skipping. Exception: {e}"
+                )
+                return False
+        else:
+            return False
 
     def list_apps(self) -> List[Json]:
         return self._fetch("/apps", "apps")
