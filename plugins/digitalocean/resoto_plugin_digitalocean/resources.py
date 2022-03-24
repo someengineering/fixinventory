@@ -306,6 +306,19 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
 
     kind: ClassVar[str] = "digitalocean_space"
 
+    def delete(self, graph: Graph) -> bool:
+        log.debug(
+            f"Deleting space {self.id} in account {self.account(graph).id} region {self.region(graph).id}"
+        )
+        team = self.account(graph)
+        credentials = get_team_credentials(team.id)
+        client = StreamingWrapper(
+            credentials.api_token,
+            credentials.spaces_access_key,
+            credentials.spaces_secret_key,
+        )
+        return client.delete_space(self.region(graph).id, self.id)
+
 
 @dataclass(eq=False)
 class DigitalOceanApp(DigitalOceanResource, BaseResource):
