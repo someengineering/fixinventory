@@ -39,7 +39,7 @@ class StreamingWrapper:
         else:
             self.session = None
 
-i    def check_status_code(self, response: requests.Response) -> bool:
+    def check_status_code(self, response: requests.Response) -> bool:
         status_code = response.status_code
         url = response.request.url
         method = response.request.method
