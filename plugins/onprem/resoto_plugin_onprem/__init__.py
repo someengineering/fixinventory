@@ -5,9 +5,12 @@ import multiprocessing
 import resotolib.signal
 from concurrent import futures
 from resotolib.baseplugin import BaseCollectorPlugin
+from argparse import Namespace
 from resotolib.args import ArgumentParser
+from resotolib.config import Config, RunningConfig
 from .resources import OnpremLocation, OnpremRegion, OnpremNetwork
 from .ssh import instance_from_ssh
+from .config import OnpremConfig
 from paramiko import ssh_exception
 from typing import Dict
 
@@ -20,18 +23,18 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
     def collect(self) -> None:
         log.debug("plugin: collecting on-prem resources")
 
-        if len(ArgumentParser.args.onprem_server) == 0:
+        if len(Config.onprem.server) == 0:
             log.debug("No On-Prem servers specified")
             return
 
-        default_location = OnpremLocation(ArgumentParser.args.onprem_location)
+        default_location = OnpremLocation(Config.onprem.location)
         self.graph.add_resource(self.graph.root, default_location)
 
-        default_region = OnpremRegion(ArgumentParser.args.onprem_region)
+        default_region = OnpremRegion(Config.onprem.region)
         self.graph.add_resource(default_location, default_region)
 
         servers = []
-        for server in ArgumentParser.args.onprem_server:
+        for server in Config.onprem.server:
             location = region = network = None
             srv = {}
             if "%" in server:
@@ -69,15 +72,18 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
 
         max_workers = (
             len(servers)
-            if len(servers) < ArgumentParser.args.onprem_pool_size
-            else ArgumentParser.args.onprem_pool_size
+            if len(servers) < Config.onprem.pool_size
+            else Config.onprem.pool_size
         )
         pool_args = {"max_workers": max_workers}
-        if ArgumentParser.args.onprem_fork:
+        if Config.onprem.fork:
             pool_args["mp_context"] = multiprocessing.get_context("spawn")
             pool_args["initializer"] = resotolib.signal.initializer
             pool_executor = futures.ProcessPoolExecutor
-            collect_args = {"args": ArgumentParser.args}
+            collect_args = {
+                "args": ArgumentParser.args,
+                "running_config": Config.running_config,
+            }
         else:
             pool_executor = futures.ThreadPoolExecutor
             collect_args = {}
@@ -101,68 +107,18 @@ class OnpremCollectorPlugin(BaseCollectorPlugin):
                 self.graph.add_resource(src, s)
 
     @staticmethod
-    def add_args(arg_parser: ArgumentParser) -> None:
-        arg_parser.add_argument(
-            "--onprem-location",
-            help="On-Prem default location",
-            dest="onprem_location",
-            type=str,
-            default="Default location",
-        )
-        arg_parser.add_argument(
-            "--onprem-region",
-            help="On-Prem default region",
-            dest="onprem_region",
-            type=str,
-            default="Default region",
-        )
-        arg_parser.add_argument(
-            "--onprem-ssh-user",
-            help="On-Prem SSH User",
-            dest="onprem_ssh_user",
-            type=str,
-            default="root",
-        )
-        arg_parser.add_argument(
-            "--onprem-ssh-key",
-            help="On-Prem SSH Key",
-            dest="onprem_ssh_key",
-            type=str,
-            default=None,
-        )
-        arg_parser.add_argument(
-            "--onprem-ssh-key-pass",
-            help="On-Prem SSH Key Passphrase",
-            dest="onprem_ssh_key_pass",
-            type=str,
-            default=None,
-        )
-        arg_parser.add_argument(
-            "--onprem-server",
-            help="On-Prem Server",
-            dest="onprem_server",
-            type=str,
-            default=[],
-            nargs="+",
-        )
-        arg_parser.add_argument(
-            "--onprem-pool-size",
-            help="On-Prem Thread Pool Size (default: 5)",
-            dest="onprem_pool_size",
-            default=5,
-            type=int,
-        )
-        arg_parser.add_argument(
-            "--onprem-fork",
-            help="On-Prem use forked process instead of threads (default: False)",
-            dest="onprem_fork",
-            action="store_true",
-        )
+    def add_config(config: Config) -> None:
+        config.add_config(OnpremConfig)
 
 
-def collect_server(srv: Dict, args=None) -> Dict:
+def collect_server(
+    srv: Dict, args: Namespace = None, running_config: RunningConfig = None
+) -> Dict:
     if args is not None:
         ArgumentParser.args = args
+    if running_config is not None:
+        Config.running_config.apply(running_config)
+
     hostname: str = srv.get("hostname")
     username = None
     port = 22
@@ -178,8 +134,8 @@ def collect_server(srv: Dict, args=None) -> Dict:
             hostname,
             username=username,
             port=port,
-            key_filename=ArgumentParser.args.onprem_ssh_key,
-            passphrase=ArgumentParser.args.onprem_ssh_key_pass,
+            key_filename=Config.onprem.ssh_key,
+            passphrase=Config.onprem.ssh_key_pass,
         )
         src = srv.get("network", srv.get("region", srv.get("location", None)))
     except (socket.timeout, ssh_exception.PasswordRequiredException):
